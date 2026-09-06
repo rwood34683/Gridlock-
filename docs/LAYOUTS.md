@@ -71,16 +71,17 @@ is what says the digitization is sound.
 `tools/out/` also holds an overlay render for eyeballing: every measured
 footprint boxed on the original map.
 
-### What is not asserted
+### The one thing the map does not say
 
 Two cylinders on the sidelines at (1.4, 60.1) and (148.7, 60.1) are **drawn but
-never labeled** on the official map. Their position and footprint are measured
-like everything else; their name is not. They ship as `name: "UNLABELED"`,
-`type: "tall_cylinder"`, with a note. Their footprint is identical to the
-labeled `Br`, and the map's legend also lists a `TCK` (Tall Cake) that appears
-nowhere labeled — so it is one of those two, and the map does not say which.
-`layouts/CLAUDE.md` says to ask rather than guess, so they stay unnamed until
-someone who knows the field says.
+never labeled**. Their position and footprint are measured like everything else,
+but a name cannot be read off the map, and the legend also lists a `TCK` (Tall
+Cake) that appears nowhere labeled — so it was one of those two and the map does
+not say which. `layouts/CLAUDE.md` says to ask rather than guess, so they shipped
+as `UNLABELED` until the field owner confirmed them as **`Br`**, which is what
+their 3.5 × 7.8 ft footprint already matched exactly. They now carry
+`name: "Br"` with a note recording that the name came from confirmation rather
+than from the printed map.
 
 ## Coordinate frame
 

@@ -51,8 +51,9 @@ ev['digitized'] = {
     'mirror_check': ('25 mirrored pairs, axis mean 74.84 ft, sd 0.21 ft; the printed centre '
                      'line measures 75.15 ft. Residual is inside the drawing line weight.'),
     'bunker_count': len(out),
-    'unlabeled': ('Two sideline cylinders at x 1.4 and 148.7, y 60.0 carry no printed label '
-                  'on the official map. Their geometry is measured; the name is not asserted.'),
+    'unlabeled': ('The two sideline cylinders at x 1.4 and 148.7, y 60.1 carry no printed '
+                  'label on the official map. Identified as Br from their footprint, which '
+                  'matches the labeled Br exactly; confirmed by the field owner.'),
     'tool': 'tools/digitize_layout.py',
 }
 json.dump(ev, open(EVENT, 'w'), indent=2)
@@ -70,17 +71,15 @@ def uid(b):
 SHAPE = {
     'medium_dorito': 'dorito',  'small_dorito': 'tridown',  'cake': 'tridown',
     'temple': 'temple',         'maya_temple': 'temple',
-    'brick': 'can',             'tall_cylinder': 'can',     'wing': 'can',
+    'brick': 'can',             'wing': 'can',
     'cylinder': 'ball',         'tree': 'ball',
     'giant_wing': 'gwing',      'giant_brick': 'gbrick',    'giant_plus': 'plus',
     'mini_w': 'mw',             'snake_beam': 'beam',
 }
 rows = []
 for b in out:
-    # 'UNLABELED' is too long to print on the field; the event JSON keeps it in full.
-    label = '?' if b['name'] == 'UNLABELED' else b['name']
     rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{}}}'.format(
-        uid(b), label, b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft']))
+        uid(b), b['name'], b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft']))
 
 os.makedirs('tools/out', exist_ok=True)
 with open('tools/out/mwo_layout.js', 'w') as f:

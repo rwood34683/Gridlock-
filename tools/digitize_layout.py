@@ -91,11 +91,12 @@ add('GW', 'giant_wing', 71.5, 65.0, 78.5, 71.5, RED)
 
 # ---- mid temples, sideline cylinders ----
 add('T', 'temple', 25, 57, 30, 62); add('T', 'temple', 119, 57, 124, 62)
-# Both sideline cylinders are drawn but carry no printed label. Their footprint
-# matches the labeled Br exactly; the name is measured, not asserted.
-_note = 'no printed label on the official map; footprint matches the labeled Br'
-add('UNLABELED', 'tall_cylinder', -1, 55, 4, 65, note=_note)
-add('UNLABELED', 'tall_cylinder', 146, 55, 151, 65, note=_note)
+# Both sideline cylinders are drawn but carry no printed label on the official
+# map. Their footprint and rendering match the labeled Br exactly, and the field
+# owner confirmed them as Br.
+_note = 'no printed label on the official map; identified as Br by footprint, confirmed by the field owner'
+add('Br', 'brick', -1, 55, 4, 65, note=_note)
+add('Br', 'brick', 146, 55, 151, 65, note=_note)
 add('MT', 'maya_temple', 54.5, 65, 59.5, 70); add('MT', 'maya_temple', 89.5, 65, 94.5, 70)
 add('MT', 'maya_temple', 9.5, 75, 14.5, 80);  add('MT', 'maya_temple', 134.5, 75, 139.5, 80)
 

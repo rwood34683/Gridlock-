@@ -226,24 +226,24 @@
       "h_ft": 4.0
     },
     {
-      "name": "UNLABELED",
-      "type": "tall_cylinder",
+      "name": "Br",
+      "type": "brick",
       "side": "home",
       "x_ft": 1.4,
       "y_ft": 60.1,
       "w_ft": 3.5,
       "h_ft": 7.8,
-      "note": "no printed label on the official map; footprint matches the labeled Br"
+      "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
     },
     {
-      "name": "UNLABELED",
-      "type": "tall_cylinder",
+      "name": "Br",
+      "type": "brick",
       "side": "away",
       "x_ft": 148.7,
       "y_ft": 60.1,
       "w_ft": 3.4,
       "h_ft": 7.8,
-      "note": "no printed label on the official map; footprint matches the labeled Br"
+      "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
     },
     {
       "name": "GB",
@@ -613,7 +613,7 @@
     },
     "mirror_check": "25 mirrored pairs, axis mean 74.84 ft, sd 0.21 ft; the printed centre line measures 75.15 ft. Residual is inside the drawing line weight.",
     "bunker_count": 58,
-    "unlabeled": "Two sideline cylinders at x 1.4 and 148.7, y 60.0 carry no printed label on the official map. Their geometry is measured; the name is not asserted.",
+    "unlabeled": "The two sideline cylinders at x 1.4 and 148.7, y 60.1 carry no printed label on the official map. Identified as Br from their footprint, which matches the labeled Br exactly; confirmed by the field owner.",
     "tool": "tools/digitize_layout.py"
   }
 }
