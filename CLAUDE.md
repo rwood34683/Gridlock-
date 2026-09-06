@@ -20,7 +20,12 @@ Do not treat Overskill `.txt` as compiled code. It is the product prompt.
 
 - Never use the word GunzUp anywhere (UI, comments, filenames, git). Label that control **Shot lanes**.
 - Coach-simple copy. Short labels. No developer jargon in the UI.
-- Dark stadium look. Navy `#0b1220`, gold `#f0c14b`, field green. Not cartoon. Not a golf course.
+- Dark stadium look. Black `#0b0c0d` ground, red `#ad1515` fills, `#e5252a` for small
+  accents, off-white `#efedeb` type. Not cartoon. Not a golf course.
+- The field is the same dark ground, not green turf. Bunkers are one neutral grey
+  material so the wires stay the loudest thing on it.
+- Wires are semantic and never change: left pit red `#e5342f`, right pit blue `#3d8bff`.
+  Shot lanes are white, so they read against both.
 - Promo first. Do not auto-open the tutorial.
 - Staff login required to create a class or send a league blast.
 - Joining a class does **not** require an account.

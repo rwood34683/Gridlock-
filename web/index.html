@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-<meta name="theme-color" content="#0b1220"/>
+<meta name="theme-color" content="#0b0c0d"/>
 <meta name="color-scheme" content="dark"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -16,9 +16,13 @@
 <title>GRIDLOCK System · Coach Edition</title>
 <style>
 :root{
-  --bg:#0b1220; --panel:#121b2d; --panel2:#182338; --line:#2a3a55;
-  --gold:#f0c14b; --gold2:#d4a017; --ink:#e8eef8; --mute:#8ea0bc;
-  --red:#e24b4b; --blue:#3d8bff; --green:#1e6b3a; --turf:#16351f;
+  --bg:#0b0c0d; --panel:#141616; --panel2:#1c1f1f; --line:#2a2d2d;
+  --sunk:#101212;
+  /* one accent, three weights: solid fills, pressed, and small type */
+  --accent:#ad1515; --accent-deep:#8f1010; --accent-lit:#e5252a;
+  --ink:#efedeb; --mute:#9b9d9e;
+  /* wires stay semantic — left pit red, right pit blue */
+  --red:#e5342f; --blue:#3d8bff; --turf:#101111;
   --ok:#3ecf8e;
 }
 *{box-sizing:border-box}
@@ -28,27 +32,27 @@ button{cursor:pointer}
 .app{display:flex;flex-direction:column;min-height:100%}
 .top{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
 .brand{font-weight:800;letter-spacing:.12em}
-.brand small{display:block;font-weight:600;letter-spacing:.28em;font-size:9px;color:var(--gold)}
+.brand small{display:block;font-weight:600;letter-spacing:.28em;font-size:9px;color:var(--accent-lit)}
 .grow{flex:1}
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px}
-.chip.on{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
 .main{flex:1;overflow:auto;padding:12px}
-.tabs{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);background:#0a101b}
+.tabs{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);background:#000}
 .tabs button{flex:1;background:transparent;border:0;color:var(--mute);padding:8px 4px;font-size:11px}
-.tabs button.on{color:var(--gold);font-weight:700}
+.tabs button.on{color:var(--accent-lit);font-weight:700}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
 h1,h2,h3{margin:0 0 8px}
 h2{font-size:16px}
 label{display:block;font-size:11px;color:var(--mute);margin:8px 0 4px;letter-spacing:.04em}
-input,select,textarea{width:100%;background:#0d1524;border:1px solid var(--line);border-radius:10px;padding:10px}
+input,select,textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px}
 textarea{min-height:70px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
-.btn{background:var(--gold);color:#111;border:0;border-radius:10px;padding:10px 14px;font-weight:700}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn.red{background:var(--red);color:#fff}
 .btn.blue{background:var(--blue);color:#fff}
 .muted{color:var(--mute);font-size:12px}
-.field-wrap{background:linear-gradient(#1a4a28,#0f2a18);border-radius:12px;overflow:hidden;border:1px solid #2c5a38}
+.field-wrap{background:#0b0c0d;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 svg.field{width:100%;height:auto;display:block}
 .pit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:720px){.pit{grid-template-columns:1fr}}
@@ -56,18 +60,18 @@ svg.field{width:100%;height:auto;display:block}
 .table{width:100%;border-collapse:collapse;font-size:12px}
 .table th,.table td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
 .promo{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;background:
-  radial-gradient(1200px 500px at 50% 0%, #1a3d28 0%, transparent 55%),
-  linear-gradient(#071018,#0b1220)}
+  radial-gradient(1200px 520px at 50% 0%, rgba(173,21,21,.30) 0%, transparent 58%),
+  linear-gradient(#000,#0b0c0d)}
 .promo h1{font-size:42px;letter-spacing:.18em;margin:0}
-.promo .sys{letter-spacing:.4em;color:var(--gold);font-size:12px;margin:4px 0 18px}
+.promo .sys{letter-spacing:.4em;color:var(--accent-lit);font-size:12px;margin:4px 0 18px}
 .promo .tag{color:var(--mute);margin-bottom:22px}
 .stack{display:flex;flex-direction:column;gap:8px}
 .warn{color:#f3c38a;font-size:12px}
-.tip{background:#1b283c;border:1px solid var(--gold);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px}
+.tip{background:#1a1212;border:1px solid var(--accent);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px}
 .who{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px}
-.bar{height:10px;border-radius:99px;overflow:hidden;display:flex;background:#0d1524}
+.bar{height:10px;border-radius:99px;overflow:hidden;display:flex;background:var(--sunk)}
 .bar i{display:block;height:100%}
-code{background:#0d1524;padding:2px 6px;border-radius:6px}
+code{background:var(--sunk);padding:2px 6px;border-radius:6px}
 
 /* --- Native shell: notch/home-indicator insets and app-like touch behaviour --- */
 html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
@@ -271,7 +275,7 @@ function bunkerSize(b){ return BUNKER[b.t] || BUNKER.can; }
 // red and blue break paths stay the loudest thing on the field.
 function bunkerShape(b, sx, sy){
   const x = b.x*sx, y = b.y*sy, s = bunkerSize(b);
-  const fill = 'url(#bnkFace)', edge = '#6d7c92', sw = 'stroke-width=".7"';
+  const fill = 'url(#bnkFace)', edge = '#63676a', sw = 'stroke-width=".7"';
   const box = (w,h,r) => `<rect x="${(x-w).toFixed(1)}" y="${(y-h).toFixed(1)}" width="${(w*2).toFixed(1)}" height="${(h*2).toFixed(1)}" rx="${r}" fill="${fill}" stroke="${edge}" ${sw}/>`;
 
   switch(b.t){
@@ -313,7 +317,7 @@ function bunkerLabels(list, sx, sy){
     const spot = !hits(below) ? below : (!hits(above) ? above : null);
     if(!spot) return "";                       // no room — the shape still reads
     placed.push(spot);
-    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#cfe0f2" stroke="#0d2416" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${b.n}</text>`;
+    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#e4e6e7" stroke="#0b0c0d" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${b.n}</text>`;
   }).join("");
 }
 
@@ -329,18 +333,21 @@ function fieldSVG(opts={}){
   const runner = (list, colour, offset) => list.map(p=>{
     const pts=[p.from,...(p.via||[]),p.to].map(q=>`${(q[0]*sx).toFixed(1)},${(q[1]*sy).toFixed(1)}`).join(" ");
     const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
-    let out = `<polyline fill="none" stroke="#0a1c11" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity=".55" points="${pts}"/>`
+    let out = `<polyline fill="none" stroke="#000000" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity=".55" points="${pts}"/>`
             + `<polyline fill="none" stroke="${colour}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>`;
     if(S.shotOn){
       const ang = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
-      out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx+Math.cos(ang)*18).toFixed(1)}" y2="${(cy+Math.sin(ang)*18).toFixed(1)}" stroke="#f0c14b" stroke-width="1.6" stroke-linecap="round" opacity=".9"/>`;
+      const lx=(cx+Math.cos(ang)*18).toFixed(1), ly=(cy+Math.sin(ang)*18).toFixed(1);
+      // Cased, because a bare white lane disappears over a light bunker.
+      out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${lx}" y2="${ly}" stroke="#000" stroke-width="3.2" stroke-linecap="round" opacity=".55"/>`
+           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${lx}" y2="${ly}" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`;
     }
     out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"/>`
          + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700">${p.id+offset}</text>`;
     return out;
   }).join("");
 
-  let paths = runner(br.paths, opts.color||"#e24b4b", 0);
+  let paths = runner(br.paths, opts.color||"#e5342f", 0);
   if(opts.both){
     const flip=q=>[150-q[0],q[1]];
     paths += runner(br.paths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
@@ -351,28 +358,28 @@ function fieldSVG(opts={}){
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
     <defs>
       <linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#ccd7e6"/>
-        <stop offset="1" stop-color="#93a2b8"/>
+        <stop offset="0" stop-color="#d4d6d7"/>
+        <stop offset="1" stop-color="#8d9092"/>
       </linearGradient>
       <filter id="bnkLift" x="-40%" y="-40%" width="180%" height="200%">
-        <feDropShadow dx="0" dy="1.1" stdDeviation="1" flood-color="#04120a" flood-opacity=".55"/>
+        <feDropShadow dx="0" dy="1.1" stdDeviation="1" flood-color="#000000" flood-opacity=".55"/>
       </filter>
     </defs>
 
-    <rect x="-8" y="${-M}" width="${W+16}" height="${H+M*2}" fill="#0d2416"/>
-    <rect width="${W}" height="${H}" fill="#16351f"/>
-    ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#12301b"/>`:"").join("")}
-    <rect width="${W}" height="${H}" fill="none" stroke="#5e7f68" stroke-width="1" opacity=".5"/>
-    <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#d7e7c8" stroke-width=".8" stroke-dasharray="5 7" opacity=".38"/>
-    <line x1="4" y1="0" x2="4" y2="${H}" stroke="#d7e7c8" stroke-width=".8" opacity=".3"/>
-    <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#d7e7c8" stroke-width=".8" opacity=".3"/>
+    <rect x="-8" y="${-M}" width="${W+16}" height="${H+M*2}" fill="#0b0c0d"/>
+    <rect width="${W}" height="${H}" fill="#101111"/>
+    ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#0c0d0e"/>`:"").join("")}
+    <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1" opacity=".9"/>
+    <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".26"/>
+    <line x1="4" y1="0" x2="4" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
+    <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
 
     <g filter="url(#bnkLift)">${bunks}</g>
     ${bunkerLabels(layout.bunkers, sx, sy)}
     ${paths}
 
-    <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#9fc2a8" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
-    <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#9fc2a8" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
+    <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
+    <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
   </svg>`;
 }
 

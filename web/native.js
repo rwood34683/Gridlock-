@@ -33,7 +33,7 @@
   if (P.StatusBar) {
     P.StatusBar.setStyle({ style: "DARK" }).catch(function () {});
     if (Cap.getPlatform() === "android") {
-      P.StatusBar.setBackgroundColor({ color: "#0b1220" }).catch(function () {});
+      P.StatusBar.setBackgroundColor({ color: "#000000" }).catch(function () {});
     }
   }
 

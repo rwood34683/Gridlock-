@@ -15,7 +15,7 @@ os.makedirs(OUT, exist_ok=True)
 
 def render(svg_name, png_path, size, transparent=False):
     svg = open(os.path.join(BRAND, svg_name), encoding="utf-8").read()
-    bg = "transparent" if transparent else "#0b1220"
+    bg = "transparent" if transparent else "#0b0c0d"
     html = os.path.join(OUT, "_shot.html")
     with open(html, "w", encoding="utf-8") as f:
         f.write("<!doctype html><meta charset='utf-8'><style>*{margin:0;padding:0}"
@@ -34,7 +34,7 @@ def resize(src, dst, size, mode="RGB"):
     im = Image.open(src).convert("RGBA").resize((size, size), Image.LANCZOS)
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     if mode == "RGB":
-        flat = Image.new("RGB", im.size, "#0b1220")
+        flat = Image.new("RGB", im.size, "#0b0c0d")
         flat.paste(im, mask=im.split()[3])
         flat.save(dst)
     else:
@@ -52,7 +52,7 @@ def round_mask(src, dst, size):
     out.save(dst)
 
 
-def letterbox(src, dst, w, h, bg="#0b1220"):
+def letterbox(src, dst, w, h, bg="#0b0c0d"):
     """Centre the square splash art on a w×h canvas without distorting it."""
     art = Image.open(src).convert("RGBA")
     side = int(min(w, h) * 0.92)

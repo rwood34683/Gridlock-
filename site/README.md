@@ -58,9 +58,10 @@ the script; never edit the build output.
 ## Design notes
 
 The palette, the tone and the copy rules come from `CLAUDE.md` at the repo root:
-navy `#0b1220`, gold `#f0c14b`, chalk type, field green only where a field is
-actually drawn. Single dark theme is deliberate — a light version would
-contradict the brand.
+black `#0b0c0d` ground, red `#ad1515` for solid fills, `#e5252a` for small
+accents, off-white `#efedeb` type. No second hue — the wires (left pit red,
+right pit blue) are the only other colour, and they are semantic. Single dark
+theme is deliberate — a light version would contradict the brand.
 
 Type is Oswald (display, stadium signage), Barlow (body) and IBM Plex Mono
 (bunker codes and join codes), all from Google Fonts.

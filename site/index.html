@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>GRIDLOCK System</title>
 <meta name="description" content="GRIDLOCK System · Coach Edition. Call the break, direct the five, and scout the other pit from the sideline. Free for coaches and league staff on iPhone and Android."/>
-<meta name="theme-color" content="#070d17"/>
+<meta name="theme-color" content="#000000"/>
 <meta name="color-scheme" content="dark"/>
 <link rel="icon" href="img/icon.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png"/>
@@ -24,34 +24,34 @@
 /* ============================================================
    GRIDLOCK System — landing page
    Palette and tone are fixed by the product's brand rules:
-   dark stadium night, navy ground, gold accent, chalk type,
-   field green only where a field is actually depicted.
+   black stadium night, one red accent in three weights, off-white
+   type. No second hue — the wires (left red, right blue) are the
+   only other colour and they are semantic, not decorative.
    Single dark theme is deliberate, not an omission — a light
    version would contradict the brand, so every colour is
    painted explicitly and the page holds on any host ground.
    ============================================================ */
 :root{
   /* ground + surface */
-  --night:#070d17;
-  --navy:#0b1220;
-  --panel:#121b2d;
-  --panel-2:#182338;
-  --line:#22314a;
-  --line-lit:#33456a;
+  --night:#000000;
+  --navy:#0b0c0d;
+  --panel:#141616;
+  --panel-2:#1c1f1f;
+  --line:#242727;
+  --line-lit:#3a3e3e;
 
   /* type */
-  --chalk:#e8eef8;
-  --mute:#8ea0bc;
-  --dim:#63748f;
+  --chalk:#efedeb;
+  --mute:#a4a5a5;
+  --dim:#74797a;
 
-  /* the one accent */
-  --gold:#f0c14b;
-  --gold-deep:#d4a017;
+  /* one accent, three weights: solid fills, pressed, and small type */
+  --red:#ad1515;
+  --red-deep:#8f1010;
+  --red-lit:#e5252a;
 
-  /* field + wires — semantic, never decorative */
-  --turf:#16351f;
-  --turf-lit:#1e5c33;
-  --wire-l:#e24b4b;
+  /* wires — semantic, never decorative */
+  --wire-l:#e5342f;
   --wire-r:#3d8bff;
 
   /* type scale */
@@ -83,9 +83,9 @@ body{
 }
 
 img{max-width:100%;height:auto;display:block}
-a{color:var(--gold);text-decoration:none}
+a{color:var(--red-lit);text-decoration:none}
 a:hover{text-decoration:underline}
-:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+:focus-visible{outline:2px solid var(--red-lit);outline-offset:3px;border-radius:4px}
 
 /* ---------- shared type ---------- */
 .eyebrow{
@@ -94,7 +94,7 @@ a:hover{text-decoration:underline}
   font-weight:500;
   letter-spacing:.34em;
   text-transform:uppercase;
-  color:var(--gold);
+  color:var(--red-lit);
   margin:0;
 }
 .eyebrow.quiet{color:var(--dim)}
@@ -139,16 +139,16 @@ section + section{border-top:1px solid var(--line)}
   overflow:hidden;
   padding-block:clamp(56px, 8vw, 96px) clamp(48px, 7vw, 88px);
   background:
-    radial-gradient(1100px 460px at 50% -8%, rgba(30,107,58,.34) 0%, rgba(30,107,58,0) 62%),
-    linear-gradient(var(--navy), var(--night));
+    radial-gradient(1100px 460px at 50% -8%, rgba(173,21,21,.30) 0%, rgba(173,21,21,0) 64%),
+    linear-gradient(#101112, var(--navy));
 }
 .hero__field{
   position:absolute;
   inset:0;
   pointer-events:none;
   background-image:
-    repeating-linear-gradient(to right, rgba(42,58,85,.34) 0 1px, transparent 1px 64px),
-    repeating-linear-gradient(to bottom, rgba(42,58,85,.34) 0 1px, transparent 1px 64px);
+    repeating-linear-gradient(to right, rgba(255,255,255,.055) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.055) 0 1px, transparent 1px 64px);
   -webkit-mask-image:radial-gradient(1000px 560px at 50% 0%, #000 0%, transparent 74%);
   mask-image:radial-gradient(1000px 560px at 50% 0%, #000 0%, transparent 74%);
 }
@@ -160,7 +160,7 @@ section + section{border-top:1px solid var(--line)}
   top:0;
   bottom:0;
   width:1px;
-  background:repeating-linear-gradient(to bottom, rgba(232,238,248,.16) 0 9px, transparent 9px 20px);
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,.14) 0 9px, transparent 9px 20px);
 }
 .hero__inner{position:relative;display:grid;gap:clamp(40px,6vw,72px);align-items:center}
 @media (min-width:900px){
@@ -183,7 +183,7 @@ section + section{border-top:1px solid var(--line)}
   font-weight:500;
   letter-spacing:.5em;
   text-transform:uppercase;
-  color:var(--gold);
+  color:var(--red-lit);
   padding-left:.35em;
 }
 .tagline{
@@ -207,12 +207,16 @@ section + section{border-top:1px solid var(--line)}
   padding:10px 18px 10px 15px;
   border:1px solid var(--line-lit);
   border-radius:11px;
-  background:#0d1524;
+  background:var(--panel);
   color:var(--chalk);
   text-decoration:none;
   transition:border-color .18s ease, background .18s ease, transform .18s ease;
 }
-.badge:hover{border-color:var(--gold);background:#111c30;transform:translateY(-1px);text-decoration:none}
+.badge:hover{border-color:var(--red-lit);background:#1d1f1f;transform:translateY(-1px);text-decoration:none}
+/* first badge in a row is the primary call to action */
+.badges .badge:first-child{background:var(--red);border-color:var(--red)}
+.badges .badge:first-child .badge__small{color:#f3c9c9}
+.badges .badge:first-child:hover{background:var(--red-deep);border-color:var(--red-deep)}
 .badge svg{flex:none;fill:currentColor}
 .badge__text{display:flex;flex-direction:column;line-height:1.1}
 .badge__small{font-size:.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
@@ -235,8 +239,8 @@ section + section{border-top:1px solid var(--line)}
   padding:9px;
   border:1px solid var(--line-lit);
   border-radius:34px;
-  background:linear-gradient(160deg,#1b2740,#0a1120);
-  box-shadow:0 28px 70px -28px rgba(0,0,0,.95), 0 0 0 1px rgba(240,193,75,.08);
+  background:linear-gradient(160deg,#2a2e2e,#0d0e0e);
+  box-shadow:0 28px 70px -28px #000, 0 0 0 1px rgba(229,37,42,.10);
   flex:none;
 }
 .phone img{border-radius:26px;width:100%}
@@ -289,7 +293,7 @@ section + section{border-top:1px solid var(--line)}
   font-size:2.25rem;
   font-weight:700;
   line-height:1;
-  color:var(--gold);
+  color:var(--red-lit);
   font-variant-numeric:tabular-nums;
 }
 .step h3{color:var(--chalk)}
@@ -321,7 +325,7 @@ section + section{border-top:1px solid var(--line)}
   font-weight:500;
   letter-spacing:.16em;
   text-transform:uppercase;
-  color:var(--gold);
+  color:var(--red-lit);
 }
 .speclist span{font-size:var(--t-small);color:var(--mute)}
 @media (max-width:520px){
@@ -337,7 +341,7 @@ section + section{border-top:1px solid var(--line)}
 
 /* disclaimer — required on Playbook and Scout */
 .aid{
-  border-left:2px solid var(--gold);
+  border-left:2px solid var(--red);
   padding:2px 0 2px 16px;
   font-size:var(--t-small);
   color:var(--mute);
@@ -366,7 +370,7 @@ section + section{border-top:1px solid var(--line)}
 .more-item h3{
   font-size:var(--t-label);
   letter-spacing:.16em;
-  color:var(--gold);
+  color:var(--red-lit);
   font-weight:500;
 }
 .more-item p{font-size:var(--t-small);color:var(--mute);max-width:40ch}
@@ -399,8 +403,8 @@ section + section{border-top:1px solid var(--line)}
   font-size:1.5rem;
   font-weight:600;
   letter-spacing:.12em;
-  color:var(--gold);
-  background:#0d1524;
+  color:var(--red-lit);
+  background:var(--night);
   border:1px dashed var(--line-lit);
   border-radius:10px;
   padding:10px 18px;
@@ -424,7 +428,7 @@ section + section{border-top:1px solid var(--line)}
    ============================================================ */
 .close{
   background:
-    radial-gradient(900px 380px at 50% 108%, rgba(30,107,58,.3) 0%, rgba(30,107,58,0) 62%),
+    radial-gradient(900px 380px at 50% 108%, rgba(173,21,21,.26) 0%, rgba(173,21,21,0) 64%),
     var(--navy);
   text-align:center;
 }
@@ -443,7 +447,7 @@ footer{background:var(--night);border-top:1px solid var(--line);padding-block:40
 .foot__name span{display:block;color:var(--dim);letter-spacing:.24em;font-size:.625rem}
 .foot__links{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:var(--t-small)}
 .foot__links a{color:var(--mute)}
-.foot__links a:hover{color:var(--gold)}
+.foot__links a:hover{color:var(--red-lit)}
 .foot__legal{width:100%;margin-top:6px}
 </style>
 </head>
