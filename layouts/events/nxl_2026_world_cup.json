@@ -1,0 +1,30 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "none",
+  "bunkers": [],
+  "id": "nxl_2026_world_cup",
+  "league": "National Xball League",
+  "league_code": "NXL",
+  "event": "World Cup",
+  "dates": "2026-11",
+  "venue": {
+    "name": "TBD",
+    "city": "",
+    "state": "",
+    "country": "US"
+  },
+  "status": "unreleased",
+  "notes": [
+    "Layout drop scheduled Nov 4 2026."
+  ],
+  "views": [],
+  "sources": [],
+  "season": 2026
+}

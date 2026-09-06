@@ -1,0 +1,54 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "wcppl_2026_defy_opener",
+  "league": "West Coast Paintball Players League",
+  "league_code": "WCPPL",
+  "event": "Defy West Coast Opener",
+  "season": 2026,
+  "dates": "2026-03-06/2026-03-08",
+  "venue": {
+    "name": "SC Village",
+    "city": "Chino",
+    "state": "CA",
+    "country": "US"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/wcppl_2026_defy.jpg"
+    },
+    {
+      "id": "alt",
+      "kind": "photo",
+      "file": "images/wcppl_2026_defy_alt.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "fb",
+      "url": "https://www.facebook.com/wcpplevents/posts/defy-west-coast-opener-layout-at-the-wcppllet-the-chaos-begin/1354807276677724/"
+    },
+    {
+      "type": "ig",
+      "url": "https://www.instagram.com/p/DVg_RqTkqbm/"
+    },
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/west-coast-paintball-players-league/"
+    }
+  ],
+  "notes": [
+    "Comments mention a D-side snake beam. Confirm on image."
+  ]
+}

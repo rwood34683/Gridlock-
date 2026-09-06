@@ -1,0 +1,35 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "none",
+  "bunkers": [],
+  "id": "nxl_2026_lone_star",
+  "league": "National Xball League",
+  "league_code": "NXL",
+  "event": "Lone Star Open",
+  "dates": "2026-09-17/2026-09-20",
+  "venue": {
+    "name": "Audubon Sports Park",
+    "city": "Garland",
+    "state": "TX",
+    "country": "US"
+  },
+  "status": "unreleased",
+  "notes": [
+    "Official drop ~Wed Sep 9 2026 2pm ET. No image in this pack."
+  ],
+  "views": [],
+  "sources": [
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/national-xball-league"
+    }
+  ],
+  "season": 2026
+}

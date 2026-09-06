@@ -17,7 +17,9 @@ league. One codebase ships to the App Store and Google Play.
 | `android/` | Capacitor Gradle project. Generated — edit `web/`, then `npm run sync`. |
 | `site/` | The landing page. Static, no build step. See `site/README.md`. |
 | `brand/` | Icon and splash SVGs plus the generator that renders every store size. |
-| `docs/` | Product spec and the Overskill import prompt. |
+| `layouts/` | The 2026 layout pack — catalog, schema, one JSON per event, and the official stills that are the ground truth. |
+| `tools/` | Layout digitizer and emitter. See `docs/LAYOUTS.md`. |
+| `docs/` | Product spec, the Overskill import prompt, scaling notes and the layout pipeline. |
 | `ios-native/` | The original SwiftUI snapshot, kept for the native track. Not built. |
 | `scripts/` | Dev server, screenshot capture, artifact build. |
 
@@ -101,7 +103,8 @@ paths, Face and Shot lanes, layout switching, and the call surfaced against the
 opponent's logged tendency); Tally as a point sheet you tap through; Scout
 (dual-pit cards, tendency, threat, notes, sim bar, anticipate cards, a
 counter-picker derived from the opponent read and the match state, division
-board); Sightlines with real blocking geometry; Walk, Lineups, Team, Codes,
+board); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
+layout digitized from the official labeled 2D (58 bunkers); Walk, Lineups, Team, Codes,
 Messages; Classes with join codes and participant forms; League groups with
 blasts and a blast log; and Nexus.
 

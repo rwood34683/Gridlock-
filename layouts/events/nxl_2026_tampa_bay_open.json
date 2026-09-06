@@ -1,0 +1,45 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "nxl_2026_tampa_bay_open",
+  "league": "National Xball League",
+  "league_code": "NXL",
+  "event": "Tampa Bay Open",
+  "season": 2026,
+  "dates": "2026-03-19/2026-03-22",
+  "venue": {
+    "name": "Raymond James Stadium / event site",
+    "city": "Tampa",
+    "state": "FL",
+    "country": "US"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/nxl_2026_tampa_layout.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "ig",
+      "url": "https://www.instagram.com/p/DVwOCQqkYdg/"
+    },
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/national-xball-league"
+    }
+  ],
+  "notes": [
+    "IG official drop still. MVPS Spring Skirmish reused this layout."
+  ]
+}

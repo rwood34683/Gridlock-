@@ -16,7 +16,7 @@ const OUT = path.join(__dirname, "..", "site", "img", "shots");
 
 const SEED = {
   entered: true, role: "staff", email: "coach@team.com",
-  tab: "playbook", script: "snake", layoutKey: "tbo",
+  tab: "playbook", script: "snake", layoutKey: "mwo",
   faceOn: true, shotOn: true, t: 0.62, matchState: "Even",
   tips: { pb: true, tally: true, scout: true, sl: true, class: true },
   left: {

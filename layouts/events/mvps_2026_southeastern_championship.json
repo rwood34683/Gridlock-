@@ -1,0 +1,35 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "none",
+  "bunkers": [],
+  "id": "mvps_2026_southeastern_championship",
+  "league": "Maximum Velocity Paintball Series",
+  "league_code": "MVPS",
+  "event": "Southeastern Championship",
+  "dates": "2026-10-02/2026-10-04",
+  "venue": {
+    "name": "Thunder Valley Paintball Park",
+    "city": "Seffner",
+    "state": "FL",
+    "country": "US"
+  },
+  "status": "unreleased",
+  "notes": [
+    "Layout drops Wed Sep 9 2026."
+  ],
+  "views": [],
+  "sources": [
+    {
+      "type": "site",
+      "url": "https://mvpsevents.com/"
+    }
+  ],
+  "season": 2026
+}
