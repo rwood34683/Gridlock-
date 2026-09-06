@@ -432,6 +432,51 @@ const BREAK_META = {
 };
 function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
 
+// A break on a digitized layout is written as the bunker each player plants
+// on, never as a typed coordinate — the position comes from the layout, so
+// the call stays true to the field even if the map is re-digitized.
+const BREAK_PLANTS = {
+  mwo: {
+    hold:  ["Br#5","T#3","Br#2","T#1","MT#4"],
+    base:  ["SB#4","MT#1","C#4","MD#3","Br#5"],
+    snake: ["SB#6","SB#4","GP#1","MW#3","C#4"],
+    flood: ["MD#1","MD#3","Tr#1","C#4","SB#4"],
+    blitz: ["SB#6","MD#1","Tr#4","GP#1","MT#1"]
+  }
+};
+
+// Which wire a bunker sits on, for the job label a coach reads off.
+function wireOf(y){
+  return y > 88 ? "snake wire" : y > 66 ? "snake side"
+       : y > 44 ? "centre"     : y > 24 ? "dorito side" : "dorito wire";
+}
+
+function breakPaths(layoutKey, scriptKey){
+  const fallback = (BREAKS[scriptKey] || BREAKS.base).paths;
+  const plants = (BREAK_PLANTS[layoutKey] || {})[scriptKey];
+  const layout = LAYOUTS[layoutKey];
+  if(!plants || !layout) return fallback;
+  const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
+  if(targets.some(t => !t)) return fallback;   // layout changed under us
+
+  // All five leave the back-centre station together. Handing out the start
+  // slots in target order keeps the fan legible instead of a knot of crossings.
+  const order = targets.map((_, i) => i).sort((p, q) => targets[p].y - targets[q].y);
+  const slot = {};
+  order.forEach((idx, k) => { slot[idx] = 46 + k * 7; });
+
+  return targets.map((b, i) => {
+    const from = [3, slot[i]];
+    const via = [];
+    // Wire runners cut out early and run the tape rather than crossing the field.
+    if(b.y > 88)      via.push([from[0] + (b.x - from[0]) * 0.45, b.y - 7]);
+    else if(b.y < 22) via.push([from[0] + (b.x - from[0]) * 0.45, b.y + 7]);
+    return {id: i + 1, from, to: [b.x, b.y], via,
+            label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
+  });
+}
+function currentPaths(){ return breakPaths(S.layoutKey, S.script); }
+
 // Heuristic rank, not a prediction. Two inputs a coach actually has: what the
 // other pit reads as, and whether you can afford to be patient. Safer calls
 // rise when you are ahead; aggressive ones rise when you have to score.
@@ -570,6 +615,7 @@ const defaultState = () => ({
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
+  bunkerCalls:{},
   sightFrom:null,
   walkNotes:"",
   codeWords:"",
@@ -626,6 +672,39 @@ const BUNKER = {
 // A digitized layout carries its own measured footprint in feet (w, h), so the
 // renderer draws the real thing rather than a per-type guess. sx/sy convert
 // field feet to SVG units.
+// A team can rename any bunker for the event. The call overlays the official
+// code on the field, per the spec, and falls back to the printed code.
+function bunkerCalls(){ return (S.bunkerCalls || {})[S.layoutKey] || {}; }
+function callOf(b){ return bunkerCalls()[b.id] || b.n; }
+window.setCall = () => {
+  const id = document.getElementById('bcId').value;
+  const nm = clean(document.getElementById('bcName').value.trim());
+  if(!id) return;
+  const all = {...(S.bunkerCalls || {})};
+  const layer = {...(all[S.layoutKey] || {})};
+  if(nm) layer[id] = nm; else delete layer[id];
+  all[S.layoutKey] = layer;
+  S.bunkerCalls = all; save(S); render();
+};
+window.clearCall = id => {
+  const all = {...(S.bunkerCalls || {})};
+  const layer = {...(all[S.layoutKey] || {})};
+  delete layer[id];
+  all[S.layoutKey] = layer;
+  S.bunkerCalls = all; save(S); render();
+};
+
+// ---- bunker traffic, from the tally sheet ----
+function bunkerTraffic(){
+  const t = {};
+  (S.tally || []).forEach(o => {
+    if(typeof o !== 'object') return;
+    if(o.shotAt){ t[o.shotAt] = t[o.shotAt] || {outs:0, visits:0}; t[o.shotAt].outs++; }
+    if(o.movedTo){ t[o.movedTo] = t[o.movedTo] || {outs:0, visits:0}; t[o.movedTo].visits++; }
+  });
+  return t;
+}
+
 function bunkerSize(b, sx=2, sy=2){
   if(b.w && b.h) return {h:(b.w*sx)/2, v:(b.h*sy)/2};
   return BUNKER[b.t] || BUNKER.can;
@@ -676,13 +755,14 @@ function bunkerLabels(list, sx, sy){
 
   return list.map(b => {
     const x = b.x*sx, y = b.y*sy, s = bunkerSize(b, sx, sy);
-    const w = b.n.length*CH + 1, h = FS;
+    const nm = callOf(b);
+    const w = nm.length*CH + 1, h = FS;
     const below = {cx:x, cy:y + s.v + FS*0.9, w, h};
     const above = {cx:x, cy:y - s.v - FS*0.4, w, h};
     const spot = !hits(below) ? below : (!hits(above) ? above : null);
     if(!spot) return "";                       // no room — the shape still reads
     placed.push(spot);
-    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#e4e6e7" stroke="#0b0c0d" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${b.n}</text>`;
+    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#e4e6e7" stroke="#0b0c0d" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${esc(nm)}</text>`;
   }).join("");
 }
 
@@ -725,6 +805,7 @@ function fieldSVG(opts={}){
   const W=300,H=240,sx=W/150,sy=H/120;
   const M=18;                                  // margin for the side labels
   const br = BREAKS[S.script] || BREAKS.snake;
+  const brPaths = currentPaths();
   const t = opts.static?1:S.t;
 
   // Break paths. A dark casing under each line keeps it readable where it
@@ -746,10 +827,10 @@ function fieldSVG(opts={}){
     return out;
   }).join("");
 
-  let paths = runner(br.paths, opts.color||"#e5342f", 0);
+  let paths = runner(brPaths, opts.color||"#e5342f", 0);
   if(opts.both){
     const flip=q=>[150-q[0],q[1]];
-    paths += runner(br.paths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
+    paths += runner(brPaths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
   }
 
   // Sightlines replace the break paths when a source bunker is picked.
@@ -766,6 +847,19 @@ function fieldSVG(opts={}){
   }
 
   const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)).join("");
+
+  // Bunker stats tint each footprint by how much traffic the tally recorded.
+  let heat = "";
+  if(opts.heat){
+    const t = bunkerTraffic();
+    const peak = Math.max(1, ...Object.values(t).map(v=>v.outs+v.visits));
+    heat = layout.bunkers.map(b=>{
+      const v = t[b.id]; if(!v) return "";
+      const s2 = bunkerSize(b, sx, sy);
+      const k = (v.outs+v.visits)/peak;
+      return `<rect x="${(b.x*sx-s2.h-2).toFixed(1)}" y="${(b.y*sy-s2.v-2).toFixed(1)}" width="${(s2.h*2+4).toFixed(1)}" height="${(s2.v*2+4).toFixed(1)}" rx="3" fill="#e5342f" opacity="${(0.15+k*0.65).toFixed(2)}"/>`;
+    }).join("");
+  }
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
     <defs>
@@ -787,6 +881,7 @@ function fieldSVG(opts={}){
     <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
 
     <g filter="url(#bnkLift)">${bunks}</g>
+    ${heat}
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
     ${paths}
@@ -913,7 +1008,7 @@ function playbook(){
     <div class="field-wrap" data-live>${fieldSVG()}</div>`, LAYOUTS[S.layoutKey].name)}
 
   ${sec("Direct the five", `<div class="assigns">
-      ${br.paths.map((pth,i)=>{
+      ${currentPaths().map((pth,i)=>{
         const who=roster[i];
         return `<div class="assign">
           <span class="assign__n">${pth.id}</span>
@@ -987,16 +1082,42 @@ function tally(){
     <button class="btn btn--block" onclick="nextPoint()">Next point</button>`, LAYOUTS[S.layoutKey].name)}
 
   ${sec("Log", outs.length?`<div class="assigns">
-      ${outs.slice(0,40).map((o,i)=>`<div class="assign">
-        <span class="assign__n" style="background:${typeof o==="object"&&o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${typeof o==="object"?o.pt:"·"}</span>
-        <span class="assign__body"><span class="assign__job">${typeof o==="object"?esc(o.name):esc(o)}</span>
-        <span class="assign__who">${typeof o==="object"?(o.side==="us"?"your player":esc(S.right.name)):""}</span></span>
+      ${outs.slice(0,40).map((o,i)=>{
+        if(typeof o!=="object") return `<div class="assign"><span class="assign__n" style="background:var(--line-lit);font-size:11px">·</span>
+          <span class="assign__body"><span class="assign__job">${esc(o)}</span></span>
+          <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button></div>`;
+        return `<div class="assign" style="flex-wrap:wrap">
+        <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${o.pt}</span>
+        <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
+        <span class="assign__who">${o.side==="us"?"your player":esc(S.right.name)}</span></span>
         <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
-      </div>`).join("")}
+        <div class="who2" style="flex-basis:100%;margin-top:6px">
+          ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
+          ${bunkerPick("Moved to", i, "movedTo", o.movedTo)}
+        </div>
+      </div>`;}).join("")}
     </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}.</p>`:""}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
     outs.length?outs.length+" total":"")}`;
 }
+// Optional detail on an out: which bunker he was shot at, which he had moved
+// to. Both feed Bunker stats. The fast path stays one tap — this is after.
+function bunkerPick(label, idx, field, value){
+  const list = (LAYOUTS[S.layoutKey] || LAYOUTS.mwo).bunkers;
+  return `<label style="display:flex;flex-direction:column;gap:4px">
+    <span class="note">${label}</span>
+    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="min-height:36px;font-size:var(--t-sm)">
+      <option value="">—</option>
+      ${list.map(b=>`<option value="${esc(b.id)}" ${value===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+    </select></label>`;
+}
+window.setOutBunker = (i, field, val) => {
+  const t = [...(S.tally||[])];
+  if(!t[i] || typeof t[i] !== "object") return;
+  t[i] = {...t[i], [field]: val || undefined};
+  S.tally = t; save(S); render();
+};
+
 window.markOut = (side,name) => {
   const pt=S.point||1;
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.pt===pt && o.side===side && o.name===name);
@@ -1349,14 +1470,52 @@ function moreBody(k){
   if(k==="walk") return sec("Walk",`<div class="fld"><label>Notes for ${esc(layoutName)}</label>
     <textarea onchange="S.walkNotes=this.value;save(S)" placeholder="Snake mouth is hot. GP first.">${esc(S.walkNotes)}</textarea></div>`, layoutName);
   if(k==="lineups") return sec("Lineups", roster.length?rosterList:`<div class="empty">No roster yet.</div>`, "This point");
-  if(k==="team") return sec("Team", rosterList + `<p class="note">Bunker calls show on the layout.</p>`, roster.length+" players")
-    + sec("Layout",`<div class="field-wrap">${fieldSVG({static:true})}</div>`, layoutName);
+  if(k==="team"){
+    const list=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers, calls=bunkerCalls();
+    const named=Object.keys(calls);
+    return sec("Team", rosterList, roster.length+" players")
+    + sec("Bunker calls", `<p class="lede">Give a bunker your team's name for it. The call replaces the official code on every field in the app.</p>
+      <div class="who2">
+        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker</span>
+          <select id="bcId">${list.map(b=>`<option value="${esc(b.id)}">${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
+          <input id="bcName" placeholder="Home"/></label>
+      </div>
+      <button class="btn btn--block" onclick="setCall()">Save call</button>
+      ${named.length?`<div class="assigns">${named.map(id=>{
+        const b=list.find(x=>x.id===id);
+        return `<div class="assign"><span class="assign__body">
+          <span class="assign__job">${esc(calls[id])}</span>
+          <span class="assign__who">${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
+          <button class="btn btn--danger" onclick="clearCall('${esc(id)}')">Clear</button></div>`;
+      }).join("")}</div>`:`<div class="empty">No calls yet. The official codes show until you set one.</div>`}
+      <div class="field-wrap">${fieldSVG({static:true})}</div>`,
+      named.length?named.length+" named":layoutName);
+  }
   if(k==="movement") return sec("Movement",`<p class="lede">Bunker to bunker after the break. Feeds bunker stats.</p>
     <div class="field-wrap">${fieldSVG({static:true})}</div>
     <div class="empty">Not built yet — the field is here so you can see the layout.</div>`, layoutName);
-  if(k==="stats") return sec("Bunker stats",`<p class="lede">Visits, shots, holds and eliminations, from tally and movement.</p>
-    <div class="field-wrap">${fieldSVG({static:true})}</div>
-    <div class="empty">Not built yet — needs movement data first.</div>`, layoutName);
+  if(k==="stats"){
+    const list=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers, t=bunkerTraffic();
+    const rows=Object.entries(t).map(([id,v])=>({b:list.find(x=>x.id===id), id, ...v}))
+      .filter(r=>r.b).sort((a,b)=>(b.outs+b.visits)-(a.outs+a.visits));
+    return sec("Bunker stats", rows.length
+      ? `<div class="facts">
+          <span class="fact"><b>${rows.length}</b><span>Bunkers hit</span></span>
+          <span class="fact"><b>${rows.reduce((n,r)=>n+r.outs,0)}</b><span>Outs</span></span>
+          <span class="fact"><b>${rows.reduce((n,r)=>n+r.visits,0)}</b><span>Moves in</span></span>
+        </div>
+        <div class="field-wrap">${fieldSVG({static:true,heat:true})}</div>
+        <div class="tblwrap"><table class="tbl">
+          <thead><tr><th>Bunker</th><th>Code</th><th>Outs</th><th>Moves in</th></tr></thead>
+          <tbody>${rows.map(r=>`<tr><td>${esc(callOf(r.b))}</td><td class="num">${esc(r.id)}</td>
+            <td class="num">${r.outs}</td><td class="num">${r.visits}</td></tr>`).join("")}</tbody>
+        </table></div>`
+      : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
+         <div class="field-wrap">${fieldSVG({static:true})}</div>
+         <div class="empty">Nothing logged yet. On Tally, set <b>shot at</b> or <b>moved to</b> on an out and it lands here.</div>`,
+      layoutName);
+  }
   if(k==="assess") return sec("Assess",`<p class="lede">Grade a player after the point. The note stays with the roster.</p>
     <div class="empty">Not built yet.</div>`);
   if(k==="codes") return sec("Codes",`<div class="fld"><label>Code words for this event</label>

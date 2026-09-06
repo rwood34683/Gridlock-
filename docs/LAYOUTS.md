@@ -95,12 +95,41 @@ Each app bunker also carries its measured `w`/`h` in feet, and the renderer
 draws that footprint rather than a per-type guess. A layout without measured
 sizes still falls back to the type table.
 
-## Known gaps
+## Breakouts on a digitized layout
 
-- **The seeded breaks are not Midwest-specific.** Break paths are positions in
-  the same 150 × 120 frame, so they draw correctly, but they were not traced
-  against this layout's bunkers and do not plant on them. Per-layout paths are
-  roadmap item 3 in `CLAUDE.md`.
+A break is written as **the bunker each player plants on**, not as a typed
+coordinate — `BREAK_PLANTS` in `web/index.html` holds five bunker ids per break
+per layout, and the position is resolved from the layout at draw time. So a
+break stays true to the field even if the map is re-digitized, and a wrong id
+falls back to the generic path rather than drawing a player into open turf.
+
+All five leave the back-centre station together. Start slots are handed out in
+target order so the fan reads instead of knotting, and anything planting on a
+wire (y > 88 snake, y < 22 dorito) gets a via that cuts out early and runs the
+tape rather than crossing the field.
+
+The job label a coach reads off — "SB · snake wire", "MD · dorito wire" — comes
+from the bunker's own code and its measured y, so it cannot drift out of sync
+with the field.
+
+## Team bunker calls
+
+A team can rename any bunker for the event under **Team → Bunker calls**. The
+call replaces the official code on every field in the app — Playbook, Scout,
+Sightlines, Movement, Bunker stats — and is stored per layout, so naming a
+bunker on the Midwest Open does not bleed into Tampa Bay. Clearing a call puts
+the printed code back.
+
+## Bunker stats
+
+Marking a player out on Tally is one tap. After that, each log row takes an
+optional **shot at** and **moved to** bunker; both are pickers over the current
+layout, showing the team call where one is set. Bunker stats aggregates those
+into outs and moves-in per bunker, tints each footprint on the field by total
+traffic, and lists the table. Nothing is estimated — a bunker with no logged
+traffic simply does not appear.
+
+## Known gaps
 - **`layouts/schema/layout.schema.json` is stale.** It requires `year`, `sources`
   and `files`; every event in the pack uses `season` and `views`, so that file
   fails all 11 events — including the ones nothing here has touched. The live
