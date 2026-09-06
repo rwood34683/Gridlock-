@@ -250,56 +250,129 @@ function posAt(path, t){
   return [lerp(pts[i][0],pts[i+1][0],f), lerp(pts[i][1],pts[i+1][1],f)];
 }
 
+// Bunker footprints, in SVG units, as half-extents. Sized against the real
+// spacing of the layout: the tightest pair on CIN sits 12 units apart, so the
+// widest piece stays under 6 either side and nothing merges into a blob.
+const BUNKER = {
+  dorito:  {h:5.2, v:4.6},
+  temple:  {h:4.6, v:4.2},
+  tower:   {h:2.6, v:5.8},
+  towerbig:{h:3.6, v:8.2},
+  beam:    {h:15,  v:2.6},
+  plus:    {h:5.6, v:5.6},
+  wing:    {h:6.6, v:4.2},
+  mw:      {h:4.6, v:3.2},
+  cake:    {h:4.6, v:4.6},
+  can:     {h:3.6, v:4.6}
+};
+function bunkerSize(b){ return BUNKER[b.t] || BUNKER.can; }
+
+// One material for every bunker so the silhouette carries the type, and the
+// red and blue break paths stay the loudest thing on the field.
 function bunkerShape(b, sx, sy){
-  const x=b.x*sx, y=b.y*sy;
-  const fill="#c45c4a", stroke="#7a2e22";
-  if(b.t==="dorito") return `<polygon points="${x},${y-10} ${x-9},${y+8} ${x+9},${y+8}" fill="${fill}" stroke="${stroke}"/>`;
-  if(b.t==="temple") return `<rect x="${x-8}" y="${y-7}" width="16" height="14" rx="2" fill="#b14a3c" stroke="${stroke}"/>`;
-  if(b.t==="tower"||b.t==="towerbig") return `<rect x="${x-6}" y="${y-14}" width="12" height="${b.t==="towerbig"?28:20}" rx="2" fill="#8b3a30" stroke="${stroke}"/>`;
-  if(b.t==="beam") return `<rect x="${x-(b.w||20)/2}" y="${y-4}" width="${b.w||20}" height="8" rx="2" fill="#9a4034" stroke="${stroke}"/>`;
-  if(b.t==="plus") return `<g fill="#a8483a" stroke="${stroke}"><rect x="${x-8}" y="${y-3}" width="16" height="6"/><rect x="${x-3}" y="${y-8}" width="6" height="16"/></g>`;
-  if(b.t==="wing") return `<polygon points="${x-12},${y} ${x+10},${y-6} ${x+10},${y+6}" fill="${fill}" stroke="${stroke}"/>`;
-  if(b.t==="mw") return `<rect x="${x-10}" y="${y-5}" width="20" height="10" rx="5" fill="#6a2f28" stroke="${stroke}"/>`;
-  return `<rect x="${x-6}" y="${y-8}" width="12" height="16" rx="6" fill="${fill}" stroke="${stroke}"/>`;
+  const x = b.x*sx, y = b.y*sy, s = bunkerSize(b);
+  const fill = 'url(#bnkFace)', edge = '#6d7c92', sw = 'stroke-width=".7"';
+  const box = (w,h,r) => `<rect x="${(x-w).toFixed(1)}" y="${(y-h).toFixed(1)}" width="${(w*2).toFixed(1)}" height="${(h*2).toFixed(1)}" rx="${r}" fill="${fill}" stroke="${edge}" ${sw}/>`;
+
+  switch(b.t){
+    case "dorito":
+      return `<polygon points="${x},${(y-s.v).toFixed(1)} ${(x-s.h).toFixed(1)},${(y+s.v).toFixed(1)} ${(x+s.h).toFixed(1)},${(y+s.v).toFixed(1)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
+    case "wing": {
+      // Wings point away from the 50, toward their own end line.
+      const dir = b.x < 75 ? -1 : 1;
+      return `<polygon points="${(x+s.h*dir).toFixed(1)},${y} ${(x-s.h*dir).toFixed(1)},${(y-s.v).toFixed(1)} ${(x-s.h*dir).toFixed(1)},${(y+s.v).toFixed(1)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
+    }
+    case "plus":
+      return `<path d="M${x-1.9} ${y-s.v}h3.8v${s.v-1.9}h${s.h-1.9}v3.8h-${s.h-1.9}v${s.v-1.9}h-3.8v-${s.v-1.9}h-${s.h-1.9}v-3.8h${s.h-1.9}z" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
+    case "cake":
+      return `<circle cx="${x}" cy="${y}" r="${s.h}" fill="${fill}" stroke="${edge}" ${sw}/>`
+           + `<circle cx="${x}" cy="${y}" r="${(s.h*0.45).toFixed(1)}" fill="none" stroke="${edge}" stroke-width=".6" opacity=".7"/>`;
+    case "temple":   return box(s.h, s.v, 1.6);            // squared off
+    case "tower":
+    case "towerbig": return box(s.h, s.v, s.h*0.8);        // tall and narrow
+    case "beam":     return box(b.w ? b.w*sx/2 : s.h, s.v, s.v);  // long bar
+    case "mw":       return box(s.h, s.v, s.v);            // capsule on its side
+    default:         return box(s.h, s.v, s.h);            // can — upright capsule
+  }
+}
+
+// Codes go below the footprint, and shift above it when the slot below is
+// already taken. Without this the centre bunkers print "MW MW MW" on top of
+// one another.
+function bunkerLabels(list, sx, sy){
+  const FS = 6, CH = 3.4, PAD = 1.2;
+  const placed = [];
+  const hits = (a) => placed.some(b =>
+    Math.abs(a.cx-b.cx) < (a.w+b.w)/2 + PAD && Math.abs(a.cy-b.cy) < (a.h+b.h)/2 + PAD);
+
+  return list.map(b => {
+    const x = b.x*sx, y = b.y*sy, s = bunkerSize(b);
+    const w = b.n.length*CH + 1, h = FS;
+    const below = {cx:x, cy:y + s.v + FS*0.9, w, h};
+    const above = {cx:x, cy:y - s.v - FS*0.4, w, h};
+    const spot = !hits(below) ? below : (!hits(above) ? above : null);
+    if(!spot) return "";                       // no room — the shape still reads
+    placed.push(spot);
+    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#cfe0f2" stroke="#0d2416" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${b.n}</text>`;
+  }).join("");
 }
 
 function fieldSVG(opts={}){
   const layout = LAYOUTS[S.layoutKey] || LAYOUTS.tbo;
   const W=300,H=240,sx=W/150,sy=H/120;
+  const M=18;                                  // margin for the side labels
   const br = BREAKS[S.script] || BREAKS.snake;
   const t = opts.static?1:S.t;
-  let paths="";
-  br.paths.forEach(p=>{
-    const pts=[p.from,...(p.via||[]),p.to].map(q=>`${q[0]*sx},${q[1]*sy}`).join(" ");
-    paths += `<polyline fill="none" stroke="${opts.color||'#e24b4b'}" stroke-width="2" points="${pts}" opacity=".85"/>`;
-    const xy=posAt(p,t);
-    paths += `<circle cx="${xy[0]*sx}" cy="${xy[1]*sy}" r="7" fill="${opts.color||'#e24b4b'}" stroke="#fff" stroke-width="1.5"/>`;
-    paths += `<text x="${xy[0]*sx}" y="${xy[1]*sy+3}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">${p.id}</text>`;
+
+  // Break paths. A dark casing under each line keeps it readable where it
+  // crosses a bunker.
+  const runner = (list, colour, offset) => list.map(p=>{
+    const pts=[p.from,...(p.via||[]),p.to].map(q=>`${(q[0]*sx).toFixed(1)},${(q[1]*sy).toFixed(1)}`).join(" ");
+    const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
+    let out = `<polyline fill="none" stroke="#0a1c11" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity=".55" points="${pts}"/>`
+            + `<polyline fill="none" stroke="${colour}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>`;
     if(S.shotOn){
       const ang = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
-      const ax=xy[0]*sx+Math.cos(ang)*18, ay=xy[1]*sy+Math.sin(ang)*18;
-      paths += `<line x1="${xy[0]*sx}" y1="${xy[1]*sy}" x2="${ax}" y2="${ay}" stroke="#f0c14b" stroke-width="2"/>`;
+      out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(cx+Math.cos(ang)*18).toFixed(1)}" y2="${(cy+Math.sin(ang)*18).toFixed(1)}" stroke="#f0c14b" stroke-width="1.6" stroke-linecap="round" opacity=".9"/>`;
     }
-  });
+    out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"/>`
+         + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700">${p.id+offset}</text>`;
+    return out;
+  }).join("");
+
+  let paths = runner(br.paths, opts.color||"#e24b4b", 0);
   if(opts.both){
-    br.paths.forEach(p=>{
-      const flip=q=>[150-q[0],q[1]];
-      const pts=[p.from,...(p.via||[]),p.to].map(flip).map(q=>`${q[0]*sx},${q[1]*sy}`).join(" ");
-      paths += `<polyline fill="none" stroke="#3d8bff" stroke-width="2" points="${pts}" opacity=".85"/>`;
-      const xy=posAt({from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)}, t);
-      paths += `<circle cx="${xy[0]*sx}" cy="${xy[1]*sy}" r="7" fill="#3d8bff" stroke="#fff" stroke-width="1.5"/>`;
-      paths += `<text x="${xy[0]*sx}" y="${xy[1]*sy+3}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">${p.id+5}</text>`;
-    });
+    const flip=q=>[150-q[0],q[1]];
+    paths += runner(br.paths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
   }
-  const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)+`<text x="${b.x*sx}" y="${b.y*sy+16}" text-anchor="middle" font-size="7" fill="#d7e7c8">${b.n}</text>`).join("");
-  return `<svg class="field" viewBox="0 0 ${W} ${H}">
+
+  const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)).join("");
+
+  return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
+    <defs>
+      <linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ccd7e6"/>
+        <stop offset="1" stop-color="#93a2b8"/>
+      </linearGradient>
+      <filter id="bnkLift" x="-40%" y="-40%" width="180%" height="200%">
+        <feDropShadow dx="0" dy="1.1" stdDeviation="1" flood-color="#04120a" flood-opacity=".55"/>
+      </filter>
+    </defs>
+
+    <rect x="-8" y="${-M}" width="${W+16}" height="${H+M*2}" fill="#0d2416"/>
     <rect width="${W}" height="${H}" fill="#16351f"/>
-    ${[...Array(15)].map((_,i)=>`<line x1="${i*20}" y1="0" x2="${i*20}" y2="${H}" stroke="#1f4a2c" stroke-width="1"/>`).join("")}
-    ${[...Array(12)].map((_,i)=>`<line x1="0" y1="${i*20}" x2="${W}" y2="${i*20}" stroke="#1f4a2c" stroke-width="1"/>`).join("")}
-    <line x1="${W/2}" y1="8" x2="${W/2}" y2="${H-8}" stroke="#d7e7c8" stroke-dasharray="4 6" opacity=".5"/>
-    <text x="${W/2}" y="14" text-anchor="middle" fill="#cfe7c4" font-size="9" font-weight="700">DORITO SIDE</text>
-    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#cfe7c4" font-size="9" font-weight="700">SNAKE SIDE</text>
-    ${bunks}${paths}
+    ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#12301b"/>`:"").join("")}
+    <rect width="${W}" height="${H}" fill="none" stroke="#5e7f68" stroke-width="1" opacity=".5"/>
+    <line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="#d7e7c8" stroke-width=".8" stroke-dasharray="5 7" opacity=".38"/>
+    <line x1="4" y1="0" x2="4" y2="${H}" stroke="#d7e7c8" stroke-width=".8" opacity=".3"/>
+    <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#d7e7c8" stroke-width=".8" opacity=".3"/>
+
+    <g filter="url(#bnkLift)">${bunks}</g>
+    ${bunkerLabels(layout.bunkers, sx, sy)}
+    ${paths}
+
+    <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#9fc2a8" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
+    <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#9fc2a8" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
   </svg>`;
 }
 
