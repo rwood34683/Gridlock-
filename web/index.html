@@ -72,9 +72,17 @@ code{background:#0d1524;padding:2px 6px;border-radius:6px}
 /* --- Native shell: notch/home-indicator insets and app-like touch behaviour --- */
 html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 body{-webkit-touch-callout:none}
+
+/* App shell: the tab bar and header are pinned and only .main scrolls.
+   Without this the whole .app grows past the viewport and the tab bar
+   scrolls off the bottom of the phone. */
+html,body{overflow:hidden}
+#root{height:100%;overflow:hidden}
+.app{height:100%;min-height:0}
+.main{flex:1;min-height:0;overflow-y:auto}
+.promo{height:100%;overflow-y:auto}
 button,.chip,.btn,.tabs button{-webkit-user-select:none;user-select:none;touch-action:manipulation}
 input,textarea,select{-webkit-user-select:text;user-select:text}
-.app{min-height:100svh}
 .top{
   padding-top:calc(10px + env(safe-area-inset-top));
   padding-left:calc(14px + env(safe-area-inset-left));
@@ -96,7 +104,6 @@ input,textarea,select{-webkit-user-select:text;user-select:text}
   padding-bottom:calc(24px + env(safe-area-inset-bottom));
   padding-left:calc(24px + env(safe-area-inset-left));
   padding-right:calc(24px + env(safe-area-inset-right));
-  min-height:100svh;
 }
 /* Gloves: nothing tappable smaller than a fingertip. */
 .btn,.chip{min-height:38px}

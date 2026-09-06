@@ -6,13 +6,14 @@ Paintball sideline app for coaches and league staff.
 ## How to use this repo in Claude Code
 
 ```bash
-cd gridlock-claude-code
-# then in Claude Code: open this folder
+npm install
+npm run serve   # http://localhost:5173
 ```
 
 Source of truth for *behavior*: `docs/GRIDLOCK-OVERSKILL-SPEC.md`
 Source of truth for *working UI*: `web/index.html` (open in a browser)
-Legacy native snapshot: `ios/GRIDLOCK-Coach/` (early SwiftUI, missing later tabs)
+Legacy native snapshot: `ios-native/GRIDLOCK-Coach/` (early SwiftUI, missing later tabs).
+`ios/` and `android/` are the generated Capacitor projects — edit `web/`, then `npm run sync`.
 Do not treat Overskill `.txt` as compiled code. It is the product prompt.
 
 ## Hard rules
@@ -39,7 +40,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 ## What is already coded here
 
 - `web/index.html` — runnable coach web app: promo gate, staff login, playbook field + paths, dual-pit scout, tally, classes + join code, league groups + blast log, team, messages, nexus.
-- `ios/GRIDLOCK-Coach/` — original SwiftUI snapshot (Playbook, Tally, Scout v1, field canvas, layouts, security). Incomplete vs spec.
+- `ios-native/GRIDLOCK-Coach/` — original SwiftUI snapshot (Playbook, Tally, Scout v1, field canvas, layouts, security). Incomplete vs spec.
+- `ios/`, `android/` — Capacitor shells around `web/`, ready for the App Store and Google Play.
+- `site/` — the landing page.
 - `docs/` — full product spec + Overskill import prompt.
 
 ## What to build next (in order)

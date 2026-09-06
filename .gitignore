@@ -2,8 +2,11 @@ node_modules/
 npm-debug.log*
 .DS_Store
 
-# Generated brand renders — rebuild with: python3 brand/generate-assets.py
+# Generated brand renders — rebuild with: npm run icons
 brand/out/
+
+# Generated artifact build — rebuild with: npm run site:artifact
+site/build/
 
 # Native build output
 ios/App/Pods/

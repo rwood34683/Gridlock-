@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>GRIDLOCK System</title>
+<meta name="description" content="GRIDLOCK System · Coach Edition. Call the break, direct the five, and scout the other pit from the sideline. Free for coaches and league staff on iPhone and Android."/>
+<meta name="theme-color" content="#070d17"/>
+<meta name="color-scheme" content="dark"/>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png"/>
+
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="GRIDLOCK System · Coach Edition"/>
+<meta property="og:description" content="Call the break. Direct the five. Own the point."/>
+<meta property="og:image" content="img/icon-512.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap"/>
+
+<style>
+/* ============================================================
+   GRIDLOCK System — landing page
+   Palette and tone are fixed by the product's brand rules:
+   dark stadium night, navy ground, gold accent, chalk type,
+   field green only where a field is actually depicted.
+   Single dark theme is deliberate, not an omission — a light
+   version would contradict the brand, so every colour is
+   painted explicitly and the page holds on any host ground.
+   ============================================================ */
+:root{
+  /* ground + surface */
+  --night:#070d17;
+  --navy:#0b1220;
+  --panel:#121b2d;
+  --panel-2:#182338;
+  --line:#22314a;
+  --line-lit:#33456a;
+
+  /* type */
+  --chalk:#e8eef8;
+  --mute:#8ea0bc;
+  --dim:#63748f;
+
+  /* the one accent */
+  --gold:#f0c14b;
+  --gold-deep:#d4a017;
+
+  /* field + wires — semantic, never decorative */
+  --turf:#16351f;
+  --turf-lit:#1e5c33;
+  --wire-l:#e24b4b;
+  --wire-r:#3d8bff;
+
+  /* type scale */
+  --t-hero:clamp(3.2rem, 11vw, 6.5rem);
+  --t-h2:clamp(1.75rem, 4.2vw, 2.75rem);
+  --t-h3:1.2rem;
+  --t-body:1.0625rem;
+  --t-small:0.875rem;
+  --t-label:0.6875rem;
+
+  --shell:1140px;
+  --gutter:clamp(20px, 5vw, 48px);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
+
+body{
+  margin:0;
+  background:var(--night);
+  color:var(--chalk);
+  font:400 var(--t-body)/1.6 Barlow,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+img{max-width:100%;height:auto;display:block}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+
+/* ---------- shared type ---------- */
+.eyebrow{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:var(--t-label);
+  font-weight:500;
+  letter-spacing:.34em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin:0;
+}
+.eyebrow.quiet{color:var(--dim)}
+
+h2{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:var(--t-h2);
+  font-weight:600;
+  letter-spacing:.02em;
+  line-height:1.06;
+  text-wrap:balance;
+  margin:0;
+}
+h3{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:var(--t-h3);
+  font-weight:500;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  line-height:1.2;
+  margin:0;
+}
+p{margin:0;max-width:62ch}
+.lede{font-size:1.1875rem;color:var(--mute);line-height:1.55}
+.note{font-size:var(--t-small);color:var(--dim);line-height:1.5}
+.code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.9em;letter-spacing:.02em}
+
+/* ---------- page shell: the centre-50 line ----------
+   The field has a centre line running the length of it. So does
+   the page — section markers hang off it, the way bunkers sit
+   off the 50. */
+.shell{max-width:var(--shell);margin-inline:auto;padding-inline:var(--gutter)}
+
+section{position:relative;padding-block:clamp(64px, 9vw, 116px)}
+section + section{border-top:1px solid var(--line)}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{
+  position:relative;
+  overflow:hidden;
+  padding-block:clamp(56px, 8vw, 96px) clamp(48px, 7vw, 88px);
+  background:
+    radial-gradient(1100px 460px at 50% -8%, rgba(30,107,58,.34) 0%, rgba(30,107,58,0) 62%),
+    linear-gradient(var(--navy), var(--night));
+}
+.hero__field{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    repeating-linear-gradient(to right, rgba(42,58,85,.34) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(to bottom, rgba(42,58,85,.34) 0 1px, transparent 1px 64px);
+  -webkit-mask-image:radial-gradient(1000px 560px at 50% 0%, #000 0%, transparent 74%);
+  mask-image:radial-gradient(1000px 560px at 50% 0%, #000 0%, transparent 74%);
+}
+/* the centre 50, dashed the way it is on the layout */
+.hero__field::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:repeating-linear-gradient(to bottom, rgba(232,238,248,.16) 0 9px, transparent 9px 20px);
+}
+.hero__inner{position:relative;display:grid;gap:clamp(40px,6vw,72px);align-items:center}
+@media (min-width:900px){
+  .hero__inner{grid-template-columns:1fr auto}
+}
+
+.lockup{display:flex;flex-direction:column;gap:6px;margin-bottom:22px}
+.lockup__name{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:var(--t-hero);
+  font-weight:700;
+  letter-spacing:.1em;
+  line-height:.92;
+  margin:0;
+  text-transform:uppercase;
+}
+.lockup__sys{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:clamp(.7rem,1.5vw,.8125rem);
+  font-weight:500;
+  letter-spacing:.5em;
+  text-transform:uppercase;
+  color:var(--gold);
+  padding-left:.35em;
+}
+.tagline{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:clamp(1.25rem,2.6vw,1.75rem);
+  font-weight:400;
+  letter-spacing:.03em;
+  line-height:1.25;
+  color:var(--chalk);
+  margin:0 0 18px;
+  max-width:16ch;
+}
+.hero__sub{color:var(--mute);max-width:44ch;margin-bottom:28px}
+
+/* ---------- store badges ---------- */
+.badges{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:11px;
+  padding:10px 18px 10px 15px;
+  border:1px solid var(--line-lit);
+  border-radius:11px;
+  background:#0d1524;
+  color:var(--chalk);
+  text-decoration:none;
+  transition:border-color .18s ease, background .18s ease, transform .18s ease;
+}
+.badge:hover{border-color:var(--gold);background:#111c30;transform:translateY(-1px);text-decoration:none}
+.badge svg{flex:none;fill:currentColor}
+.badge__text{display:flex;flex-direction:column;line-height:1.1}
+.badge__small{font-size:.625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.badge__big{font-family:Oswald,"Arial Narrow",sans-serif;font-size:1.0625rem;font-weight:500;letter-spacing:.03em}
+
+/* Stacked badges align to one edge instead of reading ragged. */
+@media (max-width:520px){
+  .badges{flex-direction:column;align-items:stretch}
+  .badge{justify-content:flex-start}
+}
+
+.hero__meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.hero__meta .note{margin:0}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--dim);flex:none}
+
+/* ---------- phone frame ---------- */
+.phone{
+  --w:clamp(230px, 30vw, 302px);
+  width:var(--w);
+  padding:9px;
+  border:1px solid var(--line-lit);
+  border-radius:34px;
+  background:linear-gradient(160deg,#1b2740,#0a1120);
+  box-shadow:0 28px 70px -28px rgba(0,0,0,.95), 0 0 0 1px rgba(240,193,75,.08);
+  flex:none;
+}
+.phone img{border-radius:26px;width:100%}
+.phones{display:flex;gap:clamp(14px,2.5vw,26px);flex-wrap:wrap;align-items:flex-start}
+.phones .phone:nth-child(2){--w:clamp(200px, 26vw, 268px);margin-top:34px}
+@media (max-width:620px){
+  .phones .phone:nth-child(2){display:none}
+}
+.phone--hero{--w:clamp(248px, 32vw, 316px)}
+
+/* ============================================================
+   BUNKER CODE STRIP
+   The official codes that appear on the layout. Real vocabulary,
+   used as the seam between the hero and the flow.
+   ============================================================ */
+.codes-strip{
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  background:var(--navy);
+  padding-block:16px;
+  overflow-x:auto;
+}
+.codes-strip__row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  min-width:max-content;
+}
+.codes-strip .eyebrow{flex:none;margin-right:8px}
+.bcode{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.75rem;
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--mute);
+  border:1px solid var(--line);
+  border-radius:5px;
+  padding:4px 9px;
+  flex:none;
+}
+
+/* ============================================================
+   THE FOUR TAPS — a real sequence, so it is really numbered
+   ============================================================ */
+.flow{display:grid;gap:1px;list-style:none;margin-block:0;padding:0;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:clamp(28px,4vw,44px)}
+@media (min-width:760px){.flow{grid-template-columns:repeat(4,1fr)}}
+.step{background:var(--navy);padding:24px 22px 26px;display:flex;flex-direction:column;gap:9px}
+.step__n{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:2.25rem;
+  font-weight:700;
+  line-height:1;
+  color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+.step h3{color:var(--chalk)}
+.step p{font-size:var(--t-small);color:var(--mute);max-width:30ch}
+
+/* ============================================================
+   SPLIT SECTIONS — copy beside a real screen
+   ============================================================ */
+.split{display:grid;gap:clamp(32px,5vw,64px);align-items:center;margin-top:clamp(28px,4vw,44px)}
+@media (min-width:900px){
+  .split{grid-template-columns:1fr auto}
+  .split--flip{grid-template-columns:auto 1fr}
+  .split--flip .split__copy{order:2}
+}
+.split__copy{display:flex;flex-direction:column;gap:18px}
+
+.speclist{display:flex;flex-direction:column;gap:0;margin:4px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.speclist li{
+  display:grid;
+  grid-template-columns:minmax(96px,auto) 1fr;
+  gap:6px 20px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+  align-items:baseline;
+}
+.speclist dt,.speclist b{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:var(--t-label);
+  font-weight:500;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--gold);
+}
+.speclist span{font-size:var(--t-small);color:var(--mute)}
+@media (max-width:520px){
+  .speclist li{grid-template-columns:1fr}
+}
+
+/* wire legend — red left, blue right, straight from the app */
+.wires{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;font-size:var(--t-small);color:var(--mute)}
+.wire{display:inline-flex;align-items:center;gap:8px}
+.wire i{width:22px;height:3px;border-radius:2px;flex:none}
+.wire--l i{background:var(--wire-l)}
+.wire--r i{background:var(--wire-r)}
+
+/* disclaimer — required on Playbook and Scout */
+.aid{
+  border-left:2px solid var(--gold);
+  padding:2px 0 2px 16px;
+  font-size:var(--t-small);
+  color:var(--mute);
+  max-width:52ch;
+}
+.aid b{color:var(--chalk);font-weight:600}
+
+/* ============================================================
+   MORE — the eleven destinations
+   ============================================================ */
+.more-grid{
+  margin-top:clamp(28px,4vw,44px);
+  display:grid;
+  gap:0 clamp(28px,4vw,56px);
+  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  border-top:1px solid var(--line);
+}
+.more-item{
+  display:grid;
+  grid-template-columns:minmax(112px,auto) 1fr;
+  gap:4px 22px;
+  align-items:baseline;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.more-item h3{
+  font-size:var(--t-label);
+  letter-spacing:.16em;
+  color:var(--gold);
+  font-weight:500;
+}
+.more-item p{font-size:var(--t-small);color:var(--mute);max-width:40ch}
+@media (max-width:520px){
+  .more-item{grid-template-columns:1fr}
+}
+
+/* ============================================================
+   OPS — classes and league, two panels
+   ============================================================ */
+.ops{display:grid;gap:clamp(20px,3vw,28px);margin-top:clamp(28px,4vw,44px)}
+@media (min-width:820px){.ops{grid-template-columns:1fr 1fr}}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:clamp(22px,3vw,30px);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.panel h3{color:var(--chalk);font-size:1.0625rem}
+.panel p{font-size:var(--t-small);color:var(--mute)}
+.panel ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.panel li{font-size:var(--t-small);color:var(--mute)}
+
+.joincode{
+  align-self:flex-start;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:1.5rem;
+  font-weight:600;
+  letter-spacing:.12em;
+  color:var(--gold);
+  background:#0d1524;
+  border:1px dashed var(--line-lit);
+  border-radius:10px;
+  padding:10px 18px;
+}
+.grouppills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{
+  font-family:Oswald,"Arial Narrow",sans-serif;
+  font-size:.75rem;
+  font-weight:500;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--chalk);
+  background:var(--panel-2);
+  border:1px solid var(--line-lit);
+  border-radius:999px;
+  padding:6px 14px;
+}
+
+/* ============================================================
+   CLOSING CTA
+   ============================================================ */
+.close{
+  background:
+    radial-gradient(900px 380px at 50% 108%, rgba(30,107,58,.3) 0%, rgba(30,107,58,0) 62%),
+    var(--navy);
+  text-align:center;
+}
+.close .shell{display:flex;flex-direction:column;align-items:center;gap:20px}
+.close p{margin-inline:auto;text-align:center}
+.close .badges{justify-content:center}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer{background:var(--night);border-top:1px solid var(--line);padding-block:40px}
+.foot{display:flex;flex-wrap:wrap;gap:20px 32px;align-items:center;justify-content:space-between}
+.foot__mark{display:flex;align-items:center;gap:12px}
+.foot__mark img{width:36px;height:36px;border-radius:8px}
+.foot__name{font-family:Oswald,"Arial Narrow",sans-serif;letter-spacing:.16em;font-size:.8125rem;text-transform:uppercase}
+.foot__name span{display:block;color:var(--dim);letter-spacing:.24em;font-size:.625rem}
+.foot__links{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:var(--t-small)}
+.foot__links a{color:var(--mute)}
+.foot__links a:hover{color:var(--gold)}
+.foot__legal{width:100%;margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<header class="hero">
+  <!-- Top-down field, the way a coach sees it from the box.
+       Ambient only — the real one lives in the app. -->
+  <!-- Turf grid and the centre 50, drawn in CSS so they hold at any viewport. -->
+  <div class="hero__field" aria-hidden="true"></div>
+
+  <div class="shell hero__inner">
+    <div>
+      <div class="lockup">
+        <h1 class="lockup__name">Gridlock</h1>
+        <div class="lockup__sys">System · Coach Edition</div>
+      </div>
+
+      <p class="tagline">Call the break. Direct the five. Own the point.</p>
+
+      <p class="hero__sub">
+        The sideline tool for paintball coaches and league staff. Pick the event,
+        call the break, direct all five players, and read the other pit — between
+        points, on a phone, with gloves on.
+      </p>
+
+      <div class="badges">
+        <!-- Replace these with Apple's and Google's official badge artwork
+             before launch. See site/README.md. -->
+        <a class="badge" href="https://apps.apple.com/app/id0000000000">
+          <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
+            <path d="M18.1 13.8c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.2-2.3-1.8-.2-3.5 1-4.4 1-.9 0-2.3-1-3.8-1C6.3 7 4.5 8.1 3.5 9.9c-2 3.5-.5 8.7 1.4 11.6.9 1.4 2 3 3.5 2.9 1.4-.1 1.9-.9 3.6-.9 1.7 0 2.2.9 3.7.9 1.5 0 2.5-1.4 3.4-2.8 1.1-1.6 1.5-3.2 1.5-3.3-.1 0-2.9-1.1-3-4.5zM15.3 4.9c.8-1 1.3-2.3 1.2-3.6-1.2 0-2.6.8-3.4 1.7-.7.9-1.4 2.2-1.2 3.5 1.3.1 2.6-.7 3.4-1.6z"/>
+          </svg>
+          <span class="badge__text">
+            <span class="badge__small">Download on the</span>
+            <span class="badge__big">App Store</span>
+          </span>
+        </a>
+        <a class="badge" href="https://play.google.com/store/apps/details?id=com.upra.gridlock.coach">
+          <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
+            <path d="M2.3 1.6C2 1.9 1.9 2.4 1.9 3v20c0 .6.1 1.1.4 1.4l.1.1 11.2-11.2v-.3L2.4 1.6h-.1z" opacity=".85"/>
+            <path d="M17.3 16.9l-3.7-3.7v-.3l3.7-3.7.1.1 4.4 2.5c1.3.7 1.3 1.9 0 2.6l-4.4 2.5h-.1z"/>
+            <path d="M17.4 16.8L13.6 13 2.3 24.4c.4.5 1.2.5 2 .1l13.1-7.7"/>
+            <path d="M17.4 9.2L4.3 1.6c-.8-.5-1.6-.4-2 .1L13.6 13l3.8-3.8z" opacity=".7"/>
+          </svg>
+          <span class="badge__text">
+            <span class="badge__small">Get it on</span>
+            <span class="badge__big">Google Play</span>
+          </span>
+        </a>
+      </div>
+
+      <div class="hero__meta">
+        <p class="note">Free to use</p><span class="dot"></span>
+        <p class="note">No account needed to join a clinic</p><span class="dot"></span>
+        <p class="note">Works on the sideline with no signal</p>
+      </div>
+    </div>
+
+    <div class="phone phone--hero"><img src="img/shots/playbook.png" width="640" height="1385" alt="Playbook: the NXL Tampa Bay Open layout with the Snake Stack break running, all five paths drawn on the field."/></div>
+  </div>
+</header>
+
+<!-- The official codes that appear on the layout. -->
+<div class="codes-strip">
+  <div class="shell codes-strip__row">
+    <p class="eyebrow">On the layout</p>
+    <span class="bcode">MD</span><span class="bcode">MW</span><span class="bcode">GP</span>
+    <span class="bcode">GW</span><span class="bcode">GB</span><span class="bcode">MT</span>
+    <span class="bcode">SD</span><span class="bcode">SB</span><span class="bcode">Br</span>
+    <span class="bcode">Ck</span><span class="bcode">Wg</span><span class="bcode">Tr</span>
+    <span class="bcode">C</span><span class="bcode">T</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     THE FOUR TAPS
+     ============================================================ -->
+<section id="playbook">
+  <div class="shell">
+    <p class="eyebrow">Playbook</p>
+    <h2>Between points you get about forty seconds.</h2>
+    <p class="lede" style="margin-top:14px">
+      Playbook is built around the four things a coach actually does in that window —
+      in that order, on one screen.
+    </p>
+
+    <ol class="flow">
+      <li class="step">
+        <span class="step__n">1</span>
+        <h3>Pick the event</h3>
+        <p>Choose the field and the layout loads everywhere — Playbook, Scout, Sightlines, the walk, the stats.</p>
+      </li>
+      <li class="step">
+        <span class="step__n">2</span>
+        <h3>Pick the break</h3>
+        <p>Hold &amp; Read, Balanced Break, Snake Stack, Dorito Flood, Blitz. Each one runs its own five paths.</p>
+      </li>
+      <li class="step">
+        <span class="step__n">3</span>
+        <h3>Direct the five</h3>
+        <p>Every player gets a job, a primary and a secondary. Turn on Face and Shot lanes to show where they point.</p>
+      </li>
+      <li class="step">
+        <span class="step__n">4</span>
+        <h3>Log the break</h3>
+        <p>Mark what you called and who went out. It stays with the team for the next point.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================
+     ON THE FIELD
+     ============================================================ -->
+<section>
+  <div class="shell split">
+    <div class="split__copy">
+      <p class="eyebrow">The field</p>
+      <h2>A real layout, not a diagram.</h2>
+      <p class="lede">
+        Bunkers sit where they sit — doritos, cans, temples, wedges, the snake, the
+        beam — with the official codes printed on them. Dorito side up, snake side
+        down, the way you look at it from the box.
+      </p>
+
+      <ul class="speclist">
+        <li><b>Five paths</b><span>Each player leaves the start line on his own line and plants on his own bunker. Staggered off the buzzer — the snake runner first, support behind.</span></li>
+        <li><b>Face</b><span>A chevron travels with the player down the path, so you can see which way he is pointed at every step, not just where he ends up.</span></li>
+        <li><b>Shot lanes</b><span>Turn the cone on to see what each player is laning as he moves.</span></li>
+        <li><b>Switch the event</b><span>Change the layout once and every tab redraws on the new field.</span></li>
+      </ul>
+
+      <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>
+    </div>
+
+    <div class="phone"><img src="img/shots/sightlines.png" width="640" height="1385" alt="The shared field view with both teams' break paths drawn across the layout."/></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCOUT
+     ============================================================ -->
+<section id="scout">
+  <div class="shell split split--flip">
+    <div class="split__copy">
+      <p class="eyebrow">Scout</p>
+      <h2>Read the other pit before the buzzer.</h2>
+      <p class="lede">
+        Two opponent cards, left pit and right pit. Set the tendency you saw on film,
+        star the threat, and keep your notes on the snake runner where you will
+        actually find them.
+      </p>
+
+      <div class="wires">
+        <span class="wire wire--l"><i></i>Left pit</span>
+        <span class="wire wire--r"><i></i>Right pit</span>
+        <span>Both breaks draw on the same field.</span>
+      </div>
+
+      <ul class="speclist">
+        <li><b>Matchup</b><span>A sim bar, the wire split — snake front, snake, centre-50, dorito — and who goes where for all ten players.</span></li>
+        <li><b>Anticipate</b><span>Per team: what they are likely to run, the tells at the line, and your counter.</span></li>
+        <li><b>Counter-picker</b><span>Tell it whether you are Ahead, Even or Must-score and the ranked breaks reorder. Safer calls rise when you are up; aggressive calls rise when you have to score.</span></li>
+        <li><b>Division board</b><span>The whole division in one table — registration, film, tendency, threat. Tap a row to load it into the right pit.</span></li>
+      </ul>
+
+      <p class="aid">
+        <b>Heuristic reads are a training aid, not a prediction.</b> The percentages
+        come from your own film reads and seeded data. Officials govern the live call.
+      </p>
+    </div>
+
+    <div class="phones">
+      <div class="phone"><img src="img/shots/scout.png" width="640" height="1385" alt="Scout: opponent cards for the left and right pit with tendency, threat stars and film notes."/></div>
+      <div class="phone"><img src="img/shots/scout-board.png" width="640" height="1385" alt="Division scout board listing CIN Semi-Pro X-Ball teams with registration, tendency and threat stars."/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MORE
+     ============================================================ -->
+<section>
+  <div class="shell">
+    <p class="eyebrow">Under More</p>
+    <h2>The rest of the sideline.</h2>
+    <p class="lede" style="margin-top:14px">
+      Eleven more destinations, all tied to the event you picked.
+    </p>
+
+    <div class="more-grid">
+      <div class="more-item"><h3>Walk</h3><p>Field-walk notes against the current layout. Snake mouth is hot. GP first.</p></div>
+      <div class="more-item"><h3>Lineups</h3><p>Who is on this point, with each player's primary and secondary.</p></div>
+      <div class="more-item"><h3>Movement</h3><p>Bunker to bunker after the break — who rotated where.</p></div>
+      <div class="more-item"><h3>Assess</h3><p>Grade a player after the point. The note stays with the roster.</p></div>
+      <div class="more-item"><h3>Codes</h3><p>Your team's code words for the event. Short list, fast to add.</p></div>
+      <div class="more-item"><h3>Bunker stats</h3><p>Visits, shots, holds and eliminations, laid over the layout.</p></div>
+      <div class="more-item"><h3>Team</h3><p>Roster, numbers, positions, and the team join code.</p></div>
+      <div class="more-item"><h3>Messages</h3><p>Squad notes that stay with the team, not with your phone.</p></div>
+      <div class="more-item"><h3>Classes</h3><p>Run a clinic and collect sign-ins with a join code.</p></div>
+      <div class="more-item"><h3>League</h3><p>Groups and blasts for staff running the event.</p></div>
+      <div class="more-item"><h3>Nexus</h3><p>Events, layouts, sign-out, and your privacy and export settings.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CLINICS + LEAGUE OPS
+     ============================================================ -->
+<section id="league">
+  <div class="shell">
+    <p class="eyebrow">Clinics and league ops</p>
+    <h2>For the people running the day.</h2>
+
+    <div class="ops">
+      <div class="panel">
+        <h3>Clinics</h3>
+        <p>
+          Staff create a class and get a join code. Share the code, players enter it,
+          and their sign-in form lands under that class.
+        </p>
+        <div class="joincode">GL-7K2M</div>
+        <p><strong style="color:var(--chalk);font-weight:600">Joining does not need an account.</strong>
+          A player types the code, fills in name, experience and preferred wire, and
+          they are on your list. Only creating the class needs a staff login.</p>
+      </div>
+
+      <div class="panel">
+        <h3>League blasts</h3>
+        <p>Admins keep the event's groups and send one update to the people who need it.</p>
+        <div class="grouppills">
+          <span class="pill">Ops</span>
+          <span class="pill">Refs</span>
+          <span class="pill">Registration</span>
+          <span class="pill">Vendors</span>
+        </div>
+        <ul>
+          <li>Pick one group or several, write the update, send.</li>
+          <li>Goes out by push and email, or hands off to your phone's Messages with the numbers filled in.</li>
+          <li>Every blast is logged — body, groups, recipient count, time and who sent it.</li>
+        </ul>
+        <p class="note">Not a bulk-messaging tool. Only message people who agreed to league ops texts.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CLOSE
+     ============================================================ -->
+<section class="close">
+  <div class="shell">
+    <p class="eyebrow">Get it on the sideline</p>
+    <h2>Call the break.</h2>
+    <p class="lede">
+      Free for coaches and league staff. Your roster, notes and scout reads stay on
+      your device.
+    </p>
+
+    <div class="badges">
+      <a class="badge" href="https://apps.apple.com/app/id0000000000">
+        <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
+          <path d="M18.1 13.8c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.2-2.3-1.8-.2-3.5 1-4.4 1-.9 0-2.3-1-3.8-1C6.3 7 4.5 8.1 3.5 9.9c-2 3.5-.5 8.7 1.4 11.6.9 1.4 2 3 3.5 2.9 1.4-.1 1.9-.9 3.6-.9 1.7 0 2.2.9 3.7.9 1.5 0 2.5-1.4 3.4-2.8 1.1-1.6 1.5-3.2 1.5-3.3-.1 0-2.9-1.1-3-4.5zM15.3 4.9c.8-1 1.3-2.3 1.2-3.6-1.2 0-2.6.8-3.4 1.7-.7.9-1.4 2.2-1.2 3.5 1.3.1 2.6-.7 3.4-1.6z"/>
+        </svg>
+        <span class="badge__text">
+          <span class="badge__small">Download on the</span>
+          <span class="badge__big">App Store</span>
+        </span>
+      </a>
+      <a class="badge" href="https://play.google.com/store/apps/details?id=com.upra.gridlock.coach">
+        <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
+          <path d="M2.3 1.6C2 1.9 1.9 2.4 1.9 3v20c0 .6.1 1.1.4 1.4l.1.1 11.2-11.2v-.3L2.4 1.6h-.1z" opacity=".85"/>
+          <path d="M17.3 16.9l-3.7-3.7v-.3l3.7-3.7.1.1 4.4 2.5c1.3.7 1.3 1.9 0 2.6l-4.4 2.5h-.1z"/>
+          <path d="M17.4 16.8L13.6 13 2.3 24.4c.4.5 1.2.5 2 .1l13.1-7.7"/>
+          <path d="M17.4 9.2L4.3 1.6c-.8-.5-1.6-.4-2 .1L13.6 13l3.8-3.8z" opacity=".7"/>
+        </svg>
+        <span class="badge__text">
+          <span class="badge__small">Get it on</span>
+          <span class="badge__big">Google Play</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="shell foot">
+    <div class="foot__mark">
+      <img src="img/icon-512.png" width="36" height="36" alt=""/>
+      <div class="foot__name">Gridlock System<span>Powered by UPRA</span></div>
+    </div>
+
+    <nav class="foot__links" aria-label="Footer">
+      <a href="#playbook">Playbook</a>
+      <a href="#scout">Scout</a>
+      <a href="#league">League</a>
+    </nav>
+
+    <p class="note foot__legal">
+      GRIDLOCK System · powered by UPRA. Heuristic scout reads are a training aid and
+      not a prediction — officials govern the live call. Team and event names are used
+      for identification only.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

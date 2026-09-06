@@ -2,14 +2,17 @@
   "name": "gridlock-coach",
   "version": "1.0.0",
   "private": true,
-  "description": "GRIDLOCK System · powered by UPRA · Coach Edition — paintball coaching and league-ops app",
+  "description": "GRIDLOCK System \u00b7 powered by UPRA \u00b7 Coach Edition \u2014 paintball coaching and league-ops app",
   "scripts": {
     "sync": "cap sync",
     "open:ios": "cap open ios",
     "open:android": "cap open android",
     "build:android": "cd android && ./gradlew assembleRelease",
     "bundle:android": "cd android && ./gradlew bundleRelease",
-    "serve": "node scripts/serve.js"
+    "serve": "node scripts/serve.js",
+    "shots": "node scripts/capture-shots.js && node scripts/optimise-shots.js",
+    "site:artifact": "node scripts/build-artifact-page.js",
+    "icons": "python3 brand/generate-assets.py"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
@@ -21,6 +24,7 @@
     "@capacitor/status-bar": "^7.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.0.0"
+    "@capacitor/cli": "^7.0.0",
+    "playwright-core": "^1.49.0"
   }
 }
