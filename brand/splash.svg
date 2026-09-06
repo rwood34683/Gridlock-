@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1a2c"/>
+      <stop offset="1" stop-color="#070d17"/>
+    </linearGradient>
+    <radialGradient id="turf" cx="0.5" cy="0.3" r="0.5">
+      <stop offset="0" stop-color="#1e6b3a" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#1e6b3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8d97e"/>
+      <stop offset="1" stop-color="#d4a017"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="2732" height="2732" fill="url(#tile)"/>
+  <rect width="2732" height="2732" fill="url(#turf)"/>
+
+  <!-- Mark and wordmark stay inside the centre square that survives any crop. -->
+  <g transform="translate(1366 1180) scale(0.60) translate(-512 -512)">
+    <path d="M512 196 L742 474 L636 474 L512 324 L388 474 L282 474 Z" fill="url(#gold)"/>
+    <g fill="url(#gold)">
+      <circle cx="222" cy="754" r="62"/>
+      <circle cx="367" cy="700" r="62"/>
+      <circle cx="512" cy="678" r="62"/>
+      <circle cx="657" cy="700" r="62"/>
+      <circle cx="802" cy="754" r="62"/>
+    </g>
+    <rect x="222" y="856" width="580" height="16" rx="8" fill="#e8eef8" fill-opacity="0.4"/>
+  </g>
+
+  <text x="1366" y="1610" text-anchor="middle" fill="#e8eef8"
+        font-family="DejaVu Sans" font-weight="bold" font-size="150" letter-spacing="26">GRIDLOCK</text>
+  <text x="1366" y="1700" text-anchor="middle" fill="#f0c14b"
+        font-family="DejaVu Sans" font-weight="bold" font-size="52" letter-spacing="34">SYSTEM</text>
+  <text x="1366" y="1800" text-anchor="middle" fill="#8ea0bc"
+        font-family="DejaVu Sans" font-size="46" letter-spacing="10">COACH EDITION</text>
+</svg>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b1220"/>
+<meta name="color-scheme" content="dark"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GRIDLOCK"/>
+<meta name="format-detection" content="telephone=no"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="icon" href="icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<title>GRIDLOCK System · Coach Edition</title>
+<style>
+:root{
+  --bg:#0b1220; --panel:#121b2d; --panel2:#182338; --line:#2a3a55;
+  --gold:#f0c14b; --gold2:#d4a017; --ink:#e8eef8; --mute:#8ea0bc;
+  --red:#e24b4b; --blue:#3d8bff; --green:#1e6b3a; --turf:#16351f;
+  --ok:#3ecf8e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{display:flex;flex-direction:column;min-height:100%}
+.top{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.brand{font-weight:800;letter-spacing:.12em}
+.brand small{display:block;font-weight:600;letter-spacing:.28em;font-size:9px;color:var(--gold)}
+.grow{flex:1}
+.chip{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px}
+.chip.on{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}
+.main{flex:1;overflow:auto;padding:12px}
+.tabs{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);background:#0a101b}
+.tabs button{flex:1;background:transparent;border:0;color:var(--mute);padding:8px 4px;font-size:11px}
+.tabs button.on{color:var(--gold);font-weight:700}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+h1,h2,h3{margin:0 0 8px}
+h2{font-size:16px}
+label{display:block;font-size:11px;color:var(--mute);margin:8px 0 4px;letter-spacing:.04em}
+input,select,textarea{width:100%;background:#0d1524;border:1px solid var(--line);border-radius:10px;padding:10px}
+textarea{min-height:70px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--gold);color:#111;border:0;border-radius:10px;padding:10px 14px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.red{background:var(--red);color:#fff}
+.btn.blue{background:var(--blue);color:#fff}
+.muted{color:var(--mute);font-size:12px}
+.field-wrap{background:linear-gradient(#1a4a28,#0f2a18);border-radius:12px;overflow:hidden;border:1px solid #2c5a38}
+svg.field{width:100%;height:auto;display:block}
+.pit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:720px){.pit{grid-template-columns:1fr}}
+.star{cursor:pointer;font-size:16px}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th,.table td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
+.promo{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;background:
+  radial-gradient(1200px 500px at 50% 0%, #1a3d28 0%, transparent 55%),
+  linear-gradient(#071018,#0b1220)}
+.promo h1{font-size:42px;letter-spacing:.18em;margin:0}
+.promo .sys{letter-spacing:.4em;color:var(--gold);font-size:12px;margin:4px 0 18px}
+.promo .tag{color:var(--mute);margin-bottom:22px}
+.stack{display:flex;flex-direction:column;gap:8px}
+.warn{color:#f3c38a;font-size:12px}
+.tip{background:#1b283c;border:1px solid var(--gold);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px}
+.who{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px}
+.bar{height:10px;border-radius:99px;overflow:hidden;display:flex;background:#0d1524}
+.bar i{display:block;height:100%}
+code{background:#0d1524;padding:2px 6px;border-radius:6px}
+
+/* --- Native shell: notch/home-indicator insets and app-like touch behaviour --- */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+body{-webkit-touch-callout:none}
+button,.chip,.btn,.tabs button{-webkit-user-select:none;user-select:none;touch-action:manipulation}
+input,textarea,select{-webkit-user-select:text;user-select:text}
+.app{min-height:100svh}
+.top{
+  padding-top:calc(10px + env(safe-area-inset-top));
+  padding-left:calc(14px + env(safe-area-inset-left));
+  padding-right:calc(14px + env(safe-area-inset-right));
+}
+.main{
+  padding-left:calc(12px + env(safe-area-inset-left));
+  padding-right:calc(12px + env(safe-area-inset-right));
+  -webkit-overflow-scrolling:touch;
+}
+.tabs{
+  padding-bottom:calc(8px + env(safe-area-inset-bottom));
+  padding-left:calc(8px + env(safe-area-inset-left));
+  padding-right:calc(8px + env(safe-area-inset-right));
+}
+.tabs button{min-height:44px}
+.promo{
+  padding-top:calc(24px + env(safe-area-inset-top));
+  padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  padding-left:calc(24px + env(safe-area-inset-left));
+  padding-right:calc(24px + env(safe-area-inset-right));
+  min-height:100svh;
+}
+/* Gloves: nothing tappable smaller than a fingertip. */
+.btn,.chip{min-height:38px}
+.star{padding:2px 4px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const STORE_KEY = "gridlock.coach.v2";
+const BANNED = /gunz\s*up/ig;
+function clean(s){return String(s||"").replace(BANNED,"Shot lanes")}
+
+const CIN = [
+  {id:"MW#1",n:"MW",x:75,y:112,t:"mw"},{id:"SB#2",n:"SB",x:75,y:103,t:"beam",w:22},
+  {id:"GW#3",n:"GW",x:75,y:65,t:"tower"},{id:"GB#4",n:"GB",x:75,y:55,t:"towerbig"},
+  {id:"GW#5",n:"GW",x:75,y:45,t:"tower"},{id:"C#7",n:"C",x:15,y:76,t:"can"},
+  {id:"MT#8",n:"MT",x:15,y:35,t:"temple"},{id:"T#10",n:"T",x:25,y:105,t:"temple"},
+  {id:"T#11",n:"T",x:25,y:58,t:"temple"},{id:"SD#12",n:"SD",x:25,y:16,t:"dorito"},
+  {id:"MD#13",n:"MD",x:35,y:108,t:"dorito"},{id:"Br#14",n:"Br",x:35,y:88,t:"can"},
+  {id:"Br#15",n:"Br",x:35,y:9,t:"can"},{id:"C#16",n:"C",x:45,y:74,t:"can"},
+  {id:"Ck#17",n:"Ck",x:45,y:31,t:"cake"},{id:"MD#18",n:"MD",x:55,y:112,t:"dorito"},
+  {id:"Wg#19",n:"Wg",x:52,y:9,t:"wing"},{id:"Tr#20",n:"Tr",x:57,y:74,t:"can"},
+  {id:"MW#21",n:"MW",x:58,y:30,t:"mw"},{id:"GP#22",n:"GP",x:64,y:17,t:"plus"},
+  {id:"MT#23",n:"MT",x:63,y:47,t:"temple"},{id:"MD#24",n:"MD",x:68,y:112,t:"dorito"},
+  {id:"Tr#25",n:"Tr",x:68,y:74,t:"can"},{id:"MW#26",n:"MW",x:72,y:30,t:"mw"}
+];
+function mirror(list){
+  const out = list.map(b=>({...b}));
+  list.forEach(b=>{
+    if(Math.abs(b.x-75)<0.5) return;
+    out.push({...b,id:b.id+"R",x:150-b.x});
+  });
+  return out;
+}
+const LAYOUTS = {
+  tbo: {name:"NXL Tampa Bay Open", key:"tbo", bunkers:mirror(CIN)},
+  cin: {name:"Cincinnati / TBO footprint", key:"cin", bunkers:mirror(CIN)}
+};
+const BREAKS = {
+  hold:{name:"Hold & Read", paths:[
+    {id:1,from:[2,22],to:[45,31],via:[[30,34]],label:"snake primary"},
+    {id:2,from:[2,42],to:[40,34],via:[],label:"snake contain"},
+    {id:3,from:[2,62],to:[45,74],via:[],label:"center C hold"},
+    {id:4,from:[2,82],to:[25,105],via:[],label:"dorito primary"},
+    {id:5,from:[2,104],to:[15,76],via:[],label:"read the break"}
+  ]},
+  base:{name:"Balanced Break", paths:[
+    {id:1,from:[2,22],to:[58,30],via:[[30,34]],label:"snake MW"},
+    {id:2,from:[2,40],to:[64,17],via:[],label:"GP"},
+    {id:3,from:[2,60],to:[63,47],via:[],label:"MT 50"},
+    {id:4,from:[2,92],to:[68,112],via:[],label:"fwd MD"},
+    {id:5,from:[2,108],to:[45,74],via:[],label:"C lane"}
+  ]},
+  snake:{name:"Snake Stack", paths:[
+    {id:1,from:[2,16],to:[76,35],via:[[30,34]],label:"deep snake run"},
+    {id:2,from:[2,30],to:[58,30],via:[],label:"snake MW"},
+    {id:3,from:[2,46],to:[64,17],via:[],label:"GP"},
+    {id:4,from:[2,66],to:[65,74],via:[],label:"tree"},
+    {id:5,from:[2,104],to:[55,112],via:[],label:"MD hold"}
+  ]},
+  flood:{name:"Dorito Flood", paths:[
+    {id:1,from:[2,110],to:[68,112],via:[],label:"fwd MD"},
+    {id:2,from:[2,96],to:[55,112],via:[],label:"MD"},
+    {id:3,from:[2,80],to:[45,74],via:[],label:"C insert"},
+    {id:4,from:[2,58],to:[63,47],via:[],label:"MT 50"},
+    {id:5,from:[2,20],to:[40,34],via:[[30,34]],label:"snake contain"}
+  ]},
+  blitz:{name:"Blitz", paths:[
+    {id:1,from:[2,16],to:[76,35],via:[[30,34]],label:"snake sprint"},
+    {id:2,from:[2,40],to:[66,30],via:[],label:"MW push"},
+    {id:3,from:[2,108],to:[68,112],via:[],label:"MD sprint"},
+    {id:4,from:[2,60],to:[63,47],via:[],label:"MT 50"},
+    {id:5,from:[2,46],to:[64,17],via:[],label:"GP"}
+  ]}
+};
+const TEAMS = [
+  {name:"Beefy Boys",pts:71.74,reg:"PAID",tend:"Bal",threat:3},
+  {name:"Blast Camp",pts:200,reg:"PAID",tend:"Bal",threat:5,film:1},
+  {name:"Brooklyn Wolfpack",pts:99.13,reg:"PEND",tend:"Bal",threat:3},
+  {name:"Clutch City Oilers",pts:86.96,reg:"PAID",tend:"Bal",threat:3},
+  {name:"Distortion Immortals",pts:44.35,reg:"PAID",tend:"Bal",threat:3},
+  {name:"Hurricanes SP",pts:138.7,reg:"PAID",tend:"Bal",threat:4},
+  {name:"KC Missouri Allstars",pts:151.74,reg:"PAID",tend:"Bal",threat:4},
+  {name:"Las Vegas Shock",pts:156.96,reg:"PAID",tend:"Bal",threat:4},
+  {name:"Legacy Factory",pts:129.57,reg:"PAID",tend:"Bal",threat:4},
+  {name:"Louisville Asylum",pts:77.83,reg:"PAID",tend:"Bal",threat:3},
+  {name:"Malicious",pts:135.65,reg:"PAID",tend:"Bal",threat:4},
+  {name:"Miami Effect",pts:68.7,reg:"PAID",tend:"Bal",threat:3},
+  {name:"New Jersey Filthy",pts:65.65,reg:"PAID",tend:"Bal",threat:2},
+  {name:"Rejects",pts:186,reg:"PAID",tend:"Snake",threat:4}
+];
+
+const defaultState = () => ({
+  entered:false, role:"guest", email:"",
+  tab:"playbook", more:"classes",
+  layoutKey:"tbo", script:"snake", playing:false, t:0,
+  faceOn:true, shotOn:true, rolesOn:true,
+  left:{name:"Blast Camp",tend:"Balanced",threat:5,notes:"",pts:200},
+  right:{name:"Rejects",tend:"Snake",threat:4,notes:"",pts:186},
+  matchState:"Even",
+  tips:{},
+  classes:[], responses:[],
+  groups:[
+    {id:"ops",name:"Ops",members:[]},
+    {id:"refs",name:"Refs",members:[]},
+    {id:"reg",name:"Registration",members:[]},
+    {id:"vendors",name:"Vendors",members:[]}
+  ],
+  blasts:[],
+  roster:[{name:"Snake",num:1,p:"snake MW",s:"GP"},{name:"Center",num:3,p:"MT 50",s:"tree"}],
+  messages:[],
+  tally:[],
+  showTutorial:false,
+  joinCode:"",
+  blastBody:"",
+  newClassTitle:"Friday clinic"
+});
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return defaultState();
+    return Object.assign(defaultState(), JSON.parse(raw));
+  }catch(e){return defaultState()}
+}
+function save(s){localStorage.setItem(STORE_KEY, JSON.stringify(s))}
+let S = load();
+window.S = S;   // the bridge in native.js reads this; set() mutates in place
+const params = new URLSearchParams(location.search);
+if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
+
+function set(patch){ Object.assign(S, patch); save(S); render(); }
+
+function ease(t){return 1-Math.pow(1-t,3)}
+function lerp(a,b,t){return a+(b-a)*t}
+function posAt(path, t){
+  const pts = [path.from, ...(path.via||[]), path.to];
+  if(pts.length===1) return pts[0];
+  const u = ease(Math.max(0,Math.min(1,t)));
+  const seg = (pts.length-1)*u;
+  const i = Math.min(pts.length-2, Math.floor(seg));
+  const f = seg-i;
+  return [lerp(pts[i][0],pts[i+1][0],f), lerp(pts[i][1],pts[i+1][1],f)];
+}
+
+function bunkerShape(b, sx, sy){
+  const x=b.x*sx, y=b.y*sy;
+  const fill="#c45c4a", stroke="#7a2e22";
+  if(b.t==="dorito") return `<polygon points="${x},${y-10} ${x-9},${y+8} ${x+9},${y+8}" fill="${fill}" stroke="${stroke}"/>`;
+  if(b.t==="temple") return `<rect x="${x-8}" y="${y-7}" width="16" height="14" rx="2" fill="#b14a3c" stroke="${stroke}"/>`;
+  if(b.t==="tower"||b.t==="towerbig") return `<rect x="${x-6}" y="${y-14}" width="12" height="${b.t==="towerbig"?28:20}" rx="2" fill="#8b3a30" stroke="${stroke}"/>`;
+  if(b.t==="beam") return `<rect x="${x-(b.w||20)/2}" y="${y-4}" width="${b.w||20}" height="8" rx="2" fill="#9a4034" stroke="${stroke}"/>`;
+  if(b.t==="plus") return `<g fill="#a8483a" stroke="${stroke}"><rect x="${x-8}" y="${y-3}" width="16" height="6"/><rect x="${x-3}" y="${y-8}" width="6" height="16"/></g>`;
+  if(b.t==="wing") return `<polygon points="${x-12},${y} ${x+10},${y-6} ${x+10},${y+6}" fill="${fill}" stroke="${stroke}"/>`;
+  if(b.t==="mw") return `<rect x="${x-10}" y="${y-5}" width="20" height="10" rx="5" fill="#6a2f28" stroke="${stroke}"/>`;
+  return `<rect x="${x-6}" y="${y-8}" width="12" height="16" rx="6" fill="${fill}" stroke="${stroke}"/>`;
+}
+
+function fieldSVG(opts={}){
+  const layout = LAYOUTS[S.layoutKey] || LAYOUTS.tbo;
+  const W=300,H=240,sx=W/150,sy=H/120;
+  const br = BREAKS[S.script] || BREAKS.snake;
+  const t = opts.static?1:S.t;
+  let paths="";
+  br.paths.forEach(p=>{
+    const pts=[p.from,...(p.via||[]),p.to].map(q=>`${q[0]*sx},${q[1]*sy}`).join(" ");
+    paths += `<polyline fill="none" stroke="${opts.color||'#e24b4b'}" stroke-width="2" points="${pts}" opacity=".85"/>`;
+    const xy=posAt(p,t);
+    paths += `<circle cx="${xy[0]*sx}" cy="${xy[1]*sy}" r="7" fill="${opts.color||'#e24b4b'}" stroke="#fff" stroke-width="1.5"/>`;
+    paths += `<text x="${xy[0]*sx}" y="${xy[1]*sy+3}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">${p.id}</text>`;
+    if(S.shotOn){
+      const ang = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
+      const ax=xy[0]*sx+Math.cos(ang)*18, ay=xy[1]*sy+Math.sin(ang)*18;
+      paths += `<line x1="${xy[0]*sx}" y1="${xy[1]*sy}" x2="${ax}" y2="${ay}" stroke="#f0c14b" stroke-width="2"/>`;
+    }
+  });
+  if(opts.both){
+    br.paths.forEach(p=>{
+      const flip=q=>[150-q[0],q[1]];
+      const pts=[p.from,...(p.via||[]),p.to].map(flip).map(q=>`${q[0]*sx},${q[1]*sy}`).join(" ");
+      paths += `<polyline fill="none" stroke="#3d8bff" stroke-width="2" points="${pts}" opacity=".85"/>`;
+      const xy=posAt({from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)}, t);
+      paths += `<circle cx="${xy[0]*sx}" cy="${xy[1]*sy}" r="7" fill="#3d8bff" stroke="#fff" stroke-width="1.5"/>`;
+      paths += `<text x="${xy[0]*sx}" y="${xy[1]*sy+3}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">${p.id+5}</text>`;
+    });
+  }
+  const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)+`<text x="${b.x*sx}" y="${b.y*sy+16}" text-anchor="middle" font-size="7" fill="#d7e7c8">${b.n}</text>`).join("");
+  return `<svg class="field" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="#16351f"/>
+    ${[...Array(15)].map((_,i)=>`<line x1="${i*20}" y1="0" x2="${i*20}" y2="${H}" stroke="#1f4a2c" stroke-width="1"/>`).join("")}
+    ${[...Array(12)].map((_,i)=>`<line x1="0" y1="${i*20}" x2="${W}" y2="${i*20}" stroke="#1f4a2c" stroke-width="1"/>`).join("")}
+    <line x1="${W/2}" y1="8" x2="${W/2}" y2="${H-8}" stroke="#d7e7c8" stroke-dasharray="4 6" opacity=".5"/>
+    <text x="${W/2}" y="14" text-anchor="middle" fill="#cfe7c4" font-size="9" font-weight="700">DORITO SIDE</text>
+    <text x="${W/2}" y="${H-6}" text-anchor="middle" fill="#cfe7c4" font-size="9" font-weight="700">SNAKE SIDE</text>
+    ${bunks}${paths}
+  </svg>`;
+}
+
+function stars(n, key){
+  return [1,2,3,4,5].map(i=>`<span class="star" onclick="setThreat('${key}',${i})">${i<=n?"★":"☆"}</span>`).join("");
+}
+window.setThreat=(side,n)=>{S[side].threat=n;save(S);render()}
+
+function staffed(){return S.role==="staff"||S.role==="admin"}
+
+function promo(){
+  return `<div class="promo">
+    <div class="brand">GRIDLOCK</div>
+    <div class="sys">SYSTEM · COACH EDITION</div>
+    <div class="tag">Call the break. Direct the five. Own the point.</div>
+    <div class="stack">
+      <button class="btn" onclick="set({mode:'create'})">Staff — create account</button>
+      <button class="btn ghost" onclick="set({mode:'login'})">Staff — log in</button>
+      <button class="btn ghost" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Tutorial</button>
+      <button class="btn ghost" onclick="set({entered:true,role:'guest'})">Continue as guest</button>
+    </div>
+    <p class="muted" style="margin-top:18px">GRIDLOCK System · powered by UPRA</p>
+    ${authForm()}
+  </div>`;
+}
+function authForm(){
+  if(S.mode!=="create" && S.mode!=="login") return "";
+  return `<div class="card" style="margin-top:16px">
+    <h2>${S.mode==="create"?"Create staff account":"Staff log in"}</h2>
+    <label>Email</label><input id="em" placeholder="coach@team.com"/>
+    <label>Password</label><input id="pw" type="password"/>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" onclick="doAuth()">${S.mode==="create"?"Create account":"Log in"}</button>
+      <button class="btn ghost" onclick="set({mode:null})">Back</button>
+    </div>
+    <p class="muted">Stored on this device / browser only.</p>
+  </div>`;
+}
+window.doAuth=()=>{
+  const email=document.getElementById("em").value.trim();
+  const pass=document.getElementById("pw").value;
+  if(!email||pass.length<6){alert("Email + password (6+ characters).");return}
+  const acc=JSON.parse(localStorage.getItem("gridlock.staff")||"{}");
+  if(S.mode==="create"){
+    localStorage.setItem("gridlock.staff", JSON.stringify({email,pass}));
+    set({entered:true,role:"staff",email,mode:null});
+  }else{
+    if(acc.email===email && acc.pass===pass) set({entered:true,role:"staff",email,mode:null});
+    else alert("Email or password does not match. Create an account first.");
+  }
+};
+
+function tip(id,text){
+  if(S.tips[id]) return "";
+  return `<div class="tip">${text} <button class="chip" onclick="dismissTip('${id}')">Got it</button></div>`;
+}
+window.dismissTip=(id)=>{S.tips[id]=true;save(S);render()}
+
+function playbook(){
+  const br=BREAKS[S.script];
+  return `${tip("pb","Playbook is the call. Pick a break, tap Play path, then direct each player.")}
+  <div class="card">
+    <div class="muted">EVENT · LAYOUT</div>
+    <select onchange="set({layoutKey:this.value})">
+      <option value="tbo" ${S.layoutKey==="tbo"?"selected":""}>NXL Tampa Bay Open · TBO</option>
+      <option value="cin" ${S.layoutKey==="cin"?"selected":""}>Cincinnati footprint · CIN</option>
+    </select>
+    <div class="row" style="margin-top:8px">
+      ${Object.entries(BREAKS).map(([k,v])=>`<button class="chip ${S.script===k?"on":""}" onclick="set({script:'${k}',t:0})">${v.name}</button>`).join("")}
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" onclick="playPath()">${S.playing?"Pause":"Play path"}</button>
+      <button class="chip ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})">Face</button>
+      <button class="chip ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})">Shot lanes</button>
+      <button class="chip" onclick="set({t:0,playing:false})">Reset</button>
+    </div>
+    <p class="muted">Training aid. Officials govern the live call.</p>
+  </div>
+  <div class="field-wrap">${fieldSVG()}</div>
+  <div class="card">
+    <h2>Direct your players</h2>
+    ${br.paths.map(p=>`<div class="row" style="align-items:center;margin:6px 0">
+      <b style="width:24px;color:var(--red)">${p.id}</b>
+      <span class="grow">${p.label}</span>
+      <span class="muted">P|S</span>
+    </div>`).join("")}
+  </div>`;
+}
+
+let raf=null;
+window.playPath=()=>{
+  S.playing=!S.playing;
+  if(!S.playing){render();return}
+  const start=performance.now()-(S.t*2200);
+  const tick=(now)=>{
+    if(!S.playing) return;
+    S.t=Math.min(1,(now-start)/2200);
+    render();
+    if(S.t<1) raf=requestAnimationFrame(tick);
+    else S.playing=false;
+  };
+  raf=requestAnimationFrame(tick);
+};
+
+function tally(){
+  return `${tip("tally","Tap a player when they go out. Add shot-at or moved-to if you saw it.")}
+  <div class="card"><h2>Tally</h2>
+    <p class="muted">Point sheet · ${LAYOUTS[S.layoutKey].name}</p>
+    <button class="btn" onclick="addOut()">Mark out</button>
+    ${(S.tally||[]).map((x,i)=>`<div>${i+1}. ${x}</div>`).join("")||"<p class='muted'>No outs yet.</p>"}
+  </div>`;
+}
+window.addOut=()=>{S.tally=[...S.tally,"Player out · "+(LAYOUTS[S.layoutKey].name)];save(S);render()}
+
+function scout(){
+  const L=S.left,R=S.right;
+  return `${tip("scout","Left pit vs right pit. Tendency is YOUR film read. Sim bar is a training aid, not a prediction.")}
+  <div class="pit">
+    ${pitCard("left",L,"OPPONENT (LEFT)","var(--red)")}
+    ${pitCard("right",R,"OPPONENT (RIGHT)","var(--blue)")}
+  </div>
+  <div class="row" style="margin:8px 0">
+    <button class="chip ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})">Roles: ${S.rolesOn?"on":"off"}</button>
+    <button class="btn" onclick="playPath()">Play break</button>
+    <button class="chip ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})">Shot lanes: ${S.shotOn?"on":"off"}</button>
+  </div>
+  <div class="field-wrap">${fieldSVG({both:true})}</div>
+  <div class="card">
+    <h2>Matchup & Sim</h2>
+    <div class="bar"><i style="width:44%;background:var(--red)"></i><i style="width:56%;background:var(--blue)"></i></div>
+    <div class="row muted"><span>${L.name} 44%</span><span class="grow"></span><span>56% ${R.name}</span></div>
+    <p>Plan read: base vs snake · expected survivors ≈ 2.3 v 2.6 (heuristic model — a read, not a prediction).</p>
+    <div class="row">
+      <span class="chip">Snake front 11%</span><span class="chip">Snake 39%</span>
+      <span class="chip">Center/50 25%</span><span class="chip">Dorito 25%</span>
+    </div>
+    <div class="who" style="margin-top:10px">
+      <div><b>${L.name} — who goes where</b><div>1 snake MW<br>2 GP<br>3 MT 50<br>4 fwd MD<br>5 C lane</div></div>
+      <div><b>${R.name} — who goes where</b><div>6 deep snake run<br>7 snake MW<br>8 GP<br>9 tree<br>10 MD hold</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>${L.name} — anticipate</h2>
+    <p><b>Likely:</b> Balanced wire-to-wire — they spread and play position.</p>
+    <p><b>Tells at the line:</b> Even body weighting. Shooters set to lane the middle.</p>
+    <p><b>Your counter:</b> Win one wire first. Take the tower to choke the cross.</p>
+  </div>
+  <div class="card">
+    <h2>${R.name} — anticipate</h2>
+    <p><b>Likely:</b> Snake stack / runner — they overload the bottom.</p>
+    <p><b>Tells at the line:</b> A body cheats toward snake. Quiet gun off the break is the runner.</p>
+    <p><b>Your counter:</b> Take GP first and lane the snake. Deny the crawl.</p>
+  </div>
+  <div class="card">
+    <h2>Counter-picker</h2>
+    <div class="row">${["Ahead","Even","Must-score"].map(x=>`<button class="chip ${S.matchState===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}</div>
+    <p class="muted">If you are ${L.name} vs ${R.name}'s likely ${R.tend} break. Heuristic rank.</p>
+    ${[["Snake Stack",54],["Dorito Flood",49],["Blitz",47],["Balanced Break",46],["Conservative",46]].map((r,i)=>`<div class="row"><span>${i+1}. ${r[0]}</span><span class="grow"></span><b>${r[1]}%</b></div>`).join("")}
+  </div>
+  <div class="card">
+    <h2>Division scout board</h2>
+    <p class="muted">CIN · Semi-Pro X-Ball · tap = right pit · double-tap = left pit</p>
+    <table class="table"><tr><th>#</th><th>Team</th><th>REG</th><th>TEND</th><th>★</th></tr>
+    ${TEAMS.map((t,i)=>`<tr onclick="loadPit('${t.name}',${i})" >
+      <td>${i+1}</td><td>${t.name}</td><td>${t.reg}</td><td>${t.tend}</td><td>${"★".repeat(t.threat)}</td></tr>`).join("")}
+    </table>
+  </div>`;
+}
+function pitCard(side,T,label,color){
+  return `<div class="card" style="border-color:${color}">
+    <div class="muted">${label}</div>
+    <h2>${T.name} <small class="muted">US ${T.pts} pts</small></h2>
+    <select onchange="S.${side}.name=this.value;save(S);render()">
+      ${TEAMS.map(t=>`<option ${t.name===T.name?"selected":""}>${t.name}</option>`).join("")}
+    </select>
+    <label>TENDENCY (YOUR FILM READ)</label>
+    <div class="row">${["Snake","Balanced","Dorito"].map(x=>`<button class="chip ${T.tend===x?"on":""}" onclick="S.${side}.tend='${x}';save(S);render()">${x}</button>`).join("")}</div>
+    <label>THREAT</label><div>${stars(T.threat,side)}</div>
+    <label>NOTES</label>
+    <textarea onchange="S.${side}.notes=this.value;save(S)" placeholder="break tendencies, key players, snake runner…">${T.notes||""}</textarea>
+  </div>`;
+}
+window.loadPit=(name)=>{
+  const t=TEAMS.find(x=>x.name===name); if(!t) return;
+  S.right={...S.right,name:t.name,pts:t.pts,tend:t.tend==="Snake"?"Snake":t.tend==="Dorito"?"Dorito":"Balanced",threat:t.threat};
+  save(S);render();
+};
+
+function sightlines(){
+  return `<div class="card"><h2>Sightlines</h2><p class="muted">Clear shot if the line does not clip a bunker footprint.</p></div>
+  <div class="field-wrap">${fieldSVG({static:true})}</div>`;
+}
+
+function classesPage(){
+  const join = S.classes.find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
+  return `${tip("class","Staff creates a class and gets a code. Players join with that code. No account needed to join.")}
+  <div class="card">
+    <h2>Join class</h2>
+    <label>Code</label>
+    <input value="${S.joinCode||""}" onchange="S.joinCode=this.value;save(S)" placeholder="GL-7K2M"/>
+    <button class="btn ghost" style="margin-top:8px" onclick="render()">Look up</button>
+    ${join?formBox(join): (S.joinCode?`<p class="warn">No open class with that code on this device.</p>`:"")}
+  </div>
+  <div class="card">
+    <h2>Staff classes</h2>
+    ${staffed()?`
+      <label>New class title</label>
+      <input value="${S.newClassTitle||""}" onchange="S.newClassTitle=this.value;save(S)"/>
+      <button class="btn" style="margin-top:8px" onclick="makeClass()">New class</button>
+    `:`<p class="warn">Staff login required to create a class.</p><button class="btn" onclick="set({entered:false,mode:'login'})">Staff log in</button>`}
+    ${(S.classes||[]).map(c=>`<div class="card" style="margin-top:8px">
+      <b>${c.title}</b> · <code>${c.code}</code>
+      <div class="muted">Share ?c=${c.code} · ${c.open?"open":"closed"}</div>
+      <div>Responses: ${S.responses.filter(r=>r.code===c.code).length}</div>
+      ${S.responses.filter(r=>r.code===c.code).map(r=>`<div class="muted">${r.name} · ${r.wire} · ${r.exp}</div>`).join("")}
+    </div>`).join("")||"<p class='muted'>No classes yet.</p>"}
+  </div>`;
+}
+function formBox(c){
+  return `<div style="margin-top:10px">
+    <p>Joining <b>${c.title}</b></p>
+    <label>Name</label><input id="fn"/>
+    <label>Contact</label><input id="fc" placeholder="phone or email"/>
+    <label>Experience</label>
+    <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select>
+    <label>Preferred wire</label>
+    <select id="fw"><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select>
+    <label>Notes</label><textarea id="ft"></textarea>
+    <label><input type="checkbox" id="fa"/> Training sign-in form</label>
+    <button class="btn" style="margin-top:8px" onclick="submitForm('${c.code}')">Submit</button>
+  </div>`;
+}
+window.makeClass=()=>{
+  if(!staffed()) return;
+  const code="GL-"+Math.random().toString(36).slice(2,6).toUpperCase();
+  S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true},...S.classes];
+  save(S);render();
+};
+window.submitForm=(code)=>{
+  const name=document.getElementById("fn").value.trim();
+  if(!name){alert("Name is required.");return}
+  if(!document.getElementById("fa").checked){alert("Check the sign-in box.");return}
+  S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
+  save(S);render();
+};
+
+function leaguePage(){
+  if(!staffed()) return `<div class="card"><h2>League</h2><p class="warn">Staff login required.</p><button class="btn" onclick="set({entered:false,mode:'login'})">Staff log in</button></div>`;
+  return `${tip("lg","Admin groups for ops texts. Only message people who agreed to league updates.")}
+  <div class="card">
+    <h2>Groups</h2>
+    <div class="row">
+      <input id="ng" placeholder="New group name" style="flex:1"/>
+      <button class="btn" onclick="addGroup()">Add group</button>
+    </div>
+    ${S.groups.map(g=>`<div class="card" style="margin-top:8px">
+      <div class="row"><b>${g.name}</b><span class="grow"></span>
+        <button class="btn ghost" onclick="delGroup('${g.id}')">Delete group</button></div>
+      ${(g.members||[]).map((m,i)=>`<div class="row"><span>${m.name} · ${m.phone||m.email||""}</span>
+        <button class="chip" onclick="delMem('${g.id}',${i})">Remove</button></div>`).join("")}
+      <div class="row">
+        <input id="mn-${g.id}" placeholder="Name"/>
+        <input id="mp-${g.id}" placeholder="Phone or email"/>
+        <button class="btn ghost" onclick="addMem('${g.id}')">Add member</button>
+      </div>
+    </div>`).join("")}
+  </div>
+  <div class="card">
+    <h2>Blast</h2>
+    <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${S.blastBody||""}</textarea>
+    <p class="muted">Sends as a logged blast + copies text for the phone Messages app. Only people on these lists.</p>
+    <button class="btn" onclick="sendBlast()">Send text blast</button>
+    ${(S.blasts||[]).map(b=>`<div class="muted">${b.at} · ${b.n} people · ${b.body}</div>`).join("")}
+  </div>`;
+}
+window.addGroup=()=>{
+  const n=document.getElementById("ng").value.trim(); if(!n) return;
+  S.groups=[...S.groups,{id:"g"+Date.now(),name:n,members:[]}];save(S);render();
+};
+window.delGroup=(id)=>{S.groups=S.groups.filter(g=>g.id!==id);save(S);render()}
+window.addMem=(id)=>{
+  const name=document.getElementById("mn-"+id).value.trim();
+  const phone=document.getElementById("mp-"+id).value.trim();
+  if(!name) return;
+  S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name,phone}]}:g);save(S);render();
+};
+window.delMem=(id,i)=>{S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g);save(S);render()}
+window.sendBlast=()=>{
+  const body=clean(S.blastBody||"");
+  if(!body){alert("Write the update first.");return}
+  const rec=[];
+  S.groups.forEach(g=>g.members.forEach(m=>{if(m.phone) rec.push(m.phone)}));
+  S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body},...S.blasts];
+  save(S);
+  if(rec.length && window.gridlockShare){window.gridlockShare(body+"\n"+rec.join(", "), "GRIDLOCK league blast");}
+  else {prompt("Copy this blast", body+"\n"+rec.join(", "));}
+  render();
+};
+
+function morePage(){
+  const items=[["walk","Walk"],["lineups","Lineups"],["movement","Movement"],["assess","Assess"],["codes","Codes"],["stats","Bunker stats"],["team","Team"],["messages","Messages"],["classes","Classes"],["league","League"],["nexus","Nexus"]];
+  const body={
+    walk:`<div class="card"><h2>Walk</h2><p>Notes for ${LAYOUTS[S.layoutKey].name}.</p><textarea placeholder="Snake mouth is hot. GP first."></textarea></div>`,
+    lineups:`<div class="card"><h2>Lineups</h2>${S.roster.map(p=>`<div>${p.num} ${p.name} · P ${p.p} · S ${p.s}</div>`).join("")}</div>`,
+    movement:`<div class="card"><h2>Movement</h2><p class="muted">Bunker-to-bunker after the break. Feeds bunker stats.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
+    assess:`<div class="card"><h2>Assess</h2><p class="muted">Grade a player after the point.</p></div>`,
+    codes:`<div class="card"><h2>Codes</h2><p>Team code words for this event.</p></div>`,
+    stats:`<div class="card"><h2>Bunker stats</h2><p class="muted">Visits / shots / holds / elims from tally + movement.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
+    team:`<div class="card"><h2>Team</h2>${S.roster.map(p=>`<div>${p.num} ${p.name} · ${p.p}</div>`).join("")}<p class="muted">Bunker calls show on the layout.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
+    messages:`<div class="card"><h2>Messages</h2>
+      ${(S.messages||[]).map(m=>`<div>${m}</div>`).join("")}
+      <input id="md" placeholder="Message the squad"/>
+      <button class="btn" style="margin-top:8px" onclick="S.messages=[...S.messages,document.getElementById('md').value];save(S);render()">Send</button></div>`,
+    classes: classesPage(),
+    league: leaguePage(),
+    nexus:`<div class="card"><h2>Nexus</h2>
+      <p>Signed in as ${S.email||"guest"} (${S.role})</p>
+      <button class="btn ghost" onclick="set({showTutorial:true,tab:'playbook',more:'classes'})">Show tutorial again</button>
+      <button class="btn ghost" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
+      <p class="muted">GRIDLOCK System · powered by UPRA</p></div>`
+  };
+  return `<div class="row">${items.map(([k,n])=>`<button class="chip ${S.more===k?"on":""}" onclick="set({more:'${k}'})">${n}</button>`).join("")}</div>
+  ${body[S.more]||""}`;
+}
+
+function shell(){
+  const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
+  const page={playbook:playbook,tally:tally,scout:scout,sightlines:sightlines,more:morePage}[S.tab]();
+  const tut = S.showTutorial?`<div class="card"><h2>Tutorial</h2>
+    <p>Playbook = the call. Tally = who went out. Scout = the other pit. Classes = clinic sign-in. League = staff groups.</p>
+    <button class="btn" onclick="set({showTutorial:false})">Start coaching</button></div>`:"";
+  return `<div class="app">
+    <div class="top">
+      <div class="brand">GRIDLOCK<small>SYSTEM · COACH</small></div>
+      <div class="grow"></div>
+      <span class="muted">${staffed()?"Staff":"Guest"}</span>
+    </div>
+    <div class="main">${tut}${page}
+      <p class="muted" style="margin-top:24px">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
+    </div>
+    <div class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}'})">${n}</button>`).join("")}</div>
+  </div>`;
+}
+
+function render(){
+  document.getElementById("root").innerHTML = S.entered ? shell() : promo();
+}
+render();
+</script>
+<script src="native.js"></script>
+</body>
+</html>
