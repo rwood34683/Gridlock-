@@ -245,12 +245,25 @@ svg.field{width:100%;height:auto;display:block}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
 .ps{display:flex;gap:4px;flex:none}
-.ps span{
-  width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
-  font-size:10px;font-weight:800;letter-spacing:.04em;
-  border:1px solid var(--line-lit);color:var(--dim);
+.ps button{
+  width:30px;height:30px;border-radius:6px;display:grid;place-items:center;
+  font-size:11px;font-weight:800;letter-spacing:.04em;
+  border:1px solid var(--line-lit);color:var(--dim);background:transparent;
 }
-.ps span.on{background:var(--panel-2);color:var(--ink);border-color:var(--line-lit)}
+.ps button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* the 8-way face pad the spec asks for */
+.pad{
+  flex-basis:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  margin-top:8px;padding:8px;background:var(--sunk);
+  border:1px solid var(--line);border-radius:var(--r-md);
+}
+.pad button{
+  min-height:46px;border-radius:var(--r-sm);border:1px solid var(--line-lit);
+  background:var(--panel);color:var(--ink);font-size:18px;font-weight:700;
+  display:grid;place-items:center;
+}
+.pad button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* ============================================================
    LIST — the More menu, and anything else that is a list of places
@@ -616,6 +629,10 @@ const defaultState = () => ({
   point:1,
   scoutTab:"matchup",
   bunkerCalls:{},
+  direct:{},
+  pad:null,
+  moves:[],
+  assessments:[],
   sightFrom:null,
   walkNotes:"",
   codeWords:"",
@@ -695,15 +712,79 @@ window.clearCall = id => {
 };
 
 // ---- bunker traffic, from the tally sheet ----
+// Directing a player is per layout AND per break: a coach faces the five
+// differently on Snake Stack than on Hold & Read, and on a different field.
+function directKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
+function directOf(id){ return (S.direct || {})[directKey(id)] || {}; }
+window.setDirect = (id, field, value) => {
+  const all = {...(S.direct || {})};
+  const k = directKey(id);
+  const cur = {...(all[k] || {})};
+  if(value === null || value === "") delete cur[field]; else cur[field] = value;
+  all[k] = cur;
+  S.direct = all;
+  S.pad = null;
+  save(S); render();
+};
+window.openPad = (kind, id) => {
+  const key = kind + ":" + id;
+  set({pad: S.pad === key ? null : key});
+};
+
+// The eight the spec asks for. Degrees are screen space: 0 points downfield,
+// -90 toward the dorito tape, +90 toward the snake.
+const FACE_PAD = [
+  ["\u2196", -135], ["\u2191", -90], ["\u2197", -45],
+  ["\u2190",  180], ["off",   null], ["\u2192",   0],
+  ["\u2199",  135], ["\u2193",  90], ["\u2198",  45]
+];
+const FACE_GLYPH = Object.fromEntries(FACE_PAD.filter(f => f[1] !== null).map(f => [f[1], f[0]]));
+
 function bunkerTraffic(){
+  // Bunker ids belong to a layout, so traffic logged on one field must not
+  // leak onto another. Anything the current layout does not have is dropped.
+  const here = new Set(((LAYOUTS[S.layoutKey] || {}).bunkers || []).map(b => b.id));
   const t = {};
+  const bump = (id, key) => {
+    if(!id || !here.has(id)) return;
+    t[id] = t[id] || {outs:0, visits:0};
+    t[id][key]++;
+  };
   (S.tally || []).forEach(o => {
     if(typeof o !== 'object') return;
-    if(o.shotAt){ t[o.shotAt] = t[o.shotAt] || {outs:0, visits:0}; t[o.shotAt].outs++; }
-    if(o.movedTo){ t[o.movedTo] = t[o.movedTo] || {outs:0, visits:0}; t[o.movedTo].visits++; }
+    bump(o.shotAt, 'outs');
+    bump(o.movedTo, 'visits');
   });
+  (S.moves || []).forEach(m => bump(m.to, 'visits'));
   return t;
 }
+
+// ---- rotations after the break ----
+function layoutMoves(){
+  const here = new Set(((LAYOUTS[S.layoutKey] || {}).bunkers || []).map(b => b.id));
+  return (S.moves || []).filter(m => here.has(m.from) && here.has(m.to));
+}
+window.logMove = () => {
+  const who = document.getElementById('mvWho').value;
+  const from = document.getElementById('mvFrom').value;
+  const to = document.getElementById('mvTo').value;
+  if(!who || !from || !to) return;
+  if(from === to){ alert('A rotation needs two different bunkers.'); return; }
+  S.moves = [{pt:S.point||1, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
+  save(S); render();
+};
+window.undoMove = i => { S.moves = (S.moves||[]).filter((_,k)=>k!==i); save(S); render(); };
+
+// ---- grades ----
+window.saveAssess = () => {
+  const who = document.getElementById('asWho').value;
+  const score = Number(document.getElementById('asScore').value);
+  const note = clean(document.getElementById('asNote').value.trim());
+  if(!who) return;
+  S.assessments = [{who, score, note, pt:S.point||1, at:Date.now()}, ...(S.assessments||[])];
+  save(S); render();
+};
+window.undoAssess = i => { S.assessments = (S.assessments||[]).filter((_,k)=>k!==i); save(S); render(); };
 
 function bunkerSize(b, sx=2, sy=2){
   if(b.w && b.h) return {h:(b.w*sx)/2, v:(b.h*sy)/2};
@@ -815,12 +896,44 @@ function fieldSVG(opts={}){
     const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
     let out = `<polyline fill="none" stroke="#000000" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity=".55" points="${pts}"/>`
             + `<polyline fill="none" stroke="${colour}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>`;
+    // Where the player is actually heading right now, so the chevron and the
+    // lane travel with him instead of snapping to the plant.
+    const a0=posAt(p,Math.max(0,t-0.02)), a1=posAt(p,Math.min(1,t+0.02));
+    let travel = Math.atan2(a1[1]-a0[1], a1[0]-a0[0]);
+    if(!isFinite(travel) || (a0[0]===a1[0] && a0[1]===a1[1]))
+      travel = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
+    const d = offset===0 ? directOf(p.id) : {};
+
     if(S.shotOn){
-      const ang = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
-      const lx=(cx+Math.cos(ang)*18).toFixed(1), ly=(cy+Math.sin(ang)*18).toFixed(1);
-      // Cased, because a bare white lane disappears over a light bunker.
-      out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${lx}" y2="${ly}" stroke="#000" stroke-width="3.2" stroke-linecap="round" opacity=".55"/>`
-           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${lx}" y2="${ly}" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`;
+      let ang = travel, len = 18, mark = "";
+      if(d.shot){
+        const tb = layout.bunkers.find(x=>x.id===d.shot);
+        if(tb){
+          const tx=tb.x*sx, ty=tb.y*sy;
+          ang = Math.atan2(ty-cy, tx-cx);
+          // Capped, because a cone drawn all the way to a far bunker swamps
+          // the field. A ring on the target says what he is laning instead.
+          len = Math.min(46, Math.max(14, Math.hypot(tx-cx, ty-cy) - 6));
+          mark = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="8" fill="none" stroke="#000" stroke-width="3" opacity=".5"/>`
+               + `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="8" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+        }
+      }
+      const sp=0.11, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
+      const tip=P(0,len).split(",");
+      // The lane is a cone, not a ray, so it reads as a field of fire.
+      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity=".16"/>`
+           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.2" stroke-linecap="round" opacity=".5"/>`
+           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`
+           + mark;
+    }
+
+    if(S.faceOn){
+      const fa = (d.face!=null && d.face!==undefined) ? d.face*Math.PI/180 : travel;
+      const fx=cx+Math.cos(fa)*10, fy=cy+Math.sin(fa)*10;
+      const W=(o)=>`${(fx-Math.cos(fa+o)*6).toFixed(1)},${(fy-Math.sin(fa+o)*6).toFixed(1)}`;
+      const pts=`${W(-0.85)} ${fx.toFixed(1)},${fy.toFixed(1)} ${W(0.85)}`;
+      out += `<polyline points="${pts}" fill="none" stroke="#000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`
+           + `<polyline points="${pts}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"/>`
          + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700">${p.id+offset}</text>`;
@@ -847,6 +960,24 @@ function fieldSVG(opts={}){
   }
 
   const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)).join("");
+
+  // Movement draws each logged rotation as an arrow between two footprints.
+  let moveArrows = "";
+  if(opts.moves){
+    const byId = Object.fromEntries(layout.bunkers.map(b=>[b.id,b]));
+    moveArrows = layoutMoves().slice(0,40).map(m=>{
+      const a=byId[m.from], b=byId[m.to]; if(!a||!b) return "";
+      const x1=a.x*sx, y1=a.y*sy, x2=b.x*sx, y2=b.y*sy;
+      const ang=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+      if(L<6) return "";
+      // stop short of the target so the head sits beside it, not on it
+      const tx=x2-Math.cos(ang)*5, ty=y2-Math.sin(ang)*5;
+      const head=(o)=>`${(tx-Math.cos(ang-o)*5).toFixed(1)},${(ty-Math.sin(ang-o)*5).toFixed(1)}`;
+      return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#000" stroke-width="3.4" opacity=".5" stroke-linecap="round"/>`
+           + `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#3ecf8e" stroke-width="1.6" opacity=".95" stroke-linecap="round"/>`
+           + `<polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${head(0.5)} ${head(-0.5)}" fill="#3ecf8e"/>`;
+    }).join("");
+  }
 
   // Bunker stats tint each footprint by how much traffic the tally recorded.
   let heat = "";
@@ -882,6 +1013,7 @@ function fieldSVG(opts={}){
 
     <g filter="url(#bnkLift)">${bunks}</g>
     ${heat}
+    ${moveArrows}
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
     ${paths}
@@ -959,20 +1091,59 @@ function authForm(){
       <button class="btn grow" onclick="doAuth()">${S.mode==="create"?"Create account":"Log in"}</button>
       <button class="btn btn--ghost" onclick="set({mode:null})">Back</button>
     </div>
-    <p class="note">Stored on this device only. Nothing is sent anywhere.</p>
+    <p class="note">Stored on this device only, salted and hashed. Nothing is sent anywhere.</p>
   </div>`;
 }
-window.doAuth = () => {
-  const email=document.getElementById("em").value.trim();
-  const pass=document.getElementById("pw").value;
-  if(!email||pass.length<6){alert("Email and a password of 6 characters or more.");return}
-  const acc=JSON.parse(localStorage.getItem("gridlock.staff")||"{}");
-  if(S.mode==="create"){
-    localStorage.setItem("gridlock.staff", JSON.stringify({email,pass}));
-    set({entered:true,role:"staff",email,mode:null});
-  }else if(acc.email===email && acc.pass===pass){
-    set({entered:true,role:"staff",email,mode:null});
-  }else alert("Email or password does not match. Create an account first.");
+// The staff password never touches storage in the clear. It is salted and
+// hashed with the platform's own crypto, and only the hash is kept — so a
+// shared or stolen phone does not hand over the password itself.
+const STAFF_KEY = "gridlock.staff.v2";
+async function hashPass(pass, saltHex){
+  const enc = new TextEncoder().encode(saltHex + "|" + pass);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function newSalt(){
+  return [...crypto.getRandomValues(new Uint8Array(16))]
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+window.doAuth = async () => {
+  const email = document.getElementById("em").value.trim();
+  const pass = document.getElementById("pw").value;
+  if(!email || pass.length < 6){ alert("Email and a password of 6 characters or more."); return; }
+  if(!(window.crypto && crypto.subtle)){
+    alert("This browser cannot hash the password securely, so sign-in is disabled here. Use the app, or a browser on https.");
+    return;
+  }
+  let acc = {};
+  try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
+
+  if(S.mode === "create"){
+    const salt = newSalt();
+    localStorage.setItem(STAFF_KEY, JSON.stringify({email, salt, hash: await hashPass(pass, salt)}));
+    localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
+    set({entered:true, role:"staff", email, mode:null});
+    return;
+  }
+
+  if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
+    set({entered:true, role:"staff", email, mode:null});
+    return;
+  }
+
+  // An account made before hashing is upgraded on the next correct sign-in
+  // rather than locking the coach out of his own phone.
+  let old = {};
+  try{ old = JSON.parse(localStorage.getItem("gridlock.staff") || "{}"); }catch(e){}
+  if(old.email === email && old.pass === pass){
+    const salt = newSalt();
+    localStorage.setItem(STAFF_KEY, JSON.stringify({email, salt, hash: await hashPass(pass, salt)}));
+    localStorage.removeItem("gridlock.staff");
+    set({entered:true, role:"staff", email, mode:null});
+    return;
+  }
+  alert("Email or password does not match. Create an account first.");
 };
 
 /* ============================================================
@@ -1009,17 +1180,36 @@ function playbook(){
 
   ${sec("Direct the five", `<div class="assigns">
       ${currentPaths().map((pth,i)=>{
-        const who=roster[i];
-        return `<div class="assign">
+        const who=roster[i], d=directOf(pth.id);
+        const bl=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers;
+        const shotB=d.shot?bl.find(b=>b.id===d.shot):null;
+        const role=d.role||"P";
+        const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
+        return `<div class="assign" style="flex-wrap:wrap">
           <span class="assign__n">${pth.id}</span>
           <span class="assign__body">
             <span class="assign__job">${esc(pth.label)}</span>
             <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"unassigned"}</span>
           </span>
-          <span class="ps"><span class="on">P</span><span>S</span></span>
+          <span class="ps">
+            <button class="${role==="P"?"on":""}" onclick="setDirect('${pth.id}','role','P')">P</button>
+            <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
+          </span>
+          <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
+          <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotB?esc(callOf(shotB)):"Shot"}</button>
+          ${open?`<div class="pad">
+            ${FACE_PAD.map(([g,deg])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}"
+              onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${g}</button>`).join("")}
+          </div>`:""}
+          ${openShot?`<div style="flex-basis:100%">
+            <select onchange="setDirect('${pth.id}','shot',this.value)">
+              <option value="">Lane he is running — no fixed target</option>
+              ${bl.map(b=>`<option value="${esc(b.id)}" ${d.shot===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+            </select></div>`:""}
         </div>`;
       }).join("")}
     </div>
+    <p class="note">Face sets which way he points. Shot picks the bunker he lanes. Both travel with him down the path.</p>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}`;
 }
 
@@ -1050,6 +1240,7 @@ function paintField(){
    ============================================================ */
 function tally(){
   const pt=S.point||1;
+  const bl=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers;
   const mine=(S.roster||[]).slice(0,5);
   const outs=(S.tally||[]);
   const thisPoint=outs.filter(o=>typeof o==="object" && o.pt===pt);
@@ -1086,17 +1277,24 @@ function tally(){
         if(typeof o!=="object") return `<div class="assign"><span class="assign__n" style="background:var(--line-lit);font-size:11px">·</span>
           <span class="assign__body"><span class="assign__job">${esc(o)}</span></span>
           <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button></div>`;
+        // Only the point you are on gets the pickers. Each one is 58 options,
+        // so rendering them for the whole log costs thousands of nodes a
+        // repaint — and you should not be editing an old point by accident.
+        const live = o.pt === pt;
+        const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
+        const where = [o.shotAt?`shot at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
+          .filter(Boolean).join(" · ");
         return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${o.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
-        <span class="assign__who">${o.side==="us"?"your player":esc(S.right.name)}</span></span>
+        <span class="assign__who">${o.side==="us"?"your player":esc(S.right.name)}${where?" · "+where:""}</span></span>
         <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
-        <div class="who2" style="flex-basis:100%;margin-top:6px">
+        ${live?`<div class="who2" style="flex-basis:100%;margin-top:6px">
           ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
           ${bunkerPick("Moved to", i, "movedTo", o.movedTo)}
-        </div>
+        </div>`:""}
       </div>`;}).join("")}
-    </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}.</p>`:""}`
+    </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}. Bunkers can be set on the point you are on.</p>`:`<p class="note">Bunkers can be set on the point you are on.</p>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
     outs.length?outs.length+" total":"")}`;
 }
@@ -1492,9 +1690,33 @@ function moreBody(k){
       <div class="field-wrap">${fieldSVG({static:true})}</div>`,
       named.length?named.length+" named":layoutName);
   }
-  if(k==="movement") return sec("Movement",`<p class="lede">Bunker to bunker after the break. Feeds bunker stats.</p>
-    <div class="field-wrap">${fieldSVG({static:true})}</div>
-    <div class="empty">Not built yet — the field is here so you can see the layout.</div>`, layoutName);
+  if(k==="movement"){
+    const list=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers;
+    const mv=layoutMoves();
+    const opt=b=>`<option value="${esc(b.id)}">${esc(callOf(b))} · ${esc(b.id)}</option>`;
+    const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
+                           :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
+    return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Every rotation counts as a move into the new bunker on Bunker stats.</p>
+      <div class="fld"><label>Player</label><select id="mvWho">${who}</select></div>
+      <div class="who2">
+        <div class="fld"><label>From</label><select id="mvFrom">${list.map(opt).join("")}</select></div>
+        <div class="fld"><label>To</label><select id="mvTo">${list.map(opt).join("")}</select></div>
+      </div>
+      <button class="btn btn--block" onclick="logMove()">Log the move</button>`, "Point "+(S.point||1))
+    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true})}</div>
+      ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
+                 :`<div class="empty">No rotations logged on this layout yet.</div>`}`, layoutName)
+    + (mv.length?sec("Rotations", `<div class="assigns">
+        ${mv.slice(0,30).map((m,i)=>{
+          const a=list.find(b=>b.id===m.from), b2=list.find(b=>b.id===m.to);
+          return `<div class="assign">
+            <span class="assign__n" style="background:var(--ok);color:#06210f;font-size:11px">${m.pt}</span>
+            <span class="assign__body"><span class="assign__job">${esc(m.who)}</span>
+            <span class="assign__who">${esc(a?callOf(a):m.from)} → ${esc(b2?callOf(b2):m.to)}</span></span>
+            <button class="btn btn--danger" onclick="undoMove(${(S.moves||[]).indexOf(m)})">Undo</button>
+          </div>`;
+        }).join("")}</div>`, mv.length+" logged"):"");
+  }
   if(k==="stats"){
     const list=(LAYOUTS[S.layoutKey]||LAYOUTS.mwo).bunkers, t=bunkerTraffic();
     const rows=Object.entries(t).map(([id,v])=>({b:list.find(x=>x.id===id), id, ...v}))
@@ -1513,11 +1735,33 @@ function moreBody(k){
         </table></div>`
       : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
          <div class="field-wrap">${fieldSVG({static:true})}</div>
-         <div class="empty">Nothing logged yet. On Tally, set <b>shot at</b> or <b>moved to</b> on an out and it lands here.</div>`,
+         <div class="empty">Nothing logged yet. Set <b>shot at</b> or <b>moved to</b> on an out in Tally, or log a rotation in Movement, and it lands here.</div>`,
       layoutName);
   }
-  if(k==="assess") return sec("Assess",`<p class="lede">Grade a player after the point. The note stays with the roster.</p>
-    <div class="empty">Not built yet.</div>`);
+  if(k==="assess"){
+    const all=S.assessments||[];
+    const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
+                           :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
+    const names=[...new Set(all.map(a=>a.who))];
+    const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
+    return sec("Grade a player", `<p class="lede">After the point, not during it. The grade stays with the roster.</p>
+      <div class="fld"><label>Player</label><select id="asWho">${who}</select></div>
+      <div class="fld"><label>Score</label>
+        <select id="asScore">${[5,4,3,2,1].map(n=>`<option value="${n}">${n} — ${["","poor","below","solid","strong","outstanding"][n]}</option>`).join("")}</select></div>
+      <div class="fld"><label>Note</label><textarea id="asNote" placeholder="Read the snake early, held the corner."></textarea></div>
+      <button class="btn btn--block" onclick="saveAssess()">Save grade</button>`, "Point "+(S.point||1))
+    + (names.length?sec("Averages", `<div class="facts">
+        ${names.map(n=>`<span class="fact"><b>${avg(n)}</b><span>${esc(n)}</span></span>`).join("")}
+      </div>`, names.length+" graded"):"")
+    + (all.length?sec("Grades", `<div class="assigns">
+        ${all.slice(0,30).map((a,i)=>`<div class="assign">
+          <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${a.score}</span>
+          <span class="assign__body"><span class="assign__job">${esc(a.who)}</span>
+          <span class="assign__who">Point ${a.pt}${a.note?" · "+esc(a.note):""}</span></span>
+          <button class="btn btn--danger" onclick="undoAssess(${i})">Undo</button>
+        </div>`).join("")}</div>`, all.length+" total")
+      : sec("Grades", `<div class="empty">No grades yet.</div>`));
+  }
   if(k==="codes") return sec("Codes",`<div class="fld"><label>Code words for this event</label>
     <textarea onchange="S.codeWords=this.value;save(S)" placeholder="One per line">${esc(S.codeWords)}</textarea></div>`, layoutName);
   if(k==="messages") return sec("Messages",
@@ -1532,7 +1776,7 @@ function moreBody(k){
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
-        <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server.</span></div>
+        <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.</span></div>
       </div>
     </div>
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>

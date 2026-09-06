@@ -21,6 +21,8 @@ const SEASON = {
   leagueMembers: 300,   // ops, refs, registration, vendors across a season
   blasts: 500,
   messages: 800,
+  moves: 1200,          // ~3 logged rotations a point
+  grades: 500,          // a grade or two a point
 };
 
 const results = [];
@@ -70,7 +72,23 @@ function pct(arr, p) {
       matchState: "Even", scoutTab: "matchup",
       roster: Array.from({ length: 12 }, (_, i) => ({ name: "Player " + i, num: i + 1, p: "snake MW", s: "GP" })),
       tally: [], classes: [], responses: [], groups: [], blasts: [], messages: [],
+      moves: [], assessments: [], direct: {}, bunkerCalls: {},
     };
+    // A season of bunker traffic, directions and grades on the digitized field.
+    const ids = LAYOUTS.mwo.bunkers.map(b => b.id);
+    for (let m = 0; m < S.moves; m++)
+      st.moves.push({ pt: 1 + (m % S.points), who: "Player " + (m % 5), layout: "mwo",
+                      from: ids[m % ids.length], to: ids[(m * 7 + 3) % ids.length], at: Date.now() });
+    for (let g = 0; g < S.grades; g++)
+      st.assessments.push({ who: "Player " + (g % 5), score: 1 + (g % 5), note: "held the corner", pt: 1 + (g % S.points), at: Date.now() });
+    ["hold", "base", "snake", "flood", "blitz"].forEach(k => {
+      for (let i = 1; i <= 5; i++)
+        st.direct["mwo|" + k + "|" + i] = { face: [-135, -90, -45, 0, 45][i % 5], shot: ids[(i * 11) % ids.length], role: i % 2 ? "P" : "S" };
+    });
+    LAYOUTS.mwo.bunkers.slice(0, 20).forEach((b, i) => {
+      st.bunkerCalls.mwo = st.bunkerCalls.mwo || {};
+      st.bunkerCalls.mwo[b.id] = "Call " + i;
+    });
     for (let p = 1; p <= S.points; p++)
       for (let k = 0; k < 5; k++)
         st.tally.push({ pt: p, side: k % 2 ? "us" : "them", name: "Player " + k, at: Date.now() });
@@ -113,6 +131,15 @@ function pct(arr, p) {
   }
 
   // ---------- 4. The heaviest single screen ----------
+  for (const [key, label] of [["movement", "Movement"], ["assess", "Assess"], ["stats", "Bunker stats"]]) {
+    const samples = [];
+    for (let i = 0; i < 8; i++)
+      samples.push(await page.evaluate(k => { const t0 = performance.now(); window.set({ tab: "more", more: k }); return performance.now() - t0; }, key));
+    const p95 = pct(samples, 0.95);
+    row(`Render ${label} (p95)`, ms(p95), "ms", p95 < 250 ? "pass" : p95 < 500 ? "slow" : "fail");
+  }
+  await page.evaluate(() => window.set({ tab: "playbook", more: null }));
+
   const heavy = [];
   for (let i = 0; i < 10; i++) {
     heavy.push(await page.evaluate(() => {

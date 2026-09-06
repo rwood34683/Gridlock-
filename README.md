@@ -105,27 +105,27 @@ opponent's logged tendency); Tally as a point sheet you tap through; Scout
 counter-picker derived from the opponent read and the match state, division
 board); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own
-breakouts landing on real bunkers; team bunker calls that overlay the official
-codes everywhere; Bunker stats built from the tally sheet with a heat overlay; Walk, Lineups, Team, Codes,
+breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
+roles, stored per layout per break and drawn travelling with the player; team
+bunker calls that overlay the official codes everywhere; Movement rotations
+drawn on the field; Assess grading with per-player averages; Bunker stats built
+from tally and movement with a heat overlay; Walk, Lineups, Team, Codes,
 Messages; Classes with join codes and participant forms; League groups with
 blasts and a blast log; and Nexus.
+
+The staff password is salted and hashed with the platform's own crypto and only
+the hash is stored. An account created before that is upgraded on the next
+correct sign-in rather than locking the coach out.
 
 Roadmap, per `CLAUDE.md` — not built, and deliberately not advertised on the
 landing page:
 
 1. Scout 1:1 with the dual-pit screenshots in the spec
-2. Playbook 8-way face/shot pad, P|S roles, erase and smooth path editing
-3. Movement capture, and Assess grading
-4. QR generation for class codes
-5. SwiftUI parity in `ios-native/`, then Android Compose
+2. Path erase / smooth / aim drag on Playbook
+3. QR generation for class codes
+4. SwiftUI parity in `ios-native/`, then Android Compose
 
-Done since: per-layout breakout paths (item 3 of the original list) and bunker
-naming with stats heat (item 4) — see `docs/LAYOUTS.md`.
-
-Movement and Assess are present as destinations but hold placeholder copy
-rather than real data. Tally now records the point, who went out on each side,
-and optionally the shot-at and moved-to bunker, which is what feeds Bunker
-stats.
+Every other destination now holds real data rather than placeholder copy.
 
 ## House rules
 

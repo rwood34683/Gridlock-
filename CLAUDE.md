@@ -53,13 +53,16 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 ## What to build next (in order)
 
 1. Match Scout 1:1 to the dual-pit screenshots in the spec (anticipate cards, counter-picker, division board already sketched in web).
-2. Playbook 8-way face/shot pad + P|S roles + erase/smooth path edit.
+2. ~~Playbook 8-way face/shot pad + P|S roles.~~ Done — Face opens the eight, Shot
+   targets a named bunker, P|S are real toggles, all stored per layout per break.
+   Path erase/smooth edit is still open.
 3. ~~Per-layout unique paths for every seeded break.~~ Done for the Midwest Open —
    breaks are written as the bunker each player plants on, in `BREAK_PLANTS`.
 4. ~~Bunker naming on the field + bunker stats heat.~~ Done — Team sets the call,
    it overlays the official code everywhere, and Bunker stats tints the field.
 5. QR generation for class codes.
-6. Bring iOS SwiftUI up to web parity, then Android Compose.
+6. Path erase / smooth / aim drag on Playbook.
+7. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 

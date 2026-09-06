@@ -33,6 +33,10 @@ laptop — then seeds a **full competitive season** and measures the app under i
 | League members | 300 across four groups |
 | Ops blasts | 500 |
 | Squad messages | 800 |
+| Logged rotations | 1200 (about three a point) |
+| Player grades | 500 |
+| Directed players | all five on all five breaks |
+| Named bunkers | 20 |
 
 ## Results
 
@@ -40,31 +44,32 @@ Measured on a 4x-throttled CPU with the season above loaded:
 
 | Measurement | Value | Budget |
 |---|---|---|
-| Cold start to interactive | 108 ms | < 1000 ms |
-| A full season in storage | 245 KB | — |
-| Share of the 5 MB quota | 4.8 % | < 60 % |
-| Render Playbook (p95) | 33 ms | < 100 ms |
-| Render Tally (p95) | 49 ms | < 100 ms |
-| Render Scout (p95) | 36 ms | < 100 ms |
-| Render Sightlines (p95) | 37 ms | < 100 ms |
-| Render division board (p95) | 44 ms | < 150 ms |
-| Break animation, mean frame | 18.6 ms | < 22 ms |
-| Break animation, worst frame | 41 ms | < 60 ms |
-| 120 sideline taps, p50 / p95 | 27 / 34 ms | < 80 / 200 ms |
-| JS heap after a full match | 2 MB | < 120 MB |
-| localStorage headroom left | 4.75 MB | > 2 MB |
+| Cold start to interactive | 106 ms | < 1000 ms |
+| A full season in storage | 389 KB | — |
+| Share of the 5 MB quota | 7.6 % | < 60 % |
+| Render Playbook (p95) | 49 ms | < 100 ms |
+| Render Tally (p95) | 34 ms | < 100 ms |
+| Render Scout (p95) | 32 ms | < 100 ms |
+| Render Sightlines (p95) | 40 ms | < 100 ms |
+| Render Movement (p95) | 40 ms | < 250 ms |
+| Render Assess (p95) | 28 ms | < 250 ms |
+| Render Bunker stats (p95) | 40 ms | < 250 ms |
+| Render division board (p95) | 37 ms | < 150 ms |
+| Break animation, mean frame | 16.9 ms | < 22 ms |
+| Break animation, worst frame | 29 ms | < 60 ms |
+| 120 sideline taps, p50 / p95 | 29 / 36 ms | < 80 / 200 ms |
+| JS heap after a full match | 3 MB | < 120 MB |
+| localStorage headroom left | 4.5 MB | > 2 MB |
 
 Everything sits inside budget with a wide margin. A season of real use fills
 under 5% of the storage quota, so a coach would have to log roughly twenty
 seasons before running out.
 
-### The one thing that was actually slow
+### What the harness has actually caught
 
-`playPath()` used to call `render()` on every animation frame, which rebuilt the
-entire document — division table included — sixty times a second. It now
-repaints only the field SVGs (`paintField()`).
-
-Measured on Scout with the division board open, 4x throttle:
+**A full `render()` on every animation frame.** `playPath()` rebuilt the whole
+document — division table included — sixty times a second. It now repaints only
+the field SVGs (`paintField()`).
 
 | Per frame | Mean | p95 | Ceiling |
 |---|---|---|---|
@@ -72,8 +77,23 @@ Measured on Scout with the division board open, 4x throttle:
 | `paintField()` | 5.2 ms | 6.8 ms | 193 fps |
 
 2.1x cheaper — and more importantly, replacing `innerHTML` sixty times a second
-destroyed scroll position and input focus while a break was playing. It doesn't
-any more.
+destroyed scroll position and input focus while a break was playing.
+
+**Bunker pickers on every row of the tally log.** Adding the optional shot-at
+and moved-to fields put two selects on all 40 visible rows, each holding all 58
+bunkers of the layout — about 4,600 option nodes on every repaint. Tally's p95
+went to **265 ms** and the harness failed it. The pickers now render only on the
+point you are actually on, which is both faster and safer (you cannot nudge an
+old point's sheet by accident):
+
+| | Before | After |
+|---|---|---|
+| Render Tally, p95 | 265 ms | 34 ms |
+| 120 sideline taps, wall clock | 19 s | 8 s |
+| Break animation, worst frame | 71 ms | 29 ms |
+
+Worth noting that one fix moved three unrelated numbers — the option nodes were
+being rebuilt on every state change, not just on Tally.
 
 ## What to load test when a backend does exist
 
