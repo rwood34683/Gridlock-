@@ -96,12 +96,14 @@ the host to your real domain if it differs.
 
 ## What ships today
 
-Working: the promo gate and staff login, Playbook (five breaks with per-break
-paths, Face and Shot lanes, layout switching), Tally, Scout (dual-pit cards,
-tendency, threat, notes, sim bar, anticipate cards, counter-picker by match
-state, division board), Sightlines, Walk, Lineups, Team, Messages, Classes with
-join codes and participant forms, League groups with blasts and a blast log,
-and Nexus.
+Working: the promo gate and staff login; Playbook (five breaks with per-break
+paths, Face and Shot lanes, layout switching, and the call surfaced against the
+opponent's logged tendency); Tally as a point sheet you tap through; Scout
+(dual-pit cards, tendency, threat, notes, sim bar, anticipate cards, a
+counter-picker derived from the opponent read and the match state, division
+board); Sightlines with real blocking geometry; Walk, Lineups, Team, Codes,
+Messages; Classes with join codes and participant forms; League groups with
+blasts and a blast log; and Nexus.
 
 Roadmap, per `CLAUDE.md` — not built, and deliberately not advertised on the
 landing page:
@@ -113,10 +115,10 @@ landing page:
 5. QR generation for class codes
 6. SwiftUI parity in `ios-native/`, then Android Compose
 
-Movement, Assess, Codes and Bunker stats are present as destinations but hold
-placeholder copy rather than real data. Tally records a line per out and does
-not yet capture the point number, the shot-at bunker or the moved-to bunker the
-spec calls for.
+Movement, Assess and Bunker stats are present as destinations but hold
+placeholder copy rather than real data — they need movement capture first.
+Tally records the point number and who went out on each side, but not yet the
+shot-at bunker or the moved-to bunker the spec calls for.
 
 ## House rules
 

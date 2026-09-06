@@ -12,7 +12,8 @@
     "serve": "node scripts/serve.js",
     "shots": "node scripts/capture-shots.js && node scripts/optimise-shots.js",
     "site:artifact": "node scripts/build-artifact-page.js",
-    "icons": "python3 brand/generate-assets.py"
+    "icons": "python3 brand/generate-assets.py",
+    "loadtest": "node test/loadtest.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

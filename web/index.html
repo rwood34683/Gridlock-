@@ -16,102 +16,383 @@
 <title>GRIDLOCK System · Coach Edition</title>
 <style>
 :root{
-  --bg:#0b0c0d; --panel:#141616; --panel2:#1c1f1f; --line:#2a2d2d;
-  --sunk:#101212;
-  /* one accent, three weights: solid fills, pressed, and small type */
+  /* ---- surface: five steps, so depth means something ---- */
+  --bg:#0b0c0d;        /* the page */
+  --sunk:#0f1011;      /* inputs, wells */
+  --panel:#161818;     /* raised object */
+  --panel-2:#1e2121;   /* raised object, one step up */
+  --line:#26292a;      /* hairline */
+  --line-lit:#3a3f40;  /* hairline on a raised object */
+
+  /* ---- one accent, three weights ---- */
   --accent:#ad1515; --accent-deep:#8f1010; --accent-lit:#e5252a;
-  --ink:#efedeb; --mute:#9b9d9e;
-  /* wires stay semantic — left pit red, right pit blue */
-  --red:#e5342f; --blue:#3d8bff; --turf:#101111;
-  --ok:#3ecf8e;
-}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
-.app{display:flex;flex-direction:column;min-height:100%}
-.top{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-.brand{font-weight:800;letter-spacing:.12em}
-.brand small{display:block;font-weight:600;letter-spacing:.28em;font-size:9px;color:var(--accent-lit)}
-.grow{flex:1}
-.chip{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12px}
-.chip.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-.main{flex:1;overflow:auto;padding:12px}
-.tabs{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);background:#000}
-.tabs button{flex:1;background:transparent;border:0;color:var(--mute);padding:8px 4px;font-size:11px}
-.tabs button.on{color:var(--accent-lit);font-weight:700}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
-h1,h2,h3{margin:0 0 8px}
-h2{font-size:16px}
-label{display:block;font-size:11px;color:var(--mute);margin:8px 0 4px;letter-spacing:.04em}
-input,select,textarea{width:100%;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px}
-textarea{min-height:70px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.btn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn.red{background:var(--red);color:#fff}
-.btn.blue{background:var(--blue);color:#fff}
-.muted{color:var(--mute);font-size:12px}
-.field-wrap{background:#0b0c0d;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
-svg.field{width:100%;height:auto;display:block}
-.pit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:720px){.pit{grid-template-columns:1fr}}
-.star{cursor:pointer;font-size:16px}
-.table{width:100%;border-collapse:collapse;font-size:12px}
-.table th,.table td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left}
-.promo{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;background:
-  radial-gradient(1200px 520px at 50% 0%, rgba(173,21,21,.30) 0%, transparent 58%),
-  linear-gradient(#000,#0b0c0d)}
-.promo h1{font-size:42px;letter-spacing:.18em;margin:0}
-.promo .sys{letter-spacing:.4em;color:var(--accent-lit);font-size:12px;margin:4px 0 18px}
-.promo .tag{color:var(--mute);margin-bottom:22px}
-.stack{display:flex;flex-direction:column;gap:8px}
-.warn{color:#f3c38a;font-size:12px}
-.tip{background:#1a1212;border:1px solid var(--accent);border-radius:10px;padding:8px 10px;font-size:12px;margin-bottom:10px}
-.who{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px}
-.bar{height:10px;border-radius:99px;overflow:hidden;display:flex;background:var(--sunk)}
-.bar i{display:block;height:100%}
-code{background:var(--sunk);padding:2px 6px;border-radius:6px}
 
-/* --- Native shell: notch/home-indicator insets and app-like touch behaviour --- */
-html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+  /* ---- type ---- */
+  --ink:#efedeb; --mute:#9b9d9e; --dim:#6d7173;
+
+  /* ---- semantic, never decorative ---- */
+  --red:#e5342f; --blue:#3d8bff; --ok:#3ecf8e; --warn:#e0a33a;
+
+  /* ---- type scale: real steps, so a heading reads as one ---- */
+  --t-hero:30px; --t-xl:21px; --t-lg:17px; --t-md:15px; --t-sm:13px; --t-xs:11px;
+
+  /* ---- spacing scale ---- */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{
+  margin:0;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--ink);
+  font:400 var(--t-md)/1.45 var(--sans);
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+}
 body{-webkit-touch-callout:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0;text-align:left}
+:focus-visible{outline:2px solid var(--accent-lit);outline-offset:2px;border-radius:var(--r-sm)}
+h1,h2,h3,p{margin:0}
+.grow{flex:1}
 
-/* App shell: the tab bar and header are pinned and only .main scrolls.
-   Without this the whole .app grows past the viewport and the tab bar
-   scrolls off the bottom of the phone. */
-html,body{overflow:hidden}
+/* ============================================================
+   SHELL — header and tab bar pinned, only .main scrolls
+   ============================================================ */
 #root{height:100%;overflow:hidden}
-.app{height:100%;min-height:0}
-.main{flex:1;min-height:0;overflow-y:auto}
-.promo{height:100%;overflow-y:auto}
-button,.chip,.btn,.tabs button{-webkit-user-select:none;user-select:none;touch-action:manipulation}
-input,textarea,select{-webkit-user-select:text;user-select:text}
-.top{
-  padding-top:calc(10px + env(safe-area-inset-top));
-  padding-left:calc(14px + env(safe-area-inset-left));
-  padding-right:calc(14px + env(safe-area-inset-right));
-}
+.app{display:flex;flex-direction:column;height:100%;min-height:0}
 .main{
-  padding-left:calc(12px + env(safe-area-inset-left));
-  padding-right:calc(12px + env(safe-area-inset-right));
-  -webkit-overflow-scrolling:touch;
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:var(--s4) calc(var(--s4) + env(safe-area-inset-left)) var(--s6) calc(var(--s4) + env(safe-area-inset-right));
+  display:flex;flex-direction:column;gap:var(--s5);
 }
+/* A scrolling flex column shrinks its children to fit. Without this every
+   block is squashed — and anything with overflow:hidden gets clipped. */
+.main > *{flex:0 0 auto}
+
+.hdr{
+  background:#000;border-bottom:1px solid var(--line);
+  padding:var(--s3) calc(var(--s4) + env(safe-area-inset-right)) 0 calc(var(--s4) + env(safe-area-inset-left));
+  padding-top:calc(var(--s3) + env(safe-area-inset-top));
+}
+.hdr__top{display:flex;align-items:center;gap:var(--s3)}
+.brand{font-size:var(--t-md);font-weight:800;letter-spacing:.14em;line-height:1}
+.brand small{
+  display:block;margin-top:3px;font-size:9px;font-weight:700;
+  letter-spacing:.3em;color:var(--accent-lit);
+}
+.who-chip{
+  font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:4px 10px;
+}
+.who-chip.staff{color:var(--ink);border-color:var(--accent);background:rgba(173,21,21,.18)}
+
+/* live context: what field and what call, always on screen */
+.ctx{
+  display:flex;align-items:center;gap:var(--s2);width:100%;
+  padding:var(--s2) 0 var(--s3);margin-top:var(--s2);
+  color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+}
+.ctx__line{
+  min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ctx b{color:var(--ink);font-weight:700}
+.ctx__sep{color:var(--dim)}
+.ctx__caret{color:var(--dim);font-size:10px}
+
 .tabs{
-  padding-bottom:calc(8px + env(safe-area-inset-bottom));
-  padding-left:calc(8px + env(safe-area-inset-left));
-  padding-right:calc(8px + env(safe-area-inset-right));
+  display:flex;background:#000;border-top:1px solid var(--line);
+  padding:var(--s1) calc(var(--s2) + env(safe-area-inset-left)) calc(var(--s2) + env(safe-area-inset-bottom)) calc(var(--s2) + env(safe-area-inset-right));
 }
-.tabs button{min-height:44px}
+.tabs button{
+  flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--dim);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+}
+.tabs button i{display:block;width:16px;height:2px;border-radius:2px;background:transparent}
+.tabs button.on{color:var(--ink)}
+.tabs button.on i{background:var(--accent-lit)}
+
+/* ============================================================
+   SECTION — an eyebrow and a rule, not another card.
+   Cards are reserved for things that are actually objects.
+   ============================================================ */
+.sec{display:flex;flex-direction:column;gap:var(--s3)}
+.sec__head{display:flex;align-items:baseline;gap:var(--s3);border-bottom:1px solid var(--line);padding-bottom:var(--s2)}
+.sec__eyebrow{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.sec__note{margin-left:auto;font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
+.sec__body{display:flex;flex-direction:column;gap:var(--s3)}
+
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
+}
+.panel--flush{padding:0;overflow:hidden}
+.panel__title{font-size:var(--t-lg);font-weight:700;letter-spacing:.01em}
+
+.lede{color:var(--mute);font-size:var(--t-sm);line-height:1.5}
+.note{color:var(--dim);font-size:var(--t-xs);line-height:1.5}
+.warn{color:var(--warn);font-size:var(--t-sm)}
+
+/* ============================================================
+   THE CALL — the one thing a coach needs in forty seconds
+   ============================================================ */
+.call{
+  background:linear-gradient(150deg,#1a1010,#0f1011 60%);
+  border:1px solid var(--line-lit);border-radius:var(--r-lg);
+  padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
+  position:relative;overflow:hidden;
+}
+.call::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);
+}
+.call__label{font-size:var(--t-xs);font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--accent-lit)}
+.call__name{font-size:var(--t-hero);font-weight:800;letter-spacing:-.01em;line-height:1.02}
+.call__read{color:var(--mute);font-size:var(--t-sm);line-height:1.45}
+.call__meta{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;padding-top:var(--s1)}
+
+/* aggression as five pips, not a number nobody can feel */
+.aggr{display:flex;align-items:center;gap:var(--s2)}
+.aggr__pips{display:flex;gap:3px}
+.aggr__pips i{width:14px;height:4px;border-radius:2px;background:var(--line-lit)}
+.aggr__pips i.on{background:var(--accent-lit)}
+.aggr__label{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+.vs{font-size:var(--t-xs);color:var(--dim);letter-spacing:.06em}
+.vs b{color:var(--ink)}
+
+/* ============================================================
+   CONTROLS — three shapes, so you can tell them apart:
+   segmented = pick one, toggle = on/off, button = do something
+   ============================================================ */
+.seg{
+  display:flex;gap:2px;background:var(--sunk);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:3px;overflow-x:auto;scrollbar-width:none;
+}
+.seg::-webkit-scrollbar{display:none}
+.seg{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);
+     mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
+.seg:not(:has(button:nth-child(4))){-webkit-mask-image:none;mask-image:none}
+.seg button{
+  flex:1 0 auto;min-height:38px;padding:0 var(--s3);border-radius:var(--r-sm);
+  color:var(--mute);font-size:var(--t-sm);font-weight:600;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
+}
+.seg button.on{background:var(--accent);color:#fff;font-weight:700}
+
+.toggles{display:flex;gap:var(--s2);flex-wrap:wrap}
+.tgl{
+  display:inline-flex;align-items:center;gap:var(--s2);min-height:38px;padding:0 var(--s3);
+  border:1px solid var(--line-lit);border-radius:var(--r-pill);background:var(--panel);
+  font-size:var(--t-sm);font-weight:600;color:var(--mute);
+}
+.tgl i{width:7px;height:7px;border-radius:50%;background:var(--line-lit);flex:none}
+.tgl.on{color:var(--ink);border-color:var(--accent)}
+.tgl.on i{background:var(--accent-lit);box-shadow:0 0 0 3px rgba(229,37,42,.2)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);
+  min-height:44px;padding:0 var(--s4);border-radius:var(--r-md);
+  background:var(--accent);color:#fff;font-size:var(--t-md);font-weight:700;
+  transition:background .12s;
+}
+.btn:active{background:var(--accent-deep)}
+.btn--block{width:100%}
+.btn--lg{min-height:52px;font-size:var(--t-lg);letter-spacing:.02em}
+.btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line-lit)}
+.btn--ghost:active{background:var(--panel-2)}
+.btn--quiet{background:transparent;color:var(--mute);border:1px solid var(--line);min-height:38px;font-size:var(--t-sm)}
+.btn--danger{background:transparent;color:var(--red);border:1px solid var(--line);min-height:34px;font-size:var(--t-xs);padding:0 var(--s3)}
+.btnrow{display:flex;gap:var(--s2);flex-wrap:wrap}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld > label{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+input,select,textarea{
+  width:100%;min-height:44px;background:var(--sunk);color:var(--ink);
+  border:1px solid var(--line);border-radius:var(--r-md);padding:11px var(--s3);
+}
+input::placeholder,textarea::placeholder{color:var(--dim)}
+textarea{min-height:78px;resize:vertical;line-height:1.45}
+input:focus,select:focus,textarea:focus{border-color:var(--line-lit);outline:none}
+select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
+  background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 20px,calc(100% - 12px) 20px;background-size:5px 5px;background-repeat:no-repeat}
+.checkrow{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-sm);color:var(--mute)}
+.checkrow input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--accent)}
+
+/* ============================================================
+   FIELD
+   ============================================================ */
+.field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+svg.field{width:100%;height:auto;display:block}
+
+/* ============================================================
+   ASSIGNMENTS — the five, as a roster not a paragraph
+   ============================================================ */
+.assigns{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.assign{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);background:var(--panel);min-height:56px}
+.assign + .assign{border-top:1px solid var(--line)}
+.assign__n{
+  flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:var(--red);color:#fff;font-size:var(--t-sm);font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.assign__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
+.assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
+.ps{display:flex;gap:4px;flex:none}
+.ps span{
+  width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
+  font-size:10px;font-weight:800;letter-spacing:.04em;
+  border:1px solid var(--line-lit);color:var(--dim);
+}
+.ps span.on{background:var(--panel-2);color:var(--ink);border-color:var(--line-lit)}
+
+/* ============================================================
+   LIST — the More menu, and anything else that is a list of places
+   ============================================================ */
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.list__row{
+  display:flex;align-items:center;gap:var(--s3);width:100%;
+  padding:var(--s3) var(--s4);background:var(--panel);min-height:58px;
+}
+.list__row + .list__row{border-top:1px solid var(--line)}
+.list__row:active{background:var(--panel-2)}
+.list__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.list__name{font-size:var(--t-md);font-weight:600}
+.list__desc{font-size:var(--t-xs);color:var(--dim);line-height:1.35}
+.list__go{color:var(--dim);font-size:var(--t-lg);flex:none}
+.list__count{
+  flex:none;font-size:var(--t-xs);font-weight:700;color:var(--mute);
+  background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 9px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ============================================================
+   PITS — the two opponents. A wire stripe, not a coloured border
+   on an otherwise identical card.
+   ============================================================ */
+.pits{display:grid;gap:var(--s3)}
+@media(min-width:720px){.pits{grid-template-columns:1fr 1fr}}
+.pit{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
+  border-top:3px solid var(--wire);
+}
+.pit--l{--wire:var(--red)}
+.pit--r{--wire:var(--blue)}
+.pit__side{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--wire)}
+.pit__name{font-size:var(--t-xl);font-weight:800;line-height:1.1}
+.pit__pts{font-size:var(--t-xs);color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.stars{display:flex;gap:2px}
+.star{
+  width:32px;height:32px;display:grid;place-items:center;font-size:17px;line-height:1;
+  color:var(--dim);
+}
+.star.on{color:var(--accent-lit)}
+
+/* ============================================================
+   DATA
+   ============================================================ */
+.bar{height:8px;border-radius:var(--r-pill);overflow:hidden;display:flex;background:var(--sunk)}
+.bar i{display:block;height:100%}
+.barends{display:flex;font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums}
+.barends span:last-child{margin-left:auto}
+
+.facts{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.fact{
+  display:flex;flex-direction:column;gap:1px;flex:1 0 auto;min-width:76px;
+  background:var(--sunk);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s2) var(--s3);
+}
+.fact b{font-size:var(--t-lg);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.fact span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+
+.rank{display:flex;flex-direction:column}
+.rank__row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;min-height:48px;width:100%}
+.rank__row:active{background:var(--panel)}
+.rank__row + .rank__row{border-top:1px solid var(--line)}
+.rank__n{width:18px;color:var(--dim);font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.rank__name{flex:1;font-size:var(--t-md);font-weight:600}
+.rank__pct{font-size:var(--t-md);font-weight:800;font-variant-numeric:tabular-nums}
+
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+.tbl{width:100%;border-collapse:collapse;font-size:var(--t-sm);min-width:340px}
+.tbl th{
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  text-align:left;padding:var(--s2) var(--s3);background:var(--sunk);white-space:nowrap;
+}
+.tbl td{padding:var(--s3);border-top:1px solid var(--line);white-space:nowrap}
+.tbl tbody tr{background:var(--panel)}
+.tbl tbody tr:active{background:var(--panel-2)}
+.tbl .num{font-variant-numeric:tabular-nums;color:var(--dim)}
+.tag{
+  font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:var(--r-pill);
+  border:1px solid var(--line-lit);color:var(--mute);
+}
+.tag--paid{color:var(--ok);border-color:rgba(62,207,142,.4)}
+.tag--pend{color:var(--warn);border-color:rgba(224,163,58,.4)}
+
+.who2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+.who2 h4{margin:0 0 var(--s2);font-size:var(--t-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.who2 ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.who2 li{font-size:var(--t-sm);color:var(--ink);display:flex;gap:var(--s2)}
+.who2 li b{color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums;flex:none;width:14px}
+
+.kv{display:flex;flex-direction:column;gap:var(--s3)}
+.kv__row{display:flex;flex-direction:column;gap:3px}
+.kv__k{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-lit)}
+.kv__v{font-size:var(--t-sm);color:var(--ink);line-height:1.5}
+
+.code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-sm);
+  letter-spacing:.08em;background:var(--sunk);border:1px solid var(--line);
+  border-radius:6px;padding:3px 8px;
+}
+.joincode{
+  align-self:flex-start;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:var(--t-xl);font-weight:700;letter-spacing:.14em;color:var(--accent-lit);
+  background:var(--sunk);border:1px dashed var(--line-lit);border-radius:var(--r-md);padding:var(--s2) var(--s4);
+}
+
+/* the training-aid line, everywhere it is required */
+.aid{border-left:2px solid var(--accent);padding-left:var(--s3);font-size:var(--t-xs);color:var(--dim);line-height:1.5}
+.aid b{color:var(--mute);font-weight:700}
+
+.empty{
+  border:1px dashed var(--line);border-radius:var(--r-md);padding:var(--s5) var(--s4);
+  text-align:center;color:var(--dim);font-size:var(--t-sm);
+}
+
+/* first-run tip */
+.tip{
+  display:flex;align-items:flex-start;gap:var(--s3);
+  background:rgba(173,21,21,.12);border:1px solid rgba(173,21,21,.5);
+  border-radius:var(--r-md);padding:var(--s3);font-size:var(--t-sm);color:var(--ink);line-height:1.45;
+}
+.tip button{flex:none;color:var(--accent-lit);font-weight:700;font-size:var(--t-sm);padding:2px 0}
+
+/* ============================================================
+   PROMO
+   ============================================================ */
 .promo{
-  padding-top:calc(24px + env(safe-area-inset-top));
-  padding-bottom:calc(24px + env(safe-area-inset-bottom));
-  padding-left:calc(24px + env(safe-area-inset-left));
-  padding-right:calc(24px + env(safe-area-inset-right));
+  height:100%;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:calc(var(--s6) + env(safe-area-inset-top)) calc(var(--s5) + env(safe-area-inset-right)) calc(var(--s5) + env(safe-area-inset-bottom)) calc(var(--s5) + env(safe-area-inset-left));
+  gap:var(--s5);
+  background:
+    radial-gradient(1200px 540px at 50% 0%, rgba(173,21,21,.32) 0%, transparent 60%),
+    linear-gradient(#000,#0b0c0d);
 }
-/* Gloves: nothing tappable smaller than a fingertip. */
-.btn,.chip{min-height:38px}
-.star{padding:2px 4px}
+.promo > *{flex:0 0 auto}
+.promo__mark{display:flex;flex-direction:column;gap:var(--s2)}
+.promo__name{font-size:44px;font-weight:800;letter-spacing:.14em;line-height:1}
+.promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
+.promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:15ch}
+.promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
+.stack{display:flex;flex-direction:column;gap:var(--s2)}
 </style>
 </head>
 <body>
@@ -135,6 +416,35 @@ const CIN = [
   {id:"MT#23",n:"MT",x:63,y:47,t:"temple"},{id:"MD#24",n:"MD",x:68,y:112,t:"dorito"},
   {id:"Tr#25",n:"Tr",x:68,y:74,t:"can"},{id:"MW#26",n:"MW",x:72,y:30,t:"mw"}
 ];
+// What each break is, in a coach's words, and how hot it runs (1–5).
+// Aggression drives the counter-picker ranking and the pips on the call.
+const BREAK_META = {
+  hold:  {aggr:1, read:"Give up nothing early. Read their bodies, then trade on your terms.",
+          vs:{Snake:2, Balanced:1, Dorito:4}},
+  base:  {aggr:2, read:"Wire to wire, five jobs, no gaps. The call you make when you are level.",
+          vs:{Snake:3, Balanced:3, Dorito:3}},
+  snake: {aggr:3, read:"Overload the bottom. Runner goes on the buzzer, support fills behind.",
+          vs:{Snake:-2, Balanced:5, Dorito:6}},
+  flood: {aggr:4, read:"Weight the D-wire and take the corner before they set.",
+          vs:{Snake:6, Balanced:2, Dorito:-2}},
+  blitz: {aggr:5, read:"Both wires at once. You are down and the point has to end early.",
+          vs:{Snake:1, Balanced:4, Dorito:1}}
+};
+function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
+
+// Heuristic rank, not a prediction. Two inputs a coach actually has: what the
+// other pit reads as, and whether you can afford to be patient. Safer calls
+// rise when you are ahead; aggressive ones rise when you have to score.
+const STATE_BIAS = {Ahead:-1, Even:0, "Must-score":1};
+function counterRank(theirTendency, matchState){
+  const bias = STATE_BIAS[matchState] || 0;
+  return Object.entries(BREAKS).map(([k,v])=>{
+    const m = breakMeta(k);
+    const fit = (m.vs && m.vs[theirTendency]) || 0;
+    return {key:k, name:v.name, aggr:m.aggr, pct:Math.round(45 + fit + bias*(m.aggr-3)*2.5)};
+  }).sort((a,b)=>b.pct-a.pct || a.aggr-b.aggr);
+}
+
 function mirror(list){
   const out = list.map(b=>({...b}));
   list.forEach(b=>{
@@ -222,6 +532,11 @@ const defaultState = () => ({
   messages:[],
   tally:[],
   showTutorial:false,
+  point:1,
+  scoutTab:"matchup",
+  sightFrom:null,
+  walkNotes:"",
+  codeWords:"",
   joinCode:"",
   blastBody:"",
   newClassTitle:"Friday clinic"
@@ -321,6 +636,40 @@ function bunkerLabels(list, sx, sy){
   }).join("");
 }
 
+// Segment vs. axis-aligned footprint. Used by Sightlines to decide whether a
+// lane from one bunker to another actually clears everything between them.
+function segHitsBox(x1,y1,x2,y2,cx,cy,hw,hh){
+  // Liang–Barsky against the box, in the segment's own parameter space.
+  const dx=x2-x1, dy=y2-y1;
+  let t0=0, t1=1;
+  const edges=[[-dx, x1-(cx-hw)],[dx,(cx+hw)-x1],[-dy, y1-(cy-hh)],[dy,(cy+hh)-y1]];
+  for(const [p,q] of edges){
+    if(p===0){ if(q<0) return false; continue; }
+    const r=q/p;
+    if(p<0){ if(r>t1) return false; if(r>t0) t0=r; }
+    else   { if(r<t0) return false; if(r<t1) t1=r; }
+  }
+  return t0<t1;
+}
+
+function sightLines(fromId, sx, sy){
+  const list = (LAYOUTS[S.layoutKey]||LAYOUTS.tbo).bunkers;
+  const src  = list.find(b=>b.id===fromId) || list[0];
+  if(!src) return {src:null, lines:[], clear:0};
+  const ox=src.x*sx, oy=src.y*sy;
+  const lines = list.filter(b=>b!==src).map(b=>{
+    const tx=b.x*sx, ty=b.y*sy;
+    // Anything that is not the two endpoints can block the lane.
+    const blocked = list.some(o=>{
+      if(o===src||o===b) return false;
+      const g=bunkerSize(o);
+      return segHitsBox(ox,oy,tx,ty,o.x*sx,o.y*sy,g.h,g.v);
+    });
+    return {to:b, x:tx, y:ty, blocked};
+  });
+  return {src, lines, clear:lines.filter(l=>!l.blocked).length};
+}
+
 function fieldSVG(opts={}){
   const layout = LAYOUTS[S.layoutKey] || LAYOUTS.tbo;
   const W=300,H=240,sx=W/150,sy=H/120;
@@ -353,6 +702,19 @@ function fieldSVG(opts={}){
     paths += runner(br.paths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
   }
 
+  // Sightlines replace the break paths when a source bunker is picked.
+  let sight = "";
+  if(opts.sightFrom){
+    const S1 = sightLines(opts.sightFrom, sx, sy);
+    paths = "";
+    if(S1.src){
+      sight = S1.lines.map(l=>
+        `<line x1="${(S1.src.x*sx).toFixed(1)}" y1="${(S1.src.y*sy).toFixed(1)}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" stroke="${l.blocked?"#e5342f":"#3ecf8e"}" stroke-width="${l.blocked?1:1.6}" opacity="${l.blocked?.22:.85}" stroke-linecap="round"/>`
+      ).join("")
+      + `<circle cx="${(S1.src.x*sx).toFixed(1)}" cy="${(S1.src.y*sy).toFixed(1)}" r="7" fill="none" stroke="#fff" stroke-width="1.8"/>`;
+    }
+  }
+
   const bunks = layout.bunkers.map(b=>bunkerShape(b,sx,sy)).join("");
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
@@ -375,6 +737,7 @@ function fieldSVG(opts={}){
     <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
 
     <g filter="url(#bnkLift)">${bunks}</g>
+    ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
     ${paths}
 
@@ -384,345 +747,637 @@ function fieldSVG(opts={}){
 }
 
 function stars(n, key){
-  return [1,2,3,4,5].map(i=>`<span class="star" onclick="setThreat('${key}',${i})">${i<=n?"★":"☆"}</span>`).join("");
+  return [1,2,3,4,5].map(i=>`<button class="star ${i<=n?"on":""}" aria-label="Threat ${i}" onclick="setThreat('${key}',${i})">${i<=n?"★":"☆"}</button>`).join("");
 }
 window.setThreat=(side,n)=>{S[side].threat=n;save(S);render()}
 
 function staffed(){return S.role==="staff"||S.role==="admin"}
 
+/* ============================================================
+   View helpers
+   ============================================================ */
+const esc = v => String(v==null?"":v).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+// A section is an eyebrow and a rule. Cards are for things that are
+// actually objects — a pit, a class, a group — not for every block.
+function sec(eyebrow, body, note){
+  return `<section class="sec">
+    <div class="sec__head"><h2 class="sec__eyebrow">${eyebrow}</h2>${note?`<span class="sec__note">${note}</span>`:""}</div>
+    <div class="sec__body">${body}</div>
+  </section>`;
+}
+function pips(n, label){
+  return `<div class="aggr"><div class="aggr__pips">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>
+    <span class="aggr__label">${label}</span></div>`;
+}
+function tip(id, text){
+  if(S.tips[id]) return "";
+  return `<div class="tip"><span class="grow">${text}</span><button onclick="dismissTip('${id}')">Got it</button></div>`;
+}
+window.dismissTip = id => { S.tips[id]=true; save(S); render(); };
+
+function staffGate(what){
+  return `<div class="empty">Staff login required to ${what}.</div>
+    <button class="btn btn--ghost btn--block" onclick="set({entered:false,mode:'login'})">Staff log in</button>`;
+}
+
+/* ============================================================
+   Promo
+   ============================================================ */
 function promo(){
   return `<div class="promo">
-    <div class="brand">GRIDLOCK</div>
-    <div class="sys">SYSTEM · COACH EDITION</div>
-    <div class="tag">Call the break. Direct the five. Own the point.</div>
-    <div class="stack">
-      <button class="btn" onclick="set({mode:'create'})">Staff — create account</button>
-      <button class="btn ghost" onclick="set({mode:'login'})">Staff — log in</button>
-      <button class="btn ghost" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Tutorial</button>
-      <button class="btn ghost" onclick="set({entered:true,role:'guest'})">Continue as guest</button>
+    <div class="promo__mark">
+      <div class="promo__name">GRIDLOCK</div>
+      <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
-    <p class="muted" style="margin-top:18px">GRIDLOCK System · powered by UPRA</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <p class="promo__tag">Call the break. Direct the five. Own the point.</p>
+      <p class="promo__sub">The sideline tool for coaches and league staff. Between points, on a phone, with gloves on.</p>
+    </div>
+    <div class="stack">
+      <button class="btn btn--lg btn--block" onclick="set({mode:'create'})">Staff — create account</button>
+      <button class="btn btn--ghost btn--block" onclick="set({mode:'login'})">Staff — log in</button>
+      <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Tutorial</button>
+      <button class="btn btn--ghost btn--block" onclick="set({entered:true,role:'guest'})">Continue as guest</button>
+    </div>
+    <p class="note">GRIDLOCK System · powered by UPRA</p>
     ${authForm()}
   </div>`;
 }
 function authForm(){
   if(S.mode!=="create" && S.mode!=="login") return "";
-  return `<div class="card" style="margin-top:16px">
-    <h2>${S.mode==="create"?"Create staff account":"Staff log in"}</h2>
-    <label>Email</label><input id="em" placeholder="coach@team.com"/>
-    <label>Password</label><input id="pw" type="password"/>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" onclick="doAuth()">${S.mode==="create"?"Create account":"Log in"}</button>
-      <button class="btn ghost" onclick="set({mode:null})">Back</button>
+  return `<div class="panel">
+    <h3 class="panel__title">${S.mode==="create"?"Create staff account":"Staff log in"}</h3>
+    <div class="fld"><label>Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
+    <div class="fld"><label>Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
+    <div class="btnrow">
+      <button class="btn grow" onclick="doAuth()">${S.mode==="create"?"Create account":"Log in"}</button>
+      <button class="btn btn--ghost" onclick="set({mode:null})">Back</button>
     </div>
-    <p class="muted">Stored on this device / browser only.</p>
+    <p class="note">Stored on this device only. Nothing is sent anywhere.</p>
   </div>`;
 }
-window.doAuth=()=>{
+window.doAuth = () => {
   const email=document.getElementById("em").value.trim();
   const pass=document.getElementById("pw").value;
-  if(!email||pass.length<6){alert("Email + password (6+ characters).");return}
+  if(!email||pass.length<6){alert("Email and a password of 6 characters or more.");return}
   const acc=JSON.parse(localStorage.getItem("gridlock.staff")||"{}");
   if(S.mode==="create"){
     localStorage.setItem("gridlock.staff", JSON.stringify({email,pass}));
     set({entered:true,role:"staff",email,mode:null});
-  }else{
-    if(acc.email===email && acc.pass===pass) set({entered:true,role:"staff",email,mode:null});
-    else alert("Email or password does not match. Create an account first.");
-  }
+  }else if(acc.email===email && acc.pass===pass){
+    set({entered:true,role:"staff",email,mode:null});
+  }else alert("Email or password does not match. Create an account first.");
 };
 
-function tip(id,text){
-  if(S.tips[id]) return "";
-  return `<div class="tip">${text} <button class="chip" onclick="dismissTip('${id}')">Got it</button></div>`;
-}
-window.dismissTip=(id)=>{S.tips[id]=true;save(S);render()}
-
+/* ============================================================
+   Playbook — leads with the call, because that is the job
+   ============================================================ */
 function playbook(){
-  const br=BREAKS[S.script];
-  return `${tip("pb","Playbook is the call. Pick a break, tap Play path, then direct each player.")}
-  <div class="card">
-    <div class="muted">EVENT · LAYOUT</div>
-    <select onchange="set({layoutKey:this.value})">
-      <option value="tbo" ${S.layoutKey==="tbo"?"selected":""}>NXL Tampa Bay Open · TBO</option>
-      <option value="cin" ${S.layoutKey==="cin"?"selected":""}>Cincinnati footprint · CIN</option>
-    </select>
-    <div class="row" style="margin-top:8px">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button class="chip ${S.script===k?"on":""}" onclick="set({script:'${k}',t:0})">${v.name}</button>`).join("")}
+  const key=S.script, br=BREAKS[key], m=breakMeta(key);
+  const opp=S.right;
+  const roster=S.roster||[];
+  return `${tip("pb","Pick the break, play the paths, then read the five jobs off the list.")}
+
+  <div class="call">
+    <div class="call__label">The call</div>
+    <div class="call__name">${esc(br.name)}</div>
+    <p class="call__read">${m.read}</p>
+    <div class="call__meta">
+      ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
+      <span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn" onclick="playPath()">${S.playing?"Pause":"Play path"}</button>
-      <button class="chip ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})">Face</button>
-      <button class="chip ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})">Shot lanes</button>
-      <button class="chip" onclick="set({t:0,playing:false})">Reset</button>
-    </div>
-    <p class="muted">Training aid. Officials govern the live call.</p>
   </div>
-  <div class="field-wrap">${fieldSVG()}</div>
-  <div class="card">
-    <h2>Direct your players</h2>
-    ${br.paths.map(p=>`<div class="row" style="align-items:center;margin:6px 0">
-      <b style="width:24px;color:var(--red)">${p.id}</b>
-      <span class="grow">${p.label}</span>
-      <span class="muted">P|S</span>
-    </div>`).join("")}
-  </div>`;
+
+  <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
+
+  ${sec("Break", `<div class="seg">
+      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:0,playing:false})">${esc(v.name)}</button>`).join("")}
+    </div>`, "Pick one")}
+
+  ${sec("Overlay", `<div class="toggles">
+      <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
+      <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+      <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Reset</button>
+    </div>
+    <div class="field-wrap" data-live>${fieldSVG()}</div>`, LAYOUTS[S.layoutKey].name)}
+
+  ${sec("Direct the five", `<div class="assigns">
+      ${br.paths.map((pth,i)=>{
+        const who=roster[i];
+        return `<div class="assign">
+          <span class="assign__n">${pth.id}</span>
+          <span class="assign__body">
+            <span class="assign__job">${esc(pth.label)}</span>
+            <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"unassigned"}</span>
+          </span>
+          <span class="ps"><span class="on">P</span><span>S</span></span>
+        </div>`;
+      }).join("")}
+    </div>
+    <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}`;
 }
 
 let raf=null;
-window.playPath=()=>{
+window.playPath = () => {
   S.playing=!S.playing;
-  if(!S.playing){render();return}
+  if(!S.playing){ if(raf) cancelAnimationFrame(raf); render(); return; }
+  render();
   const start=performance.now()-(S.t*2200);
   const tick=(now)=>{
     if(!S.playing) return;
     S.t=Math.min(1,(now-start)/2200);
-    render();
+    paintField();                 // only the field, not the whole app
     if(S.t<1) raf=requestAnimationFrame(tick);
-    else S.playing=false;
+    else { S.playing=false; render(); }
   };
   raf=requestAnimationFrame(tick);
 };
-
-function tally(){
-  return `${tip("tally","Tap a player when they go out. Add shot-at or moved-to if you saw it.")}
-  <div class="card"><h2>Tally</h2>
-    <p class="muted">Point sheet · ${LAYOUTS[S.layoutKey].name}</p>
-    <button class="btn" onclick="addOut()">Mark out</button>
-    ${(S.tally||[]).map((x,i)=>`<div>${i+1}. ${x}</div>`).join("")||"<p class='muted'>No outs yet.</p>"}
-  </div>`;
+// Repaint just the field SVGs. A full render() per frame rebuilt the entire
+// document — including the division table — sixty times a second.
+function paintField(){
+  const opts = S.tab==="scout" ? {both:true} : {};
+  document.querySelectorAll(".field-wrap[data-live]").forEach(el=>{ el.innerHTML = fieldSVG(opts); });
 }
-window.addOut=()=>{S.tally=[...S.tally,"Player out · "+(LAYOUTS[S.layoutKey].name)];save(S);render()}
+
+/* ============================================================
+   Tally — a point sheet, tap a player to mark him out
+   ============================================================ */
+function tally(){
+  const pt=S.point||1;
+  const mine=(S.roster||[]).slice(0,5);
+  const outs=(S.tally||[]);
+  const thisPoint=outs.filter(o=>typeof o==="object" && o.pt===pt);
+  const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
+  const alive=side=>5-thisPoint.filter(o=>o.side===side).length;
+
+  const col=(side,label,colour,names)=>`<div>
+    <h4 class="sec__eyebrow" style="color:${colour};margin-bottom:8px">${label} · ${alive(side)} up</h4>
+    <div class="assigns">
+      ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${JSON.stringify(n).replace(/"/g,'&quot;')})" style="${isOut(side,n)?"opacity:.4":""}">
+        <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
+        <span class="assign__body"><span class="assign__job">${esc(n)}</span>
+        ${isOut(side,n)?`<span class="assign__who">out</span>`:""}</span>
+      </button>`).join("")}
+    </div></div>`;
+
+  return `${tip("tally","Tap a player the moment he goes out. Next point clears the sheet and keeps the log.")}
+
+  ${sec("Point sheet", `<div class="facts">
+      <span class="fact"><b>${pt}</b><span>Point</span></span>
+      <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
+      <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
+      <span class="fact"><b>${outs.length}</b><span>Logged</span></span>
+    </div>
+    <p class="note">Tap a player the moment he goes out.</p>
+    <div class="who2">
+      ${col("us","Your five","var(--red)",mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
+      ${col("them",esc(S.right.name),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+    </div>
+    <button class="btn btn--block" onclick="nextPoint()">Next point</button>`, LAYOUTS[S.layoutKey].name)}
+
+  ${sec("Log", outs.length?`<div class="assigns">
+      ${outs.slice(0,40).map((o,i)=>`<div class="assign">
+        <span class="assign__n" style="background:${typeof o==="object"&&o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${typeof o==="object"?o.pt:"·"}</span>
+        <span class="assign__body"><span class="assign__job">${typeof o==="object"?esc(o.name):esc(o)}</span>
+        <span class="assign__who">${typeof o==="object"?(o.side==="us"?"your player":esc(S.right.name)):""}</span></span>
+        <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
+      </div>`).join("")}
+    </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}.</p>`:""}`
+    : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
+    outs.length?outs.length+" total":"")}`;
+}
+window.markOut = (side,name) => {
+  const pt=S.point||1;
+  const already=(S.tally||[]).some(o=>typeof o==="object" && o.pt===pt && o.side===side && o.name===name);
+  if(already) return;
+  S.tally=[{pt,side,name,at:Date.now()},...(S.tally||[])];
+  save(S); render();
+};
+window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
+window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
+// kept: older builds called this
+window.addOut = () => window.markOut("us","Player");
+
+/* ============================================================
+   Scout — sub-tabs, because six stacked panels is not a screen
+   ============================================================ */
+const SCOUT_TABS=[["matchup","Matchup"],["anticipate","Anticipate"],["counter","Counter"],["board","Division"]];
 
 function scout(){
   const L=S.left,R=S.right;
-  return `${tip("scout","Left pit vs right pit. Tendency is YOUR film read. Sim bar is a training aid, not a prediction.")}
-  <div class="pit">
-    ${pitCard("left",L,"OPPONENT (LEFT)","var(--red)")}
-    ${pitCard("right",R,"OPPONENT (RIGHT)","var(--blue)")}
-  </div>
-  <div class="row" style="margin:8px 0">
-    <button class="chip ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})">Roles: ${S.rolesOn?"on":"off"}</button>
-    <button class="btn" onclick="playPath()">Play break</button>
-    <button class="chip ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})">Shot lanes: ${S.shotOn?"on":"off"}</button>
-  </div>
-  <div class="field-wrap">${fieldSVG({both:true})}</div>
-  <div class="card">
-    <h2>Matchup & Sim</h2>
-    <div class="bar"><i style="width:44%;background:var(--red)"></i><i style="width:56%;background:var(--blue)"></i></div>
-    <div class="row muted"><span>${L.name} 44%</span><span class="grow"></span><span>56% ${R.name}</span></div>
-    <p>Plan read: base vs snake · expected survivors ≈ 2.3 v 2.6 (heuristic model — a read, not a prediction).</p>
-    <div class="row">
-      <span class="chip">Snake front 11%</span><span class="chip">Snake 39%</span>
-      <span class="chip">Center/50 25%</span><span class="chip">Dorito 25%</span>
+  const view=S.scoutTab||"matchup";
+  const body={matchup:scoutMatchup,anticipate:scoutAnticipate,counter:scoutCounter,board:scoutBoard}[view]();
+  return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
+
+  <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
+
+  ${sec("The break, both pits", `<div class="toggles">
+      <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
+      <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+      <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
     </div>
-    <div class="who" style="margin-top:10px">
-      <div><b>${L.name} — who goes where</b><div>1 snake MW<br>2 GP<br>3 MT 50<br>4 fwd MD<br>5 C lane</div></div>
-      <div><b>${R.name} — who goes where</b><div>6 deep snake run<br>7 snake MW<br>8 GP<br>9 tree<br>10 MD hold</div></div>
-    </div>
-  </div>
-  <div class="card">
-    <h2>${L.name} — anticipate</h2>
-    <p><b>Likely:</b> Balanced wire-to-wire — they spread and play position.</p>
-    <p><b>Tells at the line:</b> Even body weighting. Shooters set to lane the middle.</p>
-    <p><b>Your counter:</b> Win one wire first. Take the tower to choke the cross.</p>
-  </div>
-  <div class="card">
-    <h2>${R.name} — anticipate</h2>
-    <p><b>Likely:</b> Snake stack / runner — they overload the bottom.</p>
-    <p><b>Tells at the line:</b> A body cheats toward snake. Quiet gun off the break is the runner.</p>
-    <p><b>Your counter:</b> Take GP first and lane the snake. Deny the crawl.</p>
-  </div>
-  <div class="card">
-    <h2>Counter-picker</h2>
-    <div class="row">${["Ahead","Even","Must-score"].map(x=>`<button class="chip ${S.matchState===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}</div>
-    <p class="muted">If you are ${L.name} vs ${R.name}'s likely ${R.tend} break. Heuristic rank.</p>
-    ${[["Snake Stack",54],["Dorito Flood",49],["Blitz",47],["Balanced Break",46],["Conservative",46]].map((r,i)=>`<div class="row"><span>${i+1}. ${r[0]}</span><span class="grow"></span><b>${r[1]}%</b></div>`).join("")}
-  </div>
-  <div class="card">
-    <h2>Division scout board</h2>
-    <p class="muted">CIN · Semi-Pro X-Ball · tap = right pit · double-tap = left pit</p>
-    <table class="table"><tr><th>#</th><th>Team</th><th>REG</th><th>TEND</th><th>★</th></tr>
-    ${TEAMS.map((t,i)=>`<tr onclick="loadPit('${t.name}',${i})" >
-      <td>${i+1}</td><td>${t.name}</td><td>${t.reg}</td><td>${t.tend}</td><td>${"★".repeat(t.threat)}</td></tr>`).join("")}
-    </table>
-  </div>`;
+    <div class="field-wrap" data-live>${fieldSVG({both:true})}</div>
+    <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
+      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.name)}</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.name)}</span>
+    </div>`)}
+
+  <div class="seg">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>
+  ${body}`;
 }
-function pitCard(side,T,label,color){
-  return `<div class="card" style="border-color:${color}">
-    <div class="muted">${label}</div>
-    <h2>${T.name} <small class="muted">US ${T.pts} pts</small></h2>
+
+function pit(side,T,label){
+  return `<div class="pit pit--${side==="left"?"l":"r"}">
+    <div class="pit__side">${label}</div>
+    <div>
+      <div class="pit__name">${esc(T.name)}</div>
+      <div class="pit__pts">US ${T.pts} pts</div>
+    </div>
     <select onchange="S.${side}.name=this.value;save(S);render()">
-      ${TEAMS.map(t=>`<option ${t.name===T.name?"selected":""}>${t.name}</option>`).join("")}
+      ${TEAMS.map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
     </select>
-    <label>TENDENCY (YOUR FILM READ)</label>
-    <div class="row">${["Snake","Balanced","Dorito"].map(x=>`<button class="chip ${T.tend===x?"on":""}" onclick="S.${side}.tend='${x}';save(S);render()">${x}</button>`).join("")}</div>
-    <label>THREAT</label><div>${stars(T.threat,side)}</div>
-    <label>NOTES</label>
-    <textarea onchange="S.${side}.notes=this.value;save(S)" placeholder="break tendencies, key players, snake runner…">${T.notes||""}</textarea>
+    <div class="fld"><label>Tendency · your film read</label>
+      <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="S.${side}.tend='${x}';save(S);render()">${x}</button>`).join("")}</div>
+    </div>
+    <div class="fld"><label>Threat</label><div class="stars">${stars(T.threat,side)}</div></div>
+    <div class="fld"><label>Notes</label>
+      <textarea onchange="S.${side}.notes=this.value;save(S)" placeholder="Break tendencies, key players, the snake runner…">${esc(T.notes)}</textarea>
+    </div>
   </div>`;
 }
-window.loadPit=(name)=>{
-  const t=TEAMS.find(x=>x.name===name); if(!t) return;
-  S.right={...S.right,name:t.name,pts:t.pts,tend:t.tend==="Snake"?"Snake":t.tend==="Dorito"?"Dorito":"Balanced",threat:t.threat};
-  save(S);render();
+
+function scoutMatchup(){
+  const L=S.left,R=S.right;
+  return sec("Matchup", `<div>
+      <div class="bar"><i style="width:44%;background:var(--red)"></i><i style="width:56%;background:var(--blue)"></i></div>
+      <div class="barends" style="margin-top:8px"><span style="color:var(--red)">${esc(L.name)} 44%</span><span style="color:var(--blue)">56% ${esc(R.name)}</span></div>
+    </div>
+    <p class="lede">Base against snake. Expected survivors about 2.3 to 2.6.</p>
+    <div class="facts">
+      <span class="fact"><b>11%</b><span>Snake front</span></span>
+      <span class="fact"><b>39%</b><span>Snake</span></span>
+      <span class="fact"><b>25%</b><span>Centre 50</span></span>
+      <span class="fact"><b>25%</b><span>Dorito</span></span>
+    </div>
+    <div class="who2">
+      <div><h4>${esc(L.name)}</h4><ol>
+        ${["snake MW","GP","MT 50","fwd MD","C lane"].map((j,i)=>`<li><b>${i+1}</b>${j}</li>`).join("")}
+      </ol></div>
+      <div><h4>${esc(R.name)}</h4><ol>
+        ${["deep snake run","snake MW","GP","tree","MD hold"].map((j,i)=>`<li><b>${i+6}</b>${j}</li>`).join("")}
+      </ol></div>
+    </div>
+    <p class="aid"><b>A heuristic read, not a prediction.</b> Built from your own film reads and seeded data. Officials govern the live call.</p>`,
+    "Wire split");
+}
+
+function scoutAnticipate(){
+  const card=(T,likely,tells,counter)=>`<div class="panel">
+    <h3 class="panel__title">${esc(T.name)}</h3>
+    <div class="kv">
+      <div class="kv__row"><span class="kv__k">Likely</span><span class="kv__v">${likely}</span></div>
+      <div class="kv__row"><span class="kv__k">Tells at the line</span><span class="kv__v">${tells}</span></div>
+      <div class="kv__row"><span class="kv__k">Your counter</span><span class="kv__v">${counter}</span></div>
+    </div></div>`;
+  return sec("Anticipate",
+    card(S.left,"Balanced wire to wire — they spread and play position.","Even body weighting. Shooters set to lane the middle.","Win one wire first. Take the tower to choke the cross.")
+  + card(S.right,"Snake stack or runner — they overload the bottom.","A body cheats toward snake. The quiet gun off the break is the runner.","Take GP first and lane the snake. Deny the crawl."),
+  "Both pits");
+}
+
+function scoutCounter(){
+  const R=S.right, state=S.matchState||"Even";
+  const ranked=counterRank(R.tend, state);
+  return sec("Counter-picker", `<div class="seg">
+      ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
+    </div>
+    <p class="lede">If you are <b style="color:var(--ink)">${esc(S.left.name)}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    <div class="rank">
+      ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
+        <span class="rank__n">${i+1}</span>
+        <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}</span>
+        ${pips(r.aggr,"")}
+        <span class="rank__pct">${r.pct}%</span>
+      </button>`).join("")}
+    </div>
+    <p class="note">Tap a break to make it the call.</p>
+    <button class="btn btn--ghost btn--block" onclick="copyMatchup()">Copy matchup card</button>`,
+    state);
+}
+window.copyMatchup = () => {
+  const t=`GRIDLOCK · ${S.left.name} vs ${S.right.name}\nThey read ${S.right.tend}. Match state ${S.matchState||"Even"}.\nCall: ${BREAKS[S.script].name}.`;
+  if(window.gridlockShare) window.gridlockShare(t,"GRIDLOCK matchup"); else prompt("Matchup card", t);
 };
 
+function scoutBoard(){
+  return sec("Division scout board", `<div class="tblwrap"><table class="tbl">
+      <thead><tr><th>#</th><th>Team</th><th>Reg</th><th>Tend</th><th>Threat</th></tr></thead>
+      <tbody>${TEAMS.map((t,i)=>`<tr onclick="loadPit('${esc(t.name)}')">
+        <td class="num">${i+1}</td>
+        <td>${esc(t.name)}</td>
+        <td><span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span></td>
+        <td class="num">${t.tend}</td>
+        <td style="color:var(--accent-lit)">${"★".repeat(t.threat)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <p class="note">Tap a row to load it into the right pit.</p>`,
+    "CIN · Semi-Pro X-Ball");
+}
+window.loadPit = name => {
+  const t=TEAMS.find(x=>x.name===name); if(!t) return;
+  S.right={...S.right,name:t.name,pts:t.pts,threat:t.threat,
+    tend:t.tend==="Snake"?"Snake":t.tend==="Dorito"?"Dorito":"Balanced"};
+  save(S); render();
+};
+
+/* ============================================================
+   Sightlines — real geometry: a lane is clear when it clips nothing
+   ============================================================ */
 function sightlines(){
-  return `<div class="card"><h2>Sightlines</h2><p class="muted">Clear shot if the line does not clip a bunker footprint.</p></div>
-  <div class="field-wrap">${fieldSVG({static:true})}</div>`;
+  const list=(LAYOUTS[S.layoutKey]||LAYOUTS.tbo).bunkers;
+  const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
+  const res=sightLines(from,300/150,240/120);
+  return `${tip("sl","Pick the bunker you are in. Green lanes are clear. Red lanes clip another bunker on the way.")}
+
+  ${sec("From", `<select onchange="set({sightFrom:this.value})">
+      ${list.map(b=>`<option value="${esc(b.id)}" ${b.id===from?"selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}
+    </select>
+    <div class="facts">
+      <span class="fact"><b>${res.clear}</b><span>Clear lanes</span></span>
+      <span class="fact"><b>${res.lines.length-res.clear}</b><span>Blocked</span></span>
+      <span class="fact"><b>${res.lines.length}</b><span>Bunkers</span></span>
+    </div>`, LAYOUTS[S.layoutKey].name)}
+
+  ${sec("Lanes", `<div class="field-wrap">${fieldSVG({sightFrom:from,static:true})}</div>
+    <p class="aid">Geometry only. It does not know where bodies are — <b>walk it before you trust it.</b></p>`)}
+
+  ${sec("Clear from here", `<div class="tblwrap"><table class="tbl">
+      <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
+      <tbody>${res.lines.map(l=>`<tr>
+        <td>${esc(l.to.n)}</td><td class="num">${esc(l.to.id)}</td>
+        <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked?"blocked":"clear"}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`, res.clear+" of "+res.lines.length)}`;
 }
 
+/* ============================================================
+   Classes
+   ============================================================ */
 function classesPage(){
-  const join = S.classes.find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
-  return `${tip("class","Staff creates a class and gets a code. Players join with that code. No account needed to join.")}
-  <div class="card">
-    <h2>Join class</h2>
-    <label>Code</label>
-    <input value="${S.joinCode||""}" onchange="S.joinCode=this.value;save(S)" placeholder="GL-7K2M"/>
-    <button class="btn ghost" style="margin-top:8px" onclick="render()">Look up</button>
-    ${join?formBox(join): (S.joinCode?`<p class="warn">No open class with that code on this device.</p>`:"")}
-  </div>
-  <div class="card">
-    <h2>Staff classes</h2>
-    ${staffed()?`
-      <label>New class title</label>
-      <input value="${S.newClassTitle||""}" onchange="S.newClassTitle=this.value;save(S)"/>
-      <button class="btn" style="margin-top:8px" onclick="makeClass()">New class</button>
-    `:`<p class="warn">Staff login required to create a class.</p><button class="btn" onclick="set({entered:false,mode:'login'})">Staff log in</button>`}
-    ${(S.classes||[]).map(c=>`<div class="card" style="margin-top:8px">
-      <b>${c.title}</b> · <code>${c.code}</code>
-      <div class="muted">Share ?c=${c.code} · ${c.open?"open":"closed"}</div>
-      <div>Responses: ${S.responses.filter(r=>r.code===c.code).length}</div>
-      ${S.responses.filter(r=>r.code===c.code).map(r=>`<div class="muted">${r.name} · ${r.wire} · ${r.exp}</div>`).join("")}
-    </div>`).join("")||"<p class='muted'>No classes yet.</p>"}
-  </div>`;
+  const join=S.classes.find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
+  return `${tip("class","Staff create a class and get a code. Players join with that code — no account needed.")}
+
+  ${sec("Join a class", `<div class="fld"><label>Code</label>
+      <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
+    ${join?formBox(join):(S.joinCode?`<p class="warn">No open class with that code on this device.</p>`:`<p class="note">No account needed. Ask the coach for the code.</p>`)}`)}
+
+  ${sec("Your classes", staffed()?`
+      <div class="fld"><label>New class title</label>
+        <input value="${esc(S.newClassTitle)}" onchange="S.newClassTitle=this.value;save(S)"/></div>
+      <button class="btn btn--block" onclick="makeClass()">Create class</button>
+      ${(S.classes||[]).length?(S.classes).map(c=>{
+        const r=S.responses.filter(x=>x.code===c.code);
+        return `<div class="panel">
+          <div style="display:flex;align-items:center;gap:12px">
+            <h3 class="panel__title grow">${esc(c.title)}</h3>
+            <span class="tag ${c.open?"tag--paid":""}">${c.open?"OPEN":"CLOSED"}</span>
+          </div>
+          <div class="joincode">${esc(c.code)}</div>
+          <p class="note">Share the code, or the link <span class="code">?c=${esc(c.code)}</span></p>
+          ${r.length?`<div class="assigns">${r.map(x=>`<div class="assign">
+            <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc((x.name||"?")[0].toUpperCase())}</span>
+            <span class="assign__body"><span class="assign__job">${esc(x.name)}</span>
+            <span class="assign__who">${esc(x.exp)} · prefers ${esc(x.wire)}</span></span>
+          </div>`).join("")}</div>`:`<div class="empty">No sign-ins yet.</div>`}
+        </div>`;
+      }).join(""):`<div class="empty">No classes yet.</div>`}
+    `:staffGate("create a class"), staffed()?(S.classes||[]).length+" running":"")}`;
 }
 function formBox(c){
-  return `<div style="margin-top:10px">
-    <p>Joining <b>${c.title}</b></p>
-    <label>Name</label><input id="fn"/>
-    <label>Contact</label><input id="fc" placeholder="phone or email"/>
-    <label>Experience</label>
-    <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select>
-    <label>Preferred wire</label>
-    <select id="fw"><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select>
-    <label>Notes</label><textarea id="ft"></textarea>
-    <label><input type="checkbox" id="fa"/> Training sign-in form</label>
-    <button class="btn" style="margin-top:8px" onclick="submitForm('${c.code}')">Submit</button>
+  return `<div class="panel">
+    <h3 class="panel__title">Joining ${esc(c.title)}</h3>
+    <div class="fld"><label>Name</label><input id="fn"/></div>
+    <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional"/></div>
+    <div class="fld"><label>Experience</label>
+      <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select></div>
+    <div class="fld"><label>Preferred wire</label>
+      <select id="fw"><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select></div>
+    <div class="fld"><label>Notes</label><textarea id="ft" placeholder="Anything the coach should know"></textarea></div>
+    <label class="checkrow"><input type="checkbox" id="fa"/> This is a training sign-in form</label>
+    <button class="btn btn--block" onclick="submitForm('${esc(c.code)}')">Submit</button>
   </div>`;
 }
-window.makeClass=()=>{
+window.makeClass = () => {
   if(!staffed()) return;
   const code="GL-"+Math.random().toString(36).slice(2,6).toUpperCase();
   S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true},...S.classes];
-  save(S);render();
+  save(S); render();
 };
-window.submitForm=(code)=>{
+window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
   if(!name){alert("Name is required.");return}
-  if(!document.getElementById("fa").checked){alert("Check the sign-in box.");return}
-  S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
-  save(S);render();
+  if(!document.getElementById("fa").checked){alert("Tick the sign-in box to submit.");return}
+  S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
+    wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
+  S.joinCode=""; save(S); render();
 };
 
+/* ============================================================
+   League
+   ============================================================ */
 function leaguePage(){
-  if(!staffed()) return `<div class="card"><h2>League</h2><p class="warn">Staff login required.</p><button class="btn" onclick="set({entered:false,mode:'login'})">Staff log in</button></div>`;
-  return `${tip("lg","Admin groups for ops texts. Only message people who agreed to league updates.")}
-  <div class="card">
-    <h2>Groups</h2>
-    <div class="row">
-      <input id="ng" placeholder="New group name" style="flex:1"/>
-      <button class="btn" onclick="addGroup()">Add group</button>
+  if(!staffed()) return sec("League", staffGate("open league admin"));
+  const people=S.groups.reduce((n,g)=>n+(g.members||[]).length,0);
+  return `${tip("lg","Groups for event ops. Only message people who agreed to league updates.")}
+
+  ${sec("Groups", `<div class="btnrow">
+      <input id="ng" placeholder="New group name" class="grow"/>
+      <button class="btn" onclick="addGroup()">Add</button>
     </div>
-    ${S.groups.map(g=>`<div class="card" style="margin-top:8px">
-      <div class="row"><b>${g.name}</b><span class="grow"></span>
-        <button class="btn ghost" onclick="delGroup('${g.id}')">Delete group</button></div>
-      ${(g.members||[]).map((m,i)=>`<div class="row"><span>${m.name} · ${m.phone||m.email||""}</span>
-        <button class="chip" onclick="delMem('${g.id}',${i})">Remove</button></div>`).join("")}
-      <div class="row">
-        <input id="mn-${g.id}" placeholder="Name"/>
-        <input id="mp-${g.id}" placeholder="Phone or email"/>
-        <button class="btn ghost" onclick="addMem('${g.id}')">Add member</button>
+    ${S.groups.map(g=>`<div class="panel">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h3 class="panel__title grow">${esc(g.name)}</h3>
+        <span class="list__count">${(g.members||[]).length}</span>
+        <button class="btn btn--danger" onclick="delGroup('${g.id}')">Delete</button>
       </div>
-    </div>`).join("")}
-  </div>
-  <div class="card">
-    <h2>Blast</h2>
-    <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${S.blastBody||""}</textarea>
-    <p class="muted">Sends as a logged blast + copies text for the phone Messages app. Only people on these lists.</p>
-    <button class="btn" onclick="sendBlast()">Send text blast</button>
-    ${(S.blasts||[]).map(b=>`<div class="muted">${b.at} · ${b.n} people · ${b.body}</div>`).join("")}
-  </div>`;
+      ${(g.members||[]).length?`<div class="assigns">${(g.members||[]).map((m,i)=>`<div class="assign">
+        <span class="assign__body"><span class="assign__job">${esc(m.name)}</span>
+        <span class="assign__who">${esc(m.phone||m.email||"no contact")}</span></span>
+        <button class="btn btn--danger" onclick="delMem('${g.id}',${i})">Remove</button>
+      </div>`).join("")}</div>`:`<div class="empty">Nobody in this group yet.</div>`}
+      <div class="btnrow">
+        <input id="mn-${g.id}" placeholder="Name" class="grow"/>
+        <input id="mp-${g.id}" placeholder="Phone or email" class="grow"/>
+        <button class="btn btn--ghost" onclick="addMem('${g.id}')">Add member</button>
+      </div>
+    </div>`).join("")}`, people+" people")}
+
+  ${sec("Blast", `<div class="fld"><label>Update</label>
+      <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${esc(S.blastBody)}</textarea></div>
+    <button class="btn btn--block" onclick="sendBlast()">Send to ${people} ${people===1?"person":"people"}</button>
+    <p class="aid">Not a bulk-messaging tool. <b>Only message people who agreed to league ops texts.</b></p>
+    ${(S.blasts||[]).length?`<div class="assigns">${S.blasts.map(b=>`<div class="assign">
+      <span class="assign__body"><span class="assign__job">${esc(b.body)}</span>
+      <span class="assign__who">${esc(b.at)} · ${b.n} recipients</span></span>
+    </div>`).join("")}</div>`:""}`, (S.blasts||[]).length?S.blasts.length+" sent":"")}`;
 }
-window.addGroup=()=>{
+window.addGroup = () => {
   const n=document.getElementById("ng").value.trim(); if(!n) return;
-  S.groups=[...S.groups,{id:"g"+Date.now(),name:n,members:[]}];save(S);render();
+  S.groups=[...S.groups,{id:"g"+Date.now(),name:n,members:[]}]; save(S); render();
 };
-window.delGroup=(id)=>{S.groups=S.groups.filter(g=>g.id!==id);save(S);render()}
-window.addMem=(id)=>{
+window.delGroup = id => { S.groups=S.groups.filter(g=>g.id!==id); save(S); render(); };
+window.addMem = id => {
   const name=document.getElementById("mn-"+id).value.trim();
   const phone=document.getElementById("mp-"+id).value.trim();
   if(!name) return;
-  S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name,phone}]}:g);save(S);render();
+  S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name,phone}]}:g); save(S); render();
 };
-window.delMem=(id,i)=>{S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g);save(S);render()}
-window.sendBlast=()=>{
+window.delMem = (id,i) => {
+  S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g); save(S); render();
+};
+window.sendBlast = () => {
   const body=clean(S.blastBody||"");
   if(!body){alert("Write the update first.");return}
   const rec=[];
-  S.groups.forEach(g=>g.members.forEach(m=>{if(m.phone) rec.push(m.phone)}));
+  S.groups.forEach(g=>g.members.forEach(m=>{ if(m.phone) rec.push(m.phone); }));
   S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body},...S.blasts];
   save(S);
-  if(rec.length && window.gridlockShare){window.gridlockShare(body+"\n"+rec.join(", "), "GRIDLOCK league blast");}
-  else {prompt("Copy this blast", body+"\n"+rec.join(", "));}
+  if(rec.length && window.gridlockShare) window.gridlockShare(body+"\n"+rec.join(", "),"GRIDLOCK league blast");
+  else prompt("Copy this blast", body+"\n"+rec.join(", "));
   render();
 };
 
-function morePage(){
-  const items=[["walk","Walk"],["lineups","Lineups"],["movement","Movement"],["assess","Assess"],["codes","Codes"],["stats","Bunker stats"],["team","Team"],["messages","Messages"],["classes","Classes"],["league","League"],["nexus","Nexus"]];
-  const body={
-    walk:`<div class="card"><h2>Walk</h2><p>Notes for ${LAYOUTS[S.layoutKey].name}.</p><textarea placeholder="Snake mouth is hot. GP first."></textarea></div>`,
-    lineups:`<div class="card"><h2>Lineups</h2>${S.roster.map(p=>`<div>${p.num} ${p.name} · P ${p.p} · S ${p.s}</div>`).join("")}</div>`,
-    movement:`<div class="card"><h2>Movement</h2><p class="muted">Bunker-to-bunker after the break. Feeds bunker stats.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
-    assess:`<div class="card"><h2>Assess</h2><p class="muted">Grade a player after the point.</p></div>`,
-    codes:`<div class="card"><h2>Codes</h2><p>Team code words for this event.</p></div>`,
-    stats:`<div class="card"><h2>Bunker stats</h2><p class="muted">Visits / shots / holds / elims from tally + movement.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
-    team:`<div class="card"><h2>Team</h2>${S.roster.map(p=>`<div>${p.num} ${p.name} · ${p.p}</div>`).join("")}<p class="muted">Bunker calls show on the layout.</p></div><div class="field-wrap">${fieldSVG({static:true})}</div>`,
-    messages:`<div class="card"><h2>Messages</h2>
-      ${(S.messages||[]).map(m=>`<div>${m}</div>`).join("")}
-      <input id="md" placeholder="Message the squad"/>
-      <button class="btn" style="margin-top:8px" onclick="S.messages=[...S.messages,document.getElementById('md').value];save(S);render()">Send</button></div>`,
-    classes: classesPage(),
-    league: leaguePage(),
-    nexus:`<div class="card"><h2>Nexus</h2>
-      <p>Signed in as ${S.email||"guest"} (${S.role})</p>
-      <button class="btn ghost" onclick="set({showTutorial:true,tab:'playbook',more:'classes'})">Show tutorial again</button>
-      <button class="btn ghost" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
-      <p class="muted">GRIDLOCK System · powered by UPRA</p></div>`
-  };
-  return `<div class="row">${items.map(([k,n])=>`<button class="chip ${S.more===k?"on":""}" onclick="set({more:'${k}'})">${n}</button>`).join("")}</div>
-  ${body[S.more]||""}`;
-}
+/* ============================================================
+   More — a grouped list of places, not eleven identical pills
+   ============================================================ */
+const MORE_GROUPS=[
+  ["The field",[
+    ["walk","Walk","Field-walk notes against this layout"],
+    ["movement","Movement","Bunker to bunker after the break"],
+    ["stats","Bunker stats","Visits, shots, holds and elims"]]],
+  ["The team",[
+    ["lineups","Lineups","Who is on this point"],
+    ["team","Team","Roster, numbers and positions"],
+    ["assess","Assess","Grade a player after the point"],
+    ["codes","Codes","Your code words for this event"],
+    ["messages","Messages","Squad notes that stay with the team"]]],
+  ["Running the day",[
+    ["classes","Classes","Clinics and sign-in codes"],
+    ["league","League","Groups and ops blasts"]]],
+  ["Device",[
+    ["nexus","Nexus","Account, tutorial and privacy"]]]
+];
+const MORE_TITLES=Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
 
+function morePage(){
+  if(!S.more){
+    return MORE_GROUPS.map(([title,rows])=>sec(title,`<div class="list">
+      ${rows.map(([k,n,d])=>`<button class="list__row" onclick="set({more:'${k}'})">
+        <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
+        ${moreCount(k)}<span class="list__go">›</span>
+      </button>`).join("")}
+    </div>`)).join("");
+  }
+  return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({more:null})">‹ More</button>
+    ${moreBody(S.more)}`;
+}
+function moreCount(k){
+  const n={classes:(S.classes||[]).length, league:S.groups.reduce((a,g)=>a+(g.members||[]).length,0),
+           messages:(S.messages||[]).length, team:(S.roster||[]).length, lineups:(S.roster||[]).length}[k];
+  return n?`<span class="list__count">${n}</span>`:"";
+}
+function moreBody(k){
+  const layoutName=LAYOUTS[S.layoutKey].name;
+  const roster=S.roster||[];
+  const rosterList=`<div class="assigns">${roster.map(p=>`<div class="assign">
+      <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${p.num}</span>
+      <span class="assign__body"><span class="assign__job">${esc(p.name)}</span>
+      <span class="assign__who">P ${esc(p.p)} · S ${esc(p.s)}</span></span>
+    </div>`).join("")}</div>`;
+
+  if(k==="walk") return sec("Walk",`<div class="fld"><label>Notes for ${esc(layoutName)}</label>
+    <textarea onchange="S.walkNotes=this.value;save(S)" placeholder="Snake mouth is hot. GP first.">${esc(S.walkNotes)}</textarea></div>`, layoutName);
+  if(k==="lineups") return sec("Lineups", roster.length?rosterList:`<div class="empty">No roster yet.</div>`, "This point");
+  if(k==="team") return sec("Team", rosterList + `<p class="note">Bunker calls show on the layout.</p>`, roster.length+" players")
+    + sec("Layout",`<div class="field-wrap">${fieldSVG({static:true})}</div>`, layoutName);
+  if(k==="movement") return sec("Movement",`<p class="lede">Bunker to bunker after the break. Feeds bunker stats.</p>
+    <div class="field-wrap">${fieldSVG({static:true})}</div>
+    <div class="empty">Not built yet — the field is here so you can see the layout.</div>`, layoutName);
+  if(k==="stats") return sec("Bunker stats",`<p class="lede">Visits, shots, holds and eliminations, from tally and movement.</p>
+    <div class="field-wrap">${fieldSVG({static:true})}</div>
+    <div class="empty">Not built yet — needs movement data first.</div>`, layoutName);
+  if(k==="assess") return sec("Assess",`<p class="lede">Grade a player after the point. The note stays with the roster.</p>
+    <div class="empty">Not built yet.</div>`);
+  if(k==="codes") return sec("Codes",`<div class="fld"><label>Code words for this event</label>
+    <textarea onchange="S.codeWords=this.value;save(S)" placeholder="One per line">${esc(S.codeWords)}</textarea></div>`, layoutName);
+  if(k==="messages") return sec("Messages",
+    ((S.messages||[]).length?`<div class="assigns">${S.messages.map(m=>`<div class="assign">
+      <span class="assign__body"><span class="assign__job">${esc(m)}</span></span></div>`).join("")}</div>`
+      :`<div class="empty">No messages yet.</div>`)
+    + `<div class="btnrow"><input id="md" placeholder="Message the squad" class="grow"/>
+       <button class="btn" onclick="sendMsg()">Send</button></div>`, (S.messages||[]).length+" notes");
+  if(k==="classes") return classesPage();
+  if(k==="league") return leaguePage();
+  if(k==="nexus") return sec("Nexus", `<div class="panel">
+      <div class="kv">
+        <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
+        <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
+        <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server.</span></div>
+      </div>
+    </div>
+    <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
+    <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
+    <p class="note">GRIDLOCK System · powered by UPRA</p>`);
+  return "";
+}
+window.sendMsg = () => {
+  const el=document.getElementById("md"); const v=(el.value||"").trim();
+  if(!v) return;
+  S.messages=[...(S.messages||[]),clean(v)]; save(S); render();
+};
+
+/* ============================================================
+   Shell
+   ============================================================ */
 function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
-  const page={playbook:playbook,tally:tally,scout:scout,sightlines:sightlines,more:morePage}[S.tab]();
-  const tut = S.showTutorial?`<div class="card"><h2>Tutorial</h2>
-    <p>Playbook = the call. Tally = who went out. Scout = the other pit. Classes = clinic sign-in. League = staff groups.</p>
-    <button class="btn" onclick="set({showTutorial:false})">Start coaching</button></div>`:"";
+  const page={playbook,tally,scout,sightlines,more:morePage}[S.tab]();
+  const tut = S.showTutorial?`<div class="panel">
+    <h3 class="panel__title">How it works</h3>
+    <div class="kv">
+      <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
+      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap a player the moment he goes out.</span></div>
+      <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — tendency, threat and your counter.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics and league ops.</span></div>
+    </div>
+    <button class="btn btn--block" onclick="set({showTutorial:false})">Start coaching</button>
+  </div>`:"";
+
+  const crumb = S.tab==="more" && S.more ? ` <span class="ctx__sep">·</span> <b>${MORE_TITLES[S.more]||""}</b>` : "";
+
   return `<div class="app">
-    <div class="top">
-      <div class="brand">GRIDLOCK<small>SYSTEM · COACH</small></div>
-      <div class="grow"></div>
-      <span class="muted">${staffed()?"Staff":"Guest"}</span>
-    </div>
-    <div class="main">${tut}${page}
-      <p class="muted" style="margin-top:24px">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
-    </div>
-    <div class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}'})">${n}</button>`).join("")}</div>
+    <header class="hdr">
+      <div class="hdr__top">
+        <div class="brand">GRIDLOCK<small>SYSTEM · COACH</small></div>
+        <span class="grow"></span>
+        <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
+      </div>
+      <button class="ctx" onclick="cycleEvent()">
+        <span class="ctx__line"><b>${esc(LAYOUTS[S.layoutKey].name)}</b> <span class="ctx__sep">·</span> ${esc(BREAKS[S.script].name)}${crumb}</span>
+        <span class="ctx__caret">CHANGE ▾</span>
+      </button>
+    </header>
+    <main class="main">${tut}${page}
+      <p class="note">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
+    </main>
+    <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
   </div>`;
 }
+window.cycleEvent = () => {
+  const keys=Object.keys(LAYOUTS);
+  set({layoutKey:keys[(keys.indexOf(S.layoutKey)+1)%keys.length]});
+};
 
 function render(){
   document.getElementById("root").innerHTML = S.entered ? shell() : promo();

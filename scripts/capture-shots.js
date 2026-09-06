@@ -27,10 +27,24 @@ const SEED = {
     name: "Rejects", tend: "Snake", threat: 4, pts: 186,
     notes: "Two off the break to the snake. Slow to rotate once the front player is out.",
   },
+  point: 3,
   tally: [
-    "P1 · Reyes out — shot at MW, moved to GP",
-    "P1 · Rejects #4 out — snake front",
-    "P2 · Marsh out — moved into D-wire MD",
+    { pt: 3, side: "them", name: "#4" },
+    { pt: 3, side: "us", name: "Marsh" },
+    { pt: 2, side: "us", name: "Reyes" },
+    { pt: 2, side: "them", name: "#2" },
+  ],
+  groups: [
+    { id: "ops", name: "Ops", members: [
+      { name: "Dana Whitlock", phone: "5550142" }, { name: "Marcus Iyer", phone: "5550188" },
+      { name: "Priya Raman", phone: "5550119" }] },
+    { id: "refs", name: "Refs", members: [
+      { name: "Head ref — Ola", phone: "5550170" }, { name: "Snake side — Tam", phone: "5550171" }] },
+    { id: "reg", name: "Registration", members: [{ name: "Front gate", phone: "5550160" }] },
+    { id: "vendors", name: "Vendors", members: [] },
+  ],
+  blasts: [
+    { at: "Sat 07:12", n: 6, body: "Pit gate opens 8:00. Chrono is live at 8:30." },
   ],
   roster: [
     { name: "Reyes", num: 7, p: "snake MW", s: "GP" },
@@ -68,21 +82,22 @@ const top = page => page.evaluate(() => {
     await page.screenshot({ path: path.join(OUT, `${file}.png`) });
   }
 
-  // Scout, deeper: the sim bar and anticipate cards, then the division board.
+  // Scout's sub-tabs: the counter-picker, then the division board.
   await page.locator(".tabs button", { hasText: "Scout" }).click();
-  await page.waitForTimeout(350);
-  await page.evaluate(() => document.querySelector(".main").scrollTop = 980);
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: path.join(OUT, "scout-sim.png") });
-  await page.evaluate(() => { const m = document.querySelector(".main"); m.scrollTop = m.scrollHeight; });
-  await page.waitForTimeout(200);
-  await page.screenshot({ path: path.join(OUT, "scout-board.png") });
+  await page.waitForTimeout(300);
+  for (const [tab, file, scroll] of [["Counter", "scout-sim", 1180], ["Division", "scout-board", 1180]]) {
+    await page.locator(".seg button", { hasText: tab }).click();
+    await page.waitForTimeout(300);
+    await page.evaluate(y => document.querySelector(".main").scrollTop = y, scroll);
+    await page.waitForTimeout(180);
+    await page.screenshot({ path: path.join(OUT, `${file}.png`) });
+  }
 
-  // Classes and League live under More.
-  await page.locator(".tabs button", { hasText: "More" }).click();
-  await page.waitForTimeout(200);
+  // Classes and League live under More, which is a list of destinations.
   for (const item of ["Classes", "League"]) {
-    await page.locator(".chip", { hasText: item }).first().click();
+    await page.locator(".tabs button", { hasText: "More" }).click();
+    await page.waitForTimeout(200);
+    await page.locator(".list__row", { hasText: item }).first().click();
     await page.waitForTimeout(300);
     await top(page);
     await page.screenshot({ path: path.join(OUT, `${item.toLowerCase()}.png`) });
