@@ -262,6 +262,13 @@ svg.field{width:100%;height:auto;display:block}
 .assign__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
+/* The job is the thing being read; the controls act on it. On a phone there is
+   not room for both on one line once every control is 44 px, so the controls
+   take their own row rather than breaking the label into three. */
+.assign__ctl{flex:1 0 100%;display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+@media (min-width:520px){
+  .assign__ctl{flex:0 0 auto;justify-content:flex-end}
+}
 .ps{display:flex;gap:4px;flex:none}
 /* 44 px square. Apple asks for 44 pt and Android for 48 dp, but the real
    reason is the promise on the box: this gets tapped on a sideline, in a
@@ -1414,12 +1421,14 @@ function playbook(){
             <span class="assign__job">${esc(pth.label)}</span>
             <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"unassigned"}</span>
           </span>
-          <span class="ps">
-            <button class="${role==="P"?"on":""}" onclick="setDirect('${pth.id}','role','P')">P</button>
-            <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
+          <span class="assign__ctl">
+            <span class="ps">
+              <button class="${role==="P"?"on":""}" onclick="setDirect('${pth.id}','role','P')">P</button>
+              <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
+            </span>
+            <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
+            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotB?esc(callOf(shotB)):"Shot"}</button>
           </span>
-          <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
-          <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotB?esc(callOf(shotB)):"Shot"}</button>
           ${open?`<div class="pad">
             ${FACE_PAD.map(([g,deg])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}"
               onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${g}</button>`).join("")}
