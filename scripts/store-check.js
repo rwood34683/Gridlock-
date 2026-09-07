@@ -89,6 +89,8 @@ const PLACEHOLDERS = [
   ["site/privacy.html", "support@your-domain.example", "support email"],
   ["site/support.html", "support@your-domain.example", "support email"],
   ["site/index.html", "id0000000000", "App Store ID"],
+  ["android/app/src/main/AndroidManifest.xml", "gridlocksystem.app", "app-link domain"],
+  ["site/.well-known/assetlinks.json", "REPLACE_WITH_YOUR_RELEASE_SHA256", "release signing fingerprint"],
 ];
 const pending = PLACEHOLDERS.filter(([f, needle]) =>
   fs.existsSync(path.join(ROOT, f)) && fs.readFileSync(path.join(ROOT, f), "utf8").includes(needle));

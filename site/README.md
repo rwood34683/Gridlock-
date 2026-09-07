@@ -39,17 +39,17 @@ Three things need real values:
    - Apple — Marketing Resources → "Download on the App Store" badge
    - Google — Play Console brand guidelines → "Get it on Google Play" badge
 
-3. **A real support address.** `privacy.html` and `support.html` both carry
-   `support@your-domain.example` as a placeholder. Apple rejects a support page with
-   a dead contact, so set a real one — from the repo root, in one command:
+3. **The support address.** Set to `support@gridlockpb.com`. It has to actually
+   receive mail before you submit — Apple tests the contact on a support page. If
+   the domain ever changes, one command does the lot from the repo root:
 
    ```bash
-   npm run contact -- --email coach@your-domain.com
+   npm run contact -- --domain gridlockpb.com
    ```
 
-   It writes the address into both pages, as the link and as the words the reader
-   sees, and it is safe to run again when the address changes. `npm run store:check`
-   reminds you while the placeholder is still there.
+   That writes the address into both pages — the link and the words the reader
+   sees — the host Android claims for app links, and the three URLs the stores
+   ask for.
 
 ## Screenshots
 

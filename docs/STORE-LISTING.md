@@ -41,9 +41,9 @@ are noted; `npm run store:check` re-counts them if you edit the copy.
 | Secondary category | Utilities *(App Store only)* |
 | Age rating | 4+ (Apple) · Everyone (Play) |
 | Price | Free, no in-app purchases, no ads |
-| Privacy policy URL | `https://<your-domain>/privacy.html` |
-| Support URL | `https://<your-domain>/support.html` |
-| Marketing URL | `https://<your-domain>/` |
+| Privacy policy URL | `https://gridlockpb.com/privacy.html` |
+| Support URL | `https://gridlockpb.com/support.html` |
+| Marketing URL | `https://gridlockpb.com/` |
 
 ---
 
@@ -171,7 +171,7 @@ the section headings in caps and leave a blank line between blocks.
   Data is only ever on the user's own device; uninstalling the app deletes it.
   The app can write a copy to a file at the user's request, which is a local
   file operation, not a transfer to us. Point the answer at
-  `https://<your-domain>/privacy.html`, which says so.
+  `https://gridlockpb.com/privacy.html`, which says so.
 
 ### Content rating questionnaire
 Sports/utility app. No violence, no sexual content, no profanity, no gambling,

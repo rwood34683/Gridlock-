@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-/* Stamp the real support address and store IDs into the pages that carry them.
+/* Stamp the real domain, support address and store IDs into everything that
+ * carries them.
  *
+ *   npm run contact -- --domain gridlockpb.com     (the usual one)
  *   npm run contact -- --email support@example.com
  *   npm run contact -- --appstore 6501234567
- *   npm run contact -- --email … --appstore …      (both at once)
  *   npm run contact                                 (say what is set now)
+ *
+ * --domain does the lot: the support address, the https app link Android
+ * claims, and the three URLs the stores ask for.
  *
  * These values sit in five places across three files, and Apple rejects a
  * support page with a dead address, so hand-editing them is a way to ship a
@@ -20,6 +24,12 @@ const APPSTORE_PLACEHOLDER = "id0000000000";
 // Where each value lives. A file is listed once per value it carries.
 const EMAIL_IN = ["site/privacy.html", "site/support.html"];
 const APPSTORE_IN = ["site/index.html"];
+// Android claims an https link to the site, and refuses to unless the host
+// serves an assetlinks.json naming this app. A host nobody owns fails that
+// check quietly, so it has to be the real one.
+const DOMAIN_PLACEHOLDER = "gridlocksystem.app";
+const DOMAIN_IN = ["android/app/src/main/AndroidManifest.xml", "docs/STORE-LISTING.md",
+                   "site/.well-known/assetlinks.json"];
 
 const args = process.argv.slice(2);
 const flag = name => {
@@ -49,6 +59,20 @@ const findAppStore = s => {
 };
 
 const VALID_EMAIL = /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/;
+const VALID_DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
+
+function setDomain(next) {
+  if (!VALID_DOMAIN.test(next) || !next.includes(".")) {
+    console.error(`  not a domain: ${next}  (expected e.g. gridlockpb.com)`);
+    process.exit(1);
+  }
+  const was = current(["android/app/src/main/AndroidManifest.xml"], DOMAIN_PLACEHOLDER,
+    s => (s.match(/android:host="([^"]+)"/) || [])[1]) || DOMAIN_PLACEHOLDER;
+  DOMAIN_IN.filter(f => fs.existsSync(path.join(ROOT, f)))
+    .forEach(f => write(f, read(f).split(was).join(next).split("<your-domain>").join(next)));
+  console.log(`  domain          ${was}  ->  ${next}`);
+  return next;
+}
 
 function setEmail(next) {
   if (!VALID_EMAIL.test(next)) {
@@ -80,16 +104,21 @@ function setAppStore(next) {
 console.log("GRIDLOCK contact details");
 console.log("========================\n");
 
-const email = flag("email"), appstore = flag("appstore");
-if (!email && !appstore) {
+const domain = flag("domain"), email = flag("email"), appstore = flag("appstore");
+if (!domain && !email && !appstore) {
+  const d = current(["android/app/src/main/AndroidManifest.xml"], DOMAIN_PLACEHOLDER,
+    s => (s.match(/android:host="([^"]+)"/) || [])[1]);
   const e = current(EMAIL_IN, EMAIL_PLACEHOLDER, findEmail);
   const a = current(APPSTORE_IN, APPSTORE_PLACEHOLDER, findAppStore);
+  console.log(`  domain          ${d || "not set — still the placeholder"}`);
   console.log(`  support email   ${e || "not set — still the placeholder"}`);
   console.log(`  App Store ID    ${a || "not set — still the placeholder"}`);
-  console.log("\n  npm run contact -- --email you@example.com");
+  console.log("\n  npm run contact -- --domain gridlockpb.com");
+  console.log("  npm run contact -- --email you@example.com");
   console.log("  npm run contact -- --appstore 6501234567");
   process.exit(0);
 }
+if (domain) { setDomain(domain); if (!email) setEmail("support@" + domain); }
 if (email) setEmail(email);
 if (appstore) setAppStore(appstore);
 

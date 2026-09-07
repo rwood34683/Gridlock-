@@ -93,8 +93,8 @@ App Store ID.
 ```bash
 npm run store          # every store screenshot + the Play feature graphic
 npm run store:check    # re-count the character limits and verify image sizes
-npm run contact        # show the support email and App Store ID that are set
-npm run contact -- --email you@your-domain.com    # set the support address
+npm run contact        # show the domain, support email and App Store ID that are set
+npm run contact -- --domain gridlockpb.com        # domain, support address, app link
 ```
 
 `npm run store` drives the real app at each store's device size and composes the
@@ -151,7 +151,7 @@ Four suites, all driving the real app in a real browser:
 `gridlock://class/GL-7K2M` opens Classes with the code filled in, on both
 platforms. The web build accepts `?c=GL-7K2M` for the same thing.
 
-The Android manifest also declares an `https://gridlocksystem.app` app link with
+The Android manifest also declares an `https://gridlockpb.com` app link with
 `autoVerify`. That will not verify until you host
 `/.well-known/assetlinks.json` on that domain with the release signing
 certificate's SHA-256 fingerprint — until then it is inert, not broken. Change

@@ -31,13 +31,13 @@
                 <data android:scheme="gridlock" />
             </intent-filter>
 
-            <!-- https://gridlocksystem.app/?c=GL-7K2M  (needs assetlinks.json on the host
+            <!-- https://gridlockpb.com/?c=GL-7K2M  (needs assetlinks.json on the host
                  before android:autoVerify will succeed) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="gridlocksystem.app" />
+                <data android:scheme="https" android:host="gridlockpb.com" />
             </intent-filter>
 
         </activity>
