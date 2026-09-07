@@ -114,6 +114,20 @@ app icons, Android launcher icons at five densities (legacy, round and adaptive
 foreground), splash screens portrait and landscape, and the 512/1024 store
 listing icons into `brand/out/`.
 
+## Try it without building anything
+
+The app is one self-contained page with no network calls, so it runs in any
+browser as-is:
+
+```bash
+npm run serve      # http://localhost:5173 — open it on a phone on the same wifi
+```
+
+`npm run app:artifact` produces `site/build/app.html`, a single file with
+`native.js` inlined and the document shell stripped, for handing to someone who
+just wants to open a link. It is the same `web/index.html`; nothing about the
+app changes. The store builds still go through Capacitor from `web/` unchanged.
+
 ## Checks
 
 ```bash

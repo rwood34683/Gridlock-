@@ -14,6 +14,7 @@
     "store": "node scripts/store-assets.js",
     "store:check": "node scripts/store-check.js",
     "site:artifact": "node scripts/build-artifact-page.js",
+    "app:artifact": "node scripts/build-app-artifact.js",
     "icons": "python3 brand/generate-assets.py",
     "loadtest": "node test/loadtest.js",
     "test": "node test/functions.js",
