@@ -125,7 +125,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 181 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, the QR encoder and the house rules. |
+| `npm test` | 197 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the QR encoder and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -146,9 +146,12 @@ the host to your real domain if it differs.
 Working: the promo gate and staff login; Playbook (five breaks with per-break
 paths, Face and Shot lanes, and the call surfaced against the
 opponent's logged tendency); Tally as a point sheet you tap through; Scout
-(dual-pit cards, tendency, threat, notes, sim bar, anticipate cards, a
-counter-picker derived from the opponent read and the match state, division
-board); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
+(dual-pit cards whose film read — tendency, threat, notes and the other pit's
+five, each with number, name, wire, threat and a one-line read — is kept against
+the team rather than the pit, so it follows them in and out; sim bar; anticipate
+cards that name the players you logged, hardest first; a counter-picker derived
+from the opponent read and the match state; a division board with a FILM column
+marking the teams you have something on); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own
 breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
 roles, stored per layout per break and drawn travelling with the player; path

@@ -205,14 +205,17 @@ const ROSTER = [
   /* ------------------------------------------------------------------ scout */
   G("Scout");
   await seed({ tab: "scout" });
-  await ev(() => { S.left.tend = "Dorito"; save(S); render(); });
-  check("tendency is editable per pit", await ev(() => S.left.tend === "Dorito"));
+  // A pit shows a team; the film read belongs to that team. See the Scouting
+  // group below for the whole model.
+  await ev(() => window.setPitTend("left", "Dorito"));
+  check("tendency is editable, and lands on the team", await ev(() =>
+    pitOf("left").tend === "Dorito" && profileOf(pitOf("left").name).tend === "Dorito"));
   await ev(() => window.setThreat("right", 2));
-  check("threat stars set", await ev(() => S.right.threat === 2));
-  await ev(() => { S.left.notes = "Snake runner is #7"; save(S); render(); });
-  check("notes persist on a pit", await ev(() => S.left.notes.includes("#7")));
+  check("threat stars set", await ev(() => pitOf("right").threat === 2));
+  await ev(() => window.setPitNotes("right", "Snake runner is #7"));
+  check("notes persist on the team in the pit", await ev(() => pitOf("right").notes.includes("#7")));
   await ev(() => window.loadPit("Miami Effect"));
-  check("division board loads a team into the right pit", await ev(() => S.right.name === "Miami Effect"));
+  check("division board loads a team into the right pit", await ev(() => pitOf("right").name === "Miami Effect"));
   const rank = await ev(() => {
     const ahead = counterRank("Snake", "Ahead")[0].name;
     const must = counterRank("Snake", "Must-score")[0].name;
@@ -546,6 +549,93 @@ const ROSTER = [
     return /Add your squad under Team/.test(document.querySelector(".main").textContent);
   }));
   await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
+
+  /* -------------------------------------------------------- scouting a team */
+  G("Scouting");
+  await ev(() => window.set({ tab: "scout", scoutTab: "matchup", scout: {},
+    left: { name: "Blast Camp" }, right: { name: "Rejects" } }));
+  check("a pit holds a team, not the film read", await ev(() =>
+    Object.keys(S.right).join() === "name"));
+  check("an unscouted team seeds from the division board", await ev(() => {
+    const p = profileOf("Las Vegas Shock");
+    return p.threat === 4 && p.players.length === 0 && p.notes === "";
+  }));
+
+  await ev(() => { window.setPitNotes("right", "Snake runner goes on the buzzer."); window.setPitTend("right", "Snake"); });
+  await ev(() => {
+    document.getElementById("sp-num-right").value = "7";
+    document.getElementById("sp-name-right").value = "Vasquez";
+    document.getElementById("sp-wire-right").value = "Snake";
+    document.getElementById("sp-note-right").value = "goes on the buzzer every time";
+    window.addScoutPlayer("right");
+  });
+  check("a player logs with number, name, wire and a read", await ev(() => {
+    const m = pitOf("right").players[0];
+    return m.num === "7" && m.name === "Vasquez" && m.wire === "Snake" && /buzzer/.test(m.note);
+  }));
+  check("a number alone is enough to log someone", await ev(() => {
+    document.getElementById("sp-num-right").value = "12";
+    document.getElementById("sp-name-right").value = "";
+    document.getElementById("sp-note-right").value = "";
+    window.addScoutPlayer("right");
+    return pitOf("right").players.length === 2 && pitOf("right").players[1].num === "12";
+  }));
+  check("an empty log is refused", await ev(() => {
+    document.getElementById("sp-num-right").value = "";
+    window.addScoutPlayer("right");
+    return pitOf("right").players.length === 2;
+  }));
+  check("a player carries his own threat", await ev(() => {
+    window.setScoutThreat("right", 0, 5);
+    return pitOf("right").players[0].threat === 5 && pitOf("right").players[1].threat === 3;
+  }));
+
+  // The bug this replaced: the read followed the slot, so tapping another team
+  // on the board silently reattached your note to whoever you tapped.
+  check("switching team gives a clean sheet, not the last team's read", await ev(() => {
+    window.loadPit("Las Vegas Shock");
+    return pitOf("right").name === "Las Vegas Shock"
+        && pitOf("right").notes === "" && pitOf("right").players.length === 0;
+  }));
+  check("coming back brings that team's read and players with it", await ev(() => {
+    window.loadPit("Rejects");
+    return /buzzer/.test(pitOf("right").notes) && pitOf("right").players.length === 2;
+  }));
+  check("what you learn survives a reload", await ev(() => {
+    const raw = JSON.parse(localStorage.getItem("gridlock.coach.v2"));
+    return (raw.scout["Rejects"].players || []).length === 2;
+  }));
+
+  check("the board marks the teams you have film on", await ev(() =>
+    scouted("Rejects") && !scouted("Miami Effect")));
+  check("the board shows a team's scored threat, not just the seed", await ev(() => {
+    window.setThreat("right", 2);
+    return profileOf("Rejects").threat === 2 && teamMeta("Rejects").threat === 4;
+  }));
+  check("anticipate names the players you logged, hardest first", await ev(() => {
+    window.set({ scoutTab: "anticipate" });
+    const txt = document.querySelector(".main").textContent;
+    return txt.includes("#7 Vasquez") && txt.includes("buzzer") && txt.indexOf("#7") < txt.indexOf("#12");
+  }));
+  check("a player can be taken off the list", await ev(() => {
+    window.set({ scoutTab: "matchup" });
+    window.delScoutPlayer("right", 1);
+    return pitOf("right").players.length === 1;
+  }));
+
+  // An older save kept the read in the slot; it belongs to the team that was in it.
+  check("an old pit note is moved onto its team, not dropped", await ev(async () => {
+    localStorage.setItem("gridlock.coach.v2", JSON.stringify({ entered: true, role: "staff", tab: "scout",
+      left: { name: "Malicious", tend: "Dorito", threat: 5, notes: "They lean dorito every point." },
+      right: { name: "Rejects" } }));
+    return true;
+  }));
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(180);
+  check("the migrated read lands on the right team", await ev(() =>
+    /lean dorito/.test(profileOf("Malicious").notes) && profileOf("Rejects").notes === ""));
+  check("the migrated slot keeps only the team name", await ev(() =>
+    Object.keys(S.left).join() === "name"));
 
   /* ----------------------------------------------------------- path editing */
   G("Path editing");

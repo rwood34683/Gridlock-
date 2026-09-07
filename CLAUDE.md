@@ -55,7 +55,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 
 ## What to build next (in order)
 
-1. Match Scout 1:1 to the dual-pit screenshots in the spec (anticipate cards, counter-picker, division board already sketched in web).
+1. Match Scout 1:1 to the dual-pit screenshots in the spec. Mostly there —
+   anticipate cards, counter-picker and the division board are built, the board
+   has its FILM column, and what you learn about a team is stored against the
+   team (`S.scout[teamName]`), including their five. Still open: the Breakouts,
+   Historical layers and Games & replay sub-tabs.
 2. ~~Playbook 8-way face/shot pad + P|S roles.~~ Done — Face opens the eight, Shot
    targets a named bunker, P|S are real toggles, all stored per layout per break.
    Path editing is done too — see 6.

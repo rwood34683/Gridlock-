@@ -771,8 +771,9 @@ const defaultState = () => ({
   tab:"playbook", more:"classes",
   layoutKey:"mwo", script:"snake", playing:false, t:0,
   faceOn:true, shotOn:true, rolesOn:true,
-  left:{name:"Blast Camp",tend:"Balanced",threat:5,notes:"",pts:200},
-  right:{name:"Rejects",tend:"Snake",threat:4,notes:"",pts:186},
+  left:{name:"Blast Camp"},        // which team is in the pit; what you know
+  right:{name:"Rejects"},          // about them lives in scout[], keyed by team
+  scout:{},                        // team -> {tend, threat, notes, players[]}
   matchState:"Even",
   tips:{},
   classes:[], responses:[],
@@ -824,6 +825,22 @@ if(S.walkNotes && !((S.walk||{})[S.layoutKey]||[]).length){
   S.walk = {...(S.walk||{}), [S.layoutKey]:[{where:"The field", note:S.walkNotes, at:Date.now()}]};
   S.walkNotes = "";
 }
+// Whatever was typed into a pit before profiles existed belongs to the team
+// that was in that pit at the time. Move it there rather than dropping it.
+["left","right"].forEach(side => {
+  const slot = S[side] || {};
+  if(!slot.name) return;
+  const had = (slot.notes || "").trim() || slot.tend || slot.threat;
+  if(had && !(S.scout || {})[slot.name]){
+    const t = teamMeta(slot.name);
+    S.scout = {...(S.scout || {}), [slot.name]: {
+      tend: slot.tend || (t.tend === "Snake" ? "Snake" : t.tend === "Dorito" ? "Dorito" : "Balanced"),
+      threat: slot.threat || t.threat, notes: slot.notes || "", players: [],
+    }};
+  }
+  S[side] = {name: slot.name};
+});
+
 if(S.codeWords && !(S.codes||[]).length){
   S.codes = S.codeWords.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
     const i = l.search(/[=:—-]/);
@@ -1691,10 +1708,69 @@ function fieldSVG(opts={}){
   </svg>`;
 }
 
+/* ============================================================
+   Scouting — what you know about a team, kept with the team
+   ============================================================
+
+   The two pits used to hold the film read themselves. They are slots, not
+   teams, so tapping another team on the division board left your note behind
+   and silently reattached it to whoever you tapped. A read on the Rejects
+   became a read on Las Vegas Shock. Everything you learn now lives under the
+   team's name and follows it in and out of the pit. */
+function teamMeta(name){
+  return TEAMS.find(t => t.name === name) || {name, pts:0, tend:"Bal", threat:3};
+}
+function profileOf(name){
+  const kept = (S.scout || {})[name];
+  if(kept) return {players:[], ...kept};
+  const t = teamMeta(name);                       // seeded from the division board
+  return {tend: t.tend === "Snake" ? "Snake" : t.tend === "Dorito" ? "Dorito" : "Balanced",
+          threat: t.threat, notes: "", players: []};
+}
+function pitOf(side){
+  const name = ((S[side] || {}).name) || TEAMS[0].name;
+  return {name, pts: teamMeta(name).pts, ...profileOf(name)};
+}
+function scouted(name){
+  const p = (S.scout || {})[name];
+  return !!p && (!!(p.notes || "").trim() || (p.players || []).length > 0);
+}
+function editProfile(side, patch){
+  const name = pitOf(side).name;
+  S.scout = {...(S.scout || {}), [name]: {...profileOf(name), ...patch}};
+  save(S);
+}
+window.setPitTeam = (side, name) => { S[side] = {...(S[side] || {}), name}; save(S); render(); };
+window.setPitTend = (side, tend) => { editProfile(side, {tend}); render(); };
+window.setPitNotes = (side, notes) => editProfile(side, {notes: clean(notes)});   // no redraw mid-type
+
+// ---- the other pit's five, which is the point of scouting at all ----
+window.addScoutPlayer = side => {
+  const g = id => (document.getElementById(id) || {}).value || "";
+  const num = g("sp-num-" + side).trim(), name = clean(g("sp-name-" + side).trim());
+  if(!num && !name) return;                       // a number alone is a real entry
+  editProfile(side, {players: [...pitOf(side).players, {
+    num, name, wire: g("sp-wire-" + side), note: clean(g("sp-note-" + side).trim()), threat: 3,
+  }]});
+  render();
+};
+window.editScoutPlayer = (side, i, field, value) => {
+  const players = pitOf(side).players.map((p, k) => k === i ? {...p, [field]: clean(String(value).trim())} : p);
+  editProfile(side, {players});
+};
+window.setScoutThreat = (side, i, n) => {
+  editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? {...p, threat:n} : p)});
+  render();
+};
+window.delScoutPlayer = (side, i) => {
+  editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
+  render();
+};
+
 function stars(n, key){
   return [1,2,3,4,5].map(i=>`<button class="star ${i<=n?"on":""}" aria-label="Threat ${i}" onclick="setThreat('${key}',${i})">${i<=n?"★":"☆"}</button>`).join("");
 }
-window.setThreat=(side,n)=>{S[side].threat=n;save(S);render()}
+window.setThreat=(side,n)=>{editProfile(side,{threat:n});render()}
 
 function staffed(){return S.role==="staff"||S.role==="admin"}
 
@@ -1819,7 +1895,7 @@ window.doAuth = async () => {
    ============================================================ */
 function playbook(){
   const key=S.script, br=BREAKS[key], m=breakMeta(key);
-  const opp=S.right;
+  const opp=pitOf("right");
   const roster=S.roster||[];
   return `${tip("pb","Pick the break, play the paths, then read the five jobs off the list.")}
 
@@ -1943,7 +2019,7 @@ function tally(){
     <p class="note">Tap a player the moment he goes out.</p>
     <div class="who2">
       ${col("us","Your five","var(--red)",mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
-      ${col("them",esc(S.right.name),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+      ${col("them",esc(pitOf("right").name),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
     <button class="btn btn--block" onclick="nextPoint()">Next point</button>`, curLayout().name)}
 
@@ -1962,7 +2038,7 @@ function tally(){
         return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${o.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
-        <span class="assign__who">${o.side==="us"?"your player":esc(S.right.name)}${where?" · "+where:""}</span></span>
+        <span class="assign__who">${o.side==="us"?"your player":esc(pitOf("right").name)}${where?" · "+where:""}</span></span>
         <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
         ${live?`<div class="who2" style="flex-basis:100%;margin-top:6px">
           ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
@@ -2009,7 +2085,7 @@ window.addOut = () => window.markOut("us","Player");
 const SCOUT_TABS=[["matchup","Matchup"],["anticipate","Anticipate"],["counter","Counter"],["board","Division"]];
 
 function scout(){
-  const L=S.left,R=S.right;
+  const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
   const body={matchup:scoutMatchup,anticipate:scoutAnticipate,counter:scoutCounter,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
@@ -2031,28 +2107,63 @@ function scout(){
   ${body}`;
 }
 
+const SCOUT_WIRES = ["Snake","Dorito","Centre","Back","Flex"];
 function pit(side,T,label){
+  const men = T.players || [];
   return `<div class="pit pit--${side==="left"?"l":"r"}">
     <div class="pit__side">${label}</div>
     <div>
       <div class="pit__name">${esc(T.name)}</div>
       <div class="pit__pts">US ${T.pts} pts</div>
     </div>
-    <select onchange="S.${side}.name=this.value;save(S);render()">
+    <select onchange="setPitTeam('${side}',this.value)">
       ${TEAMS.map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
     </select>
     <div class="fld"><label>Tendency · your film read</label>
-      <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="S.${side}.tend='${x}';save(S);render()">${x}</button>`).join("")}</div>
+      <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
     </div>
     <div class="fld"><label>Threat</label><div class="stars">${stars(T.threat,side)}</div></div>
     <div class="fld"><label>Notes</label>
-      <textarea onchange="S.${side}.notes=this.value;save(S)" placeholder="Break tendencies, key players, the snake runner…">${esc(T.notes)}</textarea>
+      <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
+    </div>
+
+    <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}</label>
+      ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
+          <input class="rost__num" value="${esc(m.num)}" placeholder="#"
+            onchange="editScoutPlayer('${side}',${i},'num',this.value)"/>
+          <input value="${esc(m.name)}" placeholder="name, if you know it"
+            onchange="editScoutPlayer('${side}',${i},'name',this.value)"/>
+          <button class="btn btn--danger" onclick="delScoutPlayer('${side}',${i})">Remove</button>
+          <div class="rost__ps">
+            <label><span class="note">Wire</span>
+              <select onchange="editScoutPlayer('${side}',${i},'wire',this.value)">
+                ${SCOUT_WIRES.map(w=>`<option${m.wire===w?" selected":""}>${w}</option>`).join("")}
+              </select></label>
+            <label><span class="note">Threat</span>
+              <div class="stars">${[1,2,3,4,5].map(n=>`<button class="star ${n<=(m.threat||0)?"on":""}"
+                aria-label="Threat ${n}" onclick="setScoutThreat('${side}',${i},${n})">${n<=(m.threat||0)?"★":"☆"}</button>`).join("")}</div></label>
+          </div>
+          <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
+            onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
+        </div>`).join("")}</div>`
+        :`<div class="empty">No one logged on ${esc(T.name)} yet. The number is enough to start.</div>`}
+      <div class="rost__add">
+        <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric"/>
+        <input id="sp-name-${side}" placeholder="Name (optional)"/>
+        <div class="rost__ps">
+          <label><span class="note">Wire</span>
+            <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option>${w}</option>`).join("")}</select></label>
+          <label><span class="note">Read</span>
+            <input id="sp-note-${side}" placeholder="snake runner"/></label>
+        </div>
+      </div>
+      <button class="btn btn--block" onclick="addScoutPlayer('${side}')">Log a player</button>
     </div>
   </div>`;
 }
 
 function scoutMatchup(){
-  const L=S.left,R=S.right;
+  const L=pitOf("left"),R=pitOf("right");
   return sec("Matchup", `<div>
       <div class="bar"><i style="width:44%;background:var(--red)"></i><i style="width:56%;background:var(--blue)"></i></div>
       <div class="barends" style="margin-top:8px"><span style="color:var(--red)">${esc(L.name)} 44%</span><span style="color:var(--blue)">56% ${esc(R.name)}</span></div>
@@ -2077,26 +2188,35 @@ function scoutMatchup(){
 }
 
 function scoutAnticipate(){
-  const card=(T,likely,tells,counter)=>`<div class="panel">
+  // The generic reads are a starting point. What a coach actually wants before
+  // the horn is the two or three players he logged himself, hardest first.
+  const card=(T,likely,tells,counter)=>{
+    const men=[...(T.players||[])].sort((a,b)=>(b.threat||0)-(a.threat||0)).slice(0,3);
+    return `<div class="panel">
     <h3 class="panel__title">${esc(T.name)}</h3>
     <div class="kv">
       <div class="kv__row"><span class="kv__k">Likely</span><span class="kv__v">${likely}</span></div>
       <div class="kv__row"><span class="kv__k">Tells at the line</span><span class="kv__v">${tells}</span></div>
       <div class="kv__row"><span class="kv__k">Your counter</span><span class="kv__v">${counter}</span></div>
+      ${men.map(m=>`<div class="kv__row"><span class="kv__k">${esc(m.num?"#"+m.num:"Watch")}${m.name?" "+esc(m.name):""}</span>
+        <span class="kv__v">${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}
+        <span style="color:var(--accent-lit)">${"★".repeat(m.threat||0)}</span></span></div>`).join("")}
+      ${(T.notes||"").trim()?`<div class="kv__row"><span class="kv__k">Your film</span><span class="kv__v">${esc(T.notes)}</span></div>`:""}
     </div></div>`;
+  };
   return sec("Anticipate",
-    card(S.left,"Balanced wire to wire — they spread and play position.","Even body weighting. Shooters set to lane the middle.","Win one wire first. Take the tower to choke the cross.")
-  + card(S.right,"Snake stack or runner — they overload the bottom.","A body cheats toward snake. The quiet gun off the break is the runner.","Take GP first and lane the snake. Deny the crawl."),
+    card(pitOf("left"),"Balanced wire to wire — they spread and play position.","Even body weighting. Shooters set to lane the middle.","Win one wire first. Take the tower to choke the cross.")
+  + card(pitOf("right"),"Snake stack or runner — they overload the bottom.","A body cheats toward snake. The quiet gun off the break is the runner.","Take GP first and lane the snake. Deny the crawl."),
   "Both pits");
 }
 
 function scoutCounter(){
-  const R=S.right, state=S.matchState||"Even";
+  const R=pitOf("right"), state=S.matchState||"Even";
   const ranked=counterRank(R.tend, state);
   return sec("Counter-picker", `<div class="seg">
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
-    <p class="lede">If you are <b style="color:var(--ink)">${esc(S.left.name)}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    <p class="lede">If you are <b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
         <span class="rank__n">${i+1}</span>
@@ -2110,29 +2230,30 @@ function scoutCounter(){
     state);
 }
 window.copyMatchup = () => {
-  const t=`GRIDLOCK · ${S.left.name} vs ${S.right.name}\nThey read ${S.right.tend}. Match state ${S.matchState||"Even"}.\nCall: ${BREAKS[S.script].name}.`;
+  const t=`GRIDLOCK · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${BREAKS[S.script].name}.`;
   if(window.gridlockShare) window.gridlockShare(t,"GRIDLOCK matchup"); else prompt("Matchup card", t);
 };
 
 function scoutBoard(){
   return sec("Division scout board", `<div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Reg</th><th>Tend</th><th>Threat</th></tr></thead>
+      <thead><tr><th>#</th><th>Team</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th></tr></thead>
       <tbody>${TEAMS.map((t,i)=>`<tr onclick="loadPit('${esc(t.name)}')">
         <td class="num">${i+1}</td>
         <td>${esc(t.name)}</td>
         <td><span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span></td>
-        <td class="num">${t.tend}</td>
-        <td style="color:var(--accent-lit)">${"★".repeat(t.threat)}</td>
+        <td class="num">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
+        <td class="num">${profileOf(t.name).tend.slice(0,3)}</td>
+        <td style="color:var(--accent-lit)">${"★".repeat(profileOf(t.name).threat)}</td>
       </tr>`).join("")}</tbody>
     </table></div>
     <p class="note">Tap a row to load it into the right pit.</p>`,
     "CIN · Semi-Pro X-Ball");
 }
+// Tapping a row only changes which team is in the pit. What you know about
+// them comes with them, and what you knew about the last team stays with it.
 window.loadPit = name => {
-  const t=TEAMS.find(x=>x.name===name); if(!t) return;
-  S.right={...S.right,name:t.name,pts:t.pts,threat:t.threat,
-    tend:t.tend==="Snake"?"Snake":t.tend==="Dorito"?"Dorito":"Balanced"};
-  save(S); render();
+  if(!TEAMS.some(x => x.name === name)) return;
+  S.right = {name}; save(S); render();
 };
 
 /* ============================================================
