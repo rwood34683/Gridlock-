@@ -448,13 +448,16 @@ function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
 // A break on a digitized layout is written as the bunker each player plants
 // on, never as a typed coordinate — the position comes from the layout, so
 // the call stays true to the field even if the map is re-digitized.
+// The snake is one continuous beam a player crawls down, not nine bunkers to
+// share out — the official 3D makes that plain. So exactly one player takes it
+// on any break; the rest support off it.
 const BREAK_PLANTS = {
   mwo: {
-    hold:  ["Br#5","T#3","Br#2","T#1","MT#4"],
-    base:  ["SB#4","MT#1","C#4","MD#3","Br#5"],
-    snake: ["SB#6","SB#4","GP#1","MW#3","C#4"],
-    flood: ["MD#1","MD#3","Tr#1","C#4","SB#4"],
-    blitz: ["SB#6","MD#1","Tr#4","GP#1","MT#1"]
+    hold:  ["Ck#1","T#3","Br#2","T#1","MT#4"],
+    base:  ["SB#4","MW#3","MT#1","MD#3","C#4"],
+    snake: ["SB#6","MW#3","GP#1","MT#1","C#4"],
+    flood: ["MD#1","MD#3","Tr#1","C#4","SB#3"],
+    blitz: ["SB#6","GP#1","Tr#4","MD#1","MT#1"]
   }
 };
 
@@ -462,6 +465,91 @@ const BREAK_PLANTS = {
 function wireOf(y){
   return y > 88 ? "snake wire" : y > 66 ? "snake side"
        : y > 44 ? "centre"     : y > 24 ? "dorito side" : "dorito wire";
+}
+
+// Nobody runs through a bunker, and nobody runs through the snake.
+//
+// The snake is one continuous structure printed as nine sections, so for
+// routing they are merged back into a single obstacle — otherwise stepping
+// around one section just lands you in the next. Any bunkers of the same code
+// whose footprints touch are merged the same way.
+function routeObstacles(list, pad){
+  pad = pad === undefined ? 0.9 : pad;   // players run within a foot of a bunker
+  let boxes = list.map(b => ({ids:[b.id], n:b.n,
+    x0:b.x-(b.w||4)/2-pad, x1:b.x+(b.w||4)/2+pad,
+    y0:b.y-(b.h||4)/2-pad, y1:b.y+(b.h||4)/2+pad}));
+  for(let pass = 0; pass < 6; pass++){
+    let merged = false;
+    outer:
+    for(let i = 0; i < boxes.length; i++){
+      for(let j = i + 1; j < boxes.length; j++){
+        const a = boxes[i], b = boxes[j];
+        if(a.n !== b.n) continue;
+        if(a.x0 > b.x1 + 1.5 || b.x0 > a.x1 + 1.5) continue;
+        if(a.y0 > b.y1 + 1.5 || b.y0 > a.y1 + 1.5) continue;
+        boxes[i] = {ids:a.ids.concat(b.ids), n:a.n,
+          x0:Math.min(a.x0,b.x0), x1:Math.max(a.x1,b.x1),
+          y0:Math.min(a.y0,b.y0), y1:Math.max(a.y1,b.y1)};
+        boxes.splice(j, 1);
+        merged = true;
+        break outer;
+      }
+    }
+    if(!merged) break;
+  }
+  return boxes.map(o => ({ids:new Set(o.ids), n:o.n,
+    x:(o.x0+o.x1)/2, y:(o.y0+o.y1)/2, hw:(o.x1-o.x0)/2, hh:(o.y1-o.y0)/2}));
+}
+
+// Route around whatever is in the way, the way a player does: run to a corner,
+// then on. A player never trades a clear lane for a shorter one they cannot
+// take, so this picks the shortest route that is actually clear rather than
+// nudging at the blockage until it gives up.
+//
+// Every corner of every obstacle is a place you can plant a foot. Join the
+// start, the target and all those corners wherever the leg between them is
+// clear, and take the shortest chain. If no chain exists the player is walled
+// in and the straight line stands.
+function routeClear(from, to, targetId, obstacles){
+  // You cannot collide with the bunker you are standing behind: the five start
+  // with a hand on the back-centre bunker, so whatever contains the start is
+  // not an obstacle for that player. Nor is the bunker they are running to.
+  const holds = o => Math.abs(from[0]-o.x) <= o.hw && Math.abs(from[1]-o.y) <= o.hh;
+  const live = obstacles.filter(o => !o.ids.has(targetId) && !holds(o));
+  const clear = (a, b) => !live.some(o => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh));
+  const inField = c => c[0] > 1 && c[0] < 149 && c[1] > 1 && c[1] < 119;
+
+  if(clear(from, to)) return [];
+
+  const m = 1.4;                       // a shoulder's clearance off the corner
+  const nodes = [from, to];
+  live.forEach(o => {
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy]) => {
+      const c = [o.x + sx*(o.hw+m), o.y + sy*(o.hh+m)];
+      if(inField(c) && !live.some(k => Math.abs(c[0]-k.x) < k.hw && Math.abs(c[1]-k.y) < k.hh)) nodes.push(c);
+    });
+  });
+
+  const N = nodes.length;
+  const dist = nodes.map(() => Infinity), prev = nodes.map(() => -1), done = nodes.map(() => false);
+  dist[0] = 0;
+  for(;;){
+    let u = -1;
+    for(let i = 0; i < N; i++) if(!done[i] && dist[i] < (u < 0 ? Infinity : dist[u])) u = i;
+    if(u < 0 || u === 1) break;
+    done[u] = true;
+    for(let v = 0; v < N; v++){
+      if(done[v] || v === u) continue;
+      const d = dist[u] + Math.hypot(nodes[v][0]-nodes[u][0], nodes[v][1]-nodes[u][1]);
+      if(d >= dist[v] || !clear(nodes[u], nodes[v])) continue;
+      dist[v] = d; prev[v] = u;
+    }
+  }
+  if(prev[1] < 0) return [];           // walled in — draw it straight and honest
+
+  const via = [];
+  for(let k = prev[1]; k > 1; k = prev[k]) via.unshift(nodes[k]);
+  return via;
 }
 
 function breakPaths(layoutKey, scriptKey){
@@ -472,23 +560,30 @@ function breakPaths(layoutKey, scriptKey){
   const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
   if(targets.some(t => !t)) return fallback;   // layout changed under us
 
-  // All five leave the back-centre station together. Handing out the start
-  // slots in target order keeps the fan legible instead of a knot of crossings.
+  // All five break from the station at the centre of their own back line —
+  // that is where an Xball point starts, not spread across the whole width.
+  // The home back-centre bunker anchors it.
+  const back = layout.bunkers
+    .filter(b => b.x < 20)
+    .sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
+  const cy = back ? back.y : 60;
+  const obstacles = routeObstacles(layout.bunkers);
   const order = targets.map((_, i) => i).sort((p, q) => targets[p].y - targets[q].y);
   const slot = {};
-  order.forEach((idx, k) => { slot[idx] = 46 + k * 7; });
+  order.forEach((idx, k) => { slot[idx] = cy - 8 + k * 4; });   // a 16 ft station
 
   return targets.map((b, i) => {
     const from = [3, slot[i]];
-    const via = [];
-    // Wire runners cut out early and run the tape rather than crossing the field.
-    if(b.y > 88)      via.push([from[0] + (b.x - from[0]) * 0.45, b.y - 7]);
-    else if(b.y < 22) via.push([from[0] + (b.x - from[0]) * 0.45, b.y + 7]);
-    return {id: i + 1, from, to: [b.x, b.y], via,
+    const to = [b.x, b.y];
+    return {id: i + 1, from, to, via: routeClear(from, to, b.id, obstacles),
             label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
   });
 }
-function currentPaths(){ return breakPaths(S.layoutKey, S.script); }
+const _pathCache = {};
+function currentPaths(){
+  const k = S.layoutKey + "|" + S.script;
+  return _pathCache[k] || (_pathCache[k] = breakPaths(S.layoutKey, S.script));
+}
 
 // Heuristic rank, not a prediction. Two inputs a coach actually has: what the
 // other pit reads as, and whether you can afford to be patient. Safer calls
@@ -856,25 +951,43 @@ function bunkerShape(b, sx, sy){
   }
 }
 
-// Codes go below the footprint, and shift above it when the slot below is
-// already taken. Without this the centre bunkers print "MW MW MW" on top of
-// one another.
+// One structure, one code.
+//
+// The snake is printed as nine sections but a coach calls it once, so touching
+// footprints that share a code get a single label at the middle of the whole
+// run. Codes go below the structure and shift above it when the slot below is
+// taken, biggest structure first — without this the centre bunkers print
+// "MW MW MW" on top of one another.
 function bunkerLabels(list, sx, sy){
   const FS = 6, CH = 3.4, PAD = 1.2;
+
+  // Merge touching same-code footprints, so nine snake sections read as one.
+  const groups = [];
+  list.forEach(b => {
+    const s = bunkerSize(b, sx, sy), x = b.x*sx, y = b.y*sy;
+    const box = {n: b.n, nm: callOf(b), x0:x-s.h, x1:x+s.h, y0:y-s.v, y1:y+s.v, area:s.h*s.v};
+    const near = groups.find(g => g.n === box.n && g.nm === box.nm
+      && g.x0 <= box.x1 + 1.5 && box.x0 <= g.x1 + 1.5
+      && g.y0 <= box.y1 + 1.5 && box.y0 <= g.y1 + 1.5);
+    if(!near){ groups.push(box); return; }
+    near.x0 = Math.min(near.x0, box.x0); near.x1 = Math.max(near.x1, box.x1);
+    near.y0 = Math.min(near.y0, box.y0); near.y1 = Math.max(near.y1, box.y1);
+    near.area += box.area;
+  });
+
   const placed = [];
-  const hits = (a) => placed.some(b =>
+  const hits = a => placed.some(b =>
     Math.abs(a.cx-b.cx) < (a.w+b.w)/2 + PAD && Math.abs(a.cy-b.cy) < (a.h+b.h)/2 + PAD);
 
-  return list.map(b => {
-    const x = b.x*sx, y = b.y*sy, s = bunkerSize(b, sx, sy);
-    const nm = callOf(b);
-    const w = nm.length*CH + 1, h = FS;
-    const below = {cx:x, cy:y + s.v + FS*0.9, w, h};
-    const above = {cx:x, cy:y - s.v - FS*0.4, w, h};
+  // Big structures claim their slot first — they are the ones a coach hunts for.
+  return groups.slice().sort((a, b) => b.area - a.area).map(g => {
+    const x = (g.x0+g.x1)/2, w = g.nm.length*CH + 1, h = FS;
+    const below = {cx:x, cy:g.y1 + FS*0.9, w, h};
+    const above = {cx:x, cy:g.y0 - FS*0.4, w, h};
     const spot = !hits(below) ? below : (!hits(above) ? above : null);
     if(!spot) return "";                       // no room — the shape still reads
     placed.push(spot);
-    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#f2f4f5" stroke="#0b0c0d" stroke-width="2.1" paint-order="stroke" stroke-linejoin="round">${esc(nm)}</text>`;
+    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#f2f4f5" stroke="#0b0c0d" stroke-width="2.1" paint-order="stroke" stroke-linejoin="round">${esc(g.nm)}</text>`;
   }).join("");
 }
 

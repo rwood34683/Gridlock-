@@ -370,6 +370,37 @@ const ROSTER = [
   check("every break plants on a real bunker", lay.plantsOk);
   check("the layout is mirror-symmetric about the 50", Math.abs(lay.axis - 75) < 0.5, `axis ${lay.axis.toFixed(2)} ft over ${lay.pairs} pairs`);
 
+  /* ---------------------------------------------------------- break routing */
+  G("Break routing");
+  const route = await ev(() => {
+    const obs = routeObstacles(LAYOUTS.mwo.bunkers);
+    const legs = [], snakes = [];
+    const snakeIds = new Set(obs.filter(o => o.n === "SB" && o.ids.size > 3).flatMap(o => [...o.ids]));
+    for (const k of Object.keys(BREAK_PLANTS.mwo)) {
+      const paths = breakPaths("mwo", k);
+      snakes.push(paths.filter(p => snakeIds.has(p.bunker)).length);
+      for (const p of paths) {
+        const pts = [p.from, ...p.via, p.to];
+        const holds = o => Math.abs(p.from[0] - o.x) <= o.hw && Math.abs(p.from[1] - o.y) <= o.hh;
+        const live = obs.filter(o => !o.ids.has(p.bunker) && !holds(o));
+        let clip = 0;
+        for (let i = 0; i < pts.length - 1; i++)
+          for (const o of live)
+            if (segHitsBox(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], o.x, o.y, o.hw, o.hh)) clip++;
+        const len = pts.slice(1).reduce((a, c, i) => a + Math.hypot(c[0] - pts[i][0], c[1] - pts[i][1]), 0);
+        legs.push({ script: k, id: p.bunker, clip, len, straight: Math.hypot(p.to[0] - p.from[0], p.to[1] - p.from[1]) });
+      }
+    }
+    const spread = breakPaths("mwo", "snake").map(p => p.from[1]);
+    return { legs, snakes, station: Math.max(...spread) - Math.min(...spread) };
+  });
+  const clipped = route.legs.filter(l => l.clip > 0);
+  check("no break path runs through a bunker", clipped.length === 0,
+        clipped.length ? clipped.map(l => `${l.script}->${l.id}`).join(", ") : `${route.legs.length} legs`);
+  check("every break path stays a sane length", route.legs.every(l => l.len < l.straight * 1.6 + 12));
+  check("never more than one player on the snake", route.snakes.every(n => n <= 1), route.snakes.join(","));
+  check("the five break from one station, not the whole width", route.station <= 20, `${route.station.toFixed(0)} ft`);
+
   /* ------------------------------------------------------------ house rules */
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
