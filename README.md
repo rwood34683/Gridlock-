@@ -93,6 +93,8 @@ App Store ID.
 ```bash
 npm run store          # every store screenshot + the Play feature graphic
 npm run store:check    # re-count the character limits and verify image sizes
+npm run contact        # show the support email and App Store ID that are set
+npm run contact -- --email you@your-domain.com    # set the support address
 ```
 
 `npm run store` drives the real app at each store's device size and composes the

@@ -14,15 +14,17 @@ are noted; `npm run store:check` re-counts them if you edit the copy.
 
 ## Before you submit — four values only you can fill in
 
-1. **Support email.** `site/privacy.html` and `site/support.html` both carry
-   `support@your-domain.example` as a placeholder. Replace it with a real address
-   you monitor. Both stores email that address, and Apple rejects a support page
-   with a dead contact.
+1. **Support email.** Both stores email the address you give them, and Apple
+   rejects a support page whose contact bounces, so it has to be one you actually
+   read. Set it with `npm run contact -- --email you@your-domain.com` — that writes
+   it into `site/privacy.html` and `site/support.html`, both the link and the
+   visible text. Run `npm run contact` on its own to see what is set.
 2. **The two page URLs.** Deploy `site/` and note where `privacy.html` and
    `support.html` land. Both stores require the privacy URL; Apple also requires
    the support URL.
-3. **App Store ID.** App Store Connect assigns it. Then replace `id0000000000` in
-   `site/index.html` (hero and closing CTA).
+3. **App Store ID.** App Store Connect assigns it. Then
+   `npm run contact -- --appstore 6501234567`, which writes it into both store
+   badges on `site/index.html`.
 4. **Official store badges.** The inline badges on the landing page are stand-ins.
    Swap in Apple's and Google's own artwork before launch.
 

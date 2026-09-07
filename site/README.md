@@ -40,9 +40,16 @@ Three things need real values:
    - Google — Play Console brand guidelines → "Get it on Google Play" badge
 
 3. **A real support address.** `privacy.html` and `support.html` both carry
-   `support@your-domain.example` as a placeholder. Replace it with an address you
-   monitor — Apple rejects a support page with a dead contact. `npm run store:check`
-   reminds you while it is still there.
+   `support@your-domain.example` as a placeholder. Apple rejects a support page with
+   a dead contact, so set a real one — from the repo root, in one command:
+
+   ```bash
+   npm run contact -- --email coach@your-domain.com
+   ```
+
+   It writes the address into both pages, as the link and as the words the reader
+   sees, and it is safe to run again when the address changes. `npm run store:check`
+   reminds you while the placeholder is still there.
 
 ## Screenshots
 

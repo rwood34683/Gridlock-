@@ -2,7 +2,7 @@
   "name": "gridlock-coach",
   "version": "1.0.0",
   "private": true,
-  "description": "GRIDLOCK System \u00b7 powered by UPRA \u00b7 Coach Edition \u2014 paintball coaching and league-ops app",
+  "description": "GRIDLOCK System · powered by UPRA · Coach Edition — paintball coaching and league-ops app",
   "scripts": {
     "sync": "cap sync",
     "open:ios": "cap open ios",
@@ -20,7 +20,8 @@
     "test": "node test/functions.js",
     "verify:bunkers": "node tools/verify_bunkers.js",
     "test:devices": "node test/devices.js",
-    "check": "node test/functions.js && node test/devices.js && node tools/verify_bunkers.js && node test/loadtest.js"
+    "check": "node test/functions.js && node test/devices.js && node tools/verify_bunkers.js && node test/loadtest.js",
+    "contact": "node scripts/contact.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
