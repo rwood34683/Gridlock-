@@ -36,6 +36,16 @@ page = page.replace(/(src|href)="((?!https?:|data:|#)[^"]+\.(?:png|svg|jpg))"/g,
   return `${attr}="data:${mime};base64,${fs.readFileSync(file).toString("base64")}"`;
 });
 
+// Sibling pages (privacy, support) are real files on the static host but do not
+// exist inside a single-file artifact, so neutralise those links rather than
+// shipping a preview with dead ones.
+let neutralised = 0;
+page = page.replace(/<a href="((?!https?:|data:|#)[^"]+\.html)">([\s\S]*?)<\/a>/g, (m, rel, text) => {
+  neutralised++;
+  return `<span title="${rel} — on the deployed site" style="color:var(--dim)">${text}</span>`;
+});
+
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, page);
+console.log(`  neutralised ${neutralised} link(s) to sibling pages`);
 console.log(`inlined ${inlined} assets → ${OUT} (${(Buffer.byteLength(page) / 1048576).toFixed(2)} MB)`);

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- GRIDLOCK Coach collects nothing and tracks nobody.
+
+	     Everything a coach enters — roster, tally, film notes, classes,
+	     league groups, blast log — is written to the WebView's local
+	     storage on the device and never leaves it. The app makes no
+	     network requests of its own. There is no analytics SDK, no ad
+	     SDK, and no third-party network code linked in.
+
+	     The one required-reason API in play is UserDefaults, reached
+	     through @capacitor/preferences, which ships no manifest of its
+	     own. It is used only to hold this app's own settings on this
+	     device, which is reason CA92.1. -->
+
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

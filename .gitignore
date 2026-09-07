@@ -5,6 +5,11 @@ npm-debug.log*
 # Generated brand renders — rebuild with: npm run icons
 brand/out/
 
+# Intermediate captures behind the store panels — rebuild with: npm run store.
+# The finished store images in store/app-store and store/play are committed:
+# they are what you upload, and you should not need a toolchain to get them.
+store/_raw/
+
 # Generated artifact build — rebuild with: npm run site:artifact
 site/build/
 

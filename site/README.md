@@ -6,11 +6,18 @@ Static marketing site for **GRIDLOCK System · Coach Edition**. No build step �
 ```
 site/
   index.html          the page
+  privacy.html        privacy policy — required by both stores
+  support.html        support page — required by the App Store
+  legal.css           shared styling for the two document pages
   img/icon.svg        the mark
   img/icon-512.png    the mark, raster
   img/shots/*.png     real screenshots, captured from the running app
   build/artifact.html generated — see below
 ```
+
+`privacy.html` and `support.html` are ordinary documents and share `legal.css`.
+Only `index.html` carries inline CSS, because only it is built into the
+single-file artifact.
 
 ## Deploy
 
@@ -32,8 +39,10 @@ Three things need real values:
    - Apple — Marketing Resources → "Download on the App Store" badge
    - Google — Play Console brand guidelines → "Get it on Google Play" badge
 
-3. **A privacy policy URL.** Both stores require one before review, and the
-   footer has no link to one yet. Add the page, then link it from `.foot__links`.
+3. **A real support address.** `privacy.html` and `support.html` both carry
+   `support@your-domain.example` as a placeholder. Replace it with an address you
+   monitor — Apple rejects a support page with a dead contact. `npm run store:check`
+   reminds you while it is still there.
 
 ## Screenshots
 
@@ -45,8 +54,10 @@ npm run serve                      # serves web/ on :5173
 node scripts/capture-shots.js      # rewrites site/img/shots/
 ```
 
-`scout-sim.png` is not used on the page — it is kept for the App Store and Play
-listing screenshots.
+`scout-sim.png` is not used on the page — it is kept as a spare.
+
+The store screenshots are a separate, larger set at each store's exact pixel
+sizes. See `docs/STORE-LISTING.md` and `npm run store`.
 
 ## The artifact build
 
