@@ -817,6 +817,21 @@ const BREAKS = {
    like data and it is not. Every pro team reads as unknown until a coach scores
    it himself, and any division can be added to or corrected on the board. */
 const DIVISIONS = [
+  {id:"pro", name:"NXL Pro X-Ball",
+   note:"Names only — score them yourself. Check the roster against the NXL site; divisions move every season.",
+   teams:[
+    {name:"Los Angeles Ironmen"},
+    {name:"San Diego Dynasty"},
+    {name:"Tampa Bay Damage"},
+    {name:"Houston Heat"},
+    {name:"Edmonton Impact"},
+    {name:"Seattle Uprising"},
+    {name:"Detroit Infamous"},
+    {name:"Los Angeles Collision"},
+    {name:"New York Xtreme"},
+    {name:"Red Legion"},
+    {name:"PaintballFIT"}
+  ]},
   {id:"semi", name:"CIN · Semi-Pro X-Ball", teams:[
   {name:"Beefy Boys",pts:71.74,reg:"PAID",tend:"Bal",threat:3},
   {name:"Blast Camp",pts:200,reg:"PAID",tend:"Bal",threat:5,film:1},
@@ -832,25 +847,9 @@ const DIVISIONS = [
   {name:"Miami Effect",pts:68.7,reg:"PAID",tend:"Bal",threat:3},
   {name:"New Jersey Filthy",pts:65.65,reg:"PAID",tend:"Bal",threat:2},
   {name:"Rejects",pts:186,reg:"PAID",tend:"Snake",threat:4}
-  ]},
-  {id:"pro", name:"NXL Pro", note:"Names only — score them yourself.", teams:[
-    {name:"Los Angeles Ironmen"},
-    {name:"San Diego Dynasty"},
-    {name:"Houston Heat"},
-    {name:"Tampa Bay Damage"},
-    {name:"Edmonton Impact"},
-    {name:"Los Angeles Infamous"},
-    {name:"Seattle Thunder"},
-    {name:"New England Hurricanes"},
-    {name:"Chattanooga CEP"},
-    {name:"Upton 187 Crew"},
-    {name:"Portland Uprising"},
-    {name:"Omaha Vipers"},
-    {name:"Sacramento XSV"},
-    {name:"Baltimore Revo"}
   ]}
 ];
-function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "semi")) || DIVISIONS[0]; }
+function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "pro")) || DIVISIONS[0]; }
 function addedTeams(id){ return (S.teams || {})[id] || []; }
 function divisionTeams(id){
   const d = DIVISIONS.find(x => x.id === id);
@@ -906,7 +905,7 @@ const defaultState = () => ({
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
-  division:"semi",
+  division:"pro",       // pro is the point; the semi-pro board is still there
   teams:{},
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,

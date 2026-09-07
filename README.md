@@ -139,7 +139,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 274 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the opponent's breakouts, the field layers, the replay, the QR encoder, the first run, the divisions and the house rules. |
+| `npm test` | 277 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the opponent's breakouts, the field layers, the replay, the QR encoder, the first run, the divisions and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -166,7 +166,7 @@ the team rather than the pit, so it follows them in and out; sim bar; anticipate
 cards that name the players you logged, hardest first; a counter-picker derived
 from the opponent read and the match state; Breakouts counting the calls you have
 seen a team make; Layers drawing everything logged against them where it happened;
-Games replaying a point out by out; a division picker with the semi-pro and pro boards, a FILM
+Games replaying a point out by out; a board that opens on NXL Pro X-Ball, with the semi-pro list behind a picker, a FILM
 column marking the teams you have something on, and a way to add a team the
 season list missed); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own

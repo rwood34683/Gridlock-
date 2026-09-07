@@ -224,7 +224,9 @@ const ROSTER = [
   check("counter-picker ranks change with the match state", rank.diff, `${rank.ahead} vs ${rank.must}`);
   check("patient call tops the list when ahead", rank.ahead === "Hold & Read", rank.ahead);
   check("every break is ranked", await ev(() => counterRank("Snake", "Even").length === 5));
-  check("division board lists the seeded teams", await ev(() => teamsHere().length >= 14));
+  check("the board lists a real division of teams", await ev(() => teamsHere().length >= 11));
+  check("every division on offer has teams in it", await ev(() =>
+    DIVISIONS.every(d => divisionTeams(d.id).length >= 11)));
   check("both pits draw on one field", await ev(() => {
     const svg = fieldSVG({ both: true }); return svg.includes("#e5342f") && svg.includes("#3d8bff");
   }));
@@ -903,15 +905,19 @@ const ROSTER = [
 
   /* ------------------------------------------------------------- divisions */
   G("Divisions");
-  await ev(() => window.set({ tab:"scout", scoutTab:"board", division:"semi", teams:{}, scout:{} }));
+  await ev(() => window.set({ tab:"scout", scoutTab:"board", division:"pro", teams:{}, scout:{} }));
   check("there is more than one division to pick from", await ev(() => DIVISIONS.length >= 2));
-  check("the semi-pro board keeps its points and registration", await ev(() => {
+  check("pro is what the app opens on", await ev(() =>
+    divisionOf().id === "pro" && /Pro/.test(divisionOf().name)));
+  check("the pro board carries the league's teams", await ev(() =>
+    teamsHere().length >= 11 && teamsHere().some(t => t.name === "Los Angeles Ironmen")
+                             && teamsHere().some(t => t.name === "Seattle Uprising")));
+  check("the semi-pro board is still there with its points", await ev(() => {
+    window.setDivision("semi");
     const t = teamsHere().find(x => x.name === "Rejects");
-    return teamsHere().length >= 14 && t.pts === 186 && t.reg === "PAID";
-  }));
-  check("the pro division is there", await ev(() => {
+    const ok = teamsHere().length >= 14 && t.pts === 186 && t.reg === "PAID";
     window.setDivision("pro");
-    return divisionOf().id === "pro" && teamsHere().length >= 12;
+    return ok;
   }));
   // The point of the whole exercise: names are a fact, a team's form is not.
   check("no pro team arrives with invented points or registration", await ev(() =>
@@ -941,6 +947,8 @@ const ROSTER = [
     window.setDivision("pro");
     return away && profileOf("Houston Heat").threat === 5;
   }));
+  check("the board says the roster is worth checking", await ev(() =>
+    /Check the roster/.test(document.querySelector(".main").textContent)));
   check("a team can be added to a division", await ev(() => {
     document.getElementById("newTeam").value = "Test Squad";
     window.addTeam();
