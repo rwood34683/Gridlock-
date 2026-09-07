@@ -154,12 +154,41 @@ doritos and cakes point back down it, temples carry the inset the map prints,
 bricks and snake-beam sections are capped at the ends, mini-Ws are banded,
 wings are plain upright bars, and the giant plus is a cross.
 
-**The one deviation:** the official map colours its bunkers red and blue, which
-is how it tells a cylinder from a tree at a glance. The app draws them in one
-neutral grey, because the wires are already red and blue and a second hue would
-fight them. The map's contrasting caps, bands and insets are kept as a darker
-tone of the same material, so every type still reads apart. That is a brand
-decision from `CLAUDE.md`, not a limit of the digitizing.
+### Colour is sampled too
+
+The official map paints every bunker red or blue — that is how it tells a
+cylinder from a tree at a glance — and the app now carries that. The colour is
+**measured, not chosen**: for each bunker the digitizer samples the paint inside
+that bunker's own connected blob, so a neighbour whose bounding box overlaps
+cannot colour the answer, and records the dominant colour plus any contrasting
+cap, band or inset along with the mean RGB behind the call.
+
+| Type | Body | Detail |
+|---|---|---|
+| medium dorito, small dorito | red | — |
+| tree, giant wing, giant plus, wing | red | — |
+| temple, maya temple | red | blue inset |
+| brick | red | blue caps |
+| snake beam | red | blue joints |
+| cylinder, cake, giant brick, mini w | blue | — |
+
+Sampling by blob rather than by bounding box caught a real error: the
+centre mini-W crosses the top snake beam, so measured on the combined mask its
+blob merged with the beam and it came out 3.5 × 9.0 ft and "blue with a red
+detail". Measured on the blue mask alone it is 2.0 × 6.9 ft, exactly like the
+other three, and plainly blue.
+
+Snake-beam sections are the one place the colour is carried rather than sampled
+directly: a section measured on the red mask cannot see the blue joints printed
+either side of it, so it takes the joint colour that was already detected when
+the beam was split.
+
+To keep the break readable on a field of the same two colours, the bunker reds
+and blues sit a step darker than the wires (`#e5342f` / `#3d8bff`) and every
+path runs over a black casing. Bunker stats draws its heat as an amber ring
+rather than a red wash, which would vanish on a red bunker. A layout whose
+colour was never sampled — the Tampa Bay footprint — stays neutral grey rather
+than being guessed into one of the two.
 
 ## Known gaps
 - **`layouts/schema/layout.schema.json` is stale.** It requires `year`, `sources`

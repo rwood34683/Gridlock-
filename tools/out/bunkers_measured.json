@@ -5,7 +5,15 @@
   "x_ft": 59.2,
   "y_ft": 13.1,
   "w_ft": 5.3,
-  "h_ft": 5.8
+  "h_ft": 5.8,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   140,
+   4,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MD",
@@ -13,7 +21,15 @@
   "x_ft": 89.3,
   "y_ft": 13.1,
   "w_ft": 4.6,
-  "h_ft": 6.0
+  "h_ft": 6.0,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   145,
+   5,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MD",
@@ -21,7 +37,15 @@
   "x_ft": 45.8,
   "y_ft": 13.2,
   "w_ft": 4.5,
-  "h_ft": 5.9
+  "h_ft": 5.9,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   145,
+   4,
+   4
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MD",
@@ -29,15 +53,31 @@
   "x_ft": 102.2,
   "y_ft": 13.2,
   "w_ft": 4.5,
-  "h_ft": 5.9
+  "h_ft": 5.9,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   145,
+   4,
+   4
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MW",
   "type": "mini_w",
-  "x_ft": 75.2,
-  "y_ft": 16.1,
-  "w_ft": 3.5,
-  "h_ft": 8.7
+  "x_ft": 75.3,
+  "y_ft": 15.2,
+  "w_ft": 2.0,
+  "h_ft": 6.9,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   53,
+   51,
+   203
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MD",
@@ -45,7 +85,15 @@
   "x_ft": 32.3,
   "y_ft": 17.2,
   "w_ft": 4.6,
-  "h_ft": 5.9
+  "h_ft": 5.9,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   145,
+   4,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MD",
@@ -53,7 +101,15 @@
   "x_ft": 115.7,
   "y_ft": 17.2,
   "w_ft": 4.4,
-  "h_ft": 5.9
+  "h_ft": 5.9,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   146,
+   5,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "SB",
@@ -61,7 +117,19 @@
   "x_ft": 70.0,
   "y_ft": 19.6,
   "w_ft": 9.7,
-  "h_ft": 1.6
+  "h_ft": 1.6,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   29,
+   30
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -69,7 +137,19 @@
   "x_ft": 80.2,
   "y_ft": 19.6,
   "w_ft": 9.7,
-  "h_ft": 1.6
+  "h_ft": 1.6,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   193,
+   27,
+   28
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "T",
@@ -77,7 +157,19 @@
   "x_ft": 18.0,
   "y_ft": 20.1,
   "w_ft": 4.5,
-  "h_ft": 4.5
+  "h_ft": 4.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   139,
+   17,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   49,
+   198
+  ]
  },
  {
   "name": "T",
@@ -85,7 +177,19 @@
   "x_ft": 131.9,
   "y_ft": 20.2,
   "w_ft": 4.5,
-  "h_ft": 4.5
+  "h_ft": 4.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   136,
+   16,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   49,
+   198
+  ]
  },
  {
   "name": "Br",
@@ -93,7 +197,19 @@
   "x_ft": 121.5,
   "y_ft": 34.0,
   "w_ft": 3.5,
-  "h_ft": 7.8
+  "h_ft": 7.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   212,
+   55,
+   56
+  ],
+  "detail_rgb": [
+   26,
+   45,
+   152
+  ]
  },
  {
   "name": "Br",
@@ -101,7 +217,15 @@
   "x_ft": 28.4,
   "y_ft": 34.4,
   "w_ft": 3.4,
-  "h_ft": 7.2
+  "h_ft": 7.2,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   215,
+   57,
+   57
+  ],
+  "detail_rgb": null
  },
  {
   "name": "C",
@@ -109,7 +233,15 @@
   "x_ft": 137.8,
   "y_ft": 40.1,
   "w_ft": 4.1,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   51,
+   199
+  ],
+  "detail_rgb": null
  },
  {
   "name": "C",
@@ -117,7 +249,15 @@
   "x_ft": 12.1,
   "y_ft": 40.2,
   "w_ft": 4.0,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   51,
+   199
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Tr",
@@ -125,7 +265,15 @@
   "x_ft": 60.0,
   "y_ft": 40.3,
   "w_ft": 3.5,
-  "h_ft": 3.5
+  "h_ft": 3.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   182,
+   25,
+   25
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Tr",
@@ -133,7 +281,15 @@
   "x_ft": 79.9,
   "y_ft": 40.3,
   "w_ft": 3.5,
-  "h_ft": 3.5
+  "h_ft": 3.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   182,
+   25,
+   25
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Tr",
@@ -141,7 +297,15 @@
   "x_ft": 90.0,
   "y_ft": 40.3,
   "w_ft": 3.5,
-  "h_ft": 3.5
+  "h_ft": 3.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   182,
+   25,
+   25
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Tr",
@@ -149,7 +313,15 @@
   "x_ft": 69.9,
   "y_ft": 40.4,
   "w_ft": 3.5,
-  "h_ft": 3.5
+  "h_ft": 3.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   182,
+   25,
+   25
+  ],
+  "detail_rgb": null
  },
  {
   "name": "C",
@@ -157,7 +329,15 @@
   "x_ft": 107.9,
   "y_ft": 42.0,
   "w_ft": 4.0,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   51,
+   50,
+   198
+  ],
+  "detail_rgb": null
  },
  {
   "name": "C",
@@ -165,7 +345,15 @@
   "x_ft": 41.8,
   "y_ft": 42.2,
   "w_ft": 4.0,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   51,
+   50,
+   198
+  ],
+  "detail_rgb": null
  },
  {
   "name": "GW",
@@ -173,7 +361,15 @@
   "x_ft": 75.1,
   "y_ft": 52.2,
   "w_ft": 5.5,
-  "h_ft": 4.8
+  "h_ft": 4.8,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   136,
+   13,
+   13
+  ],
+  "detail_rgb": null
  },
  {
   "name": "T",
@@ -181,7 +377,19 @@
   "x_ft": 27.7,
   "y_ft": 59.9,
   "w_ft": 4.4,
-  "h_ft": 4.2
+  "h_ft": 4.2,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   139,
+   16,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   49,
+   197
+  ]
  },
  {
   "name": "T",
@@ -189,7 +397,19 @@
   "x_ft": 121.8,
   "y_ft": 60.0,
   "w_ft": 4.2,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   139,
+   16,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   48,
+   196
+  ]
  },
  {
   "name": "Br",
@@ -198,6 +418,18 @@
   "y_ft": 60.1,
   "w_ft": 3.5,
   "h_ft": 7.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   213,
+   56,
+   56
+  ],
+  "detail_rgb": [
+   25,
+   45,
+   154
+  ],
   "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
  },
  {
@@ -207,6 +439,18 @@
   "y_ft": 60.1,
   "w_ft": 3.4,
   "h_ft": 7.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   216,
+   57,
+   57
+  ],
+  "detail_rgb": [
+   26,
+   46,
+   155
+  ],
   "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
  },
  {
@@ -215,7 +459,15 @@
   "x_ft": 75.1,
   "y_ft": 60.2,
   "w_ft": 4.7,
-  "h_ft": 9.8
+  "h_ft": 9.8,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   63,
+   60,
+   220
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MT",
@@ -223,7 +475,19 @@
   "x_ft": 57.3,
   "y_ft": 67.7,
   "w_ft": 4.4,
-  "h_ft": 4.6
+  "h_ft": 4.6,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   125,
+   13,
+   13
+  ],
+  "detail_rgb": [
+   48,
+   46,
+   197
+  ]
  },
  {
   "name": "MT",
@@ -231,7 +495,19 @@
   "x_ft": 92.2,
   "y_ft": 67.7,
   "w_ft": 4.6,
-  "h_ft": 4.5
+  "h_ft": 4.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   124,
+   13,
+   13
+  ],
+  "detail_rgb": [
+   48,
+   46,
+   197
+  ]
  },
  {
   "name": "GW",
@@ -239,7 +515,15 @@
   "x_ft": 75.1,
   "y_ft": 67.8,
   "w_ft": 5.5,
-  "h_ft": 5.5
+  "h_ft": 5.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   192,
+   17,
+   18
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MT",
@@ -247,7 +531,19 @@
   "x_ft": 137.2,
   "y_ft": 77.6,
   "w_ft": 4.4,
-  "h_ft": 4.6
+  "h_ft": 4.6,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   126,
+   14,
+   13
+  ],
+  "detail_rgb": [
+   49,
+   47,
+   198
+  ]
  },
  {
   "name": "MT",
@@ -255,7 +551,19 @@
   "x_ft": 12.2,
   "y_ft": 77.7,
   "w_ft": 4.4,
-  "h_ft": 4.5
+  "h_ft": 4.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   126,
+   14,
+   12
+  ],
+  "detail_rgb": [
+   49,
+   47,
+   198
+  ]
  },
  {
   "name": "SB",
@@ -263,7 +571,19 @@
   "x_ft": 34.1,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -271,7 +591,19 @@
   "x_ft": 44.3,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -279,7 +611,19 @@
   "x_ft": 54.5,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -287,7 +631,19 @@
   "x_ft": 64.7,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -295,7 +651,19 @@
   "x_ft": 75.0,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -303,7 +671,19 @@
   "x_ft": 85.1,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   196,
+   27,
+   27
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -311,7 +691,19 @@
   "x_ft": 95.4,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   193,
+   25,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -319,7 +711,19 @@
   "x_ft": 105.6,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -327,7 +731,19 @@
   "x_ft": 115.9,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   194,
+   26,
+   26
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "Ck",
@@ -335,7 +751,15 @@
   "x_ft": 38.1,
   "y_ft": 82.2,
   "w_ft": 4.1,
-  "h_ft": 4.0
+  "h_ft": 4.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   51,
+   202
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Ck",
@@ -343,7 +767,15 @@
   "x_ft": 112.0,
   "y_ft": 82.2,
   "w_ft": 4.1,
-  "h_ft": 4.1
+  "h_ft": 4.1,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   51,
+   201
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MW",
@@ -351,7 +783,15 @@
   "x_ft": 99.1,
   "y_ft": 83.6,
   "w_ft": 2.0,
-  "h_ft": 6.9
+  "h_ft": 6.9,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   50,
+   202
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MW",
@@ -359,7 +799,15 @@
   "x_ft": 50.9,
   "y_ft": 83.7,
   "w_ft": 2.0,
-  "h_ft": 6.9
+  "h_ft": 6.9,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   50,
+   202
+  ],
+  "detail_rgb": null
  },
  {
   "name": "MW",
@@ -367,7 +815,15 @@
   "x_ft": 75.2,
   "y_ft": 83.7,
   "w_ft": 2.0,
-  "h_ft": 6.9
+  "h_ft": 6.9,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   52,
+   49,
+   201
+  ],
+  "detail_rgb": null
  },
  {
   "name": "GP",
@@ -375,7 +831,15 @@
   "x_ft": 63.6,
   "y_ft": 93.8,
   "w_ft": 11.2,
-  "h_ft": 11.3
+  "h_ft": 11.3,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   177,
+   19,
+   19
+  ],
+  "detail_rgb": null
  },
  {
   "name": "GP",
@@ -383,7 +847,15 @@
   "x_ft": 86.1,
   "y_ft": 93.8,
   "w_ft": 11.0,
-  "h_ft": 11.3
+  "h_ft": 11.3,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   171,
+   17,
+   17
+  ],
+  "detail_rgb": null
  },
  {
   "name": "SB",
@@ -391,7 +863,15 @@
   "x_ft": 75.3,
   "y_ft": 94.2,
   "w_ft": 10.5,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   193,
+   26,
+   27
+  ],
+  "detail_rgb": null
  },
  {
   "name": "SD",
@@ -399,7 +879,15 @@
   "x_ft": 17.3,
   "y_ft": 97.6,
   "w_ft": 4.4,
-  "h_ft": 3.7
+  "h_ft": 3.7,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   137,
+   4,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "SD",
@@ -407,7 +895,15 @@
   "x_ft": 132.1,
   "y_ft": 97.6,
   "w_ft": 4.8,
-  "h_ft": 3.7
+  "h_ft": 3.7,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   136,
+   4,
+   5
+  ],
+  "detail_rgb": null
  },
  {
   "name": "SB",
@@ -415,7 +911,19 @@
   "x_ft": 49.9,
   "y_ft": 102.0,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   198,
+   29,
+   30
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "SB",
@@ -423,7 +931,19 @@
   "x_ft": 99.7,
   "y_ft": 102.0,
   "w_ft": 9.7,
-  "h_ft": 1.5
+  "h_ft": 1.5,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   198,
+   29,
+   29
+  ],
+  "detail_rgb": [
+   52,
+   50,
+   200
+  ]
  },
  {
   "name": "Br",
@@ -431,7 +951,19 @@
   "x_ft": 31.6,
   "y_ft": 104.0,
   "w_ft": 3.4,
-  "h_ft": 7.8
+  "h_ft": 7.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   215,
+   56,
+   57
+  ],
+  "detail_rgb": [
+   22,
+   41,
+   148
+  ]
  },
  {
   "name": "Br",
@@ -439,7 +971,19 @@
   "x_ft": 118.2,
   "y_ft": 104.0,
   "w_ft": 3.4,
-  "h_ft": 7.8
+  "h_ft": 7.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   216,
+   57,
+   57
+  ],
+  "detail_rgb": [
+   27,
+   43,
+   150
+  ]
  },
  {
   "name": "GB",
@@ -447,7 +991,15 @@
   "x_ft": 75.0,
   "y_ft": 105.2,
   "w_ft": 4.6,
-  "h_ft": 10.0
+  "h_ft": 10.0,
+  "body": "blue",
+  "detail": null,
+  "body_rgb": [
+   61,
+   59,
+   219
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Wg",
@@ -455,7 +1007,15 @@
   "x_ft": 48.3,
   "y_ft": 106.6,
   "w_ft": 3.1,
-  "h_ft": 7.4
+  "h_ft": 7.4,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   167,
+   20,
+   20
+  ],
+  "detail_rgb": null
  },
  {
   "name": "Wg",
@@ -463,6 +1023,14 @@
   "x_ft": 101.5,
   "y_ft": 106.6,
   "w_ft": 3.1,
-  "h_ft": 7.3
+  "h_ft": 7.3,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   166,
+   19,
+   19
+  ],
+  "detail_rgb": null
  }
 ]

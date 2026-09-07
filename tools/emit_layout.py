@@ -33,6 +33,11 @@ for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
         'y_ft': b['y_ft'],
         'w_ft': b['w_ft'],
         'h_ft': b['h_ft'],
+        # sampled from the official map, not chosen
+        'body': b.get('body'),
+        'detail': b.get('detail'),
+        'body_rgb': b.get('body_rgb'),
+        'detail_rgb': b.get('detail_rgb'),
     }
     if 'note' in b: e['note'] = b['note']
     out.append(e)
@@ -42,6 +47,11 @@ ev['coordinate_status'] = 'grid_digitized'
 ev['digitized'] = {
     'source_view': '2d_labeled',
     'source_file': 'images/nxl_2026_midwest_2d_labeled.jpg',
+    'colour': ('Body and detail colour are sampled from the official map inside each '
+               'bunker\'s own measured blob, so a neighbour that merely overlaps the '
+               'bounding box cannot colour the answer. Snake-beam sections carry the '
+               'blue joint colour detected when the beam was split, which a red-masked '
+               'section cannot see for itself.'),
     'method': ('Printed 10-ft grid detected in the image (16 verticals x 13 horizontals = '
                '15 x 12 cells), giving 31.113 px/ft on x and 31.108 px/ft on y. Each bunker '
                'is the centre of its own measured paint footprint in that frame. Snake-beam '
@@ -78,8 +88,13 @@ SHAPE = {
 }
 rows = []
 for b in out:
-    rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{}}}'.format(
-        uid(b), b['name'], b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft']))
+    # c = body colour, d = the contrasting cap/band/inset the map prints.
+    # Both come from sampling the official map, never from a choice here.
+    c = (b.get('body') or 'red')[0]
+    d = (b.get('detail') or '')[:1]
+    rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{},c:"{}"{}}}'.format(
+        uid(b), b['name'], b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft'],
+        c, ',d:"%s"' % d if d else ''))
 
 os.makedirs('tools/out', exist_ok=True)
 with open('tools/out/mwo_layout.js', 'w') as f:
