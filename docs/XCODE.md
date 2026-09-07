@@ -1,15 +1,11 @@
 # Getting GRIDLOCK Coach into Xcode
 
-The `ios/` folder in this repo is a real Xcode project, not a placeholder. What it
-is *not* is self-contained: two things it needs are git-ignored on purpose, so a
-fresh clone opens to an app with no content in it. Generate them first and the
-rest is ordinary.
+The `ios/` folder is a real Xcode project and the app itself is committed with
+it, so what you open is the actual product, not a shell.
 
-- `ios/App/App/public/` — the web app. `npx cap sync` copies `web/` into it.
-- `ios/App/Pods/` — CocoaPods dependencies. `pod install` fetches them.
-
-Neither belongs in git: the first is a build product of `web/index.html`, the
-second is a dependency tree. Both are one command.
+One thing is still missing from a fresh clone: `ios/App/Pods/`, the CocoaPods
+dependency tree. Capacitor cannot build without it and it does not belong in git.
+That is the one command below.
 
 ## What you need on the Mac
 
@@ -27,21 +23,14 @@ before you pay anything.
 ## First run
 
 ```bash
-git clone <this repo>
-cd Gridlock-
-npm run ios:setup
+cd ios/App && pod install
+open App.xcworkspace
 ```
 
-That installs the dependencies, copies `web/` into the app, fetches the pods and
-opens the right file in Xcode. If you would rather do it by hand:
+Then press Run. That is the whole thing.
 
-```bash
-npm install                 # pulls Capacitor and the test tooling
-npx cap sync ios            # copies web/ into the app and wires the plugins
-cd ios/App && pod install   # fetches Capacitor's pods
-```
-
-Then open **`ios/App/App.xcworkspace`**.
+`npm run ios:setup` does the same from a clean clone if you also want the test
+tooling and a fresh sync — it installs, syncs, pods and opens Xcode for you.
 
 > Open the **`.xcworkspace`**, never `App.xcodeproj`. With CocoaPods the project
 > alone does not know about its dependencies and the build fails with missing
@@ -149,7 +138,9 @@ the reason a change you know you made is not on screen.
 
 ## When it goes wrong
 
-**White screen on launch** — `public/` is empty. Run `npx cap sync ios`.
+**White screen on launch** — the copy of the app in the shell went missing. Run
+`npm run sync`. `npm run store:check` also tells you when it has drifted from
+`web/index.html`.
 
 **"Module 'Capacitor' not found"** — you opened `App.xcodeproj`. Close it and open
 `App.xcworkspace`.

@@ -15,15 +15,18 @@ site/build/
 
 # Native build output
 ios/App/Pods/
-ios/App/App/public/
 ios/App/build/
 android/app/build/
 android/build/
 android/.gradle/
-android/app/src/main/assets/public/
 android/local.properties
 
 # Release signing — never commit
 keystore.properties
 *.jks
 *.keystore
+
+# The web app copied into each native shell is a build product of web/index.html,
+# but it is committed on purpose: without it Xcode and Android Studio open to a
+# white screen, and "run npx cap sync first" is a bad first impression of your own
+# project. Re-run `npm run sync` after changing web/ and commit what moves.

@@ -84,6 +84,22 @@ for (const [rel, w, h] of SINGLES) {
   ok(rel, s && s[0] === w && s[1] === h, s ? s.join("x") : "unreadable");
 }
 
+// The web app is committed into both native shells so Xcode and Android Studio
+// open to something. A stale copy is worse than none: the app runs, and it is
+// quietly the wrong version.
+const SYNCED = [
+  ["ios/App/App/public/index.html", "iOS"],
+  ["android/app/src/main/assets/public/index.html", "Android"],
+];
+{
+  const src = fs.readFileSync(path.join(ROOT, "web/index.html"), "utf8");
+  for (const [rel, name] of SYNCED) {
+    const abs = path.join(ROOT, rel);
+    const same = fs.existsSync(abs) && fs.readFileSync(abs, "utf8") === src;
+    ok(`${name} shell carries this web build`, same, same ? "in step" : "stale — run npm run sync");
+  }
+}
+
 // The placeholders that must be replaced before a real submission.
 const PLACEHOLDERS = [
   ["site/privacy.html", "support@your-domain.example", "support email"],
