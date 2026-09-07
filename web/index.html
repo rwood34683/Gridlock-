@@ -1140,9 +1140,11 @@ function qrSVG(text, px){
     aria-label="QR code for the join link"><rect width="${side}" height="${side}" fill="#fff"/>
     <path d="${d}" fill="#0b0c0d"/></svg>`;
 }
-// What the QR carries: the deep link both platforms already register, so a
-// scan opens Classes with the code filled in. A phone without the app installed
-// still shows the URI, and the code is legible inside it.
+// The deep link both platforms register. Nothing draws a QR of it at the
+// moment, on purpose: a scan opens the app to a session that does not exist on
+// the scanner's phone, because sessions live on the device that created them.
+// The encoder stays verified and ready for the day a session can be reached
+// from another device — that is a backend decision, not an encoder one.
 function joinLink(code){ return "gridlock://class/" + code; }
 
 // ---- editing the break on the field ----------------------------------------
@@ -1903,6 +1905,10 @@ function playbook(){
     <div class="call__label">The call</div>
     <div class="call__name">${esc(br.name)}</div>
     <p class="call__read">${m.read}</p>
+    ${(()=>{const r=breakRecord(key); return r.points
+      ? `<p class="note">On ${esc(curLayout().name)} you have called this ${r.points} time${r.points===1?"":"s"} —
+         ${r.us} out${r.us===1?"":"s"} against you, ${r.them} against them.</p>`
+      : "";})()}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
       <span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>
@@ -2033,7 +2039,8 @@ function tally(){
         // repaint — and you should not be editing an old point by accident.
         const live = o.pt === pt;
         const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
-        const where = [o.shotAt?`shot at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
+        const where = [o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
+          o.shotAt?`at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
           .filter(Boolean).join(" · ");
         return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${o.pt}</span>
@@ -2043,6 +2050,8 @@ function tally(){
         ${live?`<div class="who2" style="flex-basis:100%;margin-top:6px">
           ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
           ${bunkerPick("Moved to", i, "movedTo", o.movedTo)}
+          ${causePick("How", i, "how", o.how, OUT_CAUSES.map(c=>({v:c,t:c})))}
+          ${whoPick(i, o.side, o.by)}
         </div>`:""}
       </div>`;}).join("")}
     </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}. Bunkers can be set on the point you are on.</p>`:`<p class="note">Bunkers can be set on the point you are on.</p>`}`
@@ -2051,6 +2060,27 @@ function tally(){
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
 // to. Both feed Bunker stats. The fast path stays one tap — this is after.
+// How he went out. Where is not why: a player laned off the break and a player
+// caught crawling the snake are different problems, and the tally could not
+// tell them apart. "By" reaches for the other pit's logged five when it is your
+// player, and your own roster when it is theirs.
+const OUT_CAUSES = ["Laned", "Traded", "Run-through", "Snake crawl", "Bounce", "Unknown"];
+function causePick(label, idx, field, value, options){
+  return `<label style="display:flex;flex-direction:column;gap:4px">
+    <span class="note">${label}</span>
+    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
+      <option value="">—</option>
+      ${options.map(o=>`<option value="${esc(o.v)}" ${value===o.v?"selected":""}>${esc(o.t)}</option>`).join("")}
+    </select></label>`;
+}
+function whoPick(idx, side, value){
+  // Your player went out — who got him? Theirs went out — which of yours?
+  const list = side === "us"
+    ? (pitOf("right").players || []).map(m => ({v:"#"+(m.num||"?"), t:"#"+(m.num||"?")+(m.name?" "+m.name:"")}))
+    : (S.roster || []).map(r => ({v:r.name, t:"#"+r.num+" "+r.name}));
+  return causePick(side === "us" ? "By (them)" : "By (yours)", idx, "by", value, list);
+}
+
 function bunkerPick(label, idx, field, value){
   const list = curLayout().bunkers;
   return `<label style="display:flex;flex-direction:column;gap:4px">
@@ -2071,13 +2101,42 @@ window.markOut = (side,name) => {
   const pt=S.point||1;
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.pt===pt && o.side===side && o.name===name);
   if(already) return;
-  S.tally=[{pt,side,name,at:Date.now()},...(S.tally||[])];
+  // Enough context to count honestly afterwards: which break was called, on
+  // which field, against whom. Without these an out is a number with no story.
+  S.tally=[{pt,side,name,at:Date.now(),
+            script:S.script, layout:S.layoutKey, vs:pitOf("right").name},...(S.tally||[])];
   save(S); render();
 };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
 // kept: older builds called this
 window.addOut = () => window.markOut("us","Player");
+
+/* ============================================================
+   History — arithmetic on what you logged, not a model
+   ============================================================
+
+   Nothing here predicts anything. It counts outs you recorded and reports
+   them, which is the honest version of "analysis" for a tool with one device
+   and a season's worth of points. Entries logged before an out carried its
+   context are simply not counted rather than guessed at. */
+function loggedOuts(match){
+  return (S.tally || []).filter(o => o && typeof o === "object" && match(o));
+}
+function breakRecord(scriptKey){
+  const rows = loggedOuts(o => o.script === scriptKey && o.layout === S.layoutKey);
+  return {points: new Set(rows.map(o => o.pt)).size,
+          us: rows.filter(o => o.side === "us").length,
+          them: rows.filter(o => o.side === "them").length};
+}
+// How a given team takes your players out, and which of them does it.
+function opponentRead(team){
+  const rows = loggedOuts(o => o.side === "us" && o.vs === team);
+  const tally = (key) => rows.reduce((m, o) => (o[key] ? {...m, [o[key]]:(m[o[key]] || 0) + 1} : m), {});
+  const rank = m => Object.entries(m).sort((a, b) => b[1] - a[1]);
+  return {n: rows.length, points: new Set(rows.map(o => o.pt)).size,
+          how: rank(tally("how")), who: rank(tally("by"))};
+}
 
 /* ============================================================
    Scout — sub-tabs, because six stacked panels is not a screen
@@ -2162,29 +2221,55 @@ function pit(side,T,label){
   </div>`;
 }
 
+// Which wire the called break actually sends people to. Counted off the plants
+// in BREAK_PLANTS against the measured layout — not a guess about the game.
+function wireSplit(){
+  const bucket = {Snake:0, Centre:0, Dorito:0};
+  currentPaths().forEach(p => {
+    const w = wireOf(p.to[1]);
+    bucket[w.startsWith("snake") ? "Snake" : w === "centre" ? "Centre" : "Dorito"]++;
+  });
+  return bucket;
+}
+
+/* The four numbers that used to sit here — a 44/56 win bar, "expected survivors
+   about 2.3 to 2.6", and an 11/39/25/25 wire split — were hard-coded. They never
+   moved, whatever team was in the pit. A constant dressed as analysis is worse
+   than a heuristic: the first coach who notices stops trusting the geometry too.
+   Everything below is computed from the called break, the measured layout, and
+   what the coach entered himself, and it says which is which. */
 function scoutMatchup(){
   const L=pitOf("left"),R=pitOf("right");
-  return sec("Matchup", `<div>
-      <div class="bar"><i style="width:44%;background:var(--red)"></i><i style="width:56%;background:var(--blue)"></i></div>
-      <div class="barends" style="margin-top:8px"><span style="color:var(--red)">${esc(L.name)} 44%</span><span style="color:var(--blue)">56% ${esc(R.name)}</span></div>
+  const split=wireSplit(), five=currentPaths();
+  const tl=Math.max(1,L.threat||1), tr=Math.max(1,R.threat||1);
+  const lPct=Math.round(tl/(tl+tr)*100);
+  return sec("Matchup", `
+    <div class="fld"><label>Threat, as you scored them</label>
+      <div class="bar"><i style="width:${lPct}%;background:var(--red)"></i><i style="width:${100-lPct}%;background:var(--blue)"></i></div>
+      <div class="barends" style="margin-top:8px">
+        <span style="color:var(--red)">${esc(L.name)} ${"★".repeat(L.threat||0)}</span>
+        <span style="color:var(--blue)">${"★".repeat(R.threat||0)} ${esc(R.name)}</span>
+      </div>
     </div>
-    <p class="lede">Base against snake. Expected survivors about 2.3 to 2.6.</p>
+    <p class="lede">Your call is <b>${esc(BREAKS[S.script].name)}</b>. It puts your five here:</p>
     <div class="facts">
-      <span class="fact"><b>11%</b><span>Snake front</span></span>
-      <span class="fact"><b>39%</b><span>Snake</span></span>
-      <span class="fact"><b>25%</b><span>Centre 50</span></span>
-      <span class="fact"><b>25%</b><span>Dorito</span></span>
+      ${Object.entries(split).map(([k,n])=>`<span class="fact"><b>${n}</b><span>${k}</span></span>`).join("")}
+      <span class="fact"><b>${(L.players||[]).length + (R.players||[]).length}</b><span>Players logged</span></span>
     </div>
     <div class="who2">
-      <div><h4>${esc(L.name)}</h4><ol>
-        ${["snake MW","GP","MT 50","fwd MD","C lane"].map((j,i)=>`<li><b>${i+1}</b>${j}</li>`).join("")}
+      <div><h4>Your five · ${esc(BREAKS[S.script].name)}</h4><ol>
+        ${five.map((p,i)=>`<li><b>${i+1}</b>${esc(p.label)}</li>`).join("")}
       </ol></div>
-      <div><h4>${esc(R.name)}</h4><ol>
-        ${["deep snake run","snake MW","GP","tree","MD hold"].map((j,i)=>`<li><b>${i+6}</b>${j}</li>`).join("")}
+      <div><h4>${esc(R.name)} · logged</h4><ol>
+        ${(R.players||[]).length
+          ? R.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}</li>`).join("")
+          : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the pit card above.</li>`}
       </ol></div>
     </div>
-    <p class="aid"><b>A heuristic read, not a prediction.</b> Built from your own film reads and seeded data. Officials govern the live call.</p>`,
-    "Wire split");
+    <p class="aid"><b>Counted, not predicted.</b> The wire split is where this break actually plants on
+    ${esc(curLayout().name)}. The bar is the threat you scored the two teams, nothing more.
+    Officials govern the live call.</p>`,
+    "This call");
 }
 
 function scoutAnticipate(){
@@ -2201,6 +2286,12 @@ function scoutAnticipate(){
       ${men.map(m=>`<div class="kv__row"><span class="kv__k">${esc(m.num?"#"+m.num:"Watch")}${m.name?" "+esc(m.name):""}</span>
         <span class="kv__v">${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}
         <span style="color:var(--accent-lit)">${"★".repeat(m.threat||0)}</span></span></div>`).join("")}
+      ${(()=>{const r=opponentRead(T.name); if(!r.n) return "";
+        const how=r.how.slice(0,3).map(([k,n])=>`${esc(k.toLowerCase())} ${n}`).join(", ");
+        const who=r.who.slice(0,3).map(([k,n])=>`${esc(k)} ${n}`).join(", ");
+        return `<div class="kv__row"><span class="kv__k">How they get you</span><span class="kv__v">
+          ${r.n} of your outs over ${r.points} point${r.points===1?"":"s"}${how?` · ${how}`:""}${who?`<br>${who}`:""}
+          </span></div>`;})()}
       ${(T.notes||"").trim()?`<div class="kv__row"><span class="kv__k">Your film</span><span class="kv__v">${esc(T.notes)}</span></div>`:""}
     </div></div>`;
   };
@@ -2291,11 +2382,15 @@ function sightlines(){
    ============================================================ */
 function classesPage(){
   const join=S.classes.find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
-  return `${tip("class","Staff create a class and get a code. Players join with that code — no account needed.")}
+  return `${tip("class","A sign-in sheet you pass around. Create the session, then hand the phone over — everything stays on this device.")}
 
-  ${sec("Join a class", `<div class="fld"><label>Code</label>
+  ${sec("Sign in to a session", `<div class="fld"><label>Code</label>
       <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
-    ${join?formBox(join):(S.joinCode?`<p class="warn">No open class with that code on this device.</p>`:`<p class="note">No account needed. Ask the coach for the code.</p>`)}`)}
+    ${join?formBox(join)
+      :(S.joinCode
+        ? `<p class="warn">No open session with that code <b>on this phone</b>. Sessions live on the device
+           that created them — sign in on the coach's phone, not your own.</p>`
+        : `<p class="note">No account needed. Sign in on the phone the coach hands you.</p>`)}`)}
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
@@ -2311,9 +2406,9 @@ function classesPage(){
           <div class="joinrow">
             <div>
               <div class="joincode">${esc(c.code)}</div>
-              <p class="note">Read it out, or let them scan. Joining never needs an account.</p>
+              <p class="note">Read it out and hand the phone over. Signing in never needs an account —
+              and it happens on this phone, because that is where the session lives.</p>
             </div>
-            ${qrSVG(joinLink(c.code), 132)}
           </div>
           ${r.length?`<div class="assigns">${r.map(x=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc((x.name||"?")[0].toUpperCase())}</span>
@@ -2433,7 +2528,7 @@ const MORE_GROUPS=[
     ["codes","Codes","Your code words for this event"],
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["Running the day",[
-    ["classes","Classes","Clinics and sign-in codes"],
+    ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
   ["Device",[
     ["nexus","Nexus","Account, tutorial and privacy"]]]

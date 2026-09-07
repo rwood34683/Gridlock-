@@ -7,7 +7,7 @@ are noted; `npm run store:check` re-counts them if you edit the copy.
 > **One rule for everything below.** The listing may only describe what the build
 > actually does. Both stores check marketing against the binary, and a claim the
 > app cannot back up is a rejection. Features still on the roadmap — a second
-> event layout, path editing, QR codes for join codes, any kind of sync — are
+> event layout, remote clinic sign-in, any kind of sync — are
 > deliberately absent. Keep them out until they ship.
 
 ---
@@ -87,7 +87,7 @@ SIGHTLINES
 Stand behind any bunker and see which lanes are actually open. Every lane is tested against every measured footprint on the field, so a lane that reads clear is clear.
 
 AND UNDER MORE
-Walk the field and keep notes. Set lineups. Track rotations. Grade a player after a point. Give your team its own name for a bunker and see it overlay the official code everywhere. Tint the field by where you are winning and losing. Run a clinic off a join code — joining never requires an account. Message your group. Organise league ops into groups, send a blast, and keep a log of what you sent.
+Walk the field and keep notes. Set lineups. Track rotations. Grade a player after a point. Give your team its own name for a bunker and see it overlay the official code everywhere. Tint the field by where you are winning and losing. Run a clinic sign-in sheet on your phone — signing in never requires an account. Message your group. Organise league ops into groups, send a blast, and keep a log of what you sent.
 
 WORKS WITH NO SIGNAL
 The app makes no network requests at all. Airplane mode changes nothing. There is no account to create, nothing to sign into, and no waiting on a bar of service in a field in the middle of nowhere.
@@ -118,8 +118,10 @@ Crypto API, which is exempt. No compliance documentation is required.
 
 ### Review notes
 ```
-No account is required to use the app or to join a class. A staff login gates
-creating a class and sending a league blast; it is created on-device and its
+No account is required to use the app or to sign in to a clinic session. A
+clinic sheet lives on the phone that created it and is passed around like a
+clipboard; nothing is transmitted. A staff login gates creating a session and
+sending a league blast; it is created on-device and its
 password never leaves the phone, so there is no demo account to provide — tap
 Staff, then create one with any email and password.
 

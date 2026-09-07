@@ -550,6 +550,108 @@ const ROSTER = [
   }));
   await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
 
+  /* --------------------------------------- the matchup panel, actually counted */
+  G("Matchup");
+  await ev(() => window.set({ tab: "scout", scoutTab: "matchup", script: "snake",
+    scout: { "Blast Camp": {tend:"Balanced", threat:5, notes:"", players:[]},
+             "Rejects": {tend:"Snake", threat:1, notes:"", players:[]} },
+    left: { name: "Blast Camp" }, right: { name: "Rejects" } }));
+  check("the wire split counts the five, not a fixed number", await ev(() => {
+    const w = wireSplit();
+    return w.Snake + w.Centre + w.Dorito === 5;
+  }));
+  check("the wire split moves when the call moves", await ev(() => {
+    const a = JSON.stringify(wireSplit());
+    window.set({ script: "flood" });
+    const b = JSON.stringify(wireSplit());
+    window.set({ script: "snake" });
+    return a !== b;
+  }));
+  check("the split matches where the break actually plants", await ev(() => {
+    const w = wireSplit();
+    const counted = currentPaths().filter(p => wireOf(p.to[1]).startsWith("snake")).length;
+    return w.Snake === counted;
+  }));
+  check("the bar follows the threat you scored, both ways", await ev(() => {
+    const read = () => document.querySelector(".bar i").style.width;
+    const wide = read();                                  // 5 vs 1
+    window.setThreat("right", 5);                         // now level
+    const level = read();
+    return wide === "83%" && level === "50%";
+  }));
+  check("nothing on the panel is a hard-coded percentage", await ev(() => {
+    const txt = document.querySelector(".main").textContent;
+    return !/44%|56%|2\.3 to 2\.6/.test(txt);
+  }));
+  check("your five are listed from the real routed jobs", await ev(() => {
+    const txt = document.querySelector(".main").textContent;
+    return currentPaths().every(p => txt.includes(p.label));
+  }));
+
+  /* ------------------------------------------- how an out actually happened */
+  G("Cause of an out");
+  await ev(() => window.set({ tab: "tally", point: 1, tally: [], script: "snake",
+    roster: [{ name: "Reyes", num: 7, p: "snake MW", s: "GP" }],
+    scout: { "Rejects": {tend:"Snake", threat:4, notes:"",
+             players:[{num:"7", name:"Vasquez", wire:"Snake", note:"buzzer", threat:5}]} },
+    right: { name: "Rejects" } }));
+  await ev(() => window.markOut("us", "Reyes"));
+  check("an out records the call, the field and the opponent", await ev(() => {
+    const o = S.tally[0];
+    return o.script === "snake" && o.layout === "mwo" && o.vs === "Rejects";
+  }));
+  await ev(() => { window.setOutBunker(0, "how", "Laned"); window.setOutBunker(0, "by", "#7"); });
+  check("an out records how, and who did it", await ev(() =>
+    S.tally[0].how === "Laned" && S.tally[0].by === "#7"));
+  check("the log line says how, not just where", await ev(() =>
+    /laned/i.test(document.querySelector(".main").textContent)));
+  check("who did it comes from the pit you scouted", await ev(() =>
+    /#7 Vasquez/.test(document.querySelector(".main").innerHTML)));
+  check("for their out it offers your roster instead", await ev(() => {
+    window.markOut("them", "2");
+    const html = document.querySelector(".main").innerHTML;
+    return /By \(yours\)/.test(html) && /#7 Reyes/.test(html);
+  }));
+
+  /* ------------------------------------------------ counting what happened */
+  G("History");
+  await ev(() => window.set({ tab: "playbook", script: "snake", point: 1, tally: [
+    {pt:1, side:"us",   name:"Reyes",  script:"snake", layout:"mwo", vs:"Rejects", how:"Laned",       by:"#7"},
+    {pt:1, side:"us",   name:"Vance",  script:"snake", layout:"mwo", vs:"Rejects", how:"Laned",       by:"#7"},
+    {pt:1, side:"them", name:"3",      script:"snake", layout:"mwo", vs:"Rejects"},
+    {pt:2, side:"us",   name:"Marsh",  script:"snake", layout:"mwo", vs:"Rejects", how:"Snake crawl", by:"#12"},
+    {pt:3, side:"us",   name:"Reyes",  script:"blitz", layout:"mwo", vs:"Rejects", how:"Traded"},
+  ]}));
+  check("a break's record counts its own points and outs", await ev(() => {
+    const r = breakRecord("snake");
+    return r.points === 2 && r.us === 3 && r.them === 1;
+  }));
+  check("another call is counted separately", await ev(() => breakRecord("blitz").points === 1));
+  check("a record never counts another field's points", await ev(() => {
+    window.set({ layoutKey: "not-a-field" });
+    const n = breakRecord("snake").points;
+    window.set({ layoutKey: "mwo" });
+    return n === 0;
+  }));
+  check("the call card shows the record it has", await ev(() =>
+    /called this 2 times/.test(document.querySelector(".main").textContent)));
+  check("an unplayed call claims nothing", await ev(() => {
+    window.set({ script: "hold" });
+    const txt = document.querySelector(".main").textContent;
+    window.set({ script: "snake" });
+    return !/called this/.test(txt);
+  }));
+  check("the opponent read ranks how they get you, hardest first", await ev(() => {
+    const r = opponentRead("Rejects");
+    return r.n === 4 && r.how[0][0] === "Laned" && r.how[0][1] === 2 && r.who[0][0] === "#7";
+  }));
+  check("a team you have not played reads as nothing", await ev(() => opponentRead("Malicious").n === 0));
+  check("anticipate reports it back", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "anticipate" });
+    const txt = document.querySelector(".main").textContent;
+    return /How they get you/.test(txt) && /laned 2/.test(txt);
+  }));
+
   /* -------------------------------------------------------- scouting a team */
   G("Scouting");
   await ev(() => window.set({ tab: "scout", scoutTab: "matchup", scout: {},
@@ -751,12 +853,15 @@ const ROSTER = [
   }));
   check("the code is drawn on white, or no camera reads it", await ev(() =>
     /<rect[^>]*fill="#fff"/.test(qrSVG("gridlock://class/GL-7K2M", 132))));
-  check("a class shows a scannable code beside its join code", await ev(() => {
+  // Nothing draws a QR right now: it would open the app to a session that does
+  // not exist on the scanner's phone. The encoder stays proven and ready.
+  check("the encoder is ready even though nothing draws one yet", await ev(() => {
     window.set({ tab: "more", more: "classes",
                  classes: [{ id: "GL-7K2M", code: "GL-7K2M", title: "Friday clinic", open: true }] });
-    const svg = document.querySelector("svg.qr");
-    return !!svg && svg.querySelectorAll("path").length === 1;
+    return !document.querySelector("svg.qr") && qrSVG(joinLink("GL-7K2M"), 132).includes("<svg");
   }));
+  check("the sign-in sheet says where the session actually lives", await ev(() =>
+    /on this phone/i.test(document.querySelector(".main").textContent)));
 
   /* ---------------------------------------------------------- break routing */
   G("Break routing");
