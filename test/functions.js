@@ -884,6 +884,45 @@ const ROSTER = [
   check("threat starts unscored at three, the same as a typed player", await parse("12 Greenspan").then(r =>
     r.found[0].threat === 3));
 
+  // The fixture below is not typed by hand. It is what a real OCR engine
+  // (tesseract) actually returned from a phone-resolution screenshot of a
+  // pbleagues roster page — status bar, address bar, nav, page title, class
+  // column, wrapped footer and all. Every one of those read as a player until
+  // this text was put through the parser.
+  const OCR = "9:41 LTE 100%\n" +
+    "pbleagues.com/team/roster/MihM3rL8DiAEcaoW\n\n" +
+    "Home Events Teams Rankings Search\n\n" +
+    "San Diego Dynasty\n\n" +
+    "at NXL Tampa Bay Open 2025 - Pro X-Ball\n\n" +
+    "# PLAYER CLASS\n\n" +
+    "7 Alex Fraige Pro\n\n" +
+    "18 Ryan Greenspan Pro\n\n" +
+    "32 Yosh Rau Pro\n" +
+    "Eliot Weaver Pro\n" +
+    "Archie Barnes Jr Pro\n\n" +
+    "Rosters over three months old are archived. Email us with the\n\n" +
+    "resource locator ID to request a copy. Registration closes fourteen\n\n" +
+    "days before the event.\n";
+  const real = await ev(t => parseRoster(t, "San Diego Dynasty"), OCR);
+  check("a real screenshot reads as exactly its five men, and nothing else",
+    real.found.length === 5, real.found.map(m => (m.num || "-") + " " + m.name).join(" · "));
+  check("the phone's own status bar is not a player",
+    !real.found.some(m => m.num === "9" || /LTE/i.test(m.name)));
+  check("the team's name at the top of the page is not a player",
+    !real.found.some(m => /Dynasty/i.test(m.name)));
+  check("the class column is shed, not glued to the name",
+    real.found.every(m => !/\bPro\b/.test(m.name)) && real.found[0].name === "Alex Fraige");
+  check("Jr stays part of a man's name",
+    real.found[4].name === "Archie Barnes Jr");
+  check("the tail of a wrapped sentence is not a player",
+    !real.found.some(m => /days before/i.test(m.name)) &&
+    real.skipped.some(l => /days before/i.test(l)));
+  check("the numbers come off the page as the page had them",
+    real.found[0].num === "7" && real.found[1].num === "18" && real.found[2].num === "32" &&
+    real.found[3].num === "" && real.found[4].num === "");
+  check("a lowercase sentence that fits in four words is still not a name", await parse(
+    "days before the event\nresource locator\n7 Reyes").then(r => r.found.length === 1));
+
   check("reading it shows what was read and adds nobody yet", await ev(() => {
     window.openPaste("right");
     document.getElementById("rosterIn").value = "12 Ryan Greenspan\n#4 Alex Goldman snake\nChad Busiere 7";

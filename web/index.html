@@ -2065,17 +2065,29 @@ window.setScoutThreat = (side, i, n) => {
 // so it is parsed, shown back, and only added once he has looked at it.
 const ROSTER_JUNK = /^(#|no\.?|num(ber)?|player(s)?|name|roster|pos(ition)?|team(s)?|division|class|event|rank(ing)?|pts|points|paid|owed|reg(istration)?|status|home|menu|share|follow|back)$/i;
 const ROSTER_WIRE = [[/\bsnake\b/i,"Snake"],[/\bdorito\b/i,"Dorito"],[/\bcent(er|re)\b/i,"Centre"],[/\bback\b/i,"Back"]];
+// The class column travels with the name on a phone screenshot: "18 Ryan
+// Greenspan Pro". Jr and Sr are part of a man's name and are never stripped.
+const ROSTER_CLASS = /^(pro|semi|semi-pro|semipro|am|amateur|novice|rookie|d[1-5]|div|division|open|race|champs|champions|ladies|women'?s|mens|youth|xball|x-ball)$/i;
+const NAME_PARTICLE = /^(van|von|de|del|della|der|di|da|la|le|du|st\.?|mc|mac|ter|ten)$/i;
+// A screenshot carries the phone's own status bar: "9:41 LTE 100%".
+const PHONE_CHROME = /^\d{1,2}:\d{2}\b|^(lte|5g|4g|wi-?fi|carrier)\b/i;
 function looksLikeName(s){
   const words = s.split(" ").filter(Boolean);
-  return words.length >= 1 && words.length <= 4 && s.length <= 40 &&
-         words.every(w => /^[A-Za-z][A-Za-z'’.\-]*$/.test(w));
+  if(!words.length || words.length > 4 || s.length > 40) return false;
+  return words.every(w => /^[A-Za-z][A-Za-z'’.\-]*$/.test(w)) &&
+         // A man's name is capitalised on the page and comes through OCR that
+         // way. Prose does not: "days before the event" used to read as a
+         // player because every word in it is a word.
+         words.every((w, i) => /^[A-Z]/.test(w) || (i > 0 && NAME_PARTICLE.test(w)));
 }
-function parseRoster(text){
+function parseRoster(text, team){
   const found = [], skipped = [];
+  const known = n => !!anyTeam(n) || (team || "").toLowerCase() === n.toLowerCase();
   String(text || "").split(/[\n\r]+/).forEach(raw => {
     const line = raw.replace(/[|\t,;]+/g, " ").replace(/^[•\-–*]\s*/, "")
                     .replace(/\s+/g, " ").trim();
     if(!line) return;
+    if(PHONE_CHROME.test(line)) return;                    // the phone's own status bar
     // one heading, or a whole header row of them: "Player  No.", "# Name Team"
     if(line.split(" ").every(w => ROSTER_JUNK.test(w))) return;
     let rest = line, num = "";
@@ -2088,7 +2100,11 @@ function parseRoster(text){
       if(!wire && re.test(rest)){ wire = w; rest = rest.replace(re, " "); }
     });
     rest = rest.replace(/[^A-Za-z'’.\- ]/g, " ").replace(/\s+/g, " ").trim();
+    let words = rest.split(" ").filter(Boolean);           // shed the class column
+    while(words.length && ROSTER_CLASS.test(words[words.length - 1])) words.pop();
+    rest = words.join(" ");
     if(!rest && !num){ skipped.push(line); return; }
+    if(rest && known(rest)) return;                        // the team's own name, not a man
     if(rest && !looksLikeName(rest)){ skipped.push(line); return; }   // prose, not a player
     found.push({num, name: clean(rest), wire: wire || "Flex", note: "", threat: 3});
   });
@@ -2098,7 +2114,7 @@ window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = "
 window.closePaste = () => { S.pasteSide = ""; S.paste = null; save(S); render(); };
 window.readRoster = side => {
   const el = document.getElementById("rosterIn"), text = el ? el.value : "";
-  S.paste = {side, text, ...parseRoster(text)};
+  S.paste = {side, text, ...parseRoster(text, pitOf(side).name)};
   save(S); render();
 };
 window.dropPasted = i => {
