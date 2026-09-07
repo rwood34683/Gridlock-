@@ -1241,18 +1241,23 @@ window.saveCopy = scope => {
   const text = copyPayload(scope);
   const stamp = new Date().toISOString().slice(0, 10);
   const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
-  S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}`;
-  save(S);
   if(window.gridlockShare) window.gridlockShare(text, name);
-  // A download as well, where the browser allows one. Inside an artifact viewer
-  // it will not, which is why the share sheet and the box below both exist.
+  // A download as well, where the browser allows one. Some sandboxes refuse it
+  // outright and say nothing, so never promise the file landed — point at the
+  // text box, which works everywhere.
+  let saved = false;
   try {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([text], {type: "application/json"}));
     a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    saved = true;
   } catch(e){}
+  S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}. `
+    + (saved ? `Look for ${name} in your downloads or the share sheet — if neither arrived, use Show it as text.`
+             : `Use Show it as text below and keep it somewhere safe.`);
+  save(S);
   render();
 };
 window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
