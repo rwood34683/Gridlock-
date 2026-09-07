@@ -117,7 +117,7 @@ with the field.
 A team can rename any bunker for the event under **Team → Bunker calls**. The
 call replaces the official code on every field in the app — Playbook, Scout,
 Sightlines, Movement, Bunker stats — and is stored per layout, so naming a
-bunker on the Midwest Open does not bleed into Tampa Bay. Clearing a call puts
+bunker on one field does not bleed onto another. Clearing a call puts
 the printed code back.
 
 ## Bunker stats
@@ -186,9 +186,26 @@ the beam was split.
 To keep the break readable on a field of the same two colours, the bunker reds
 and blues sit a step darker than the wires (`#e5342f` / `#3d8bff`) and every
 path runs over a black casing. Bunker stats draws its heat as an amber ring
-rather than a red wash, which would vanish on a red bunker. A layout whose
-colour was never sampled — the Tampa Bay footprint — stays neutral grey rather
-than being guessed into one of the two.
+rather than a red wash, which would vanish on a red bunker. A bunker whose
+colour was never sampled stays neutral grey rather than being guessed into one
+of the two.
+
+## Only measured fields ship
+
+`LAYOUTS` in `web/index.html` carried three entries. Two of them — "NXL Tampa
+Bay Open" and "Cincinnati / TBO footprint" — were the same 24 hand-typed
+placeholder bunkers under two real event names, and neither event has digitized
+coordinates in the pack. A coach could tap CHANGE and call a break off a field
+that was not the field. They are gone.
+
+The rule now has a test behind it: every entry in `LAYOUTS` must carry a
+`source` line saying where its coordinates came from, and every bunker must have
+a measured footprint. `npm test` fails otherwise. A saved layout key that no
+longer ships is migrated to a real field on load, and `curLayout()` falls back
+rather than letting an unknown key blank the screen.
+
+While one field ships, the header shows the event without a CHANGE control,
+because there is nothing to change to.
 
 ## Known gaps
 - **`layouts/schema/layout.schema.json` is stale.** It requires `year`, `sources`

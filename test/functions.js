@@ -122,9 +122,16 @@ const ROSTER = [
     await page.waitForTimeout(50);
     check(`Scout · ${st} renders`, await ev(() => document.querySelectorAll(".sec").length > 0));
   }
-  check("changing the event changes the layout", await ev(() => {
-    const a = S.layoutKey; window.cycleEvent(); const b = S.layoutKey; window.set({ layoutKey: a }); return a !== b;
-  }));
+  // Two entries here were the same hand-typed placeholder under two real event
+  // names. Nothing ships without a line saying where its coordinates came from.
+  check("every layout on offer states where its coordinates came from", await ev(() =>
+    Object.values(LAYOUTS).every(l => typeof l.source === "string" && l.source.length > 10)));
+  check("every layout on offer has measured footprints", await ev(() =>
+    Object.values(LAYOUTS).every(l => l.bunkers.length > 0 && l.bunkers.every(b => b.w > 0 && b.h > 0))));
+  check("no event switch is offered while there is one field", await ev(() =>
+    Object.keys(LAYOUTS).length > 1
+      ? !!document.querySelector("button.ctx")
+      : !document.querySelector("button.ctx") && !!document.querySelector(".ctx")));
 
   /* --------------------------------------------------------------- playbook */
   G("Playbook");
@@ -151,7 +158,7 @@ const ROSTER = [
     window.set({ script: "snake" }); return other === undefined && directOf("1").face === -45;
   }));
   check("directing is scoped per layout", await ev(() => {
-    window.set({ layoutKey: "tbo" }); const other = directOf("1").face;
+    window.set({ layoutKey: "not-a-field" }); const other = directOf("1").face;
     window.set({ layoutKey: "mwo" }); return other === undefined;
   }));
   check("face chevron is drawn when Face is on", await ev(() => {
@@ -238,12 +245,20 @@ const ROSTER = [
   check("a bunker call is saved", await ev(() => bunkerCalls()["GP#1"] === "Home"));
   check("the call overlays the official code on the field", await ev(() => fieldSVG({ static: true }).includes(">Home<")));
   check("calls are scoped to the layout", await ev(() => {
-    window.set({ layoutKey: "tbo" }); const n = Object.keys(bunkerCalls()).length;
+    window.set({ layoutKey: "not-a-field" }); const n = Object.keys(bunkerCalls()).length;
     window.set({ layoutKey: "mwo" }); return n === 0;
   }));
   await ev(() => window.clearCall("GP#1"));
   check("clearing a call restores the printed code", await ev(() => !bunkerCalls()["GP#1"]));
-  check("the roster is listed", (await page.locator(".assign").count()) >= 5);
+  await ev(() => window.set({ roster: [
+    { name: "Reyes", num: 7, p: "snake MW", s: "GP" },
+    { name: "Okafor", num: 3, p: "MT 50", s: "C lane" },
+    { name: "Vance", num: 11, p: "GP", s: "snake" },
+  ] }));
+  check("the roster is listed, one editable row per player",
+        (await page.locator(".rost__p").count()) === 3);
+  check("each row edits number, name, primary and secondary",
+        (await page.locator(".rost__p").first().locator("input").count()) === 4);
 
   /* -------------------------------------------------------------- movement */
   G("Movement");
@@ -280,9 +295,13 @@ const ROSTER = [
   });
   check("outs come from the tally", await ev(() => bunkerTraffic()["SB#6"].outs === 1));
   check("moves-in come from tally and movement", await ev(() => bunkerTraffic()["GP#1"].visits === 2));
-  check("traffic never leaks to another layout", await ev(() => {
-    window.set({ layoutKey: "tbo" }); const n = Object.keys(bunkerTraffic()).length;
-    window.set({ layoutKey: "mwo" }); return n === 0;
+  check("traffic from another field is dropped, not counted", await ev(() => {
+    const before = Object.keys(bunkerTraffic()).length;
+    const kept = [...(S.moves || [])];
+    window.set({ moves: [...kept, { who: "Reyes", from: "NOPE#1", to: "NOPE#2" }] });
+    const after = Object.keys(bunkerTraffic()).length;
+    window.set({ moves: kept });
+    return after === before;
   }));
   check("the heat overlay is drawn", await ev(() => fieldSVG({ static: true, heat: true }).includes("#e5342f")));
 
@@ -369,6 +388,67 @@ const ROSTER = [
   check("every bunker sits inside the field", lay.inField);
   check("every break plants on a real bunker", lay.plantsOk);
   check("the layout is mirror-symmetric about the 50", Math.abs(lay.axis - 75) < 0.5, `axis ${lay.axis.toFixed(2)} ft over ${lay.pairs} pairs`);
+
+  /* ----------------------------------------------------------------- roster */
+  G("Roster");
+  await ev(() => window.set({ tab: "more", more: "team", roster: [] }));
+  check("a fresh install ships no invented players", await ev(() => (S.roster || []).length === 0));
+  check("the empty roster says what to do about it", await ev(() =>
+    /No players yet/.test(document.querySelector(".main").textContent)));
+
+  const add = (num, name, pr, sec2) => ev(a => {
+    document.getElementById("rNum").value = a[0];
+    document.getElementById("rName").value = a[1];
+    document.getElementById("rP").value = a[2];
+    document.getElementById("rS").value = a[3];
+    window.addPlayer();
+  }, [num, name, pr, sec2]);
+
+  await add("7", "Reyes", "snake MW", "GP");
+  await add("3", "Okafor", "MT 50", "C lane");
+  check("a player can be added", await ev(() => S.roster.length === 2 && S.roster[0].name === "Reyes"));
+  check("the squad number is kept as a number", await ev(() => S.roster[0].num === 7));
+  check("primary and secondary are kept", await ev(() => S.roster[0].p === "snake MW" && S.roster[0].s === "GP"));
+  await ev(() => window.addPlayer());
+  check("a player with no name is refused", await ev(() => S.roster.length === 2));
+
+  await ev(() => window.editPlayer(0, "num", "22"));
+  await ev(() => window.editPlayer(0, "name", "Marsh"));
+  check("a player can be edited in place", await ev(() => S.roster[0].num === 22 && S.roster[0].name === "Marsh"));
+  await ev(() => window.editPlayer(0, "name", "   "));
+  check("a name cannot be blanked by accident", await ev(() => S.roster[0].name === "Marsh"));
+  check("editing does not redraw under the thumb", await ev(() => {
+    const before = document.querySelector(".main");
+    window.editPlayer(0, "p", "snake");
+    return document.querySelector(".main") === before;
+  }));
+
+  check("the roster reaches Tally", await ev(() => {
+    window.set({ tab: "tally" });
+    return document.querySelector(".main").textContent.includes("Marsh");
+  }));
+  check("the roster reaches Playbook", await ev(() => {
+    window.set({ tab: "playbook" });
+    return document.querySelector(".main").textContent.includes("#22 Marsh");
+  }));
+  check("the roster reaches Movement and Assess", await ev(() => {
+    window.set({ tab: "more", more: "movement" });
+    const a = document.querySelector(".main").textContent.includes("Marsh");
+    window.set({ more: "assess" });
+    return a && document.querySelector(".main").textContent.includes("Marsh");
+  }));
+  check("the banned name never reaches the roster", await ev(() => {
+    window.set({ tab: "more", more: "team" });
+    document.getElementById("rName").value = "GunzUp";
+    document.getElementById("rNum").value = "9";
+    window.addPlayer();
+    const last = S.roster[S.roster.length - 1].name;
+    window.delPlayer(S.roster.length - 1);
+    return !/gunz\s*up/i.test(last);
+  }));
+
+  await ev(() => { window.set({ tab: "more", more: "team" }); window.delPlayer(1); });
+  check("a player can be removed", await ev(() => S.roster.length === 1 && S.roster[0].name === "Marsh"));
 
   /* ---------------------------------------------------------- break routing */
   G("Break routing");
