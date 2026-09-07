@@ -139,7 +139,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 234 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the QR encoder and the house rules. |
+| `npm test` | 253 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the opponent's breakouts, the field layers, the replay, the QR encoder and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -164,8 +164,10 @@ opponent's logged tendency); Tally as a point sheet you tap through; Scout
 five, each with number, name, wire, threat and a one-line read — is kept against
 the team rather than the pit, so it follows them in and out; sim bar; anticipate
 cards that name the players you logged, hardest first; a counter-picker derived
-from the opponent read and the match state; a division board with a FILM column
-marking the teams you have something on); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
+from the opponent read and the match state; Breakouts counting the calls you have
+seen a team make; Layers drawing everything logged against them where it happened;
+Games replaying a point out by out; a division board with a FILM column marking
+the teams you have something on); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own
 breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
 roles, stored per layout per break and drawn travelling with the player; path
@@ -185,8 +187,7 @@ correct sign-in rather than locking the coach out.
 Roadmap, per `CLAUDE.md` — not built, and deliberately not advertised on the
 landing page:
 
-1. Scout 1:1 with the dual-pit screenshots in the spec
-2. SwiftUI parity in `ios-native/`, then Android Compose
+1. SwiftUI parity in `ios-native/`, then Android Compose
 
 Every other destination now holds real data rather than placeholder copy.
 

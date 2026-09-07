@@ -43,6 +43,7 @@ Guest · Staff/Coach · League Admin · Participant (form only)
 ## Tabs
 
 Phone: Playbook, Tally, Scout, Sightlines, More.
+Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Classes, League, Nexus.
 
 ## What is already coded here
@@ -55,11 +56,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 
 ## What to build next (in order)
 
-1. Match Scout 1:1 to the dual-pit screenshots in the spec. Mostly there —
-   anticipate cards, counter-picker and the division board are built, the board
-   has its FILM column, and what you learn about a team is stored against the
-   team (`S.scout[teamName]`), including their five. Still open: the Breakouts,
-   Historical layers and Games & replay sub-tabs.
+1. ~~Match Scout 1:1 to the dual-pit screenshots in the spec.~~ Done — all seven
+   sub-tabs: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
+   What you learn about a team is stored against the team (`S.scout[teamName]`),
+   including their five and the calls you have seen them run. Every number is
+   counted from what was logged; nothing is modelled.
 2. ~~Playbook 8-way face/shot pad + P|S roles.~~ Done — Face opens the eight, Shot
    targets a named bunker, P|S are real toggles, all stored per layout per break.
    Path editing is done too — see 6.

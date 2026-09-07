@@ -190,6 +190,11 @@ h1,h2,h3,p{margin:0}
 .seg{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);
      mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
 .seg:not(:has(button:nth-child(4))){-webkit-mask-image:none;mask-image:none}
+/* Seven destinations do not fit one line on a phone, and a scroller hides the
+   last three behind an edge nobody swipes. This one wraps instead, so every
+   sub-tab is on screen. */
+.seg--wrap{flex-wrap:wrap;overflow-x:visible;-webkit-mask-image:none;mask-image:none}
+.seg--wrap button{flex:1 1 auto;min-width:31%}
 .seg button{
   flex:1 0 auto;min-height:44px;padding:0 var(--s3);border-radius:var(--r-sm);
   color:var(--mute);font-size:var(--t-sm);font-weight:600;white-space:nowrap;
@@ -236,6 +241,20 @@ input,select,textarea{
 input::placeholder,textarea::placeholder{color:var(--dim)}
 /* The file picker ships a grey system button that reads as somebody else's app
    on a black panel. Same shape as every other quiet button here. */
+/* The default range slider is system blue on a black panel. */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;background:transparent;
+  min-height:44px;padding:0;border:0;width:100%;
+}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--line-lit)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--line-lit)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:22px;height:22px;margin-top:-9px;
+  border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer;
+}
 input[type=file]{padding:9px var(--s3);color:var(--mute);font-size:var(--t-sm)}
 input[type=file]::file-selector-button{
   margin-right:var(--s3);padding:0 var(--s4);min-height:36px;
@@ -825,6 +844,8 @@ const defaultState = () => ({
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
+  scoutLayers:{theirOuts:true},
+  replayPt:null, replayStep:null,
   bunkerCalls:{},
   direct:{},
   pad:null,
@@ -1527,10 +1548,12 @@ const FACE_PAD = [
 ];
 const FACE_GLYPH = Object.fromEntries(FACE_PAD.filter(f => f[1] !== null).map(f => [f[1], f[0]]));
 
-function bunkerTraffic(){
+function bunkerTraffic(keep){
   // Bunker ids belong to a layout, so traffic logged on one field must not
   // leak onto another. Anything the current layout does not have is dropped.
+  // `keep` narrows it further — one opponent, one side — for the layers on Scout.
   const here = new Set(curLayout().bunkers.map(b => b.id));
+  const ok = keep || (() => true);
   const t = {};
   const bump = (id, key) => {
     if(!id || !here.has(id)) return;
@@ -1538,11 +1561,11 @@ function bunkerTraffic(){
     t[id][key]++;
   };
   (S.tally || []).forEach(o => {
-    if(typeof o !== 'object') return;
+    if(typeof o !== 'object' || !ok(o)) return;
     bump(o.shotAt, 'outs');
     bump(o.movedTo, 'visits');
   });
-  (S.moves || []).forEach(m => bump(m.to, 'visits'));
+  (S.moves || []).forEach(m => { if(ok(m)) bump(m.to, 'visits'); });
   return t;
 }
 
@@ -1813,7 +1836,8 @@ function fieldSVG(opts={}, runnersOnly){
   let moveArrows = "";
   if(opts.moves){
     const byId = Object.fromEntries(layout.bunkers.map(b=>[b.id,b]));
-    moveArrows = layoutMoves().slice(0,40).map(m=>{
+    moveArrows = layoutMoves().filter(typeof opts.moves === "function" ? opts.moves : () => true)
+      .slice(0,40).map(m=>{
       const a=byId[m.from], b=byId[m.to]; if(!a||!b) return "";
       const x1=a.x*sx, y1=a.y*sy, x2=b.x*sx, y2=b.y*sy;
       const ang=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
@@ -1830,7 +1854,7 @@ function fieldSVG(opts={}, runnersOnly){
   // Bunker stats tint each footprint by how much traffic the tally recorded.
   let heat = "";
   if(opts.heat){
-    const t = bunkerTraffic();
+    const t = bunkerTraffic(typeof opts.heat === "function" ? opts.heat : null);
     const peak = Math.max(1, ...Object.values(t).map(v=>v.outs+v.visits));
     heat = layout.bunkers.map(b=>{
       const v = t[b.id]; if(!v) return "";
@@ -1922,6 +1946,23 @@ function editProfile(side, patch){
 window.setPitTeam = (side, name) => { S[side] = {...(S[side] || {}), name}; save(S); render(); };
 window.setPitTend = (side, tend) => { editProfile(side, {tend}); render(); };
 window.setPitNotes = (side, notes) => editProfile(side, {notes: clean(notes)});   // no redraw mid-type
+
+// ---- what they ran, logged as you see it ----
+// Nothing recorded the opponent's call. Their tendency was a single word you
+// picked off film; this is the count behind it.
+function theirBreaks(side){ return pitOf(side).breaks || []; }
+function breakFreq(side){
+  const seen = theirBreaks(side).reduce((m,b) => ({...m, [b.script]:(m[b.script]||0)+1}), {});
+  return Object.entries(seen).sort((a,b) => b[1]-a[1]);
+}
+window.logTheirBreak = (side, script) => {
+  editProfile(side, {breaks: [{script, pt:S.point||1, at:Date.now()}, ...theirBreaks(side)]});
+  render();
+};
+window.unlogTheirBreak = (side, i) => {
+  editProfile(side, {breaks: theirBreaks(side).filter((_,k) => k !== i)});
+  render();
+};
 
 // ---- the other pit's five, which is the point of scouting at all ----
 window.addScoutPlayer = side => {
@@ -2324,12 +2365,14 @@ function opponentRead(team){
 /* ============================================================
    Scout — sub-tabs, because six stacked panels is not a screen
    ============================================================ */
-const SCOUT_TABS=[["matchup","Matchup"],["anticipate","Anticipate"],["counter","Counter"],["board","Division"]];
+const SCOUT_TABS=[["matchup","Matchup"],["breakouts","Breakouts"],["anticipate","Anticipate"],
+                  ["counter","Counter"],["layers","Layers"],["games","Games"],["board","Division"]];
 
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
-  const body={matchup:scoutMatchup,anticipate:scoutAnticipate,counter:scoutCounter,board:scoutBoard}[view]();
+  const body={matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
+              counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
@@ -2345,7 +2388,7 @@ function scout(){
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.name)}</span>
     </div>`)}
 
-  <div class="seg">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>
+  <div class="seg seg--wrap">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>
   ${body}`;
 }
 
@@ -2484,6 +2527,105 @@ function scoutAnticipate(){
   "Both pits");
 }
 
+/* ---- Breakouts: what this team has actually run, counted ---------------- */
+function scoutBreakouts(){
+  const R=pitOf("right"), seen=theirBreaks("right"), freq=breakFreq("right");
+  const total=seen.length;
+  return sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
+      film; this is the count behind it.</p>
+    <div class="seg" style="flex-wrap:wrap">
+      ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(v.name)}</button>`).join("")}
+    </div>
+    <p class="note">Logged against point ${S.point||1}, on ${esc(curLayout().name)}.</p>`,
+    esc(R.name))
+  + sec("Their record", total
+      ? `<div class="assigns">${freq.map(([k,n])=>{
+          const pct=Math.round(n/total*100);
+          return `<div class="assign" style="flex-wrap:wrap">
+            <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
+            <span class="assign__body"><span class="assign__job">${esc((BREAKS[k]||{}).name||k)}</span>
+            <span class="assign__who">${pct}% of ${total} seen</span></span>
+            <span class="bar" style="flex:1 0 100%;margin-top:6px"><i style="width:${pct}%;background:var(--accent)"></i></span>
+          </div>`;}).join("")}</div>
+        <p class="note">Counted from what you logged. Nothing here is a prediction.</p>`
+      : `<div class="empty">Nothing logged on ${esc(R.name)} yet. Tap their call above the moment you read it.</div>`,
+      total?total+" seen":"")
+  + (total?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
+        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt}</span>
+        <span class="assign__body"><span class="assign__job">${esc((BREAKS[b.script]||{}).name||b.script)}</span>
+        <span class="assign__who">point ${b.pt}</span></span>
+        <button class="btn btn--danger" onclick="unlogTheirBreak('right',${i})">Remove</button>
+      </div>`).join("")}</div>`, "Newest first"):"");
+}
+
+/* ---- Layers: where it has actually happened, on the measured field ------ */
+const LAYERS=[["theirOuts","Their outs","Where their players went out"],
+              ["yourOuts","Your outs","Where you lost players"],
+              ["rotations","Your rotations","Bunker to bunker after the break"]];
+function scoutLayers(){
+  const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true};
+  const vs=o=>o.vs===R.name;
+  const counts={
+    theirOuts:(S.tally||[]).filter(o=>o&&o.side==="them"&&vs(o)&&o.shotAt).length,
+    yourOuts:(S.tally||[]).filter(o=>o&&o.side==="us"&&vs(o)&&o.shotAt).length,
+    rotations:layoutMoves().length,
+  };
+  const live=LAYERS.filter(([k])=>on[k]);
+  const heat=live.some(([k])=>k!=="rotations")
+    ? (o => (on.theirOuts && o.side==="them" && vs(o)) || (on.yourOuts && o.side==="us" && vs(o)))
+    : false;
+  const any=live.reduce((n,[k])=>n+counts[k],0);
+  return sec("Layers", `<p class="lede">Everything you have logged against ${esc(R.name)} on
+      ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations.</p>
+    <div class="toggles">
+      ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
+        onclick="toggleLayer('${k}')"><i></i>${n} · ${counts[k]}</button>`).join("")}
+    </div>
+    <div class="field-wrap">${fieldSVG({static:true, heat, moves:on.rotations?(()=>true):false})}</div>
+    ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${n.toLowerCase()}`).join(" · ")}.</p>`
+        :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
+          the Tally tab, on the point you are on.</div>`}`,
+    esc(R.name));
+}
+
+/* ---- Games: the points you played, and what happened in each ------------ */
+function scoutGames(){
+  const R=pitOf("right");
+  const mine=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.vs===R.name);
+  const pts=[...new Set(mine.map(o=>o.pt))].sort((a,b)=>b-a);
+  if(!pts.length) return sec("Games", `<div class="empty">No points logged against ${esc(R.name)} yet.
+    Tally a point and it shows up here.</div>`, esc(R.name));
+  const pick=pts.includes(S.replayPt)?S.replayPt:pts[0];
+  const events=mine.filter(o=>o.pt===pick).sort((a,b)=>(a.at||0)-(b.at||0));
+  const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
+  const bl=curLayout().bunkers;
+  const named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
+  return sec("Games", `<div class="seg" style="flex-wrap:wrap">
+      ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
+    </div>
+    <p class="note">${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.</p>`,
+    esc(R.name))
+  + sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
+      <input type="range" min="0" max="${events.length}" value="${step}"
+        oninput="set({replayStep:Number(this.value)})"/></div>
+    <div class="assigns">${events.slice(0,step).map((o,i)=>{
+      const bits=[o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
+                  o.shotAt?`at ${esc(named(o.shotAt))}`:"", o.movedTo?`moved to ${esc(named(o.movedTo))}`:""]
+                 .filter(Boolean).join(" · ");
+      return `<div class="assign">
+        <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${i+1}</span>
+        <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
+        <span class="assign__who">${o.side==="us"?"yours":esc(R.name)}${bits?" · "+bits:""}</span></span>
+      </div>`;}).join("")}</div>
+    ${step<events.length?`<p class="note">${events.length-step} still up.</p>`:""}
+    <p class="aid">What you logged, in the order you logged it. Nothing is reconstructed.</p>`,
+    "Point "+pick);
+}
+window.toggleLayer = k => {
+  const on={...(S.scoutLayers||{theirOuts:true})};
+  on[k]=!on[k]; set({scoutLayers:on});
+};
+
 function scoutCounter(){
   const R=pitOf("right"), state=S.matchState||"Even";
   const ranked=counterRank(R.tend, state);
@@ -2491,6 +2633,9 @@ function scoutCounter(){
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
     <p class="lede">If you are <b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
+      return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
+        <b>${esc((BREAKS[f[0][0]]||{}).name||f[0][0])}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
         <span class="rank__n">${i+1}</span>

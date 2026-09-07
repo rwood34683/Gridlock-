@@ -901,6 +901,116 @@ const ROSTER = [
   check("the handles go away when editing is off", await ev(() =>
     document.querySelectorAll("circle.hnd").length === 0));
 
+  /* ------------------------------------------------ the rest of Scout */
+  G("Breakouts");
+  const AGAINST = {
+    tab:"scout", scoutTab:"breakouts", layoutKey:"mwo", script:"snake", point:4,
+    left:{name:"Blast Camp"}, right:{name:"Rejects"},
+    scout:{"Rejects":{tend:"Snake",threat:4,notes:"",players:[],
+           breaks:[{script:"snake",pt:1,at:1},{script:"snake",pt:2,at:2},{script:"blitz",pt:3,at:3}]}},
+    tally:[
+      {pt:1,side:"us",  name:"Reyes",at:10,script:"snake",layout:"mwo",vs:"Rejects",how:"Laned",by:"#7",shotAt:"SB#6"},
+      {pt:1,side:"them",name:"3",    at:11,script:"snake",layout:"mwo",vs:"Rejects",shotAt:"MD#1"},
+      {pt:1,side:"us",  name:"Vance",at:12,script:"snake",layout:"mwo",vs:"Rejects",how:"Traded",shotAt:"GP#1"},
+      {pt:2,side:"them",name:"1",    at:20,script:"snake",layout:"mwo",vs:"Rejects",shotAt:"MD#3"},
+      {pt:3,side:"us",  name:"Marsh",at:30,script:"blitz",layout:"mwo",vs:"Malicious",how:"Bounce"}],
+    moves:[{pt:1,who:"Reyes",from:"SB#6",to:"GP#1",layout:"mwo",at:15}],
+  };
+  await ev(st => window.set(st), AGAINST);
+  check("what a team runs is counted, most seen first", await ev(() => {
+    const f = breakFreq("right");
+    return f[0][0] === "snake" && f[0][1] === 2 && f[1][0] === "blitz";
+  }));
+  check("logging a call adds to that team's record", await ev(() => {
+    window.logTheirBreak("right", "flood");
+    return theirBreaks("right").length === 4 && breakFreq("right").some(f => f[0] === "flood");
+  }));
+  check("a logged call is stamped with the point", await ev(() => theirBreaks("right")[0].pt === 4));
+  check("it can be taken back off", await ev(() => {
+    window.unlogTheirBreak("right", 0);
+    return theirBreaks("right").length === 3;
+  }));
+  check("it belongs to the team, not the pit", await ev(() => {
+    window.loadPit("Malicious");
+    const none = theirBreaks("right").length === 0;
+    window.loadPit("Rejects");
+    return none && theirBreaks("right").length === 3;
+  }));
+  check("the counter-picker cites the count once there is one", await ev(() => {
+    window.set({ scoutTab: "counter" });
+    return /logged them 3 times/.test(document.querySelector(".main").textContent);
+  }));
+  check("an unseen team claims no record", await ev(() => {
+    window.set({ scoutTab: "breakouts" });
+    window.loadPit("Miami Effect");
+    const txt = document.querySelector(".main").textContent;
+    window.loadPit("Rejects");
+    return /Nothing logged on Miami Effect/.test(txt);
+  }));
+
+  G("Layers");
+  await ev(() => window.set({ scoutTab: "layers", scoutLayers: {theirOuts:true} }));
+  check("each layer counts only this opponent", await ev(() => {
+    const t = document.querySelector(".main").textContent;
+    return /Their outs · 2/.test(t) && /Your outs · 2/.test(t) && /Your rotations · 1/.test(t);
+  }));
+  check("traffic can be narrowed to one side", await ev(() => {
+    const theirs = bunkerTraffic(o => o.side === "them" && o.vs === "Rejects");
+    const mine   = bunkerTraffic(o => o.side === "us"   && o.vs === "Rejects");
+    return !!theirs["MD#1"] && !theirs["SB#6"] && !!mine["SB#6"] && !mine["MD#1"];
+  }));
+  check("a layer can be turned off and on", await ev(() => {
+    window.toggleLayer("theirOuts");
+    const off = S.scoutLayers.theirOuts === false;
+    window.toggleLayer("theirOuts");
+    return off && S.scoutLayers.theirOuts === true;
+  }));
+  check("with every layer off it says so", await ev(() => {
+    window.set({ scoutLayers: {} });
+    const txt = document.querySelector(".main").textContent;
+    window.set({ scoutLayers: {theirOuts:true} });
+    return /Nothing logged against Rejects/.test(txt);
+  }));
+
+  G("Games and replay");
+  await ev(() => window.set({ scoutTab: "games", replayPt: null, replayStep: null }));
+  check("only points against this team are listed", await ev(() => {
+    const btns = [...document.querySelectorAll(".seg button")].map(b => b.textContent.trim());
+    return btns.includes("Point 1") && btns.includes("Point 2") && !btns.includes("Point 3");
+  }));
+  check("a point replays every out it holds", await ev(() => {
+    window.set({ replayPt: 1, replayStep: null });
+    return document.querySelectorAll(".assigns .assign").length === 3;
+  }));
+  check("the events are in the order they were tapped", await ev(() => {
+    const first = document.querySelector(".assigns .assign .assign__job").textContent;
+    return first === "Reyes";
+  }));
+  check("an out replays with how and who", await ev(() =>
+    /laned · by #7 · at/.test(document.querySelector(".assigns .assign").textContent)));
+  check("stepping shows only what has happened by then", await ev(() => {
+    window.set({ replayStep: 1 });
+    const one = document.querySelectorAll(".assigns .assign").length === 1;
+    const left = /2 still up/.test(document.querySelector(".main").textContent);
+    window.set({ replayStep: null });
+    return one && left;
+  }));
+  check("a team you have not played has no games", await ev(() => {
+    window.loadPit("Miami Effect");
+    const txt = document.querySelector(".main").textContent;
+    window.loadPit("Rejects");
+    return /No points logged against Miami Effect/.test(txt);
+  }));
+  check("every sub-tab the spec names is on screen", await ev(() => {
+    const bar = [...document.querySelectorAll(".seg--wrap button")].map(b => b.textContent.trim());
+    return ["Matchup","Breakouts","Anticipate","Counter","Layers","Games","Division"]
+      .every(n => bar.includes(n));
+  }));
+  check("all seven fit without a hidden scroller", await ev(() => {
+    const bar = document.querySelector(".seg--wrap");
+    return bar.scrollWidth <= bar.clientWidth + 1;
+  }));
+
   /* ------------------------------------------------------------------- QR */
   G("QR");
   // The app ships offline, so the encoder is hand-written and cannot be taken
