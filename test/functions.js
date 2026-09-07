@@ -901,6 +901,40 @@ const ROSTER = [
   check("the handles go away when editing is off", await ev(() =>
     document.querySelectorAll("circle.hnd").length === 0));
 
+  /* ------------------------------------------------------------- first run */
+  G("First run");
+  await ev(() => { localStorage.removeItem("gridlock.coach.v2"); });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(200);
+  await page.locator("button", { hasText: "Continue as guest" }).click();
+  await page.waitForTimeout(350);
+  check("the field is on screen without scrolling", await ev(() => {
+    const f = document.querySelector(".field-wrap").getBoundingClientRect();
+    return f.top < window.innerHeight * 0.55 && f.top > 0;
+  }));
+  check("the whole field fits above the fold on a phone", await ev(() => {
+    const f = document.querySelector(".field-wrap").getBoundingClientRect();
+    return Math.min(f.bottom, window.innerHeight) - f.top > f.height * 0.95;
+  }));
+  check("playing the break is reachable without scrolling", await ev(() => {
+    const btns = [...document.querySelectorAll("button")].filter(b => /Play the break/.test(b.textContent));
+    const r = btns[0].getBoundingClientRect();
+    return r.top < window.innerHeight;
+  }));
+  check("an empty squad is told where to go, not just left blank", await ev(() => {
+    const txt = document.querySelector(".main").textContent;
+    return /Put names on them/.test(txt) && /Add your squad/.test(txt);
+  }));
+  check("that route actually lands on Team", await ev(() => {
+    [...document.querySelectorAll("button")].find(b => /Add your squad/.test(b.textContent)).click();
+    return S.tab === "more" && S.more === "team";
+  }));
+  check("the tally says where its five come from", await ev(() => {
+    window.set({ tab: "tally" });
+    return /add them in Team/.test(document.querySelector(".main").textContent);
+  }));
+  check("nothing invents a player on a fresh install", await ev(() => (S.roster || []).length === 0));
+
   /* ------------------------------------------------ the rest of Scout */
   G("Breakouts");
   const AGAINST = {

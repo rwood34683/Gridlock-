@@ -2117,7 +2117,7 @@ function playbook(){
   const key=S.script, br=BREAKS[key], m=breakMeta(key);
   const opp=pitOf("right");
   const roster=S.roster||[];
-  return `${tip("pb","Pick the break, play the paths, then read the five jobs off the list.")}
+  return `${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
 
   <div class="call">
     <div class="call__label">The call</div>
@@ -2133,24 +2133,28 @@ function playbook(){
     </div>
   </div>
 
+  <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
+
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
+
+  <div class="toggles">
+    <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
+    <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+    <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
+    <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Reset</button>
+  </div>
+  ${S.editPath?`<p class="note">Drag a corner to move it, tap one to take it out, tap the line to add
+    one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
+    path</button></p>`:""}
 
   ${sec("Break", `<div class="seg">
       ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:0,playing:false})">${esc(v.name)}</button>`).join("")}
-    </div>`, "Pick one")}
+    </div>`, curLayout().name)}
 
-  ${sec("Overlay", `<div class="toggles">
-      <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
-      <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
-      <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
-      <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Reset</button>
-    </div>
-    ${S.editPath?`<p class="note">Drag a corner to move it, tap one to take it out, tap the line to add
-      one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
-      path</button></p>`:""}
-    <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>`, curLayout().name)}
-
-  ${sec("Direct the five", `<div class="assigns">
+  ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
+      These are the five jobs this break creates. Put names on them — <button class="btn"
+      style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
+    <div class="assigns">
       ${currentPaths().map((pth,i)=>{
         const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
         const bl=curLayout().bunkers;
@@ -2161,7 +2165,7 @@ function playbook(){
           <span class="assign__n">${pth.id}</span>
           <span class="assign__body">
             <span class="assign__job">${esc(pth.label)}</span>
-            <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"unassigned"}</span>
+            <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"no one on this job yet"}</span>
           </span>
           <span class="assign__ctl">
             <span class="ps">
@@ -2248,7 +2252,8 @@ function tally(){
     </div>
     <p class="note">Tap a player the moment he goes out.</p>
     <div class="who2">
-      ${col("us","Your five","var(--red)",mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
+      ${col("us", mine.length?"Your five":"Your five · add them in Team", "var(--red)",
+            mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
       ${col("them",esc(pitOf("right").name),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
     <button class="btn btn--block" onclick="nextPoint()">Next point</button>`, curLayout().name)}
@@ -2718,7 +2723,8 @@ function classesPage(){
       :(S.joinCode
         ? `<p class="warn">No open session with that code <b>on this phone</b>. Sessions live on the device
            that created them — sign in on the coach's phone, not your own.</p>`
-        : `<p class="note">No account needed. Sign in on the phone the coach hands you.</p>`)}`)}
+        : `<p class="note">No account needed. A session lives on this phone — sign in on the one the
+           coach hands you, not your own.</p>`)}`)}
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
