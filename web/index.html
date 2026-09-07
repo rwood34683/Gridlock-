@@ -245,6 +245,12 @@ select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
 /* ============================================================
    FIELD
    ============================================================ */
+/* Editing handles. Big enough to find under a thumb, quiet enough not to
+   fight the field when you are only looking at it. */
+.hnd{fill:#0b0c0d;stroke:#fff;stroke-width:1.6;cursor:grab}
+.hnd:active{cursor:grabbing}
+.aim{cursor:grab}
+svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 svg.field{width:100%;height:auto;display:block}
 
@@ -612,10 +618,39 @@ function breakPaths(layoutKey, scriptKey){
             label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
   });
 }
-const _pathCache = {};
+// A coach who disagrees with the route drags it. Edits are stored per layout
+// per break per player, over the top of the computed route, and any leg without
+// one keeps the route the router worked out.
+function pathKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
+function pathEdit(id){ return (S.pathEdits || {})[pathKey(id)] || null; }
+
+let _pathCache = {};
+function dropPathCache(){ _pathCache = {}; }
 function currentPaths(){
   const k = S.layoutKey + "|" + S.script;
-  return _pathCache[k] || (_pathCache[k] = breakPaths(S.layoutKey, S.script));
+  const routed = _pathCache[k] || (_pathCache[k] = breakPaths(S.layoutKey, S.script));
+  return routed.map(p => { const e = pathEdit(p.id); return e ? {...p, via:e, edited:true} : p; });
+}
+
+// A path is a run, not a set of corners: round every turn so it reads like a
+// player moving. The radius is capped at a third of the shorter leg, which
+// keeps the curve inside the corridor the router already proved clear —
+// test/functions.js samples the drawn curve and checks it against every bunker.
+function smoothD(pts, sx, sy){
+  const P = pts.map(q => [q[0] * sx, q[1] * sy]);
+  if(P.length < 3) return `M${P.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join("L")}`;
+  const R = 9;
+  let d = `M${P[0][0].toFixed(1)} ${P[0][1].toFixed(1)}`;
+  for(let i = 1; i < P.length - 1; i++){
+    const a = P[i - 1], b = P[i], c = P[i + 1];
+    const la = Math.hypot(b[0]-a[0], b[1]-a[1]), lc = Math.hypot(c[0]-b[0], c[1]-b[1]);
+    const r = Math.min(R, la / 3, lc / 3);
+    const p1 = [b[0] + (a[0]-b[0]) * r / la, b[1] + (a[1]-b[1]) * r / la];
+    const p2 = [b[0] + (c[0]-b[0]) * r / lc, b[1] + (c[1]-b[1]) * r / lc];
+    d += `L${p1[0].toFixed(1)} ${p1[1].toFixed(1)}Q${b[0].toFixed(1)} ${b[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  const e = P[P.length - 1];
+  return d + `L${e[0].toFixed(1)} ${e[1].toFixed(1)}`;
 }
 
 // Heuristic rank, not a prediction. Two inputs a coach actually has: what the
@@ -1093,6 +1128,108 @@ function qrSVG(text, px){
 // still shows the URI, and the code is legible inside it.
 function joinLink(code){ return "gridlock://class/" + code; }
 
+// ---- editing the break on the field ----------------------------------------
+//
+// Pointer events, not mouse: the same code has to work under a thumb. The SVG
+// is scaled by its viewBox, so every position is converted through the screen
+// matrix rather than assumed.
+function fieldFeet(svg, ev){
+  const pt = svg.createSVGPoint();
+  pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  return [Math.max(1, Math.min(149, p.x / 2)), Math.max(1, Math.min(119, p.y / 2))];
+}
+function setVia(id, via){
+  S.pathEdits = {...(S.pathEdits || {}), [pathKey(id)]: via};
+  save(S);
+}
+window.resetPath = id => {
+  const all = {...(S.pathEdits || {})};
+  delete all[pathKey(id)];
+  S.pathEdits = all; save(S); render();
+};
+window.resetAllPaths = () => {
+  const all = {...(S.pathEdits || {})};
+  currentPaths().forEach(p => delete all[pathKey(p.id)]);
+  S.pathEdits = all; save(S); render();
+};
+
+// One delegated listener on the app, so it survives every repaint.
+(function pathEditing(){
+  let drag = null;
+  const svgOf = el => el.closest("svg.field");
+  document.addEventListener("pointerdown", ev => {
+    if(!S.editPath || S.tab !== "playbook") return;
+    const h = ev.target.closest("[data-h],[data-aim],[data-leg]");
+    if(!h) return;
+    const svg = svgOf(h);
+    if(!svg) return;
+    ev.preventDefault();
+    const at = fieldFeet(svg, ev);
+    if(h.hasAttribute("data-aim")){
+      drag = {kind:"aim", id:Number(h.dataset.aim), moved:false};
+    } else if(h.hasAttribute("data-h")){
+      drag = {kind:"via", id:Number(h.dataset.h), i:Number(h.dataset.i), moved:false, at};
+    } else {
+      // Tapping the line itself adds a corner where you tapped, on the nearest leg.
+      const id = Number(h.dataset.leg);   // dataset is text; path ids are numbers
+      const p = currentPaths().find(x => x.id === id);
+      if(!p) return;
+      const pts = [p.from, ...(p.via || []), p.to];
+      let best = 0, bestD = Infinity;
+      for(let i = 0; i < pts.length - 1; i++){
+        const m = [(pts[i][0]+pts[i+1][0])/2, (pts[i][1]+pts[i+1][1])/2];
+        const d = Math.hypot(m[0]-at[0], m[1]-at[1]);
+        if(d < bestD){ bestD = d; best = i; }
+      }
+      const via = [...(p.via || [])];
+      via.splice(best, 0, at);
+      setVia(id, via);
+      drag = {kind:"via", id, i:best, moved:true, at};
+      paintField();
+    }
+    if(h.setPointerCapture) h.setPointerCapture(ev.pointerId);
+  });
+  document.addEventListener("pointermove", ev => {
+    if(!drag) return;
+    const svg = document.querySelector(".field-wrap[data-live] svg.field");
+    if(!svg) return;
+    const at = fieldFeet(svg, ev);
+    if(drag.kind === "via"){
+      const p = currentPaths().find(x => x.id === drag.id);
+      if(!p) return;
+      if(Math.hypot(at[0]-drag.at[0], at[1]-drag.at[1]) > 1.2) drag.moved = true;
+      const via = [...(p.via || [])];
+      via[drag.i] = at;
+      setVia(drag.id, via);
+    } else {
+      const p = currentPaths().find(x => x.id === drag.id);
+      if(!p) return;
+      const now = posAt(p, S.t);
+      const deg = Math.round(Math.atan2(at[1]-now[1], at[0]-now[0]) * 180 / Math.PI);
+      if(Math.abs(deg - (directOf(drag.id).face ?? 999)) < 1) return;
+      const all = {...(S.direct || {})};
+      all[directKey(drag.id)] = {...(all[directKey(drag.id)] || {}), face: deg};
+      S.direct = all; save(S); drag.moved = true;
+    }
+    paintField();
+  });
+  document.addEventListener("pointerup", () => {
+    if(!drag) return;
+    // A tap on a corner, with no drag, takes that corner out.
+    if(drag.kind === "via" && !drag.moved){
+      const p = currentPaths().find(x => x.id === drag.id);
+      if(p){
+        const via = [...(p.via || [])];
+        via.splice(drag.i, 1);
+        setVia(drag.id, via);
+      }
+    }
+    drag = null;
+    render();
+  });
+})();
+
 // ---- the walk: what you noticed standing on the field, against a bunker ----
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
@@ -1405,10 +1542,14 @@ function fieldSVG(opts={}){
   // Break paths. A dark casing under each line keeps it readable where it
   // crosses a bunker.
   const runner = (list, colour, offset) => list.map(p=>{
-    const pts=[p.from,...(p.via||[]),p.to].map(q=>`${(q[0]*sx).toFixed(1)},${(q[1]*sy).toFixed(1)}`).join(" ");
+    const legs=[p.from,...(p.via||[]),p.to];
+    const run=smoothD(legs, sx, sy);
     const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
-    let out = `<polyline fill="none" stroke="#000000" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75" points="${pts}"/>`
-            + `<polyline fill="none" stroke="${colour}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>`;
+    let out = `<path fill="none" d="${run}" stroke="#000000" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>`
+            + `<path fill="none" d="${run}" stroke="${colour}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${offset===0&&opts.edit?` data-leg="${p.id}"`:""}/>`;
+    // In edit mode every corner is a handle: drag it, or tap it to take it out.
+    if(offset===0 && opts.edit) out += (p.via||[]).map((v,vi)=>
+      `<circle class="hnd" data-h="${p.id}" data-i="${vi}" cx="${(v[0]*sx).toFixed(1)}" cy="${(v[1]*sy).toFixed(1)}" r="5"/>`).join("");
     // Where the player is actually heading right now, so the chevron and the
     // lane travel with him instead of snapping to the plant.
     const a0=posAt(p,Math.max(0,t-0.02)), a1=posAt(p,Math.min(1,t+0.02));
@@ -1448,7 +1589,7 @@ function fieldSVG(opts={}){
       out += `<polyline points="${pts}" fill="none" stroke="#000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`
            + `<polyline points="${pts}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
-    out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"/>`
+    out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"${offset===0&&opts.edit?` class="aim" data-aim="${p.id}"`:""}/>`
          + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700">${p.id+offset}</text>`;
     return out;
   }).join("");
@@ -1701,9 +1842,13 @@ function playbook(){
   ${sec("Overlay", `<div class="toggles">
       <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+      <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
       <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Reset</button>
     </div>
-    <div class="field-wrap" data-live>${fieldSVG()}</div>`, curLayout().name)}
+    ${S.editPath?`<p class="note">Drag a corner to move it, tap one to take it out, tap the line to add
+      one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
+      path</button></p>`:""}
+    <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>`, curLayout().name)}
 
   ${sec("Direct the five", `<div class="assigns">
       ${currentPaths().map((pth,i)=>{
@@ -1725,6 +1870,7 @@ function playbook(){
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
             <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotB?esc(callOf(shotB)):"Shot"}</button>
+            ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
             ${FACE_PAD.map(([g,deg])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}"
@@ -1760,7 +1906,7 @@ window.playPath = () => {
 // Repaint just the field SVGs. A full render() per frame rebuilt the entire
 // document — including the division table — sixty times a second.
 function paintField(){
-  const opts = S.tab==="scout" ? {both:true} : {};
+  const opts = S.tab==="scout" ? {both:true} : {edit:S.editPath};
   document.querySelectorAll(".field-wrap[data-live]").forEach(el=>{ el.innerHTML = fieldSVG(opts); });
 }
 

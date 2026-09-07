@@ -125,7 +125,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 172 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, the QR encoder and the house rules. |
+| `npm test` | 181 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, the QR encoder and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -151,7 +151,9 @@ counter-picker derived from the opponent read and the match state, division
 board); Sightlines with real blocking geometry; the NXL 2026 Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own
 breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
-roles, stored per layout per break and drawn travelling with the player; team
+roles, stored per layout per break and drawn travelling with the player; path
+editing on the field — drag a corner, tap to remove one, tap the line to add
+one, drag a player to point him, reset back to the routed line; team
 bunker calls that overlay the official codes everywhere; Movement rotations
 drawn on the field; Assess grading with per-player averages; Bunker stats built
 from tally and movement with a heat overlay; an editable roster; Lineups that
@@ -168,8 +170,7 @@ Roadmap, per `CLAUDE.md` — not built, and deliberately not advertised on the
 landing page:
 
 1. Scout 1:1 with the dual-pit screenshots in the spec
-2. Path erase / smooth / aim drag on Playbook
-3. SwiftUI parity in `ios-native/`, then Android Compose
+2. SwiftUI parity in `ios-native/`, then Android Compose
 
 Every other destination now holds real data rather than placeholder copy.
 

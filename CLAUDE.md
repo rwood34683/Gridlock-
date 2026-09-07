@@ -58,7 +58,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 1. Match Scout 1:1 to the dual-pit screenshots in the spec (anticipate cards, counter-picker, division board already sketched in web).
 2. ~~Playbook 8-way face/shot pad + P|S roles.~~ Done — Face opens the eight, Shot
    targets a named bunker, P|S are real toggles, all stored per layout per break.
-   Path erase/smooth edit is still open.
+   Path editing is done too — see 6.
 3. ~~Per-layout unique paths for every seeded break.~~ Done for the Midwest Open —
    breaks are written as the bunker each player plants on, in `BREAK_PLANTS`.
 4. ~~Bunker naming on the field + bunker stats heat.~~ Done — Team sets the call,
@@ -67,7 +67,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    code for `gridlock://class/<code>`, the deep link both platforms register.
    The encoder is hand-written (the app has no network) and its output is
    pinned in the suite against a matrix verified by an outside decoder.
-6. Path erase / smooth / aim drag on Playbook.
+6. ~~Path erase / smooth / aim drag on Playbook.~~ Done — Edit path turns every
+   corner into a handle: drag to move, tap to take out, tap the line to add one,
+   drag a player to point him, and reset one path or all of them back to the
+   routed line. Corners are rounded so a run reads like a run; the suite samples
+   the drawn curve and checks it still clears every bunker.
 7. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)

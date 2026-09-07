@@ -161,8 +161,18 @@ const ROSTER = [
     window.set({ layoutKey: "not-a-field" }); const other = directOf("1").face;
     window.set({ layoutKey: "mwo" }); return other === undefined;
   }));
+  // A chevron per player, drawn twice: a dark casing under a white stroke, so
+  // it reads on a red bunker as well as on the black ground — two polylines a
+  // player. The runs
+  // themselves are <path> now that corners are rounded, so counting polylines
+  // counts chevrons and nothing else.
   check("face chevron is drawn when Face is on", await ev(() => {
-    window.set({ faceOn: true }); return (fieldSVG().match(/polyline/g) || []).length > currentPaths().length * 2;
+    window.set({ faceOn: true });
+    const on = (fieldSVG().match(/polyline/g) || []).length;
+    window.set({ faceOn: false });
+    const off = (fieldSVG().match(/polyline/g) || []).length;
+    window.set({ faceOn: true });
+    return on === currentPaths().length * 2 && off === 0;
   }));
   check("shot cone and target ring are drawn", await ev(() => {
     window.set({ shotOn: true }); const svg = fieldSVG(); return svg.includes("polygon") && svg.includes("stroke-dasharray=\"3 3\"");
@@ -536,6 +546,84 @@ const ROSTER = [
     return /Add your squad under Team/.test(document.querySelector(".main").textContent);
   }));
   await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
+
+  /* ----------------------------------------------------------- path editing */
+  G("Path editing");
+  await ev(() => window.set({ tab: "playbook", editPath: true, pathEdits: {}, t: 0.5, playing: false }));
+  await page.waitForTimeout(200);
+
+  // The corners are rounded so a path reads like a run rather than a set of
+  // right angles. Rounding must not push the curve into a bunker, so this
+  // samples what is actually drawn — the real path element, at 4 samples a
+  // foot — and checks every sample against every footprint.
+  const curve = await ev(() => {
+    const obs = routeObstacles(LAYOUTS.mwo.bunkers);
+    const svg = document.querySelector(".field-wrap[data-live] svg.field");
+    const paths = [...svg.querySelectorAll("path[stroke='#e5342f']")];
+    const bad = [];
+    paths.forEach((el, i) => {
+      const p = currentPaths()[i];
+      if(!p) return;
+      const holds = o => Math.abs(p.from[0]-o.x) <= o.hw && Math.abs(p.from[1]-o.y) <= o.hh;
+      const live = obs.filter(o => !o.ids.has(p.bunker) && !holds(o));
+      const L = el.getTotalLength();
+      let prev = null;
+      for(let d = 0; d <= L; d += L / Math.max(40, Math.round(L / 2))){
+        const q = el.getPointAtLength(d);
+        const cur = [q.x / 2, q.y / 2];                 // svg units -> feet
+        if(prev) for(const o of live)
+          if(segHitsBox(prev[0], prev[1], cur[0], cur[1], o.x, o.y, o.hw, o.hh)){ bad.push(`${p.id}:${o.n}`); break; }
+        prev = cur;
+      }
+    });
+    return { paths: paths.length, bad: [...new Set(bad)] };
+  });
+  check("the drawn curve is sampled on all five paths", curve.paths === 5, `${curve.paths} paths`);
+  check("rounding a corner never pushes the run into a bunker", curve.bad.length === 0, curve.bad.join(", "));
+
+  check("edit mode puts a handle on every corner", await ev(() => {
+    const corners = currentPaths().reduce((n, p) => n + (p.via || []).length, 0);
+    return document.querySelectorAll("circle.hnd").length === corners && corners > 0;
+  }));
+
+  // A real drag, with real pointer events, because that is the risky part.
+  const handle = page.locator("circle.hnd").first();
+  await handle.scrollIntoViewIfNeeded();
+  const hb = await handle.boundingBox();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + 55, hb.y + 35, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  check("dragging a corner moves it and marks the path edited", await ev(() =>
+    Object.keys(S.pathEdits || {}).length === 1 && currentPaths().some(p => p.edited)));
+  check("an edited path offers to go back to the routed one",
+        (await page.locator("button", { hasText: "Reset path" }).count()) === 1);
+
+  check("a corner can be added and taken out again", await ev(() => {
+    const p = currentPaths()[0];
+    const n0 = (p.via || []).length;
+    const via = [...(p.via || []), [40, 40]];
+    S.pathEdits = {...(S.pathEdits || {}), [pathKey(p.id)]: via};
+    save(S);
+    const added = (currentPaths()[0].via || []).length === n0 + 1;
+    via.pop();
+    S.pathEdits = {...(S.pathEdits || {}), [pathKey(p.id)]: via};
+    save(S);
+    return added && (currentPaths()[0].via || []).length === n0;
+  }));
+
+  check("a player can be pointed by dragging him", await ev(() => {
+    window.setDirect(1, "face", 135);
+    return directOf(1).face === 135;
+  }));
+
+  await ev(() => window.resetAllPaths());
+  check("resetting puts every path back on the routed line", await ev(() =>
+    Object.keys(S.pathEdits || {}).length === 0 && !currentPaths().some(p => p.edited)));
+  await ev(() => window.set({ editPath: false }));
+  check("the handles go away when editing is off", await ev(() =>
+    document.querySelectorAll("circle.hnd").length === 0));
 
   /* ------------------------------------------------------------------- QR */
   G("QR");
