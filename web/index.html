@@ -58,6 +58,11 @@ button{cursor:pointer;border:0;background:none;padding:0;text-align:left}
 h1,h2,h3,p{margin:0}
 .grow{flex:1}
 
+/* Every control a coach taps is at least 44 px in its short axis. Apple asks
+   for 44 pt and Android for 48 dp, but the real reason is the promise on the
+   box: this gets used on a sideline, in a hurry, with a glove on.
+   test/devices.js fails the build if anything drops under it. */
+
 /* ============================================================
    SHELL — header and tab bar pinned, only .main scrolls
    ============================================================ */
@@ -71,6 +76,17 @@ h1,h2,h3,p{margin:0}
 /* A scrolling flex column shrinks its children to fit. Without this every
    block is squashed — and anything with overflow:hidden gets clipped. */
 .main > *{flex:0 0 auto}
+
+/* Tablets. A phone layout stretched to 1366 px is not a tablet layout: the
+   call button becomes a metre wide and a line of notes runs past 200
+   characters, which nobody reads. So the whole screen holds one centred column
+   — every heading on the same left edge, the way it reads on a phone — and the
+   field gets 860 px, which is two and a half times what it has on a phone. */
+@media (min-width:680px){
+  .main{align-items:center}
+  .main > *{width:100%;max-width:860px}
+  .main .note{max-width:74ch}          /* a caption, not a wall of text */
+}
 
 .hdr{
   background:#000;border-bottom:1px solid var(--line);
@@ -91,7 +107,7 @@ h1,h2,h3,p{margin:0}
 
 /* live context: what field and what call, always on screen */
 .ctx{
-  display:flex;align-items:center;gap:var(--s2);width:100%;
+  display:flex;align-items:center;gap:var(--s2);width:100%;min-height:44px;
   padding:var(--s2) 0 var(--s3);margin-top:var(--s2);
   color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
 }
@@ -175,7 +191,7 @@ h1,h2,h3,p{margin:0}
      mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
 .seg:not(:has(button:nth-child(4))){-webkit-mask-image:none;mask-image:none}
 .seg button{
-  flex:1 0 auto;min-height:38px;padding:0 var(--s3);border-radius:var(--r-sm);
+  flex:1 0 auto;min-height:44px;padding:0 var(--s3);border-radius:var(--r-sm);
   color:var(--mute);font-size:var(--t-sm);font-weight:600;white-space:nowrap;
   display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
 }
@@ -183,7 +199,7 @@ h1,h2,h3,p{margin:0}
 
 .toggles{display:flex;gap:var(--s2);flex-wrap:wrap}
 .tgl{
-  display:inline-flex;align-items:center;gap:var(--s2);min-height:38px;padding:0 var(--s3);
+  display:inline-flex;align-items:center;gap:var(--s2);min-height:44px;padding:0 var(--s3);
   border:1px solid var(--line-lit);border-radius:var(--r-pill);background:var(--panel);
   font-size:var(--t-sm);font-weight:600;color:var(--mute);
 }
@@ -202,8 +218,8 @@ h1,h2,h3,p{margin:0}
 .btn--lg{min-height:52px;font-size:var(--t-lg);letter-spacing:.02em}
 .btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line-lit)}
 .btn--ghost:active{background:var(--panel-2)}
-.btn--quiet{background:transparent;color:var(--mute);border:1px solid var(--line);min-height:38px;font-size:var(--t-sm)}
-.btn--danger{background:transparent;color:var(--red);border:1px solid var(--line);min-height:34px;font-size:var(--t-xs);padding:0 var(--s3)}
+.btn--quiet{background:transparent;color:var(--mute);border:1px solid var(--line);min-height:44px;font-size:var(--t-sm)}
+.btn--danger{background:transparent;color:var(--red);border:1px solid var(--line);min-height:44px;font-size:var(--t-xs);padding:0 var(--s3)}
 .btnrow{display:flex;gap:var(--s2);flex-wrap:wrap}
 
 /* ============================================================
@@ -212,7 +228,9 @@ h1,h2,h3,p{margin:0}
 .fld{display:flex;flex-direction:column;gap:6px}
 .fld > label{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
 input,select,textarea{
-  width:100%;min-height:44px;background:var(--sunk);color:var(--ink);
+  /* 46, not 44: inside a flex row these get shrunk half a pixel, and a control
+     that measures 43.5 is a control that fails the 44 px rule. */
+  width:100%;min-height:46px;flex:0 0 auto;background:var(--sunk);color:var(--ink);
   border:1px solid var(--line);border-radius:var(--r-md);padding:11px var(--s3);
 }
 input::placeholder,textarea::placeholder{color:var(--dim)}
@@ -245,9 +263,12 @@ svg.field{width:100%;height:auto;display:block}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
 .ps{display:flex;gap:4px;flex:none}
+/* 44 px square. Apple asks for 44 pt and Android for 48 dp, but the real
+   reason is the promise on the box: this gets tapped on a sideline, in a
+   hurry, with a glove on. */
 .ps button{
-  width:30px;height:30px;border-radius:6px;display:grid;place-items:center;
-  font-size:11px;font-weight:800;letter-spacing:.04em;
+  width:44px;height:44px;border-radius:8px;display:grid;place-items:center;
+  font-size:13px;font-weight:800;letter-spacing:.04em;
   border:1px solid var(--line-lit);color:var(--dim);background:transparent;
 }
 .ps button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -301,9 +322,9 @@ svg.field{width:100%;height:auto;display:block}
 .pit__side{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--wire)}
 .pit__name{font-size:var(--t-xl);font-weight:800;line-height:1.1}
 .pit__pts{font-size:var(--t-xs);color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.06em}
-.stars{display:flex;gap:2px}
+.stars{display:flex;gap:2px;margin:-6px}   /* the pad is bleed, not spacing */
 .star{
-  width:32px;height:32px;display:grid;place-items:center;font-size:17px;line-height:1;
+  width:44px;height:44px;display:grid;place-items:center;font-size:19px;line-height:1;
   color:var(--dim);
 }
 .star.on{color:var(--accent-lit)}
@@ -386,7 +407,8 @@ svg.field{width:100%;height:auto;display:block}
   background:rgba(173,21,21,.12);border:1px solid rgba(173,21,21,.5);
   border-radius:var(--r-md);padding:var(--s3);font-size:var(--t-sm);color:var(--ink);line-height:1.45;
 }
-.tip button{flex:none;color:var(--accent-lit);font-weight:700;font-size:var(--t-sm);padding:2px 0}
+.tip button{flex:none;color:var(--accent-lit);font-weight:700;font-size:var(--t-sm);
+  min-height:44px;min-width:44px;margin:-11px 0;padding:0 var(--s2)}
 
 /* ============================================================
    PROMO
@@ -1462,7 +1484,7 @@ function bunkerPick(label, idx, field, value){
   const list = (LAYOUTS[S.layoutKey] || LAYOUTS.mwo).bunkers;
   return `<label style="display:flex;flex-direction:column;gap:4px">
     <span class="note">${label}</span>
-    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="min-height:36px;font-size:var(--t-sm)">
+    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
       <option value="">—</option>
       ${list.map(b=>`<option value="${esc(b.id)}" ${value===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
     </select></label>`;

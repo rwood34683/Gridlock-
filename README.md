@@ -118,14 +118,15 @@ listing icons into `brand/out/`.
 
 ```bash
 npm run serve            # terminal 1
-npm run check            # terminal 2 — functions, bunker geometry, load
+npm run check            # terminal 2 — functions, devices, bunker geometry, load
 ```
 
-Three suites, all driving the real app in a real browser:
+Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
 | `npm test` | 126 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing and the house rules. |
+| `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
 
