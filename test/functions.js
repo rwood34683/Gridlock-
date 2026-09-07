@@ -133,6 +133,25 @@ const ROSTER = [
       ? !!document.querySelector("button.ctx")
       : !document.querySelector("button.ctx") && !!document.querySelector(".ctx")));
 
+  // Every tap rebuilds the screen. It used to come back at the top, which threw
+  // the coach off whatever he was reading, halfway down a long card.
+  check("a tap deep in a card leaves the screen where it was", await ev(async () => {
+    window.set({ tab: "scout", scoutTab: "matchup" });
+    await new Promise(r => setTimeout(r, 80));
+    const main = document.querySelector(".main");
+    main.scrollTop = 600;
+    const was = main.scrollTop;
+    window.setThreat("right", 2);
+    await new Promise(r => setTimeout(r, 80));
+    return was > 0 && document.querySelector(".main").scrollTop === was;
+  }));
+  check("changing tab does start at the top", await ev(async () => {
+    document.querySelector(".main").scrollTop = 600;
+    window.set({ tab: "tally" });
+    await new Promise(r => setTimeout(r, 80));
+    return document.querySelector(".main").scrollTop === 0;
+  }));
+
   /* --------------------------------------------------------------- playbook */
   G("Playbook");
   await seed();
@@ -824,6 +843,104 @@ const ROSTER = [
     /lean dorito/.test(profileOf("Malicious").notes) && profileOf("Rejects").notes === ""));
   check("the migrated slot keeps only the team name", await ev(() =>
     Object.keys(S.left).join() === "name"));
+
+  /* -------------------------------- a roster read off the phone's own OCR */
+  // A screenshot never reaches this app. The phone reads the picture, the coach
+  // pastes what it read, and this has to survive how ragged that text is.
+  G("Roster from a screenshot");
+  await ev(() => window.set({ tab: "scout", scoutTab: "matchup", scout: {},
+    left: { name: "Blast Camp" }, right: { name: "Rejects" }, paste: null, pasteSide: "" }));
+
+  const parse = t => ev(x => parseRoster(x), t);
+  check("number first, name after", await parse("12 Ryan Greenspan").then(r =>
+    r.found.length === 1 && r.found[0].num === "12" && r.found[0].name === "Ryan Greenspan"));
+  check("a hash in front is still a number", await parse("#4 Alex Goldman").then(r =>
+    r.found[0].num === "4" && r.found[0].name === "Alex Goldman"));
+  check("name first, number after", await parse("Chad Busiere 7").then(r =>
+    r.found[0].num === "7" && r.found[0].name === "Chad Busiere"));
+  check("a table pasted with tabs or pipes reads the same", await parse("9\tKS Kang\n| 15 | Nick Slowiak |").then(r =>
+    r.found.length === 2 && r.found[0].num === "9" && r.found[1].name === "Nick Slowiak"));
+  check("a wire named on the line is picked up", await parse("4 Alex Goldman snake").then(r =>
+    r.found[0].wire === "Snake" && r.found[0].name === "Alex Goldman"));
+  check("no wire named means flex, never a guess", await parse("4 Alex Goldman").then(r =>
+    r.found[0].wire === "Flex"));
+  check("a number with no name is still a player", await parse("22").then(r =>
+    r.found.length === 1 && r.found[0].num === "22" && r.found[0].name === ""));
+  check("a name with no number is still a player", await parse("Ryan Greenspan").then(r =>
+    r.found.length === 1 && r.found[0].name === "Ryan Greenspan" && r.found[0].num === ""));
+  check("column headings are dropped", await parse("Player\nNo.\nDivision\n7 Reyes").then(r =>
+    r.found.length === 1 && r.found[0].name === "Reyes"));
+  check("a whole header row is dropped, not read as a man", await parse("Player  No.\n# Name Team\n7 Reyes").then(r =>
+    r.found.length === 1 && r.found[0].name === "Reyes"));
+  check("page chrome and prose are left out, not guessed at", await parse(
+    "7 Reyes\nRegistration closes on the fourteenth of June at midnight\nmenu").then(r =>
+    r.found.length === 1 && r.skipped.length === 1));
+  check("what was left out is handed back so nothing goes quiet", await parse(
+    "Registration closes on the fourteenth of June").then(r =>
+    r.found.length === 0 && r.skipped.length === 1));
+  check("a paste is capped so one bad screenshot cannot flood the sheet", await parse(
+    Array.from({ length: 60 }, (_, i) => (i + 1) + " Player" + i).join("\n")).then(r =>
+    r.found.length === 40));
+  check("threat starts unscored at three, the same as a typed player", await parse("12 Greenspan").then(r =>
+    r.found[0].threat === 3));
+
+  check("reading it shows what was read and adds nobody yet", await ev(() => {
+    window.openPaste("right");
+    document.getElementById("rosterIn").value = "12 Ryan Greenspan\n#4 Alex Goldman snake\nChad Busiere 7";
+    window.readRoster("right");
+    return S.paste.found.length === 3 && pitOf("right").players.length === 0;
+  }));
+  check("the read list is on screen with a way to drop a bad row",
+    await page.locator(".rost__read").count() === 3 &&
+    await page.locator(".rost__read .btn--danger").count() === 3);
+  check("dropping a row takes it out before anyone is kept", await ev(() => {
+    window.dropPasted(1);
+    return S.paste.found.length === 2 && S.paste.found[1].name === "Chad Busiere";
+  }));
+  check("keeping them logs the rest against the team", await ev(() => {
+    window.keepRoster();
+    const men = pitOf("right").players;
+    return men.length === 2 && men[0].num === "12" && men[1].name === "Chad Busiere";
+  }));
+  check("the box closes and says what it did", await ev(() =>
+    !S.paste && S.pasteSide === "" && /Added 2/.test(S.pasteNote)));
+  check("a second paste of the same roster adds nobody twice", await ev(() => {
+    window.openPaste("right");
+    document.getElementById("rosterIn").value = "12 Ryan Greenspan\n7 Chad Busiere\n15 Nick Slowiak";
+    window.readRoster("right");
+    window.keepRoster();
+    return pitOf("right").players.length === 3 && /already logged/.test(S.pasteNote);
+  }));
+  check("a pasted player is editable like any other", await ev(() => {
+    window.editScoutPlayer("right", 0, "name", "R. Greenspan");
+    window.setScoutThreat("right", 0, 5);
+    const m = pitOf("right").players[0];
+    return m.name === "R. Greenspan" && m.threat === 5;
+  }));
+  check("a pasted roster belongs to the team, not the pit", await ev(() => {
+    window.loadPit("Las Vegas Shock");
+    const clean = pitOf("right").players.length === 0;
+    window.loadPit("Rejects");
+    return clean && pitOf("right").players.length === 3;
+  }));
+  check("it survives a reload", await ev(() =>
+    (JSON.parse(localStorage.getItem("gridlock.coach.v2")).scout["Rejects"].players || []).length === 3));
+  check("cancelling throws the paste away", await ev(() => {
+    window.openPaste("left");
+    document.getElementById("rosterIn").value = "1 Nobody";
+    window.readRoster("left");
+    window.closePaste();
+    return !S.paste && S.pasteSide === "" && pitOf("left").players.length === 0;
+  }));
+  check("an empty paste keeps its hands off the sheet", await ev(() => {
+    window.openPaste("left");
+    document.getElementById("rosterIn").value = "   \n\n";
+    window.readRoster("left");
+    const none = S.paste.found.length === 0;
+    window.keepRoster();
+    window.closePaste();
+    return none && pitOf("left").players.length === 0;
+  }));
 
   /* ----------------------------------------------------------- path editing */
   G("Path editing");

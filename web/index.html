@@ -424,6 +424,11 @@ svg.field{width:100%;height:auto;display:block}
 .rost__num{text-align:center;font-weight:700}
 .rost__add{display:grid;grid-template-columns:66px 1fr;gap:var(--s2)}
 .rost__add .rost__ps{grid-column:1/-1}
+.rost__read{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:var(--s3);
+  padding:var(--s2) var(--s3);background:var(--sunk);border-radius:var(--r-sm);min-height:48px}
+.rost__read b{text-align:center;font-weight:700;color:var(--accent-lit)}
+.rost__read span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paste{margin-top:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--r-md)}
 
 .who2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
 .who2 h4{margin:0 0 var(--s2);font-size:var(--t-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
@@ -937,6 +942,10 @@ let S = load();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
 if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+
+// A half-finished paste is scratch, not a record. It should not still be sitting
+// open three days later at the next event.
+S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -2048,6 +2057,67 @@ window.setScoutThreat = (side, i, n) => {
   editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? {...p, threat:n} : p)});
   render();
 };
+// ---- a roster read off a screenshot ----
+// Nothing is fetched: there is no network in this app and there is not going to
+// be one. The phone already reads text out of a picture — press and hold a
+// screenshot in Photos on iOS, tap the text button in Lens on Android — so the
+// coach copies it there and drops it in here. What arrives is loose and messy,
+// so it is parsed, shown back, and only added once he has looked at it.
+const ROSTER_JUNK = /^(#|no\.?|num(ber)?|player(s)?|name|roster|pos(ition)?|team(s)?|division|class|event|rank(ing)?|pts|points|paid|owed|reg(istration)?|status|home|menu|share|follow|back)$/i;
+const ROSTER_WIRE = [[/\bsnake\b/i,"Snake"],[/\bdorito\b/i,"Dorito"],[/\bcent(er|re)\b/i,"Centre"],[/\bback\b/i,"Back"]];
+function looksLikeName(s){
+  const words = s.split(" ").filter(Boolean);
+  return words.length >= 1 && words.length <= 4 && s.length <= 40 &&
+         words.every(w => /^[A-Za-z][A-Za-z'’.\-]*$/.test(w));
+}
+function parseRoster(text){
+  const found = [], skipped = [];
+  String(text || "").split(/[\n\r]+/).forEach(raw => {
+    const line = raw.replace(/[|\t,;]+/g, " ").replace(/^[•\-–*]\s*/, "")
+                    .replace(/\s+/g, " ").trim();
+    if(!line) return;
+    // one heading, or a whole header row of them: "Player  No.", "# Name Team"
+    if(line.split(" ").every(w => ROSTER_JUNK.test(w))) return;
+    let rest = line, num = "";
+    const lead = rest.match(/^#?\s*(\d{1,3})\b\s*/);
+    const tail = rest.match(/\s*#?\s*(\d{1,3})$/);
+    if(lead){ num = lead[1]; rest = rest.slice(lead[0].length); }
+    else if(tail){ num = tail[1]; rest = rest.slice(0, tail.index); }
+    let wire = "";
+    ROSTER_WIRE.forEach(([re, w]) => {
+      if(!wire && re.test(rest)){ wire = w; rest = rest.replace(re, " "); }
+    });
+    rest = rest.replace(/[^A-Za-z'’.\- ]/g, " ").replace(/\s+/g, " ").trim();
+    if(!rest && !num){ skipped.push(line); return; }
+    if(rest && !looksLikeName(rest)){ skipped.push(line); return; }   // prose, not a player
+    found.push({num, name: clean(rest), wire: wire || "Flex", note: "", threat: 3});
+  });
+  return {found: found.slice(0, 40), skipped};
+}
+window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = ""; save(S); render(); };
+window.closePaste = () => { S.pasteSide = ""; S.paste = null; save(S); render(); };
+window.readRoster = side => {
+  const el = document.getElementById("rosterIn"), text = el ? el.value : "";
+  S.paste = {side, text, ...parseRoster(text)};
+  save(S); render();
+};
+window.dropPasted = i => {
+  S.paste = {...S.paste, found: S.paste.found.filter((_, k) => k !== i)};
+  save(S); render();
+};
+window.keepRoster = () => {
+  const {side, found} = S.paste || {};
+  if(!side || !(found || []).length) return;
+  const have = pitOf(side).players;
+  const dupe = p => have.some(h => (p.num && h.num === p.num) ||
+                                  (p.name && (h.name || "").toLowerCase() === p.name.toLowerCase()));
+  const add = found.filter(p => !dupe(p));
+  editProfile(side, {players: [...have, ...add]});
+  const already = found.length - add.length;
+  S.pasteSide = ""; S.paste = null;
+  S.pasteNote = `Added ${add.length}.` + (already ? ` ${already} ${already===1?"was":"were"} already logged.` : "");
+  save(S); render();
+};
 window.delScoutPlayer = (side, i) => {
   editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
   render();
@@ -2513,8 +2583,42 @@ function pit(side,T,label){
             <input id="sp-note-${side}" placeholder="snake runner"/></label>
         </div>
       </div>
-      <button class="btn btn--block" onclick="addScoutPlayer('${side}')">Log a player</button>
+      <div class="toggles">
+        <button class="btn" onclick="addScoutPlayer('${side}')">Log a player</button>
+        <button class="btn btn--quiet" onclick="openPaste('${side}')">Paste a roster</button>
+      </div>
+      ${S.pasteSide === side ? pasteBox(side) : ""}
+      ${S.pasteNote && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
     </div>
+  </div>`;
+}
+
+// The screenshot never reaches this app — the phone reads it, the coach pastes
+// the text, and he sees what was read before a single name is kept.
+function pasteBox(side){
+  const p = (S.paste && S.paste.side === side) ? S.paste : null;
+  return `<div class="paste">
+    <p class="note">Screenshot their roster, then let the phone read the picture — press and hold it in
+      Photos on iPhone, or tap the text button in Lens on Android — copy, and paste it here. It stays
+      on this phone.</p>
+    <div class="fld"><label>Paste the roster</label>
+      <textarea id="rosterIn" placeholder="12 Ryan Greenspan&#10;#4 Alex Goldman snake&#10;Chad Busiere 7">${esc((p && p.text) || "")}</textarea></div>
+    <div class="toggles">
+      <button class="btn" onclick="readRoster('${side}')">Read it</button>
+      <button class="btn btn--quiet" onclick="closePaste()">Cancel</button>
+    </div>
+    ${p ? (p.found.length
+      ? `<div class="fld"><label>Read ${p.found.length} ${p.found.length===1?"player":"players"} · drop any that are wrong</label>
+          <div class="rost">${p.found.map((m,i)=>`<div class="rost__read">
+            <b>${esc(m.num || "—")}</b><span>${esc(m.name || "no name")}</span>
+            <button class="btn btn--danger" onclick="dropPasted(${i})">Drop</button>
+          </div>`).join("")}</div></div>
+        <button class="btn btn--block" onclick="keepRoster()">Add these to ${esc(pitOf(side).name)}</button>`
+      : `<div class="empty">Nothing in that read as a player. Type them in above instead.</div>`) : ""}
+    ${p && p.skipped.length
+      ? `<p class="note">Left out ${p.skipped.length} ${p.skipped.length===1?"line":"lines"} that did not read as a player:
+         ${esc(p.skipped.slice(0,3).join(" · "))}${p.skipped.length>3?" …":""}</p>`
+      : ""}
   </div>`;
 }
 
@@ -3274,8 +3378,21 @@ window.cycleEvent = () => {
   set({layoutKey:keys[(keys.indexOf(S.layoutKey)+1)%keys.length]});
 };
 
+// Every tap rebuilds the whole screen, and the browser puts a rebuilt scroller
+// back at the top. So grading a man at the bottom of a long card, or dropping a
+// row off a pasted roster, threw the coach back to the head of the tab. Between
+// points on a sideline that is the difference between using this and putting it
+// down. Hold the place unless the screen itself changed — a new tab does belong
+// at the top.
+let _where = "";
 function render(){
+  const main = document.querySelector(".main");
+  const at = main ? main.scrollTop : 0;
+  const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
   document.getElementById("root").innerHTML = S.entered ? shell() : promo();
+  const next = document.querySelector(".main");
+  if(next && screen === _where) next.scrollTop = at;
+  _where = screen;
 }
 render();
 </script>
