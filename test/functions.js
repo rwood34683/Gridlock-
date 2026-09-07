@@ -224,7 +224,7 @@ const ROSTER = [
   check("counter-picker ranks change with the match state", rank.diff, `${rank.ahead} vs ${rank.must}`);
   check("patient call tops the list when ahead", rank.ahead === "Hold & Read", rank.ahead);
   check("every break is ranked", await ev(() => counterRank("Snake", "Even").length === 5));
-  check("division board lists the seeded teams", await ev(() => TEAMS.length >= 14));
+  check("division board lists the seeded teams", await ev(() => teamsHere().length >= 14));
   check("both pits draw on one field", await ev(() => {
     const svg = fieldSVG({ both: true }); return svg.includes("#e5342f") && svg.includes("#3d8bff");
   }));
@@ -900,6 +900,74 @@ const ROSTER = [
   await ev(() => window.set({ editPath: false }));
   check("the handles go away when editing is off", await ev(() =>
     document.querySelectorAll("circle.hnd").length === 0));
+
+  /* ------------------------------------------------------------- divisions */
+  G("Divisions");
+  await ev(() => window.set({ tab:"scout", scoutTab:"board", division:"semi", teams:{}, scout:{} }));
+  check("there is more than one division to pick from", await ev(() => DIVISIONS.length >= 2));
+  check("the semi-pro board keeps its points and registration", await ev(() => {
+    const t = teamsHere().find(x => x.name === "Rejects");
+    return teamsHere().length >= 14 && t.pts === 186 && t.reg === "PAID";
+  }));
+  check("the pro division is there", await ev(() => {
+    window.setDivision("pro");
+    return divisionOf().id === "pro" && teamsHere().length >= 12;
+  }));
+  // The point of the whole exercise: names are a fact, a team's form is not.
+  check("no pro team arrives with invented points or registration", await ev(() =>
+    teamsHere().every(t => t.pts === undefined && t.reg === undefined)));
+  check("an unscored team reads as unknown, not as average", await ev(() => {
+    const p = profileOf("Houston Heat");
+    return p.unscored === true && p.threat === 3 && p.notes === "";
+  }));
+  check("the board shows a dash rather than a made-up score", await ev(() => {
+    const row = [...document.querySelectorAll("tbody tr")].find(r => /Houston Heat/.test(r.textContent));
+    return (row.textContent.match(/—/g) || []).length >= 4;
+  }));
+  check("scoring a team yourself fills the board in", await ev(() => {
+    window.loadPit("Houston Heat");
+    window.setThreat("right", 5);
+    window.setPitTend("right", "Dorito");
+    const p = profileOf("Houston Heat");
+    return p.threat === 5 && p.tend === "Dorito";
+  }));
+  check("the pit dropdown follows the division", await ev(() => {
+    const opts = [...document.querySelectorAll(".pit select option")].map(o => o.textContent);
+    return opts.includes("Houston Heat") && !opts.includes("Rejects");
+  }));
+  check("a profile survives switching divisions", await ev(() => {
+    window.setDivision("semi");
+    const away = profileOf("Houston Heat").threat === 5;
+    window.setDivision("pro");
+    return away && profileOf("Houston Heat").threat === 5;
+  }));
+  check("a team can be added to a division", await ev(() => {
+    document.getElementById("newTeam").value = "Test Squad";
+    window.addTeam();
+    return teamsHere().some(t => t.name === "Test Squad") && !!anyTeam("Test Squad");
+  }));
+  check("an added team can be scouted like any other", await ev(() => {
+    window.loadPit("Test Squad");
+    return pitOf("right").name === "Test Squad";
+  }));
+  check("the same team cannot be added twice", await ev(() => {
+    const n = teamsHere().length;
+    document.getElementById("newTeam").value = "Test Squad";
+    window.addTeam();
+    return teamsHere().length === n;
+  }));
+  check("an added team can be taken off again", await ev(() => {
+    window.loadPit("Houston Heat");
+    window.delTeam("Test Squad");
+    return !teamsHere().some(t => t.name === "Test Squad");
+  }));
+  check("a blank team name is refused", await ev(() => {
+    const n = teamsHere().length;
+    document.getElementById("newTeam").value = "   ";
+    window.addTeam();
+    return teamsHere().length === n;
+  }));
+  await ev(() => window.set({ division:"semi", teams:{}, scout:{}, right:{name:"Rejects"}, left:{name:"Blast Camp"} }));
 
   /* ------------------------------------------------------------- first run */
   G("First run");

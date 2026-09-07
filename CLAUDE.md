@@ -88,5 +88,7 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 - Rebuild custom cloud auth in the first pass. (There is still no server. Nexus →
   Save a copy is the offline answer to backup and moving between phones.)
 - Scrape player face photos.
-- Invent live official scores.
+- Invent live official scores. (The pro board carries team names only. Points,
+  registration, tendency and threat are the coach's to enter — a team nobody has
+  scored reads as a dash, never as a guess.)
 - Open the tutorial on launch.

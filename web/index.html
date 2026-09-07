@@ -803,7 +803,21 @@ const BREAKS = {
     {id:5,from:[2,46],to:[64,17],via:[],label:"GP"}
   ]}
 };
-const TEAMS = [
+/* ============================================================
+   Divisions
+   ============================================================
+
+   The board used to be one hard-coded list. The spec asks for a picker, and a
+   coach scouts whichever division he is in.
+
+   The semi-pro list carries ranking points and registration because that came
+   with the event data. The pro list is NAMES ONLY. Points, registration,
+   tendency and threat are event-specific facts that change every season, and
+   inventing them here would be the same mistake as inventing a bunker: it looks
+   like data and it is not. Every pro team reads as unknown until a coach scores
+   it himself, and any division can be added to or corrected on the board. */
+const DIVISIONS = [
+  {id:"semi", name:"CIN · Semi-Pro X-Ball", teams:[
   {name:"Beefy Boys",pts:71.74,reg:"PAID",tend:"Bal",threat:3},
   {name:"Blast Camp",pts:200,reg:"PAID",tend:"Bal",threat:5,film:1},
   {name:"Brooklyn Wolfpack",pts:99.13,reg:"PEND",tend:"Bal",threat:3},
@@ -818,7 +832,55 @@ const TEAMS = [
   {name:"Miami Effect",pts:68.7,reg:"PAID",tend:"Bal",threat:3},
   {name:"New Jersey Filthy",pts:65.65,reg:"PAID",tend:"Bal",threat:2},
   {name:"Rejects",pts:186,reg:"PAID",tend:"Snake",threat:4}
+  ]},
+  {id:"pro", name:"NXL Pro", note:"Names only — score them yourself.", teams:[
+    {name:"Los Angeles Ironmen"},
+    {name:"San Diego Dynasty"},
+    {name:"Houston Heat"},
+    {name:"Tampa Bay Damage"},
+    {name:"Edmonton Impact"},
+    {name:"Los Angeles Infamous"},
+    {name:"Seattle Thunder"},
+    {name:"New England Hurricanes"},
+    {name:"Chattanooga CEP"},
+    {name:"Upton 187 Crew"},
+    {name:"Portland Uprising"},
+    {name:"Omaha Vipers"},
+    {name:"Sacramento XSV"},
+    {name:"Baltimore Revo"}
+  ]}
 ];
+function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "semi")) || DIVISIONS[0]; }
+function addedTeams(id){ return (S.teams || {})[id] || []; }
+function divisionTeams(id){
+  const d = DIVISIONS.find(x => x.id === id);
+  return [...((d && d.teams) || []), ...addedTeams(id)];
+}
+// The teams on the board and in the pit dropdowns: this division's.
+function teamsHere(){ return divisionTeams(divisionOf().id); }
+// Any team, from any division, because a profile outlives the picker.
+function anyTeam(name){
+  for(const d of DIVISIONS){
+    const hit = divisionTeams(d.id).find(t => t.name === name);
+    if(hit) return hit;
+  }
+  return null;
+}
+window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) set({division:id}); };
+window.addTeam = () => {
+  const el = document.getElementById("newTeam");
+  const name = clean((el && el.value || "").trim());
+  if(!name || anyTeam(name)) return;
+  const id = divisionOf().id;
+  S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
+  save(S); render();
+};
+window.delTeam = name => {
+  const id = divisionOf().id;
+  S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== name)};
+  save(S); render();
+};
+
 
 const defaultState = () => ({
   entered:false, role:"guest", email:"",
@@ -844,6 +906,8 @@ const defaultState = () => ({
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
+  division:"semi",
+  teams:{},
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
   bunkerCalls:{},
@@ -1921,17 +1985,20 @@ function fieldSVG(opts={}, runnersOnly){
    became a read on Las Vegas Shock. Everything you learn now lives under the
    team's name and follows it in and out of the pit. */
 function teamMeta(name){
-  return TEAMS.find(t => t.name === name) || {name, pts:0, tend:"Bal", threat:3};
+  return anyTeam(name) || {name};
 }
 function profileOf(name){
   const kept = (S.scout || {})[name];
-  if(kept) return {players:[], ...kept};
-  const t = teamMeta(name);                       // seeded from the division board
+  if(kept) return {players:[], breaks:[], ...kept};
+  // Seeded where the event data knew; neutral where it did not. A team nobody
+  // has scored is a 3 because that is the middle, not because it is average.
+  const t = teamMeta(name);
   return {tend: t.tend === "Snake" ? "Snake" : t.tend === "Dorito" ? "Dorito" : "Balanced",
-          threat: t.threat, notes: "", players: []};
+          threat: t.threat || 3, notes: "", players: [], breaks: [],
+          unscored: t.threat === undefined};
 }
 function pitOf(side){
-  const name = ((S[side] || {}).name) || TEAMS[0].name;
+  const name = ((S[side] || {}).name) || teamsHere()[0].name;
   return {name, pts: teamMeta(name).pts, ...profileOf(name)};
 }
 function scouted(name){
@@ -2407,7 +2474,7 @@ function pit(side,T,label){
       <div class="pit__pts">US ${T.pts} pts</div>
     </div>
     <select onchange="setPitTeam('${side}',this.value)">
-      ${TEAMS.map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
+      ${teamsHere().map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
     </select>
     <div class="fld"><label>Tendency · your film read</label>
       <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
@@ -2659,24 +2726,45 @@ window.copyMatchup = () => {
 };
 
 function scoutBoard(){
-  return sec("Division scout board", `<div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th></tr></thead>
-      <tbody>${TEAMS.map((t,i)=>`<tr onclick="loadPit('${esc(t.name)}')">
+  const div=divisionOf(), list=teamsHere(), added=addedTeams(div.id).map(t=>t.name);
+  return sec("Division", `<div class="seg seg--wrap">
+      ${DIVISIONS.map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
+    </div>
+    ${div.note?`<p class="note">${esc(div.note)}</p>`:""}`, list.length+" teams")
+  + sec("Scout board", `<div class="tblwrap"><table class="tbl">
+      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th></tr></thead>
+      <tbody>${list.map((t,i)=>{
+        const pr=profileOf(t.name);
+        return `<tr onclick="loadPit('${esc(t.name)}')">
         <td class="num">${i+1}</td>
         <td>${esc(t.name)}</td>
-        <td><span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span></td>
+        <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
+        <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span>`:`<span class="note">—</span>`}</td>
         <td class="num">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
-        <td class="num">${profileOf(t.name).tend.slice(0,3)}</td>
-        <td style="color:var(--accent-lit)">${"★".repeat(profileOf(t.name).threat)}</td>
-      </tr>`).join("")}</tbody>
+        <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
+        <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
+      </tr>`;}).join("")}</tbody>
     </table></div>
-    <p class="note">Tap a row to load it into the right pit.</p>`,
-    "CIN · Semi-Pro X-Ball");
+    <p class="note">Tap a row to load it into the right pit. A dash means nobody has scored it yet —
+      set the tendency and threat on the pit card and it fills in here.</p>`, esc(div.name))
+  + sec("Missing a team?", `<p class="lede">Divisions change every season. Add anyone who is not on the
+      list and they behave like any other team — you can scout them, log their five and their calls.</p>
+    <div class="who2">
+      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Team name</span>
+        <input id="newTeam" placeholder="Add to ${esc(div.name)}"/></label>
+      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">&nbsp;</span>
+        <button class="btn" onclick="addTeam()">Add team</button></label>
+    </div>
+    ${added.length?`<div class="assigns">${added.map(n=>`<div class="assign">
+      <span class="assign__body"><span class="assign__job">${esc(n)}</span>
+      <span class="assign__who">you added this one</span></span>
+      <button class="btn btn--danger" onclick="delTeam('${esc(n)}')">Remove</button></div>`).join("")}</div>`:""}`,
+    added.length?added.length+" added":"");
 }
 // Tapping a row only changes which team is in the pit. What you know about
 // them comes with them, and what you knew about the last team stays with it.
 window.loadPit = name => {
-  if(!TEAMS.some(x => x.name === name)) return;
+  if(!anyTeam(name)) return;
   S.right = {name}; save(S); render();
 };
 
