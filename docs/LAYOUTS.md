@@ -129,6 +129,38 @@ into outs and moves-in per bunker, tints each footprint on the field by total
 traffic, and lists the table. Nothing is estimated — a bunker with no logged
 traffic simply does not appear.
 
+## Is the render exact?
+
+`npm run verify:bunkers` does not take that on trust. It reads the SVG the
+browser actually painted, converts each bunker group's bounding box back into
+feet, and compares it to the event JSON **by bunker id** — never by whichever
+shape happens to be nearest, so a cap or an inset cannot be mistaken for a
+bunker of its own.
+
+```
+bunkers in the event JSON : 58
+bunkers drawn on the field : 58
+worst position error : 0.0000 ft  (0.00 in)
+worst footprint error: 0.0000 ft  (0.00 in)
+58/58 bunkers drawn within tolerance.
+```
+
+It caught one real defect when first written: a `ball` was drawn as a circle,
+which cannot represent a footprint that is not perfectly square, so a cylinder
+measured 4.0 x 3.9 ft came out 0.1 ft narrow. Balls are ellipses now.
+
+Silhouettes follow the map too. Medium doritos point up the field, small
+doritos and cakes point back down it, temples carry the inset the map prints,
+bricks and snake-beam sections are capped at the ends, mini-Ws are banded,
+wings are plain upright bars, and the giant plus is a cross.
+
+**The one deviation:** the official map colours its bunkers red and blue, which
+is how it tells a cylinder from a tree at a glance. The app draws them in one
+neutral grey, because the wires are already red and blue and a second hue would
+fight them. The map's contrasting caps, bands and insets are kept as a darker
+tone of the same material, so every type still reads apart. That is a brand
+decision from `CLAUDE.md`, not a limit of the digitizing.
+
 ## Known gaps
 - **`layouts/schema/layout.schema.json` is stale.** It requires `year`, `sources`
   and `files`; every event in the pack uses `season` and `views`, so that file

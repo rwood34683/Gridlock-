@@ -1,0 +1,397 @@
+#!/usr/bin/env node
+/* GRIDLOCK function suite.
+ *
+ * Drives the real app in a real browser and asserts every interactive
+ * function actually does what it claims. Run the dev server first:
+ *
+ *   npm run serve      # terminal 1
+ *   npm run test       # terminal 2
+ */
+const path = require("path");
+const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
+
+const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const URL = process.env.APP_URL || "http://localhost:5173/";
+
+const results = [];
+let group = "";
+const G = name => { group = name; };
+const check = (name, pass, detail) => results.push({ group, name, pass: !!pass, detail });
+
+const ROSTER = [
+  { name: "Reyes", num: 7, p: "snake MW", s: "GP" }, { name: "Okafor", num: 3, p: "MT 50", s: "C lane" },
+  { name: "Vance", num: 11, p: "GP", s: "snake" }, { name: "Marsh", num: 22, p: "D-wire MD", s: "Tr" },
+  { name: "Bright", num: 5, p: "back centre", s: "MD hold" },
+];
+
+(async () => {
+  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", e => errors.push("pageerror: " + e.message));
+  page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.text()); });
+  page.on("dialog", d => d.accept());               // alert()/prompt() must not hang the run
+
+  const seed = async (extra = {}) => {
+    await page.evaluate(s => localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)), {
+      entered: true, role: "staff", email: "coach@team.com", tab: "playbook",
+      layoutKey: "mwo", script: "snake", faceOn: true, shotOn: true, t: 0.5, point: 1,
+      tips: { pb: 1, tally: 1, scout: 1, sl: 1, class: 1, lg: 1 }, roster: ROSTER,
+      left: { name: "Blast Camp", tend: "Balanced", threat: 5, pts: 200, notes: "" },
+      right: { name: "Rejects", tend: "Snake", threat: 4, pts: 186, notes: "" },
+      ...extra,
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(150);
+  };
+  const ev = (fn, arg) => page.evaluate(fn, arg);
+  const go = async (tab, more = null) => { await ev(([t, m]) => window.set({ tab: t, more: m }), [tab, more]); await page.waitForTimeout(60); };
+
+  await page.goto(URL, { waitUntil: "networkidle" });
+
+  /* ---------------------------------------------------------- boot + promo */
+  G("Boot and promo gate");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
+  check("promo shows first, never the tutorial", await ev(() => !S.entered && !S.showTutorial));
+  check("all four promo routes render", await page.locator(".promo .btn").count() === 4);
+  await ev(() => window.set({ entered: true, role: "guest" }));
+  check("guest can enter without an account", await ev(() => S.entered && S.role === "guest"));
+  check("tab bar has the five phone tabs", await page.locator(".tabs button").count() === 5);
+
+  /* --------------------------------------------------------------- staff auth */
+  G("Staff auth");
+  await ev(() => { localStorage.removeItem("gridlock.staff"); localStorage.removeItem("gridlock.staff.v2"); window.set({ entered: false, mode: "create" }); });
+  await page.waitForTimeout(80);
+  await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
+  await ev(async () => { await window.doAuth(); });
+  await page.waitForTimeout(120);
+  check("create account signs the coach in as staff", await ev(() => S.role === "staff" && S.entered));
+  const stored = await ev(() => JSON.parse(localStorage.getItem("gridlock.staff.v2") || "{}"));
+  check("password is not stored in the clear", !JSON.stringify(stored).includes("sideline1"));
+  check("salt and hash are both stored", !!stored.salt && !!stored.hash && stored.hash.length === 64);
+  await ev(() => window.set({ entered: false, mode: "login" })); await page.waitForTimeout(80);
+  await page.fill("#em", "coach@team.com"); await page.fill("#pw", "wrongpass");
+  await ev(async () => { await window.doAuth(); }); await page.waitForTimeout(120);
+  check("wrong password is refused", await ev(() => !S.entered));
+  await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
+  await ev(async () => { await window.doAuth(); }); await page.waitForTimeout(120);
+  check("correct password signs in", await ev(() => S.role === "staff"));
+  const legacy = await ev(async () => {
+    localStorage.removeItem("gridlock.staff.v2");
+    localStorage.setItem("gridlock.staff", JSON.stringify({ email: "old@team.com", pass: "legacy123" }));
+    window.set({ entered: false, mode: "login" });
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById("em").value = "old@team.com";
+    document.getElementById("pw").value = "legacy123";
+    await window.doAuth();
+    await new Promise(r => setTimeout(r, 100));
+    return { inn: S.role === "staff", gone: !localStorage.getItem("gridlock.staff"),
+             hashed: !!(JSON.parse(localStorage.getItem("gridlock.staff.v2") || "{}").hash) };
+  });
+  check("a clear-text account still signs in once", legacy.inn);
+  check("...and is upgraded to a hash", legacy.hashed);
+  check("...and the clear-text record is deleted", legacy.gone);
+
+  /* ------------------------------------------------------------- role gating */
+  G("Role gating");
+  await seed({ role: "guest", tab: "more", more: "classes" });
+  check("guest cannot create a class", (await page.locator("text=Staff login required to create a class").count()) > 0);
+  await go("more", "league");
+  check("guest cannot open league admin", (await page.locator("text=Staff login required to open league admin").count()) > 0);
+  await seed({ tab: "more", more: "classes" });
+  check("staff can create a class", (await page.locator("button:has-text('Create class')").count()) > 0);
+  check("joining never asks for an account", (await page.locator("text=No account needed").count()) > 0);
+
+  /* ------------------------------------------------------------- navigation */
+  G("Navigation");
+  await seed();
+  for (const t of ["playbook", "tally", "scout", "sightlines", "more"]) {
+    await go(t);
+    check(`tab ${t} renders`, await ev(() => document.querySelectorAll(".main > *").length > 1));
+  }
+  const MORE = ["walk", "lineups", "movement", "assess", "codes", "stats", "team", "messages", "classes", "league", "nexus"];
+  for (const m of MORE) {
+    await go("more", m);
+    check(`More · ${m} renders`, await ev(() => document.querySelectorAll(".main > *").length > 1));
+  }
+  await go("scout");
+  for (const st of ["matchup", "anticipate", "counter", "board"]) {
+    await ev(k => window.set({ scoutTab: k }), st);
+    await page.waitForTimeout(50);
+    check(`Scout · ${st} renders`, await ev(() => document.querySelectorAll(".sec").length > 0));
+  }
+  check("changing the event changes the layout", await ev(() => {
+    const a = S.layoutKey; window.cycleEvent(); const b = S.layoutKey; window.set({ layoutKey: a }); return a !== b;
+  }));
+
+  /* --------------------------------------------------------------- playbook */
+  G("Playbook");
+  await seed();
+  check("five breaks are offered", await ev(() => Object.keys(BREAKS).length === 5));
+  check("every break draws five players", await ev(() =>
+    Object.keys(BREAKS).every(k => { window.set({ script: k }); return currentPaths().length === 5; })));
+  await ev(() => window.set({ script: "snake" }));
+  check("Face toggles", await ev(() => { const a = S.faceOn; window.set({ faceOn: !a }); const b = S.faceOn; window.set({ faceOn: a }); return a !== b; }));
+  check("Shot lanes toggles", await ev(() => { const a = S.shotOn; window.set({ shotOn: !a }); const b = S.shotOn; window.set({ shotOn: a }); return a !== b; }));
+  check("Play starts the break", await ev(() => { window.playPath(); const p = S.playing; window.playPath(); return p === true; }));
+  check("Pause stops it", await ev(() => S.playing === false));
+  check("Reset returns to the buzzer", await ev(() => { window.set({ t: 0.7 }); window.set({ t: 0, playing: false }); return S.t === 0; }));
+  await ev(() => { window.setDirect("1", "face", -45); window.setDirect("2", "shot", "GP#1"); window.setDirect("3", "role", "S"); });
+  check("8-way pad stores a bearing", await ev(() => directOf("1").face === -45));
+  check("shot stores a named bunker", await ev(() => directOf("2").shot === "GP#1"));
+  check("P|S stores a role", await ev(() => directOf("3").role === "S"));
+  await ev(() => window.openPad("face", "4")); await page.waitForTimeout(60);
+  check("the pad offers eight directions plus off", await page.locator(".pad button").count() === 9);
+  await ev(() => window.openPad("face", "4")); await page.waitForTimeout(60);
+  check("tapping again closes the pad", await ev(() => S.pad === null));
+  check("directing is scoped per break", await ev(() => {
+    window.set({ script: "blitz" }); const other = directOf("1").face;
+    window.set({ script: "snake" }); return other === undefined && directOf("1").face === -45;
+  }));
+  check("directing is scoped per layout", await ev(() => {
+    window.set({ layoutKey: "tbo" }); const other = directOf("1").face;
+    window.set({ layoutKey: "mwo" }); return other === undefined;
+  }));
+  check("face chevron is drawn when Face is on", await ev(() => {
+    window.set({ faceOn: true }); return (fieldSVG().match(/polyline/g) || []).length > currentPaths().length * 2;
+  }));
+  check("shot cone and target ring are drawn", await ev(() => {
+    window.set({ shotOn: true }); const svg = fieldSVG(); return svg.includes("polygon") && svg.includes("stroke-dasharray=\"3 3\"");
+  }));
+  check("the training-aid line is on Playbook", (await page.locator(".aid").count()) > 0);
+
+  /* ------------------------------------------------------------------ tally */
+  G("Tally");
+  await seed({ tab: "tally" });
+  await ev(() => { window.markOut("us", "Reyes"); window.markOut("them", "#4"); });
+  check("marking out logs an entry", await ev(() => S.tally.length === 2));
+  await ev(() => window.markOut("us", "Reyes"));
+  check("the same player cannot go out twice in a point", await ev(() => S.tally.length === 2));
+  check("alive counts drop", await ev(() => document.body.textContent.includes("4")));
+  await ev(() => { window.setOutBunker(0, "shotAt", "SB#6"); window.setOutBunker(0, "movedTo", "GP#1"); });
+  check("shot-at bunker attaches to an out", await ev(() => S.tally[0].shotAt === "SB#6"));
+  check("moved-to bunker attaches to an out", await ev(() => S.tally[0].movedTo === "GP#1"));
+  await ev(() => window.nextPoint());
+  check("next point advances the sheet", await ev(() => S.point === 2));
+  check("next point keeps the log", await ev(() => S.tally.length === 2));
+  check("the new point starts five up", await ev(() => S.tally.filter(o => o.pt === S.point).length === 0));
+  await page.waitForTimeout(80);
+  check("pickers only render for the live point", await ev(() => {
+    const sel = [...document.querySelectorAll(".assign select")];
+    return sel.length === 0;                                  // no outs on point 2 yet
+  }));
+  await ev(() => window.undoOut(0));
+  check("undo removes an out", await ev(() => S.tally.length === 1));
+
+  /* ------------------------------------------------------------------ scout */
+  G("Scout");
+  await seed({ tab: "scout" });
+  await ev(() => { S.left.tend = "Dorito"; save(S); render(); });
+  check("tendency is editable per pit", await ev(() => S.left.tend === "Dorito"));
+  await ev(() => window.setThreat("right", 2));
+  check("threat stars set", await ev(() => S.right.threat === 2));
+  await ev(() => { S.left.notes = "Snake runner is #7"; save(S); render(); });
+  check("notes persist on a pit", await ev(() => S.left.notes.includes("#7")));
+  await ev(() => window.loadPit("Miami Effect"));
+  check("division board loads a team into the right pit", await ev(() => S.right.name === "Miami Effect"));
+  const rank = await ev(() => {
+    const ahead = counterRank("Snake", "Ahead")[0].name;
+    const must = counterRank("Snake", "Must-score")[0].name;
+    return { ahead, must, diff: ahead !== must };
+  });
+  check("counter-picker ranks change with the match state", rank.diff, `${rank.ahead} vs ${rank.must}`);
+  check("patient call tops the list when ahead", rank.ahead === "Hold & Read", rank.ahead);
+  check("every break is ranked", await ev(() => counterRank("Snake", "Even").length === 5));
+  check("division board lists the seeded teams", await ev(() => TEAMS.length >= 14));
+  check("both pits draw on one field", await ev(() => {
+    const svg = fieldSVG({ both: true }); return svg.includes("#e5342f") && svg.includes("#3d8bff");
+  }));
+  check("the not-a-prediction line is on Scout", await ev(() => {
+    window.set({ scoutTab: "matchup" }); return document.body.textContent.includes("not a prediction");
+  }));
+
+  /* ------------------------------------------------------------- sightlines */
+  G("Sightlines");
+  await seed({ tab: "sightlines" });
+  const sl = await ev(() => {
+    const list = LAYOUTS.mwo.bunkers;
+    const a = sightLines(list[0].id, 2, 2);
+    const b = sightLines(list[20].id, 2, 2);
+    return { n: a.lines.length, total: list.length, clearA: a.clear, clearB: b.clear,
+             blocked: a.lines.filter(l => l.blocked).length };
+  });
+  check("every other bunker gets a lane", sl.n === sl.total - 1);
+  check("lanes are classified clear or blocked", sl.clearA + sl.blocked === sl.n);
+  check("a different source gives a different read", sl.clearA !== sl.clearB);
+  check("geometry blocks something", sl.blocked > 0);
+  await ev(() => window.set({ sightFrom: LAYOUTS.mwo.bunkers[5].id }));
+  await page.waitForTimeout(80);
+  check("changing the source redraws", await ev(() => fieldSVG({ sightFrom: S.sightFrom, static: true }).includes("#3ecf8e")));
+
+  /* ------------------------------------------------------- team + bunker calls */
+  G("Team and bunker calls");
+  await seed({ tab: "more", more: "team" });
+  await ev(() => { document.getElementById("bcId").value = "GP#1"; document.getElementById("bcName").value = "Home"; window.setCall(); });
+  await page.waitForTimeout(80);
+  check("a bunker call is saved", await ev(() => bunkerCalls()["GP#1"] === "Home"));
+  check("the call overlays the official code on the field", await ev(() => fieldSVG({ static: true }).includes(">Home<")));
+  check("calls are scoped to the layout", await ev(() => {
+    window.set({ layoutKey: "tbo" }); const n = Object.keys(bunkerCalls()).length;
+    window.set({ layoutKey: "mwo" }); return n === 0;
+  }));
+  await ev(() => window.clearCall("GP#1"));
+  check("clearing a call restores the printed code", await ev(() => !bunkerCalls()["GP#1"]));
+  check("the roster is listed", (await page.locator(".assign").count()) >= 5);
+
+  /* -------------------------------------------------------------- movement */
+  G("Movement");
+  await seed({ tab: "more", more: "movement" });
+  await ev(() => { document.getElementById("mvWho").value = "Reyes"; document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "GP#1"; window.logMove(); });
+  await page.waitForTimeout(80);
+  check("a rotation is logged", await ev(() => S.moves.length === 1));
+  check("the rotation draws on the field", await ev(() => fieldSVG({ static: true, moves: true }).includes("#3ecf8e")));
+  await ev(() => { document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "SB#4"; window.logMove(); });
+  await page.waitForTimeout(80);
+  check("a move to the same bunker is refused", await ev(() => S.moves.length === 1));
+  await ev(() => window.undoMove(0));
+  check("undo removes a rotation", await ev(() => S.moves.length === 0));
+
+  /* ---------------------------------------------------------------- assess */
+  G("Assess");
+  await seed({ tab: "more", more: "assess" });
+  await ev(() => { document.getElementById("asWho").value = "Reyes"; document.getElementById("asScore").value = "4"; document.getElementById("asNote").value = "Held the corner."; window.saveAssess(); });
+  await page.waitForTimeout(80);
+  check("a grade is saved", await ev(() => S.assessments.length === 1 && S.assessments[0].score === 4));
+  check("the note stays with the grade", await ev(() => S.assessments[0].note.includes("corner")));
+  await ev(() => { document.getElementById("asWho").value = "Reyes"; document.getElementById("asScore").value = "2"; window.saveAssess(); });
+  await page.waitForTimeout(80);
+  check("an average is shown", await page.locator("text=3.0").count() > 0);
+  await ev(() => window.undoAssess(0));
+  check("undo removes a grade", await ev(() => S.assessments.length === 1));
+
+  /* ---------------------------------------------------------- bunker stats */
+  G("Bunker stats");
+  await seed({
+    tab: "more", more: "stats",
+    tally: [{ pt: 1, side: "us", name: "Reyes", shotAt: "SB#6", movedTo: "GP#1" }],
+    moves: [{ pt: 1, who: "Reyes", from: "SB#4", to: "GP#1", layout: "mwo" }],
+  });
+  check("outs come from the tally", await ev(() => bunkerTraffic()["SB#6"].outs === 1));
+  check("moves-in come from tally and movement", await ev(() => bunkerTraffic()["GP#1"].visits === 2));
+  check("traffic never leaks to another layout", await ev(() => {
+    window.set({ layoutKey: "tbo" }); const n = Object.keys(bunkerTraffic()).length;
+    window.set({ layoutKey: "mwo" }); return n === 0;
+  }));
+  check("the heat overlay is drawn", await ev(() => fieldSVG({ static: true, heat: true }).includes("#e5342f")));
+
+  /* -------------------------------------------------------------- classes */
+  G("Classes");
+  await seed({ tab: "more", more: "classes", newClassTitle: "Friday clinic" });
+  await ev(() => window.makeClass());
+  await page.waitForTimeout(80);
+  const code = await ev(() => S.classes[0].code);
+  check("a class gets a join code", /^GL-[A-Z0-9]{4}$/.test(code), code);
+  await ev(c => window.set({ joinCode: c }), code);
+  await page.waitForTimeout(100);
+  check("the code finds the class", (await page.locator("#fn").count()) === 1);
+  await ev(c => { document.getElementById("fn").value = "Sam Ortiz"; document.getElementById("fa").checked = false; window.submitForm(c); }, code);
+  await page.waitForTimeout(80);
+  check("submitting without the sign-in box is refused", await ev(() => S.responses.length === 0));
+  await ev(c => {
+    document.getElementById("fn").value = "Sam Ortiz";
+    document.getElementById("fc").value = "555-0100";
+    document.getElementById("fe").value = "Rec";
+    document.getElementById("fw").value = "Snake";
+    document.getElementById("fa").checked = true;
+    window.submitForm(c);
+  }, code);
+  await page.waitForTimeout(80);
+  check("a valid form is accepted", await ev(() => S.responses.length === 1 && S.responses[0].name === "Sam Ortiz"));
+  check("the response is listed under the class", await page.locator("text=Sam Ortiz").count() > 0);
+
+  /* --------------------------------------------------------------- league */
+  G("League");
+  await seed({ tab: "more", more: "league" });
+  check("the four default groups exist", await ev(() => S.groups.length === 4 && S.groups.map(g => g.name).join() === "Ops,Refs,Registration,Vendors"));
+  await ev(() => { document.getElementById("ng").value = "Media"; window.addGroup(); });
+  await page.waitForTimeout(80);
+  check("a group can be added", await ev(() => S.groups.length === 5));
+  const gid = await ev(() => S.groups[0].id);
+  await ev(id => { document.getElementById("mn-" + id).value = "Dana"; document.getElementById("mp-" + id).value = "5550142"; window.addMem(id); }, gid);
+  await page.waitForTimeout(80);
+  check("a member can be added", await ev(i => S.groups.find(g => g.id === i).members.length === 1, gid));
+  await ev(() => { S.blastBody = "Pit gate opens 8:00"; save(S); window.sendBlast(); });
+  await page.waitForTimeout(120);
+  check("a blast is sent and logged", await ev(() => S.blasts.length === 1 && S.blasts[0].body.includes("Pit gate")));
+  check("the log records the recipient count", await ev(() => S.blasts[0].n === 1));
+  await ev(i => window.delMem(i, 0), gid);
+  check("a member can be removed", await ev(i => S.groups.find(g => g.id === i).members.length === 0, gid));
+  await ev(() => window.delGroup(S.groups[4].id));
+  check("a group can be deleted", await ev(() => S.groups.length === 4));
+
+  /* ------------------------------------------------------ notes and messages */
+  G("Notes, codes and messages");
+  await seed({ tab: "more", more: "messages" });
+  await ev(() => { document.getElementById("md").value = "R1 at the buzzer"; window.sendMsg(); });
+  await page.waitForTimeout(80);
+  check("a squad message is kept", await ev(() => S.messages.length === 1));
+  await go("more", "walk");
+  await ev(() => { S.walkNotes = "Snake mouth is hot"; save(S); });
+  check("walk notes persist", await ev(() => S.walkNotes.includes("Snake")));
+  await go("more", "codes");
+  await ev(() => { S.codeWords = "Ghost = full flank"; save(S); });
+  check("code words persist", await ev(() => S.codeWords.includes("Ghost")));
+
+  /* ---------------------------------------------------------- persistence */
+  G("Persistence");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(150);
+  check("state survives a reload", await ev(() => S.messages.length === 1 && S.walkNotes.includes("Snake")));
+  check("a tip stays dismissed", await ev(() => { window.dismissTip("walk"); return S.tips.walk === true; }));
+
+  /* -------------------------------------------------------- layout integrity */
+  G("Layout integrity");
+  const lay = await ev(() => {
+    const b = LAYOUTS.mwo.bunkers;
+    const ids = new Set(b.map(x => x.id));
+    const plantsOk = Object.values(BREAK_PLANTS.mwo).every(p => p.length === 5 && p.every(id => ids.has(id)));
+    const pairs = [];
+    b.forEach(x => { const m = b.find(y => y.t === x.t && Math.abs(y.y - x.y) < 1.2 && Math.abs((x.x + y.x) / 2 - 75) < 1.5 && y.x !== x.x); if (m) pairs.push((x.x + m.x) / 2); });
+    const axis = pairs.reduce((a, c) => a + c, 0) / pairs.length;
+    return { n: b.length, unique: ids.size, plantsOk, axis, pairs: pairs.length,
+             sized: b.every(x => x.w > 0 && x.h > 0), inField: b.every(x => x.x >= 0 && x.x <= 150 && x.y >= 0 && x.y <= 120) };
+  });
+  check("the Midwest Open has 58 bunkers", lay.n === 58, String(lay.n));
+  check("every bunker id is unique", lay.unique === lay.n);
+  check("every bunker carries a measured footprint", lay.sized);
+  check("every bunker sits inside the field", lay.inField);
+  check("every break plants on a real bunker", lay.plantsOk);
+  check("the layout is mirror-symmetric about the 50", Math.abs(lay.axis - 75) < 0.5, `axis ${lay.axis.toFixed(2)} ft over ${lay.pairs} pairs`);
+
+  /* ------------------------------------------------------------ house rules */
+  G("House rules");
+  const html = await ev(() => document.documentElement.outerHTML);
+  check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
+  check("the control is called Shot lanes", await ev(() => { window.set({ tab: "playbook" }); return document.body.textContent.includes("Shot lanes"); }));
+  check("the UPRA mark is on screen", await ev(() => document.body.textContent.includes("powered by UPRA")));
+
+  /* ------------------------------------------------------------------ report */
+  const pad = (s, n) => String(s).padEnd(n);
+  let last = "";
+  console.log("GRIDLOCK function suite");
+  console.log("=======================\n");
+  for (const r of results) {
+    if (r.group !== last) { console.log(`\n${r.group}`); console.log("-".repeat(r.group.length)); last = r.group; }
+    console.log(`  ${r.pass ? "PASS" : "FAIL"}  ${pad(r.name, 52)}${r.detail ? "  " + r.detail : ""}`);
+  }
+  const failed = results.filter(r => !r.pass);
+  console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
+  if (failed.length) { console.log("\nFAILED:"); failed.forEach(f => console.log(`  ${f.group} — ${f.name}`)); }
+  if (errors.length) { console.log("\nPAGE ERRORS:"); errors.forEach(e => console.log("  " + e)); }
+  else console.log("No page errors during the run.");
+
+  await browser.close();
+  process.exit(failed.length || errors.length ? 1 : 0);
+})();

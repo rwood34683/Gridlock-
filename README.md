@@ -85,6 +85,21 @@ app icons, Android launcher icons at five densities (legacy, round and adaptive
 foreground), splash screens portrait and landscape, and the 512/1024 store
 listing icons into `brand/out/`.
 
+## Checks
+
+```bash
+npm run serve            # terminal 1
+npm run check            # terminal 2 — functions, bunker geometry, load
+```
+
+Three suites, all driving the real app in a real browser:
+
+| Command | What it proves |
+|---|---|
+| `npm test` | 122 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity and the house rules. |
+| `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
+| `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
+
 ## Deep links
 
 `gridlock://class/GL-7K2M` opens Classes with the code filled in, on both

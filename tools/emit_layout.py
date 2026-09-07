@@ -71,7 +71,7 @@ def uid(b):
 SHAPE = {
     'medium_dorito': 'dorito',  'small_dorito': 'tridown',  'cake': 'tridown',
     'temple': 'temple',         'maya_temple': 'temple',
-    'brick': 'can',             'wing': 'can',
+    'brick': 'can',             'wing': 'bar',
     'cylinder': 'ball',         'tree': 'ball',
     'giant_wing': 'gwing',      'giant_brick': 'gbrick',    'giant_plus': 'plus',
     'mini_w': 'mw',             'snake_beam': 'beam',
