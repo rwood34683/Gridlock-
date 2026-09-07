@@ -43,6 +43,11 @@ const DEVICES = [
   ["iPad Pro 11",               834, 1194],
   ["iPad Pro 13",              1024, 1366],
   ["iPad Pro 13 landscape",    1366, 1024],
+  // A phone turned sideways is the shape the layout most easily gets wrong:
+  // wide and very short. Info.plist allows it, so it has to hold up.
+  ["iPhone SE landscape",       667, 375],
+  ["iPhone 15 / 16 landscape",  852, 393],
+  ["iPhone Pro Max landscape",  932, 430],
   ["Pixel 7 / 8",               412, 915],
   ["Galaxy S23 / S24",          360, 780],
 ];

@@ -21,7 +21,9 @@
     "verify:bunkers": "node tools/verify_bunkers.js",
     "test:devices": "node test/devices.js",
     "check": "node test/functions.js && node test/devices.js && node tools/verify_bunkers.js && node test/loadtest.js",
-    "contact": "node scripts/contact.js"
+    "contact": "node scripts/contact.js",
+    "ios:setup": "npm install && npx cap sync ios && cd ios/App && pod install && cd ../.. && npx cap open ios",
+    "android:setup": "npm install && npx cap sync android && npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

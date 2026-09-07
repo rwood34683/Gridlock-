@@ -281,6 +281,24 @@ select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
 svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 svg.field{width:100%;height:auto;display:block}
+/* A phone turned sideways is short, and the field is 150 by 120 — at full width
+   it comes out taller than the screen, so you see less of it than in portrait,
+   which is the wrong way round. Fit it to the height instead and centre it. */
+@media (orientation:landscape) and (max-height:520px){
+  .field-wrap{display:flex;justify-content:center;background:#0b0c0d}
+  svg.field{width:auto;height:auto;max-height:calc(100vh - 190px);max-width:100%}
+  /* Wide and short is the one shape where the call and the field fit side by
+     side. Stacked, the card alone fills the screen and the field — the whole
+     point of the tab — never gets on it. */
+  .pbtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+         gap:var(--s3);align-items:start}
+  .pbtop .call__name{font-size:var(--t-xl);line-height:1.1}
+  .pbtop .call__read{font-size:var(--t-sm)}
+  .pbtop svg.field{max-height:calc(100vh - 170px)}
+  /* One column across a sideways phone is a very long line to read. Cap the
+     measure so a sentence still scans between points. */
+  p, .lede, .note, .empty, dd{max-width:70ch}
+}
 
 /* ============================================================
    ASSIGNMENTS — the five, as a roster not a paragraph
@@ -2298,6 +2316,7 @@ function playbook(){
   const roster=S.roster||[];
   return `${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
 
+  <div class="pbtop">
   <div class="call">
     <div class="call__label">The call</div>
     <div class="call__name">${esc(br.name)}</div>
@@ -2313,6 +2332,8 @@ function playbook(){
   </div>
 
   <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
+
+  </div>
 
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
 

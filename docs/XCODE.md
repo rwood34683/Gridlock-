@@ -29,6 +29,13 @@ before you pay anything.
 ```bash
 git clone <this repo>
 cd Gridlock-
+npm run ios:setup
+```
+
+That installs the dependencies, copies `web/` into the app, fetches the pods and
+opens the right file in Xcode. If you would rather do it by hand:
+
+```bash
 npm install                 # pulls Capacitor and the test tooling
 npx cap sync ios            # copies web/ into the app and wires the plugins
 cd ios/App && pod install   # fetches Capacitor's pods

@@ -41,7 +41,8 @@ dependencies; `web/native.js` bridges to the device and no-ops in a browser.
 
 ```bash
 npm run sync           # copy web/ into both native projects
-npm run open:ios       # Xcode  — needs macOS. First time on a Mac: docs/XCODE.md
+npm run ios:setup      # first time on a Mac: install, sync, pods, open Xcode
+npm run open:ios       # Xcode  — needs macOS. See docs/XCODE.md
 npm run open:android   # Android Studio
 ```
 
