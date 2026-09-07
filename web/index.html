@@ -633,18 +633,44 @@ function breakPaths(layoutKey, scriptKey){
 function pathKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
 function pathEdit(id){ return (S.pathEdits || {})[pathKey(id)] || null; }
 
-let _pathCache = {};
-function dropPathCache(){ _pathCache = {}; }
+// Routing is expensive and the drawn curve is expensive; neither changes while
+// a break plays. Only the marker moves. So both are cached against the field,
+// the call and a counter bumped by any edit, and the animation loop does no
+// geometry at all — it just reads a string and moves a dot.
+let _routeCache = {}, _drawCache = {}, _pathVersion = 0;
+function dropPathCache(){ _routeCache = {}; _drawCache = {}; _pathVersion++; }
+function pathsChanged(){ _drawCache = {}; _pathVersion++; }
+// Keyed on the edits themselves, not on everyone remembering to invalidate.
+// It is at most five short arrays, read once per paint.
+function editFingerprint(){
+  const pre = `${S.layoutKey}|${S.script}|`;
+  const all = S.pathEdits || {};
+  let out = "";
+  for(const k in all) if(k.startsWith(pre)) out += k + JSON.stringify(all[k]);
+  return out;
+}
 function currentPaths(){
-  const k = S.layoutKey + "|" + S.script;
-  const routed = _pathCache[k] || (_pathCache[k] = breakPaths(S.layoutKey, S.script));
-  return routed.map(p => { const e = pathEdit(p.id); return e ? {...p, via:e, edited:true} : p; });
+  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${editFingerprint()}`;
+  const hit = _drawCache[k];
+  if(hit) return hit;
+  const rk = S.layoutKey + "|" + S.script;
+  const routed = _routeCache[rk] || (_routeCache[rk] = breakPaths(S.layoutKey, S.script));
+  return (_drawCache[k] = routed.map(p => {
+    const e = pathEdit(p.id);
+    return e ? {...p, via:e, edited:true} : p;
+  }));
 }
 
 // A path is a run, not a set of corners: round every turn so it reads like a
 // player moving. The radius is capped at a third of the shorter leg, which
 // keeps the curve inside the corridor the router already proved clear —
 // test/functions.js samples the drawn curve and checks it against every bunker.
+// The same five curves are rebuilt sixty times a second otherwise.
+const _runCache = {};
+function drawnRun(p, legs, sx, sy){
+  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${p.id}|${sx}|${JSON.stringify(p.via||[])}`;
+  return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
+}
 function smoothD(pts, sx, sy){
   const P = pts.map(q => [q[0] * sx, q[1] * sy]);
   if(P.length < 3) return `M${P.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join("L")}`;
@@ -1275,6 +1301,7 @@ window.loadCopy = mode => {
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   Object.keys(next).forEach(k => { S[k] = next[k]; });
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+  dropPathCache();
   S.copyText = ""; save(S); render();
 };
 window.readCopyFile = input => {
@@ -1299,17 +1326,17 @@ function fieldFeet(svg, ev){
 }
 function setVia(id, via){
   S.pathEdits = {...(S.pathEdits || {}), [pathKey(id)]: via};
-  save(S);
+  pathsChanged(); save(S);
 }
 window.resetPath = id => {
   const all = {...(S.pathEdits || {})};
   delete all[pathKey(id)];
-  S.pathEdits = all; save(S); render();
+  S.pathEdits = all; pathsChanged(); save(S); render();
 };
 window.resetAllPaths = () => {
   const all = {...(S.pathEdits || {})};
   currentPaths().forEach(p => delete all[pathKey(p.id)]);
-  S.pathEdits = all; save(S); render();
+  S.pathEdits = all; pathsChanged(); save(S); render();
 };
 
 // One delegated listener on the app, so it survives every repaint.
@@ -1689,7 +1716,16 @@ function sightLines(fromId, sx, sy){
   return {src, lines, clear:lines.filter(l=>!l.blocked).length};
 }
 
-function fieldSVG(opts={}){
+// The moving layer, on its own. Everything else on the field — 58 bunkers,
+// their labels, the ground, the wires — is identical from one animation frame
+// to the next, so rebuilding it sixty times a second was most of the cost of
+// playing a break. fieldSVG draws the whole thing once; paintField swaps only
+// what moves.
+function fieldRunners(opts={}){
+  const parts = fieldSVG(opts, true);
+  return parts;
+}
+function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
   const W=300,H=240,sx=W/150,sy=H/120;
   const M=18;                                  // margin for the side labels
@@ -1701,7 +1737,7 @@ function fieldSVG(opts={}){
   // crosses a bunker.
   const runner = (list, colour, offset) => list.map(p=>{
     const legs=[p.from,...(p.via||[]),p.to];
-    const run=smoothD(legs, sx, sy);
+    const run=drawnRun(p, legs, sx, sy);
     const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
     let out = `<path fill="none" d="${run}" stroke="#000000" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>`
             + `<path fill="none" d="${run}" stroke="${colour}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${offset===0&&opts.edit?` data-leg="${p.id}"`:""}/>`;
@@ -1805,6 +1841,8 @@ function fieldSVG(opts={}){
     }).join("");
   }
 
+  if(runnersOnly) return paths;
+
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
     <defs>
       <!-- The official map paints every bunker red or blue; both are sampled
@@ -1842,7 +1880,7 @@ function fieldSVG(opts={}){
     ${moveArrows}
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
-    ${paths}
+    <g class="live">${paths}</g>
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
@@ -2128,7 +2166,13 @@ window.playPath = () => {
 // document — including the division table — sixty times a second.
 function paintField(){
   const opts = S.tab==="scout" ? {both:true} : {edit:S.editPath};
-  document.querySelectorAll(".field-wrap[data-live]").forEach(el=>{ el.innerHTML = fieldSVG(opts); });
+  const layer = fieldRunners(opts);
+  document.querySelectorAll(".field-wrap[data-live]").forEach(el => {
+    const g = el.querySelector("svg.field g.live");
+    // Swap only the moving layer. If the field is not drawn yet — first paint,
+    // or the tab just changed — fall back to drawing the whole thing.
+    if(g) g.innerHTML = layer; else el.innerHTML = fieldSVG(opts);
+  });
 }
 
 /* ============================================================
