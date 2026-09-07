@@ -356,18 +356,22 @@ const ROSTER = [
   await ev(() => { document.getElementById("md").value = "R1 at the buzzer"; window.sendMsg(); });
   await page.waitForTimeout(80);
   check("a squad message is kept", await ev(() => S.messages.length === 1));
-  await go("more", "walk");
-  await ev(() => { S.walkNotes = "Snake mouth is hot"; save(S); });
-  check("walk notes persist", await ev(() => S.walkNotes.includes("Snake")));
-  await go("more", "codes");
-  await ev(() => { S.codeWords = "Ghost = full flank"; save(S); });
-  check("code words persist", await ev(() => S.codeWords.includes("Ghost")));
+  // Both of these used to be a single text box. Writing the legacy field and
+  // reloading proves the migration carries a coach's typing into the new lists
+  // rather than dropping it.
+  await ev(() => { S.walkNotes = "Snake mouth is hot"; S.codeWords = "Ghost = full flank"; S.walk = {}; S.codes = []; save(S); });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(150);
+  check("a legacy walk note is carried into the list", await ev(() =>
+    walkNotes().length === 1 && /Snake mouth/.test(walkNotes()[0].note) && S.walkNotes === ""));
+  check("a legacy code word is split into word and meaning", await ev(() =>
+    S.codes.length === 1 && S.codes[0].word === "Ghost" && S.codes[0].means === "full flank" && S.codeWords === ""));
 
   /* ---------------------------------------------------------- persistence */
   G("Persistence");
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(150);
-  check("state survives a reload", await ev(() => S.messages.length === 1 && S.walkNotes.includes("Snake")));
+  check("state survives a reload", await ev(() => S.messages.length === 1 && walkNotes().length === 1 && S.codes.length === 1));
   check("a tip stays dismissed", await ev(() => { window.dismissTip("walk"); return S.tips.walk === true; }));
 
   /* -------------------------------------------------------- layout integrity */
@@ -449,6 +453,132 @@ const ROSTER = [
 
   await ev(() => { window.set({ tab: "more", more: "team" }); window.delPlayer(1); });
   check("a player can be removed", await ev(() => S.roster.length === 1 && S.roster[0].name === "Marsh"));
+
+  /* ------------------------------------------------- walk, codes, lineups */
+  G("Walk");
+  await ev(() => window.set({ tab: "more", more: "walk", walk: {}, walkNotes: "" }));
+  check("an empty field says so", await ev(() => /Nothing noted on this field yet/.test(document.querySelector(".main").textContent)));
+  check("a note can be pinned to a wire or a bunker", await ev(() => {
+    document.getElementById("wkWhere").value = "Snake wire";
+    document.getElementById("wkNote").value = "Doritos are slow off the tape.";
+    window.addWalk();
+    const n = (S.walk.mwo || [])[0];
+    return n && n.where === "Snake wire" && /Doritos are slow/.test(n.note);
+  }));
+  check("the where list offers every bunker on this field", await ev(() =>
+    document.querySelectorAll("#wkWhere option").length === 6 + curLayout().bunkers.length));
+  check("walk notes are scoped to the field", await ev(() => {
+    window.set({ layoutKey: "not-a-field" }); const n = walkNotes().length;
+    window.set({ layoutKey: "mwo" }); return n === 0;
+  }));
+  check("a note can be removed", await ev(() => { window.delWalk(0); return walkNotes().length === 0; }));
+  check("an empty note is refused", await ev(() => {
+    document.getElementById("wkNote").value = "   "; window.addWalk(); return walkNotes().length === 0;
+  }));
+
+  G("Codes");
+  await ev(() => window.set({ more: "codes", codes: [], codeWords: "" }));
+  check("a code word carries what it means", await ev(() => {
+    document.getElementById("cdWord").value = "Buzzer";
+    document.getElementById("cdMeans").value = "Go on the horn";
+    window.addCode();
+    return S.codes.length === 1 && S.codes[0].word === "Buzzer" && S.codes[0].means === "Go on the horn";
+  }));
+  check("a code word can be edited in place", await ev(() => {
+    window.editCode(0, "means", "Go on the horn, no wait");
+    return /no wait/.test(S.codes[0].means);
+  }));
+  check("a code word cannot be blanked", await ev(() => { window.editCode(0, "word", " "); return S.codes[0].word === "Buzzer"; }));
+  check("a word with no name is refused", await ev(() => {
+    document.getElementById("cdWord").value = ""; window.addCode(); return S.codes.length === 1;
+  }));
+  check("a code word can be removed", await ev(() => { window.delCode(0); return S.codes.length === 0; }));
+
+  G("Lineups");
+  const SQUAD = [
+    { name: "Reyes", num: 7, p: "snake MW", s: "GP" }, { name: "Okafor", num: 3, p: "MT 50", s: "C lane" },
+    { name: "Vance", num: 11, p: "GP", s: "snake" }, { name: "Marsh", num: 22, p: "D-wire MD", s: "Tr" },
+    { name: "Bright", num: 5, p: "back centre", s: "MD hold" }, { name: "Cole", num: 9, p: "Tr", s: "MD" },
+  ];
+  await ev(s2 => window.set({ more: "lineups", roster: s2, lineups: {}, point: 3 }), SQUAD);
+  check("with no lineup set the roster order stands", await ev(() =>
+    fiveFor(3).map(p => p && p.name).join(",") === "Reyes,Okafor,Vance,Marsh,Bright"));
+  check("a lineup can be filled from the roster", await ev(() => {
+    window.fillLineup("roster"); return (S.lineups[3] || []).length === 5 && S.lineups[3][0] === "Reyes";
+  }));
+  check("a slot can be set to any player on the squad", await ev(() => {
+    window.setSlot(0, "Cole"); return S.lineups[3][0] === "Cole" && fiveFor(3)[0].num === 9;
+  }));
+  check("the lineup directs the break on Playbook", await ev(() => {
+    window.set({ tab: "playbook" });
+    return document.querySelector(".assign__who").textContent.includes("#9 Cole");
+  }));
+  check("the tally sheet follows the same five", await ev(() => {
+    window.set({ tab: "tally" });
+    return document.querySelector(".main").textContent.includes("Cole");
+  }));
+  check("a lineup is kept per point", await ev(() => {
+    window.set({ tab: "more", more: "lineups", point: 4 });
+    const empty = lineupFor(4).length === 0;
+    window.fillLineup(3);
+    return empty && S.lineups[4][0] === "Cole" && S.lineups[3][0] === "Cole";
+  }));
+  check("an empty slot leaves the job unassigned", await ev(() => {
+    window.setSlot(1, "");
+    return fiveFor(4)[1] === null;
+  }));
+  check("clearing a lineup falls back to the roster", await ev(() => {
+    window.clearLineup();
+    return lineupFor(4).length === 0 && fiveFor(4)[0].name === "Reyes";
+  }));
+  check("with no roster Lineups says where to start", await ev(() => {
+    window.set({ roster: [], lineups: {} });
+    return /Add your squad under Team/.test(document.querySelector(".main").textContent);
+  }));
+  await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
+
+  /* ------------------------------------------------------------------- QR */
+  G("QR");
+  // The app ships offline, so the encoder is hand-written and cannot be taken
+  // on trust. This matrix was checked outside the app: rendered to pixels and
+  // read back by an independent decoder as the string below. If the encoder
+  // drifts, this fails.
+  const QR_GOLDEN = ["1111111000101001101111111", "1000001000011111101000001", "1011101010011010101011101", "1011101010001010001011101", "1011101010100100001011101", "1000001010010011101000001", "1111111010101010101111111", "0000000010100000000000000", "1011111000111101101111100", "0100000001110100100001100", "0111011101001011110010011", "1010010101111010010010000", "0001111000000101101111101", "1110110001101010100000010", "1010001100100111110111011", "1000000101001011010010010", "1000101010001011111111111", "0000000010100101100010100", "1111111000011100101011011", "1000001010110010100010001", "1011101010011101111111100", "1011101010001011011010111", "1011101010100100100100101", "1000001001000001101110001", "1111111011011010010001111"];
+  check("the join link encodes to the verified matrix", await ev(g => {
+    const m = qrMatrix("gridlock://class/GL-7K2M");
+    return !!m && m.map(r => r.join("")).join("|") === g.join("|");
+  }, QR_GOLDEN));
+  check("the QR carries the deep link both platforms register", await ev(() =>
+    joinLink("GL-7K2M") === "gridlock://class/GL-7K2M"));
+  check("the version grows with the payload", await ev(() => {
+    const a = qrMatrix("A").length, b = qrMatrix("x".repeat(30)).length;
+    return a === 21 && b === 29;
+  }));
+  check("a payload too long is refused, not mangled", await ev(() =>
+    qrMatrix("x".repeat(42)) !== null && qrMatrix("x".repeat(43)) === null));
+  check("all three finder patterns are in place", await ev(() => {
+    const m = qrMatrix("gridlock://class/GL-7K2M"), n = m.length;
+    const eye = (r0, c0) => m[r0][c0] === 1 && m[r0 + 1][c0 + 1] === 0 && m[r0 + 3][c0 + 3] === 1;
+    return eye(0, 0) && eye(0, n - 7) && eye(n - 7, 0);
+  }));
+  check("the timing pattern alternates", await ev(() => {
+    const m = qrMatrix("gridlock://class/GL-7K2M"), n = m.length;
+    for(let i = 8; i < n - 8; i++) if(m[6][i] !== (i % 2 ? 0 : 1) || m[i][6] !== (i % 2 ? 0 : 1)) return false;
+    return true;
+  }));
+  check("the drawn code keeps the four-module quiet zone", await ev(() => {
+    const svg = qrSVG("gridlock://class/GL-7K2M", 132);
+    const box = /viewBox="0 0 (\d+) \1"/.exec(svg);
+    return !!box && Number(box[1]) === qrMatrix("gridlock://class/GL-7K2M").length + 8;
+  }));
+  check("the code is drawn on white, or no camera reads it", await ev(() =>
+    /<rect[^>]*fill="#fff"/.test(qrSVG("gridlock://class/GL-7K2M", 132))));
+  check("a class shows a scannable code beside its join code", await ev(() => {
+    window.set({ tab: "more", more: "classes",
+                 classes: [{ id: "GL-7K2M", code: "GL-7K2M", title: "Friday clinic", open: true }] });
+    const svg = document.querySelector("svg.qr");
+    return !!svg && svg.querySelectorAll("path").length === 1;
+  }));
 
   /* ---------------------------------------------------------- break routing */
   G("Break routing");

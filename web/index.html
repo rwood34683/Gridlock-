@@ -407,6 +407,10 @@ svg.field{width:100%;height:auto;display:block}
   letter-spacing:.08em;background:var(--sunk);border:1px solid var(--line);
   border-radius:6px;padding:3px 8px;
 }
+.joinrow{display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap}
+.joinrow > div{flex:1 1 180px}
+/* White ground and a real quiet zone: a camera needs both. */
+.qr{flex:none;background:#fff;border-radius:6px;display:block}
 .joincode{
   align-self:flex-start;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:var(--t-xl);font-weight:700;letter-spacing:.14em;color:var(--accent-lit);
@@ -756,8 +760,11 @@ const defaultState = () => ({
   moves:[],
   assessments:[],
   sightFrom:null,
-  walkNotes:"",
-  codeWords:"",
+  walkNotes:"",                   // legacy free-text; migrated into walk[] on load
+  walk:{},                        // per layout: [{where, note, at}]
+  codeWords:"",                   // legacy free-text; migrated into codes[] on load
+  codes:[],                       // [{word, means}]
+  lineups:{},                     // per point: five roster names, "" for an empty slot
   joinCode:"",
   blastBody:"",
   newClassTitle:"Friday clinic"
@@ -775,6 +782,20 @@ let S = load();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
 if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+
+// Walk notes and code words were single text boxes. Nobody's typing is thrown
+// away: what was in the box becomes the first entry in the new list.
+if(S.walkNotes && !((S.walk||{})[S.layoutKey]||[]).length){
+  S.walk = {...(S.walk||{}), [S.layoutKey]:[{where:"The field", note:S.walkNotes, at:Date.now()}]};
+  S.walkNotes = "";
+}
+if(S.codeWords && !(S.codes||[]).length){
+  S.codes = S.codeWords.split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{
+    const i = l.search(/[=:—-]/);
+    return i > 0 ? {word:l.slice(0,i).trim(), means:l.slice(i+1).trim()} : {word:l, means:""};
+  });
+  S.codeWords = "";
+}
 // Everything that needs the current field goes through here. Half the call
 // sites used to fall back and half read straight through, so an unknown key —
 // a layout that stopped shipping, a corrupted save — took the whole screen
@@ -859,6 +880,282 @@ window.delPlayer = i => {
   const list = [...(S.roster || [])];
   list.splice(i, 1);
   S.roster = list; save(S); render();
+};
+
+/* QR, byte mode, error correction level M, versions 1 to 3.
+ *
+ * The app ships as one file with no network, so a join code cannot be handed to
+ * a library. Three versions is not a limitation in practice: version 3 holds 42
+ * bytes and the thing being encoded is gridlock://class/GL-7K2M, which is 24.
+ * Anything longer is refused rather than silently mangled.
+ *
+ * Versions 1 to 3 at level M are single block, so there is no interleaving. */
+const QR_CAP  = {1:16, 2:28, 3:44};      // data codewords at level M
+const QR_EC   = {1:10, 2:16, 3:26};      // error-correction codewords at level M
+const QR_ALIGN= {1:null, 2:18, 3:22};    // centre of the one alignment pattern
+
+// GF(256), the field QR error correction is computed in. 0x11d is its polynomial.
+const GF_EXP = new Uint8Array(512), GF_LOG = new Uint8Array(256);
+(() => {
+  let x = 1;
+  for(let i = 0; i < 255; i++){
+    GF_EXP[i] = x; GF_LOG[x] = i;
+    x <<= 1; if(x & 0x100) x ^= 0x11d;
+  }
+  for(let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+const gfMul = (a, b) => (a && b) ? GF_EXP[GF_LOG[a] + GF_LOG[b]] : 0;
+
+function rsGenerator(n){
+  let g = [1];
+  for(let i = 0; i < n; i++){
+    const next = new Array(g.length + 1).fill(0);
+    for(let j = 0; j < g.length; j++){
+      next[j] ^= g[j];
+      next[j + 1] ^= gfMul(g[j], GF_EXP[i]);
+    }
+    g = next;
+  }
+  return g;
+}
+function rsRemainder(data, n){
+  const gen = rsGenerator(n), rem = new Array(n).fill(0);
+  for(const d of data){
+    const factor = d ^ rem[0];
+    rem.shift(); rem.push(0);
+    for(let i = 0; i < n; i++) rem[i] ^= gfMul(gen[i + 1], factor);
+  }
+  return rem;
+}
+
+function qrCodewords(text, version){
+  const bytes = [];
+  for(const ch of unescape(encodeURIComponent(text))) bytes.push(ch.charCodeAt(0));
+  const cap = QR_CAP[version];
+  if(bytes.length + 2 > cap) return null;              // mode + length + payload
+
+  const bits = [];
+  const push = (v, n) => { for(let i = n - 1; i >= 0; i--) bits.push((v >> i) & 1); };
+  push(0b0100, 4);                                      // byte mode
+  push(bytes.length, 8);                                // length, 8 bits for v1-9
+  bytes.forEach(b => push(b, 8));
+  push(0, Math.min(4, cap * 8 - bits.length));          // terminator
+  while(bits.length % 8) bits.push(0);
+
+  const data = [];
+  for(let i = 0; i < bits.length; i += 8)
+    data.push(bits.slice(i, i + 8).reduce((v, b) => (v << 1) | b, 0));
+  for(let i = 0; data.length < cap; i++) data.push(i % 2 ? 0x11 : 0xec);   // pad bytes
+
+  return data.concat(rsRemainder(data, QR_EC[version]));
+}
+
+// ---- the matrix -----------------------------------------------------------
+function qrMatrix(text){
+  let version = null, code = null;
+  for(const v of [1, 2, 3]){ code = qrCodewords(text, v); if(code){ version = v; break; } }
+  if(!code) return null;
+
+  const n = version * 4 + 17;
+  const m = Array.from({length:n}, () => new Array(n).fill(null));   // null = free
+  const put = (r, c, v) => { if(r >= 0 && r < n && c >= 0 && c < n) m[r][c] = v; };
+
+  const finder = (r0, c0) => {
+    for(let r = -1; r <= 7; r++) for(let c = -1; c <= 7; c++){
+      const inRing = (r >= 0 && r <= 6 && (c === 0 || c === 6)) || (c >= 0 && c <= 6 && (r === 0 || r === 6));
+      const inCore = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+      put(r0 + r, c0 + c, inRing || inCore ? 1 : 0);
+    }
+  };
+  finder(0, 0); finder(0, n - 7); finder(n - 7, 0);
+
+  for(let i = 8; i < n - 8; i++){                       // timing
+    m[6][i] = i % 2 ? 0 : 1;
+    m[i][6] = i % 2 ? 0 : 1;
+  }
+  const a = QR_ALIGN[version];
+  if(a != null) for(let r = -2; r <= 2; r++) for(let c = -2; c <= 2; c++)
+    m[a + r][a + c] = (Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0)) ? 1 : 0;
+
+  // The thirty format-information modules, in exactly the places the standard
+  // puts them: a copy around the top-left finder and a copy split between the
+  // bottom-left and top-right. Getting this set wrong shifts every data module.
+  const fmtCells = [];
+  for(let i = 0; i <= 5; i++) fmtCells.push([i, 8], [8, i]);
+  fmtCells.push([7, 8], [8, 8], [8, 7]);
+  for(let i = 0; i <= 6; i++) fmtCells.push([n - 1 - i, 8]);   // seven up the bottom-left
+  for(let i = 7; i <= 14; i++) fmtCells.push([8, n - 15 + i]);  // eight along the top-right
+  fmtCells.push([n - 8, 8]);                                    // and the dark module, its own
+  fmtCells.forEach(([r, c]) => { m[r][c] = 0; });
+  m[n - 8][8] = 1;
+  const reserved = m.map(row => row.map(v => v !== null));
+
+  // data, zigzag up-down in two-column strips, skipping the timing column
+  let bit = 0;
+  const bitAt = i => (code[i >> 3] >> (7 - (i & 7))) & 1;
+  const total = code.length * 8;
+  for(let col = n - 1; col > 0; col -= 2){
+    if(col === 6) col--;
+    for(let step = 0; step < n; step++){
+      const up = ((n - 1 - col) >> 1) % 2 === 0;
+      const row = up ? n - 1 - step : step;
+      for(const c of [col, col - 1])
+        if(!reserved[row][c]) m[row][c] = bit < total ? bitAt(bit++) : 0;
+    }
+  }
+
+  const MASK = [
+    (r, c) => (r + c) % 2 === 0,
+    (r) => r % 2 === 0,
+    (r, c) => c % 3 === 0,
+    (r, c) => (r + c) % 3 === 0,
+    (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+    (r, c) => (r * c) % 2 + (r * c) % 3 === 0,
+    (r, c) => ((r * c) % 2 + (r * c) % 3) % 2 === 0,
+    (r, c) => ((r + c) % 2 + (r * c) % 3) % 2 === 0,
+  ];
+  const FORMAT_M = [0b101010000010010, 0b101000100100101, 0b101111001111100, 0b101101101001011,
+                    0b100010111111001, 0b100000011001110, 0b100111110010111, 0b100101010100000];
+
+  const penalty = g => {
+    let p = 0;
+    const run = line => {
+      let c = 1;
+      for(let i = 1; i < n; i++){
+        if(line[i] === line[i - 1]) c++;
+        else { if(c >= 5) p += c - 2; c = 1; }
+      }
+      if(c >= 5) p += c - 2;
+    };
+    for(let r = 0; r < n; r++) run(g[r]);
+    for(let c = 0; c < n; c++) run(g.map(row => row[c]));
+    for(let r = 0; r < n - 1; r++) for(let c = 0; c < n - 1; c++)
+      if(g[r][c] === g[r][c+1] && g[r][c] === g[r+1][c] && g[r][c] === g[r+1][c+1]) p += 3;
+    const PAT = [1,0,1,1,1,0,1,0,0,0,0];
+    const hasAt = (arr, i) => PAT.every((v, k) => arr[i + k] === v);
+    const scan = arr => {
+      for(let i = 0; i + 11 <= n; i++){
+        if(hasAt(arr, i)) p += 40;
+        if(PAT.every((v, k) => arr[i + 10 - k] === v)) p += 40;
+      }
+    };
+    for(let r = 0; r < n; r++) scan(g[r]);
+    for(let c = 0; c < n; c++) scan(g.map(row => row[c]));
+    const dark = g.flat().filter(v => v === 1).length;
+    p += Math.floor(Math.abs(dark * 100 / (n * n) - 50) / 5) * 10;
+    return p;
+  };
+
+  let best = null, bestScore = Infinity;
+  for(let mask = 0; mask < 8; mask++){
+    const g = m.map((row, r) => row.map((v, c) => reserved[r][c] ? v : (MASK[mask](r, c) ? v ^ 1 : v)));
+    const f = FORMAT_M[mask];
+    const bitOf = i => (f >> i) & 1;
+    // Copy one, wrapped around the top-left finder.
+    for(let i = 0; i <= 5; i++) g[i][8] = bitOf(i);
+    g[7][8] = bitOf(6); g[8][8] = bitOf(7); g[8][7] = bitOf(8);
+    for(let i = 9; i <= 14; i++) g[8][14 - i] = bitOf(i);
+    // Copy two runs the other way round: the high bits go up the bottom-left,
+    // the low bits along the top-right.
+    for(let i = 0; i <= 6; i++) g[n - 1 - i][8] = bitOf(14 - i);
+    for(let j = 0; j <= 7; j++) g[8][n - 8 + j] = bitOf(7 - j);
+    g[n - 8][8] = 1;                                    // dark module wins
+    const sc = penalty(g);
+    if(sc < bestScore){ bestScore = sc; best = g; }
+  }
+  return best;
+}
+
+// Draw it. A QR is only useful if a phone camera can read it off a screen held
+// up on a sideline, so it goes out as crisp SVG rects with the quiet zone the
+// standard asks for — four modules, or scanners fail on a busy background.
+function qrSVG(text, px){
+  const m = qrMatrix(text);
+  if(!m) return "";
+  const n = m.length, q = 4, side = n + q * 2;
+  let d = "";
+  for(let r = 0; r < n; r++){
+    let c = 0;
+    while(c < n){
+      if(!m[r][c]){ c++; continue; }
+      let w = 1;
+      while(c + w < n && m[r][c + w]) w++;          // run of dark modules, one rect
+      d += `M${c + q} ${r + q}h${w}v1h-${w}z`;
+      c += w;
+    }
+  }
+  return `<svg class="qr" viewBox="0 0 ${side} ${side}" width="${px}" height="${px}" role="img"
+    aria-label="QR code for the join link"><rect width="${side}" height="${side}" fill="#fff"/>
+    <path d="${d}" fill="#0b0c0d"/></svg>`;
+}
+// What the QR carries: the deep link both platforms already register, so a
+// scan opens Classes with the code filled in. A phone without the app installed
+// still shows the URI, and the code is legible inside it.
+function joinLink(code){ return "gridlock://class/" + code; }
+
+// ---- the walk: what you noticed standing on the field, against a bunker ----
+function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
+const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
+window.addWalk = () => {
+  const where = rosterVal("wkWhere");
+  const note = clean(rosterVal("wkNote").trim());
+  if(!note) return;
+  S.walk = {...(S.walk || {}), [S.layoutKey]: [{where, note, at:Date.now()}, ...walkNotes()]};
+  save(S); render();
+};
+window.delWalk = i => {
+  const list = [...walkNotes()]; list.splice(i, 1);
+  S.walk = {...(S.walk || {}), [S.layoutKey]: list}; save(S); render();
+};
+
+// ---- code words: the word, and what it means, because a list of words is
+// no use to the player who joined last week ----
+window.addCode = () => {
+  const word = clean(rosterVal("cdWord").trim());
+  if(!word) return;
+  S.codes = [...(S.codes || []), {word, means: clean(rosterVal("cdMeans").trim())}];
+  save(S); render();
+};
+window.editCode = (i, field, value) => {
+  const list = S.codes || [];
+  if(!list[i]) return;
+  const v = clean(String(value).trim());
+  if(field === "word" && !v) return;
+  list[i][field] = v; save(S);           // no redraw: see editPlayer
+};
+window.delCode = i => {
+  const list = [...(S.codes || [])]; list.splice(i, 1);
+  S.codes = list; save(S); render();
+};
+
+// ---- lineups: who is on this point. Playbook reads this before the roster,
+// so setting a lineup actually changes the five jobs on the field. ----
+function lineupFor(pt){ return (S.lineups || {})[pt] || []; }
+function playerNamed(n){ return (S.roster || []).find(p => p.name === n); }
+// Slot i on the break: the lineup if one is set for this point, else roster order.
+function fiveFor(pt){
+  const line = lineupFor(pt), roster = S.roster || [];
+  return [0,1,2,3,4].map(i => (line[i] && playerNamed(line[i])) || (line.length ? null : roster[i]) || null);
+}
+window.setSlot = (i, name) => {
+  const pt = S.point || 1;
+  const line = [...(lineupFor(pt).length ? lineupFor(pt) : ["","","","",""])];
+  line[i] = name;
+  S.lineups = {...(S.lineups || {}), [pt]: line};
+  save(S); render();
+};
+window.fillLineup = from => {
+  const pt = S.point || 1;
+  const src = from === "roster" ? (S.roster || []).slice(0,5).map(p => p.name)
+                                : [...lineupFor(from)];
+  while(src.length < 5) src.push("");
+  S.lineups = {...(S.lineups || {}), [pt]: src.slice(0,5)};
+  save(S); render();
+};
+window.clearLineup = () => {
+  const all = {...(S.lineups || {})};
+  delete all[S.point || 1];
+  S.lineups = all; save(S); render();
 };
 
 window.setCall = () => {
@@ -1410,7 +1707,7 @@ function playbook(){
 
   ${sec("Direct the five", `<div class="assigns">
       ${currentPaths().map((pth,i)=>{
-        const who=roster[i], d=directOf(pth.id);
+        const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
         const bl=curLayout().bunkers;
         const shotB=d.shot?bl.find(b=>b.id===d.shot):null;
         const role=d.role||"P";
@@ -1473,7 +1770,7 @@ function paintField(){
 function tally(){
   const pt=S.point||1;
   const bl=curLayout().bunkers;
-  const mine=(S.roster||[]).slice(0,5);
+  const mine=fiveFor(S.point||1).filter(Boolean);
   const outs=(S.tally||[]);
   const thisPoint=outs.filter(o=>typeof o==="object" && o.pt===pt);
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
@@ -1744,8 +2041,13 @@ function classesPage(){
             <h3 class="panel__title grow">${esc(c.title)}</h3>
             <span class="tag ${c.open?"tag--paid":""}">${c.open?"OPEN":"CLOSED"}</span>
           </div>
-          <div class="joincode">${esc(c.code)}</div>
-          <p class="note">Share the code, or the link <span class="code">?c=${esc(c.code)}</span></p>
+          <div class="joinrow">
+            <div>
+              <div class="joincode">${esc(c.code)}</div>
+              <p class="note">Read it out, or let them scan. Joining never needs an account.</p>
+            </div>
+            ${qrSVG(joinLink(c.code), 132)}
+          </div>
           ${r.length?`<div class="assigns">${r.map(x=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc((x.name||"?")[0].toUpperCase())}</span>
             <span class="assign__body"><span class="assign__job">${esc(x.name)}</span>
@@ -1897,9 +2199,57 @@ function moreBody(k){
       <span class="assign__who">P ${esc(p.p)} · S ${esc(p.s)}</span></span>
     </div>`).join("")}</div>`;
 
-  if(k==="walk") return sec("Walk",`<div class="fld"><label>Notes for ${esc(layoutName)}</label>
-    <textarea onchange="S.walkNotes=this.value;save(S)" placeholder="Snake mouth is hot. GP first.">${esc(S.walkNotes)}</textarea></div>`, layoutName);
-  if(k==="lineups") return sec("Lineups", roster.length?rosterList:`<div class="empty">No roster yet.</div>`, "This point");
+  if(k==="walk"){
+    const notes=walkNotes(), bl=curLayout().bunkers;
+    return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
+      noticed it on. Notes stay with this field.</p>
+      <div class="fld"><label>Where</label>
+        <select id="wkWhere">
+          ${WIRES.map(w=>`<option>${esc(w)}</option>`).join("")}
+          ${bl.map(b=>`<option value="${esc(callOf(b)+" · "+b.id)}">${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+        </select></div>
+      <div class="fld"><label>Note</label>
+        <textarea id="wkNote" placeholder="Snake mouth is hot. GP first off the tape."></textarea></div>
+      <button class="btn btn--block" onclick="addWalk()">Add note</button>`, layoutName)
+    + sec("On the walk", notes.length
+      ? `<div class="assigns">${notes.map((n,i)=>`<div class="assign">
+          <span class="assign__body"><span class="assign__job">${esc(n.note)}</span>
+          <span class="assign__who">${esc(n.where)}</span></span>
+          <button class="btn btn--danger" onclick="delWalk(${i})">Remove</button></div>`).join("")}</div>`
+      : `<div class="empty">Nothing noted on this field yet.</div>`,
+      notes.length ? notes.length+(notes.length===1?" note":" notes") : layoutName);
+  }
+  if(k==="lineups"){
+    const pt=S.point||1, line=lineupFor(pt), five=fiveFor(pt);
+    const prev=Object.keys(S.lineups||{}).map(Number).filter(n=>n<pt).sort((a,b)=>b-a)[0];
+    if(!roster.length) return sec("Lineups",
+      `<div class="empty">No roster yet. Add your squad under Team, then set who is on the point.</div>`,
+      "Point "+pt);
+    const slots=`<div class="assigns">${five.map((pl,i)=>`<div class="assign">
+        <span class="assign__n">${i+1}</span>
+        <span class="assign__body">
+          <select onchange="setSlot(${i},this.value)">
+            <option value=""${pl?"":" selected"}>— empty —</option>
+            ${roster.map(r=>`<option${pl&&pl.name===r.name?" selected":""}>${esc(r.name)}</option>`).join("")}
+          </select>
+          <span class="assign__who">${pl?esc("#"+pl.num+" · P "+(pl.p||"—")+" · S "+(pl.s||"—")):"no one on this slot"}</span>
+        </span>
+      </div>`).join("")}</div>`;
+    return sec("Lineups", `<p class="lede">Who is on this point. Slot 1 to 5 are the five jobs on Playbook,
+      in the same order — set a lineup here and the break is directed at these players.</p>
+      ${slots}
+      <div class="toggles">
+        <button class="btn btn--quiet" onclick="fillLineup('roster')">Fill from roster</button>
+        ${prev?`<button class="btn btn--quiet" onclick="fillLineup(${prev})">Same as point ${prev}</button>`:""}
+        ${line.length?`<button class="btn btn--danger" onclick="clearLineup()">Clear</button>`:""}
+      </div>`, "Point "+pt)
+    + (Object.keys(S.lineups||{}).length?sec("Earlier points",
+        `<div class="assigns">${Object.keys(S.lineups).map(Number).sort((a,b)=>b-a).map(n=>`<div class="assign">
+          <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
+          <span class="assign__body"><span class="assign__job">${esc(lineupFor(n).filter(Boolean).join(", ")||"—")}</span>
+          <span class="assign__who">${lineupFor(n).filter(Boolean).length} on the point</span></span>
+        </div>`).join("")}</div>`, "Logged"):"");
+  }
   if(k==="team"){
     const list=curLayout().bunkers, calls=bunkerCalls();
     const named=Object.keys(calls);
@@ -2018,8 +2368,26 @@ function moreBody(k){
         </div>`).join("")}</div>`, all.length+" total")
       : sec("Grades", `<div class="empty">No grades yet.</div>`));
   }
-  if(k==="codes") return sec("Codes",`<div class="fld"><label>Code words for this event</label>
-    <textarea onchange="S.codeWords=this.value;save(S)" placeholder="One per line">${esc(S.codeWords)}</textarea></div>`, layoutName);
+  if(k==="codes"){
+    const codes=S.codes||[];
+    return sec("Codes", `<p class="lede">The word and what it means. A list of words on its own is no use to
+      the player who joined last week.</p>
+      ${codes.length?`<div class="assigns">${codes.map((c,i)=>`<div class="assign">
+          <span class="assign__body">
+            <input value="${esc(c.word)}" onchange="editCode(${i},'word',this.value)" style="font-weight:700"/>
+            <input value="${esc(c.means)}" placeholder="what it means" onchange="editCode(${i},'means',this.value)"/>
+          </span>
+          <button class="btn btn--danger" onclick="delCode(${i})">Remove</button></div>`).join("")}</div>`
+        :`<div class="empty">No code words yet.</div>`}
+      <div class="who2">
+        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Word</span>
+          <input id="cdWord" placeholder="Buzzer"/></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Means</span>
+          <input id="cdMeans" placeholder="Go on the horn"/></label>
+      </div>
+      <button class="btn btn--block" onclick="addCode()">Add code word</button>`,
+      codes.length?codes.length+(codes.length===1?" word":" words"):layoutName);
+  }
   if(k==="messages") return sec("Messages",
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map(m=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span></div>`).join("")}</div>`

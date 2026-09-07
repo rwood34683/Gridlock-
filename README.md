@@ -125,7 +125,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 143 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor and the house rules. |
+| `npm test` | 172 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, the QR encoder and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -144,7 +144,7 @@ the host to your real domain if it differs.
 ## What ships today
 
 Working: the promo gate and staff login; Playbook (five breaks with per-break
-paths, Face and Shot lanes, layout switching, and the call surfaced against the
+paths, Face and Shot lanes, and the call surfaced against the
 opponent's logged tendency); Tally as a point sheet you tap through; Scout
 (dual-pit cards, tendency, threat, notes, sim bar, anticipate cards, a
 counter-picker derived from the opponent read and the match state, division
@@ -154,8 +154,10 @@ breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
 roles, stored per layout per break and drawn travelling with the player; team
 bunker calls that overlay the official codes everywhere; Movement rotations
 drawn on the field; Assess grading with per-player averages; Bunker stats built
-from tally and movement with a heat overlay; Walk, Lineups, Team, Codes,
-Messages; Classes with join codes and participant forms; League groups with
+from tally and movement with a heat overlay; an editable roster; Lineups that
+set who is on the point and actually direct the break; Walk notes pinned to a
+bunker or a wire; code words with what each one means; Messages; Classes with
+join codes, a scannable code for the deep link, and participant forms; League groups with
 blasts and a blast log; and Nexus.
 
 The staff password is salted and hashed with the platform's own crypto and only
@@ -167,8 +169,7 @@ landing page:
 
 1. Scout 1:1 with the dual-pit screenshots in the spec
 2. Path erase / smooth / aim drag on Playbook
-3. QR generation for class codes
-4. SwiftUI parity in `ios-native/`, then Android Compose
+3. SwiftUI parity in `ios-native/`, then Android Compose
 
 Every other destination now holds real data rather than placeholder copy.
 

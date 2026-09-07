@@ -63,7 +63,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    breaks are written as the bunker each player plants on, in `BREAK_PLANTS`.
 4. ~~Bunker naming on the field + bunker stats heat.~~ Done — Team sets the call,
    it overlays the official code everywhere, and Bunker stats tints the field.
-5. QR generation for class codes.
+5. ~~QR generation for class codes.~~ Done — a class card carries a scannable
+   code for `gridlock://class/<code>`, the deep link both platforms register.
+   The encoder is hand-written (the app has no network) and its output is
+   pinned in the suite against a matrix verified by an outside decoder.
 6. Path erase / smooth / aim drag on Playbook.
 7. Bring iOS SwiftUI up to web parity, then Android Compose.
 
