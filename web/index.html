@@ -2057,6 +2057,33 @@ window.setScoutThreat = (side, i, n) => {
   editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? {...p, threat:n} : p)});
   render();
 };
+// ---- rosters the league published ----
+// Not scouting. These are names off the league's own pages, and they go in
+// flagged as published so a name nobody here has watched is never mistaken for
+// something a coach saw. A team is in this list only if its roster was actually
+// read somewhere; the rest stay empty rather than being filled in from memory.
+const PRO_ROSTERS = {
+  "San Diego Dynasty": {
+    read: "September 2026",
+    src: "the NXL team page and the team's 2026 roster write-up",
+    men: [{num:"7", name:"Alex Fraige"}, {num:"18", name:"Ryan Greenspan"},
+          {num:"32", name:"Yosh Rau"}, {num:"", name:"Eliot Weaver"},
+          {num:"", name:"Archie Barnes Jr"}],
+  },
+};
+function published(name){ return PRO_ROSTERS[name] || null; }
+window.addPublished = side => {
+  const name = pitOf(side).name, r = published(name);
+  if(!r) return;
+  const have = pitOf(side).players;
+  const add = r.men
+    .filter(p => !have.some(h => (p.num && h.num === p.num) ||
+                                 (h.name || "").toLowerCase() === p.name.toLowerCase()))
+    .map(p => ({num: p.num, name: p.name, wire: "Flex", note: "", threat: 3, from: "published"}));
+  editProfile(side, {players: [...have, ...add]});
+  render();
+};
+
 // ---- a roster read off a screenshot ----
 // Nothing is fetched: there is no network in this app and there is not going to
 // be one. The phone already reads text out of a picture — press and hold a
@@ -2556,7 +2583,7 @@ function pit(side,T,label){
     <div class="pit__side">${label}</div>
     <div>
       <div class="pit__name">${esc(T.name)}</div>
-      <div class="pit__pts">US ${T.pts} pts</div>
+      <div class="pit__pts">${T.pts === undefined ? "US — · not scored yet" : "US "+T.pts+" pts"}</div>
     </div>
     <select onchange="setPitTeam('${side}',this.value)">
       ${teamsHere().map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
@@ -2569,7 +2596,8 @@ function pit(side,T,label){
       <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
 
-    <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}</label>
+    <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
+        men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
           <input class="rost__num" value="${esc(m.num)}" placeholder="#"
             onchange="editScoutPlayer('${side}',${i},'num',this.value)"/>
@@ -2589,6 +2617,14 @@ function pit(side,T,label){
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
         </div>`).join("")}</div>`
         :`<div class="empty">No one logged on ${esc(T.name)} yet. The number is enough to start.</div>`}
+      ${!men.length && published(T.name)
+        ? `<button class="btn btn--block" onclick="addPublished('${side}')">Add their published ${published(T.name).men.length}</button>
+           <p class="note">Names only, read from ${esc(published(T.name).src)} in ${esc(published(T.name).read)}.
+             Check them against the league before you lean on them — rosters move all season.</p>`
+        : !men.length
+        ? `<p class="note">No published roster in the app for ${esc(T.name)}. Paste theirs off PBLeagues below,
+             or log them one at a time as you see them.</p>`
+        : ""}
       <div class="rost__add">
         <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric"/>
         <input id="sp-name-${side}" placeholder="Name (optional)"/>

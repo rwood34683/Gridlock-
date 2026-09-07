@@ -844,6 +844,53 @@ const ROSTER = [
   check("the migrated slot keeps only the team name", await ev(() =>
     Object.keys(S.left).join() === "name"));
 
+  /* ------------------------------------------ rosters the league published */
+  G("Published rosters");
+  await ev(() => window.set({ tab: "scout", scoutTab: "matchup", scout: {},
+    division: "pro", left: { name: "Los Angeles Ironmen" }, right: { name: "San Diego Dynasty" } }));
+  // The pro board carries names only, so a pit can hold a team with no points.
+  check("a team nobody has scored reads as a dash, never as undefined", await ev(() =>
+    pitOf("left").pts === undefined) &&
+    /not scored yet/.test(await page.locator(".pit--l").innerText()) &&
+    !/undefined/i.test(await page.locator(".pit--l").innerText()));
+  check("a published roster is offered only where one was actually read", await ev(() =>
+    !!published("San Diego Dynasty") && !published("Los Angeles Ironmen")));
+  check("every published roster says where it came from and when", await ev(() =>
+    Object.values(PRO_ROSTERS).every(r => r.src && r.read && r.men.length)));
+  check("no roster was invented for a team nobody read", await ev(() =>
+    teamsHere().filter(t => published(t.name)).length === Object.keys(PRO_ROSTERS).length));
+  check("a team with no published roster says so plainly, and offers the paste",
+    /No published roster in the app/.test(await page.locator(".pit--l").innerText()));
+  check("adding it logs the men against the team", await ev(() => {
+    window.addPublished("right");
+    const men = pitOf("right").players;
+    return men.length === 5 && men[0].num === "7" && men[0].name === "Alex Fraige";
+  }));
+  check("a published name is flagged as published, never as something you saw", await ev(() =>
+    pitOf("right").players.every(m => m.from === "published")));
+  check("the card says how many came off a roster rather than off film",
+    /off a published roster/i.test(await page.locator(".pit--r").innerText()));
+  check("a published man carries no threat read, just the seed", await ev(() =>
+    pitOf("right").players.every(m => m.threat === 3 && m.note === "" && m.wire === "Flex")));
+  check("adding it twice does not double the roster", await ev(() => {
+    window.addPublished("right");
+    return pitOf("right").players.length === 5;
+  }));
+  check("a published man is editable and scoreable like any other", await ev(() => {
+    window.setScoutThreat("right", 0, 5);
+    window.editScoutPlayer("right", 0, "wire", "Snake");
+    const m = pitOf("right").players[0];
+    return m.threat === 5 && m.wire === "Snake";
+  }));
+  check("the offer is gone once the five are logged",
+    !/Add their published/.test(await page.locator(".pit--r").innerText()));
+  check("a published roster belongs to the team, not the pit", await ev(() => {
+    window.loadPit("Houston Heat");
+    const clean = pitOf("right").players.length === 0;
+    window.loadPit("San Diego Dynasty");
+    return clean && pitOf("right").players.length === 5;
+  }));
+
   /* -------------------------------- a roster read off the phone's own OCR */
   // A screenshot never reaches this app. The phone reads the picture, the coach
   // pastes what it read, and this has to survive how ragged that text is.
