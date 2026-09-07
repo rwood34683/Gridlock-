@@ -84,7 +84,8 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 
 ## Do not
 
-- Rebuild custom cloud auth in the first pass.
+- Rebuild custom cloud auth in the first pass. (There is still no server. Nexus →
+  Save a copy is the offline answer to backup and moving between phones.)
 - Scrape player face photos.
 - Invent live official scores.
 - Open the tutorial on launch.

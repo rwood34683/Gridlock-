@@ -139,7 +139,7 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 217 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, the QR encoder and the house rules. |
+| `npm test` | 234 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the QR encoder and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
 | `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 58/58 at 0.00 ft. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
@@ -176,7 +176,7 @@ drawn on the field; Assess grading with per-player averages; Bunker stats built
 from tally and movement with a heat overlay; an editable roster; Lineups that
 set who is on the point and actually direct the break; Walk notes pinned to a
 bunker or a wire; code words with what each one means; Messages; Classes as a pass-the-phone sign-in sheet; League groups with
-blasts and a blast log; and Nexus.
+blasts and a blast log; Nexus, and Save/Load a copy — a JSON file of the season that merges into another phone rather than clobbering it.
 
 The staff password is salted and hashed with the platform's own crypto and only
 the hash is stored. An account created before that is upgraded on the next

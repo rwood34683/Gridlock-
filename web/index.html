@@ -234,6 +234,15 @@ input,select,textarea{
   border:1px solid var(--line);border-radius:var(--r-md);padding:11px var(--s3);
 }
 input::placeholder,textarea::placeholder{color:var(--dim)}
+/* The file picker ships a grey system button that reads as somebody else's app
+   on a black panel. Same shape as every other quiet button here. */
+input[type=file]{padding:9px var(--s3);color:var(--mute);font-size:var(--t-sm)}
+input[type=file]::file-selector-button{
+  margin-right:var(--s3);padding:0 var(--s4);min-height:36px;
+  border:1px solid var(--line-lit);border-radius:var(--r-sm);
+  background:var(--panel);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;
+}
+input[type=file]::file-selector-button:hover{border-color:var(--accent)}
 textarea{min-height:78px;resize:vertical;line-height:1.45}
 input:focus,select:focus,textarea:focus{border-color:var(--line-lit);outline:none}
 select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
@@ -1146,6 +1155,131 @@ function qrSVG(text, px){
 // The encoder stays verified and ready for the day a session can be reached
 // from another device — that is a backend decision, not an encoder one.
 function joinLink(code){ return "gridlock://class/" + code; }
+
+/* ============================================================
+   Your data, off this phone and back onto it
+   ============================================================
+
+   There is no server, so there is no sync and no backup — a season lives on one
+   device and goes with it. That is the honest cost of an app that makes no
+   network requests, and it is not a reason to leave a coach with no way out.
+
+   A copy is a plain JSON file you own: share it, mail it, drop it in a note,
+   hand it to an assistant coach, keep one before a tournament. Loading one back
+   either replaces what is here or merges into it. Nothing leaves the phone
+   unless you tap the button. */
+const COPY_FORMAT = "gridlock.coach.copy";
+const COPY_VERSION = 1;
+
+// What is worth keeping. Everything else — which tab you were on, whether a
+// path is mid-animation, a half-typed join code — is this session's business.
+const KEEP_ALL = ["roster","scout","left","right","tally","moves","assessments","walk","codes",
+                  "lineups","bunkerCalls","direct","pathEdits","classes","responses","groups",
+                  "blasts","messages","point","layoutKey","script","matchState"];
+const KEEP_SQUAD = ["roster","scout","bunkerCalls","codes"];
+
+function copyPayload(scope){
+  const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
+  const data = {};
+  keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
+  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
+                         at: new Date().toISOString(), app: "GRIDLOCK Coach", data}, null, 1);
+}
+function copySummary(d){
+  const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
+  const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"],
+                [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
+                [n("assessments"), "grade"], [n("messages"), "message"]];
+  return bits.filter(b => b[0])
+             .map(b => `${b[0]} ${b[1]}${b[0] === 1 ? "" : b[1].endsWith("scouted") ? "s scouted" : "s"}`
+                        .replace("team scouteds scouted", "teams scouted"))
+             .join(" · ") || "nothing in it";
+}
+// Merge, not clobber: two devices that both did real work should end up with
+// both lots. Lists join on what makes an entry the same entry; maps take the
+// incoming side for a key that exists on both.
+const SAME = {
+  roster:      r => (r.name || "").toLowerCase(),
+  tally:       o => [o.pt, o.side, o.name, o.at].join("|"),
+  moves:       m => [m.pt, m.who, m.from, m.to, m.at].join("|"),
+  assessments: a => [a.who, a.pt, a.at].join("|"),
+  classes:     c => c.code,
+  responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
+  groups:      g => g.id,
+  blasts:      b => [b.at, b.body].join("|"),
+  codes:       c => (c.word || "").toLowerCase(),
+  messages:    m => String(m),
+};
+function mergeInto(cur, incoming){
+  const out = {...cur};
+  Object.entries(incoming).forEach(([k, v]) => {
+    const mine = cur[k];
+    if(Array.isArray(v) && Array.isArray(mine) && SAME[k]){
+      const seen = new Set(mine.map(SAME[k]));
+      out[k] = [...mine, ...v.filter(x => !seen.has(SAME[k](x)))];
+    } else if(Array.isArray(v)){
+      out[k] = v;
+    } else if(v && typeof v === "object" && mine && typeof mine === "object"){
+      out[k] = {...mine, ...v};
+    } else {
+      out[k] = v;
+    }
+  });
+  return out;
+}
+function readCopy(text){
+  let p;
+  try { p = JSON.parse(String(text || "").trim()); }
+  catch(e){ return {error: "That is not a GRIDLOCK copy — it is not readable as JSON."}; }
+  if(!p || p.format !== COPY_FORMAT) return {error: "That file is not a GRIDLOCK copy."};
+  if(!(p.v <= COPY_VERSION)) return {error: `That copy was written by a newer version of the app (v${p.v}).`};
+  if(!p.data || typeof p.data !== "object") return {error: "That copy has nothing in it."};
+  return {payload: p};
+}
+
+window.saveCopy = scope => {
+  const text = copyPayload(scope);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
+  S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}`;
+  save(S);
+  if(window.gridlockShare) window.gridlockShare(text, name);
+  // A download as well, where the browser allows one. Inside an artifact viewer
+  // it will not, which is why the share sheet and the box below both exist.
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type: "application/json"}));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch(e){}
+  render();
+};
+window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
+window.loadCopy = mode => {
+  const el = document.getElementById("copyIn");
+  const r = readCopy(el && el.value);
+  if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
+  const d = r.payload.data;
+  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + copySummary(d);
+  // Replace swaps the data, not the session: you stay signed in, on this screen,
+  // looking at the message that says what just happened.
+  const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
+  const held = {};
+  SESSION.forEach(k => { held[k] = S[k]; });
+  const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
+  Object.keys(next).forEach(k => { S[k] = next[k]; });
+  if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+  S.copyText = ""; save(S); render();
+};
+window.readCopyFile = input => {
+  const f = input.files && input.files[0];
+  if(!f) return;
+  const fr = new FileReader();
+  fr.onload = () => { const el = document.getElementById("copyIn"); if(el) el.value = fr.result;
+                      S.copyStatus = `Read ${f.name} — now choose Merge or Replace.`; save(S); render(); };
+  fr.readAsText(f);
+};
 
 // ---- editing the break on the field ----------------------------------------
 //
@@ -2767,7 +2901,38 @@ function moreBody(k){
     </div>
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
-    <p class="note">GRIDLOCK System · powered by UPRA</p>`);
+    <p class="note">GRIDLOCK System · powered by UPRA</p>`)
+  + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
+      is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
+      assistant coach.</p>
+    <div class="toggles">
+      <button class="btn" onclick="saveCopy('all')">Save everything</button>
+      <button class="btn btn--quiet" onclick="saveCopy('squad')">Just the squad</button>
+    </div>
+    <p class="note">Everything is your roster, scouting, tally, rotations, grades, walk notes, codes,
+      sessions and league groups. The squad is your players, what you know about other teams, your
+      bunker calls and your code words.</p>
+    <div class="toggles">
+      <button class="btn btn--quiet" onclick="showCopy('all')">Show it as text</button>
+      ${S.copyText?`<button class="btn btn--quiet" onclick="set({copyText:''})">Hide</button>`:""}
+    </div>
+    ${S.copyText?`<div class="fld"><label>Copy this and keep it somewhere safe</label>
+      <textarea readonly style="min-height:150px;font-family:ui-monospace,monospace;font-size:11px"
+        onclick="this.select()">${esc(S.copyText)}</textarea></div>`:""}
+    ${S.copyStatus?`<p class="note" style="color:var(--accent-lit)">${esc(S.copyStatus)}</p>`:""}`,
+    copySummary(S))
+  + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
+      on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
+    <div class="fld"><label>From a file</label>
+      <input type="file" accept="application/json,.json,text/plain" onchange="readCopyFile(this)"/></div>
+    <div class="fld"><label>Or paste it</label>
+      <textarea id="copyIn" placeholder='{"format":"gridlock.coach.copy", …}'
+        style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>
+    <div class="toggles">
+      <button class="btn" onclick="loadCopy('merge')">Merge it in</button>
+      <button class="btn btn--danger" onclick="loadCopy('replace')">Replace everything</button>
+    </div>
+    <p class="note">A copy never carries your staff password. Sign in again on the new phone.</p>`);
   return "";
 }
 window.sendMsg = () => {

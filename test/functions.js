@@ -550,6 +550,90 @@ const ROSTER = [
   }));
   await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
 
+  /* ------------------------------------------------- a copy of your season */
+  G("Save and load a copy");
+  const SEASON = {
+    roster: [{name:"Reyes",num:7,p:"snake MW",s:"GP"},{name:"Okafor",num:3,p:"MT 50",s:"C lane"}],
+    scout: {"Rejects":{tend:"Snake",threat:4,notes:"buzzer runner",
+            players:[{num:"7",name:"Vasquez",wire:"Snake",note:"buzzer",threat:5}]}},
+    tally: [{pt:1,side:"us",name:"Reyes",at:111,script:"snake",layout:"mwo",vs:"Rejects",how:"Laned"}],
+    codes: [{word:"Buzzer",means:"go on the horn"}],
+    classes: [{id:"GL-7K2M",code:"GL-7K2M",title:"Friday clinic",open:true}],
+  };
+  await ev(st => window.set({ tab:"more", more:"nexus", ...st }), SEASON);
+  const copy = await ev(() => copyPayload("all"));
+  check("a copy is readable JSON that says what it is", await ev(t => {
+    const p = JSON.parse(t);
+    return p.format === "gridlock.coach.copy" && p.v === 1 && !!p.at && !!p.data;
+  }, copy));
+  check("a copy carries the season", await ev(t => {
+    const d = JSON.parse(t).data;
+    return d.roster.length === 2 && Object.keys(d.scout).length === 1 && d.tally.length === 1;
+  }, copy));
+  check("a copy never carries the staff password", !/pass|hash|salt/i.test(copy));
+  check("a copy leaves this session's own business behind", await ev(t => {
+    const d = JSON.parse(t).data;
+    return d.tab === undefined && d.tips === undefined && d.playing === undefined && d.copyText === undefined;
+  }, copy));
+  check("the squad copy is the squad, not the season", await ev(() => {
+    const d = JSON.parse(copyPayload("squad")).data;
+    return !!d.roster && !!d.scout && d.tally === undefined && d.classes === undefined;
+  }));
+  check("a copy counts itself in plain words", await ev(t =>
+    /2 players/.test(copySummary(JSON.parse(t).data)) && /1 team scouted/.test(copySummary(JSON.parse(t).data)), copy));
+
+  // The whole point: another phone that also did real work keeps both lots.
+  const OTHER = {
+    roster: [{name:"Vance",num:11,p:"GP",s:"snake"}],
+    scout: {"Malicious":{tend:"Dorito",threat:5,notes:"lean dorito",players:[]}},
+    tally: [{pt:1,side:"them",name:"2",at:222,script:"snake",layout:"mwo",vs:"Malicious"}],
+    codes: [{word:"Ladder",means:"trade out"}],
+  };
+  await ev(st => window.set({ ...defaultState(), entered:true, role:"staff", tab:"more", more:"nexus", ...st }), OTHER);
+  await ev(t => { document.getElementById("copyIn").value = t; window.loadCopy("merge"); }, copy);
+  check("merging keeps both rosters", await ev(() =>
+    S.roster.length === 3 && S.roster.some(r => r.name === "Vance") && S.roster.some(r => r.name === "Reyes")));
+  check("merging keeps both teams scouted", await ev(() =>
+    !!S.scout["Rejects"] && !!S.scout["Malicious"]));
+  check("merging keeps both sets of outs", await ev(() => S.tally.length === 2));
+  check("merging the same copy twice changes nothing", await ev(t => {
+    const before = [S.roster.length, S.tally.length, S.codes.length].join();
+    document.getElementById("copyIn").value = t; window.loadCopy("merge");
+    return [S.roster.length, S.tally.length, S.codes.length].join() === before;
+  }, copy));
+  check("the app says what it just took in", await ev(() => /Merged in/.test(S.copyStatus)));
+
+  await ev(t => { document.getElementById("copyIn").value = t; window.loadCopy("replace"); }, copy);
+  check("replacing drops what was here", await ev(() =>
+    S.roster.length === 2 && !S.scout["Malicious"] && S.tally.length === 1));
+
+  check("something that is not a copy is refused", await ev(() => {
+    document.getElementById("copyIn").value = "not json at all";
+    window.loadCopy("merge");
+    return /not readable as JSON/.test(S.copyStatus) && S.roster.length === 2;
+  }));
+  check("someone else's JSON is refused", await ev(() => {
+    document.getElementById("copyIn").value = '{"hello":"world"}';
+    window.loadCopy("merge");
+    return /not a GRIDLOCK copy/.test(S.copyStatus) && S.roster.length === 2;
+  }));
+  check("a copy from a newer app is refused, not half-read", await ev(() => {
+    document.getElementById("copyIn").value = JSON.stringify({format:"gridlock.coach.copy",v:99,data:{roster:[]}});
+    window.loadCopy("merge");
+    return /newer version/.test(S.copyStatus) && S.roster.length === 2;
+  }));
+  check("a copy naming a field that no longer ships still loads", await ev(() => {
+    document.getElementById("copyIn").value = JSON.stringify({format:"gridlock.coach.copy",v:1,
+      data:{layoutKey:"tbo", roster:[{name:"Ghost",num:1,p:"",s:""}]}});
+    window.loadCopy("merge");
+    return S.layoutKey === "mwo" && S.roster.some(r => r.name === "Ghost");
+  }));
+  check("the copy screens are on Nexus", await ev(() => {
+    window.set({ tab:"more", more:"nexus" });
+    const txt = document.querySelector(".main").textContent;
+    return /Save a copy/.test(txt) && /Load a copy/.test(txt) && /no automatic backup/.test(txt);
+  }));
+
   /* --------------------------------------- the matchup panel, actually counted */
   G("Matchup");
   await ev(() => window.set({ tab: "scout", scoutTab: "matchup", script: "snake",

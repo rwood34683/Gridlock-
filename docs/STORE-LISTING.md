@@ -7,7 +7,7 @@ are noted; `npm run store:check` re-counts them if you edit the copy.
 > **One rule for everything below.** The listing may only describe what the build
 > actually does. Both stores check marketing against the binary, and a claim the
 > app cannot back up is a rejection. Features still on the roadmap — a second
-> event layout, remote clinic sign-in, any kind of sync — are
+> event layout, remote clinic sign-in, live sync between phones — are
 > deliberately absent. Keep them out until they ship.
 
 ---
@@ -93,7 +93,10 @@ WORKS WITH NO SIGNAL
 The app makes no network requests at all. Airplane mode changes nothing. There is no account to create, nothing to sign into, and no waiting on a bar of service in a field in the middle of nowhere.
 
 WE COLLECT NOTHING
-No analytics, no advertising, no tracking, no server. Everything you enter is written to storage on your own device and stays there. The flip side is worth knowing before you start: because nothing leaves the phone, there is no backup and no sync. Your work lives on one device. Treat it the way you would treat a paper notebook.
+No analytics, no advertising, no tracking, no server. Everything you enter is written to storage on your own device and stays there.
+
+BACK IT UP YOURSELF
+Because there is no server, nothing backs your season up for you and nothing syncs between phones. So the app hands you the file instead: Save a copy writes your roster, scouting, tally, sessions and league groups to a single file you own. Mail it to yourself before a tournament, move to a new phone, or hand an assistant coach just the squad. Loading one back either merges into what is already there or replaces it, and merging the same copy twice changes nothing.
 
 GRIDLOCK System · powered by UPRA
 ```
@@ -163,8 +166,10 @@ the section headings in caps and leave a blank line between blocks.
 - **Is all of the user data collected by your app encrypted in transit?** Not
   applicable — no data is transmitted.
 - **Do you provide a way for users to request that their data be deleted?**
-  Data never leaves the device; uninstalling the app deletes it. Point the
-  answer at `https://<your-domain>/privacy.html`, which says so.
+  Data is only ever on the user's own device; uninstalling the app deletes it.
+  The app can write a copy to a file at the user's request, which is a local
+  file operation, not a transfer to us. Point the answer at
+  `https://<your-domain>/privacy.html`, which says so.
 
 ### Content rating questionnaire
 Sports/utility app. No violence, no sexual content, no profanity, no gambling,
