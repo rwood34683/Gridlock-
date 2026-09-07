@@ -75,6 +75,42 @@ Run on a real phone at least once before submitting. The simulator does not tell
 you the truth about touch targets, the safe area under a notch, or how the field
 reads outdoors.
 
+## The first run on a real phone
+
+Everything in the test suites is a headless browser at phone-sized viewports.
+That is honest about geometry and silent about the list below, every item of
+which is a real risk in this app and none of which can be checked from here.
+Go through it once, on the phone, in daylight.
+
+- [ ] **Sunlight.** Take it outside. The whole design is a black field with red
+      and blue bunkers; if it washes out on a bright sideline the product does
+      not work, and nothing else on this list matters.
+- [ ] **Scroll position holds.** On Scout, scroll down to a player and tap a
+      threat star. The screen should stay where it is. This was broken until
+      recently — every tap rebuilds the screen — so it is worth confirming that
+      the fix survives WKWebView.
+- [ ] **Rubber-banding.** Drag past the top and bottom of a long tab. The page
+      should scroll; the whole web view should not bounce as one sheet.
+      `contentInset: never` and `scrollEnabled: false` in `capacitor.config.json`
+      are what stop that.
+- [ ] **The keyboard.** Open Scout → Notes and type. Check the box is not hidden
+      behind the keyboard, and that you can dismiss it and still reach the tab bar.
+- [ ] **Safe areas.** Under a Dynamic Island, the header must clear it. At the
+      bottom, the tab bar must sit above the home indicator, and a swipe up must
+      not fire a tab.
+- [ ] **Rotate it.** Playbook should go to two columns, call left, field right.
+      Rotate back. Then rotate on Scout and Tally too.
+- [ ] **Kill and reopen.** Log a few outs on Tally, swipe the app away, reopen.
+      Everything should still be there. This is localStorage surviving an app
+      kill, which is not the same as surviving a page reload.
+- [ ] **Gloves on.** Every tap target is at least 44px by measurement. That is
+      the floor, not proof — try it the way you would use it between points.
+- [ ] **The break animation.** Play the break a few times. It runs at 57fps in a
+      throttled desktop browser; a phone is a different machine.
+
+Anything that misbehaves, tell me what you saw and on which screen — that is
+worth more than any test I can write in here.
+
 ## After you change `web/index.html`
 
 ```bash
