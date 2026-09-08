@@ -442,6 +442,22 @@ svg.field{width:100%;height:auto;display:block}
 .rost__num{text-align:center;font-weight:700}
 .rost__add{display:grid;grid-template-columns:66px 1fr;gap:var(--s2)}
 .rost__add .rost__ps{grid-column:1/-1}
+/* The lane you asked about, answered in one line. */
+.verdict{display:flex;flex-direction:column;gap:2px;margin-top:var(--s3);
+  padding:var(--s3);border-radius:var(--r-sm);border-left:3px solid var(--line-lit);background:var(--sunk)}
+.verdict b{font-size:var(--t-lg);letter-spacing:.02em}
+.verdict span{font-size:var(--t-sm);color:var(--mute)}
+.verdict--yes{border-left-color:var(--ok)}
+.verdict--yes b{color:var(--ok)}
+.verdict--no{border-left-color:var(--red-lit)}
+.verdict--no b{color:var(--red-lit)}
+/* A table row that answers a question is a control, and has to be hittable. */
+tr.tap td{cursor:pointer}
+tr.tap td:first-child{position:relative}
+tr.tap--on td{background:var(--sunk)}
+tr.tap--on td:first-child::before{content:"";position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:var(--accent-lit)}
+svg.field [data-pick]{cursor:crosshair}
 .rost__read{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:var(--s3);
   padding:var(--s2) var(--s3);background:var(--sunk);border-radius:var(--r-sm);min-height:48px}
 .rost__read b{text-align:center;font-weight:700;color:var(--accent-lit)}
@@ -937,7 +953,7 @@ const defaultState = () => ({
   pad:null,
   moves:[],
   assessments:[],
-  sightFrom:null,
+  sightFrom:null, sightTo:null, sightPick:"from",
   walkNotes:"",                   // legacy free-text; migrated into walk[] on load
   walk:{},                        // per layout: [{where, note, at}]
   codeWords:"",                   // legacy free-text; migrated into codes[] on load
@@ -1450,6 +1466,30 @@ window.resetAllPaths = () => {
   S.pathEdits = all; pathsChanged(); save(S); render();
 };
 
+// Sightlines by touch. A bunker is ten pixels across on a phone, so the field
+// itself takes the tap and the nearest bunker wins — a coach points at where he
+// is standing, he does not aim at a shape.
+(function sightPicking(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "sightlines") return;
+    const surface = ev.target.closest("[data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field");
+    if(!svg) return;
+    ev.preventDefault();
+    const b = bunkerAt(fieldFeet(svg, ev));
+    if(!b) return;
+    // Two taps answer the question a coach actually has: where he is, then what
+    // he is looking at. Setting the first advances to the second on its own, so
+    // nobody has to think about a mode — and the chips above go back.
+    if(S.sightPick === "to" && S.sightFrom){
+      set({sightTo: (b.id === S.sightTo || b.id === S.sightFrom) ? null : b.id});
+    } else {
+      set({sightFrom:b.id, sightTo:null, sightPick:"to"});
+    }
+  });
+})();
+
 // One delegated listener on the app, so it survives every repaint.
 (function pathEditing(){
   let drag = null;
@@ -1818,15 +1858,30 @@ function sightLines(fromId, sx, sy){
   const ox=src.x*sx, oy=src.y*sy;
   const lines = list.filter(b=>b!==src).map(b=>{
     const tx=b.x*sx, ty=b.y*sy;
-    // Anything that is not the two endpoints can block the lane.
-    const blocked = list.some(o=>{
+    // Anything that is not the two endpoints can block the lane. Naming the
+    // one in the way is the whole answer — "blocked" on its own tells a coach
+    // nothing he can act on.
+    const by = list.filter(o=>{
       if(o===src||o===b) return false;
       const g=bunkerSize(o, sx, sy);
       return segHitsBox(ox,oy,tx,ty,o.x*sx,o.y*sy,g.h,g.v);
-    });
-    return {to:b, x:tx, y:ty, blocked};
+    }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
+    return {to:b, x:tx, y:ty, blocked:by.length>0, by,
+            ft:Math.round(Math.hypot(b.x-src.x, b.y-src.y))};
   });
   return {src, lines, clear:lines.filter(l=>!l.blocked).length};
+}
+// The bunker nearest a tap, in feet. A bunker is about ten pixels across on a
+// phone — far under anything a gloved thumb can hit — so the field takes the
+// tap and the closest one wins, rather than asking anyone to land on a shape.
+function bunkerAt(at){
+  const list = curLayout().bunkers;
+  let best = null, bestD = Infinity;
+  list.forEach(b => {
+    const d = Math.hypot(b.x - at[0], b.y - at[1]);
+    if(d < bestD){ bestD = d; best = b; }
+  });
+  return bestD <= 14 ? best : null;         // 14 ft — a thumb's worth of field
 }
 
 // The moving layer, on its own. Everything else on the field — 58 bunkers,
@@ -1913,14 +1968,28 @@ function fieldSVG(opts={}, runnersOnly){
     const S1 = sightLines(opts.sightFrom, sx, sy);
     paths = "";
     if(S1.src){
-      sight = S1.lines.map(l=>
-        `<line x1="${(S1.src.x*sx).toFixed(1)}" y1="${(S1.src.y*sy).toFixed(1)}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" stroke="${l.blocked?"#e5342f":"#3ecf8e"}" stroke-width="${l.blocked?1:1.6}" opacity="${l.blocked?.22:.85}" stroke-linecap="round"/>`
-      ).join("")
-      + `<circle cx="${(S1.src.x*sx).toFixed(1)}" cy="${(S1.src.y*sy).toFixed(1)}" r="7" fill="none" stroke="#fff" stroke-width="1.8"/>`;
+      const fx=(S1.src.x*sx).toFixed(1), fy=(S1.src.y*sy).toFixed(1);
+      const lit = opts.sightTo;              // the one lane being asked about
+      sight = S1.lines.map(l=>{
+        const on = lit && l.to.id === lit;
+        const dim = lit && !on;
+        return `<line x1="${fx}" y1="${fy}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" `
+          + `stroke="${l.blocked?"#e5342f":"#3ecf8e"}" stroke-width="${on?3:l.blocked?1:1.6}" `
+          + `opacity="${dim?.08:on?1:l.blocked?.22:.85}" stroke-linecap="round"/>`;
+      }).join("")
+      // What is in the way of the asked-about lane, ringed so it is findable.
+      + (lit ? (S1.lines.find(l=>l.to.id===lit)?.by || []).map(o=>
+          `<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e5342f" stroke-width="1.6"/>`
+        ).join("") : "")
+      + (lit ? (()=>{ const t=S1.lines.find(l=>l.to.id===lit);
+          return t ? `<circle cx="${t.x.toFixed(1)}" cy="${t.y.toFixed(1)}" r="6" fill="none" stroke="#fff" stroke-width="1.6"/>` : ""; })() : "")
+      + `<circle cx="${fx}" cy="${fy}" r="7" fill="none" stroke="#fff" stroke-width="1.8"/>`;
     }
   }
 
   const bunks = layout.bunkers.map(b=>`<g class="bnk" data-b="${b.id}">${bunkerShape(b,sx,sy)}</g>`).join("");
+  const pick = opts.pick
+    ? `<rect data-pick="1" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>` : "";
 
   // Movement draws each logged rotation as an arrow between two footprints.
   let moveArrows = "";
@@ -1995,6 +2064,7 @@ function fieldSVG(opts={}, runnersOnly){
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
     <g class="live">${paths}</g>
+    ${pick}
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
@@ -2947,29 +3017,55 @@ window.loadPit = name => {
 /* ============================================================
    Sightlines — real geometry: a lane is clear when it clips nothing
    ============================================================ */
+window.setSightPick = which => set({sightPick:which});
+window.pickSight = (which, id) => which === "from"
+  ? set({sightFrom:id, sightTo:null, sightPick:"to"})
+  : set({sightTo: id === S.sightTo ? null : id, sightPick:"to"});
+
 function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
   const res=sightLines(from,300/150,240/120);
-  return `${tip("sl","Pick the bunker you are in. Green lanes are clear. Red lanes clip another bunker on the way.")}
+  const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
+  // Four bunkers on this field are called Tr. A coach's own call wins when he
+  // has set one; otherwise the unique code does, because "SD to Tr" names
+  // nothing he can stand in.
+  const name=b=>{ const o=typeof b==="string" ? list.find(x=>x.id===b) : b;
+                  if(!o) return "—";
+                  const call=bunkerCalls()[o.id];
+                  return call || o.id; };
+  const picking=S.sightPick==="to" ? "to" : "from";
+  return `${tip("sl","Tap the field where you are standing. Tap again on what you want to see. Green is a clear lane, red is blocked.")}
 
-  ${sec("From", `<select onchange="set({sightFrom:this.value})">
-      ${list.map(b=>`<option value="${esc(b.id)}" ${b.id===from?"selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}
-    </select>
+  ${sec("Tap the field", `<div class="seg">
+      <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
+      <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
+    </div>
+    <div class="field-wrap">${fieldSVG({sightFrom:from,sightTo:S.sightTo,static:true,pick:true})}</div>
+    ${lane
+      ? `<div class="verdict ${lane.blocked?"verdict--no":"verdict--yes"}">
+           <b>${lane.blocked?"Blocked":"Clear"}</b>
+           <span>${esc(name(from))} to ${esc(name(lane.to.id))} · ${lane.ft} ft${
+             lane.blocked ? " · " + lane.by.slice(0,2).map(o=>esc(name(o))).join(" then ") + " in the way" : ""}</span>
+         </div>`
+      : `<p class="note">Tap a bunker to ask about one lane. Everything red is clipped by something
+         between you and it.</p>`}
     <div class="facts">
       <span class="fact"><b>${res.clear}</b><span>Clear lanes</span></span>
       <span class="fact"><b>${res.lines.length-res.clear}</b><span>Blocked</span></span>
       <span class="fact"><b>${res.lines.length}</b><span>Bunkers</span></span>
-    </div>`, curLayout().name)}
-
-  ${sec("Lanes", `<div class="field-wrap">${fieldSVG({sightFrom:from,static:true})}</div>
-    <p class="aid">Geometry only. It does not know where bodies are — <b>walk it before you trust it.</b></p>`)}
+    </div>
+    <p class="aid">Geometry only. It does not know where bodies are — <b>walk it before you trust it.</b></p>`,
+    curLayout().name)}
 
   ${sec("Clear from here", `<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
-      <tbody>${res.lines.map(l=>`<tr>
+      <tbody>${res.lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}"
+          onclick="pickSight('to','${esc(l.to.id)}')">
         <td>${esc(l.to.n)}</td><td class="num">${esc(l.to.id)}</td>
-        <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked?"blocked":"clear"}</td>
+        <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked
+          ? "blocked by "+esc(name(l.by[0]))
+          : "clear · "+l.ft+" ft"}</td>
       </tr>`).join("")}</tbody>
     </table></div>`, res.clear+" of "+res.lines.length)}`;
 }

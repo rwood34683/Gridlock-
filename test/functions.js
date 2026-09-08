@@ -271,6 +271,78 @@ const ROSTER = [
   await page.waitForTimeout(80);
   check("changing the source redraws", await ev(() => fieldSVG({ sightFrom: S.sightFrom, static: true }).includes("#3ecf8e")));
 
+  // Sightlines by touch. A bunker is about ten pixels across on a phone, so
+  // none of this works if a coach has to land on the shape itself.
+  await ev(() => window.set({ tab: "sightlines", sightFrom: null, sightTo: null, sightPick: "from" }));
+  await page.waitForTimeout(120);
+  check("the field takes taps at all", await ev(() =>
+    !!document.querySelector("svg.field [data-pick]")));
+  check("a tap anywhere lands on the nearest bunker", await ev(() => {
+    const b = LAYOUTS.mwo.bunkers[12];
+    const hit = bunkerAt([b.x + 2, b.y + 2]);        // two feet off it
+    return hit && hit.id === b.id;
+  }));
+  check("a tap in open field picks nobody, rather than the far side", await ev(() => {
+    const far = bunkerAt([75, 60]);                   // dead centre of the field
+    return far === null || Math.hypot(far.x - 75, far.y - 60) <= 14;
+  }));
+
+  const tapField = async (fx, fy) => {
+    const box = await page.locator("svg.field").first().boundingBox();
+    await page.mouse.click(box.x + box.width * (fx / 150), box.y + box.height * (fy / 120));
+    await page.waitForTimeout(90);
+  };
+  const spot = await ev(() => { const b = LAYOUTS.mwo.bunkers[3]; return [b.x, b.y, b.id]; });
+  await tapField(spot[0], spot[1]);
+  check("the first tap says where you are standing", await ev(() => S.sightFrom) === spot[2]);
+  check("and moves on to the lane on its own, so there is no mode to learn",
+    await ev(() => S.sightPick) === "to");
+
+  const target = await ev(() => { const b = LAYOUTS.mwo.bunkers[30]; return [b.x, b.y, b.id]; });
+  await tapField(target[0], target[1]);
+  check("the second tap asks about one lane", await ev(() => S.sightTo) === target[2]);
+  check("that lane gets an answer in words", await ev(() => {
+    const v = document.querySelector(".verdict");
+    return !!v && /Clear|Blocked/.test(v.innerText);
+  }));
+  check("a blocked lane names what is in the way, not just 'blocked'", await ev(() => {
+    const from = LAYOUTS.mwo.bunkers[3].id;
+    const l = sightLines(from, 2, 2).lines.find(x => x.blocked);
+    return !!l && l.by.length > 0 && !!l.by[0].id;
+  }));
+  check("the blocker named is the first one you would hit", await ev(() => {
+    const src = LAYOUTS.mwo.bunkers[3];
+    const l = sightLines(src.id, 2, 2).lines.find(x => x.blocked && x.by.length > 1);
+    if(!l) return true;
+    const d = o => Math.hypot(o.x - src.x, o.y - src.y);
+    return d(l.by[0]) <= d(l.by[1]);
+  }));
+  check("every lane carries how far it is", await ev(() =>
+    sightLines(LAYOUTS.mwo.bunkers[3].id, 2, 2).lines.every(l => l.ft > 0)));
+
+  await tapField(target[0], target[1]);
+  check("tapping the same one again drops the question", await ev(() => S.sightTo) === null);
+  await ev(() => window.setSightPick("from"));
+  const moved = await ev(() => { const b = LAYOUTS.mwo.bunkers[44]; return [b.x, b.y, b.id]; });
+  await tapField(moved[0], moved[1]);
+  check("going back to standing-in moves you, and clears the old lane",
+    await ev(() => S.sightFrom) === moved[2] && await ev(() => S.sightTo) === null);
+  check("the table rows are controls too", await ev(() => {
+    const row = document.querySelector("tr.tap");
+    if(!row) return false;
+    row.click();
+    return !!S.sightTo;
+  }));
+  check("the asked-about lane is drawn heavier than the rest", await ev(() =>
+    fieldSVG({ sightFrom: S.sightFrom, sightTo: S.sightTo, static: true }).includes('stroke-width="3"')));
+  check("a coach's own bunker call wins over the code", await ev(() => {
+    const id = LAYOUTS.mwo.bunkers[30].id;
+    S.bunkerCalls = { ...(S.bunkerCalls || {}), mwo: { [id]: "Rob's corner" } };
+    save(S); window.set({ sightTo: id });
+    return document.body.innerText.includes("Rob's corner");
+  }));
+
+
   /* ------------------------------------------------------- team + bunker calls */
   G("Team and bunker calls");
   await seed({ tab: "more", more: "team" });
