@@ -1477,8 +1477,8 @@ const ROSTER = [
   // Until now the app shipped one layout. Everything geometric keys off it,
   // so a second one is the first real test that any of it was general.
   G("Tampa Bay");
-  check("both layouts ship, and each says where it came from", await ev(() =>
-    Object.keys(LAYOUTS).length === 2 &&
+  check("every layout that ships says where it came from", await ev(() =>
+    Object.keys(LAYOUTS).length === 3 &&
     Object.values(LAYOUTS).every(l => /official NXL labeled 2D/.test(l.source))));
   check("the event becomes a picker once there is more than one to pick", await ev(() => {
     window.set({ tab: "playbook" });
@@ -1530,6 +1530,61 @@ const ROSTER = [
     const hitsBeam = bunkerBoxes(b).some(k =>
       segHitsBox(cx - 2, cy - 2, cx + 2, cy + 2, k.x, k.y, k.w / 2, k.h / 2));
     return hitsBox && !hitsBeam;
+  }));
+
+  // Lone Star came in as an unreleased event with no images at all, then the
+  // field owner sent the official 2D. It is the third field, and the first one
+  // added after everything geometric had already been made general.
+  check("Lone Star carries its own 58 bunkers", await ev(() => LAYOUTS.lso.bunkers.length === 58));
+  check("all three fields are different fields", await ev(() => {
+    const sig = k => LAYOUTS[k].bunkers.map(b => b.id + b.x + b.y).join();
+    return new Set(["mwo", "tby", "lso"].map(sig)).size === 3;
+  }));
+  check("Lone Star is symmetric about the centre line too", await ev(() => {
+    const bs = LAYOUTS.lso.bunkers;
+    return bs.filter(b => Math.abs(b.x - 75) > 4).every(b =>
+      bs.some(o => o !== b && o.n === b.n &&
+        Math.abs((o.x + b.x) / 2 - 75) < 1.4 && Math.abs(o.y - b.y) < 1.4));
+  }));
+  check("its eight angled sections are the same beam as its six straight ones", await ev(() => {
+    const sb = LAYOUTS.lso.bunkers.filter(b => b.n === "SB");
+    const tilt = sb.filter(b => b.a);
+    return sb.length === 14 && tilt.length === 8
+        && sb.every(b => b.w > 9 && b.w < 10 && b.h >= 1.3 && b.h <= 1.8);
+  }));
+  check("a dorito on the snake wire points back down the field", await ev(() => {
+    const d = LAYOUTS.lso.bunkers.filter(b => b.n === "MD" || b.n === "SD");
+    return d.every(b => b.t === (b.y > 60 ? "tridown" : "dorito"))
+        && d.some(b => b.t === "tridown") && d.some(b => b.t === "dorito");
+  }));
+  check("no break path on Lone Star runs through a bunker", await ev(() => {
+    const obs = routeObstacles(LAYOUTS.lso.bunkers);
+    let clip = 0, legs = 0;
+    for(const k of Object.keys(BREAK_PLANTS.lso)){
+      for(const p of breakPaths("lso", k)){
+        legs++;
+        const pts = [p.from, ...(p.via || []), p.to];
+        const holds = o => Math.abs(p.from[0] - o.x) <= o.hw && Math.abs(p.from[1] - o.y) <= o.hh;
+        const live = obs.filter(o => !o.ids.has(p.bunker) && !holds(o));
+        for(let i = 0; i < pts.length - 1; i++)
+          for(const o of live)
+            if(segHitsBox(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], o.x, o.y, o.hw, o.hh)) clip++;
+      }
+    }
+    return legs === 25 && clip === 0;
+  }));
+  check("no plant on any field sits on the away half", await ev(() => {
+    // Bunker ids are assigned by position, so a plant list written against an
+    // older measurement can name a real bunker at the wrong end. The five
+    // break from the home station and cannot plant across the fifty.
+    return Object.keys(BREAK_PLANTS).every(key => {
+      const at = Object.fromEntries(LAYOUTS[key].bunkers.map(b => [b.id, b.x]));
+      return Object.values(BREAK_PLANTS[key]).every(p => p.every(id => at[id] < 76));
+    });
+  }));
+  check("every Lone Star plant names a bunker on that field", await ev(() => {
+    const ids = new Set(LAYOUTS.lso.bunkers.map(b => b.id));
+    return Object.values(BREAK_PLANTS.lso).every(p => p.length === 5 && p.every(id => ids.has(id)));
   }));
 
   check("Tampa has its own five breaks", await ev(() =>

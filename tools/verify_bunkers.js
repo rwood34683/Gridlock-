@@ -19,6 +19,7 @@ const URL = process.env.APP_URL || "http://localhost:5173/";
 const LAYOUTS = [
   ["mwo", "nxl_2026_midwest_open.json"],
   ["tby", "nxl_2026_tampa_bay_open.json"],
+  ["lso", "nxl_2026_lone_star.json"],
 ];
 const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line weight
 

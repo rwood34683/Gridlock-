@@ -8,8 +8,8 @@ JSON per event, and the official published stills that are the ground truth.
 
 **Bunker coordinates are never invented.** An event ships with `bunkers: []` and
 `coordinate_status: "official_image_only"` until someone digitizes it from an
-official labeled 2D. Two events have one: the Midwest Open and the Tampa Bay
-Open.
+official labeled 2D. Three events have one: the Midwest Open, the Tampa Bay
+Open and the Lone Star Open.
 
 | Event | Status | Coordinates | Bunkers |
 |---|---|---|---|
@@ -20,7 +20,8 @@ Open.
 | wcppl_2026_defy_opener | published | `official_image_only` | 0 |
 | mvps_2026_spring_skirmish | published | `official_image_only` | 0 |
 | usxbl_2026_practice | practice only | `official_image_only` | 0 |
-| nxl_2026_lone_star, nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
+| nxl_2026_lone_star | published | `grid_digitized` | 58 |
+| nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
 
 ## How the Midwest Open was digitized
 
@@ -213,7 +214,8 @@ because there is nothing to change to.
   fails all 11 events — including the ones nothing here has touched. The live
   schema is `layouts/schema.json`, which `layouts/CLAUDE.md` points at and which
   the digitized event validates against. Left as found rather than edited.
-- The Midwest Open and the Tampa Bay Open have official labeled 2Ds. The other
+- The Midwest Open, the Tampa Bay Open and the Lone Star Open have official
+  labeled 2Ds. The other
   published events have images but no labeled grid, so they stay at
   `official_image_only`. The MVPS Spring Skirmish image is a perspective promo
   graphic, not a 2D, and its event note claiming it used the Tampa Bay layout is
@@ -248,3 +250,36 @@ because the box around a beam laid at 40 degrees is half again as wide as the
 beam and would block lanes it leaves open. All fourteen sections measure the
 same beam — about 10 ft by 2 ft — which is an independent check that the six
 angled readings are right.
+
+
+## How the Lone Star Open was digitized
+
+Source: `layouts/images/nxl_2026_lonestar_2d_labeled.jpg` (1500 × 1137), the
+official NXL labeled 2D, supplied by the field owner on the day it was
+released. The event had been in the pack as `unreleased` with no images.
+
+```bash
+python3 tools/digitize_lonestar.py
+python3 tools/emit_lonestar.py
+```
+
+Same method as the Tampa pass on a better source — 8.19 px/ft, so a pixel is
+0.12 ft. 58 bunkers. 27 mirrored pairs give an axis of 74.83 ft, sd 0.27,
+against a printed centre line at 75.12.
+
+Eight of the fourteen beam sections are printed at an angle, four in each V.
+Those had to be measured on the lit face alone: a beam section physically
+touches the giant plus it runs into, so a window holding both returns one blob
+and the beam comes back several feet thick. On a bar a foot and a half thick
+the lighting bias is a fraction of a foot, and the mirror check is what says
+so. All fourteen sections then measure the same beam, 9.3 to 9.7 ft by 1.4 to
+1.7 — which is the check that the eight angled readings are right.
+
+Two more things this field taught the pipeline:
+
+- **Which way a dorito points is where it sits**, not what it is called. The two
+  on the snake wire are drawn pointing back down the field. Both emitters now
+  decide that from the measured y rather than from the type name.
+- **Bunker ids are assigned by position**, so a plant list written against an
+  earlier measurement can name a real bunker at the wrong end of the field. A
+  check now asserts that no plant on any layout sits on the away half.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the digitized Tampa Bay bunkers into the event JSON and the app.
+"""Write the digitized Lone Star bunkers into the event JSON and the app.
 
 Run tools/digitize_tampa.py first. The Gridlock field uses the same frame as
 the layout pack — 150 ft x 120 ft, origin top-left, +x toward the away end,
@@ -7,8 +7,8 @@ the layout pack — 150 ft x 120 ft, origin top-left, +x toward the away end,
 """
 import json
 
-EVENT = 'layouts/events/nxl_2026_tampa_bay_open.json'
-MEASURED = 'tools/out/tampa_measured.json'
+EVENT = 'layouts/events/nxl_2026_lone_star.json'
+MEASURED = 'tools/out/lonestar_measured.json'
 
 bunkers = json.load(open(MEASURED))
 ev = json.load(open(EVENT))
@@ -40,26 +40,28 @@ ev['bunkers'] = out
 ev['coordinate_status'] = 'grid_digitized'
 ev['digitized'] = {
     'source_view': '2d_labeled',
-    'source_file': 'images/nxl_2026_tampa_2d.jpg',
+    'source_file': 'images/nxl_2026_lonestar_2d_labeled.jpg',
     'method': ('Printed 10-ft grid detected in the image (16 verticals x 13 horizontals '
-               '= 15 x 12 cells), giving 5.8933 px/ft on x and 5.8833 px/ft on y. Each '
+               '= 15 x 12 cells), giving 8.1867 px/ft on x and 8.1917 px/ft on y. Each '
                'bunker is the centre of its own measured paint footprint in that frame. '
                'Bright paint locates a bunker and separates it from its neighbours; the '
                'footprint is then measured on the full paint, lit and shaded face '
                'together, because the map is lit from the upper left and bright paint '
                'alone pulls every reading about a foot toward the light.'),
-    'field_rect_px': {'x0': 86, 'y0': 90, 'x1': 970, 'y1': 796},
-    'px_per_ft': {'x': 5.8933, 'y': 5.8833},
-    'precision': ('This map is 1080 px wide against the Midwest map at 5123, so one '
-                  'pixel is 0.17 ft here rather than 0.03. Coordinates are good to about '
-                  'a quarter of a foot, not to the inch.'),
-    'mirror_check': ('26 mirrored pairs, axis mean 74.92 ft, sd 0.26 ft; the printed '
-                     'centre line measures 75.00 ft.'),
+    'field_rect_px': {'x0': 121, 'y0': 127, 'x1': 1349, 'y1': 1110},
+    'px_per_ft': {'x': 8.1867, 'y': 8.1917},
+    'precision': ('This map is 1500 px wide — 8.19 px/ft, against Tampa at 5.89 and '
+                  'Midwest at 31.1 — so one pixel is 0.12 ft. Coordinates are good to '
+                  'about a fifth of a foot, not to the inch.'),
+    'mirror_check': ('27 mirrored pairs, axis mean 74.83 ft, sd 0.27 ft; the printed '
+                     'centre line measures 75.12 ft. The 0.29 ft residual is the '
+                     'lighting bias the windows do not fully remove, and is inside the '
+                     'quarter-foot the source supports.'),
     'bunker_count': len(out),
-    'unlabeled': ('The two sideline cylinders at x 1.9 and 148.1, y 60.5 carry no printed '
-                  'label on the official map. Read as Br from their footprint, which '
-                  'matches the labeled Br.'),
-    'tool': 'tools/digitize_tampa.py',
+    'unlabeled': ('The two sideline cylinders at the halfway line carry no printed label '
+                  'on the official map. Read as Br from their footprint, which matches '
+                  'the labeled Br.'),
+    'tool': 'tools/digitize_lonestar.py',
 }
 json.dump(ev, open(EVENT, 'w'), indent=2)
 print(f'{EVENT}: {len(out)} bunkers, coordinate_status = grid_digitized')
@@ -113,8 +115,8 @@ for r in rows:
 if cur:
     lines.append('  ' + ','.join(cur) + ',')
 body = '\n'.join(lines).rstrip(',')
-open('tools/out/tby_layout.js', 'w').write(
+open('tools/out/lso_layout.js', 'w').write(
     '// Digitized from the official NXL labeled 2D on its printed 10-ft grid.\n'
     '// Written by tools/emit_tampa.py — do not hand-edit.\n'
-    f'const TBY = [\n{body}\n];\n')
-print(f'tools/out/tby_layout.js: {len(rows)} bunkers')
+    f'const LSO = [\n{body}\n];\n')
+print(f'tools/out/lso_layout.js: {len(rows)} bunkers')
