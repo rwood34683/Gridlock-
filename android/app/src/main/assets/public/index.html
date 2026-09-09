@@ -882,8 +882,6 @@ const LSO = [
 ];
 
 const LAYOUTS = {
-  mwo: {name:"NXL Midwest Open · Cincinnati", key:"mwo", bunkers:MWO,
-        source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid."},
   lso: {name:"NXL Lone Star Open · Garland", key:"lso", bunkers:LSO,
         source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid. "
              + "That map is 1500px wide, so these are good to about a fifth of a foot.",
@@ -895,7 +893,9 @@ const LAYOUTS = {
         // off a walk: one man per wire, how far up the field set by how
         // aggressive the break is, never two on the same beam. A coach who has
         // walked Tampa should drag them where they belong — Edit path saves it.
-        plantsFrom:"rule"}
+        plantsFrom:"rule"},
+  mwo: {name:"NXL Midwest Open · Cincinnati", key:"mwo", bunkers:MWO,
+        source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid."}
 };
 const BREAKS = {
   hold:{name:"Hold & Read", paths:[
@@ -1015,7 +1015,7 @@ window.delTeam = name => {
 const defaultState = () => ({
   entered:false, role:"guest", email:"",
   tab:"playbook", more:"classes",
-  layoutKey:"mwo", script:"snake", playing:false, t:0,
+  layoutKey:"lso", script:"snake", playing:false, t:0,
   faceOn:true, shotOn:true, rolesOn:true,
   left:{name:"Blast Camp"},        // which team is in the pit; what you know
   right:{name:"Rejects"},          // about them lives in scout[], keyed by team
@@ -1067,7 +1067,7 @@ function save(s){localStorage.setItem(STORE_KEY, JSON.stringify(s))}
 let S = load();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
-if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
 
 // A half-finished paste is scratch, not a record. It should not still be sitting
 // open three days later at the next event.
@@ -1106,7 +1106,7 @@ if(S.codeWords && !(S.codes||[]).length){
 // sites used to fall back and half read straight through, so an unknown key —
 // a layout that stopped shipping, a corrupted save — took the whole screen
 // down instead of showing the field it does have.
-function curLayout(){ return LAYOUTS[S.layoutKey] || LAYOUTS.mwo; }
+function curLayout(){ return LAYOUTS[S.layoutKey] || LAYOUTS.lso; }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
 if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
@@ -1519,7 +1519,7 @@ window.loadCopy = mode => {
   SESSION.forEach(k => { held[k] = S[k]; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   Object.keys(next).forEach(k => { S[k] = next[k]; });
-  if(!LAYOUTS[S.layoutKey]) S.layoutKey = "mwo";
+  if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   dropPathCache();
   S.copyText = ""; save(S); render();
 };

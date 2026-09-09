@@ -6,7 +6,7 @@
    coach nothing about whether the app is worth installing. */
 module.exports = {
   entered: true, role: "staff", email: "coach@team.com",
-  tab: "playbook", script: "snake", layoutKey: "mwo",
+  tab: "playbook", script: "snake", layoutKey: "lso",
   faceOn: true, shotOn: true, t: 0.62, matchState: "Even",
   tips: { pb: true, tally: true, scout: true, sl: true, class: true },
   left: {

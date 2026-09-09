@@ -74,7 +74,7 @@ paintball,coach,xball,nxl,speedball,breakout,sideline,layout,bunker,scrimmage,le
 GRIDLOCK Coach is the sideline tool for paintball coaches and league staff. Pick the event, call the break, direct all five players, and read the other pit — between points, on a phone, with gloves on.
 
 MEASURED, NOT DRAWN
-The field is the NXL 2026 Midwest Open, digitized from the official labeled 2D map against its printed 10-ft grid. Every one of the 58 bunkers matches that map to within a hundredth of a foot, and the app ships a check that proves it on every build. A field that is nearly right is worse than no field at all when you are calling a break off it.
+Three NXL 2026 fields ship — the Lone Star Open, the Tampa Bay Open and the Midwest Open — each digitized from its official labeled 2D against the printed 10-ft grid. Every one of the 173 bunkers matches its map to within a hundredth of a foot, and the app ships a check that proves it on every build. A field that is nearly right is worse than no field at all when you are calling a break off it.
 
 PLAYBOOK
 Five breakouts, each one drawn as real routes to real bunkers — routed around the snake and everything else, because nobody runs through an inflatable. Direct all five: set primary and secondary roles, point a player's face any of eight ways, and give them a named bunker to lane. Play the break and watch it develop, with each chevron and shot cone travelling with its player.

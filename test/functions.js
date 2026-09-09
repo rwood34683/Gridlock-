@@ -719,7 +719,7 @@ const ROSTER = [
     document.getElementById("copyIn").value = JSON.stringify({format:"gridlock.coach.copy",v:1,
       data:{layoutKey:"tbo", roster:[{name:"Ghost",num:1,p:"",s:""}]}});
     window.loadCopy("merge");
-    return S.layoutKey === "mwo" && S.roster.some(r => r.name === "Ghost");
+    return !!LAYOUTS[S.layoutKey] && S.roster.some(r => r.name === "Ghost");
   }));
   check("the copy screens are on Nexus", await ev(() => {
     window.set({ tab:"more", more:"nexus" });
@@ -775,7 +775,7 @@ const ROSTER = [
   await ev(() => window.markOut("us", "Reyes"));
   check("an out records the call, the field and the opponent", await ev(() => {
     const o = S.tally[0];
-    return o.script === "snake" && o.layout === "mwo" && o.vs === "Rejects";
+    return o.script === "snake" && o.layout === S.layoutKey && o.vs === "Rejects";
   }));
   await ev(() => { window.setOutBunker(0, "how", "Laned"); window.setOutBunker(0, "by", "#7"); });
   check("an out records how, and who did it", await ev(() =>
@@ -792,7 +792,7 @@ const ROSTER = [
 
   /* ------------------------------------------------ counting what happened */
   G("History");
-  await ev(() => window.set({ tab: "playbook", script: "snake", point: 1, tally: [
+  await ev(() => window.set({ tab: "playbook", layoutKey: "mwo", script: "snake", point: 1, tally: [
     {pt:1, side:"us",   name:"Reyes",  script:"snake", layout:"mwo", vs:"Rejects", how:"Laned",       by:"#7"},
     {pt:1, side:"us",   name:"Vance",  script:"snake", layout:"mwo", vs:"Rejects", how:"Laned",       by:"#7"},
     {pt:1, side:"them", name:"3",      script:"snake", layout:"mwo", vs:"Rejects"},
@@ -1109,8 +1109,10 @@ const ROSTER = [
   // right angles. Rounding must not push the curve into a bunker, so this
   // samples what is actually drawn — the real path element, at 4 samples a
   // foot — and checks every sample against every footprint.
-  const curve = await ev(() => {
-    const obs = routeObstacles(LAYOUTS.mwo.bunkers);
+  const sampleCurves = () => ev(() => {
+    // Whatever field is on screen — the obstacles have to be that field's, or
+    // this compares one layout's curves against another's bunkers.
+    const obs = routeObstacles(curLayout().bunkers);
     const svg = document.querySelector(".field-wrap[data-live] svg.field");
     const paths = [...svg.querySelectorAll("path[stroke='#e5342f']")];
     const bad = [];
@@ -1129,10 +1131,22 @@ const ROSTER = [
         prev = cur;
       }
     });
-    return { paths: paths.length, bad: [...new Set(bad)] };
+    return { key: S.layoutKey, paths: paths.length, bad: [...new Set(bad)] };
   });
+  const curve = await sampleCurves();
   check("the drawn curve is sampled on all five paths", curve.paths === 5, `${curve.paths} paths`);
-  check("rounding a corner never pushes the run into a bunker", curve.bad.length === 0, curve.bad.join(", "));
+  // Every field, not just the one the app happens to open on: rounding that
+  // clears one layout can cut a corner into a bunker on another.
+  const curves = [curve];
+  for(const k of ["mwo", "tby"]){
+    await ev(x => window.set({ layoutKey: x }), k);
+    await page.waitForTimeout(180);
+    curves.push(await sampleCurves());
+  }
+  const cut = curves.filter(c => c.bad.length);
+  check("rounding a corner never pushes the run into a bunker, on any field",
+    cut.length === 0, cut.map(c => `${c.key}: ${c.bad.join(" ")}`).join(" | ")
+      || curves.map(c => c.key).join(", "));
 
   check("edit mode puts a handle on every corner", await ev(() => {
     const corners = currentPaths().reduce((n, p) => n + (p.via || []).length, 0);
@@ -1536,6 +1550,10 @@ const ROSTER = [
   // field owner sent the official 2D. It is the third field, and the first one
   // added after everything geometric had already been made general.
   check("Lone Star carries its own 58 bunkers", await ev(() => LAYOUTS.lso.bunkers.length === 58));
+  check("the app opens on the event that is next", await ev(() => {
+    localStorage.clear();
+    return defaultState().layoutKey === "lso" && Object.keys(LAYOUTS)[0] === "lso";
+  }));
   check("all three fields are different fields", await ev(() => {
     const sig = k => LAYOUTS[k].bunkers.map(b => b.id + b.x + b.y).join();
     return new Set(["mwo", "tby", "lso"].map(sig)).size === 3;
