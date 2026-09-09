@@ -7,6 +7,8 @@ the layout pack — 150 ft x 120 ft, origin top-left, +x toward the away end,
 """
 import json
 
+from bunkerbook import beam as std_beam, footprint as std_footprint, provenance
+
 EVENT = 'layouts/events/nxl_2026_tampa_bay_open.json'
 MEASURED = 'tools/out/tampa_measured.json'
 
@@ -26,8 +28,21 @@ def side(b):
 
 out = []
 for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
+    # Where it stands is this map's to say; how big it is comes from the book,
+    # measured once off the print that can measure it. Both are kept: w_ft and
+    # h_ft are the bunker, drawn_w_ft and drawn_h_ft are what this map drew.
+    # A beam laid across the field is kept as a bar with its own length,
+    # thickness and angle; its bounding box says almost nothing about it. The
+    # threshold is well clear of the couple of degrees a straight section
+    # wanders by, and well under the forty-five a leaning one runs at.
+    ang = b.get('angle_deg') or 0
+    if b['type'] == 'snake_beam' and abs(ang) > 12:
+        w, h, off = std_beam(b['long_ft'], b['thick_ft'])
+    else:
+        w, h, off = std_footprint(b['type'], b['w_ft'], b['h_ft'])
     e = {'name': b['name'], 'type': b['type'], 'side': side(b),
-         'x_ft': b['x_ft'], 'y_ft': b['y_ft'], 'w_ft': b['w_ft'], 'h_ft': b['h_ft'],
+         'x_ft': b['x_ft'], 'y_ft': b['y_ft'], 'w_ft': w, 'h_ft': h,
+         'drawn_w_ft': b['w_ft'], 'drawn_h_ft': b['h_ft'], 'off_ft': off,
          'angle_deg': b.get('angle_deg'), 'long_ft': b.get('long_ft'),
          'thick_ft': b.get('thick_ft'), 'cross_deg': b.get('cross_deg'),
          'body': b.get('body'), 'detail': b.get('detail'),
@@ -60,6 +75,7 @@ ev['digitized'] = {
                   'label on the official map. Read as Br from their footprint, which '
                   'matches the labeled Br.'),
     'tool': 'tools/digitize_tampa.py',
+    'footprints': provenance(out),
 }
 json.dump(ev, open(EVENT, 'w'), indent=2)
 print(f'{EVENT}: {len(out)} bunkers, coordinate_status = grid_digitized')
@@ -86,13 +102,13 @@ def uid(name):
 rows = []
 for b in out:
     ang = b.get('angle_deg') or 0
-    # A beam laid across the field carries its own length, thickness and angle;
-    # its bounding box says almost nothing about what it is.
-    angled = b['type'] == 'snake_beam' and abs(ang) > 5
+    angled = b['type'] == 'snake_beam' and abs(ang) > 12
+    # Where the bunkers stand is this map's to say. How big each one is comes
+    # from the book, measured once off the print that can measure it; see
+    # tools/bunkerbook.py. How far the two disagree is recorded below.
     d = {'id': uid(b['name']), 'n': b['name'], 'x': b['x_ft'], 'y': b['y_ft'],
          't': dorito_shape(b) if 'dorito' in b['type'] else SHAPE[b['type']],
-         'w': b['long_ft'] if angled else b['w_ft'],
-         'h': b['thick_ft'] if angled else b['h_ft'],
+         'w': b['w_ft'], 'h': b['h_ft'],
          'c': 'r' if b['body'] == 'red' else 'b'}
     if angled:
         d['a'] = ang

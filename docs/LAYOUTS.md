@@ -48,7 +48,11 @@ counted as paint and stretches every footprint.
 
 **3. Measure each bunker.** Inside a window per bunker, take the largest
 connected blob and use its bounding-box centre. Largest-blob, not all-pixels, so
-a stray watermark pixel in the window cannot move the answer.
+a stray watermark pixel in the window cannot move the answer. Then attach the
+face the print takes past dark to black, which colour cannot see at all: see
+*The half of every bunker that is in shadow* below. Without it every centre sits
+about a foot toward the light, and the mirror residual says so — it was 0.21 ft
+on this map before the shaded faces went in and is **0.09 ft** after.
 
 **4. Split the beams objectively.** The snake is not one bar — it is nine 10-ft
 sections butted end to end, each printed `SB`, with blue joints between them.
@@ -63,8 +67,8 @@ never from the shape.
 ### The check that matters
 
 The layout is mirror-symmetric about the printed 50. Pairing every bunker with
-its opposite number and averaging gives an axis of **74.84 ft, sd 0.21 ft**
-across 25 pairs, and the eight centre-line bunkers land at 74.9–75.3 ft. The
+its opposite number and averaging gives an axis of **74.94 ft, sd 0.09 ft**
+across 25 pairs, and the eight centre-line bunkers land at 75.0–76.0 ft. The
 printed centre line itself measures 75.15 ft. Nothing was snapped or forced to
 make that come out — the residual is inside the width of the drawn line, which
 is what says the digitization is sound.
@@ -80,9 +84,98 @@ but a name cannot be read off the map, and the legend also lists a `TCK` (Tall
 Cake) that appears nowhere labeled — so it was one of those two and the map does
 not say which. `layouts/CLAUDE.md` says to ask rather than guess, so they shipped
 as `UNLABELED` until the field owner confirmed them as **`Br`**, which is what
-their 3.5 × 7.8 ft footprint already matched exactly. They now carry
+their footprint already matched exactly. They now carry
 `name: "Br"` with a note recording that the name came from confirmation rather
 than from the printed map.
+
+## The half of every bunker that is in shadow
+
+These maps are lit from the upper left, and every bunker on them is a small 3D
+render: a bright face, a mid face, and a face the print takes to black. Blow one
+up far enough and it is plain that the black is a **face of the bunker**, not a
+shadow cast beside it — a medium dorito is a pyramid with one side in the light
+and one side in the dark, and the printed triangle is the whole of it.
+
+Segment on colour and that face is not there. The dorito comes back 4.5 ft wide
+instead of 6.7, and its centre lands a foot toward the light — the same
+direction, every bunker, every map. That was the state of all three layouts
+until this pass.
+
+Getting the rest of it takes three things, all in `tools/mapread.py`:
+
+- **The printed rules.** A grid line is black too, and it runs the width of the
+  field, so a window it crosses reads out to its own edge. The rule bands are
+  masked off first.
+- **The label text.** Also black, and often joined to its bunker by a leader
+  line. The black mask is opened until every stroke thinner than a bunker face
+  is gone, and only the pieces that then run along at least half a foot of the
+  bunker's own paint are kept. A face shares a long edge with the lit face
+  beside it; a label a leader line happens to reach shares a few pixels.
+- **The corners.** Opening rounds off the corner of every face it keeps, and a
+  dorito is nothing but corners, so each kept face is grown back into the black
+  it came from a pixel at a time.
+
+## One bunker, one size
+
+A medium dorito is the same inflatable in Garland that it was in Cincinnati. It
+does not change size between events; what changes is where it stands.
+
+Read off each map separately it does change, because the prints are drawn to
+different weights — the Lone Star map draws a brick 7.3 ft tall and the Midwest
+map draws the same brick 8.1 ft tall. So the two are split:
+
+- **Positions** come from the event's own official 2D, on its own printed 10-ft
+  grid. That is what the map is the only source for.
+- **Footprints** come from `layouts/bunkers.json`, measured once by
+  `tools/bunker_sizes.py` off the **unlabeled** Midwest Open 2D. That print is
+  5698 px across — 31.1 px/ft, four times the Lone Star map — and it carries no
+  printed grid, no labels and no watermark, so the only dark thing anywhere near
+  a bunker is the bunker. All fourteen types are on it.
+
+Each type is read from every instance on that field. The figure kept is the
+**smallest** instance, because nothing on that map is cut off and a reading can
+only come back too big — a bunker fused to the one standing against it. The
+median is stored beside it, and for every type read four or more times the two
+agree to within a tenth of a foot. The suite checks that.
+
+| bunker | ft | from |
+|---|---|---|
+| Snake beam | 9.68 × 1.49 | 12 sections |
+| Medium dorito | 6.69 × 6.11 | 6 |
+| Small dorito | 5.21 × 4.53 | 2 |
+| Brick | 8.04 × 3.54 | 6 |
+| Giant plus | 11.31 × 11.09 | 1, the other is fused to the snake |
+| Giant brick | 10.09 × 4.76 | 2 |
+| Giant wing | 5.66 × 5.34 | 1 |
+| Maya temple | 4.98 × 4.95 | 4 |
+| Temple | 4.82 × 4.69 | 4 |
+| Wing | 7.30 × 3.05 | 2 |
+| Mini W | 7.07 × 1.93 | 4 |
+| Cylinder | 4.27 × 4.11 | 4 |
+| Tree | 3.63 × 3.57 | 4 |
+| Cake | 4.15 × 4.05 | 2 |
+
+**`Br` is one printed name over two inflatables.** The tall brick above, and a
+short squat one — 4.8 × 3.4 ft — that both the Lone Star and the Tampa Bay maps
+draw in their back corners. A second bunker is kept only when two different
+layouts draw it alike; a single map disagreeing with the standard is a reading
+that ran into a neighbour or its own label, and the standard is the better
+answer. That rule is in `tools/bunker_sizes.py` and the variant it found is the
+only one on these three fields.
+
+Nothing is smoothed away. Every bunker in every event JSON keeps what its own
+map drew as `drawn_w_ft` and `drawn_h_ft`, and `off_ft` is how far that is from
+the standard it was given. The event records the summary:
+
+| layout | median disagreement | worst |
+|---|---|---|
+| Midwest Open | 0.21 ft | 3.85 ft — a wing fused to the snake |
+| Tampa Bay Open | 0.51 ft | 5.54 ft — a giant wing fused to the giant brick |
+| Lone Star Open | 0.32 ft | 2.47 ft — a tree joined to its own label |
+
+Half a foot on a 1080 px print is about three pixels. The worst cases are all
+one thing: a bunker the coarse map cannot separate from what it stands against,
+which is exactly what the clean high-resolution map is there to settle.
 
 ## Coordinate frame
 
@@ -92,9 +185,9 @@ with no rescaling:
 - x: 0–150 ft, home end to away end, centre line at 75
 - y: 0–120 ft, dorito side at 0, snake side at 120
 
-Each app bunker also carries its measured `w`/`h` in feet, and the renderer
-draws that footprint rather than a per-type guess. A layout without measured
-sizes still falls back to the type table.
+Each app bunker carries its `w`/`h` in feet — the standard footprint above —
+and the renderer draws that rather than a per-type guess made in the renderer.
+A layout without measured sizes still falls back to the type table.
 
 ## Breakouts on a digitized layout
 

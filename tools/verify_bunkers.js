@@ -74,13 +74,14 @@ for (const [KEY, FILE] of LAYOUTS) {
     // own diagonal. What can be checked, and is, is that the app drew the shape
     // the measurement describes at the angle it describes: that implies a box,
     // including the browser's own widening of it, and it is that one to expect.
-    const beam = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 5;
+    const beam = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 12;
     const cross = b.type === 'giant_plus' && (b.cross_deg || 0) > 5;
     const turn = beam ? b.angle_deg : cross ? b.cross_deg : 0;
     // A plus turned on its corner reaches the corners of the same footprint, so
     // its arms are longer by root two before it is turned.
+    // w_ft and h_ft are the standard footprint the app draws — for a beam
+    // that is its length and its thickness, laid at the angle measured here.
     let uw = b.w_ft, uh = b.h_ft;
-    if (beam) { uw = b.long_ft; uh = b.thick_ft; }
     if (cross) { uw = b.w_ft * Math.SQRT2; uh = b.h_ft * Math.SQRT2; }
     const t = turn * Math.PI / 180;
     const wantW = Math.abs(uw * Math.cos(t)) + Math.abs(uh * Math.sin(t));

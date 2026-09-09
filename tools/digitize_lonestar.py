@@ -24,6 +24,8 @@ import numpy as np
 from PIL import Image
 from scipy import ndimage
 
+from mapread import attach_shade, contact_run, open_radius, rules, shadow
+
 os.makedirs('tools/out', exist_ok=True)
 SRC = 'layouts/images/nxl_2026_lonestar_2d_labeled.jpg'
 a = np.asarray(Image.open(SRC).convert('RGB')).astype(np.int16)
@@ -38,6 +40,14 @@ R, G, B = a[:, :, 0], a[:, :, 1], a[:, :, 2]
 RED = ((R > 90) & (R - G > 55) & (R - B > 45)) | ((R > 34) & (R < 150) & (R - G > 18) & (R - B > 14))
 BLUE = ((B > 90) & (B - R > 40) & (B - G > 30)) | ((B > 34) & (B < 160) & (B - R > 16) & (B - G > 12))
 ANY = RED | BLUE
+# The face in shadow is part of the bunker and the print takes it to black, so
+# colour alone measures the lit half of everything; tools/mapread.py has the
+# picture that settles it. The grid is masked off first — a rule is black too.
+GX = [X0 + i * 10 * PX for i in range(16)] + [X0 + 75 * PX]
+GY = [Y0 + j * 10 * PY for j in range(13)]
+DARK = shadow(a, rules(a.shape, GX, GY, 3))
+OPEN_R = open_radius((PX + PY) / 2)
+CONTACT = contact_run((PX + PY) / 2)
 # A beam section physically touches the giant plus it runs into, so any window
 # holding both gets one blob and the beam comes back several feet thick. The
 # lit faces are separate blobs, so beams are measured on those. On a bar two
@@ -53,7 +63,7 @@ py = lambda f: int(round(Y0 + f * PY))
 _blob = {}
 
 
-def bbox(x0, y0, x1, y1, mask=ANY):
+def bbox(x0, y0, x1, y1, mask=ANY, shade=True):
     """Bounding-box centre of the largest paint blob inside a ft window."""
     sub = mask[py(y0):py(y1), px(x0):px(x1)]
     lab, n = ndimage.label(sub, np.ones((3, 3)))
@@ -61,6 +71,8 @@ def bbox(x0, y0, x1, y1, mask=ANY):
         raise ValueError(f'no paint in window {(x0, y0, x1, y1)}')
     sizes = ndimage.sum(sub, lab, range(1, n + 1))
     sub = lab == (int(np.argmax(sizes)) + 1)
+    if shade:
+        sub = attach_shade(sub, DARK[py(y0):py(y1), px(x0):px(x1)], OPEN_R, CONTACT)
     _blob['m'] = sub
     _blob['ox'], _blob['oy'] = px(x0), py(y0)
     ys, xs = np.where(sub)
@@ -141,8 +153,12 @@ def cross_angle():
 B_ = []
 
 
-def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None, cross=None):
-    m = bbox(x0, y0, x1, y1, mask)
+def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None, cross=None, shade=True,
+        pad=1.5):
+    # The windows below were drawn around the lit paint. The whole bunker is
+    # wider than that, so every window gets a margin; the blob that carries the
+    # label is still chosen by its colour, so the margin cannot swap bunkers.
+    m = bbox(x0 - pad, y0 - pad, x1 + pad, y1 + pad, mask, shade)
     c = paint()
     e = dict(name=name, type=kind, x_ft=m['x'], y_ft=m['y'], w_ft=m['w'], h_ft=m['h'],
              angle_deg=m['a'], long_ft=m['long_ft'], thick_ft=m['thick_ft'],
@@ -165,13 +181,13 @@ add('SD', 'small_dorito', 35.5, 14.5, 42.5, 21.5)
 add('SD', 'small_dorito', 105.5, 14.5, 112.5, 21.5)
 for x in (48.5, 61.8, 78.3, 91.7):
     add('MD', 'medium_dorito', x, 9.0, x + 7.0, 17.5)
-add('GP', 'giant_plus', 68.5, 18.5, 81.5, 31.0, RED)
+add('GP', 'giant_plus', 68.5, 18.5, 81.5, 31.0, RED, pad=0)
 
 # ---- the upper V: four beam sections, the temples and bricks beside it ---
-add('SB', 'snake_beam', 63.3, 28.8, 71.2, 36.9, RED_LIT)
-add('SB', 'snake_beam', 79.2, 29.0, 86.7, 36.7, RED_LIT)
-add('SB', 'snake_beam', 56.2, 36.2, 63.7, 43.9, RED_LIT)
-add('SB', 'snake_beam', 86.5, 36.2, 94.0, 43.9, RED_LIT)
+add('SB', 'snake_beam', 63.3, 28.8, 71.2, 36.9, RED_LIT, pad=0)
+add('SB', 'snake_beam', 79.2, 29.0, 86.7, 36.7, RED_LIT, pad=0)
+add('SB', 'snake_beam', 56.2, 36.2, 63.7, 43.9, RED_LIT, pad=0)
+add('SB', 'snake_beam', 86.5, 36.2, 94.0, 43.9, RED_LIT, pad=0)
 add('T', 'temple', 14.4, 33.8, 21.2, 40.6)
 add('T', 'temple', 128.4, 34.3, 135.2, 41.1)
 add('Br', 'brick', 45.0, 36.0, 51.3, 44.8, RED)
@@ -198,21 +214,21 @@ add('MT', 'maya_temple', 34.0, 68.9, 40.8, 75.7)
 add('MT', 'maya_temple', 108.4, 68.9, 115.2, 75.7)
 add('Tr', 'tree', 65.3, 77.2, 70.7, 82.6, RED)
 add('Tr', 'tree', 78.7, 77.3, 84.1, 82.7, RED)
-add('SB', 'snake_beam', 56.0, 76.4, 63.5, 84.1, RED_LIT)
-add('SB', 'snake_beam', 86.1, 76.4, 93.6, 84.1, RED_LIT)
-add('SB', 'snake_beam', 63.0, 83.4, 71.0, 91.5, RED_LIT)
-add('SB', 'snake_beam', 78.9, 83.6, 86.4, 91.3, RED_LIT)
+add('SB', 'snake_beam', 56.0, 76.4, 63.5, 84.1, RED_LIT, pad=0)
+add('SB', 'snake_beam', 86.1, 76.4, 93.6, 84.1, RED_LIT, pad=0)
+add('SB', 'snake_beam', 63.0, 83.4, 71.0, 91.5, RED_LIT, pad=0)
+add('SB', 'snake_beam', 78.9, 83.6, 86.4, 91.3, RED_LIT, pad=0)
 add('T', 'temple', 14.4, 78.0, 21.2, 84.8)
 add('T', 'temple', 128.1, 78.0, 134.9, 84.8)
 
 # ---- the snake -----------------------------------------------------------
 add('MW', 'mini_w', 28.3, 90.5, 33.9, 100.0, BLUE)
 add('MW', 'mini_w', 116.2, 90.5, 121.8, 100.0, BLUE)
-add('GP', 'giant_plus', 68.5, 89.0, 81.5, 101.0, RED)
+add('GP', 'giant_plus', 68.5, 89.0, 81.5, 101.0, RED, pad=0)
 for x in (30.3, 45.0, 55.2):
-    add('SB', 'snake_beam', x, 98.0, x + 9.4, 100.6, RED_LIT)
+    add('SB', 'snake_beam', x, 98.0, x + 9.4, 100.6, RED_LIT, pad=0)
 for x in (85.0, 95.3, 110.2):
-    add('SB', 'snake_beam', x, 98.0, x + 9.4, 100.6, RED_LIT)
+    add('SB', 'snake_beam', x, 98.0, x + 9.4, 100.6, RED_LIT, pad=0)
 add('Ck', 'cake', 34.6, 99.8, 41.2, 104.4, BLUE)
 add('Ck', 'cake', 108.8, 99.8, 115.4, 104.4, BLUE)
 add('MW', 'mini_w', 52.5, 100.0, 57.3, 107.5, BLUE)

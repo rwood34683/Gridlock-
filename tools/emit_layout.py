@@ -10,6 +10,8 @@ coordinates carry across 1:1 with no rescaling.
 """
 import json, os
 
+from bunkerbook import footprint as std_footprint, provenance
+
 EVENT = 'layouts/events/nxl_2026_midwest_open.json'
 MEASURED = 'tools/out/bunkers_measured.json'
 
@@ -31,8 +33,14 @@ for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
         'side': side(b),
         'x_ft': b['x_ft'],
         'y_ft': b['y_ft'],
-        'w_ft': b['w_ft'],
-        'h_ft': b['h_ft'],
+        # Where it stands is this map's to say; how big it is comes from the
+        # book, measured once off the print that can measure it. Both are
+        # kept: w_ft and h_ft are the bunker, drawn_* is what this map drew.
+        'w_ft': std_footprint(b['type'], b['w_ft'], b['h_ft'])[0],
+        'h_ft': std_footprint(b['type'], b['w_ft'], b['h_ft'])[1],
+        'drawn_w_ft': b['w_ft'],
+        'drawn_h_ft': b['h_ft'],
+        'off_ft': std_footprint(b['type'], b['w_ft'], b['h_ft'])[2],
         # sampled from the official map, not chosen
         'body': b.get('body'),
         'detail': b.get('detail'),
@@ -65,6 +73,7 @@ ev['digitized'] = {
                   'label on the official map. Identified as Br from their footprint, which '
                   'matches the labeled Br exactly; confirmed by the field owner.'),
     'tool': 'tools/digitize_layout.py',
+    'footprints': provenance(out),
 }
 json.dump(ev, open(EVENT, 'w'), indent=2)
 print(f'{EVENT}: {len(out)} bunkers, coordinate_status = grid_digitized')
@@ -92,6 +101,9 @@ for b in out:
     # Both come from sampling the official map, never from a choice here.
     c = (b.get('body') or 'red')[0]
     d = (b.get('detail') or '')[:1]
+    # Where the bunkers stand is this map's to say. How big each one is comes
+    # from the book, measured once off the print that can measure it; see
+    # tools/bunkerbook.py. How far the two disagree is recorded below.
     rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{},c:"{}"{}}}'.format(
         uid(b), b['name'], b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft'],
         c, ',d:"%s"' % d if d else ''))

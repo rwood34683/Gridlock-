@@ -22,6 +22,8 @@ Do not treat Overskill `.txt` as compiled code. It is the product prompt.
 - Coach-simple copy. Short labels. No developer jargon in the UI.
 - Dark stadium look. Black `#0b0c0d` ground, red `#ad1515` fills, `#e5252a` for small
   accents, off-white `#efedeb` type. Not cartoon. Not a golf course.
+- A bunker type is one inflatable. Footprints come from `layouts/bunkers.json`,
+  positions from the event's own official map. Never hand-size a bunker.
 - The field is the same dark ground, not green turf. Bunkers carry the red and blue
   the official layout paints them, sampled from the map — never picked by hand. A
   layout whose colour was never sampled stays neutral grey rather than guessing.
@@ -77,7 +79,13 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    drag a player to point him, and reset one path or all of them back to the
    routed line. Corners are rounded so a run reads like a run; the suite samples
    the drawn curve and checks it still clears every bunker.
-7. Bring iOS SwiftUI up to web parity, then Android Compose.
+7. ~~Bunkers exact.~~ Done — the shaded face of a bunker is part of the bunker,
+   and reading colour alone was measuring the lit half of everything and putting
+   every centre a foot toward the light. Footprints now come from
+   `layouts/bunkers.json`, measured once off the clean high-resolution Midwest
+   2D, because one bunker type is one inflatable; positions still come from each
+   event's own map. Every bunker keeps what its map drew alongside.
+8. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 

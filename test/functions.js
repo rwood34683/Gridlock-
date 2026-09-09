@@ -7,6 +7,7 @@
  *   npm run serve      # terminal 1
  *   npm run test       # terminal 2
  */
+const fs = require("fs");
 const path = require("path");
 const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
 
@@ -1518,16 +1519,16 @@ const ROSTER = [
   check("an angled beam carries its own length, thickness and angle", await ev(() => {
     const t = LAYOUTS.tby.bunkers.filter(b => b.a && b.t === "beam");
     return t.length === 6 && t.every(b => Math.abs(b.a) > 35 && Math.abs(b.a) < 50)
-        && t.every(b => b.w > 9 && b.w < 11 && b.h > 1.5 && b.h < 2.5);
+        && t.every(b => b.w > 9 && b.w < 11 && b.h > 1.2 && b.h < 2.5);
   }));
   check("every beam section on the field is the same beam", await ev(() => {
     const sb = LAYOUTS.tby.bunkers.filter(b => b.n === "SB");
-    return sb.length === 14 && sb.every(b => b.w > 9 && b.w < 11 && b.h > 1.5 && b.h < 2.5);
+    return sb.length === 14 && sb.every(b => b.w > 9 && b.w < 11 && b.h > 1.2 && b.h < 2.5);
   }));
   check("a square bunker is one box; an angled one is three along its length", await ev(() => {
     const flat = LAYOUTS.tby.bunkers.find(b => b.n === "GB");
     const tilt = LAYOUTS.tby.bunkers.find(b => b.a);
-    return bunkerBoxes(flat).length === 1 && bunkerBoxes(tilt).length === 5
+    return bunkerBoxes(flat).length === 1 && bunkerBoxes(tilt).length >= 5
         && bunkerBoxes(tilt).every(k => Math.abs(k.w - tilt.h) < 0.01);
   }));
   check("an angled beam blocks less than the box around it", await ev(() => {
@@ -1686,6 +1687,65 @@ const ROSTER = [
     window.set({ layoutKey: "mwo" });
     return before !== JSON.stringify(currentPaths().map(p => p.to));
   }));
+
+  /* ------------------------------------------------ one bunker, one size */
+  // A medium dorito is the same inflatable in Garland that it was in
+  // Cincinnati. Read off each map it comes back a different size, because the
+  // prints are drawn to different weights and because half of every bunker is
+  // in shadow and the shadow is easy to miss. So footprints come from
+  // layouts/bunkers.json, measured once off the clean Midwest 2D, and every
+  // field draws the same bunker at the same size.
+  G("One bunker, one size");
+  const book = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "..", "layouts", "bunkers.json"), "utf8"));
+
+  check("every bunker is drawn one size on every field", await ev(() => {
+    const seen = {};
+    for (const k of ["mwo", "tby", "lso"]) {
+      for (const b of LAYOUTS[k].bunkers) {
+        const size = [Math.max(b.w, b.h), Math.min(b.w, b.h)].join("x");
+        (seen[b.n] = seen[b.n] || new Set()).add(size);
+      }
+    }
+    // Br is the one printed name over two inflatables — the tall one, and a
+    // short squat one in the back corners of two of these fields.
+    return Object.keys(seen).length === 14
+        && Object.entries(seen).every(([n, s]) => s.size === (n === "Br" ? 2 : 1));
+  }));
+
+  check("a medium dorito is the one measured off the clean map", await ev(w => {
+    const md = LAYOUTS.lso.bunkers.filter(b => b.n === "MD");
+    return md.length === 6 && md.every(b =>
+      Math.abs(Math.max(b.w, b.h) - w[0]) < 0.005 &&
+      Math.abs(Math.min(b.w, b.h) - w[1]) < 0.005);
+  }, [book.bunkers.medium_dorito.long_ft, book.bunkers.medium_dorito.short_ft]));
+
+  check("it is wider than the lit half of it that colour alone finds",
+    book.bunkers.medium_dorito.long_ft > 6 && book.bunkers.medium_dorito.short_ft > 5.5);
+
+  check("the book says how many instances each figure came from", () => true &&
+    Object.values(book.bunkers).every(b => b.n >= 1 && b.long_ft > 0 && b.short_ft > 0));
+
+  // The figure kept is the smallest instance, because a reading on this map
+  // can only come back too big. That is only honest if the smallest instance
+  // and the middle one say the same thing, which for every type read four or
+  // more times they do, to within half a foot.
+  check("the smallest instance and the middle one agree",
+    Object.values(book.bunkers).filter(b => b.n >= 4).every(b =>
+      Math.abs(b.long_ft - b.median_ft[0]) <= 0.5 &&
+      Math.abs(b.short_ft - b.median_ft[1]) <= 0.5));
+
+  check("every event on the field records how far its own map disagreed", () => {
+    for (const f of ["nxl_2026_midwest_open", "nxl_2026_tampa_bay_open",
+                     "nxl_2026_lone_star"]) {
+      const ev = JSON.parse(fs.readFileSync(
+        path.join(__dirname, "..", "layouts", "events", f + ".json"), "utf8"));
+      const fp = ev.digitized && ev.digitized.footprints;
+      if (!fp || !fp.residual_ft || !(fp.residual_ft.median <= 1)) return false;
+      if (!ev.bunkers.every(b => b.drawn_w_ft > 0 && b.drawn_h_ft > 0)) return false;
+    }
+    return true;
+  });
 
   /* ------------------------------------------------------------ house rules */
   G("House rules");

@@ -1,0 +1,357 @@
+{
+  "source": "layouts/images/nxl_2026_midwest_2d.jpg",
+  "method": "Measure the standard bunker footprints, once, off a clean official 2D.\n\nA bunker type is one inflatable. The same medium dorito is trucked to Garland\nthat was in Cincinnati; it does not change size between events. What changes\nbetween layouts is where the bunkers stand. So the honest split is: take every\nposition off the map for that event, and take the footprints from the one\nsource that can measure them properly.\n\nThat source is the unlabeled Midwest Open 2D. It is 5698 px across \u2014 31.1 px\nper foot, four times the Lone Star print \u2014 and it carries no printed grid, no\nlabels and no watermark, so the only dark thing anywhere near a bunker is the\nbunker. All fourteen types are on it. The labeled Midwest map is the same\nrender with the annotations added, aligned to a couple of pixels, so the grid\nmeasured there calibrates this one and the positions already read off it say\nwhere to look.\n\nWhat is measured is the whole silhouette: the lit face and the face the print\ntakes to black, which is a face of the bunker and not a shadow cast beside it.\nBlow up any of these maps far enough and that is plain \u2014 a medium dorito is a\npyramid with one side in the light and one side in the dark, and reading the\nlit side alone makes it four and a half feet wide instead of six and three\nquarters, off centre by the difference, every time in the same direction.\n\nBunkers that stand against each other are one blob in the paint \u2014 the giant\nwing sits on the giant brick, the snake runs through the mini Ws. Each reading\nis bounded by a window around the bunker, generous enough to hold the whole of\nit and too small to hold its neighbour as well; anything that still runs to\nthe edge of its window is fused and is dropped rather than guessed at. The\nfigure kept is the median of what is left, and the spread of the instances is\nprinted and stored, because a type whose instances disagree has been read\nwrong.\n\nOutput: layouts/bunkers.json",
+  "px_per_ft": 31.111,
+  "margin_ft": 3.0,
+  "spread": [
+    {
+      "type": "brick",
+      "n": 6,
+      "fused": 0,
+      "long_ft": [
+        8.04,
+        8.1
+      ],
+      "short_ft": [
+        3.54,
+        3.54
+      ]
+    },
+    {
+      "type": "cake",
+      "n": 2,
+      "fused": 0,
+      "long_ft": [
+        4.15,
+        4.18
+      ],
+      "short_ft": [
+        4.05,
+        4.05
+      ]
+    },
+    {
+      "type": "cylinder",
+      "n": 4,
+      "fused": 0,
+      "long_ft": [
+        4.24,
+        4.27
+      ],
+      "short_ft": [
+        4.11,
+        4.15
+      ]
+    },
+    {
+      "type": "giant_brick",
+      "n": 2,
+      "fused": 0,
+      "long_ft": [
+        10.09,
+        10.87
+      ],
+      "short_ft": [
+        4.76,
+        5.21
+      ]
+    },
+    {
+      "type": "giant_plus",
+      "n": 1,
+      "fused": 1,
+      "long_ft": [
+        11.31,
+        11.31
+      ],
+      "short_ft": [
+        11.09,
+        11.09
+      ]
+    },
+    {
+      "type": "giant_wing",
+      "n": 1,
+      "fused": 1,
+      "long_ft": [
+        5.66,
+        5.66
+      ],
+      "short_ft": [
+        5.34,
+        5.34
+      ]
+    },
+    {
+      "type": "maya_temple",
+      "n": 4,
+      "fused": 0,
+      "long_ft": [
+        4.98,
+        5.01
+      ],
+      "short_ft": [
+        4.95,
+        5.01
+      ]
+    },
+    {
+      "type": "medium_dorito",
+      "n": 6,
+      "fused": 0,
+      "long_ft": [
+        6.69,
+        6.85
+      ],
+      "short_ft": [
+        6.01,
+        6.14
+      ]
+    },
+    {
+      "type": "mini_w",
+      "n": 4,
+      "fused": 0,
+      "long_ft": [
+        7.04,
+        8.65
+      ],
+      "short_ft": [
+        1.93,
+        1.99
+      ]
+    },
+    {
+      "type": "small_dorito",
+      "n": 2,
+      "fused": 0,
+      "long_ft": [
+        5.21,
+        5.24
+      ],
+      "short_ft": [
+        4.53,
+        4.53
+      ]
+    },
+    {
+      "type": "snake_beam",
+      "n": 12,
+      "fused": 2,
+      "long_ft": [
+        9.68,
+        9.71
+      ],
+      "short_ft": [
+        1.49,
+        1.52
+      ]
+    },
+    {
+      "type": "temple",
+      "n": 4,
+      "fused": 0,
+      "long_ft": [
+        4.82,
+        4.82
+      ],
+      "short_ft": [
+        4.69,
+        4.72
+      ]
+    },
+    {
+      "type": "tree",
+      "n": 4,
+      "fused": 0,
+      "long_ft": [
+        3.6,
+        3.63
+      ],
+      "short_ft": [
+        3.57,
+        3.6
+      ]
+    },
+    {
+      "type": "wing",
+      "n": 2,
+      "fused": 0,
+      "long_ft": [
+        7.3,
+        9.67
+      ],
+      "short_ft": [
+        3.05,
+        8.74
+      ]
+    }
+  ],
+  "bunkers": {
+    "brick": {
+      "long_ft": 8.04,
+      "short_ft": 3.54,
+      "median_ft": [
+        8.07,
+        3.54
+      ],
+      "n": 6,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg",
+      "variants": [
+        {
+          "long_ft": 4.8,
+          "short_ft": 3.4,
+          "n": 4,
+          "fields": [
+            "lone star",
+            "tampa bay"
+          ]
+        }
+      ]
+    },
+    "cake": {
+      "long_ft": 4.15,
+      "short_ft": 4.05,
+      "median_ft": [
+        4.16,
+        4.05
+      ],
+      "n": 2,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "cylinder": {
+      "long_ft": 4.27,
+      "short_ft": 4.11,
+      "median_ft": [
+        4.24,
+        4.15
+      ],
+      "n": 4,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "giant_brick": {
+      "long_ft": 10.09,
+      "short_ft": 4.76,
+      "median_ft": [
+        10.48,
+        4.98
+      ],
+      "n": 2,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "giant_plus": {
+      "long_ft": 11.31,
+      "short_ft": 11.09,
+      "median_ft": [
+        11.31,
+        11.09
+      ],
+      "n": 1,
+      "fused": 1,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "giant_wing": {
+      "long_ft": 5.66,
+      "short_ft": 5.34,
+      "median_ft": [
+        5.66,
+        5.34
+      ],
+      "n": 1,
+      "fused": 1,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "maya_temple": {
+      "long_ft": 4.98,
+      "short_ft": 4.95,
+      "median_ft": [
+        5.0,
+        4.98
+      ],
+      "n": 4,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "medium_dorito": {
+      "long_ft": 6.69,
+      "short_ft": 6.11,
+      "median_ft": [
+        6.69,
+        6.12
+      ],
+      "n": 6,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "mini_w": {
+      "long_ft": 7.07,
+      "short_ft": 1.93,
+      "median_ft": [
+        7.06,
+        1.96
+      ],
+      "n": 4,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "small_dorito": {
+      "long_ft": 5.21,
+      "short_ft": 4.53,
+      "median_ft": [
+        5.22,
+        4.53
+      ],
+      "n": 2,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "snake_beam": {
+      "long_ft": 9.68,
+      "short_ft": 1.49,
+      "median_ft": [
+        9.68,
+        1.5
+      ],
+      "n": 12,
+      "fused": 2,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "temple": {
+      "long_ft": 4.82,
+      "short_ft": 4.69,
+      "median_ft": [
+        4.82,
+        4.71
+      ],
+      "n": 4,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "tree": {
+      "long_ft": 3.63,
+      "short_ft": 3.57,
+      "median_ft": [
+        3.63,
+        3.6
+      ],
+      "n": 4,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    },
+    "wing": {
+      "long_ft": 7.3,
+      "short_ft": 3.05,
+      "median_ft": [
+        8.49,
+        5.9
+      ],
+      "n": 2,
+      "fused": 0,
+      "read_from": "layouts/images/nxl_2026_midwest_2d.jpg"
+    }
+  }
+}

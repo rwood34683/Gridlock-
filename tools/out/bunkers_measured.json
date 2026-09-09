@@ -2,10 +2,26 @@
  {
   "name": "MD",
   "type": "medium_dorito",
-  "x_ft": 59.2,
-  "y_ft": 13.1,
-  "w_ft": 5.3,
-  "h_ft": 5.8,
+  "x_ft": 46.5,
+  "y_ft": 13.2,
+  "w_ft": 6.2,
+  "h_ft": 6.1,
+  "body": "red",
+  "detail": null,
+  "body_rgb": [
+   145,
+   4,
+   5
+  ],
+  "detail_rgb": null
+ },
+ {
+  "name": "MD",
+  "type": "medium_dorito",
+  "x_ft": 59.8,
+  "y_ft": 13.2,
+  "w_ft": 6.8,
+  "h_ft": 6.1,
   "body": "red",
   "detail": null,
   "body_rgb": [
@@ -18,14 +34,14 @@
  {
   "name": "MD",
   "type": "medium_dorito",
-  "x_ft": 89.3,
-  "y_ft": 13.1,
-  "w_ft": 4.6,
-  "h_ft": 6.0,
+  "x_ft": 90.3,
+  "y_ft": 13.2,
+  "w_ft": 6.7,
+  "h_ft": 6.2,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   145,
+   144,
    5,
    5
   ],
@@ -34,30 +50,14 @@
  {
   "name": "MD",
   "type": "medium_dorito",
-  "x_ft": 45.8,
-  "y_ft": 13.2,
-  "w_ft": 4.5,
-  "h_ft": 5.9,
+  "x_ft": 103.2,
+  "y_ft": 13.3,
+  "w_ft": 6.7,
+  "h_ft": 6.1,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   145,
-   4,
-   4
-  ],
-  "detail_rgb": null
- },
- {
-  "name": "MD",
-  "type": "medium_dorito",
-  "x_ft": 102.2,
-  "y_ft": 13.2,
-  "w_ft": 4.5,
-  "h_ft": 5.9,
-  "body": "red",
-  "detail": null,
-  "body_rgb": [
-   145,
+   144,
    4,
    4
   ],
@@ -82,9 +82,9 @@
  {
   "name": "MD",
   "type": "medium_dorito",
-  "x_ft": 32.3,
+  "x_ft": 33.2,
   "y_ft": 17.2,
-  "w_ft": 4.6,
+  "w_ft": 6.5,
   "h_ft": 5.9,
   "body": "red",
   "detail": null,
@@ -98,14 +98,14 @@
  {
   "name": "MD",
   "type": "medium_dorito",
-  "x_ft": 115.7,
+  "x_ft": 116.5,
   "y_ft": 17.2,
-  "w_ft": 4.4,
+  "w_ft": 6.3,
   "h_ft": 5.9,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   146,
+   145,
    5,
    5
   ],
@@ -115,13 +115,13 @@
   "name": "SB",
   "type": "snake_beam",
   "x_ft": 70.0,
-  "y_ft": 19.6,
+  "y_ft": 18.8,
   "w_ft": 9.7,
-  "h_ft": 1.6,
+  "h_ft": 3.1,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
+   193,
    29,
    30
   ],
@@ -155,9 +155,9 @@
   "name": "T",
   "type": "temple",
   "x_ft": 18.0,
-  "y_ft": 20.1,
+  "y_ft": 20.3,
   "w_ft": 4.5,
-  "h_ft": 4.5,
+  "h_ft": 4.8,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
@@ -174,10 +174,10 @@
  {
   "name": "T",
   "type": "temple",
-  "x_ft": 131.9,
-  "y_ft": 20.2,
-  "w_ft": 4.5,
-  "h_ft": 4.5,
+  "x_ft": 132.2,
+  "y_ft": 20.3,
+  "w_ft": 4.9,
+  "h_ft": 4.8,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
@@ -358,57 +358,37 @@
  {
   "name": "GW",
   "type": "giant_wing",
-  "x_ft": 75.1,
-  "y_ft": 52.2,
-  "w_ft": 5.5,
-  "h_ft": 4.8,
+  "x_ft": 75.2,
+  "y_ft": 52.6,
+  "w_ft": 5.6,
+  "h_ft": 5.6,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   136,
-   13,
-   13
+   129,
+   12,
+   12
   ],
   "detail_rgb": null
  },
  {
-  "name": "T",
-  "type": "temple",
-  "x_ft": 27.7,
-  "y_ft": 59.9,
-  "w_ft": 4.4,
-  "h_ft": 4.2,
-  "body": "red",
-  "detail": "blue",
+  "name": "GB",
+  "type": "giant_brick",
+  "x_ft": 75.2,
+  "y_ft": 59.3,
+  "w_ft": 5.5,
+  "h_ft": 11.9,
+  "body": "blue",
+  "detail": "red",
   "body_rgb": [
-   139,
-   16,
-   15
+   63,
+   60,
+   220
   ],
   "detail_rgb": [
-   51,
-   49,
-   197
-  ]
- },
- {
-  "name": "T",
-  "type": "temple",
-  "x_ft": 121.8,
-  "y_ft": 60.0,
-  "w_ft": 4.2,
-  "h_ft": 4.0,
-  "body": "red",
-  "detail": "blue",
-  "body_rgb": [
-   139,
-   16,
-   15
-  ],
-  "detail_rgb": [
-   51,
-   48,
-   196
+   57,
+   0,
+   0
   ]
  },
  {
@@ -433,6 +413,26 @@
   "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
  },
  {
+  "name": "T",
+  "type": "temple",
+  "x_ft": 27.7,
+  "y_ft": 60.1,
+  "w_ft": 4.4,
+  "h_ft": 4.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   138,
+   16,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   49,
+   197
+  ]
+ },
+ {
   "name": "Br",
   "type": "brick",
   "x_ft": 148.7,
@@ -454,48 +454,48 @@
   "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
  },
  {
-  "name": "GB",
-  "type": "giant_brick",
-  "x_ft": 75.1,
-  "y_ft": 60.2,
-  "w_ft": 4.7,
-  "h_ft": 9.8,
-  "body": "blue",
+  "name": "T",
+  "type": "temple",
+  "x_ft": 122.2,
+  "y_ft": 60.4,
+  "w_ft": 4.9,
+  "h_ft": 4.8,
+  "body": "red",
+  "detail": "blue",
+  "body_rgb": [
+   137,
+   16,
+   15
+  ],
+  "detail_rgb": [
+   51,
+   48,
+   196
+  ]
+ },
+ {
+  "name": "GW",
+  "type": "giant_wing",
+  "x_ft": 75.2,
+  "y_ft": 67.5,
+  "w_ft": 5.6,
+  "h_ft": 6.1,
+  "body": "red",
   "detail": null,
   "body_rgb": [
-   63,
-   60,
-   220
+   192,
+   17,
+   18
   ],
   "detail_rgb": null
  },
  {
   "name": "MT",
   "type": "maya_temple",
-  "x_ft": 57.3,
+  "x_ft": 57.4,
   "y_ft": 67.7,
-  "w_ft": 4.4,
+  "w_ft": 4.7,
   "h_ft": 4.6,
-  "body": "red",
-  "detail": "blue",
-  "body_rgb": [
-   125,
-   13,
-   13
-  ],
-  "detail_rgb": [
-   48,
-   46,
-   197
-  ]
- },
- {
-  "name": "MT",
-  "type": "maya_temple",
-  "x_ft": 92.2,
-  "y_ft": 67.7,
-  "w_ft": 4.6,
-  "h_ft": 4.5,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
@@ -510,27 +510,31 @@
   ]
  },
  {
-  "name": "GW",
-  "type": "giant_wing",
-  "x_ft": 75.1,
+  "name": "MT",
+  "type": "maya_temple",
+  "x_ft": 92.3,
   "y_ft": 67.8,
-  "w_ft": 5.5,
-  "h_ft": 5.5,
+  "w_ft": 4.9,
+  "h_ft": 4.6,
   "body": "red",
-  "detail": null,
+  "detail": "blue",
   "body_rgb": [
-   192,
-   17,
-   18
+   123,
+   13,
+   13
   ],
-  "detail_rgb": null
+  "detail_rgb": [
+   48,
+   46,
+   197
+  ]
  },
  {
   "name": "MT",
   "type": "maya_temple",
-  "x_ft": 137.2,
+  "x_ft": 137.4,
   "y_ft": 77.6,
-  "w_ft": 4.4,
+  "w_ft": 4.7,
   "h_ft": 4.6,
   "body": "red",
   "detail": "blue",
@@ -548,14 +552,14 @@
  {
   "name": "MT",
   "type": "maya_temple",
-  "x_ft": 12.2,
-  "y_ft": 77.7,
-  "w_ft": 4.4,
-  "h_ft": 4.5,
+  "x_ft": 12.5,
+  "y_ft": 77.8,
+  "w_ft": 4.9,
+  "h_ft": 4.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   126,
+   125,
    14,
    12
   ],
@@ -571,13 +575,13 @@
   "x_ft": 34.1,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   27,
+   28
   ],
   "detail_rgb": [
    52,
@@ -591,13 +595,13 @@
   "x_ft": 44.3,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   27,
+   28
   ],
   "detail_rgb": [
    52,
@@ -611,13 +615,13 @@
   "x_ft": 54.5,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.7,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   28,
+   29
   ],
   "detail_rgb": [
    52,
@@ -631,13 +635,13 @@
   "x_ft": 64.7,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   29,
+   30
   ],
   "detail_rgb": [
    52,
@@ -651,13 +655,13 @@
   "x_ft": 75.0,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.7,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   28,
+   29
   ],
   "detail_rgb": [
    52,
@@ -671,13 +675,13 @@
   "x_ft": 85.1,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   196,
-   27,
-   27
+   193,
+   28,
+   28
   ],
   "detail_rgb": [
    52,
@@ -691,13 +695,13 @@
   "x_ft": 95.4,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.7,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   193,
-   25,
-   26
+   192,
+   27,
+   28
   ],
   "detail_rgb": [
    52,
@@ -711,13 +715,13 @@
   "x_ft": 105.6,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   27,
+   28
   ],
   "detail_rgb": [
    52,
@@ -731,13 +735,13 @@
   "x_ft": 115.9,
   "y_ft": 79.3,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 1.6,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   194,
-   26,
-   26
+   193,
+   28,
+   28
   ],
   "detail_rgb": [
    52,
@@ -828,31 +832,31 @@
  {
   "name": "GP",
   "type": "giant_plus",
-  "x_ft": 63.6,
-  "y_ft": 93.8,
-  "w_ft": 11.2,
-  "h_ft": 11.3,
+  "x_ft": 63.9,
+  "y_ft": 94.1,
+  "w_ft": 11.9,
+  "h_ft": 11.8,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   177,
-   19,
-   19
+   171,
+   18,
+   18
   ],
   "detail_rgb": null
  },
  {
   "name": "GP",
   "type": "giant_plus",
-  "x_ft": 86.1,
-  "y_ft": 93.8,
-  "w_ft": 11.0,
-  "h_ft": 11.3,
+  "x_ft": 85.5,
+  "y_ft": 94.1,
+  "w_ft": 12.8,
+  "h_ft": 11.9,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   171,
-   17,
+   169,
+   16,
    17
   ],
   "detail_rgb": null
@@ -860,31 +864,31 @@
  {
   "name": "SB",
   "type": "snake_beam",
-  "x_ft": 75.3,
-  "y_ft": 94.2,
-  "w_ft": 10.5,
-  "h_ft": 1.5,
+  "x_ft": 76.0,
+  "y_ft": 94.3,
+  "w_ft": 12.0,
+  "h_ft": 4.1,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   193,
-   26,
-   27
+   191,
+   21,
+   22
   ],
   "detail_rgb": null
  },
  {
   "name": "SD",
   "type": "small_dorito",
-  "x_ft": 17.3,
-  "y_ft": 97.6,
-  "w_ft": 4.4,
-  "h_ft": 3.7,
+  "x_ft": 17.7,
+  "y_ft": 97.9,
+  "w_ft": 5.2,
+  "h_ft": 4.4,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   137,
-   4,
+   135,
+   5,
    5
   ],
   "detail_rgb": null
@@ -892,15 +896,15 @@
  {
   "name": "SD",
   "type": "small_dorito",
-  "x_ft": 132.1,
-  "y_ft": 97.6,
-  "w_ft": 4.8,
-  "h_ft": 3.7,
+  "x_ft": 132.3,
+  "y_ft": 97.9,
+  "w_ft": 5.2,
+  "h_ft": 4.4,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   136,
-   4,
+   134,
+   5,
    5
   ],
   "detail_rgb": null
@@ -909,15 +913,15 @@
   "name": "SB",
   "type": "snake_beam",
   "x_ft": 49.9,
-  "y_ft": 102.0,
+  "y_ft": 102.8,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 3.1,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   198,
-   29,
-   30
+   194,
+   28,
+   29
   ],
   "detail_rgb": [
    52,
@@ -929,14 +933,14 @@
   "name": "SB",
   "type": "snake_beam",
   "x_ft": 99.7,
-  "y_ft": 102.0,
+  "y_ft": 102.8,
   "w_ft": 9.7,
-  "h_ft": 1.5,
+  "h_ft": 3.1,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
-   198,
-   29,
+   195,
+   28,
    29
   ],
   "detail_rgb": [
@@ -969,9 +973,9 @@
   "name": "Br",
   "type": "brick",
   "x_ft": 118.2,
-  "y_ft": 104.0,
+  "y_ft": 104.1,
   "w_ft": 3.4,
-  "h_ft": 7.8,
+  "h_ft": 8.0,
   "body": "red",
   "detail": "blue",
   "body_rgb": [
@@ -1004,32 +1008,32 @@
  {
   "name": "Wg",
   "type": "wing",
-  "x_ft": 48.3,
-  "y_ft": 106.6,
-  "w_ft": 3.1,
-  "h_ft": 7.4,
+  "x_ft": 101.2,
+  "y_ft": 105.8,
+  "w_ft": 6.7,
+  "h_ft": 8.8,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   167,
-   20,
-   20
+   175,
+   21,
+   22
   ],
   "detail_rgb": null
  },
  {
   "name": "Wg",
   "type": "wing",
-  "x_ft": 101.5,
-  "y_ft": 106.6,
-  "w_ft": 3.1,
-  "h_ft": 7.3,
+  "x_ft": 48.5,
+  "y_ft": 105.9,
+  "w_ft": 6.9,
+  "h_ft": 8.9,
   "body": "red",
   "detail": null,
   "body_rgb": [
-   166,
-   19,
-   19
+   175,
+   22,
+   22
   ],
   "detail_rgb": null
  }

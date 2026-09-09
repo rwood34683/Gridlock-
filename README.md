@@ -18,7 +18,7 @@ league. One codebase ships to the App Store and Google Play.
 | `site/` | The landing page. Static, no build step. See `site/README.md`. |
 | `brand/` | Icon and splash SVGs plus the generator that renders every store size. |
 | `layouts/` | The 2026 layout pack — catalog, schema, one JSON per event, and the official stills that are the ground truth. |
-| `tools/` | Layout digitizer and emitter. See `docs/LAYOUTS.md`. |
+| `tools/` | Layout digitizer, the bunker book, and the emitter. See `docs/LAYOUTS.md`. |
 | `docs/` | Product spec, the Overskill import prompt, scaling notes, the layout pipeline, the store listing and the Xcode walk-through. |
 | `ios-native/` | The original SwiftUI snapshot, kept for the native track. Not built. |
 | `scripts/` | Dev server, screenshot capture, store assets, artifact build. |
@@ -142,9 +142,9 @@ Four suites, all driving the real app in a real browser:
 
 | Command | What it proves |
 |---|---|
-| `npm test` | 371 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the opponent's breakouts, the field layers, the replay, the QR encoder, the first run, Sightlines by touch, the three fields and their angled beams, the divisions, the rosters the league published, a roster read off a screenshot (against text a real OCR engine returned from a real screenshot), holding your place on screen, and the house rules. |
+| `npm test` | 377 assertions across every interactive function — auth, gating, all five tabs, all eleven More destinations, Scout's four sub-tabs, the 8-way pad, tally, movement, assess, classes, league, persistence, layout integrity, break routing, the roster editor, the walk, code words, lineups, path editing, per-team scouting, the matchup panel, cause of an out, the history it counts, saving and loading a copy, the opponent's breakouts, the field layers, the replay, the QR encoder, the first run, Sightlines by touch, the three fields and their angled beams, the divisions, the rosters the league published, a roster read off a screenshot (against text a real OCR engine returned from a real screenshot), holding your place on screen, one bunker being one size on every field, and the house rules. |
 | `npm run test:devices` | Every iPhone since the SE 2, the iPad line, and two Android references — 14 devices x 5 tabs. Checks for sideways scroll, a tab bar off the viewport, any tap target under 44 px, and running text past 80 characters a line. Safe-area padding is asserted from the CSS, since Chromium has no notch to emulate. |
-| `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 173/173 across all three layouts at 0.00 ft. |
+| `npm run verify:bunkers` | Reads the drawn SVG back out of the browser and compares every footprint against the digitized map, by bunker id. Currently 173/173 across all three layouts — 0.00 ft on position, 0.006 ft on footprint. |
 | `npm run loadtest` | A full season seeded on a 4x-throttled CPU. See `docs/SCALING.md`. |
 
 ## Deep links

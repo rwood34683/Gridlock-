@@ -7,6 +7,7 @@ Import these 2026 paintball layouts into Gridlock Coach (or any field visualizer
 - `index.json` — catalog of every event in the pack
 - `schema.json` — JSON Schema (`gridlock.layout.v1`)
 - `events/*.json` — one file per event (metadata + image paths + empty `bunkers[]`)
+- `bunkers.json` — the standard footprint of each bunker type, measured once
 - `images/` — published official stills. These are the ground truth.
 
 ## Rules (do not break)
@@ -17,6 +18,19 @@ Import these 2026 paintball layouts into Gridlock Coach (or any field visualizer
 4. Coordinate origin if you digitize: home-left snake corner. +X toward Dorito tape. +Y toward away / midfield.
 5. Unreleased events (`status: unreleased`) have no images. Do not generate a fake layout for them.
 6. `usxbl_2026_practice` is a practice concept map, not a match layout.
+7. **Measure the whole bunker, not the lit half.** These maps are lit from the
+   upper left and the shaded face of every bunker is printed near black. It is a
+   face of the bunker, not a shadow beside it. Segment on colour alone and every
+   footprint comes back short and every centre lands a foot toward the light.
+8. **Footprints come from `bunkers.json`, positions come from the event's map.**
+   A bunker type is one inflatable and does not change size between events; the
+   prints are drawn to different weights, which is a fact about the drawings.
+   `tools/bunker_sizes.py` measures the standard once off the unlabeled Midwest
+   2D. Do not re-derive a footprint per event, and do not hand-edit that file.
+9. A map that disagrees with the standard is kept as a second bunker only when
+   **another layout draws it the same way**. One map on its own is a reading
+   that ran into a neighbour or its own label. Every bunker keeps what its map
+   drew in `drawn_w_ft` / `drawn_h_ft` either way, so nothing is lost.
 
 ## How to import (do this)
 
@@ -30,7 +44,7 @@ Import these 2026 paintball layouts into Gridlock Coach (or any field visualizer
    - name bunkers from the printed labels
    - mirror home/away
    - expose snake / dorito / center layers
-6. Keep source URLs on the event so the user can open GunzUp Download for to-scale 3D
+6. Keep source URLs on the event so the user can open the publisher's to-scale 3D
 ```
 
 ## Best starting event
