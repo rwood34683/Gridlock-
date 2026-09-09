@@ -109,14 +109,48 @@ def paint():
                 detail_share=round(share, 3))
 
 
+def cross_angle():
+    """Is the plus just measured printed upright, or turned on its corner?
+
+    A giant plus is drawn either way on these maps — Tampa prints one of each —
+    so it has to be read off the paint rather than assumed. Sampling the corners
+    of the bounding box against the middle of its sides would do it, except that
+    a snake beam landing on an arm tip sits in exactly those places. So this
+    reads a ring well inside the arms instead: at seven tenths of the way out, an
+    upright plus has paint along the four axes and none on the diagonals, and a
+    plus on its corner has exactly the opposite.
+    """
+    m = _blob['m']
+    h, w = m.shape
+    cy, cx = (h - 1) / 2, (w - 1) / 2
+    r = 0.7 * min(h, w) / 2
+
+    def ray(deg):
+        hits = 0
+        for d in (deg - 8, deg, deg + 8):
+            t = np.radians(d)
+            y, x = int(round(cy + r * np.sin(t))), int(round(cx + r * np.cos(t)))
+            if 0 <= y < h and 0 <= x < w and m[y, x]:
+                hits += 1
+        return hits / 3
+
+    # Only the lower half is read. On both maps the beams land on the two upper
+    # arm tips, so anything sampled up there is measuring a beam, not the plus.
+    axes = ray(90)
+    diags = (ray(45) + ray(135)) / 2
+    return 45.0 if diags > axes else 0.0
+
+
 B_ = []
 
 
-def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None):
+def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None, cross=None):
     m = bbox(x0, y0, x1, y1, mask)
     c = paint()
     e = dict(name=name, type=kind, x_ft=m['x'], y_ft=m['y'], w_ft=m['w'], h_ft=m['h'],
              angle_deg=m['a'], long_ft=m['long_ft'], thick_ft=m['thick_ft'],
+             cross_deg=(cross if cross is not None
+                        else (cross_angle() if kind == 'giant_plus' else None)),
              body=c['body'], detail=c['detail'],
              body_rgb=c.get('body_rgb'), detail_rgb=c.get('detail_rgb'))
     if note:
@@ -187,7 +221,15 @@ add('MT', 'maya_temple', 133.8, 94.8, 140.2, 101.2)
 # ---- the snake: the bottom V and the long beam each side ----------------
 add('SB', 'snake_beam', 62.0, 93.0, 71.0, 101.0, RED)
 add('SB', 'snake_beam', 79.0, 93.0, 88.0, 101.0, RED)
-add('GP', 'giant_plus', 68.0, 95.0, 82.5, 109.0, RED)
+# This plus sits on the snake beam and has two more landing on its upper arms,
+# so its paint is one blob with the whole bottom structure and no window or
+# erosion separates it. Orientation read off the map instead: it is printed on
+# its corner, like both of Lone Star's. Its footprint is the one measurement on
+# this field that the paint could not settle on its own.
+add('GP', 'giant_plus', 68.6, 96.6, 81.8, 109.0, RED, cross=45.0,
+    note='fused to the snake structure in the paint; orientation read off the '
+         'official map rather than measured, and the footprint is the window it '
+         'was measured in')
 for x in (25.0, 35.2, 45.4, 55.6):
     add('SB', 'snake_beam', x, 100.8, x + 10.2, 103.4, RED)
 for x in (84.5, 94.7, 104.9, 115.1):

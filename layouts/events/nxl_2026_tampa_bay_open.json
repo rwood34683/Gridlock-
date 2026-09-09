@@ -20,6 +20,7 @@
       "angle_deg": -45.7,
       "long_ft": 4.9,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -40,6 +41,7 @@
       "angle_deg": -45.9,
       "long_ft": 4.9,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -60,6 +62,7 @@
       "angle_deg": -56.8,
       "long_ft": 6.6,
       "thick_ft": 3.3,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -80,6 +83,7 @@
       "angle_deg": -48.1,
       "long_ft": 6.4,
       "thick_ft": 3.8,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -100,6 +104,7 @@
       "angle_deg": -57.2,
       "long_ft": 6.7,
       "thick_ft": 3.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -120,6 +125,7 @@
       "angle_deg": -56.3,
       "long_ft": 6.5,
       "thick_ft": 3.2,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -140,6 +146,7 @@
       "angle_deg": -60.3,
       "long_ft": 12.0,
       "thick_ft": 11.5,
+      "cross_deg": 0.0,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -160,6 +167,7 @@
       "angle_deg": 89.5,
       "long_ft": 5.0,
       "thick_ft": 3.4,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -180,6 +188,7 @@
       "angle_deg": -87.0,
       "long_ft": 4.9,
       "thick_ft": 3.5,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -200,6 +209,7 @@
       "angle_deg": 89.6,
       "long_ft": 7.2,
       "thick_ft": 2.2,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -220,6 +230,7 @@
       "angle_deg": -89.6,
       "long_ft": 7.5,
       "thick_ft": 2.2,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -240,6 +251,7 @@
       "angle_deg": -7.1,
       "long_ft": 3.7,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -260,6 +272,7 @@
       "angle_deg": -24.6,
       "long_ft": 3.6,
       "thick_ft": 3.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -280,6 +293,7 @@
       "angle_deg": -89.6,
       "long_ft": 7.8,
       "thick_ft": 2.4,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -300,6 +314,7 @@
       "angle_deg": -33.0,
       "long_ft": 6.9,
       "thick_ft": 2.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -320,6 +335,7 @@
       "angle_deg": -43.4,
       "long_ft": 6.5,
       "thick_ft": 5.7,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -340,6 +356,7 @@
       "angle_deg": -42.1,
       "long_ft": 6.0,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -364,6 +381,7 @@
       "angle_deg": -42.4,
       "long_ft": 5.9,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -388,6 +406,7 @@
       "angle_deg": -40.4,
       "long_ft": 9.9,
       "thick_ft": 2.0,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -408,6 +427,7 @@
       "angle_deg": 40.6,
       "long_ft": 10.1,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -428,6 +448,7 @@
       "angle_deg": -41.0,
       "long_ft": 9.8,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -448,6 +469,7 @@
       "angle_deg": 41.9,
       "long_ft": 9.5,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -468,6 +490,7 @@
       "angle_deg": -65.4,
       "long_ft": 3.8,
       "thick_ft": 3.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -488,6 +511,7 @@
       "angle_deg": -80.9,
       "long_ft": 10.2,
       "thick_ft": 6.0,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -508,6 +532,7 @@
       "angle_deg": 84.2,
       "long_ft": 9.9,
       "thick_ft": 6.0,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -528,6 +553,7 @@
       "angle_deg": -42.2,
       "long_ft": 5.7,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -552,6 +578,7 @@
       "angle_deg": -46.7,
       "long_ft": 5.7,
       "thick_ft": 4.2,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -576,6 +603,7 @@
       "angle_deg": -89.6,
       "long_ft": 6.8,
       "thick_ft": 3.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -597,6 +625,7 @@
       "angle_deg": 89.6,
       "long_ft": 6.8,
       "thick_ft": 2.7,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -618,6 +647,7 @@
       "angle_deg": -75.2,
       "long_ft": 4.2,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -638,6 +668,7 @@
       "angle_deg": -16.7,
       "long_ft": 4.2,
       "thick_ft": 4.4,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -658,6 +689,7 @@
       "angle_deg": -14.7,
       "long_ft": 4.4,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -678,6 +710,7 @@
       "angle_deg": 16.9,
       "long_ft": 4.4,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -698,6 +731,7 @@
       "angle_deg": -45.4,
       "long_ft": 5.5,
       "thick_ft": 4.3,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -722,6 +756,7 @@
       "angle_deg": -39.3,
       "long_ft": 5.7,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -746,6 +781,7 @@
       "angle_deg": -89.7,
       "long_ft": 10.2,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -766,6 +802,7 @@
       "angle_deg": -89.9,
       "long_ft": 10.2,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -786,6 +823,7 @@
       "angle_deg": 89.7,
       "long_ft": 7.1,
       "thick_ft": 2.2,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -806,6 +844,7 @@
       "angle_deg": 43.9,
       "long_ft": 9.7,
       "thick_ft": 2.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -826,6 +865,7 @@
       "angle_deg": -43.1,
       "long_ft": 10.1,
       "thick_ft": 1.7,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -846,6 +886,7 @@
       "angle_deg": -40.7,
       "long_ft": 5.7,
       "thick_ft": 4.7,
+      "cross_deg": null,
       "body": "blue",
       "detail": "red",
       "body_rgb": [
@@ -870,6 +911,7 @@
       "angle_deg": -38.3,
       "long_ft": 5.8,
       "thick_ft": 4.3,
+      "cross_deg": null,
       "body": "blue",
       "detail": "red",
       "body_rgb": [
@@ -894,6 +936,7 @@
       "angle_deg": -0.2,
       "long_ft": 9.7,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -914,6 +957,7 @@
       "angle_deg": 0.4,
       "long_ft": 9.7,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -934,6 +978,7 @@
       "angle_deg": 0.1,
       "long_ft": 9.5,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -954,6 +999,7 @@
       "angle_deg": -0.1,
       "long_ft": 9.5,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -974,6 +1020,7 @@
       "angle_deg": -0.4,
       "long_ft": 9.5,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -994,6 +1041,7 @@
       "angle_deg": 0.5,
       "long_ft": 9.3,
       "thick_ft": 1.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1014,6 +1062,7 @@
       "angle_deg": -0.8,
       "long_ft": 9.5,
       "thick_ft": 2.0,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1034,6 +1083,7 @@
       "angle_deg": 0.9,
       "long_ft": 9.9,
       "thick_ft": 2.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1047,21 +1097,23 @@
       "name": "GP",
       "type": "giant_plus",
       "side": "center",
-      "x_ft": 75.2,
-      "y_ft": 102.8,
-      "w_ft": 14.3,
-      "h_ft": 11.9,
-      "angle_deg": -11.0,
-      "long_ft": 14.4,
-      "thick_ft": 13.7,
+      "x_ft": 75.1,
+      "y_ft": 103.0,
+      "w_ft": 13.1,
+      "h_ft": 11.6,
+      "angle_deg": -8.1,
+      "long_ft": 13.2,
+      "thick_ft": 12.9,
+      "cross_deg": 45.0,
       "body": "red",
       "detail": null,
       "body_rgb": [
-        166,
+        165,
         25,
         26
       ],
-      "detail_rgb": null
+      "detail_rgb": null,
+      "note": "fused to the snake structure in the paint; orientation read off the official map rather than measured, and the footprint is the window it was measured in"
     },
     {
       "name": "Ck",
@@ -1074,6 +1126,7 @@
       "angle_deg": 40.7,
       "long_ft": 3.9,
       "thick_ft": 3.8,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1094,6 +1147,7 @@
       "angle_deg": 67.4,
       "long_ft": 4.1,
       "thick_ft": 3.9,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1114,6 +1168,7 @@
       "angle_deg": 89.7,
       "long_ft": 6.6,
       "thick_ft": 3.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1134,6 +1189,7 @@
       "angle_deg": -89.9,
       "long_ft": 6.6,
       "thick_ft": 3.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1154,6 +1210,7 @@
       "angle_deg": -87.7,
       "long_ft": 7.1,
       "thick_ft": 3.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1174,6 +1231,7 @@
       "angle_deg": -88.0,
       "long_ft": 7.1,
       "thick_ft": 3.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [

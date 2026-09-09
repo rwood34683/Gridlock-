@@ -20,6 +20,7 @@
       "angle_deg": -47.6,
       "long_ft": 6.6,
       "thick_ft": 3.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -40,6 +41,7 @@
       "angle_deg": -54.7,
       "long_ft": 6.6,
       "thick_ft": 3.2,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -60,6 +62,7 @@
       "angle_deg": -55.6,
       "long_ft": 6.7,
       "thick_ft": 3.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -80,6 +83,7 @@
       "angle_deg": -55.6,
       "long_ft": 6.5,
       "thick_ft": 3.3,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -100,6 +104,7 @@
       "angle_deg": 89.3,
       "long_ft": 5.2,
       "thick_ft": 3.3,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -120,6 +125,7 @@
       "angle_deg": -89.5,
       "long_ft": 5.3,
       "thick_ft": 3.3,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -140,6 +146,7 @@
       "angle_deg": -36.2,
       "long_ft": 4.8,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -160,6 +167,7 @@
       "angle_deg": -40.8,
       "long_ft": 4.9,
       "thick_ft": 3.9,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -180,6 +188,7 @@
       "angle_deg": -35.8,
       "long_ft": 6.1,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -204,6 +213,7 @@
       "angle_deg": -39.8,
       "long_ft": 6.2,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -228,6 +238,7 @@
       "angle_deg": -45.1,
       "long_ft": 15.1,
       "thick_ft": 12.3,
+      "cross_deg": 45.0,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -248,6 +259,7 @@
       "angle_deg": -44.5,
       "long_ft": 9.5,
       "thick_ft": 1.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -268,6 +280,7 @@
       "angle_deg": 44.6,
       "long_ft": 9.6,
       "thick_ft": 1.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -288,6 +301,7 @@
       "angle_deg": -44.6,
       "long_ft": 6.0,
       "thick_ft": 4.3,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -312,6 +326,7 @@
       "angle_deg": -45.5,
       "long_ft": 6.0,
       "thick_ft": 4.4,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -336,6 +351,7 @@
       "angle_deg": -44.7,
       "long_ft": 9.5,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -356,6 +372,7 @@
       "angle_deg": 44.8,
       "long_ft": 9.6,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -376,6 +393,7 @@
       "angle_deg": -89.1,
       "long_ft": 6.9,
       "thick_ft": 5.2,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -396,6 +414,7 @@
       "angle_deg": -89.7,
       "long_ft": 6.9,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -416,6 +435,7 @@
       "angle_deg": -89.9,
       "long_ft": 10.4,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -436,6 +456,7 @@
       "angle_deg": -3.0,
       "long_ft": 4.2,
       "thick_ft": 4.2,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -456,6 +477,7 @@
       "angle_deg": 55.5,
       "long_ft": 4.5,
       "thick_ft": 4.3,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -476,6 +498,7 @@
       "angle_deg": 41.9,
       "long_ft": 4.2,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -496,6 +519,7 @@
       "angle_deg": 25.9,
       "long_ft": 4.3,
       "thick_ft": 4.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -516,6 +540,7 @@
       "angle_deg": -9.8,
       "long_ft": 3.7,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -536,6 +561,7 @@
       "angle_deg": -89.9,
       "long_ft": 7.0,
       "thick_ft": 3.1,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -557,6 +583,7 @@
       "angle_deg": 16.9,
       "long_ft": 3.7,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -577,6 +604,7 @@
       "angle_deg": -45.1,
       "long_ft": 7.3,
       "thick_ft": 7.0,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -597,6 +625,7 @@
       "angle_deg": -90.0,
       "long_ft": 7.0,
       "thick_ft": 2.8,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -618,6 +647,7 @@
       "angle_deg": -50.5,
       "long_ft": 7.7,
       "thick_ft": 6.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -638,6 +668,7 @@
       "angle_deg": -37.3,
       "long_ft": 6.0,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -662,6 +693,7 @@
       "angle_deg": -39.5,
       "long_ft": 6.1,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -686,6 +718,7 @@
       "angle_deg": 89.9,
       "long_ft": 10.4,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -706,6 +739,7 @@
       "angle_deg": -44.1,
       "long_ft": 5.2,
       "thick_ft": 3.6,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -726,6 +760,7 @@
       "angle_deg": -15.6,
       "long_ft": 3.7,
       "thick_ft": 3.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -746,6 +781,7 @@
       "angle_deg": -44.8,
       "long_ft": 9.6,
       "thick_ft": 1.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -766,6 +802,7 @@
       "angle_deg": 44.6,
       "long_ft": 9.6,
       "thick_ft": 1.7,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -786,6 +823,7 @@
       "angle_deg": -42.8,
       "long_ft": 5.6,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -810,6 +848,7 @@
       "angle_deg": -44.5,
       "long_ft": 6.0,
       "thick_ft": 4.6,
+      "cross_deg": null,
       "body": "red",
       "detail": "blue",
       "body_rgb": [
@@ -834,6 +873,7 @@
       "angle_deg": -44.3,
       "long_ft": 9.6,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -854,6 +894,7 @@
       "angle_deg": 44.8,
       "long_ft": 9.7,
       "thick_ft": 1.7,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -874,6 +915,7 @@
       "angle_deg": 90.0,
       "long_ft": 7.0,
       "thick_ft": 2.0,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -894,6 +936,7 @@
       "angle_deg": -34.6,
       "long_ft": 15.1,
       "thick_ft": 14.4,
+      "cross_deg": 45.0,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -914,6 +957,7 @@
       "angle_deg": 89.4,
       "long_ft": 7.0,
       "thick_ft": 2.0,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -934,6 +978,7 @@
       "angle_deg": 0.2,
       "long_ft": 9.3,
       "thick_ft": 1.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -954,6 +999,7 @@
       "angle_deg": 0.4,
       "long_ft": 9.3,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -974,6 +1020,7 @@
       "angle_deg": 0.4,
       "long_ft": 9.3,
       "thick_ft": 1.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -994,6 +1041,7 @@
       "angle_deg": 0.6,
       "long_ft": 9.3,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1014,6 +1062,7 @@
       "angle_deg": -0.2,
       "long_ft": 9.3,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1034,6 +1083,7 @@
       "angle_deg": 0.5,
       "long_ft": 9.3,
       "thick_ft": 1.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1054,6 +1104,7 @@
       "angle_deg": 51.5,
       "long_ft": 4.7,
       "thick_ft": 4.0,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1074,6 +1125,7 @@
       "angle_deg": 89.5,
       "long_ft": 3.9,
       "thick_ft": 4.2,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1094,6 +1146,7 @@
       "angle_deg": -90.0,
       "long_ft": 4.8,
       "thick_ft": 3.4,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1114,6 +1167,7 @@
       "angle_deg": -89.1,
       "long_ft": 4.8,
       "thick_ft": 3.5,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1134,6 +1188,7 @@
       "angle_deg": 90.0,
       "long_ft": 7.2,
       "thick_ft": 2.1,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1154,6 +1209,7 @@
       "angle_deg": 89.9,
       "long_ft": 7.2,
       "thick_ft": 2.0,
+      "cross_deg": null,
       "body": "blue",
       "detail": null,
       "body_rgb": [
@@ -1174,6 +1230,7 @@
       "angle_deg": -16.3,
       "long_ft": 6.5,
       "thick_ft": 4.5,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [
@@ -1194,6 +1251,7 @@
       "angle_deg": -14.3,
       "long_ft": 6.6,
       "thick_ft": 4.4,
+      "cross_deg": null,
       "body": "red",
       "detail": null,
       "body_rgb": [

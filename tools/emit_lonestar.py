@@ -29,7 +29,7 @@ for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
     e = {'name': b['name'], 'type': b['type'], 'side': side(b),
          'x_ft': b['x_ft'], 'y_ft': b['y_ft'], 'w_ft': b['w_ft'], 'h_ft': b['h_ft'],
          'angle_deg': b.get('angle_deg'), 'long_ft': b.get('long_ft'),
-         'thick_ft': b.get('thick_ft'),
+         'thick_ft': b.get('thick_ft'), 'cross_deg': b.get('cross_deg'),
          'body': b.get('body'), 'detail': b.get('detail'),
          'body_rgb': b.get('body_rgb'), 'detail_rgb': b.get('detail_rgb')}
     if 'note' in b:
@@ -98,6 +98,10 @@ for b in out:
          'c': 'r' if b['body'] == 'red' else 'b'}
     if angled:
         d['a'] = ang
+    # A giant plus is printed either upright or turned on its corner, and which
+    # is measured off the paint. Drawn as the wrong one it is not that bunker.
+    if b['type'] == 'giant_plus' and b.get('cross_deg'):
+        d['a'] = b['cross_deg']
     if b.get('detail'):
         d['d'] = 'r' if b['detail'] == 'red' else 'b'
     rows.append(d)

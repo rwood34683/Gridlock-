@@ -106,14 +106,48 @@ def paint():
                 detail_share=round(share, 3))
 
 
+def cross_angle():
+    """Is the plus just measured printed upright, or turned on its corner?
+
+    A giant plus is drawn either way on these maps — Tampa prints one of each —
+    so it has to be read off the paint rather than assumed. Sampling the corners
+    of the bounding box against the middle of its sides would do it, except that
+    a snake beam landing on an arm tip sits in exactly those places. So this
+    reads a ring well inside the arms instead: at seven tenths of the way out, an
+    upright plus has paint along the four axes and none on the diagonals, and a
+    plus on its corner has exactly the opposite.
+    """
+    m = _blob['m']
+    h, w = m.shape
+    cy, cx = (h - 1) / 2, (w - 1) / 2
+    r = 0.7 * min(h, w) / 2
+
+    def ray(deg):
+        hits = 0
+        for d in (deg - 8, deg, deg + 8):
+            t = np.radians(d)
+            y, x = int(round(cy + r * np.sin(t))), int(round(cx + r * np.cos(t)))
+            if 0 <= y < h and 0 <= x < w and m[y, x]:
+                hits += 1
+        return hits / 3
+
+    # Only the lower half is read. On both maps the beams land on the two upper
+    # arm tips, so anything sampled up there is measuring a beam, not the plus.
+    axes = ray(90)
+    diags = (ray(45) + ray(135)) / 2
+    return 45.0 if diags > axes else 0.0
+
+
 B_ = []
 
 
-def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None):
+def add(name, kind, x0, y0, x1, y1, mask=ANY, note=None, cross=None):
     m = bbox(x0, y0, x1, y1, mask)
     c = paint()
     e = dict(name=name, type=kind, x_ft=m['x'], y_ft=m['y'], w_ft=m['w'], h_ft=m['h'],
              angle_deg=m['a'], long_ft=m['long_ft'], thick_ft=m['thick_ft'],
+             cross_deg=(cross if cross is not None
+                        else (cross_angle() if kind == 'giant_plus' else None)),
              body=c['body'], detail=c['detail'],
              body_rgb=c.get('body_rgb'), detail_rgb=c.get('detail_rgb'))
     if note:

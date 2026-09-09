@@ -283,3 +283,33 @@ Two more things this field taught the pipeline:
 - **Bunker ids are assigned by position**, so a plant list written against an
   earlier measurement can name a real bunker at the wrong end of the field. A
   check now asserts that no plant on any layout sits on the away half.
+
+
+## The giant plus
+
+A GP is printed either upright or turned forty-five degrees onto its corner,
+and which one it is varies inside a single layout — Tampa Bay prints an upright
+one at the dorito end and a turned one at the snake. Drawn as the wrong one it
+is not that bunker: the arms point at the gaps instead of the lanes, and on
+both these fields the snake beams land on its arm tips.
+
+So it is measured, not assumed. `cross_angle()` reads a ring well inside the
+arms: at seven tenths of the way out, an upright plus has paint straight down
+from its centre and none on the two downward diagonals, and a turned one has
+exactly the opposite. Only the lower half is sampled, because on both maps the
+beams land on the two upper arm tips and anything read up there is measuring a
+beam.
+
+One of the four could not be read at all. Tampa's snake-end plus sits on the
+long snake beam with two more landing on its upper arms, so in the paint it is
+one blob with the entire bottom structure — no window separates it, and erosion
+that severs the beams also moves its centre. Its orientation is recorded as
+read off the official map rather than measured, and its footprint carries a
+note saying the same, in the same way the pack records the two sideline
+cylinders that carry no printed label.
+
+Turned bunkers cannot have their outline checked by `verify_bunkers.js` the way
+square ones can: `getBBox` on a rotated group returns the box around the box,
+not around the shape. What that check does instead is confirm the app drew the
+shape the measurement describes at the angle it describes, including the
+browser's own widening of it — and position, which stays exact.

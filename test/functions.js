@@ -1516,7 +1516,7 @@ const ROSTER = [
   // around one is half again as wide as the beam, and would block lanes the
   // beam leaves open.
   check("an angled beam carries its own length, thickness and angle", await ev(() => {
-    const t = LAYOUTS.tby.bunkers.filter(b => b.a);
+    const t = LAYOUTS.tby.bunkers.filter(b => b.a && b.t === "beam");
     return t.length === 6 && t.every(b => Math.abs(b.a) > 35 && Math.abs(b.a) < 50)
         && t.every(b => b.w > 9 && b.w < 11 && b.h > 1.5 && b.h < 2.5);
   }));
@@ -1603,6 +1603,27 @@ const ROSTER = [
   check("every Lone Star plant names a bunker on that field", await ev(() => {
     const ids = new Set(LAYOUTS.lso.bunkers.map(b => b.id));
     return Object.values(BREAK_PLANTS.lso).every(p => p.length === 5 && p.every(id => ids.has(id)));
+  }));
+
+  // A giant plus is printed either upright or turned on its corner, and which
+  // it is varies inside one layout — Tampa prints one of each. Drawn as the
+  // wrong one it is not that bunker: the arms point at the gaps instead of the
+  // lanes, and on these fields the snake beams land on its arm tips.
+  check("a giant plus is drawn the way its own map prints it", await ev(() => {
+    const gp = k => LAYOUTS[k].bunkers.filter(b => b.n === "GP");
+    const tby = gp("tby"), lso = gp("lso");
+    return tby.length === 2 && lso.length === 2
+        && !tby[0].a && tby[1].a === 45          // Tampa: upright at the top, turned at the snake
+        && lso.every(b => b.a === 45);           // Lone Star: both turned
+  }));
+  check("a turned plus is not split up like a beam", await ev(() => {
+    const p = LAYOUTS.lso.bunkers.find(b => b.n === "GP");
+    return p.a === 45 && bunkerBoxes(p).length === 1;
+  }));
+  check("a turned plus is drawn turned, not just recorded as turned", await ev(() => {
+    window.set({ layoutKey: "lso" });
+    const svg = fieldSVG({ static: true });
+    return /rotate\(45 /.test(svg);
   }));
 
   check("Tampa has its own five breaks", await ev(() =>

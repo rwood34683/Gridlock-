@@ -67,22 +67,26 @@ for (const [KEY, FILE] of LAYOUTS) {
     if (!d) { rows.push({ name: b.name, id: b.type, missing: id, ok: false }); continue; }
     const dPos = Math.hypot(d.x - b.x_ft, d.y - b.y_ft);
     const dW = Math.abs(d.w - b.w_ft), dH = Math.abs(d.h - b.h_ft);
-    // A beam printed at an angle is drawn on its own axis, so the box around it
-    // is not the box around the paint that was measured — comparing those two
-    // compares a beam with its own diagonal. What has to hold is that the app
-    // draws the beam the measurement describes: the length, the thickness and
-    // the angle. That implies a bounding box, and it is that one to check.
-    const tilt = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 5;
-    let wantW = b.w_ft, wantH = b.h_ft;
-    if (tilt) {
-      const t = b.angle_deg * Math.PI / 180;
-      wantW = Math.abs(b.long_ft * Math.cos(t)) + Math.abs(b.thick_ft * Math.sin(t));
-      wantH = Math.abs(b.long_ft * Math.sin(t)) + Math.abs(b.thick_ft * Math.cos(t));
-    }
+    // Anything the app draws turned — a beam laid across the field, a giant plus
+    // printed on its corner — cannot have its outline measured this way at all.
+    // getBBox on a rotated group returns the box around the box, not around the
+    // shape, so comparing it with the measured paint compares a beam with its
+    // own diagonal. What can be checked, and is, is that the app drew the shape
+    // the measurement describes at the angle it describes: that implies a box,
+    // including the browser's own widening of it, and it is that one to expect.
+    const beam = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 5;
+    const cross = b.type === 'giant_plus' && (b.cross_deg || 0) > 5;
+    const turn = beam ? b.angle_deg : cross ? b.cross_deg : 0;
+    // A plus turned on its corner reaches the corners of the same footprint, so
+    // its arms are longer by root two before it is turned.
+    let uw = b.w_ft, uh = b.h_ft;
+    if (beam) { uw = b.long_ft; uh = b.thick_ft; }
+    if (cross) { uw = b.w_ft * Math.SQRT2; uh = b.h_ft * Math.SQRT2; }
+    const t = turn * Math.PI / 180;
+    const wantW = Math.abs(uw * Math.cos(t)) + Math.abs(uh * Math.sin(t));
+    const wantH = Math.abs(uw * Math.sin(t)) + Math.abs(uh * Math.cos(t));
     const eW = Math.abs(d.w - wantW), eH = Math.abs(d.h - wantH);
-    // Rounded ends cut the corners off a rotated beam, so its drawn box comes
-    // in a little under the sharp-cornered one the numbers imply.
-    const sizeTol = tilt ? 0.6 : TOL;
+    const sizeTol = (beam || cross) ? 0.6 : TOL;
     worstPos = Math.max(worstPos, dPos);
     worstSize = Math.max(worstSize, eW, eH);
     rows.push({ name: id, id: b.type, dPos, dW: eW, dH: eH,
