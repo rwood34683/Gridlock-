@@ -8,13 +8,13 @@ JSON per event, and the official published stills that are the ground truth.
 
 **Bunker coordinates are never invented.** An event ships with `bunkers: []` and
 `coordinate_status: "official_image_only"` until someone digitizes it from an
-official labeled 2D. Only `nxl_2026_midwest_open` has one, so it is the only
-event with coordinates.
+official labeled 2D. Two events have one: the Midwest Open and the Tampa Bay
+Open.
 
 | Event | Status | Coordinates | Bunkers |
 |---|---|---|---|
 | nxl_2026_midwest_open | published | `grid_digitized` | 58 |
-| nxl_2026_tampa_bay_open | published | `official_image_only` | 0 |
+| nxl_2026_tampa_bay_open | published | `grid_digitized` | 57 |
 | nxl_2026_tampa_bay_10v10 | published | `official_image_only` | 0 |
 | nxleu_2026_czech_cup | published | `official_image_only` | 0 |
 | wcppl_2026_defy_opener | published | `official_image_only` | 0 |
@@ -213,5 +213,38 @@ because there is nothing to change to.
   fails all 11 events — including the ones nothing here has touched. The live
   schema is `layouts/schema.json`, which `layouts/CLAUDE.md` points at and which
   the digitized event validates against. Left as found rather than edited.
-- Only the Midwest Open has an official labeled 2D. The other published events
-  have images but no labeled grid, so they stay at `official_image_only`.
+- The Midwest Open and the Tampa Bay Open have official labeled 2Ds. The other
+  published events have images but no labeled grid, so they stay at
+  `official_image_only`. The MVPS Spring Skirmish image is a perspective promo
+  graphic, not a 2D, and its event note claiming it used the Tampa Bay layout is
+  contradicted by the graphic's own "Mid-Atlantic Open" heading — unverified
+  either way, so nothing was inherited from it.
+
+## How the Tampa Bay Open was digitized
+
+Source: `layouts/images/nxl_2026_tampa_2d.jpg` (1080 × 818), the official NXL
+labeled 2D. Run it with:
+
+```bash
+python3 tools/digitize_tampa.py     # measure, and print the mirror check
+python3 tools/emit_tampa.py         # into the event JSON and tools/out/tby_layout.js
+```
+
+Same method as the Midwest pass, with two differences the source forces:
+
+- **Precision.** 5.89 px/ft against Midwest's 31.1, so a pixel is 0.17 ft rather
+  than 0.03. Coordinates are good to about a quarter of a foot.
+- **Lighting.** The map is lit from the upper left, so bright paint alone puts
+  the mirror axis at 74.1 ft against a printed centre line at 75.0. Bright paint
+  is used only to separate neighbours into windows; the footprint is measured on
+  the full paint, lit and shaded face together.
+
+The check is the field's own symmetry: 26 mirrored pairs give an axis of
+74.92 ft, sd 0.26 ft, against a printed centre line at 75.00.
+
+Six of the fourteen snake-beam sections are printed at an angle. Those carry a
+measured `angle_deg`, `long_ft` and `thick_ft` as well as a bounding box,
+because the box around a beam laid at 40 degrees is half again as wide as the
+beam and would block lanes it leaves open. All fourteen sections measure the
+same beam — about 10 ft by 2 ft — which is an independent check that the six
+angled readings are right.

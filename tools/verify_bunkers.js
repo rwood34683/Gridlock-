@@ -15,17 +15,28 @@ const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwri
 
 const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const URL = process.env.APP_URL || "http://localhost:5173/";
-const EVENT = path.join(__dirname, "..", "layouts", "events", "nxl_2026_midwest_open.json");
+// Every layout the app ships, against the event record it was measured from.
+const LAYOUTS = [
+  ["mwo", "nxl_2026_midwest_open.json"],
+  ["tby", "nxl_2026_tampa_bay_open.json"],
+];
 const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line weight
 
 (async () => {
-  const want = JSON.parse(fs.readFileSync(EVENT, "utf8")).bunkers;
   const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
   const page = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();
   await page.goto(URL, { waitUntil: "networkidle" });
-  await page.evaluate(() => localStorage.setItem("gridlock.coach.v2", JSON.stringify({
-    entered: true, role: "staff", tab: "sightlines", layoutKey: "mwo", tips: { sl: 1 },
-  })));
+
+  console.log("Rendered field vs digitized map");
+  console.log("===============================");
+  let failed = 0, checked = 0;
+
+for (const [KEY, FILE] of LAYOUTS) {
+  const want = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "..", "layouts", "events", FILE), "utf8")).bunkers;
+  await page.evaluate(k => localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+    entered: true, role: "staff", tab: "sightlines", layoutKey: k, tips: { sl: 1 },
+  })), KEY);
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
 
@@ -55,13 +66,29 @@ const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line w
     if (!d) { rows.push({ name: b.name, id: b.type, missing: id, ok: false }); continue; }
     const dPos = Math.hypot(d.x - b.x_ft, d.y - b.y_ft);
     const dW = Math.abs(d.w - b.w_ft), dH = Math.abs(d.h - b.h_ft);
+    // A beam printed at an angle is drawn on its own axis, so the box around it
+    // is not the box around the paint that was measured — comparing those two
+    // compares a beam with its own diagonal. What has to hold is that the app
+    // draws the beam the measurement describes: the length, the thickness and
+    // the angle. That implies a bounding box, and it is that one to check.
+    const tilt = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 5;
+    let wantW = b.w_ft, wantH = b.h_ft;
+    if (tilt) {
+      const t = b.angle_deg * Math.PI / 180;
+      wantW = Math.abs(b.long_ft * Math.cos(t)) + Math.abs(b.thick_ft * Math.sin(t));
+      wantH = Math.abs(b.long_ft * Math.sin(t)) + Math.abs(b.thick_ft * Math.cos(t));
+    }
+    const eW = Math.abs(d.w - wantW), eH = Math.abs(d.h - wantH);
+    // Rounded ends cut the corners off a rotated beam, so its drawn box comes
+    // in a little under the sharp-cornered one the numbers imply.
+    const sizeTol = tilt ? 0.6 : TOL;
     worstPos = Math.max(worstPos, dPos);
-    worstSize = Math.max(worstSize, dW, dH);
-    rows.push({ name: id, id: b.type, dPos, dW, dH, ok: dPos <= TOL && dW <= TOL && dH <= TOL });
+    worstSize = Math.max(worstSize, eW, eH);
+    rows.push({ name: id, id: b.type, dPos, dW: eW, dH: eH,
+                ok: dPos <= TOL && eW <= sizeTol && eH <= sizeTol });
   }
 
-  console.log("Rendered field vs digitized map");
-  console.log("===============================\n");
+  console.log(`\n${KEY} — ${FILE}`);
   console.log(`bunkers in the event JSON : ${want.length}`);
   console.log(`bunkers drawn on the field : ${Object.keys(drawn).length}`);
   console.log(`tolerance                 : ${TOL} ft\n`);
@@ -72,8 +99,12 @@ const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line w
   }
   console.log(`worst position error : ${worstPos.toFixed(4)} ft  (${(worstPos * 12).toFixed(2)} in)`);
   console.log(`worst footprint error: ${worstSize.toFixed(4)} ft  (${(worstSize * 12).toFixed(2)} in)`);
-  console.log(`\n${rows.length - bad.length}/${rows.length} bunkers drawn within tolerance.`);
+  console.log(`${rows.length - bad.length}/${rows.length} bunkers drawn within tolerance.`);
+  checked += rows.length;
+  failed += bad.length + (Object.keys(drawn).length !== want.length ? 1 : 0);
+}
 
+  console.log(`\n${checked - failed}/${checked} across ${LAYOUTS.length} layouts.`);
   await browser.close();
-  process.exit(bad.length || Object.keys(drawn).length !== want.length ? 1 : 0);
+  process.exit(failed ? 1 : 0);
 })();

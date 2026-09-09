@@ -558,6 +558,13 @@ function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
 // share out — the official 3D makes that plain. So exactly one player takes it
 // on any break; the rest support off it.
 const BREAK_PLANTS = {
+  tby: {
+    hold:  ["SB#10","T#3","C#1","MW#1","SD#1"],
+    base:  ["SB#11","GB#1","C#1","MT#1","MD#1"],
+    snake: ["SB#13","Wg#1","GB#1","C#3","MT#1"],
+    flood: ["MD#2","MD#1","MW#1","Tr#1","C#1"],
+    blitz: ["SB#13","GB#1","C#3","Tr#1","MD#2"]
+  },
   mwo: {
     hold:  ["Ck#1","T#3","Br#2","T#1","MT#4"],
     base:  ["SB#4","MW#3","MT#1","MD#3","C#4"],
@@ -581,9 +588,9 @@ function wireOf(y){
 // whose footprints touch are merged the same way.
 function routeObstacles(list, pad){
   pad = pad === undefined ? 0.9 : pad;   // players run within a foot of a bunker
-  let boxes = list.map(b => ({ids:[b.id], n:b.n,
-    x0:b.x-(b.w||4)/2-pad, x1:b.x+(b.w||4)/2+pad,
-    y0:b.y-(b.h||4)/2-pad, y1:b.y+(b.h||4)/2+pad}));
+  let boxes = list.flatMap(b => bunkerBoxes(b).map(k => ({ids:[b.id], n:b.n,
+    x0:k.x-k.w/2-pad, x1:k.x+k.w/2+pad,
+    y0:k.y-k.h/2-pad, y1:k.y+k.h/2+pad})));
   for(let pass = 0; pass < 6; pass++){
     let merged = false;
     outer:
@@ -801,9 +808,50 @@ const MWO = [
 // coordinates in the layout pack. A coach could switch to Tampa Bay and call a
 // break off a field that is not Tampa Bay. Nothing ships here without a source
 // line saying where its coordinates came from, and the suite enforces it.
+// Digitized from the official NXL labeled 2D on its printed 10-ft grid.
+const TBY = [
+  {id:"SD#1",n:"SD",x:24.8,y:12.4,t:"dorito",w:4.1,h:4.1,c:"r"},{id:"SD#2",n:"SD",x:124.3,y:12.6,t:"dorito",w:3.9,h:4.1,c:"r"},
+  {id:"MD#1",n:"MD",x:39.4,y:13.1,t:"dorito",w:4.4,h:6.1,c:"r"},{id:"MD#2",n:"MD",x:56.0,y:13.1,t:"dorito",w:5.1,h:5.4,c:"r"},
+  {id:"MD#3",n:"MD",x:109.2,y:13.1,t:"dorito",w:4.2,h:6.1,c:"r"},{id:"MD#4",n:"MD",x:92.2,y:13.3,t:"dorito",w:4.6,h:5.8,c:"r"},
+  {id:"GP#1",n:"GP",x:75.1,y:16.1,t:"plus",w:11.7,h:12.2,c:"r"},{id:"Br#1",n:"Br",x:11.9,y:18.1,t:"can",w:3.4,h:4.9,c:"b"},
+  {id:"Br#2",n:"Br",x:138.1,y:18.2,t:"can",w:3.4,h:4.8,c:"b"},{id:"MW#1",n:"MW",x:31.1,y:30.1,t:"mw",w:2.2,h:7.1,c:"b"},
+  {id:"MW#2",n:"MW",x:119.0,y:30.1,t:"mw",w:2.2,h:7.5,c:"b"},{id:"Tr#1",n:"Tr",x:61.5,y:32.0,t:"ball",w:3.6,h:3.6,c:"r"},
+  {id:"Tr#2",n:"Tr",x:88.5,y:32.0,t:"ball",w:3.6,h:3.4,c:"r"},{id:"MW#3",n:"MW",x:75.3,y:34.0,t:"mw",w:2.4,h:7.8,c:"b"},
+  {id:"MD#5",n:"MD",x:132.6,y:36.1,t:"dorito",w:5.9,h:4.2,c:"r"},{id:"MD#6",n:"MD",x:17.1,y:37.3,t:"dorito",w:5.4,h:6.3,c:"r"},
+  {id:"MT#1",n:"MT",x:49.5,y:39.9,t:"temple",w:5.4,h:5.3,c:"r",d:"b"},{id:"MT#2",n:"MT",x:99.7,y:40.1,t:"temple",w:4.6,h:4.4,c:"r",d:"b"},
+  {id:"SB#1",n:"SB",x:70.8,y:41.1,t:"beam",w:9.9,h:2.0,c:"r",a:-40.4},{id:"SB#2",n:"SB",x:79.8,y:41.2,t:"beam",w:10.1,h:1.9,c:"r",a:40.6},
+  {id:"SB#3",n:"SB",x:63.2,y:48.0,t:"beam",w:9.8,h:1.9,c:"r",a:-41.0},{id:"SB#4",n:"SB",x:87.1,y:48.0,t:"beam",w:9.5,h:1.9,c:"r",a:41.9},
+  {id:"Tr#3",n:"Tr",x:75.1,y:48.6,t:"ball",w:3.6,h:3.7,c:"r"},{id:"GW#1",n:"GW",x:58.0,y:55.2,t:"gwing",w:6.4,h:9.3,c:"r"},
+  {id:"GW#2",n:"GW",x:92.2,y:55.2,t:"gwing",w:6.3,h:9.3,c:"r"},{id:"T#1",n:"T",x:12.4,y:60.0,t:"temple",w:4.4,h:4.1,c:"r",d:"b"},
+  {id:"T#2",n:"T",x:137.4,y:60.3,t:"temple",w:4.2,h:4.4,c:"r",d:"b"},{id:"Br#3",n:"Br",x:1.9,y:60.5,t:"can",w:3.1,h:6.8,c:"r"},
+  {id:"Br#4",n:"Br",x:148.1,y:60.5,t:"can",w:2.7,h:6.8,c:"r"},{id:"C#1",n:"C",x:40.1,y:68.6,t:"ball",w:3.9,h:4.2,c:"b"},
+  {id:"C#2",n:"C",x:110.0,y:68.6,t:"ball",w:4.2,h:4.6,c:"b"},{id:"C#3",n:"C",x:68.0,y:70.3,t:"ball",w:4.4,h:3.9,c:"b"},
+  {id:"C#4",n:"C",x:82.0,y:70.4,t:"ball",w:4.4,h:4.1,c:"b"},{id:"T#3",n:"T",x:18.0,y:77.8,t:"temple",w:4.1,h:3.9,c:"r",d:"b"},
+  {id:"T#4",n:"T",x:131.8,y:77.8,t:"temple",w:4.4,h:4.1,c:"r",d:"b"},{id:"GB#1",n:"GB",x:58.0,y:85.2,t:"gbrick",w:4.1,h:10.2,c:"b"},
+  {id:"GB#2",n:"GB",x:92.5,y:85.2,t:"gbrick",w:4.1,h:10.2,c:"b"},{id:"MW#4",n:"MW",x:75.4,y:90.3,t:"mw",w:2.2,h:7.1,c:"b"},
+  {id:"SB#5",n:"SB",x:67.1,y:97.1,t:"beam",w:9.7,h:2.1,c:"r",a:43.9},{id:"SB#6",n:"SB",x:82.9,y:97.1,t:"beam",w:10.1,h:1.7,c:"r",a:-43.1},
+  {id:"MT#3",n:"MT",x:12.4,y:97.6,t:"temple",w:4.4,h:3.9,c:"b",d:"r"},{id:"MT#4",n:"MT",x:137.3,y:97.6,t:"temple",w:4.4,h:4.2,c:"b",d:"r"},
+  {id:"SB#7",n:"SB",x:99.9,y:101.9,t:"beam",w:9.7,h:1.9,c:"r"},{id:"SB#8",n:"SB",x:110.0,y:101.9,t:"beam",w:9.7,h:1.9,c:"r"},
+  {id:"SB#9",n:"SB",x:120.3,y:101.9,t:"beam",w:9.5,h:1.9,c:"r"},{id:"SB#10",n:"SB",x:29.7,y:102.1,t:"beam",w:9.5,h:1.9,c:"r"},
+  {id:"SB#11",n:"SB",x:39.9,y:102.1,t:"beam",w:9.5,h:1.9,c:"r"},{id:"SB#12",n:"SB",x:50.1,y:102.1,t:"beam",w:9.3,h:1.9,c:"r"},
+  {id:"SB#13",n:"SB",x:60.4,y:102.2,t:"beam",w:9.5,h:2.0,c:"r"},{id:"SB#14",n:"SB",x:89.6,y:102.2,t:"beam",w:9.8,h:2.0,c:"r"},
+  {id:"GP#2",n:"GP",x:75.2,y:102.8,t:"plus",w:14.3,h:11.9,c:"r"},{id:"Ck#1",n:"Ck",x:115.3,y:105.0,t:"tridown",w:3.9,h:3.4,c:"b"},
+  {id:"Ck#2",n:"Ck",x:34.8,y:105.1,t:"tridown",w:4.1,h:3.6,c:"b"},{id:"Br#5",n:"Br",x:44.8,y:106.7,t:"can",w:3.4,h:6.6,c:"r"},
+  {id:"Br#6",n:"Br",x:105.2,y:106.7,t:"can",w:3.4,h:6.6,c:"r"},{id:"Wg#1",n:"Wg",x:58.6,y:106.8,t:"bar",w:2.9,h:7.0,c:"r"},
+  {id:"Wg#2",n:"Wg",x:91.4,y:106.8,t:"bar",w:2.9,h:7.0,c:"r"}
+];
+
 const LAYOUTS = {
   mwo: {name:"NXL Midwest Open · Cincinnati", key:"mwo", bunkers:MWO,
-        source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid."}
+        source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid."},
+  tby: {name:"NXL Tampa Bay Open · Tampa", key:"tby", bunkers:TBY,
+        source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid. "
+             + "That map is 1080px wide, so these are good to about a quarter of a foot.",
+        // The five plants below were picked off the measured field by rule, not
+        // off a walk: one man per wire, how far up the field set by how
+        // aggressive the break is, never two on the same beam. A coach who has
+        // walked Tampa should drag them where they belong — Edit path saves it.
+        plantsFrom:"rule"}
 };
 const BREAKS = {
   hold:{name:"Hold & Read", paths:[
@@ -1726,6 +1774,29 @@ window.saveAssess = () => {
 };
 window.undoAssess = i => { S.assessments = (S.assessments||[]).filter((_,k)=>k!==i); save(S); render(); };
 
+// A bunker laid across the field at an angle — Tampa Bay prints six beam
+// sections in two Vs — is a poor fit for one field-aligned box: the box that
+// contains it is half again as wide as the beam and blocks lanes the beam
+// leaves open. Everything that asks what a bunker blocks asks for its boxes
+// instead, and an angled one comes back as three along its length.
+function bunkerBoxes(b){
+  const w = b.w || 4, h = b.h || 4;
+  if(!b.a) return [{x:b.x, y:b.y, w, h}];
+  // Squares the thickness of the beam, laid end to end along it. Fewer and
+  // fatter boxes would be quicker and would block lanes the beam leaves open,
+  // which is the whole thing this is here to avoid; the spacing below never
+  // exceeds a box, so there is no gap to shoot through either.
+  const t = b.a * Math.PI / 180;
+  const span = w - h;
+  const n = Math.max(2, Math.ceil(span / h) + 1);
+  const out = [];
+  for(let i = 0; i < n; i++){
+    const d = -span / 2 + (span * i) / (n - 1);
+    out.push({x: b.x + d * Math.cos(t), y: b.y + d * Math.sin(t), w: h, h: h});
+  }
+  return out;
+}
+
 function bunkerSize(b, sx=2, sy=2){
   if(b.w && b.h) return {h:(b.w*sx)/2, v:(b.h*sy)/2};
   return BUNKER[b.t] || BUNKER.can;
@@ -1748,6 +1819,16 @@ function bunkerShape(b, sx, sy){
                : blue ? '#2f2e8a' : red ? '#9a231e' : '#70767a';
   const box = (w,h,r) => `<rect x="${(x-w).toFixed(1)}" y="${(y-h).toFixed(1)}" width="${(w*2).toFixed(1)}" height="${(h*2).toFixed(1)}" rx="${r}" fill="${fill}" stroke="${edge}" ${sw}/>`;
   const band = (hw,hh,cy2,r) => `<rect x="${(x-hw).toFixed(1)}" y="${(cy2-hh).toFixed(1)}" width="${(hw*2).toFixed(1)}" height="${(hh*2).toFixed(1)}" rx="${r}" fill="${detail}"/>`;
+
+  // A beam printed at an angle is drawn on its own axis, so the silhouette on
+  // screen is the one on the official map rather than the box around it.
+  if(b.a && b.t === "beam"){
+    const L = (b.w*sx)/2, T = (b.h*sy)/2;
+    return `<g transform="rotate(${b.a} ${x.toFixed(1)} ${y.toFixed(1)})">`
+      + `<rect x="${(x-L).toFixed(1)}" y="${(y-T).toFixed(1)}" width="${(L*2).toFixed(1)}" height="${(T*2).toFixed(1)}" rx="${(T*0.8).toFixed(1)}" fill="${fill}" stroke="${edge}" ${sw}/>`
+      + `<rect x="${(x+L-T*1.4).toFixed(1)}" y="${(y-T).toFixed(1)}" width="${(T*1.4).toFixed(1)}" height="${(T*2).toFixed(1)}" rx="${(T*0.6).toFixed(1)}" fill="${detail}"/>`
+      + `</g>`;
+  }
 
   switch(b.t){
     case "dorito":
@@ -1863,8 +1944,8 @@ function sightLines(fromId, sx, sy){
     // nothing he can act on.
     const by = list.filter(o=>{
       if(o===src||o===b) return false;
-      const g=bunkerSize(o, sx, sy);
-      return segHitsBox(ox,oy,tx,ty,o.x*sx,o.y*sy,g.h,g.v);
+      return bunkerBoxes(o).some(k =>
+        segHitsBox(ox,oy,tx,ty,k.x*sx,k.y*sy,(k.w*sx)/2,(k.h*sy)/2));
     }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
     return {to:b, x:tx, y:ty, blocked:by.length>0, by,
             ft:Math.round(Math.hypot(b.x-src.x, b.y-src.y))};

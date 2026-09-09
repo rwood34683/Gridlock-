@@ -1473,6 +1473,126 @@ const ROSTER = [
   check("never more than one player on the snake", route.snakes.every(n => n <= 1), route.snakes.join(","));
   check("the five break from one station, not the whole width", route.station <= 20, `${route.station.toFixed(0)} ft`);
 
+  /* ------------------------------------------------------- a second field */
+  // Until now the app shipped one layout. Everything geometric keys off it,
+  // so a second one is the first real test that any of it was general.
+  G("Tampa Bay");
+  check("both layouts ship, and each says where it came from", await ev(() =>
+    Object.keys(LAYOUTS).length === 2 &&
+    Object.values(LAYOUTS).every(l => /official NXL labeled 2D/.test(l.source))));
+  check("the event becomes a picker once there is more than one to pick", await ev(() => {
+    window.set({ tab: "playbook" });
+    return !!document.querySelector("button.ctx");
+  }));
+  check("Tampa carries its own 57 bunkers", await ev(() => LAYOUTS.tby.bunkers.length === 57));
+  check("every one of them is on the field", await ev(() =>
+    LAYOUTS.tby.bunkers.every(b => b.x > 0 && b.x < 150 && b.y > 0 && b.y < 120)));
+  check("no two bunkers share an id", await ev(() =>
+    new Set(LAYOUTS.tby.bunkers.map(b => b.id)).size === LAYOUTS.tby.bunkers.length));
+  check("the field is drawn symmetric, as the map prints it", await ev(() => {
+    // Each bunker should have an opposite number across the centre line.
+    const bs = LAYOUTS.tby.bunkers;
+    const off = bs.filter(b => Math.abs(b.x - 75) > 4).filter(b =>
+      !bs.some(o => o !== b && o.n === b.n &&
+        Math.abs((o.x + b.x) / 2 - 75) < 1.2 && Math.abs(o.y - b.y) < 1.2));
+    return off.length === 0;
+  }));
+
+  // Six of Tampa's fourteen beam sections are printed at an angle. A box drawn
+  // around one is half again as wide as the beam, and would block lanes the
+  // beam leaves open.
+  check("an angled beam carries its own length, thickness and angle", await ev(() => {
+    const t = LAYOUTS.tby.bunkers.filter(b => b.a);
+    return t.length === 6 && t.every(b => Math.abs(b.a) > 35 && Math.abs(b.a) < 50)
+        && t.every(b => b.w > 9 && b.w < 11 && b.h > 1.5 && b.h < 2.5);
+  }));
+  check("every beam section on the field is the same beam", await ev(() => {
+    const sb = LAYOUTS.tby.bunkers.filter(b => b.n === "SB");
+    return sb.length === 14 && sb.every(b => b.w > 9 && b.w < 11 && b.h > 1.5 && b.h < 2.5);
+  }));
+  check("a square bunker is one box; an angled one is three along its length", await ev(() => {
+    const flat = LAYOUTS.tby.bunkers.find(b => b.n === "GB");
+    const tilt = LAYOUTS.tby.bunkers.find(b => b.a);
+    return bunkerBoxes(flat).length === 1 && bunkerBoxes(tilt).length === 5
+        && bunkerBoxes(tilt).every(k => Math.abs(k.w - tilt.h) < 0.01);
+  }));
+  check("an angled beam blocks less than the box around it", await ev(() => {
+    const b = LAYOUTS.tby.bunkers.find(x => x.a);
+    const t = b.a * Math.PI / 180;
+    const bw = Math.abs(b.w * Math.cos(t)) + Math.abs(b.h * Math.sin(t));
+    const bh = Math.abs(b.w * Math.sin(t)) + Math.abs(b.h * Math.cos(t));
+    // The beam leaves two corners of its bounding box open — which two depends
+    // on which way it leans. A short lane across the free corner is clear of
+    // the beam and clipped by the box, which is the whole point of the split.
+    const cx = b.x + (b.a < 0 ? -1 : 1) * (bw / 2 - 1);
+    const cy = b.y - (bh / 2 - 1);
+    const hitsBox = segHitsBox(cx - 2, cy - 2, cx + 2, cy + 2, b.x, b.y, bw / 2, bh / 2);
+    const hitsBeam = bunkerBoxes(b).some(k =>
+      segHitsBox(cx - 2, cy - 2, cx + 2, cy + 2, k.x, k.y, k.w / 2, k.h / 2));
+    return hitsBox && !hitsBeam;
+  }));
+
+  check("Tampa has its own five breaks", await ev(() =>
+    Object.keys(BREAK_PLANTS.tby).length === 5 &&
+    Object.keys(BREAK_PLANTS.tby).every(k => k in BREAKS)));
+  check("every plant names a bunker that is actually on this field", await ev(() => {
+    const ids = new Set(LAYOUTS.tby.bunkers.map(b => b.id));
+    return Object.values(BREAK_PLANTS.tby).every(p => p.length === 5 && p.every(id => ids.has(id)));
+  }));
+  check("no break puts two men on the same beam", await ev(() => {
+    const obs = routeObstacles(LAYOUTS.tby.bunkers).filter(o => o.n === "SB");
+    return Object.values(BREAK_PLANTS.tby).every(plants =>
+      obs.every(o => plants.filter(id => o.ids.has(id)).length <= 1));
+  }));
+  check("no break path on Tampa runs through a bunker", await ev(() => {
+    const obs = routeObstacles(LAYOUTS.tby.bunkers);
+    let clip = 0, legs = 0;
+    for(const k of Object.keys(BREAK_PLANTS.tby)){
+      for(const p of breakPaths("tby", k)){
+        legs++;
+        const pts = [p.from, ...(p.via || []), p.to];
+        const holds = o => Math.abs(p.from[0] - o.x) <= o.hw && Math.abs(p.from[1] - o.y) <= o.hh;
+        const live = obs.filter(o => !o.ids.has(p.bunker) && !holds(o));
+        for(let i = 0; i < pts.length - 1; i++)
+          for(const o of live)
+            if(segHitsBox(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], o.x, o.y, o.hw, o.hh)) clip++;
+      }
+    }
+    return legs === 25 && clip === 0;
+  }));
+  check("the five break from one station on Tampa too", await ev(() => {
+    const y = breakPaths("tby", "snake").map(p => p.from[1]);
+    return Math.max(...y) - Math.min(...y) <= 20;
+  }));
+  check("Sightlines reads the new field, and finds it blocks things", await ev(() => {
+    window.set({ layoutKey: "tby" });
+    const r = sightLines(LAYOUTS.tby.bunkers[3].id, 2, 2);
+    return r.lines.length === 56 && r.lines.some(l => l.blocked) && r.clear > 0;
+  }));
+
+  // Switching event has to move everything, and must not carry one field's
+  // work onto another.
+  check("changing the event changes the field", await ev(() => {
+    window.set({ layoutKey: "tby" });
+    const a = curLayout().bunkers.length;
+    window.set({ layoutKey: "mwo" });
+    return a === 57 && curLayout().bunkers.length === 58;
+  }));
+  check("a bunker call belongs to the field it was made on", await ev(() => {
+    window.set({ layoutKey: "tby" });
+    S.bunkerCalls = { ...(S.bunkerCalls || {}), tby: { "GP#1": "The cross" } };
+    save(S);
+    const here = bunkerCalls()["GP#1"];
+    window.set({ layoutKey: "mwo" });
+    return here === "The cross" && !bunkerCalls()["GP#1"];
+  }));
+  check("a path edit belongs to the field it was made on", await ev(() => {
+    window.set({ layoutKey: "tby", script: "snake" });
+    const before = JSON.stringify(currentPaths().map(p => p.to));
+    window.set({ layoutKey: "mwo" });
+    return before !== JSON.stringify(currentPaths().map(p => p.to));
+  }));
+
   /* ------------------------------------------------------------ house rules */
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
