@@ -1621,6 +1621,31 @@ const ROSTER = [
     const p = LAYOUTS.lso.bunkers.find(b => b.n === "GP");
     return p.a === 45 && bunkerBoxes(p).length === 1;
   }));
+  // A plus turned on its corner is the same cross, turned. It was being drawn
+  // with its arms lengthened by root two so the box around the turned shape
+  // would come back the measured size — which made it half again too big on
+  // the field, the one thing on this map you cannot miss.
+  check("a turned plus is the same size as an upright one", await ev(() => {
+    const up = LAYOUTS.mwo.bunkers.find(b => b.n === "GP");     // printed upright
+    const turned = LAYOUTS.lso.bunkers.find(b => b.n === "GP"); // printed on its corner
+    return !up.a && turned.a === 45
+        && Math.abs(up.w - turned.w) < 0.5 && Math.abs(up.h - turned.h) < 0.5;
+  }));
+  check("its arms are as wide as the map draws them", await ev(w => {
+    const gp = ["mwo","tby","lso"].flatMap(k => LAYOUTS[k].bunkers.filter(b => b.n === "GP"));
+    return gp.length === 6 && gp.every(b => Math.abs(b.k - w) < 0.01 && b.k > 3 && b.k < b.w / 2);
+  }, JSON.parse(fs.readFileSync(path.join(__dirname, "..", "layouts", "bunkers.json"), "utf8"))
+      .bunkers.giant_plus.arm_ft));
+  // The outline is stroked, and a stroke straddles the line it sits on, so a
+  // shape built at its measured size paints half a stroke wider all round —
+  // a quarter of a foot on a beam a foot and a half thick.
+  check("a bunker is built inset by its own stroke, so the paint is the size",
+    await ev(() => {
+      const b = LAYOUTS.lso.bunkers.find(x => x.n === "SB" && !x.a);
+      const s = bunkerSize(b, 2, 2);
+      return Math.abs((s.v * 2 + BNK_STROKE) / 2 - b.h) < 0.001;
+    }));
+
   check("a turned plus is drawn turned, not just recorded as turned", await ev(() => {
     window.set({ layoutKey: "lso" });
     const svg = fieldSVG({ static: true });

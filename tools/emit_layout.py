@@ -10,7 +10,7 @@ coordinates carry across 1:1 with no rescaling.
 """
 import json, os
 
-from bunkerbook import footprint as std_footprint, provenance
+from bunkerbook import arm as std_arm, footprint as std_footprint, provenance
 
 EVENT = 'layouts/events/nxl_2026_midwest_open.json'
 MEASURED = 'tools/out/bunkers_measured.json'
@@ -41,6 +41,7 @@ for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
         'drawn_w_ft': b['w_ft'],
         'drawn_h_ft': b['h_ft'],
         'off_ft': std_footprint(b['type'], b['w_ft'], b['h_ft'])[2],
+        'arm_ft': std_arm(b['type']),
         # sampled from the official map, not chosen
         'body': b.get('body'),
         'detail': b.get('detail'),
@@ -104,9 +105,12 @@ for b in out:
     # Where the bunkers stand is this map's to say. How big each one is comes
     # from the book, measured once off the print that can measure it; see
     # tools/bunkerbook.py. How far the two disagree is recorded below.
-    rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{},c:"{}"{}}}'.format(
+    # A cross carries the width of its own arms: drawn thin it reads as a
+    # spindly X where the map prints a chunky one.
+    k = ',k:%s' % b['arm_ft'] if b.get('arm_ft') else ''
+    rows.append('{{id:"{}",n:"{}",x:{},y:{},t:"{}",w:{},h:{},c:"{}"{}{}}}'.format(
         uid(b), b['name'], b['x_ft'], b['y_ft'], SHAPE[b['type']], b['w_ft'], b['h_ft'],
-        c, ',d:"%s"' % d if d else ''))
+        c, k, ',d:"%s"' % d if d else ''))
 
 os.makedirs('tools/out', exist_ok=True)
 with open('tools/out/mwo_layout.js', 'w') as f:

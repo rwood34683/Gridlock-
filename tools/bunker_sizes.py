@@ -93,6 +93,7 @@ def read(b, m):
     sizes = ndimage.sum(win, lab, range(1, n + 1))
     m = lab == (int(np.argmax(sizes)) + 1)
     ys, xs = np.where(m)
+    m = m.copy()
     if (xs.min() == 0 or ys.min() == 0
             or xs.max() == m.shape[1] - 1 or ys.max() == m.shape[0] - 1):
         return None                            # runs out of its own window
@@ -102,7 +103,17 @@ def read(b, m):
     vals, vecs = np.linalg.eigh(np.cov(np.vstack([X, Y])))
     v = vecs[:, int(np.argmax(vals))]
     along, across = X * v[0] + Y * v[1], -X * v[1] + Y * v[0]
-    return dict(w=w, h=h, long=float(along.max() - along.min()),
+    # A giant plus is a cross, and how wide its arms are is most of what it
+    # looks like: drawn thin it reads as a spindly X where the map prints a
+    # chunky one. Measured as the run across the blob a foot and a half inside
+    # the tip, which is along an arm and clear of the middle.
+    arm = None
+    if b['type'] == 'giant_plus':
+        col = xs.min() + int(1.5 * PX)
+        rows = np.where(m[:, col])[0] if col < m.shape[1] else []
+        if len(rows):
+            arm = float((rows.max() - rows.min()) / PY)
+    return dict(w=w, h=h, arm=arm, long=float(along.max() - along.min()),
                 thick=float(across.max() - across.min()))
 
 
@@ -179,7 +190,9 @@ for kind in sorted(set(seen) | set(fallback)):
     # therefore the one that is only itself, and with the clean types agreeing
     # to a tenth of a foot it is barely a different answer from their middle.
     best = min(pairs, key=lambda p: p[0] * p[1])
+    arms = [m['arm'] for m in ms if m.get('arm')]
     table[kind] = dict(long_ft=round(best[0], 2), short_ft=round(best[1], 2),
+                       **({'arm_ft': round(min(arms), 2)} if arms else {}),
                        median_ft=[round(float(np.median(hi)), 2),
                                   round(float(np.median(lo)), 2)],
                        n=len(ms), fused=fused.get(kind, 0), read_from=where)

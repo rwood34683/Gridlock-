@@ -46,6 +46,11 @@ def footprint(kind, w_ft, h_ft):
     return long_ft, short_ft, off
 
 
+def arm(kind):
+    """How wide the arms of a cross are, where the book measured them."""
+    return (STANDARD.get(kind) or {}).get('arm_ft')
+
+
 def beam(long_ft, thick_ft):
     """Standard length and thickness for a snake beam section."""
     return _pick('snake_beam', long_ft, thick_ft)

@@ -7,7 +7,7 @@ the layout pack — 150 ft x 120 ft, origin top-left, +x toward the away end,
 """
 import json
 
-from bunkerbook import beam as std_beam, footprint as std_footprint, provenance
+from bunkerbook import arm as std_arm, beam as std_beam, footprint as std_footprint, provenance
 
 EVENT = 'layouts/events/nxl_2026_tampa_bay_open.json'
 MEASURED = 'tools/out/tampa_measured.json'
@@ -43,6 +43,7 @@ for b in sorted(bunkers, key=lambda d: (d['y_ft'], d['x_ft'])):
     e = {'name': b['name'], 'type': b['type'], 'side': side(b),
          'x_ft': b['x_ft'], 'y_ft': b['y_ft'], 'w_ft': w, 'h_ft': h,
          'drawn_w_ft': b['w_ft'], 'drawn_h_ft': b['h_ft'], 'off_ft': off,
+         'arm_ft': std_arm(b['type']),
          'angle_deg': b.get('angle_deg'), 'long_ft': b.get('long_ft'),
          'thick_ft': b.get('thick_ft'), 'cross_deg': b.get('cross_deg'),
          'body': b.get('body'), 'detail': b.get('detail'),
@@ -116,6 +117,10 @@ for b in out:
     # is measured off the paint. Drawn as the wrong one it is not that bunker.
     if b['type'] == 'giant_plus' and b.get('cross_deg'):
         d['a'] = b['cross_deg']
+    # A cross carries the width of its own arms: drawn thin it reads as a
+    # spindly X where the map prints a chunky one.
+    if b.get('arm_ft'):
+        d['k'] = b['arm_ft']
     if b.get('detail'):
         d['d'] = 'r' if b['detail'] == 'red' else 'b'
     rows.append(d)

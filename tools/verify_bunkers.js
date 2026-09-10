@@ -22,6 +22,10 @@ const LAYOUTS = [
   ["lso", "nxl_2026_lone_star.json"],
 ];
 const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line weight
+// The app insets every outline by half its stroke so the paint lands on the
+// measurement rather than half a stroke outside it. getBBox reports geometry,
+// not paint, so the stroke goes back on here.
+const STROKE = 0.35;   // ft
 
 (async () => {
   const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
@@ -77,12 +81,10 @@ for (const [KEY, FILE] of LAYOUTS) {
     const beam = b.type === 'snake_beam' && Math.abs(b.angle_deg || 0) > 12;
     const cross = b.type === 'giant_plus' && (b.cross_deg || 0) > 5;
     const turn = beam ? b.angle_deg : cross ? b.cross_deg : 0;
-    // A plus turned on its corner reaches the corners of the same footprint, so
-    // its arms are longer by root two before it is turned.
-    // w_ft and h_ft are the standard footprint the app draws — for a beam
-    // that is its length and its thickness, laid at the angle measured here.
-    let uw = b.w_ft, uh = b.h_ft;
-    if (cross) { uw = b.w_ft * Math.SQRT2; uh = b.h_ft * Math.SQRT2; }
+    // w_ft and h_ft are the standard footprint the app draws — for a beam that
+    // is its length and its thickness, laid at the angle measured here. A plus
+    // turned on its corner is the same cross turned: it does not grow.
+    const uw = b.w_ft - STROKE, uh = b.h_ft - STROKE;
     const t = turn * Math.PI / 180;
     const wantW = Math.abs(uw * Math.cos(t)) + Math.abs(uh * Math.sin(t));
     const wantH = Math.abs(uw * Math.sin(t)) + Math.abs(uh * Math.cos(t));
