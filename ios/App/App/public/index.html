@@ -3019,6 +3019,25 @@ function newSalt(){
     .map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+/* The staff account is kept alongside the season, and for the same reason: the
+ * season coming back on a phone the coach can no longer sign in to is half a
+ * rescue — creating a class and sending a blast are both gated on it. */
+function writeAccount(acc){
+  const text = JSON.stringify(acc);
+  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
+  if(window.gridlockKeep) try{ window.gridlockKeep(text, STAFF_KEY); }catch(e){}
+}
+window.gridlockRestoreAccount = text => {
+  let have = null;
+  try{ have = JSON.parse(localStorage.getItem(STAFF_KEY) || "null"); }catch(e){}
+  if(have && have.email) return false;              // this phone has one already
+  let d = null;
+  try{ d = JSON.parse(text); }catch(e){ return false; }
+  if(!d || !d.email || !d.hash) return false;
+  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
+  return true;
+};
+
 window.doAuth = async () => {
   const email = document.getElementById("em").value.trim();
   const pass = document.getElementById("pw").value;
@@ -3031,8 +3050,13 @@ window.doAuth = async () => {
   try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
 
   if(S.mode === "create"){
+    // Creating over an account that is already here is how a coach who meant to
+    // sign in loses the one he had — nothing else on the phone can get it back.
+    if(acc.email && acc.email !== email &&
+       !confirm(`This phone already has ${acc.email}. Making a new account replaces it, `
+              + `and there is no way back. Continue?`)) return;
     const salt = newSalt();
-    localStorage.setItem(STAFF_KEY, JSON.stringify({email, salt, hash: await hashPass(pass, salt)}));
+    writeAccount({email, salt, hash: await hashPass(pass, salt)});
     localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
     set({entered:true, role:"staff", email, mode:null});
     return;
@@ -3049,7 +3073,7 @@ window.doAuth = async () => {
   try{ old = JSON.parse(localStorage.getItem("gridlock.staff") || "{}"); }catch(e){}
   if(old.email === email && old.pass === pass){
     const salt = newSalt();
-    localStorage.setItem(STAFF_KEY, JSON.stringify({email, salt, hash: await hashPass(pass, salt)}));
+    writeAccount({email, salt, hash: await hashPass(pass, salt)});
     localStorage.removeItem("gridlock.staff");
     set({entered:true, role:"staff", email, mode:null});
     return;

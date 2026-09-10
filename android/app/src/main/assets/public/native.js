@@ -41,22 +41,25 @@
    * backup copy costs nothing; the working store is already written.
    */
   var KEY = "gridlock.coach.v2";
-  var pending = null, timer = null;
+  var ACCOUNT = "gridlock.staff.v2";
+  var pending = {}, timer = null;
 
   function flush() {
     if (timer) { clearTimeout(timer); timer = null; }
-    if (pending == null || !P.Preferences) return Promise.resolve();
-    var text = pending; pending = null;
-    return P.Preferences.set({ key: KEY, value: text }).catch(function () {});
+    if (!P.Preferences) return Promise.resolve();
+    var out = pending; pending = {};
+    return Promise.all(Object.keys(out).map(function (k) {
+      return P.Preferences.set({ key: k, value: out[k] }).catch(function () {});
+    }));
   }
 
   // Whether there is anywhere durable to keep it. Nexus reads this rather than
   // promising a safety net a browser does not have.
   window.gridlockDurable = !!(native && P.Preferences);
 
-  window.gridlockKeep = function (text) {
+  window.gridlockKeep = function (text, key) {
     if (!window.gridlockDurable) return;         // a browser has nowhere durable
-    pending = text;
+    pending[key || KEY] = text;
     if (!timer) timer = setTimeout(flush, 500);
   };
 
@@ -95,6 +98,12 @@
   if (!native) return;
 
   if (P.Preferences) {
+    // The staff account first: it is what gates creating a class or sending a
+    // blast, and restoring a season the coach can no longer sign in to is half
+    // a rescue.
+    P.Preferences.get({ key: ACCOUNT }).then(function (r) {
+      if (r && r.value && window.gridlockRestoreAccount) window.gridlockRestoreAccount(r.value);
+    }).catch(function () {});
     P.Preferences.get({ key: KEY }).then(function (r) {
       // gridlockRestore decides: it only takes this if the launch found no
       // usable local state, which is the whole point of keeping it.

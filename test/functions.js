@@ -2714,6 +2714,36 @@ const ROSTER = [
 
     // A save that throws used to escape through set() before render() ran, so
     // the screen froze mid-tap and said nothing.
+    // The account gates creating a class and sending a blast. Restoring a season
+    // onto a phone the coach can no longer sign in to is half a rescue.
+    check("the staff account is kept durably too", await (async () => {
+      await pg.evaluate(async () => {
+        window.set({ entered: false, mode: "create" });
+        document.getElementById("em").value = "coach@team.com";
+        document.getElementById("pw").value = "sideline1";
+        await window.doAuth();
+      });
+      await pg.waitForTimeout(800);
+      const copy = kept["gridlock.staff.v2"];
+      return !!copy && JSON.parse(copy).email === "coach@team.com"
+          && !!JSON.parse(copy).hash && !/sideline1/.test(copy);   // never in the clear
+    })());
+    check("a phone that lost it can sign in again", await (async () => {
+      await pg.evaluate(() => localStorage.removeItem("gridlock.staff.v2"));
+      await pg.reload({ waitUntil: "networkidle" });
+      await pg.waitForTimeout(400);
+      return await evN(() => {
+        const a = JSON.parse(localStorage.getItem("gridlock.staff.v2") || "null");
+        return !!a && a.email === "coach@team.com";
+      });
+    })());
+    check("and a copy never overwrites an account already on the phone", await evN(() => {
+      const mine = localStorage.getItem("gridlock.staff.v2");
+      const took = window.gridlockRestoreAccount(JSON.stringify(
+        { email: "someone@else.com", salt: "aa", hash: "bb" }));
+      return took === false && localStorage.getItem("gridlock.staff.v2") === mine;
+    }));
+
     check("on device, Nexus says there is a second copy", await (async () => {
       await evN(() => window.set({ tab: "more", more: "nexus" }));
       return await evN(() => window.gridlockDurable === true

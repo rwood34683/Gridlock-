@@ -169,6 +169,9 @@ its id in `m`. Point numbers are per match and start at one. Lineups are keyed
   loaded and every out a coach tallied was stamped with a team he had never
   played. `pitNamed(side)` is what to branch on; a match refuses to start
   without an opponent.
+- Keep anything on the phone in `localStorage` alone. The season and the staff
+  account are both mirrored through `window.gridlockKeep(text, key)`; a season
+  restored onto a phone the coach can no longer sign in to is half a rescue.
 - Let a write to storage throw out of `save()`. It escapes through `set()`
   before `render()` and the screen freezes mid-tap saying nothing.
 - Tell the browser build it has a durable second copy. It does not — only the
