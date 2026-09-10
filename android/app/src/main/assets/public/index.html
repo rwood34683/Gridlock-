@@ -1065,28 +1065,40 @@ const BREAKS = {
    it himself, and any division can be added to or corrected on the board. */
 const DIVISIONS = [
   {id:"pro", name:"NXL Pro X-Ball",
-   note:"Names only — score them yourself. A team with its own page on the NXL site is marked; the rest were read off event coverage. Check them before an event: divisions move every season and this list cannot be called complete.",
-   /* Every name here came from somewhere and `src` says where. `page` means the
-    * league publishes a pro-team page under that name; `event` means it was
-    * read off coverage of a 2026 NXL event and is the weaker of the two.
-    * Nothing is here because it sounded right, and nothing carries a score. */
+   note:"Who has entered Pro X-Ball at Lone Star, read off the league's own registration page. Registration is theirs; points, tendency and threat are still yours to score. Twenty teams were on the page and it was still scrolling, so this may not be all of them.",
+   /* Every name here came from somewhere and `src` says where. `reg` is the
+    * strongest of the three: the team entered the event on PBLeagues and the
+    * league's registration page lists it, with the payment state shown here.
+    * `page` means the league publishes a pro-team page under that name and
+    * `event` means it was read off coverage — both weaker, and both replaced by
+    * `reg` for any team that has actually entered.
+    *
+    * Read 10 September 2026 off the PBLeagues registration list for the NXL
+    * Lone Star Open, Pro X-Ball (Fri–Sun). This machine cannot reach that page;
+    * it came in as a screenshot from the coach. Nothing here is from memory and
+    * nothing carries a score. */
+   read:"PBLeagues · NXL Lone Star Open · Pro X-Ball (Fri–Sun) · 10 Sep 2026",
    teams:[
-    {name:"San Diego Dynasty",     src:"page"},
-    {name:"Los Angeles Ironmen",   src:"page"},
-    {name:"Houston Heat",          src:"page"},
-    {name:"Tampa Bay Damage",      src:"page"},
-    {name:"Los Angeles Infamous",  src:"page"},
-    {name:"San Antonio X-Factor",  src:"page"},
-    {name:"NRG Elite",             src:"page"},
-    {name:"Columbus LVL",          src:"page"},
-    {name:"MLKings",               src:"page"},
-    {name:"Seattle Uprising",      src:"event"},
-    {name:"Edmonton Impact",       src:"event"},
-    {name:"Los Angeles Collision", src:"event"},
-    {name:"New York Xtreme",       src:"event"},
-    {name:"Red Legion",            src:"event"},
-    {name:"PaintballFIT",          src:"event"},
-    {name:"New Orleans Hurricanes",src:"event"}
+    {name:"Atlanta Jungle Cats",   src:"reg", reg:"PEND"},
+    {name:"Chicago Aftershock",    src:"reg", reg:"PEND"},
+    {name:"Chicago Distortion",    src:"reg", reg:"PAID"},
+    {name:"CK Hurricanes",         src:"reg", reg:"PAID"},
+    {name:"Detroit Infamous",      src:"reg", reg:"PEND"},
+    {name:"Edmonton Impact",       src:"reg", reg:"PAID"},
+    {name:"Houston Heat",          src:"reg", reg:"PAID"},
+    {name:"Los Angeles Collision", src:"reg", reg:"PEND"},
+    {name:"Los Angeles Ironmen",   src:"reg", reg:"PEND"},
+    {name:"New Jersey Leverage",   src:"reg", reg:"PAID"},
+    {name:"New York Xtreme",       src:"reg", reg:"PEND"},
+    {name:"PaintballFIT",          src:"reg", reg:"PAID"},
+    {name:"Perris ASG Aftermath",  src:"reg", reg:"PAID"},
+    {name:"Red Legion",            src:"reg", reg:"PAID"},
+    {name:"Royal City Seadogs",    src:"reg", reg:"PAID"},
+    {name:"San Antonio X-Factor",  src:"reg", reg:"PAID"},
+    {name:"San Diego Dynasty",     src:"reg", reg:"PAID"},
+    {name:"Seattle Uprising",      src:"reg", reg:"PEND"},
+    {name:"Tampa Bay Damage",      src:"reg", reg:"PEND"},
+    {name:"TonTon Arsenal",        src:"reg", reg:"PAID"}
   ]},
   {id:"semi", name:"CIN · Semi-Pro X-Ball", teams:[
   {name:"Beefy Boys",pts:71.74,reg:"PAID",tend:"Bal",threat:3},
@@ -4096,7 +4108,9 @@ function scoutBoard(){
   return sec("Division", `<div class="seg seg--wrap">
       ${DIVISIONS.map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
     </div>
-    ${div.note?`<p class="note">${esc(div.note)}</p>`:""}`, list.length+" teams")
+    ${div.note?`<p class="note">${esc(div.note)}</p>`:""}
+    ${div.read?`<p class="note" style="color:var(--mute)">Read from ${esc(div.read)}</p>`:""}`,
+    list.length+" teams")
   + sec("Scout board", `<div class="fld"><label>Find a team</label>
       <input id="boardFind" placeholder="Type a few letters" autocapitalize="none"
              oninput="findTeam(this.value)"/></div>
@@ -4121,7 +4135,8 @@ function scoutBoard(){
         })()}</td>
         <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
         <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
-        <td>${t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
+        <td>${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
+             :t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
              :t.src==="event"?`<span class="tag tag--pend">EVENT</span>`
              :`<span class="note">—</span>`}</td>
       </tr>`;}).join("")}</tbody>

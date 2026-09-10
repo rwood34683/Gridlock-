@@ -142,11 +142,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     square rather than circle so he is never taken for a break runner. Only San
     Diego Dynasty has a published roster: `PRO_ROSTERS` is names actually read
     somewhere, and a team without one stays empty.
-16. Rosters for the rest of the pro teams. They cannot be fetched from here —
+16. ~~The pro board off the registration page.~~ Done — the twenty teams entered
+    in Pro X-Ball at Lone Star, read off PBLeagues on 10 Sep 2026 from a
+    screenshot, with payment state and the date it was read. It replaced a list
+    sourced from search metadata that had five teams that had not entered and
+    two names wrong: Infamous is Detroit, not Los Angeles, and the Hurricanes
+    entered as CK. The page was still scrolling past TonTon Arsenal, so the
+    board says it may not be all of them.
+17. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
-17. Bring iOS SwiftUI up to web parity, then Android Compose.
+18. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -161,14 +168,18 @@ its id in `m`. Point numbers are per match and start at one. Lineups are keyed
 - Rebuild custom cloud auth in the first pass. (There is still no server. Nexus →
   Save a copy is the offline answer to backup and moving between phones.)
 - Scrape player face photos.
-- Invent live official scores. (The pro board carries team names only. Points,
-  registration, tendency and threat are the coach's to enter — a team nobody has
-  scored reads as a dash, never as a guess.)
+- Invent live official scores. Points, tendency and threat are the coach's to
+  enter — a team nobody has scored reads as a dash, never as a guess. Who has
+  entered an event is different: it is published by the league, so the pro board
+  carries it when it has been read off the registration page, with the event and
+  the date it was read shown on the board. Read it, or leave it blank.
 - Add a team to the pro board without a source. Every name carries `src`:
-  `page` if the league publishes a team page under it, `event` if it was read
-  off coverage of a real event. The league site and PBLeagues are both blocked
-  by the egress proxy here, so the board says it cannot be called complete
-  rather than pretending otherwise.
+  `reg` if it entered the event and the league's registration page lists it —
+  the strongest — `page` if the league publishes a team page under it, `event`
+  if it was read off coverage. The league site and PBLeagues are both blocked by
+  the egress proxy here, so anything sourced arrives from the coach: a
+  screenshot, or a file written where there is reach. The board says what it was
+  read from and when, and says when it cannot be called complete.
 - Hand-edit `BREAK_PLANTS`. Run `node tools/plants.js --write`; the suite fails
   if the app and the rule disagree.
 - Open the tutorial on launch.

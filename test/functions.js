@@ -1232,8 +1232,14 @@ const ROSTER = [
     return ok;
   }));
   // The point of the whole exercise: names are a fact, a team's form is not.
-  check("no pro team arrives with invented points or registration", await ev(() =>
-    teamsHere().every(t => t.pts === undefined && t.reg === undefined)));
+  // Points, tendency and threat are still the coach's alone. Registration is
+  // not a score — the league publishes it — so it may be on the board, but only
+  // for a team whose name was read off the registration page.
+  check("no pro team arrives with an invented score", await ev(() =>
+    teamsHere().every(t => t.pts === undefined && t.tend === undefined
+                        && t.threat === undefined)));
+  check("registration only ever appears with the source it came from", await ev(() =>
+    teamsHere().every(t => t.reg === undefined || t.src === "reg")));
   check("an unscored team reads as unknown, not as average", await ev(() => {
     const p = profileOf("Houston Heat");
     return p.unscored === true && p.threat === 3 && p.notes === "";
@@ -1259,24 +1265,33 @@ const ROSTER = [
     window.setDivision("pro");
     return away && profileOf("Houston Heat").threat === 5;
   }));
-  check("the board says the roster is worth checking, and does not claim to be complete",
+  check("the board says what it was read from, and does not claim to be complete",
     await ev(() => {
       const t = document.querySelector(".main").textContent;
-      return /Check them before an event/.test(t) && /cannot be called complete/.test(t);
+      return /Read from PBLeagues/.test(t) && /10 Sep 2026/.test(t)
+          && /may not be all of them/.test(t);
     }));
   // Every pro name came from somewhere and the board says which: a league page
   // for the team, or coverage of an event it played. Nothing is on there
   // because it sounded right.
   check("every pro team says where its name was read from", await ev(() =>
-    divisionTeams("pro").length >= 16 &&
-    divisionTeams("pro").every(t => t.src === "page" || t.src === "event")));
+    divisionTeams("pro").length >= 20 &&
+    divisionTeams("pro").every(t => ["reg", "page", "event"].includes(t.src))));
   check("no pro team carries a score", await ev(() =>
-    divisionTeams("pro").every(t => t.pts === undefined && t.reg === undefined
+    divisionTeams("pro").every(t => t.pts === undefined
                                  && t.tend === undefined && t.threat === undefined)));
   check("the board shows the provenance beside each team", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", division: "pro" });
     const t = document.getElementById("root").textContent;
-    return t.includes("Read from") && t.includes("LEAGUE") && t.includes("EVENT");
+    return t.includes("Read from") && t.includes("ENTERED");
+  }));
+  // The registration page is the reason these are on the board at all, so the
+  // two states it shows have to survive into the app rather than being
+  // flattened into "entered".
+  check("who has paid and who has not is kept apart", await ev(() => {
+    const paid = divisionTeams("pro").filter(t => t.reg === "PAID").length;
+    const pend = divisionTeams("pro").filter(t => t.reg === "PEND").length;
+    return paid === 12 && pend === 8 && paid + pend === divisionTeams("pro").length;
   }));
   check("a team can be added to a division", await ev(() => {
     document.getElementById("newTeam").value = "Test Squad";
@@ -2148,9 +2163,11 @@ const ROSTER = [
     return pitOf("right").players.length === 5;
   }));
   check("a team with no published roster says so rather than inventing one", await ev(() => {
-    const none = DIVISIONS.find(d => d.id === "pro").teams
-      .filter(t => !published(t.name));
-    return none.length === 15 && published(none[0].name) === null;
+    const pro = DIVISIONS.find(d => d.id === "pro").teams;
+    const none = pro.filter(t => !published(t.name));
+    // Only the ones actually read somewhere have a roster; the rest stay empty.
+    return none.length === pro.length - 1 && published(none[0].name) === null
+        && !!published("San Diego Dynasty");
   }));
 
   check("a man's plant is kept per field, because a bunker is", await ev(() => {

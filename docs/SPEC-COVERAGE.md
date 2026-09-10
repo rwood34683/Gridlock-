@@ -103,14 +103,22 @@ point. The sheet holds its own opponent while you scout the next team in the
 right pit, and says so if the two drift apart. Games picks a sheet before it
 picks a point, so playing a team twice does not merge their two point ones.
 
-**The pro board.** Sixteen NXL pro teams, names only, and each one says where
-its name was read from: `LEAGUE` if the league publishes a team page under that
-name, `EVENT` if it came off coverage of a 2026 NXL event. Neither the league
-site nor PBLeagues is reachable from this machine — both are blocked by the
-egress proxy — so the list is what could be sourced and the board says out loud
-that it cannot be called complete. No pro team carries points, registration,
-tendency or threat; those are the coach's to enter, and an unscored team reads
-as a dash.
+**The pro board.** The twenty teams entered in Pro X-Ball at Lone Star, read off
+the league's own registration page on PBLeagues on 10 September 2026, each
+marked `ENTERED` with the payment state the page showed. The board says what it
+was read from and when, and says it may not be all of them — the page was still
+scrolling past the twentieth name.
+
+Neither the league site nor PBLeagues is reachable from this machine; both are
+blocked by the egress proxy, so anything sourced arrives from the coach. This
+came in as a screenshot. It replaced a list built from search metadata that had
+five teams which had not entered and two names wrong — Infamous entered as
+Detroit, not Los Angeles, and the Hurricanes as CK.
+
+Registration is on the board because the league publishes it. A score is not:
+no pro team carries points, tendency or threat, those are the coach's to enter,
+and an unscored team reads as a dash. `reg` is only ever present on a team whose
+name came off the registration page, and the suite fails if it is not.
 
 **Scout.** Two pit cards, both starting empty — the app does not know who you
 are playing and does not guess. Pick a team and the card opens: points, picker,
