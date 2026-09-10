@@ -66,8 +66,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
 2. ~~Playbook 8-way face/shot pad + P|S roles.~~ Done — Face opens the eight, Shot
    targets a named bunker, P|S are real toggles, all stored per layout per break.
    Path editing is done too — see 6.
-3. ~~Per-layout unique paths for every seeded break.~~ Done for the Midwest Open —
-   breaks are written as the bunker each player plants on, in `BREAK_PLANTS`.
+3. ~~Per-layout unique paths for every seeded break.~~ Done on all three fields —
+   breaks are written as the bunker each player plants on, in `BREAK_PLANTS`,
+   which `tools/plants.js` generates from the measured layout. Never hand-edit
+   that block; run the tool.
 4. ~~Bunker naming on the field + bunker stats heat.~~ Done — Team sets the call,
    it overlays the official code everywhere, and Bunker stats tints the field.
 5. ~~QR generation for class codes.~~ Done — a class card carries a scannable
@@ -85,12 +87,17 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    `layouts/bunkers.json`, measured once off the clean high-resolution Midwest
    2D, because one bunker type is one inflatable; positions still come from each
    event's own map. Every bunker keeps what its map drew alongside.
-8. Close the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
+8. ~~All twelve breaks.~~ Done — the seven the spec named and nobody had built
+   are in, and none of the sixty plants is typed. `tools/plants.js` reads a
+   call the way a coach says it, how many men on which wire and how far up the
+   field, and picks the bunker that sits there on that measured layout. Add a
+   field and its plants come out of the same rule; the suite fails if the app
+   and the rule ever disagree.
+9. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
    `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
-   is deliberately different and what is missing. Top of that list: seven of
-   the twelve breaks, Log break, staggered starts off the buzzer, and Cards /
-   Opp / Rep.
-9. Bring iOS SwiftUI up to web parity, then Android Compose.
+   is deliberately different and what is missing. Top of that list now: Log
+   break, staggered starts off the buzzer, and Cards / Opp / Rep.
+10. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 

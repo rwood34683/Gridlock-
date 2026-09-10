@@ -156,7 +156,17 @@ const ROSTER = [
   /* --------------------------------------------------------------- playbook */
   G("Playbook");
   await seed();
-  check("five breaks are offered", await ev(() => Object.keys(BREAKS).length === 5));
+  check("the twelve breaks the spec names are all offered", await ev(() => {
+    const want = ["Hold & Read","Conservative","Lock the Lanes","Balanced Break",
+                  "Clean / Lane Trade","Tower / Centre","Contain Both Wires","Wire Split",
+                  "Counter Break","Snake Stack","Dorito Flood","Blitz"];
+    // In order, so the picker is a dial: patient at the left, must-score at
+    // the right. The aggression on each call has to agree with where it sits.
+    const got = Object.values(BREAKS).map(b => b.name);
+    const aggr = Object.keys(BREAKS).map(k => breakMeta(k).aggr);
+    return got.length === 12 && want.every(n => got.includes(n))
+        && aggr.every((a, i) => i === 0 || a >= aggr[i - 1]);
+  }));
   check("every break draws five players", await ev(() =>
     Object.keys(BREAKS).every(k => { window.set({ script: k }); return currentPaths().length === 5; })));
   await ev(() => window.set({ script: "snake" }));
@@ -242,8 +252,12 @@ const ROSTER = [
     return { ahead, must, diff: ahead !== must };
   });
   check("counter-picker ranks change with the match state", rank.diff, `${rank.ahead} vs ${rank.must}`);
-  check("patient call tops the list when ahead", rank.ahead === "Hold & Read", rank.ahead);
-  check("every break is ranked", await ev(() => counterRank("Snake", "Even").length === 5));
+  // Which patient call wins depends on the twelve; what must hold is that a
+  // patient one does. Naming it pinned the answer to a five-break catalog.
+  check("a patient call tops the list when ahead", await ev(w =>
+    breakMeta(counterRank("Snake", "Ahead")[0].key).aggr <= 2, rank.ahead), rank.ahead);
+  check("every break is ranked", await ev(() =>
+    counterRank("Snake", "Even").length === Object.keys(BREAKS).length));
   check("the board lists a real division of teams", await ev(() => teamsHere().length >= 11));
   check("every division on offer has teams in it", await ev(() =>
     DIVISIONS.every(d => divisionTeams(d.id).length >= 11)));
@@ -1590,7 +1604,7 @@ const ROSTER = [
             if(segHitsBox(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], o.x, o.y, o.hw, o.hh)) clip++;
       }
     }
-    return legs === 25 && clip === 0;
+    return legs === Object.keys(BREAK_PLANTS.lso).length * 5 && clip === 0;
   }));
   check("no plant on any field sits on the away half", await ev(() => {
     // Bunker ids are assigned by position, so a plant list written against an
@@ -1652,8 +1666,8 @@ const ROSTER = [
     return /rotate\(45 /.test(svg);
   }));
 
-  check("Tampa has its own five breaks", await ev(() =>
-    Object.keys(BREAK_PLANTS.tby).length === 5 &&
+  check("Tampa carries all twelve calls, and every one of them is a real break", await ev(() =>
+    Object.keys(BREAK_PLANTS.tby).length === Object.keys(BREAKS).length &&
     Object.keys(BREAK_PLANTS.tby).every(k => k in BREAKS)));
   check("every plant names a bunker that is actually on this field", await ev(() => {
     const ids = new Set(LAYOUTS.tby.bunkers.map(b => b.id));
@@ -1678,7 +1692,7 @@ const ROSTER = [
             if(segHitsBox(pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1], o.x, o.y, o.hw, o.hh)) clip++;
       }
     }
-    return legs === 25 && clip === 0;
+    return legs === Object.keys(BREAK_PLANTS.tby).length * 5 && clip === 0;
   }));
   check("the five break from one station on Tampa too", await ev(() => {
     const y = breakPaths("tby", "snake").map(p => p.from[1]);
@@ -1712,6 +1726,54 @@ const ROSTER = [
     window.set({ layoutKey: "mwo" });
     return before !== JSON.stringify(currentPaths().map(p => p.to));
   }));
+
+  /* ------------------------------------------------------- twelve calls */
+  // The spec names twelve breaks; five were built. The other seven are not
+  // typed bunker ids — tools/plants.js reads the call off the measured field
+  // (how many men on which wire, how far up) and picks the bunker that sits
+  // there, for every break on every layout.
+  G("Twelve calls");
+  check("every field carries every call", await ev(() =>
+    Object.keys(BREAK_PLANTS).length === 3 &&
+    Object.values(BREAK_PLANTS).every(f =>
+      Object.keys(f).length === Object.keys(BREAKS).length &&
+      Object.values(f).every(p => p.length === 5))));
+  check("no call sends two men to the same bunker", await ev(() =>
+    Object.values(BREAK_PLANTS).every(f =>
+      Object.values(f).every(p => new Set(p).size === 5))));
+  check("no call puts two men on the snake, on any field", await ev(() =>
+    Object.keys(BREAK_PLANTS).every(k => {
+      const snake = routeObstacles(LAYOUTS[k].bunkers).filter(o => o.n === "SB");
+      return Object.values(BREAK_PLANTS[k]).every(p =>
+        snake.every(o => p.filter(id => o.ids.has(id)).length <= 1));
+    })));
+  check("no man is sent to a bunker with another standing over it", await ev(() =>
+    Object.keys(BREAK_PLANTS).every(k => {
+      const at = Object.fromEntries(LAYOUTS[k].bunkers.map(b => [b.id, b]));
+      return Object.values(BREAK_PLANTS[k]).every(p => p.every(id => {
+        const b = at[id];
+        return !LAYOUTS[k].bunkers.some(o => o.id !== id && o.n !== b.n
+          && Math.abs(o.x - b.x) < o.w / 2 + 0.9 && Math.abs(o.y - b.y) < o.h / 2 + 0.9);
+      }));
+    })));
+  check("the twelve are twelve different calls on every field", await ev(() =>
+    Object.values(BREAK_PLANTS).every(f =>
+      new Set(Object.values(f).map(p => [...p].sort().join())).size
+        === Object.keys(f).length)));
+  check("every call reads differently in a coach's words", await ev(() => {
+    const reads = Object.keys(BREAKS).map(k => breakMeta(k).read);
+    return new Set(reads).size === reads.length && reads.every(r => r && r.length > 30);
+  }));
+  // The plants in the app must be what the tool produces. Hand-edit one and
+  // this says so, rather than the drift showing up on a sideline.
+  check("the plants in the app are the ones the rule produces", (() => {
+    const made = require("child_process")
+      .execFileSync("node", [path.join(__dirname, "..", "tools", "plants.js")], { encoding: "utf8" })
+      .trim();
+    const html = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf8");
+    const inApp = /const BREAK_PLANTS = \{[\s\S]*?\n\};/.exec(html);
+    return !!inApp && inApp[0] === made;
+  })());
 
   /* -------------------------------------------------- where he is shooting */
   // Playbook used to open with all five stacked in a sixteen-foot station

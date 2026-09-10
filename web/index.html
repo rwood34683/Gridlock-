@@ -547,7 +547,21 @@ const BREAK_META = {
   flood: {aggr:4, read:"Weight the D-wire and take the corner before they set.",
           vs:{Snake:6, Balanced:2, Dorito:-2}},
   blitz: {aggr:5, read:"Both wires at once. You are down and the point has to end early.",
-          vs:{Snake:1, Balanced:4, Dorito:1}}
+          vs:{Snake:1, Balanced:4, Dorito:1}},
+  conserve: {aggr:1, read:"Nobody past the quarter. Trade from your own end and make them come to you.",
+          vs:{Snake:3, Balanced:0, Dorito:3}},
+  lock:  {aggr:1, read:"Five on lanes and nobody runs. Every yard they take costs them a body.",
+          vs:{Snake:5, Balanced:0, Dorito:5}},
+  trade: {aggr:2, read:"Everyone to a bunker he can shoot from. No runners — win the exchange.",
+          vs:{Snake:2, Balanced:4, Dorito:2}},
+  tower: {aggr:2, read:"Own the middle. From there you see both wires and they cannot cross.",
+          vs:{Snake:5, Balanced:2, Dorito:5}},
+  contain: {aggr:2, read:"A man up each wire to deny the corner, three back holding the middle.",
+          vs:{Snake:4, Balanced:1, Dorito:4}},
+  split: {aggr:3, read:"Two on each wire, nothing in the middle. Win an end before they rotate.",
+          vs:{Snake:1, Balanced:4, Dorito:1}},
+  counter: {aggr:3, read:"Take the middle first, then answer whichever wire they committed to.",
+          vs:{Snake:4, Balanced:2, Dorito:4}}
 };
 function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
 
@@ -559,25 +573,46 @@ function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
 // on any break; the rest support off it.
 const BREAK_PLANTS = {
   lso: {
-    hold:  ["SB#9","MT#3","C#2","T#1","MT#1"],
-    base:  ["SB#12","MT#3","GW#2","Br#2","SD#1"],
-    snake: ["SB#11","MW#4","Tr#3","GB#2","Br#2"],
-    flood: ["MD#2","MD#1","SD#1","Br#2","C#2"],
-    blitz: ["SB#11","Tr#3","Tr#2","SB#3","MD#2"]
+    hold:     ["SB#9","MT#3","C#2","T#1","MT#1"],
+    base:     ["SB#12","MT#3","GW#2","Br#2","SD#1"],
+    snake:    ["SB#11","MW#4","Tr#3","GB#2","Br#2"],
+    flood:    ["MD#2","MD#1","SD#1","Br#2","C#2"],
+    blitz:    ["SB#11","Tr#3","Tr#2","Br#2","MD#2"],
+    conserve: ["MW#1","T#4","C#2","T#1","MT#1"],
+    counter:  ["Tr#2","SB#12","SD#1","MT#3","T#1"],
+    split:    ["MW#4","MT#3","MD#1","Br#2","C#4"],
+    tower:    ["Tr#2","GW#2","MT#3","Br#2","MW#1"],
+    trade:    ["MW#4","MT#3","GW#2","Br#2","MD#1"],
+    contain:  ["SB#11","MD#2","C#2","T#4","T#1"],
+    lock:     ["MW#1","MT#3","C#2","T#1","MT#1"]
   },
   tby: {
-    hold:  ["SB#10","T#3","C#1","MW#1","SD#1"],
-    base:  ["SB#11","GB#1","C#1","MT#1","MD#1"],
-    snake: ["SB#13","Wg#1","GB#1","C#3","MT#1"],
-    flood: ["MD#2","MD#1","MW#1","Tr#1","C#1"],
-    blitz: ["SB#13","GB#1","C#3","Tr#1","MD#2"]
+    hold:     ["Ck#1","C#1","GW#1","MD#6","SD#1"],
+    base:     ["SB#12","C#1","GW#1","MT#1","MD#1"],
+    snake:    ["SB#13","Wg#1","C#3","GB#1","MT#1"],
+    flood:    ["MD#2","MD#1","SD#1","MT#1","GW#1"],
+    blitz:    ["SB#13","C#3","Tr#3","Tr#1","MD#2"],
+    conserve: ["SB#10","T#3","T#1","MD#6","SD#1"],
+    counter:  ["SB#3","Br#5","MD#1","C#1","MW#1"],
+    split:    ["SB#12","C#1","MD#2","MT#1","T#1"],
+    tower:    ["Tr#3","GW#1","C#1","MW#1","SB#10"],
+    trade:    ["Br#5","GB#1","GW#1","MT#1","MD#1"],
+    contain:  ["SB#13","MD#2","T#1","T#3","MW#1"],
+    lock:     ["SB#10","C#1","T#1","MW#1","SD#1"]
   },
   mwo: {
-    hold:  ["Ck#1","T#3","Br#2","T#1","MT#4"],
-    base:  ["SB#4","MW#3","MT#1","MD#1","C#4"],
-    snake: ["SB#6","MW#3","GP#1","MT#1","C#4"],
-    flood: ["MD#2","MD#1","Tr#1","C#4","SB#3"],
-    blitz: ["SB#6","GP#1","Tr#4","MD#2","MT#1"]
+    hold:     ["Br#5","Ck#1","T#3","C#2","MD#5"],
+    base:     ["Wg#2","Ck#1","GW#1","C#4","MD#1"],
+    snake:    ["GP#1","Wg#2","SB#6","GW#2","C#4"],
+    flood:    ["SB#1","MD#1","MD#5","C#4","T#3"],
+    blitz:    ["GP#1","SB#6","GW#1","Tr#1","MD#2"],
+    conserve: ["SD#1","SB#3","T#3","Br#2","T#1"],
+    counter:  ["GW#1","Wg#2","MD#1","SB#3","Br#2"],
+    split:    ["Wg#2","SB#4","MD#2","C#4","T#3"],
+    tower:    ["GW#1","T#3","Ck#1","C#4","Br#5"],
+    trade:    ["Wg#2","MW#3","T#3","C#4","MD#1"],
+    contain:  ["GP#1","MD#2","T#3","SB#3","Br#2"],
+    lock:     ["Br#5","SB#3","T#3","Br#2","T#1"]
   }
 };
 
@@ -673,7 +708,10 @@ function routeClear(from, to, targetId, obstacles){
 }
 
 function breakPaths(layoutKey, scriptKey){
-  const fallback = (BREAKS[scriptKey] || BREAKS.base).paths;
+  // Only a layout with no plants ever sees this. The five that were written
+  // before plants existed carry their own shape; the rest borrow the balanced
+  // one rather than have five more sets of coordinates typed by hand.
+  const fallback = (BREAKS[scriptKey] || {}).paths || BREAKS.base.paths;
   const plants = (BREAK_PLANTS[layoutKey] || {})[scriptKey];
   const layout = LAYOUTS[layoutKey];
   if(!plants || !layout) return fallback;
@@ -898,6 +936,8 @@ const LAYOUTS = {
         source:"Digitized from the official NXL labeled 2D on its printed 10-ft grid."}
 };
 const BREAKS = {
+  // Ordered as a coach turns the dial: patient at the left, the point has
+  // to end early at the right. breakMeta carries the aggression behind it.
   hold:{name:"Hold & Read", paths:[
     {id:1,from:[2,22],to:[45,31],via:[[30,34]],label:"snake primary"},
     {id:2,from:[2,42],to:[40,34],via:[],label:"snake contain"},
@@ -905,6 +945,8 @@ const BREAKS = {
     {id:4,from:[2,82],to:[25,105],via:[],label:"dorito primary"},
     {id:5,from:[2,104],to:[15,76],via:[],label:"read the break"}
   ]},
+  conserve:{name:"Conservative"},
+  lock:{name:"Lock the Lanes"},
   base:{name:"Balanced Break", paths:[
     {id:1,from:[2,22],to:[58,30],via:[[30,34]],label:"snake MW"},
     {id:2,from:[2,40],to:[64,17],via:[],label:"GP"},
@@ -912,6 +954,11 @@ const BREAKS = {
     {id:4,from:[2,92],to:[68,112],via:[],label:"fwd MD"},
     {id:5,from:[2,108],to:[45,74],via:[],label:"C lane"}
   ]},
+  trade:{name:"Clean / Lane Trade"},
+  tower:{name:"Tower / Centre"},
+  contain:{name:"Contain Both Wires"},
+  split:{name:"Wire Split"},
+  counter:{name:"Counter Break"},
   snake:{name:"Snake Stack", paths:[
     {id:1,from:[2,16],to:[76,35],via:[[30,34]],label:"deep snake run"},
     {id:2,from:[2,30],to:[58,30],via:[],label:"snake MW"},
@@ -2592,8 +2639,8 @@ function playbook(){
     one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
     path</button></p>`:""}
 
-  ${sec("Break", `<div class="seg">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:0,playing:false})">${esc(v.name)}</button>`).join("")}
+  ${sec("Break", `<div class="seg seg--wrap">
+      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(v.name)}</button>`).join("")}
     </div>`, curLayout().name)}
 
   ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">

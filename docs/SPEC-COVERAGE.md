@@ -39,6 +39,16 @@ point him, reset one path or all of them.
 pad, and Shot — which takes a named bunker *or* one of the eight lanes, for a
 man told to hold a gap rather than aim at something.
 
+**All twelve breaks.** Hold & Read, Conservative, Lock the Lanes, Balanced
+Break, Clean / Lane Trade, Tower / Centre, Contain Both Wires, Wire Split,
+Counter Break, Snake Stack, Dorito Flood, Blitz — in that order, so the picker
+is a dial from patient to must-score. Each has its own five plants on each of
+the three fields, and they are not typed: `tools/plants.js` reads the call the
+way a coach says it — how many men on which wire, how far up the field — and
+picks the bunker that actually sits there. Add a field and its plants come out
+of the same rule. The suite checks that the plants in the app are the ones the
+rule produces, so a hand edit shows up as a failure rather than on a sideline.
+
 **Tally.** Point number, your five and theirs, out or alive, how he went out,
 who got him, shot-at bunker and moved-to bunker, feeding Bunker stats.
 
@@ -90,34 +100,28 @@ created them. It ships the day a session can be reached from another device.
 
 Ordered by what a coach would miss first.
 
-1. **Seven of the twelve breaks.** Built: Hold & Read, Balanced Break, Snake
-   Stack, Dorito Flood, Blitz. Missing: Conservative, Counter Break, Wire
-   Split, Tower / Center, Clean / Lane Trade, Contain Both Wires, Lock the
-   Lanes. Each needs five plants per layout in `BREAK_PLANTS`, and those are
-   picked by rule, not off a walk — a coach who has walked the field should
-   drag them.
-2. **Log break.** The spec's ✓ chip: log the call you actually made, to feed
+1. **Log break.** The spec's ✓ chip: log the call you actually made, to feed
    self-scout predictability. Outs carry the break they were logged under, so
    the data is half there; the chip and the read off it are not.
-3. **Staggered starts.** All five run on one clock. The spec asks for the
+2. **Staggered starts.** All five run on one clock. The spec asks for the
    buzzer, then the snake runner, then support.
-4. **Cards, Opp and Rep.** Assignment cards to read off or share; an opponent
+3. **Cards, Opp and Rep.** Assignment cards to read off or share; an opponent
    library keyed "they run X, we run Y"; the recognition drill that runs the
    break at the coach until the call is under two seconds.
-5. **Tablet side rail.** A large screen gets one centred column with the field
+4. **Tablet side rail.** A large screen gets one centred column with the field
    at 860 px, not a rail. Every destination is reachable; it is the phone
    layout, well behaved.
-6. **Blast group picker.** A blast goes to every member of every group. The
+5. **Blast group picker.** A blast goes to every member of every group. The
    spec wants Ops and Refs without Registration and Vendors.
-7. **Class detail.** Title only. No notes, no start time, no open / close
+6. **Class detail.** Title only. No notes, no start time, no open / close
    toggle, no share sheet on the class itself.
-8. **Division board search, and long-press for the left pit.** Tap loads the
+7. **Division board search, and long-press for the left pit.** Tap loads the
    right pit; that is all.
-9. **Team join code and per-player bunker nicknames.** Bunker calls are per
+8. **Team join code and per-player bunker nicknames.** Bunker calls are per
    team, not per player, and there is no code to join a team.
-10. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
+9. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
     Nexus shows the event you are on.
-11. **Gunfight rings and X-for-out on the Scout field**, and the "How to
+10. **Gunfight rings and X-for-out on the Scout field**, and the "How to
     anticipate" menu as a menu. Anticipate is its own sub-tab instead.
-12. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
+11. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
     Catmull–Rom alternative.
