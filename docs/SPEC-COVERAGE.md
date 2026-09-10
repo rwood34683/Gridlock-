@@ -57,8 +57,30 @@ the app says so rather than quietly leaving a code out. The suite checks that
 every code on every field is in the key and that one code never covers two
 different bunkers.
 
+**Log break, and the read it exists for.** The spec's ✓ chip. Playbook logs
+the call you actually made against the field, the point and the team you were
+on, and counts the share underneath: how often each call has been yours here,
+and a warning in amber when one of them is half of your last ten. Nothing is
+modelled — it is the arithmetic a team watching your film already does, which
+is the argument for seeing it first.
+
+**Off the buzzer.** The five no longer leave together. The man with the
+furthest to run goes on the buzzer and everyone else holds in proportion to how
+much less ground he has to cover — about half that difference, capped at a
+quarter of the break, because a man stood still while the point is on reads as
+a mistake rather than a plan.
+
 **Tally.** Point number, your five and theirs, out or alive, how he went out,
 who got him, shot-at bunker and moved-to bunker, feeding Bunker stats.
+
+**The pro board.** Sixteen NXL pro teams, names only, and each one says where
+its name was read from: `LEAGUE` if the league publishes a team page under that
+name, `EVENT` if it came off coverage of a 2026 NXL event. Neither the league
+site nor PBLeagues is reachable from this machine — both are blocked by the
+egress proxy — so the list is what could be sourced and the board says out loud
+that it cannot be called complete. No pro team carries points, registration,
+tendency or threat; those are the coach's to enter, and an unscored team reads
+as a dash.
 
 **Scout.** Two pit cards with team, points, picker, tendency, threat stars and
 notes; the shared field underneath with red left and blue right and a legend;
@@ -108,28 +130,23 @@ created them. It ships the day a session can be reached from another device.
 
 Ordered by what a coach would miss first.
 
-1. **Log break.** The spec's ✓ chip: log the call you actually made, to feed
-   self-scout predictability. Outs carry the break they were logged under, so
-   the data is half there; the chip and the read off it are not.
-2. **Staggered starts.** All five run on one clock. The spec asks for the
-   buzzer, then the snake runner, then support.
-3. **Cards, Opp and Rep.** Assignment cards to read off or share; an opponent
+1. **Cards, Opp and Rep.** Assignment cards to read off or share; an opponent
    library keyed "they run X, we run Y"; the recognition drill that runs the
    break at the coach until the call is under two seconds.
-4. **Tablet side rail.** A large screen gets one centred column with the field
+2. **Tablet side rail.** A large screen gets one centred column with the field
    at 860 px, not a rail. Every destination is reachable; it is the phone
    layout, well behaved.
-5. **Blast group picker.** A blast goes to every member of every group. The
+3. **Blast group picker.** A blast goes to every member of every group. The
    spec wants Ops and Refs without Registration and Vendors.
-6. **Class detail.** Title only. No notes, no start time, no open / close
+4. **Class detail.** Title only. No notes, no start time, no open / close
    toggle, no share sheet on the class itself.
-7. **Division board search, and long-press for the left pit.** Tap loads the
+5. **Division board search, and long-press for the left pit.** Tap loads the
    right pit; that is all.
-8. **Team join code and per-player bunker nicknames.** Bunker calls are per
+6. **Team join code and per-player bunker nicknames.** Bunker calls are per
    team, not per player, and there is no code to join a team.
-9. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
+7. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
     Nexus shows the event you are on.
-10. **Gunfight rings and X-for-out on the Scout field**, and the "How to
+8. **Gunfight rings and X-for-out on the Scout field**, and the "How to
     anticipate" menu as a menu. Anticipate is its own sub-tab instead.
-11. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
+9. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
     Catmull–Rom alternative.

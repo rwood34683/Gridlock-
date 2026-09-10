@@ -1251,8 +1251,25 @@ const ROSTER = [
     window.setDivision("pro");
     return away && profileOf("Houston Heat").threat === 5;
   }));
-  check("the board says the roster is worth checking", await ev(() =>
-    /Check the roster/.test(document.querySelector(".main").textContent)));
+  check("the board says the roster is worth checking, and does not claim to be complete",
+    await ev(() => {
+      const t = document.querySelector(".main").textContent;
+      return /Check them before an event/.test(t) && /cannot be called complete/.test(t);
+    }));
+  // Every pro name came from somewhere and the board says which: a league page
+  // for the team, or coverage of an event it played. Nothing is on there
+  // because it sounded right.
+  check("every pro team says where its name was read from", await ev(() =>
+    divisionTeams("pro").length >= 16 &&
+    divisionTeams("pro").every(t => t.src === "page" || t.src === "event")));
+  check("no pro team carries a score", await ev(() =>
+    divisionTeams("pro").every(t => t.pts === undefined && t.reg === undefined
+                                 && t.tend === undefined && t.threat === undefined)));
+  check("the board shows the provenance beside each team", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "board", division: "pro" });
+    const t = document.body.textContent;
+    return t.includes("Read from") && t.includes("LEAGUE") && t.includes("EVENT");
+  }));
   check("a team can be added to a division", await ev(() => {
     document.getElementById("newTeam").value = "Test Squad";
     window.addTeam();
@@ -1725,6 +1742,77 @@ const ROSTER = [
     const before = JSON.stringify(currentPaths().map(p => p.to));
     window.set({ layoutKey: "mwo" });
     return before !== JSON.stringify(currentPaths().map(p => p.to));
+  }));
+
+  /* ------------------------------------------------------ log the call */
+  // The spec's Log break chip, and the read it exists for: how predictable you
+  // have been. Counted off the calls a coach pressed the button on, never
+  // modelled — it is the arithmetic a team watching your film already does.
+  G("Log the call");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake", calls: [] });
+  check("nothing is logged until you log it", await ev(() =>
+    selfScout().n === 0 && document.body.textContent.includes("Nothing logged on")));
+  check("logging the call records the field, the point and who you were on", await ev(() => {
+    window.set({ point: 3 });
+    window.logCall();
+    const c = S.calls[0];
+    return c.script === "snake" && c.layout === "lso" && c.pt === 3 && !!c.vs && !!c.at;
+  }));
+  check("a call logged on one field is not counted on another", await ev(() => {
+    window.set({ layoutKey: "tby" });
+    const away = selfScout().n;
+    window.set({ layoutKey: "lso" });
+    return away === 0 && selfScout().n === 1;
+  }));
+  check("it says what share each call is", await ev(() => {
+    for (let i = 0; i < 3; i++) window.logCall();       // four snake now
+    window.set({ script: "hold" }); window.logCall();
+    const ss = selfScout();
+    return ss.n === 5 && ss.rank[0][0] === "snake" && ss.rank[0][1] === 4;
+  }));
+  check("it warns you when one call is most of your last ten", await ev(() => {
+    window.set({ script: "snake" });
+    for (let i = 0; i < 3; i++) window.logCall();
+    const ss = selfScout();
+    return ss.tell >= 0.5 && document.body.textContent.includes("Anyone filming you has that too");
+  }));
+  check("a logged call can be taken back", await ev(() => {
+    const before = selfScout().n;
+    window.unlogCall(0);
+    return selfScout().n === before - 1;
+  }));
+  check("the calls travel in a saved copy", await ev(() =>
+    JSON.parse(copyPayload("all")).data.calls.length === selfScout().n));
+
+  /* --------------------------------------------------- off the buzzer */
+  // The five do not leave together: the longest run goes on the buzzer and the
+  // short ones hold, so they arrive together instead of the snake runner still
+  // crossing while everyone else is set.
+  G("Off the buzzer");
+  check("the man with the furthest to run leaves first", await ev(() => {
+    const p = breakPaths("lso", "snake");
+    const far = p.reduce((a, b) => a.len > b.len ? a : b);
+    return far.lag === 0 && p.every(x => x.lag >= 0 && x.lag <= 0.28)
+        && p.some(x => x.lag > 0.1);
+  }));
+  check("a shorter run holds longer", await ev(() => {
+    const p = [...breakPaths("lso", "base")].sort((a, b) => a.len - b.len);
+    return p[0].lag > p[p.length - 1].lag;
+  }));
+  check("nobody has moved on the buzzer, and everyone is set at the end", await ev(() => {
+    const p = breakPaths("lso", "snake");
+    const at = (x, t) => posAt(x, t);
+    return p.every(x => at(x, 0)[0] === x.from[0] && at(x, 0)[1] === x.from[1])
+        && p.every(x => Math.abs(at(x, 1)[0] - x.to[0]) < 0.001
+                     && Math.abs(at(x, 1)[1] - x.to[1]) < 0.001);
+  }));
+  check("a man still holding has not left his mark", await ev(() => {
+    const p = breakPaths("lso", "snake");
+    const held = p.filter(x => x.lag > 0.05);
+    return held.length > 0 && held.every(x => {
+      const q = posAt(x, x.lag * 0.5);
+      return q[0] === x.from[0] && q[1] === x.from[1];
+    });
   }));
 
   /* ------------------------------------------------------ the bunker key */

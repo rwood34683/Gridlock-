@@ -746,12 +746,27 @@ function breakPaths(layoutKey, scriptKey){
   const slot = {};
   order.forEach((idx, k) => { slot[idx] = cy - 8 + k * 4; });   // a 16 ft station
 
-  return targets.map((b, i) => {
+  const runs = targets.map((b, i) => {
     const from = [3, slot[i]];
     const to = [b.x, b.y];
-    return {id: i + 1, from, to, via: routeClear(from, to, b.id, obstacles),
+    const via = routeClear(from, to, b.id, obstacles);
+    const pts = [from, ...via, to];
+    let len = 0;
+    for(let k = 0; k < pts.length - 1; k++)
+      len += Math.hypot(pts[k+1][0] - pts[k][0], pts[k+1][1] - pts[k][1]);
+    return {id: i + 1, from, to, via, len,
             label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
   });
+  // The longest run leaves on the buzzer and waits for nobody. Everyone else
+  // holds in proportion to how much less ground he has to cover, so the five
+  // arrive closer together than they would if they all went at once — but only
+  // about half of that difference, because a man stood still while the point is
+  // on reads as a mistake rather than a plan. Nobody holds past a quarter.
+  const far = Math.max(...runs.map(r => r.len));
+  runs.forEach(r => {
+    r.lag = Number(Math.min(0.28, 0.55 * (1 - r.len / far)).toFixed(3));
+  });
+  return runs;
 }
 // A coach who disagrees with the route drags it. Edits are stored per layout
 // per break per player, over the top of the computed route, and any leg without
@@ -1012,19 +1027,28 @@ const BREAKS = {
    it himself, and any division can be added to or corrected on the board. */
 const DIVISIONS = [
   {id:"pro", name:"NXL Pro X-Ball",
-   note:"Names only — score them yourself. Check the roster against the NXL site; divisions move every season.",
+   note:"Names only — score them yourself. A team with its own page on the NXL site is marked; the rest were read off event coverage. Check them before an event: divisions move every season and this list cannot be called complete.",
+   /* Every name here came from somewhere and `src` says where. `page` means the
+    * league publishes a pro-team page under that name; `event` means it was
+    * read off coverage of a 2026 NXL event and is the weaker of the two.
+    * Nothing is here because it sounded right, and nothing carries a score. */
    teams:[
-    {name:"Los Angeles Ironmen"},
-    {name:"San Diego Dynasty"},
-    {name:"Tampa Bay Damage"},
-    {name:"Houston Heat"},
-    {name:"Edmonton Impact"},
-    {name:"Seattle Uprising"},
-    {name:"Detroit Infamous"},
-    {name:"Los Angeles Collision"},
-    {name:"New York Xtreme"},
-    {name:"Red Legion"},
-    {name:"PaintballFIT"}
+    {name:"San Diego Dynasty",     src:"page"},
+    {name:"Los Angeles Ironmen",   src:"page"},
+    {name:"Houston Heat",          src:"page"},
+    {name:"Tampa Bay Damage",      src:"page"},
+    {name:"Los Angeles Infamous",  src:"page"},
+    {name:"San Antonio X-Factor",  src:"page"},
+    {name:"NRG Elite",             src:"page"},
+    {name:"Columbus LVL",          src:"page"},
+    {name:"MLKings",               src:"page"},
+    {name:"Seattle Uprising",      src:"event"},
+    {name:"Edmonton Impact",       src:"event"},
+    {name:"Los Angeles Collision", src:"event"},
+    {name:"New York Xtreme",       src:"event"},
+    {name:"Red Legion",            src:"event"},
+    {name:"PaintballFIT",          src:"event"},
+    {name:"New Orleans Hurricanes",src:"event"}
   ]},
   {id:"semi", name:"CIN · Semi-Pro X-Ball", teams:[
   {name:"Beefy Boys",pts:71.74,reg:"PAID",tend:"Bal",threat:3},
@@ -1101,6 +1125,7 @@ const defaultState = () => ({
   roster:[],                      // yours, from Team — not two invented players
   messages:[],
   tally:[],
+  calls:[],                       // what you actually called, for self-scout
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
@@ -1183,10 +1208,16 @@ function set(patch){ Object.assign(S, patch); save(S); render(); }
 
 function ease(t){return 1-Math.pow(1-t,3)}
 function lerp(a,b,t){return a+(b-a)*t}
+// Off the buzzer the five do not leave together: the man with the furthest to
+// run goes first and the short runs leave later, so they arrive together rather
+// than the snake runner still crossing while everyone else is set. `lag` is how
+// long he waits, as a share of the break; it is worked out in breakPaths from
+// how far he has to go, and it is zero for the longest run.
 function posAt(path, t){
   const pts = [path.from, ...(path.via||[]), path.to];
   if(pts.length===1) return pts[0];
-  const u = ease(Math.max(0,Math.min(1,t)));
+  const lag = path.lag || 0;
+  const u = ease(Math.max(0,Math.min(1,(t - lag) / (1 - lag))));
   const seg = (pts.length-1)*u;
   const i = Math.min(pts.length-2, Math.floor(seg));
   const f = seg-i;
@@ -1486,7 +1517,7 @@ const COPY_VERSION = 1;
 
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","left","right","tally","moves","assessments","walk","codes",
+const KEEP_ALL = ["roster","scout","left","right","tally","calls","moves","assessments","walk","codes",
                   "lineups","bunkerCalls","direct","pathEdits","classes","responses","groups",
                   "blasts","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","bunkerCalls","codes"];
@@ -1516,6 +1547,7 @@ const SAME = {
   tally:       o => [o.pt, o.side, o.name, o.at].join("|"),
   moves:       m => [m.pt, m.who, m.from, m.to, m.at].join("|"),
   assessments: a => [a.who, a.pt, a.at].join("|"),
+  calls:       c => [c.at, c.script].join("|"),
   classes:     c => c.code,
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
   groups:      g => g.id,
@@ -2644,6 +2676,7 @@ function playbook(){
   </div>
 
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
+  <button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>
 
   <div class="toggles">
     <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
@@ -2704,7 +2737,37 @@ function playbook(){
     </div>
     <p class="note">Face sets which way he points. Shot is the bunker he lanes, or a lane
       with no bunker named — a gap he holds. Both travel with him down the path.</p>
-    <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}`;
+    <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}
+
+  ${(()=>{ const ss = selfScout();
+    return sec("What you have called", ss.n
+      ? `${ss.tell >= 0.5 ? `<p class="warn">${Math.round(ss.tell*100)}% of your last ${ss.recent.length}
+          calls have been <b>${esc((BREAKS[ss.top[0]]||{}).name||ss.top[0])}</b>. Anyone filming you has that too.</p>`
+        : `<p class="lede">Counted from the calls you logged on this field. Nothing here is a prediction —
+          it is the same arithmetic a team watching your film would do.</p>`}
+        <div class="assigns">
+          ${ss.rank.map(([k,n])=>{
+            const pct = Math.round(n/ss.n*100);
+            return `<div class="assign" style="flex-wrap:wrap">
+              <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
+              <span class="assign__body"><span class="assign__job">${esc((BREAKS[k]||{}).name||k)}</span>
+              <span class="assign__who">${pct}% of ${ss.n} logged here</span></span>
+              <span class="bar" style="flex:1 0 100%;margin-top:6px"><i style="width:${pct}%;background:${
+                ss.top && k===ss.top[0] && ss.tell>=0.5 ? "var(--warn)" : "var(--accent)"}"></i></span>
+            </div>`;}).join("")}
+        </div>
+        <div class="assigns" style="margin-top:var(--s3)">
+          ${ss.recent.map((c,i)=>`<div class="assign">
+            <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${c.pt}</span>
+            <span class="assign__body"><span class="assign__job">${esc((BREAKS[c.script]||{}).name||c.script)}</span>
+            <span class="assign__who">point ${c.pt}${c.vs?" · vs "+esc(c.vs):""}</span></span>
+            <button class="btn btn--danger" onclick="unlogCall(${i})">Undo</button>
+          </div>`).join("")}
+        </div>`
+      : `<div class="empty">Nothing logged on ${esc(curLayout().name)} yet. Tap <b>Log this call</b> the
+         moment you make it, and this counts how predictable you have been.</div>`,
+      ss.n ? ss.n + (ss.n===1?" call":" calls") : curLayout().name);
+  })()}`;
 }
 
 let raf=null;
@@ -2882,6 +2945,40 @@ function opponentRead(team){
   return {n: rows.length, points: new Set(rows.map(o => o.pt)).size,
           how: rank(tally("how")), who: rank(tally("by"))};
 }
+
+/* ============================================================
+   Self-scout — how predictable you have been
+   ============================================================
+
+   The spec's Log break chip. Nothing is modelled: this counts the calls a
+   coach pressed the button on, on the field he is standing on, and reports the
+   share. A team that watches your film is doing exactly this arithmetic, so it
+   is better that you see it first. */
+function loggedCalls(){
+  return (S.calls || []).filter(c => c && c.layout === S.layoutKey);
+}
+function selfScout(){
+  const rows = loggedCalls();
+  const seen = rows.reduce((m, c) => ({...m, [c.script]: (m[c.script] || 0) + 1}), {});
+  const rank = Object.entries(seen).sort((a, b) => b[1] - a[1]);
+  const recent = rows.slice(0, 10);
+  const top = rank[0];
+  // Ten calls is enough to have a habit; half of them the same one is a habit
+  // a scout can hang a break on.
+  const tell = recent.length >= 6 && top
+    ? recent.filter(c => c.script === top[0]).length / recent.length : 0;
+  return {n: rows.length, rank, recent, top, tell};
+}
+window.logCall = () => {
+  S.calls = [{script: S.script, layout: S.layoutKey, pt: S.point || 1,
+              vs: pitOf("right").name, at: Date.now()}, ...(S.calls || [])];
+  save(S); render();
+};
+window.unlogCall = i => {
+  const all = [...(S.calls || [])];
+  all.splice((S.calls || []).indexOf(loggedCalls()[i]), 1);
+  S.calls = all; save(S); render();
+};
 
 /* ============================================================
    Scout — sub-tabs, because six stacked panels is not a screen
@@ -3224,7 +3321,7 @@ function scoutBoard(){
     </div>
     ${div.note?`<p class="note">${esc(div.note)}</p>`:""}`, list.length+" teams")
   + sec("Scout board", `<div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th></tr></thead>
+      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th><th>Read from</th></tr></thead>
       <tbody>${list.map((t,i)=>{
         const pr=profileOf(t.name);
         return `<tr onclick="loadPit('${esc(t.name)}')">
@@ -3235,6 +3332,9 @@ function scoutBoard(){
         <td class="num">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
         <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
         <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
+        <td>${t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
+             :t.src==="event"?`<span class="tag tag--pend">EVENT</span>`
+             :`<span class="note">—</span>`}</td>
       </tr>`;}).join("")}</tbody>
     </table></div>
     <p class="note">Tap a row to load it into the right pit. A dash means nobody has scored it yet —

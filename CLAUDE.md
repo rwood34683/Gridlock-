@@ -93,11 +93,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    field, and picks the bunker that sits there on that measured layout. Add a
    field and its plants come out of the same rule; the suite fails if the app
    and the rule ever disagree.
-9. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
-   `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
-   is deliberately different and what is missing. Top of that list now: Log
-   break, staggered starts off the buzzer, and Cards / Opp / Rep.
-10. Bring iOS SwiftUI up to web parity, then Android Compose.
+9. ~~Log break, and off the buzzer.~~ Done — Playbook logs the call you made
+   and counts how predictable you have been on this field, warning when one
+   call is half of your last ten; and the five leave in order now, the longest
+   run on the buzzer and the short ones holding.
+10. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
+    `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
+    is deliberately different and what is missing. Top of that list now: Cards /
+    Opp / Rep, then the tablet side rail and the blast group picker.
+11. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 
@@ -111,4 +115,11 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 - Invent live official scores. (The pro board carries team names only. Points,
   registration, tendency and threat are the coach's to enter — a team nobody has
   scored reads as a dash, never as a guess.)
+- Add a team to the pro board without a source. Every name carries `src`:
+  `page` if the league publishes a team page under it, `event` if it was read
+  off coverage of a real event. The league site and PBLeagues are both blocked
+  by the egress proxy here, so the board says it cannot be called complete
+  rather than pretending otherwise.
+- Hand-edit `BREAK_PLANTS`. Run `node tools/plants.js --write`; the suite fails
+  if the app and the rule disagree.
 - Open the tutorial on launch.
