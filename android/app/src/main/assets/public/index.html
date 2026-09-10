@@ -1146,7 +1146,7 @@ const defaultState = () => ({
   // tab is for, is not on screen until you play it. Play the break runs it from
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
-  faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false,
+  faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, awake:true,
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -3348,6 +3348,10 @@ function tally(){
       <span class="fact"><b>${outs.length}</b><span>This match</span></span>
     </div>
     <p class="note">Tap a player the moment he goes out.</p>
+    ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
+      ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
+         You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`
+      : ""}
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
@@ -3612,8 +3616,18 @@ function pit(side,T,label){
     </div>
     <select onchange="setPitTeam('${side}',this.value)">
       <option value=""${T.named?"":" selected"}>${T.named?"— clear this pit —":"Pick a team"}</option>
+      ${/* The team in the pit is not always in the list under it: switch division
+            and it is somebody else's league; delete a team you added and it is
+            nobody's. The picker then rendered with nothing selected while the
+            card still named the team, so the next tap on it silently emptied
+            the pit. Whoever is in it is always an option. */""}
+      ${T.named && !teamsHere().some(t=>t.name===T.name)
+        ? `<option selected>${esc(T.name)}</option>` : ""}
       ${teamsHere().map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
     </select>
+    ${T.named && !teamsHere().some(t=>t.name===T.name)
+      ? `<p class="note">Not in ${esc(divisionOf().name)} — they are still in the pit and everything
+         you have on them is kept.</p>` : ""}
     ${!T.named?`<p class="note">Pick who is in this pit and everything you learn about them —
       tendency, threat, their five, the calls you see them run — is kept against that team, so it
       follows them into the next event. Division has the season list.</p>`:`
@@ -4632,6 +4646,11 @@ function moreBody(k){
           }${S.savedAt?` Last saved ${esc(new Date(S.savedAt).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}))}.`:""}</span></div>
       </div>
     </div>
+    ${window.gridlockCanAwake?`<div class="toggles">
+      <button class="tgl ${S.awake===false?"":"on"}" onclick="setAwake(${S.awake===false})"><i></i>Keep the screen awake</button>
+    </div>
+    <p class="note">Held only while the app is on screen — the phone drops it the moment you switch away
+      or the screen goes off, so it does not run your battery down in a pocket.</p>`:""}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
     <p class="note">GRIDLOCK System · powered by UPRA</p>`)
@@ -4738,6 +4757,16 @@ window.cycleEvent = () => {
 };
 window.pickEvent = key => { if(LAYOUTS[key]) set({layoutKey:key}); };
 window.setSmooth = on => set({smoothOn:!!on});
+/* The screen goes to sleep between points otherwise: a coach makes the call,
+ * puts the phone down, and picks up a locked screen on the buzzer. The lock is
+ * only held while the app is actually on screen — the browser drops it the
+ * moment you background it — so it costs nothing in a pocket. His call either
+ * way, because it is his battery. */
+window.setAwake = on => {
+  S.awake = !!on; save(S);
+  if(window.gridlockAwake) window.gridlockAwake(S.awake);
+  render();
+};
 
 // Every tap rebuilds the whole screen, and the browser puts a rebuilt scroller
 // back at the top. So grading a man at the bottom of a long card, or dropping a

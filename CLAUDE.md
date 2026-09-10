@@ -130,7 +130,12 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     store. Restoring is timid on purpose — only when there is no usable local
     state at all. `save()` is wrapped too: a refused write used to escape
     through `set()` before `render()` and freeze the screen with nothing said.
-14. Keep the screen awake on a sideline.
+14. ~~Keep the screen awake on a sideline.~~ Done — the Screen Wake Lock API
+    rather than a plugin, so the phone app and the browser behave the same with
+    no new native dependency. The system drops the lock whenever the page stops
+    being visible, so it holds while the coach is looking at the app and costs
+    nothing in a pocket; it is taken again on the way back. A switch on Nexus,
+    on by default, shown only where the phone can do it.
 15. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)

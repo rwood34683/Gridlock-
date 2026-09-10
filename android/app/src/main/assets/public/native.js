@@ -60,6 +60,38 @@
     if (!timer) timer = setTimeout(flush, 500);
   };
 
+  /* Keep the screen awake on a sideline.
+   *
+   * The Screen Wake Lock API, not a plugin: it is in WKWebView from iOS 16.4
+   * and in the Android WebView, so the phone app and the browser get the same
+   * behaviour with no new native dependency. The lock is released by the system
+   * whenever the page stops being visible, which is exactly right — it holds
+   * while the coach is looking at the app and costs nothing once the phone is
+   * in a pocket — but it means it has to be taken again on the way back.
+   */
+  window.gridlockCanAwake = !!(navigator.wakeLock && navigator.wakeLock.request);
+  var lock = null;
+  var wanted = function () { return !(window.S && window.S.awake === false); };
+
+  function acquire() {
+    if (!window.gridlockCanAwake || lock || !wanted()) return;
+    if (document.visibilityState !== "visible") return;
+    navigator.wakeLock.request("screen").then(function (l) {
+      lock = l;
+      l.addEventListener("release", function () { lock = null; });
+    }).catch(function () {});          // denied, low battery, no permission
+  }
+  function drop() {
+    if (!lock) return;
+    try { lock.release(); } catch (e) {}
+    lock = null;
+  }
+  window.gridlockAwake = function (on) { if (on) acquire(); else drop(); };
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") acquire(); else lock = null;
+  });
+  acquire();
+
   if (!native) return;
 
   if (P.Preferences) {

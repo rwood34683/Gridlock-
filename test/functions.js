@@ -2125,6 +2125,59 @@ const ROSTER = [
     return true;
   });
 
+  /* --------------------------------------- the pit, the field, and the screen */
+  G("Edges");
+  await seed({ tab: "scout", scoutTab: "matchup", division: "semi",
+               right: { name: "Rejects" }, left: {}, teams: { semi: [{name:"My Local Team"}] } });
+
+  // A pit can hold a team the list under it does not contain — switch division
+  // and it is another league's; delete one you added and it is nobody's. The
+  // picker used to render blank while the card still named the team, so the
+  // next tap on it silently emptied the pit.
+  check("switching division keeps whoever is in the pit", await ev(() => {
+    window.setDivision("pro");
+    const sel = document.querySelector(".pit--r select");
+    return S.right.name === "Rejects" && sel.value === "Rejects"
+        && /Not in NXL Pro/.test(document.querySelector(".pit--r").textContent);
+  }));
+  check("deleting a team you added does not blank its picker", await ev(() => {
+    window.setDivision("semi");
+    window.setPitTeam("right", "My Local Team");
+    window.delTeam("My Local Team");
+    const sel = document.querySelector(".pit--r select");
+    return S.right.name === "My Local Team" && sel.value === "My Local Team";
+  }));
+  check("and the team is still one tap from being cleared on purpose", await ev(() => {
+    window.setPitTeam("right", "");
+    return !pitNamed("right");
+  }));
+
+  // A sheet is played on one field. Changing the event does not move it, so the
+  // bunkers under an out belong to a field you are no longer looking at.
+  check("a sheet from another field says so", await ev(() => {
+    window.setPitTeam("right", "Rejects");
+    window.set({ tab: "tally" });
+    window.markOut("us", "1");
+    const quiet = !/played on/.test(document.getElementById("root").textContent);
+    window.pickEvent(Object.keys(LAYOUTS).find(k => k !== S.layoutKey));
+    window.set({ tab: "tally" });
+    return quiet && /This sheet was played on/.test(document.getElementById("root").textContent);
+  }));
+
+  // The screen sleeping between points is the papercut this fixes.
+  check("the screen is kept awake, and it is the coach's call", await ev(() => {
+    const on = S.awake !== false;
+    window.setAwake(false);
+    const off = S.awake === false;
+    window.setAwake(true);
+    return on && off && S.awake === true;
+  }));
+  check("the switch only shows where the phone can do it", await ev(() => {
+    window.set({ tab: "more", more: "nexus" });
+    const shown = /Keep the screen awake/.test(document.getElementById("root").textContent);
+    return shown === !!window.gridlockCanAwake;
+  }));
+
   /* ------------------------------------------------- nobody in the pit yet */
   // The app used to ship with two real teams already in the pits, and pitOf()
   // fell back to the first team of the division, so there was no way to be
