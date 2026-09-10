@@ -2152,6 +2152,20 @@ const ROSTER = [
     return !pitNamed("right");
   }));
 
+  // Every other list in the app can be undone. A squad note could only ever be
+  // added, so a typo stayed on the phone for the season.
+  check("a squad note can be taken back", await ev(() => {
+    window.set({ tab: "more", more: "messages", messages: [] });
+    document.getElementById("md").value = "Bus at 6am";
+    window.sendMsg();
+    document.getElementById("md").value = "Bsu at 6am";
+    window.sendMsg();
+    const two = S.messages.length === 2;
+    window.delMsg(1);
+    return two && S.messages.length === 1 && S.messages[0] === "Bus at 6am"
+        && document.getElementById("root").textContent.includes("Bus at 6am");
+  }));
+
   // A merge brings in the other phone's records. It must not bring in its place
   // in the day: the sheet, the point, the field and the call are this coach's.
   check("merging another phone does not move you onto its sheet", await ev(() => {

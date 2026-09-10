@@ -4689,8 +4689,12 @@ function moreBody(k){
       `${BUNKER_CODE.filter(([c])=>codeCount(c)).length} of ${BUNKER_CODE.length} here`);
   }
   if(k==="messages") return sec("Messages",
-    ((S.messages||[]).length?`<div class="assigns">${S.messages.map(m=>`<div class="assign">
-      <span class="assign__body"><span class="assign__job">${esc(m)}</span></span></div>`).join("")}</div>`
+    // Every other list here can be undone — a walk note, a code word, a grade,
+    // a rotation, a player. A squad note could only be added, so a typo stayed
+    // on the phone for the season.
+    ((S.messages||[]).length?`<div class="assigns">${S.messages.map((m,i)=>`<div class="assign">
+      <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
+      <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
     + `<div class="btnrow"><input id="md" placeholder="Message the squad" class="grow"/>
        <button class="btn" onclick="sendMsg()">Send</button></div>`, (S.messages||[]).length+" notes");
@@ -4764,6 +4768,7 @@ function moreBody(k){
     <p class="note">A copy never carries your staff password. Sign in again on the new phone.</p>`);
   return "";
 }
+window.delMsg = i => { S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.sendMsg = () => {
   const el=document.getElementById("md"); const v=(el.value||"").trim();
   if(!v) return;
