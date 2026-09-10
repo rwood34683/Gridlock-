@@ -1015,7 +1015,12 @@ window.delTeam = name => {
 const defaultState = () => ({
   entered:false, role:"guest", email:"",
   tab:"playbook", more:"classes",
-  layoutKey:"lso", script:"snake", playing:false, t:0,
+  // The break opens on the set, not on the line. At t=0 all five are stacked
+  // in a sixteen-foot station against the back tape, on top of one another and
+  // half off the edge — so where each man is looking, which is the thing this
+  // tab is for, is not on screen until you play it. Play the break runs it from
+  // the line; Reset puts them back there.
+  layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true,
   left:{name:"Blast Camp"},        // which team is in the pit; what you know
   right:{name:"Rejects"},          // about them lives in scout[], keyed by team
@@ -2061,7 +2066,7 @@ function fieldSVG(opts={}, runnersOnly){
     const d = offset===0 ? directOf(p.id) : {};
 
     if(S.shotOn){
-      let ang = travel, len = 18, mark = "";
+      let ang = travel, len = 26, mark = "";
       if(d.shot){
         const tb = layout.bunkers.find(x=>x.id===d.shot);
         if(tb){
@@ -2070,23 +2075,36 @@ function fieldSVG(opts={}, runnersOnly){
           // Capped, because a cone drawn all the way to a far bunker swamps
           // the field. A ring on the target says what he is laning instead.
           len = Math.min(46, Math.max(14, Math.hypot(tx-cx, ty-cy) - 6));
-          mark = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="8" fill="none" stroke="#000" stroke-width="3" opacity=".5"/>`
+          // The solid lane is capped so a long one does not swamp the field,
+          // and a stub that stops short reads as if he is laning whatever it
+          // happens to end on. A hairline carries the rest of the way to the
+          // ring, so the man and the bunker he is laning are joined up.
+          mark = `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#fff" stroke-width=".9" stroke-dasharray="2 4" opacity=".55"/>`
+               + `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="8" fill="none" stroke="#000" stroke-width="3" opacity=".5"/>`
                + `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="8" fill="none" stroke="#fff" stroke-width="1.4" stroke-dasharray="3 3"/>`;
         }
       }
-      const sp=0.11, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
+      // The lane is a cone, not a ray, so it reads as a field of fire. White,
+      // per the house rule, so it reads against both wires — but a sliver four
+      // units across at a sixth opacity read against neither, and with no
+      // target set it lay exactly under the face chevron, so the two came out
+      // as one white scribble. It is a real wedge now, and the hard line down
+      // the middle is drawn only when the coach has named the bunker: that is
+      // the difference between "he is covering this" and "he is laning that".
+      const sp=0.22, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
       const tip=P(0,len).split(",");
-      // The lane is a cone, not a ray, so it reads as a field of fire.
-      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity=".16"/>`
-           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.2" stroke-linecap="round" opacity=".5"/>`
-           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`
-           + mark;
+      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity="${d.shot?".22":".3"}" stroke="#000" stroke-width=".8" stroke-opacity=".5"/>`;
+      if(d.shot) out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>`
+           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
+      out += mark;
     }
 
     if(S.faceOn){
       const fa = (d.face!=null && d.face!==undefined) ? d.face*Math.PI/180 : travel;
-      const fx=cx+Math.cos(fa)*10, fy=cy+Math.sin(fa)*10;
-      const W=(o)=>`${(fx-Math.cos(fa+o)*6).toFixed(1)},${(fy-Math.sin(fa+o)*6).toFixed(1)}`;
+      // The chevron is his body, so it sits on the marker as its nose. Out at
+      // arm's length it collided with the shot lane and neither read.
+      const fx=cx+Math.cos(fa)*9, fy=cy+Math.sin(fa)*9;
+      const W=(o)=>`${(fx-Math.cos(fa+o)*4.6).toFixed(1)},${(fy-Math.sin(fa+o)*4.6).toFixed(1)}`;
       const pts=`${W(-0.85)} ${fx.toFixed(1)},${fy.toFixed(1)} ${W(0.85)}`;
       out += `<polyline points="${pts}" fill="none" stroke="#000" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`
            + `<polyline points="${pts}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -2551,7 +2569,7 @@ function playbook(){
     <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
     <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
-    <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Reset</button>
+    <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
   </div>
   ${S.editPath?`<p class="note">Drag a corner to move it, tap one to take it out, tap the line to add
     one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
@@ -2607,6 +2625,7 @@ window.playPath = () => {
   S.playing=!S.playing;
   if(!S.playing){ if(raf) cancelAnimationFrame(raf); render(); return; }
   render();
+  if(S.t >= 1) S.t = 0;                 // they are set; run it again from the line
   const start=performance.now()-(S.t*2200);
   const tick=(now)=>{
     if(!S.playing) return;

@@ -1713,6 +1713,44 @@ const ROSTER = [
     return before !== JSON.stringify(currentPaths().map(p => p.to));
   }));
 
+  /* -------------------------------------------------- where he is shooting */
+  // Playbook used to open with all five stacked in a sixteen-foot station
+  // against the back tape, on top of one another and half off the edge — so
+  // the face chevron and the shot lane, which are the point of the tab, were
+  // not on screen until you played the break.
+  G("Where he is shooting");
+  check("the break opens on the set, not on the line", await ev(() => {
+    localStorage.clear();
+    return defaultState().t === 1;
+  }));
+  check("playing it again runs it from the line", await ev(async () => {
+    window.set({ tab: "playbook", t: 1 });
+    window.playPath();
+    const ran = S.t < 0.5;
+    S.playing = false;
+    return ran;
+  }));
+  await seed({ tab: "playbook", t: 1, faceOn: true, shotOn: true });
+  check("every one of the five carries a face and a lane", await ev(() => {
+    const f = document.querySelectorAll("svg.field polyline[stroke='#fff']").length;
+    const c = document.querySelectorAll("svg.field polygon[fill='#fff']").length;
+    return f === 5 && c === 5;
+  }));
+  check("the lane is a wedge you can see on a black field", await ev(() => {
+    const p = document.querySelector("svg.field polygon[fill='#fff']");
+    return Number(p.getAttribute("opacity")) >= 0.2 && p.getBBox().width > 6;
+  }));
+  check("naming the bunker he lanes joins him to it", await ev(() => {
+    const id = LAYOUTS[S.layoutKey].bunkers.find(b => b.n === "GP").id;
+    window.setDirect("1", "shot", id);
+    const line = [...document.querySelectorAll("svg.field line[stroke-dasharray]")];
+    return line.length >= 1 && document.querySelectorAll("svg.field circle[stroke-dasharray]").length >= 1;
+  }));
+  check("with no bunker named there is no hard line, only the wedge", await ev(() => {
+    window.setDirect("1", "shot", "");
+    return document.querySelectorAll("svg.field circle[stroke-dasharray]").length === 0;
+  }));
+
   /* ------------------------------------------------ one bunker, one size */
   // A medium dorito is the same inflatable in Garland that it was in
   // Cincinnati. Read off each map it comes back a different size, because the
