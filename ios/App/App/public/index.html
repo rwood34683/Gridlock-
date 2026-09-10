@@ -4150,7 +4150,10 @@ function sightlines(){
     <p class="aid">Geometry only. It does not know where bodies are — <b>walk it before you trust it.</b></p>`,
     curLayout().name)}
 
-  ${sec("Clear from here", `<div class="tblwrap"><table class="tbl">
+  ${/* Headed "Clear from here" while listing the blocked ones too, which reads
+        as a list of clear lanes with wrong rows in it. It is every lane from
+        where you are standing; how many are clear is the count beside it. */""}
+  ${sec("Every lane from here", `<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
       <tbody>${res.lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}"
           onclick="pickSight('to','${esc(l.to.id)}')">
@@ -4159,7 +4162,7 @@ function sightlines(){
           ? "blocked by "+esc(name(l.by[0]))
           : "clear · "+l.ft+" ft"}</td>
       </tr>`).join("")}</tbody>
-    </table></div>`, res.clear+" of "+res.lines.length)}`;
+    </table></div>`, res.clear+" of "+res.lines.length+" clear")}`;
 }
 
 /* ============================================================
