@@ -1265,11 +1265,18 @@ const ROSTER = [
     window.setDivision("pro");
     return away && profileOf("Houston Heat").threat === 5;
   }));
-  check("the board says what it was read from, and does not claim to be complete",
+  // The whole entry list, confirmed by the coach who read the page: it runs
+  // Atlanta Jungle Cats to TonTon Arsenal with nothing below. So the board says
+  // it is complete and says when it was read, rather than hedging about a list
+  // it actually has all of.
+  check("the board says what it was read from, and that it is the whole list",
     await ev(() => {
       const t = document.querySelector(".main").textContent;
-      return /Read from PBLeagues/.test(t) && /10 Sep 2026/.test(t)
-          && /may not be all of them/.test(t);
+      const pro = divisionTeams("pro");
+      return /Read from PBLeagues/.test(t) && /all 20 entries/.test(t)
+          && /10 Sep 2026/.test(t) && !/may not be all/.test(t)
+          && pro[0].name === "Atlanta Jungle Cats"
+          && pro[pro.length - 1].name === "TonTon Arsenal";
     }));
   // Every pro name came from somewhere and the board says which: a league page
   // for the team, or coverage of an event it played. Nothing is on there

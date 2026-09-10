@@ -147,8 +147,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     screenshot, with payment state and the date it was read. It replaced a list
     sourced from search metadata that had five teams that had not entered and
     two names wrong: Infamous is Detroit, not Los Angeles, and the Hurricanes
-    entered as CK. The page was still scrolling past TonTon Arsenal, so the
-    board says it may not be all of them.
+    entered as CK. The coach confirmed the list runs Atlanta Jungle Cats to
+    TonTon Arsenal with nothing below, so it is the whole entry and the board
+    says so rather than hedging about a list it has all of.
 17. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
