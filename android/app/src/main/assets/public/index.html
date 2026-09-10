@@ -1417,7 +1417,24 @@ window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
 if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
 
-function set(patch){ Object.assign(S, patch); save(S); render(); }
+function set(patch){
+  // The drill puts a call on the field that the coach did not make, and only
+  // Stop put his own call back. Walking away from Playbook mid-drill left him
+  // on a random one — one tap from playing it, or logging it as the call he
+  // made. Leaving ends the drill, the same as stopping it.
+  if(repState().running &&
+     (("tab" in patch && patch.tab !== "playbook") ||
+      ("pbView" in patch && patch.pbView !== "rep"))) endRep();
+  Object.assign(S, patch); save(S); render();
+}
+// Put back what he was on, without a redraw — the caller is about to do one.
+function endRep(){
+  const r = repState();
+  if(r.was){ S.script = r.was; S.t = r.wasT == null ? 1 : r.wasT; }
+  S.rep = {...r, running:false, ask:null};
+  S.pbView = null;
+  dropPathCache();
+}
 
 function ease(t){return 1-Math.pow(1-t,3)}
 function lerp(a,b,t){return a+(b-a)*t}
@@ -1506,8 +1523,20 @@ window.editPlayer = (i, field, value) => {
 };
 window.delPlayer = i => {
   const list = [...(S.roster || [])];
+  const gone = (list[i] || {}).name;
   list.splice(i, 1);
-  S.roster = list; save(S); render();
+  S.roster = list;
+  // He also has to come off any point he was written into, or the five reads
+  // four names and a hole with nothing saying why. What he already did stays:
+  // outs, grades and rotations are history and keep his name.
+  if(gone){
+    const lines = {};
+    Object.entries(S.lineups || {}).forEach(([k, v]) => {
+      lines[k] = v.map(n => n === gone ? "" : n);
+    });
+    S.lineups = lines;
+  }
+  save(S); render();
 };
 
 /* QR, byte mode, error correction level M, versions 1 to 3.
@@ -3211,13 +3240,7 @@ window.answerRep = key => {
   S.script = next; S.t = 1;
   save(S); render();
 };
-window.stopRep = () => {
-  const r = repState();
-  if(r.was){ S.script = r.was; S.t = r.wasT == null ? 1 : r.wasT; }
-  S.rep = {...r, running:false, ask:null};
-  S.pbView = null;
-  dropPathCache(); save(S); render();
-};
+window.stopRep = () => { endRep(); save(S); render(); };
 function repScore(){
   const log = repState().log || [];
   const right = log.filter(x => x.right);

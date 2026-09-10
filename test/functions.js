@@ -2152,6 +2152,36 @@ const ROSTER = [
     return !pitNamed("right");
   }));
 
+  // The drill puts a call on the field the coach did not make. Only Stop put his
+  // own back, so walking away mid-drill left him on a random one — one tap from
+  // playing it, or logging it as the call he made.
+  check("a drill does not follow you off Playbook", await ev(() => {
+    window.set({ tab: "playbook", script: "snake", pbView: null });
+    window.startRep();
+    const drilling = repState().running && S.script !== "snake";
+    window.set({ tab: "tally" });
+    return drilling && !repState().running && S.script === "snake" && S.pbView === null;
+  }));
+  check("nor off the Playbook chip row", await ev(() => {
+    window.set({ tab: "playbook" });
+    window.startRep();
+    window.set({ pbView: "cards" });
+    return !repState().running && S.script === "snake";
+  }));
+
+  // A player taken off the roster leaves a hole in any point he was written
+  // into, and the five reads four names with nothing saying why.
+  check("a player off the roster comes off the point", await ev(() => {
+    window.set({ tab: "more", more: "lineups", pbView: null,
+                 roster: [{num:"7",name:"Rex"},{num:"3",name:"Mo"}], point: 2 });
+    window.setSlot(0, "Rex"); window.setSlot(1, "Mo");
+    S.assessments = [{who:"Rex", score:4, pt:2, m:S.matchId, at:Date.now()}];
+    window.delPlayer(0);
+    return lineupFor(2)[0] === "" && lineupFor(2)[1] === "Mo";
+  }));
+  check("but what he already did keeps his name", await ev(() =>
+    S.assessments[0].who === "Rex"));
+
   // A sheet is played on one field. Changing the event does not move it, so the
   // bunkers under an out belong to a field you are no longer looking at.
   check("a sheet from another field says so", await ev(() => {
