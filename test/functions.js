@@ -2125,6 +2125,72 @@ const ROSTER = [
     return true;
   });
 
+  /* --------------------------------------------------- their five, on the field */
+  // Pick a team and you get whatever roster is known; place each man where you
+  // have seen him set up, and he is drawn on the field.
+  G("Their five");
+  await seed({ tab: "scout", scoutTab: "matchup", division: "pro", layoutKey: "lso",
+               right: { name: "San Diego Dynasty" }, left: {}, scout: {} });
+
+  check("a published roster is offered, and is names only", await ev(() => {
+    const r = published("San Diego Dynasty");
+    return !!r && r.men.length === 5 && !!r.src && !!r.read
+        && r.men.every(m => !("threat" in m) && !("wire" in m));
+  }));
+  check("adding it fills their five, flagged as published", await ev(() => {
+    window.addPublished("right");
+    const men = pitOf("right").players;
+    return men.length === 5 && men.every(m => m.from === "published")
+        && men[0].name === "Alex Fraige";
+  }));
+  check("adding twice does not double them up", await ev(() => {
+    window.addPublished("right");
+    return pitOf("right").players.length === 5;
+  }));
+  check("a team with no published roster says so rather than inventing one", await ev(() => {
+    const none = DIVISIONS.find(d => d.id === "pro").teams
+      .filter(t => !published(t.name));
+    return none.length === 15 && published(none[0].name) === null;
+  }));
+
+  check("a man's plant is kept per field, because a bunker is", await ev(() => {
+    const lso = curLayout().bunkers.find(b => b.n === "GP").id;
+    window.setScoutPlant("right", 1, lso);
+    const here = plantOf(pitOf("right").players[1]) === lso;
+    window.pickEvent("tby");
+    const there = plantOf(pitOf("right").players[1]) === "";
+    window.pickEvent("lso");
+    return here && there && plantOf(pitOf("right").players[1]) === lso;
+  }));
+  check("he is drawn on the field, in his pit's colour, with his number", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", theirOn: true });
+    const svg = document.querySelector("svg.field");
+    const mk = [...svg.querySelectorAll('rect[rx="2"]')];
+    return mk.length === 1 && mk[0].getAttribute("fill") === "#3d8bff"
+        && svg.textContent.includes("18");
+  }));
+  check("a man you have not placed is not guessed onto a bunker", await ev(() =>
+    pitOf("right").players.filter(m => plantOf(m)).length === 1
+    && document.querySelectorAll('svg.field rect[rx="2"]').length === 1));
+  check("with nobody placed the field says how to place them", await ev(() => {
+    window.setScoutPlant("right", 1, "");
+    const t = document.getElementById("root").textContent;
+    return !plantsLogged() && /Nobody placed on/.test(t);
+  }));
+  check("the toggle is off by default and turns them off again", await ev(() => {
+    window.set({ theirOn: false });
+    return document.querySelectorAll('svg.field rect[rx="2"]').length === 0;
+  }));
+  check("Division says which teams come with a roster", await ev(() => {
+    window.set({ scoutTab: "board" });
+    const row = [...document.querySelectorAll("#boardRows tr")]
+      .find(r => r.children[1].textContent.includes("San Diego Dynasty"));
+    const other = [...document.querySelectorAll("#boardRows tr")]
+      .find(r => r.children[1].textContent.includes("Red Legion"));
+    return row.children[5].textContent.trim() === "5"
+        && other.children[5].textContent.trim() === "—";
+  }));
+
   /* --------------------------------------- the pit, the field, and the screen */
   G("Edges");
   await seed({ tab: "scout", scoutTab: "matchup", division: "semi",

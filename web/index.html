@@ -1146,7 +1146,7 @@ const defaultState = () => ({
   // tab is for, is not on screen until you play it. Play the break runs it from
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
-  faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, awake:true,
+  faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -2654,6 +2654,42 @@ function fieldSVG(opts={}, runnersOnly){
     }).join("");
   }
 
+  /* Their five, where you have seen them set up.
+   *
+   * Not the break: the break paths on this field are your own call, mirrored to
+   * the far side so the two can be read together. This is the other thing a
+   * coach wants on a field drawing — the men themselves, at the bunkers you
+   * logged them at, in that pit's wire colour with the number he wears. Only
+   * the ones you have actually placed appear; a player you have not seen plant
+   * is not guessed onto a bunker.
+   */
+  let their = "";
+  if(opts.their){
+    const sides = opts.both ? [["left", "#e5342f"], ["right", "#3d8bff"]]
+                            : [["right", "#3d8bff"]];
+    their = sides.map(([side, colour]) => {
+      const men = (pitOf(side).players || []);
+      return men.map(m => {
+        const b = layout.bunkers.find(x => x.id === plantOf(m));
+        if(!b) return "";
+        const x = b.x * sx, y = b.y * sy;
+        const tag = (m.num || "").toString().slice(0, 2) || "·";
+        // A square, not a circle. A runner on the break is a circle, and at six
+        // pixels a dashed outline is not a difference you can see on a sideline
+        // — the shape is. Same wire colour, so it is still obvious whose man he
+        // is; different shape, so he is never mistaken for the break.
+        const r = 6.2;
+        return `<g opacity=".95">`
+          + `<rect x="${(x-r-0.6).toFixed(1)}" y="${(y-r-0.6).toFixed(1)}" `
+          + `width="${(r*2+1.2).toFixed(1)}" height="${(r*2+1.2).toFixed(1)}" rx="2.4" fill="#000" opacity=".55"/>`
+          + `<rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" `
+          + `height="${(r*2).toFixed(1)}" rx="2" fill="${colour}" stroke="#efedeb" stroke-width="1.3"/>`
+          + `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" text-anchor="middle" `
+          + `font-size="7" fill="#fff" font-weight="800">${esc(tag)}</text></g>`;
+      }).join("");
+    }).join("");
+  }
+
   if(runnersOnly) return paths;
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
@@ -2695,6 +2731,10 @@ function fieldSVG(opts={}, runnersOnly){
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
     <g class="live">${paths}</g>
+    ${/* Their men sit above the break, or a marker disappears under a path the
+          moment the two coincide — which is exactly where a scouted plant and a
+          break runner both want to be. */""}
+    ${their}
     ${pick}
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
@@ -2820,6 +2860,21 @@ window.addScoutPlayer = side => {
 window.editScoutPlayer = (side, i, field, value) => {
   const players = pitOf(side).players.map((p, k) => k === i ? {...p, [field]: clean(String(value).trim())} : p);
   editProfile(side, {players});
+};
+/* Where you have seen one of their men set up.
+ *
+ * A wire is the rough answer — snake, dorito, centre — and it is what the
+ * roster row has carried. The useful answer on a sideline is the bunker, and
+ * a bunker only means something on one field, so it is kept per layout: the
+ * same player plants somewhere else at the next event and both are true.
+ */
+function plantOf(m){ return ((m || {}).plant || {})[S.layoutKey] || ""; }
+window.setScoutPlant = (side, i, id) => {
+  editProfile(side, {players: pitOf(side).players.map((p, k) =>
+    k === i ? {...p, plant: {...(p.plant || {}), [S.layoutKey]: id || undefined}} : p)});
+  // editProfile saves without redrawing, so typing in a note is not interrupted.
+  // A plant is not typing: it moves a man on the field and has to show.
+  render();
 };
 window.setScoutThreat = (side, i, n) => {
   editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? {...p, threat:n} : p)});
@@ -3364,7 +3419,7 @@ window.playPath = () => {
 // Repaint just the field SVGs. A full render() per frame rebuilt the entire
 // document — including the division table — sixty times a second.
 function paintField(){
-  const opts = S.tab==="scout" ? {both:true, outs:!!S.outsOn} : {edit:S.editPath};
+  const opts = S.tab==="scout" ? {both:true, outs:!!S.outsOn, their:!!S.theirOn} : {edit:S.editPath};
   const layer = fieldRunners(opts);
   document.querySelectorAll(".field-wrap[data-live]").forEach(el => {
     const g = el.querySelector("svg.field g.live");
@@ -3621,6 +3676,10 @@ window.unlogCall = i => {
 const SCOUT_TABS=[["matchup","Matchup"],["breakouts","Breakouts"],["anticipate","Anticipate"],
                   ["counter","Counter"],["layers","Layers"],["games","Games"],["board","Division"]];
 
+function plantsLogged(){
+  return ["left","right"].some(side =>
+    (pitOf(side).players || []).some(m => plantOf(m)));
+}
 function outsLogged(){
   return (S.tally||[]).some(o => typeof o==="object" && o.layout===S.layoutKey && o.shotAt);
 }
@@ -3645,15 +3704,19 @@ function scout(){
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
+      <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
     </div>
-    <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn, their:!!S.theirOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")}</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")}</span>
+      ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
     </div>
+    ${S.theirOn&&!plantsLogged()?`<div class="empty">Nobody placed on ${esc(curLayout().name)} yet. Log their five on
+      the pit card above and set <b>Plants on</b> for each man you have seen set up.</div>`:""}
     ${S.outsOn&&!outsLogged()?`<div class="empty">No outs logged on ${esc(curLayout().name)} yet. Tally an out
       and set <b>Shot at</b> on it, and the field marks where the point was decided.</div>`:""}
     <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
@@ -3714,6 +3777,12 @@ function pit(side,T,label){
             <label><span class="note">Threat</span>
               <div class="stars">${[1,2,3,4,5].map(n=>`<button class="star ${n<=(m.threat||0)?"on":""}"
                 aria-label="Threat ${n}" onclick="setScoutThreat('${side}',${i},${n})">${n<=(m.threat||0)?"★":"☆"}</button>`).join("")}</div></label>
+            <label style="grid-column:1/-1"><span class="note">Plants on · ${esc(curLayout().name)}</span>
+              <select onchange="setScoutPlant('${side}',${i},this.value)">
+                <option value="">not seen yet</option>
+                ${curLayout().bunkers.map(bk=>`<option value="${esc(bk.id)}"${
+                  plantOf(m)===bk.id?" selected":""}>${esc(callOf(bk))} · ${esc(bk.id)}</option>`).join("")}
+              </select></label>
           </div>
           <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
@@ -4032,7 +4101,7 @@ function scoutBoard(){
       <input id="boardFind" placeholder="Type a few letters" autocapitalize="none"
              oninput="findTeam(this.value)"/></div>
     <div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th><th>Read from</th></tr></thead>
+      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Roster</th><th>Tend</th><th>Threat</th><th>Read from</th></tr></thead>
       <tbody id="boardRows">${list.map((t,i)=>{
         const pr=profileOf(t.name);
         return `<tr class="tap" oncontextmenu="return false"
@@ -4043,6 +4112,13 @@ function scoutBoard(){
         <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
         <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span>`:`<span class="note">—</span>`}</td>
         <td class="num">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
+        <td class="num">${(() => {
+          const mine = (profileOf(t.name).players || []).length;
+          const pub = published(t.name);
+          return mine ? `<span class="tag tag--paid">${mine}</span>`
+               : pub ? `<span class="tag tag--pend">${pub.men.length}</span>`
+               : `<span class="note">—</span>`;
+        })()}</td>
         <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
         <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
         <td>${t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
@@ -4051,8 +4127,9 @@ function scoutBoard(){
       </tr>`;}).join("")}</tbody>
     </table></div>
     <p class="note">Tap a row to load it into the right pit, <b>press and hold</b> to load it into the
-      left. A dash means nobody has scored it yet — set the tendency and threat on the pit card and it
-      fills in here.</p>`, esc(div.name))
+      left. A dash under Pts means nobody has scored it yet — set the tendency and threat on the pit
+      card and it fills in here. Under Roster, green is what you have logged yourself and amber is a
+      roster the league published, waiting to be added on the pit card.</p>`, esc(div.name))
   + sec("Missing a team?", `<p class="lede">Divisions change every season. Add anyone who is not on the
       list and they behave like any other team — you can scout them, log their five and their calls.</p>
     <div class="who2">

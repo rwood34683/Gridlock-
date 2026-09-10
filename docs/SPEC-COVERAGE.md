@@ -121,6 +121,18 @@ counter-picker with Ahead / Even / Must-score and a ranked list. Copy matchup
 card. The division board with the fourteen CIN semi-pro teams, tap a row to
 load the right pit.
 
+**Their five, on the field.** Pick a team and you get whatever roster is known:
+the one the league published where there is one, flagged as published so a name
+nobody here has watched is never mistaken for something a coach saw, and
+whatever you have logged yourself. Division shows which teams come with one —
+green for what you logged, amber for a published roster waiting to be added.
+Then place each man where you have seen him set up, and the Scout field draws
+him there in his pit's wire colour with his number, as a square rather than a
+circle so he is never mistaken for a runner on the break. A plant is kept per
+field, because a bunker only means something on one. A man you have not placed
+is not guessed onto a bunker, and a team with no published roster says so rather
+than being filled in from memory — only San Diego Dynasty has one today.
+
 **Sightlines.** Tap the field where you are standing, tap what you want to see;
 lanes tested against real bunker footprints, blockers named.
 

@@ -136,7 +136,17 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     being visible, so it holds while the coach is looking at the app and costs
     nothing in a pocket; it is taken again on the way back. A switch on Nexus,
     on by default, shown only where the phone can do it.
-15. Bring iOS SwiftUI up to web parity, then Android Compose.
+15. ~~Their five on the field.~~ Done — pick a team and you get whatever roster
+    is known, published ones flagged as published; place each man where you have
+    seen him set up and the Scout field draws him at that bunker, per field,
+    square rather than circle so he is never taken for a break runner. Only San
+    Diego Dynasty has a published roster: `PRO_ROSTERS` is names actually read
+    somewhere, and a team without one stays empty.
+16. Rosters for the rest of the pro teams. They cannot be fetched from here —
+    the league site and PBLeagues are both blocked by the egress proxy — so they
+    arrive either off a screenshot the coach pastes, or as a data file written
+    by a script run somewhere with reach. Never typed from memory.
+17. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
