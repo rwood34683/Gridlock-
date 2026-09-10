@@ -633,10 +633,10 @@ const ROSTER = [
   check("with no lineup set the roster order stands", await ev(() =>
     fiveFor(3).map(p => p && p.name).join(",") === "Reyes,Okafor,Vance,Marsh,Bright"));
   check("a lineup can be filled from the roster", await ev(() => {
-    window.fillLineup("roster"); return (S.lineups[3] || []).length === 5 && S.lineups[3][0] === "Reyes";
+    window.fillLineup("roster"); return lineupFor(3).length === 5 && lineupFor(3)[0] === "Reyes";
   }));
   check("a slot can be set to any player on the squad", await ev(() => {
-    window.setSlot(0, "Cole"); return S.lineups[3][0] === "Cole" && fiveFor(3)[0].num === 9;
+    window.setSlot(0, "Cole"); return lineupFor(3)[0] === "Cole" && fiveFor(3)[0].num === 9;
   }));
   check("the lineup directs the break on Playbook", await ev(() => {
     window.set({ tab: "playbook" });
@@ -650,7 +650,7 @@ const ROSTER = [
     window.set({ tab: "more", more: "lineups", point: 4 });
     const empty = lineupFor(4).length === 0;
     window.fillLineup(3);
-    return empty && S.lineups[4][0] === "Cole" && S.lineups[3][0] === "Cole";
+    return empty && lineupFor(4)[0] === "Cole" && lineupFor(3)[0] === "Cole";
   }));
   check("an empty slot leaves the job unassigned", await ev(() => {
     window.setSlot(1, "");
@@ -2124,6 +2124,140 @@ const ROSTER = [
     }
     return true;
   });
+
+  /* --------------------------------------------------------------- matches */
+  // A point number only means something inside a match. These check the two
+  // halves of that: that the boundary works, and that a season logged before
+  // matches existed still reads.
+  G("A match");
+
+  await seed({ tab: "tally", point: 1 });
+  check("there is always a match in play", await ev(() =>
+    !!curMatch() && S.matches.length >= 1 && curMatch().id === S.matchId));
+  check("a new match puts the point back to one", await ev(() => {
+    window.confirm = () => true;
+    window.nextPoint(); window.nextPoint();
+    const was = S.point;
+    window.newMatch();
+    return was === 3 && S.point === 1 && S.matches.length >= 2;
+  }));
+  check("back a point is a way out of a mis-tap, and stops at one", await ev(() => {
+    window.nextPoint();
+    window.backPoint();
+    const one = S.point === 1;
+    window.backPoint();
+    return one && S.point === 1;
+  }));
+
+  check("a new sheet does not show the old sheet's outs", await ev(() => {
+    const first = S.matchId;
+    window.markOut("us", "Reyes");
+    const mine = rowsHere(S.tally).length;
+    window.newMatch();
+    return mine === 1 && rowsHere(S.tally).length === 0
+        && S.tally.some(o => o.m === first && o.name === "Reyes");   // kept, not deleted
+  }));
+  check("point 1 of two matches is two different point ones", await ev(() => {
+    window.markOut("us", "Okafor");
+    const here = rowsHere(S.tally).filter(o => o.pt === 1).map(o => o.name);
+    const all = S.tally.filter(o => o.pt === 1).map(o => o.name).sort();
+    return here.join() === "Okafor" && all.join() === "Okafor,Reyes";
+  }));
+  check("the same five can be on point 1 of each", await ev(() => {
+    window.set({ roster: [{name:"Reyes",num:1},{name:"Okafor",num:2}] });
+    window.setSlot(0, "Okafor");
+    const mine = lineupFor(1)[0];
+    const other = (S.matches.find(m => m.id !== S.matchId) || {}).id;
+    return mine === "Okafor" && lineupFor(1, other)[0] !== "Okafor";
+  }));
+  check("an old sheet opens on its last point", await ev(() => {
+    const other = S.matches.find(m => m.id !== S.matchId).id;
+    window.openMatch(other);
+    return S.matchId === other && rowsHere(S.tally).some(o => o.name === "Reyes");
+  }));
+  check("the sheet keeps its own opponent while you scout the next one", await ev(() => {
+    window.newMatch();
+    const vs = matchVs();
+    window.setPitTeam("right", "Blast Camp");
+    const held = matchVs() === vs;
+    window.markOut("them", "#3");
+    return held && rowsHere(S.tally)[0].vs === vs;
+  }));
+  check("Undo on the sheet removes the row you pointed at", await ev(() => {
+    window.set({ tab: "tally" });
+    window.markOut("us", "Reyes");
+    const before = S.tally.length;
+    const target = rowsHere(S.tally)[0];
+    window.undoOut(S.tally.indexOf(target));
+    return S.tally.length === before - 1 && !S.tally.includes(target);
+  }));
+
+  // The case the whole thing exists for: you play a team twice, and their
+  // point 1 is two different points.
+  check("Games keeps two sheets against the same team apart", await ev(() => {
+    window.confirm = () => true;
+    localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+      entered: true, role: "staff", tab: "scout", scoutTab: "games",
+      right: { name: "Rejects" }, left: { name: "Blast Camp" },
+      matches: [{id:"b", at: 2000, vs:"Rejects"}, {id:"a", at: 1000, vs:"Rejects"}],
+      matchId: "b", point: 1,
+      tally: [{pt:1, side:"us", name:"Later",  m:"b", at:2100, vs:"Rejects", layout:"lso"},
+              {pt:1, side:"us", name:"Earlier", m:"a", at:1100, vs:"Rejects", layout:"lso"}],
+      tips: { scout: 1 },
+    }));
+    return true;
+  }));
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(200);
+  check("  ...showing the sheet you are on, not both at once", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return t.includes("Later") && !t.includes("Earlier");
+  }));
+  check("  ...and offering the other one by date", await ev(() => {
+    const btns = [...document.querySelectorAll(".sec button")].map(b => b.textContent.trim());
+    return btns.some(b => /on now/.test(b)) && btns.filter(b => /Point 1/.test(b)).length === 1;
+  }));
+  check("  ...which opens it without merging the two", await ev(() => {
+    window.set({ replayMatch: "a", replayPt: null });
+    const t = document.getElementById("root").textContent;
+    return t.includes("Earlier") && !t.includes("Later");
+  }));
+
+  // The migration. A save written before matches existed has rows with no `m`
+  // and lineups keyed by a bare point number; none of it may go missing.
+  check("a season logged before matches existed is adopted whole", await ev(async () => {
+    localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+      entered: true, role: "staff", tab: "tally", point: 7,
+      right: { name: "Rejects" },
+      tally: [{pt:7, side:"us", name:"Reyes", at: 3000, layout:"lso"},
+              {pt:6, side:"them", name:"#2", at: 2000, layout:"lso"},
+              "an out from a build before any of this"],
+      moves: [{pt:6, who:"Reyes", from:"a", to:"b", at: 2500}],
+      assessments: [{who:"Reyes", score:4, pt:6, at: 2600}],
+      calls: [{script:"snake", layout:"lso", pt:6, at: 2400}],
+      lineups: { 6: ["Reyes","","","",""] },
+    }));
+    return true;
+  }));
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(200);
+  check("  ...into one match, dated from the oldest thing in it", await ev(() =>
+    S.matches.length === 1 && S.matches[0].vs === "Rejects" && S.matches[0].at === 2000));
+  check("  ...with every row stamped and nothing dropped", await ev(() => {
+    const id = S.matchId;
+    return S.tally.length === 3 && S.tally.every(o => o.m === id)
+        && S.moves[0].m === id && S.assessments[0].m === id && S.calls[0].m === id;
+  }));
+  check("  ...including the row an old build wrote as a bare string", await ev(() => {
+    const legacy = S.tally.find(o => o.legacy);
+    return !!legacy && legacy.name === "an out from a build before any of this"
+        && !legacy.side && !legacy.pt;          // it claims no point and no side
+  }));
+  check("  ...and the lineup still belongs to the point it was set on", await ev(() =>
+    lineupFor(6)[0] === "Reyes"));
+  check("  ...and the point you were on is still the point you are on", await ev(() =>
+    S.point === 7 && rowsHere(S.tally).filter(o => o.pt === 7).length === 1));
+  check("adopting runs once, not on every load", await ev(() => S.matches.length === 1));
 
   /* -------------------------------------------- the rest of the spec gaps */
   // Eight things the coverage doc listed as not built. Each is checked for the

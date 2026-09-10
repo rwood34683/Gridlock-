@@ -90,8 +90,18 @@ taps one of the twelve. Right, average and best, and a verdict at two seconds.
 The call he was on is put back when he stops, because a drill must not quietly
 change what he is about to call.
 
-**Tally.** Point number, your five and theirs, out or alive, how he went out,
-who got him, shot-at bunker and moved-to bunker, feeding Bunker stats.
+**Tally, and the match around it.** Point number, your five and theirs, out or
+alive, how he went out, who got him, shot-at bunker and moved-to bunker, feeding
+Bunker stats.
+
+A point number only means something inside a game, so there is a match: who it
+is against, when it started, and every out, lineup, rotation, grade and logged
+call stamped with it. Next point and Back a point, because Next point is one tap
+and a sideline is a sideline. New match puts the point back to one and keeps the
+old sheet — More → Matches lists every one you have kept and opens it on its last
+point. The sheet holds its own opponent while you scout the next team in the
+right pit, and says so if the two drift apart. Games picks a sheet before it
+picks a point, so playing a team twice does not merge their two point ones.
 
 **The pro board.** Sixteen NXL pro teams, names only, and each one says where
 its name was read from: `LEAGUE` if the league publishes a team page under that

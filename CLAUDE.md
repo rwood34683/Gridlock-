@@ -112,11 +112,28 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     gunfight rings on the Scout field, and the Smooth chip. Two things stay
     deliberately different and say so on screen: there is no event feed, because
     there is no network; and "how to anticipate" is a sub-tab, not a menu.
-12. Bring iOS SwiftUI up to web parity, then Android Compose.
+12. ~~A match, so a point number means something.~~ Done — the point counted up
+    forever and nothing marked where one game ended, so a mis-tap on Next point
+    was permanent and your second tournament opened on point 63 with the sheet
+    showing outs from March. Every out, lineup, rotation, grade and logged call
+    now carries the match it belongs to, and the point counts from one inside
+    it. There is always exactly one match in play, so nothing has to handle
+    "no match". A save from before this is adopted whole into one match rather
+    than orphaned. More → Matches keeps every sheet.
+13. Storage that survives. `@capacitor/preferences` is a dependency and is
+    used nowhere: everything is in `localStorage` inside a WKWebView, which the
+    OS may clear and which is not in the device backup. `save()` has no
+    try/catch either, while `load()` does.
+14. Keep the screen awake on a sideline.
+15. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 
-User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
+User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
+
+A **Match** is `{id, at, vs, layout}` and every row logged on a sideline carries
+its id in `m`. Point numbers are per match and start at one. Lineups are keyed
+`<matchId>|<point>` — never by point alone.
 
 ## Do not
 
@@ -134,6 +151,8 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 - Hand-edit `BREAK_PLANTS`. Run `node tools/plants.js --write`; the suite fails
   if the app and the rule disagree.
 - Open the tutorial on launch.
+- Log a row on a sideline without stamping `m: S.matchId`, or key anything by
+  point number alone. Point 3 exists in every match ever played.
 - Trust a passing suite as proof a screen is right. The tablet rail measured as
   a rail and every check was green while each button was a 146 px slab with its
   label under the marker, because the media block sat above the base rule it

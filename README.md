@@ -186,7 +186,7 @@ word for a bunker, which shows on his card and never on the field; Movement rota
 drawn on the field; Assess grading with per-player averages; Bunker stats built
 from tally and movement with a heat overlay; an editable roster; Lineups that
 set who is on the point and actually direct the break; Walk notes pinned to a
-bunker or a wire; code words with what each one means; Messages; Classes as a pass-the-phone sign-in sheet, each with a start
+bunker or a wire; code words with what each one means; Messages; a match around the point sheet — who it is against, Next and Back a point, New match putting the point back to one, and every sheet you have kept under More → Matches; Classes as a pass-the-phone sign-in sheet, each with a start
 time, notes, a share sheet and an open/close that actually takes the form away;
 League groups with blasts addressed to the groups you pick and a blast log; Nexus, listing every field with its bunker count and where its map was read from, and Save/Load a copy — a JSON file of the season that merges into another phone rather than clobbering it, stamped with a squad code so a merge that mixes two teams says so.
 

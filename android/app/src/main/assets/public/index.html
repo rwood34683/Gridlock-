@@ -1151,6 +1151,10 @@ const defaultState = () => ({
   right:{name:"Rejects"},          // about them lives in scout[], keyed by team
   scout:{},                        // team -> {tend, threat, notes, players[]}
   matchState:"Even",
+  // A match is what makes a point number mean anything. Without one, "point 3"
+  // is point 3 of every game you have ever coached, and the sheet you are
+  // looking at is nine months of paint.
+  matches:[], matchId:"",
   tips:{},
   classes:[], responses:[],
   groups:[
@@ -1235,6 +1239,98 @@ if(S.codeWords && !(S.codes||[]).length){
   });
   S.codeWords = "";
 }
+/* A match, so a point number means something.
+ *
+ * Everything logged on a sideline — an out, a lineup, a rotation, a grade, the
+ * call you made — was stamped with a bare point number, and the point number
+ * only ever counted up. Two consequences, both bad: a mis-tap on Next point was
+ * permanent, and your second tournament opened on point 63 with the sheet
+ * showing outs from a game in March.
+ *
+ * So every one of those rows now carries the match it belongs to, and the point
+ * number counts from one inside it. There is always exactly one match in play —
+ * the app makes one if it has to — so nothing downstream has to handle "no
+ * match", and New match is the only boundary a coach has to think about.
+ */
+const newMatchId = () => "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || null; }
+function matchLabel(m){
+  if(!m) return "";
+  const d = new Date(m.at);
+  return `vs ${m.vs || "—"} · ${d.toLocaleDateString([], {month:"short", day:"numeric"})}`;
+}
+// How much is actually recorded against a match, so New match can warn before
+// it walks away from a sheet and Matches can say what is in each one.
+function matchSize(id){
+  const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
+  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls)
+       + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
+}
+/* Who the match is against.
+ *
+ * Not the right pit: a coach scouts the next opponent between points, and the
+ * pit follows him there. What gets stamped on an out has to be who was actually
+ * across the tape when it happened, which is the match's own opponent.
+ */
+function matchVs(){ const m = curMatch(); return (m && m.vs) || (S.right || {}).name || "—"; }
+// This match's rows, out of a season of them.
+const rowsHere = list => (list || []).filter(o => o && typeof o === "object" && o.m === S.matchId);
+
+// Lineups are keyed by match and point together. Point 3 of two matches is two
+// different fives, and the old bare-number key could not say so.
+const lineKey = (pt, mid) => `${mid || S.matchId}|${pt}`;
+
+// ---- one-time: everything logged before matches existed ----------------
+// It is one long game as far as the data knows, so it becomes one match, dated
+// from the oldest thing in it and named for whoever was in the right pit. That
+// keeps every point sheet, rotation and grade readable instead of orphaning it.
+(function adoptLooseRows(){
+  const lists = ["tally", "moves", "assessments", "calls"];
+  const loose = lists.some(k => (S[k] || []).some(x => x && typeof x === "object" && !x.m));
+  const looseLines = Object.keys(S.lineups || {}).some(k => !k.includes("|"));
+  if(!loose && !looseLines) return;
+
+  const id = newMatchId();
+  // Only a row that is an object has a timestamp. `x && x.at` on the bare
+  // string an old build wrote hands back String.prototype.at — a function,
+  // which is truthy, survives the filter and turns Math.min into NaN. The
+  // match then carries a date of NaN and sorts nowhere.
+  const times = lists.flatMap(k => (S[k] || [])
+    .map(x => (x && typeof x === "object") ? x.at : null))
+    .filter(t => typeof t === "number" && isFinite(t));
+  const oldest = times.length ? Math.min(...times) : Date.now();
+  S.matches = [{id, at: oldest,
+                vs: (S.right || {}).name || "—", layout: S.layoutKey,
+                note: "Everything logged before matches existed"},
+               ...(S.matches || [])];
+  lists.forEach(k => {
+    S[k] = (S[k] || []).map(x => {
+      // A very old build wrote a bare string for an out. Wrap it rather than
+      // let a match-scoped sheet quietly stop showing it. Nothing is invented:
+      // it keeps its text and gets no side and no point, so it counts toward
+      // nobody and never claims to belong to a point it cannot name.
+      if(typeof x === "string") return {name: x, m: id, at: oldest, legacy: true};
+      return (x && typeof x === "object" && !x.m) ? {...x, m: id} : x;
+    });
+  });
+  const lines = {};
+  Object.entries(S.lineups || {}).forEach(([k, v]) => {
+    lines[k.includes("|") ? k : `${id}|${k}`] = v;
+  });
+  S.lineups = lines;
+  S.matchId = id;            // carry on in it — the point number is still theirs
+})();
+
+// There is always a match in play. A fresh install gets one rather than a null
+// every writer would have to check.
+if(!curMatch()){
+  const id = newMatchId();
+  S.matches = [{id, at: Date.now(), vs: (S.right || {}).name || "—", layout: S.layoutKey},
+               ...(S.matches || [])];
+  S.matchId = id;
+  if(!S.point) S.point = 1;
+}
+
 // Everything that needs the current field goes through here. Half the call
 // sites used to fall back and half read straight through, so an unknown key —
 // a layout that stopped shipping, a corrupted save — took the whole screen
@@ -1568,7 +1664,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","left","right","tally","calls","reps","moves","assessments","walk","codes",
-                  "lineups","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "lineups","matches","matchId","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","bunkerCalls","playerCalls","teamCode","codes"];
 
@@ -1600,6 +1696,7 @@ const SAME = {
   calls:       c => [c.at, c.script].join("|"),
   classes:     c => c.code,
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
+  matches:     m => m.id,
   groups:      g => g.id,
   blasts:      b => [b.at, b.body].join("|"),
   blastTo:     id => id,
@@ -1855,9 +1952,17 @@ window.delCode = i => {
 
 // ---- lineups: who is on this point. Playbook reads this before the roster,
 // so setting a lineup actually changes the five jobs on the field. ----
-function lineupFor(pt){ return (S.lineups || {})[pt] || []; }
+function lineupFor(pt, mid){ return (S.lineups || {})[lineKey(pt, mid)] || []; }
 function playerNamed(n){ return (S.roster || []).find(p => p.name === n); }
 // Slot i on the break: the lineup if one is set for this point, else roster order.
+// The points this match has a five written down for.
+function lineupPoints(){
+  return Object.keys(S.lineups || {})
+    .filter(k => k.startsWith(S.matchId + "|"))
+    .map(k => Number(k.split("|")[1]))
+    .filter(n => n > 0)
+    .sort((a, b) => b - a);
+}
 function fiveFor(pt){
   const line = lineupFor(pt), roster = S.roster || [];
   return [0,1,2,3,4].map(i => (line[i] && playerNamed(line[i])) || (line.length ? null : roster[i]) || null);
@@ -1866,7 +1971,7 @@ window.setSlot = (i, name) => {
   const pt = S.point || 1;
   const line = [...(lineupFor(pt).length ? lineupFor(pt) : ["","","","",""])];
   line[i] = name;
-  S.lineups = {...(S.lineups || {}), [pt]: line};
+  S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line};
   save(S); render();
 };
 window.fillLineup = from => {
@@ -1874,12 +1979,12 @@ window.fillLineup = from => {
   const src = from === "roster" ? (S.roster || []).slice(0,5).map(p => p.name)
                                 : [...lineupFor(from)];
   while(src.length < 5) src.push("");
-  S.lineups = {...(S.lineups || {}), [pt]: src.slice(0,5)};
+  S.lineups = {...(S.lineups || {}), [lineKey(pt)]: src.slice(0,5)};
   save(S); render();
 };
 window.clearLineup = () => {
   const all = {...(S.lineups || {})};
-  delete all[S.point || 1];
+  delete all[lineKey(S.point || 1)];
   S.lineups = all; save(S); render();
 };
 
@@ -2001,7 +2106,7 @@ window.logMove = () => {
   const to = document.getElementById('mvTo').value;
   if(!who || !from || !to) return;
   if(from === to){ alert('A rotation needs two different bunkers.'); return; }
-  S.moves = [{pt:S.point||1, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
+  S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
   save(S); render();
 };
 window.undoMove = i => { S.moves = (S.moves||[]).filter((_,k)=>k!==i); save(S); render(); };
@@ -2012,7 +2117,7 @@ window.saveAssess = () => {
   const score = Number(document.getElementById('asScore').value);
   const note = clean(document.getElementById('asNote').value.trim());
   if(!who) return;
-  S.assessments = [{who, score, note, pt:S.point||1, at:Date.now()}, ...(S.assessments||[])];
+  S.assessments = [{who, score, note, pt:S.point||1, m:S.matchId, at:Date.now()}, ...(S.assessments||[])];
   save(S); render();
 };
 window.undoAssess = i => { S.assessments = (S.assessments||[]).filter((_,k)=>k!==i); save(S); render(); };
@@ -3112,8 +3217,10 @@ function tally(){
   const pt=S.point||1;
   const bl=curLayout().bunkers;
   const mine=fiveFor(S.point||1).filter(Boolean);
-  const outs=(S.tally||[]);
-  const thisPoint=outs.filter(o=>typeof o==="object" && o.pt===pt);
+  // The sheet, the counts and the log are this match's. A season of outs under
+  // a point number that starts again every game is not a point sheet.
+  const outs=rowsHere(S.tally);
+  const thisPoint=outs.filter(o=>o.pt===pt);
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
   const alive=side=>5-thisPoint.filter(o=>o.side===side).length;
 
@@ -3133,33 +3240,47 @@ function tally(){
       <span class="fact"><b>${pt}</b><span>Point</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
-      <span class="fact"><b>${outs.length}</b><span>Logged</span></span>
+      <span class="fact"><b>${outs.length}</b><span>This match</span></span>
     </div>
     <p class="note">Tap a player the moment he goes out.</p>
+    ${(S.right||{}).name && (S.right||{}).name !== matchVs()
+      ? `<div class="fld">
+           <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
+           <b>${esc(S.right.name)}</b> — scouting them does not move the sheet.</p>
+           <button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(S.right.name)}</button>
+         </div>`
+      : ""}
     <div class="who2">
       ${col("us", mine.length?"Your five":"Your five · add them in Team", "var(--red)",
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
-      ${col("them",esc(pitOf("right").name),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+      ${col("them",esc(matchVs()),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
-    <button class="btn btn--block" onclick="nextPoint()">Next point</button>`, curLayout().name)}
+    <div class="btnrow">
+      ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+      <button class="btn grow" onclick="nextPoint()">Next point</button>
+    </div>
+    <button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`,
+    matchLabel(curMatch()))}
 
   ${sec("Log", outs.length?`<div class="assigns">
-      ${outs.slice(0,40).map((o,i)=>{
-        if(typeof o!=="object") return `<div class="assign"><span class="assign__n" style="background:var(--line-lit);font-size:11px">·</span>
-          <span class="assign__body"><span class="assign__job">${esc(o)}</span></span>
-          <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button></div>`;
+      ${outs.slice(0,40).map(o=>{
+        // The log shows this match; Undo and the pickers write to the season.
+        // So the index handed to them is the row's real place in S.tally, not
+        // its place in the filtered view — those stopped being the same number
+        // the moment the sheet became one match's.
+        const i = (S.tally||[]).indexOf(o);
         // Only the point you are on gets the pickers. Each one is 58 options,
         // so rendering them for the whole log costs thousands of nodes a
         // repaint — and you should not be editing an old point by accident.
-        const live = o.pt === pt;
+        const live = !!o.pt && o.pt === pt;
         const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
         const where = [o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
           o.shotAt?`at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
           .filter(Boolean).join(" · ");
         return `<div class="assign" style="flex-wrap:wrap">
-        <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${o.pt}</span>
+        <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":o.side?"var(--red)":"var(--line-lit)"};font-size:11px">${o.pt||"·"}</span>
         <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
-        <span class="assign__who">${o.side==="us"?"your player":esc(pitOf("right").name)}${where?" · "+where:""}</span></span>
+        <span class="assign__who">${o.side==="us"?"your player":o.side?esc(o.vs||matchVs()):"logged before matches"}${where?" · "+where:""}</span></span>
         <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
         ${live?`<div class="who2" style="flex-basis:100%;margin-top:6px">
           ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
@@ -3170,7 +3291,7 @@ function tally(){
       </div>`;}).join("")}
     </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}. Bunkers can be set on the point you are on.</p>`:`<p class="note">Bunkers can be set on the point you are on.</p>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
-    outs.length?outs.length+" total":"")}`;
+    outs.length?outs.length+" on this sheet":"")}`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
 // to. Both feed Bunker stats. The fast path stays one tap — this is after.
@@ -3213,16 +3334,49 @@ window.setOutBunker = (i, field, val) => {
 
 window.markOut = (side,name) => {
   const pt=S.point||1;
-  const already=(S.tally||[]).some(o=>typeof o==="object" && o.pt===pt && o.side===side && o.name===name);
+  const already=(S.tally||[]).some(o=>typeof o==="object" && o.m===S.matchId && o.pt===pt
+                                    && o.side===side && o.name===name);
   if(already) return;
   // Enough context to count honestly afterwards: which break was called, on
   // which field, against whom. Without these an out is a number with no story.
-  S.tally=[{pt,side,name,at:Date.now(),
-            script:S.script, layout:S.layoutKey, vs:pitOf("right").name},...(S.tally||[])];
+  S.tally=[{pt,side,name,at:Date.now(),m:S.matchId,
+            script:S.script, layout:S.layoutKey, vs:matchVs()},...(S.tally||[])];
   save(S); render();
 };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
+// Back a point, because Next point is one tap and a sideline is a sideline.
+// It moves the cursor; it does not throw away what was logged on the point you
+// are leaving, and markOut already refuses to log the same man twice.
+window.backPoint = () => { S.point=Math.max(1,(S.point||1)-1); save(S); render(); };
+
+/* A new match: the opponent across the tape now, and the point back to one.
+ *
+ * Nothing is deleted — the sheet you are walking away from keeps every out,
+ * lineup and grade against its own match, and Matches on More can still read
+ * it. But it is a boundary you cannot undo by tapping again, so a match with
+ * anything in it asks first.
+ */
+window.newMatch = () => {
+  const cur = curMatch();
+  const n = cur ? matchSize(cur.id) : 0;
+  if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
+                 + `${n===1?"entry":"entries"} — the point goes back to 1 for the new one.`)) return;
+  const id = newMatchId();
+  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "—", layout: S.layoutKey},
+               ...(S.matches || [])];
+  S.matchId = id; S.point = 1;
+  save(S); render();
+};
+// An old sheet is worth reading, and worth adding to when you tallied a point
+// late. Opening one puts you on its last point rather than back at one.
+window.openMatch = id => {
+  if(!(S.matches || []).some(m => m.id === id)) return;
+  S.matchId = id;
+  const pts = rowsHere(S.tally).map(o => o.pt);
+  S.point = pts.length ? Math.max(...pts) : 1;
+  save(S); render();
+};
 // kept: older builds called this
 window.addOut = () => window.markOut("us","Player");
 
@@ -3276,8 +3430,8 @@ function selfScout(){
   return {n: rows.length, rank, recent, top, tell};
 }
 window.logCall = () => {
-  S.calls = [{script: S.script, layout: S.layoutKey, pt: S.point || 1,
-              vs: pitOf("right").name, at: Date.now()}, ...(S.calls || [])];
+  S.calls = [{script: S.script, layout: S.layoutKey, pt: S.point || 1, m: S.matchId,
+              vs: matchVs(), at: Date.now()}, ...(S.calls || [])];
   save(S); render();
 };
 window.unlogCall = i => {
@@ -3568,16 +3722,33 @@ function scoutLayers(){
 /* ---- Games: the points you played, and what happened in each ------------ */
 function scoutGames(){
   const R=pitOf("right");
-  const mine=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.vs===R.name);
-  const pts=[...new Set(mine.map(o=>o.pt))].sort((a,b)=>b-a);
-  if(!pts.length) return sec("Games", `<div class="empty">No points logged against ${esc(R.name)} yet.
+  // A sheet at a time. You may have played this team four times, and their
+  // point 3 is four different points — merging them into one list of "Point 3"
+  // was the whole reason a match had to exist.
+  const theirs=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.vs===R.name&&o.pt);
+  const games=[...new Set(theirs.map(o=>o.m))].map(id=>{
+    const m=(S.matches||[]).find(x=>x.id===id);
+    return {id, at:(m&&m.at)||Math.min(...theirs.filter(o=>o.m===id).map(o=>o.at||0)),
+            n:theirs.filter(o=>o.m===id).length};
+  }).sort((a,b)=>b.at-a.at);
+  if(!games.length) return sec("Games", `<div class="empty">No points logged against ${esc(R.name)} yet.
     Tally a point and it shows up here.</div>`, esc(R.name));
+  // The one you are on, if it is against them; otherwise the most recent.
+  const gid=games.some(g=>g.id===S.replayMatch)?S.replayMatch
+           :games.some(g=>g.id===S.matchId)?S.matchId:games[0].id;
+  const mine=theirs.filter(o=>o.m===gid);
+  const pts=[...new Set(mine.map(o=>o.pt))].sort((a,b)=>b-a);
   const pick=pts.includes(S.replayPt)?S.replayPt:pts[0];
   const events=mine.filter(o=>o.pt===pick).sort((a,b)=>(a.at||0)-(b.at||0));
   const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
   const bl=curLayout().bunkers;
   const named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
-  return sec("Games", `<div class="seg" style="flex-wrap:wrap">
+  const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
+  return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
+      ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:'${g.id}',replayPt:null,replayStep:null})">${
+        when(g.at)}${g.id===S.matchId?" · on now":""}</button>`).join("")}
+    </div>`:""}
+    <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
     </div>
     <p class="note">${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.</p>`,
@@ -4018,6 +4189,7 @@ const MORE_GROUPS=[
     ["codes","Codes","Your code words for this event"],
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["Running the day",[
+    ["matches","Matches","Every sheet you have kept"],
     ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
   ["Device",[
@@ -4073,7 +4245,8 @@ function moreBody(k){
   }
   if(k==="lineups"){
     const pt=S.point||1, line=lineupFor(pt), five=fiveFor(pt);
-    const prev=Object.keys(S.lineups||{}).map(Number).filter(n=>n<pt).sort((a,b)=>b-a)[0];
+    const mine=lineupPoints();
+    const prev=mine.filter(n=>n<pt)[0];
     if(!roster.length) return sec("Lineups",
       `<div class="empty">No roster yet. Add your squad under Team, then set who is on the point.</div>`,
       "Point "+pt);
@@ -4095,12 +4268,39 @@ function moreBody(k){
         ${prev?`<button class="btn btn--quiet" onclick="fillLineup(${prev})">Same as point ${prev}</button>`:""}
         ${line.length?`<button class="btn btn--danger" onclick="clearLineup()">Clear</button>`:""}
       </div>`, "Point "+pt)
-    + (Object.keys(S.lineups||{}).length?sec("Earlier points",
-        `<div class="assigns">${Object.keys(S.lineups).map(Number).sort((a,b)=>b-a).map(n=>`<div class="assign">
+    + (mine.length?sec("Earlier points",
+        `<div class="assigns">${mine.map(n=>`<div class="assign">
           <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
           <span class="assign__body"><span class="assign__job">${esc(lineupFor(n).filter(Boolean).join(", ")||"—")}</span>
           <span class="assign__who">${lineupFor(n).filter(Boolean).length} on the point</span></span>
-        </div>`).join("")}</div>`, "Logged"):"");
+        </div>`).join("")}</div>`, matchLabel(curMatch())):"");
+  }
+  if(k==="matches"){
+    const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
+    return sec("This match", `<div class="panel">
+        <h3 class="panel__title">${esc(matchVs())}</h3>
+        <p class="note">${esc(new Date((curMatch()||{}).at || Date.now())
+            .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
+                                 hour:"numeric", minute:"2-digit"}))} ·
+          point ${S.point||1} · ${matchSize(S.matchId)} logged</p>
+      </div>
+      <button class="btn btn--block" onclick="newMatch()">New match vs ${esc((S.right||{}).name||"—")}</button>
+      <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
+        have kept is below, and opening one puts you back on its last point so you can still
+        tally a point you logged late.</p>`, matchLabel(curMatch()))
+    + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
+        const n=matchSize(m.id), on=m.id===S.matchId;
+        return `<div class="assign">
+          <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
+          <span class="assign__body"><span class="assign__job">${esc(m.vs||"—")}${on?" · on now":""}</span>
+          <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
+            day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
+          ${on?"":`<button class="btn btn--quiet" onclick="openMatch('${m.id}')">Open</button>`}
+        </div>`;
+      }).join("")}</div>`
+      :`<div class="empty">This is your first sheet. Tap New match when the next game starts and
+        this becomes the list of every one you have kept.</div>`,
+      all.length+(all.length===1?" match":" matches"));
   }
   if(k==="team"){
     const list=curLayout().bunkers, calls=bunkerCalls();
@@ -4175,6 +4375,9 @@ function moreBody(k){
   if(k==="movement"){
     const list=curLayout().bunkers;
     const mv=layoutMoves();
+    // The list prints a point number against each rotation, so it has to be one
+    // match's — point 4 of today and point 4 of March are not the same point.
+    const mvHere=rowsHere(mv);
     const opt=b=>`<option value="${esc(b.id)}">${esc(callOf(b))} · ${esc(b.id)}</option>`;
     const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
                            :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
@@ -4188,8 +4391,8 @@ function moreBody(k){
     + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true})}</div>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
                  :`<div class="empty">No rotations logged on this layout yet.</div>`}`, layoutName)
-    + (mv.length?sec("Rotations", `<div class="assigns">
-        ${mv.slice(0,30).map((m,i)=>{
+    + (mvHere.length?sec("Rotations", `<div class="assigns">
+        ${mvHere.slice(0,30).map(m=>{
           const a=list.find(b=>b.id===m.from), b2=list.find(b=>b.id===m.to);
           return `<div class="assign">
             <span class="assign__n" style="background:var(--ok);color:#06210f;font-size:11px">${m.pt}</span>
@@ -4197,7 +4400,7 @@ function moreBody(k){
             <span class="assign__who">${esc(a?callOf(a):m.from)} → ${esc(b2?callOf(b2):m.to)}</span></span>
             <button class="btn btn--danger" onclick="undoMove(${(S.moves||[]).indexOf(m)})">Undo</button>
           </div>`;
-        }).join("")}</div>`, mv.length+" logged"):"");
+        }).join("")}</div>`, matchLabel(curMatch())):"");
   }
   if(k==="stats"){
     const list=curLayout().bunkers, t=bunkerTraffic();
@@ -4222,6 +4425,7 @@ function moreBody(k){
   }
   if(k==="assess"){
     const all=S.assessments||[];
+    const here=rowsHere(all);
     const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
                            :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
     const names=[...new Set(all.map(a=>a.who))];
@@ -4235,14 +4439,16 @@ function moreBody(k){
     + (names.length?sec("Averages", `<div class="facts">
         ${names.map(n=>`<span class="fact"><b>${avg(n)}</b><span>${esc(n)}</span></span>`).join("")}
       </div>`, names.length+" graded"):"")
-    + (all.length?sec("Grades", `<div class="assigns">
-        ${all.slice(0,30).map((a,i)=>`<div class="assign">
+    // Averages are a player's whole season; the list underneath prints a point
+    // number, so it is this match's.
+    + (here.length?sec("Grades", `<div class="assigns">
+        ${here.slice(0,30).map(a=>`<div class="assign">
           <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${a.score}</span>
           <span class="assign__body"><span class="assign__job">${esc(a.who)}</span>
           <span class="assign__who">Point ${a.pt}${a.note?" · "+esc(a.note):""}</span></span>
-          <button class="btn btn--danger" onclick="undoAssess(${i})">Undo</button>
-        </div>`).join("")}</div>`, all.length+" total")
-      : sec("Grades", `<div class="empty">No grades yet.</div>`));
+          <button class="btn btn--danger" onclick="undoAssess(${(S.assessments||[]).indexOf(a)})">Undo</button>
+        </div>`).join("")}</div>`, matchLabel(curMatch()))
+      : sec("Grades", `<div class="empty">No grades on this sheet yet.</div>`));
   }
   if(k==="codes"){
     const codes=S.codes||[];
