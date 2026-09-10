@@ -2147,6 +2147,91 @@ const ROSTER = [
     return true;
   });
 
+  /* ------------------------------------------------------------- the score */
+  // The app tallied who went out and never recorded who won the point, so the
+  // one number a coach lives by was not in it.
+  G("The score");
+  await seed({ tab: "tally", right: { name: "Rejects" }, left: {} });
+  await ev(() => { window.confirm = () => true; window.newMatch(); });
+
+  check("a fresh sheet is nil–nil", await ev(() => {
+    const s = matchScore();
+    return s.us === 0 && s.them === 0 && (S.results || []).length === 0;
+  }));
+  check("one tap takes the point and moves on", await ev(() => {
+    const pt = S.point;
+    window.endPoint("us");
+    const s = matchScore();
+    return s.us === 1 && s.them === 0 && S.point === pt + 1;
+  }));
+  check("the score shows on the sheet and in the header", await ev(() => {
+    window.set({ tab: "tally" });
+    const t = document.getElementById("root").textContent;
+    // Not just present in the DOM: the context line ellipsizes on a phone and
+    // swallowed the score whole when it lived there. It has to be a box with
+    // width, inside the header, that is not clipped by its parent.
+    const chip = document.querySelector(".score-chip");
+    if(!chip) return false;
+    const c = chip.getBoundingClientRect(), h = document.querySelector(".hdr").getBoundingClientRect();
+    return /1\s*–\s*0/.test(t) && chip.textContent.replace(/\s/g, "") === "1–0"
+        && c.width > 20 && c.right <= h.right + 1 && c.left >= h.left - 1;
+  }));
+  check("Ahead, Even and Must-score follow the score", await ev(() => {
+    const ahead = S.matchState === "Ahead";
+    window.endPoint("them");
+    const even = S.matchState === "Even";
+    window.endPoint("them");
+    return ahead && even && S.matchState === "Must-score" && derivedState() === "Must-score";
+  }));
+  check("a coach can still say otherwise", await ev(() => {
+    window.set({ matchState: "Ahead" });
+    return S.matchState === "Ahead" && derivedState() === "Must-score";
+  }));
+
+  // Back a point has to take the result with it, or it becomes a way to score
+  // the same point twice.
+  check("going back a point unscores it", await ev(() => {
+    const before = matchScore();
+    window.backPoint();
+    const after = matchScore();
+    return before.us + before.them === 3 && after.us + after.them === 2
+        && after.them === 1 && S.matchState === "Even";
+  }));
+  check("and scoring it again does not double it", await ev(() => {
+    window.endPoint("us");
+    window.backPoint();
+    window.endPoint("us");
+    const s = matchScore();
+    return s.us + s.them === 3 && s.us === 2 && s.them === 1;
+  }));
+  check("scoring the same point twice replaces, never adds", await ev(() => {
+    const pt = S.point;
+    window.set({ point: pt - 1 });
+    window.endPoint("them");          // change the answer on a point already scored
+    const s = matchScore();
+    return s.us + s.them === 3 && s.us === 1 && s.them === 2;
+  }));
+
+  check("each sheet keeps its own score", await ev(() => {
+    const first = S.matchId, was = scoreOf(first);
+    window.newMatch();
+    const fresh = matchScore();
+    return was.us + was.them === 3 && fresh.us === 0 && fresh.them === 0
+        && scoreOf(first).us + scoreOf(first).them === 3;
+  }));
+  check("Matches shows the score against the sheet it belongs to", await ev(() => {
+    window.endPoint("us");
+    window.set({ tab: "more", more: "matches" });
+    const t = document.getElementById("root").textContent;
+    return /1–0/.test(t) && /1–2/.test(t);
+  }));
+  check("a sheet nobody has scored shows no score at all", await ev(() => {
+    window.newMatch();
+    const t = document.getElementById("root").textContent;
+    const sc = matchScore();
+    return sc.us === 0 && sc.them === 0 && !/0–0/.test(t);
+  }));
+
   /* --------------------------------------------------- their five, on the field */
   // Pick a team and you get whatever roster is known; place each man where you
   // have seen him set up, and he is drawn on the field.

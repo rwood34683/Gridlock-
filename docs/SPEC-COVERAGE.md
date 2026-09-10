@@ -94,6 +94,15 @@ change what he is about to call.
 alive, how he went out, who got him, shot-at bunker and moved-to bunker, feeding
 Bunker stats.
 
+**The score.** A point has a winner, and it is one tap: We won it or They won
+it. The score is the count of them — in the header beside the Staff chip where
+nothing crops it, on the point sheet, and against each sheet in Matches. It also
+sets Ahead / Even / Must-score, which ranks the counter-picker and used to be a
+toggle a coach had to remember to flip; being behind is not something you should
+have to tell the app twice, and he can still say otherwise when the clock
+disagrees. Back a point takes its result with it, so going back is never a way
+to score the same point twice.
+
 A point number only means something inside a game, so there is a match: who it
 is against, when it started, and every out, lineup, rotation, grade and logged
 call stamped with it. Next point and Back a point, because Next point is one tap

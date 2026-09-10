@@ -103,6 +103,15 @@ h1,h2,h3,p{margin:0}
   font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:4px 10px;
 }
+/* The score, where the header cannot crop it. Tabular figures so it does not
+   twitch as the numbers change between points. */
+.score-chip{
+  display:inline-flex;align-items:center;gap:3px;flex:none;
+  padding:4px 10px;border:1px solid var(--line-lit);border-radius:var(--r-pill);
+  background:var(--panel);font-size:var(--t-sm);font-weight:800;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;
+}
+.score-chip i{color:var(--dim);font-style:normal;font-weight:600}
 .who-chip.staff{color:var(--ink);border-color:var(--accent);background:rgba(173,21,21,.18)}
 
 /* live context: what field and what call, always on screen */
@@ -1169,7 +1178,7 @@ const defaultState = () => ({
   // A match is what makes a point number mean anything. Without one, "point 3"
   // is point 3 of every game you have ever coached, and the sheet you are
   // looking at is nine months of paint.
-  matches:[], matchId:"",
+  matches:[], matchId:"", results:[],
   tips:{},
   classes:[], responses:[],
   groups:[
@@ -1364,6 +1373,32 @@ function adoptPitAsOpponent(){
   if(!m || m.vs || !pitNamed("right") || matchSize(m.id)) return;
   S.matches = S.matches.map(x => x.id === m.id ? {...x, vs: S.right.name} : x);
 }
+/* The score.
+ *
+ * The app tallied who went out and never recorded who won the point, so the one
+ * number a coach lives by was not in it. A point in Xball has a winner — it is
+ * not a matter of counting bodies, because a point can end on the hang, on a
+ * penalty or on time — so it is recorded when he says so, one tap, and the
+ * score is the count of them.
+ *
+ * It also drives Ahead / Even / Must-score, which ranks the counter-picker and
+ * was a toggle a coach had to remember to flip. Being behind is not a thing you
+ * should have to tell the app twice.
+ */
+function scoreOf(mid){
+  const rows = (S.results || []).filter(r => r && r.m === mid);
+  return {us: rows.filter(r => r.won === "us").length,
+          them: rows.filter(r => r.won === "them").length};
+}
+function matchScore(){ return scoreOf(S.matchId); }
+function derivedState(){
+  const s = matchScore();
+  return s.us > s.them ? "Ahead" : s.us < s.them ? "Must-score" : "Even";
+}
+function resultFor(pt){
+  return (S.results || []).find(r => r && r.m === S.matchId && r.pt === pt) || null;
+}
+
 // This match's rows, out of a season of them.
 const rowsHere = list => (list || []).filter(o => o && typeof o === "object" && o.m === S.matchId);
 
@@ -1784,7 +1819,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","left","right","tally","calls","reps","moves","assessments","walk","codes",
-                  "lineups","matches","matchId","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","bunkerCalls","playerCalls","teamCode","codes"];
 
@@ -1817,6 +1852,7 @@ const SAME = {
   classes:     c => c.code,
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
   matches:     m => m.id,
+  results:     r => [r.m, r.pt].join("|"),
   groups:      g => g.id,
   blasts:      b => [b.at, b.body].join("|"),
   blastTo:     id => id,
@@ -3448,6 +3484,7 @@ function paintField(){
    ============================================================ */
 function tally(){
   const pt=S.point||1;
+  const sc=matchScore(), was=resultFor(pt);
   const bl=curLayout().bunkers;
   const mine=fiveFor(S.point||1).filter(Boolean);
   // The sheet, the counts and the log are this match's. A season of outs under
@@ -3470,10 +3507,12 @@ function tally(){
   return `${tip("tally","Tap a player the moment he goes out. Next point clears the sheet and keeps the log.")}
 
   ${sec("Point sheet", `<div class="facts">
-      <span class="fact"><b>${pt}</b><span>Point</span></span>
+      <span class="fact" style="flex:1 0 100%;text-align:center">
+        <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
+        <span>${esc(matchVs()||"Them")} · point ${pt}</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
-      <span class="fact"><b>${outs.length}</b><span>This match</span></span>
+      <span class="fact"><b>${sc.us+sc.them}</b><span>Points played</span></span>
     </div>
     <p class="note">Tap a player the moment he goes out.</p>
     ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
@@ -3492,9 +3531,15 @@ function tally(){
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
       ${col("them",esc(matchVs()||"Them"),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
+    <p class="note">Who won it? That is the whole score, and it sets Ahead / Even / Must-score
+      on the counter-picker for you.</p>
     <div class="btnrow">
-      ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
-      <button class="btn grow" onclick="nextPoint()">Next point</button>
+      <button class="btn grow btn--lg" onclick="endPoint('us')">We won it</button>
+      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">They won it</button>
+    </div>
+    <div class="btnrow">
+      ${pt > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+      <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
     </div>
     <button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`,
     matchLabel(curMatch()))}
@@ -3582,10 +3627,31 @@ window.markOut = (side,name) => {
 };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
+/* Who won it, and on to the next. One tap, because it happens between every
+ * point of a long day. Recording it again on the same point replaces the old
+ * answer rather than scoring it twice. */
+window.endPoint = won => {
+  const pt = S.point || 1;
+  S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
+               {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now()}];
+  // The score is the read. Ahead / Even / Must-score follows it rather than
+  // waiting to be told.
+  S.matchState = derivedState();
+  S.point = pt + 1;
+  save(S); render();
+};
 // Back a point, because Next point is one tap and a sideline is a sideline.
 // It moves the cursor; it does not throw away what was logged on the point you
 // are leaving, and markOut already refuses to log the same man twice.
-window.backPoint = () => { S.point=Math.max(1,(S.point||1)-1); save(S); render(); };
+window.backPoint = () => {
+  const to = Math.max(1, (S.point || 1) - 1);
+  // The result goes with it. Otherwise the score still counts a point he is
+  // about to play again, and Back a point silently becomes a way to inflate it.
+  S.results = (S.results || []).filter(r => !(r.m === S.matchId && r.pt === to));
+  S.point = to;
+  S.matchState = derivedState();
+  save(S); render();
+};
 
 /* A new match: the opponent across the tape now, and the point back to one.
  *
@@ -4061,7 +4127,11 @@ function scoutCounter(){
   return sec("Counter-picker", `<div class="seg">
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
-    <p class="lede">If you are <b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    ${(sc => sc.us+sc.them ? `<p class="note">Set from the score — <b>${sc.us}–${sc.them}</b> on this
+      sheet. Tap another if the clock says different.</p>` : `<p class="note">Score a point on Tally and
+      this sets itself.</p>`)(matchScore())}
+    <p class="lede">If you are <b style="color:var(--ink)">${
+      esc(pitNamed("left") ? pitOf("left").name : "your team")}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
     ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
       return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
         <b>${esc((BREAKS[f[0][0]]||{}).name||f[0][0])}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
@@ -4575,7 +4645,8 @@ function moreBody(k){
     return sec("This match", `<div class="panel">
         <h3 class="panel__title"${matchVs()?"":` style="color:var(--dim)"`}>${
           esc(matchVs()||"No opponent yet")}</h3>
-        <p class="note">${esc(new Date((curMatch()||{}).at || Date.now())
+        <p class="note">${(sc => sc.us+sc.them
+            ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
           point ${S.point||1} · ${matchSize(S.matchId)} logged</p>
@@ -4589,7 +4660,8 @@ function moreBody(k){
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
-          <span class="assign__body"><span class="assign__job">${esc(m.vs||"No opponent")}${on?" · on now":""}</span>
+          <span class="assign__body"><span class="assign__job">${esc(m.vs||"No opponent")}${
+            (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
           ${on?"":`<button class="btn btn--quiet" onclick="openMatch('${m.id}')">Open</button>`}
@@ -4887,6 +4959,13 @@ function shell(){
   </div>`:"";
 
   const crumb = S.tab==="more" && S.more ? ` <span class="ctx__sep">·</span> <b>${MORE_TITLES[S.more]||""}</b>` : "";
+  /* The score rides in the header once a point has been won, so it is never a
+   * tab away from wherever the coach is standing. It sits in the top row beside
+   * the Staff chip and not on the context line underneath: that line carries the
+   * event and the call, ellipsizes on a phone, and swallowed the score whole. */
+  const sc = matchScore();
+  const line = sc.us + sc.them
+    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b></span>` : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
@@ -4895,6 +4974,7 @@ function shell(){
       <div class="hdr__top">
         <div class="brand">GRIDLOCK<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
+        ${line}
         <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
       </div>
       ${Object.keys(LAYOUTS).length>1

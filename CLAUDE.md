@@ -150,18 +150,27 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     entered as CK. The coach confirmed the list runs Atlanta Jungle Cats to
     TonTon Arsenal with nothing below, so it is the whole entry and the board
     says so rather than hedging about a list it has all of.
-17. Rosters for the rest of the pro teams. They cannot be fetched from here —
+17. ~~The score.~~ Done — the app tallied who went out and never recorded who
+    won the point, so the one number a coach lives by was not in it. A point has
+    a winner now: one tap, We won it or They won it, and the score is the count.
+    It rides in the header beside the Staff chip, sits on the point sheet, and
+    shows against each sheet in Matches. Ahead / Even / Must-score follows it
+    instead of being a toggle he has to remember to flip, and he can still say
+    otherwise. Back a point takes its result with it, or Back becomes a way to
+    score the same point twice.
+18. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
-18. Bring iOS SwiftUI up to web parity, then Android Compose.
+19. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
 
 A **Match** is `{id, at, vs, layout}` and every row logged on a sideline carries
-its id in `m`. Point numbers are per match and start at one. Lineups are keyed
+its id in `m`. A **result** is `{m, pt, won}` — one per point, and the score is
+the count of them. Point numbers are per match and start at one. Lineups are keyed
 `<matchId>|<point>` — never by point alone.
 
 ## Do not
