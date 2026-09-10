@@ -183,6 +183,15 @@ No invented official scores — a team nobody has scored reads as a dash.
 
 ## Differs, on purpose
 
+**Where a season lives.** localStorage inside a web view is not a safe place to
+keep a coach's year: iOS may clear it when the device is short of space, and it
+is not in the device backup. So every save also writes a durable copy to the
+phone's own storage through `@capacitor/preferences`, and a launch that finds
+nothing locally reads it back and says what it recovered. It is a mirror rather
+than a move, because `save()` is synchronous and called from every handler in
+the app. In a browser there is no such store and the app says so rather than
+promising a safety net it does not have.
+
 **No server.** The spec assumes Overskill's sign-in, database, email and push.
 There is none of that here and the app makes no network requests at all. Staff
 sign-in is local, salted and hashed; classes live on the phone that made them;

@@ -27,7 +27,48 @@
     return Promise.resolve();
   };
 
+  /* The durable copy of the season.
+   *
+   * web/index.html keeps working in localStorage — save() is synchronous and
+   * called from every handler — and hands the same text here on every save.
+   * This mirrors it into app storage (UserDefaults on iOS, SharedPreferences
+   * on Android), which the OS does not clear to reclaim space and which rides
+   * along in the device backup. On a launch where localStorage came back empty,
+   * the copy goes back the other way.
+   *
+   * Writes are debounced: a coach dragging a path fires save() on every frame,
+   * and a plugin round trip per frame would be felt. Half a second of lag on a
+   * backup copy costs nothing; the working store is already written.
+   */
+  var KEY = "gridlock.coach.v2";
+  var pending = null, timer = null;
+
+  function flush() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (pending == null || !P.Preferences) return Promise.resolve();
+    var text = pending; pending = null;
+    return P.Preferences.set({ key: KEY, value: text }).catch(function () {});
+  }
+
+  // Whether there is anywhere durable to keep it. Nexus reads this rather than
+  // promising a safety net a browser does not have.
+  window.gridlockDurable = !!(native && P.Preferences);
+
+  window.gridlockKeep = function (text) {
+    if (!window.gridlockDurable) return;         // a browser has nowhere durable
+    pending = text;
+    if (!timer) timer = setTimeout(flush, 500);
+  };
+
   if (!native) return;
+
+  if (P.Preferences) {
+    P.Preferences.get({ key: KEY }).then(function (r) {
+      // gridlockRestore decides: it only takes this if the launch found no
+      // usable local state, which is the whole point of keeping it.
+      if (r && r.value && window.gridlockRestore) window.gridlockRestore(r.value);
+    }).catch(function () {});
+  }
 
   /* Dark stadium status bar. */
   if (P.StatusBar) {
@@ -53,6 +94,13 @@
   if (P.App) {
     P.App.addListener("appUrlOpen", function (event) {
       openJoinCode(codeFromUrl(event && event.url));
+    });
+
+    /* Backgrounding is the last moment anything here is guaranteed to run, and
+       the phone may not come back. Write the durable copy now rather than
+       waiting out the debounce. */
+    P.App.addListener("appStateChange", function (st) {
+      if (st && st.isActive === false) flush();
     });
 
     /* Android hardware back walks the app instead of closing it. */

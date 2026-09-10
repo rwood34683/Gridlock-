@@ -120,14 +120,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     it. There is always exactly one match in play, so nothing has to handle
     "no match". A save from before this is adopted whole into one match rather
     than orphaned. More → Matches keeps every sheet.
-13. Storage that survives. `@capacitor/preferences` is a dependency and is
-    used nowhere: everything is in `localStorage` inside a WKWebView, which the
-    OS may clear and which is not in the device backup. `save()` has no
-    try/catch either, while `load()` does.
+13. ~~Storage that survives.~~ Done — everything was in `localStorage` inside a
+    web view, which iOS may clear when the device is short of space and which is
+    not in the device backup, while `@capacitor/preferences` sat in
+    `package.json` with nothing calling it. Every save now also writes a durable
+    copy to the phone's own storage, and a launch that finds nothing locally
+    reads it back and says so. It is a mirror, not a move: `save()` is
+    synchronous and called from every handler, so localStorage stays the working
+    store. Restoring is timid on purpose — only when there is no usable local
+    state at all. `save()` is wrapped too: a refused write used to escape
+    through `set()` before `render()` and freeze the screen with nothing said.
 14. Keep the screen awake on a sideline.
 15. Bring iOS SwiftUI up to web parity, then Android Compose.
 
-## Data (persist in localStorage for web; SwiftData/Room later)
+## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
 
@@ -153,6 +159,10 @@ its id in `m`. Point numbers are per match and start at one. Lineups are keyed
 - Open the tutorial on launch.
 - Log a row on a sideline without stamping `m: S.matchId`, or key anything by
   point number alone. Point 3 exists in every match ever played.
+- Let a write to storage throw out of `save()`. It escapes through `set()`
+  before `render()` and the screen freezes mid-tap saying nothing.
+- Tell the browser build it has a durable second copy. It does not — only the
+  phone app does. `window.gridlockDurable` says which you are on.
 - Trust a passing suite as proof a screen is right. The tablet rail measured as
   a rail and every check was green while each button was a 146 px slab with its
   label under the marker, because the media block sat above the base rule it

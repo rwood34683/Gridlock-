@@ -1193,14 +1193,81 @@ const defaultState = () => ({
   newClassTitle:"Friday clinic"
 });
 
+/* Where a season actually lives.
+ *
+ * localStorage inside a WKWebView is not a safe place to keep a coach's year.
+ * iOS may clear web-view storage when the device is short of space, and it is
+ * not in the device backup the way app storage is — so a phone that ran low, or
+ * a phone restored from a backup, comes back with an empty app and no warning.
+ * A full season measures about 400 KB, which fits in app storage with room to
+ * spare, and `@capacitor/preferences` has been a dependency the whole time
+ * without anything calling it.
+ *
+ * It is a mirror, not a move. localStorage stays the working store because
+ * `save()` is synchronous and called from every handler in the app, and the
+ * plugin is async; making the whole app await a write to change a toggle would
+ * be a rewrite with a lot of new ways to go wrong. So every save also writes a
+ * durable copy, and on a launch where localStorage has nothing, the durable
+ * copy is read back.
+ *
+ * Restoring is deliberately timid: it only happens when there is no usable
+ * local state at all, which is exactly the eviction and restored-from-backup
+ * case. If localStorage has something, it is the truth and nothing overwrites
+ * it. `web/native.js` owns the plugin end and no-ops in a browser.
+ */
+let _hadLocal = false;      // was there a real save to come back to?
+let _storeFail = "";        // ...and can we still write one?
 function load(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(!raw) return defaultState();
-    return Object.assign(defaultState(), JSON.parse(raw));
-  }catch(e){return defaultState()}
+    const parsed = JSON.parse(raw);
+    _hadLocal = true;
+    return Object.assign(defaultState(), parsed);
+  }catch(e){return defaultState()}   // unreadable counts as nothing to come back to
 }
-function save(s){localStorage.setItem(STORE_KEY, JSON.stringify(s))}
+function save(s){
+  s.savedAt = Date.now();
+  const text = JSON.stringify(s);
+  // A throw here used to escape through set() before render() ever ran, so the
+  // screen froze mid-tap with nothing said. Storage being full or switched off
+  // is a thing the coach has to be told, not a thing the app dies of.
+  try{ localStorage.setItem(STORE_KEY, text); _storeFail = ""; }
+  catch(e){ _storeFail = (e && e.name === "QuotaExceededError")
+    ? "This phone's storage for the app is full."
+    : "This phone is not letting the app save."; }
+  if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
+}
+/* Handed the durable copy by native.js once the plugin has answered. Takes it
+ * only when this launch found nothing locally — see above. */
+window.gridlockRestore = text => {
+  if(_hadLocal || !text) return false;
+  let d = null;
+  try{ d = JSON.parse(text); }catch(e){ return false; }
+  if(!d || typeof d !== "object" || !d.savedAt) return false;
+  const held = {tab:S.tab, more:S.more, scoutTab:S.scoutTab};
+  Object.keys(d).forEach(k => { S[k] = d[k]; });
+  Object.assign(S, held);
+  if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  _hadLocal = true;
+  S.restored = new Date(d.savedAt).toLocaleString([], {month:"short", day:"numeric",
+                                                      hour:"numeric", minute:"2-digit"});
+  dropPathCache();
+  save(S); render();
+  return true;
+};
+// Said once, at the top of the screen, because both of these mean the coach
+// cannot trust what he is looking at to still be there later.
+function storeWarning(){
+  if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
+    <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
+    Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
+  if(S.restored) return `<div class="tip">
+    <span>This phone had lost its saved season, so it was put back from the copy the app keeps —
+    everything up to <b>${esc(S.restored)}</b>.</span>
+    <button onclick="set({restored:null})">OK</button></div>`;
+  return "";
+}
 let S = load();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
@@ -4498,6 +4565,11 @@ function moreBody(k){
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.</span></div>
+        <div class="kv__row"><span class="kv__k">Kept safe</span><span class="kv__v">${
+          window.gridlockDurable
+            ? `The app keeps a second copy in the phone's own storage, which the system does not clear to reclaim space and which rides along in your device backup. It is a safety net on this phone, not a backup you own — Save a copy below is that.`
+            : `In a browser there is only one copy, in this site's storage, and clearing your browsing data clears it. On the phone app there is a second copy the system does not touch. Either way, Save a copy below is the one you own.`
+          }${S.savedAt?` Last saved ${esc(new Date(S.savedAt).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}))}.`:""}</span></div>
       </div>
     </div>
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
@@ -4594,7 +4666,7 @@ function shell(){
         <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(BREAKS[S.script].name)}${crumb}</span>
       </div>`}
     </header>
-    <main class="main">${tut}${page}
+    <main class="main">${storeWarning()}${tut}${page}
       <p class="note">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>

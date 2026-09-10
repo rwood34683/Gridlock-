@@ -195,6 +195,13 @@ the bottom of the screen and stand in a rail down the left, with the header
 beside them and the field given the room. Below that the bottom bar is right and
 stays.
 
+On the phone app the season is kept twice: in the web view where the app works,
+and in the phone's own storage, which the system does not clear to reclaim space
+and which rides along in the device backup. A launch that finds the first one
+gone reads the second back and says what it recovered. In a browser there is
+only the one copy, and the app says so rather than promising otherwise — Save a
+copy is the backup you own either way.
+
 The staff password is salted and hashed with the platform's own crypto and only
 the hash is stored. An account created before that is upgraded on the next
 correct sign-in rather than locking the coach out.

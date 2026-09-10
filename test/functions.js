@@ -2454,6 +2454,118 @@ const ROSTER = [
     return straight.join("|") === curved.join("|");
   }));
 
+  /* ------------------------------------------------------- durable storage */
+  // localStorage inside a web view is not a safe place to keep a season, so
+  // every save is mirrored into app storage through @capacitor/preferences.
+  // A browser has no such plugin, so this needs a real native context: a stub
+  // Capacitor whose Preferences live OUTSIDE the page, the way the real one
+  // does, so clearing localStorage does not clear it too.
+  G("Durable storage");
+  {
+    const kept = {};                       // stands in for UserDefaults
+    const ctxN = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const pg = await ctxN.newPage();
+    pg.on("pageerror", e => errors.push("native pageerror: " + e.message));
+    await pg.exposeFunction("__prefsGet", k => (k in kept ? kept[k] : null));
+    await pg.exposeFunction("__prefsSet", (k, v) => { kept[k] = v; return null; });
+    await pg.addInitScript(() => {
+      const done = () => Promise.resolve();
+      window.Capacitor = {
+        isNativePlatform: () => true,
+        getPlatform: () => "ios",
+        Plugins: {
+          Preferences: {
+            get: ({key}) => window.__prefsGet(key).then(value => ({value})),
+            set: ({key, value}) => window.__prefsSet(key, value),
+          },
+          App: { addListener: () => done(), exitApp: () => done() },
+          StatusBar: { setStyle: done, setBackgroundColor: done },
+          Share: { share: done },
+        },
+      };
+    });
+    const evN = fn => pg.evaluate(fn);
+    await pg.goto(URL, { waitUntil: "networkidle" });
+    await pg.evaluate(() => localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+      entered: true, role: "staff", tab: "tally", point: 5,
+      roster: [{num:"7", name:"Rex"}], right: {name:"Rejects"},
+      tips: {pb:1, tally:1, scout:1, sl:1, class:1, lg:1},
+    })));
+    await pg.reload({ waitUntil: "networkidle" });
+    await pg.waitForTimeout(200);
+
+    check("on device, a save is mirrored out of the web view", await (async () => {
+      await evN(() => window.set({ point: 9 }));
+      await pg.waitForTimeout(800);                       // past the write debounce
+      const copy = kept["gridlock.coach.v2"];
+      return !!copy && JSON.parse(copy).point === 9;
+    })());
+    check("the copy carries when it was written", await (async () =>
+      !!JSON.parse(kept["gridlock.coach.v2"]).savedAt)());
+
+    // The failure this exists for: the OS reclaims space and the web view comes
+    // back empty, while app storage still has the season.
+    check("a phone that lost its web-view storage gets the season back", await (async () => {
+      await pg.evaluate(() => localStorage.clear());
+      await pg.reload({ waitUntil: "networkidle" });
+      await pg.waitForTimeout(400);
+      return await evN(() => S.point === 9 && (S.roster || []).length === 1
+                          && S.roster[0].name === "Rex");
+    })());
+    check("and is told, rather than finding out later", await evN(() =>
+      /lost its saved season/i.test(document.getElementById("root").textContent)));
+    check("the restore is written back to the web view too", await evN(() =>
+      JSON.parse(localStorage.getItem("gridlock.coach.v2")).point === 9));
+
+    // Timid on purpose: local state is the truth whenever there is any.
+    check("a stale copy never overwrites what is on the phone", await (async () => {
+      kept["gridlock.coach.v2"] = JSON.stringify({ entered: true, point: 999, savedAt: 1 });
+      await pg.evaluate(() => localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+        entered: true, tab: "tally", point: 4, savedAt: Date.now(),
+        tips: {pb:1, tally:1, scout:1, sl:1, class:1, lg:1},
+      })));
+      await pg.reload({ waitUntil: "networkidle" });
+      await pg.waitForTimeout(400);
+      return await evN(() => S.point === 4 && !S.restored);
+    })());
+
+    // A save that throws used to escape through set() before render() ran, so
+    // the screen froze mid-tap and said nothing.
+    check("on device, Nexus says there is a second copy", await (async () => {
+      await evN(() => window.set({ tab: "more", more: "nexus" }));
+      return await evN(() => window.gridlockDurable === true
+        && /second copy in the phone's own storage/.test(document.getElementById("root").textContent));
+    })());
+
+    check("storage refusing a write does not freeze the screen", await evN(() => {
+      const real = Storage.prototype.setItem;
+      Storage.prototype.setItem = () => { const e = new Error("full"); e.name = "QuotaExceededError"; throw e; };
+      let threw = false;
+      try { window.set({ tab: "scout" }); } catch(e){ threw = true; }
+      Storage.prototype.setItem = real;
+      return !threw && S.tab === "scout"
+          && document.getElementById("root").textContent.includes("Scout");
+    }));
+    check("it says so instead", await evN(() => {
+      const real = Storage.prototype.setItem;
+      Storage.prototype.setItem = () => { const e = new Error("full"); e.name = "QuotaExceededError"; throw e; };
+      window.set({ tab: "tally" });
+      const said = /storage for the app is full/i.test(document.getElementById("root").textContent);
+      Storage.prototype.setItem = real;
+      window.set({ tab: "tally" });
+      const gone = !/storage for the app is full/i.test(document.getElementById("root").textContent);
+      return said && gone;                        // and stops saying it once it works
+    }));
+    await ctxN.close();
+  }
+
+  check("in a browser it does not promise one", await ev(() => {
+    window.set({ tab: "more", more: "nexus" });
+    const t = document.getElementById("root").textContent;
+    return !window.gridlockDurable && /clearing your browsing data clears it/.test(t)
+        && !/second copy in the phone's own storage/.test(t);
+  }));
+
   /* ------------------------------------------------------------ house rules */
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
