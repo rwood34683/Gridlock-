@@ -49,6 +49,14 @@ picks the bunker that actually sits there. Add a field and its plants come out
 of the same rule. The suite checks that the plants in the app are the ones the
 rule produces, so a hand edit shows up as a failure rather than on a sideline.
 
+**The bunker key.** More → Codes carries the fifteen-entry key the NXL prints
+in the corner of every one of these maps, each code with the bunker it names and
+how many are on the field you are on. All three fields carry the same fourteen;
+the fifteenth, TCK / Tall Cake, is in the printed key and on none of them, and
+the app says so rather than quietly leaving a code out. The suite checks that
+every code on every field is in the key and that one code never covers two
+different bunkers.
+
 **Tally.** Point number, your five and theirs, out or alive, how he went out,
 who got him, shot-at bunker and moved-to bunker, feeding Bunker stats.
 

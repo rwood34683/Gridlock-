@@ -616,6 +616,22 @@ const BREAK_PLANTS = {
   }
 };
 
+/* The bunker key, exactly as the NXL prints it in the corner of every one of
+ * these maps — same fifteen entries on Lone Star, Tampa Bay and the Midwest
+ * Open, in this order. Nothing here is a guess: it is read off the legend.
+ *
+ * TCK is in the key and on none of the three fields. That is the key doing its
+ * job — it lists the pack, not the layout — and the app says so rather than
+ * quietly leaving a code out. */
+const BUNKER_CODE = [
+  ["GP", "Giant Plus"],   ["MT", "Maya Temple"], ["C",  "Cylinder"],
+  ["Tr", "Tree"],         ["GB", "Giant Brick"], ["GW", "Giant Wing"],
+  ["MD", "Medium Dorito"],["Ck", "Cake"],        ["SB", "Snake Beam"],
+  ["Br", "Brick"],        ["Wg", "Wing"],        ["TCK","Tall Cake"],
+  ["SD", "Small Dorito"], ["T",  "Temple"],      ["MW", "Mini W"],
+];
+function codeCount(code){ return curLayout().bunkers.filter(b => b.n === code).length; }
+
 // Which wire a bunker sits on, for the job label a coach reads off.
 function wireOf(y){
   return y > 88 ? "snake wire" : y > 66 ? "snake side"
@@ -3672,7 +3688,22 @@ function moreBody(k){
           <input id="cdMeans" placeholder="Go on the horn"/></label>
       </div>
       <button class="btn btn--block" onclick="addCode()">Add code word</button>`,
-      codes.length?codes.length+(codes.length===1?" word":" words"):layoutName);
+      codes.length?codes.length+(codes.length===1?" word":" words"):layoutName)
+    + sec("Bunker codes", `<p class="lede">What the letters on the field mean. This is the key the
+      NXL prints in the corner of the official map, not our shorthand — so a player who has read a
+      layout anywhere else already knows it.</p>
+      <div class="tblwrap"><table class="tbl">
+        <thead><tr><th>Code</th><th>Bunker</th><th>On this field</th></tr></thead>
+        <tbody>${BUNKER_CODE.map(([c,full])=>{
+          const n = codeCount(c);
+          return `<tr><td class="num" style="color:var(--accent-lit);font-weight:700">${esc(c)}</td>
+            <td>${esc(full)}</td>
+            <td class="num">${n ? n : `<span class="note">not on this field</span>`}</td></tr>`;
+        }).join("")}</tbody>
+      </table></div>
+      <p class="note">Give any of them your own call under Team → Bunker calls. The call replaces the
+        code everywhere in the app; the code is still what the map says.</p>`,
+      `${BUNKER_CODE.filter(([c])=>codeCount(c)).length} of ${BUNKER_CODE.length} here`);
   }
   if(k==="messages") return sec("Messages",
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map(m=>`<div class="assign">

@@ -1727,6 +1727,54 @@ const ROSTER = [
     return before !== JSON.stringify(currentPaths().map(p => p.to));
   }));
 
+  /* ------------------------------------------------------ the bunker key */
+  // "Do we have all of the codes?" is a question with a checkable answer: the
+  // NXL prints the same fifteen-entry key on all three of these maps.
+  G("Bunker codes");
+  check("the key is the fifteen the official map prints", await ev(() =>
+    BUNKER_CODE.length === 15 &&
+    ["GP","MT","C","Tr","GB","GW","MD","Ck","SB","Br","Wg","TCK","SD","T","MW"]
+      .every((c, i) => BUNKER_CODE[i][0] === c)));
+  check("every code on every field is in the key", await ev(() => {
+    const key = new Set(BUNKER_CODE.map(c => c[0]));
+    return Object.keys(LAYOUTS).every(k =>
+      LAYOUTS[k].bunkers.every(b => key.has(b.n)));
+  }));
+  check("all three fields carry the same fourteen codes", await ev(() => {
+    const codes = k => [...new Set(LAYOUTS[k].bunkers.map(b => b.n))].sort().join();
+    const all = Object.keys(LAYOUTS).map(codes);
+    return all.every(c => c === all[0]) && all[0].split(",").length === 14;
+  }));
+  // Against the layout pack, not the field: the app carries the drawn shape,
+  // and a dorito is drawn pointing whichever way it sits, so two shapes under
+  // one code is correct there. What must never happen is one code over two
+  // different bunkers.
+  check("one code is one bunker across all three fields", (() => {
+    const seen = {};
+    for (const f of ["nxl_2026_lone_star", "nxl_2026_tampa_bay_open", "nxl_2026_midwest_open"])
+      for (const b of JSON.parse(fs.readFileSync(
+            path.join(__dirname, "..", "layouts", "events", f + ".json"), "utf8")).bunkers) {
+        if (seen[b.name] && seen[b.name] !== b.type) return false;
+        seen[b.name] = b.type;
+      }
+    return Object.keys(seen).length === 14;
+  })());
+  // Tall Cake is in the printed key and on none of these three layouts. Saying
+  // so is the point — the key lists the pack, not the field.
+  check("the key says which of its codes this field does not use", await ev(() => {
+    window.set({ tab: "more", more: "codes" });
+    const t = document.body.textContent;
+    return t.includes("Tall Cake") && t.includes("not on this field")
+        && t.includes("Maya Temple") && t.includes("Snake Beam");
+  }));
+  check("the count beside each code is what is really on the field", await ev(() => {
+    window.set({ layoutKey: "lso", tab: "more", more: "codes" });
+    const rows = [...document.querySelectorAll(".tbl tbody tr")]
+      .filter(r => r.children.length === 3);
+    return rows.length === 15 && rows.some(r =>
+      r.children[0].textContent.trim() === "SB" && r.children[2].textContent.trim() === "14");
+  }));
+
   /* ------------------------------------------------------- twelve calls */
   // The spec names twelve breaks; five were built. The other seven are not
   // typed bunker ids — tools/plants.js reads the call off the measured field

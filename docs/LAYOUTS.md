@@ -81,7 +81,11 @@ footprint boxed on the original map.
 Two cylinders on the sidelines at (1.4, 60.1) and (148.7, 60.1) are **drawn but
 never labeled**. Their position and footprint are measured like everything else,
 but a name cannot be read off the map, and the legend also lists a `TCK` (Tall
-Cake) that appears nowhere labeled — so it was one of those two and the map does
+Cake) that appears nowhere labeled — on any of the three maps, as it turns out;
+the legend is the NXL's standard key for the whole bunker pack, printed the same
+on Lone Star, Tampa Bay and the Midwest Open, and each field uses fourteen of
+its fifteen. More → Codes in the app carries the key and marks the one that is
+not on the field you are looking at — so it was one of those two and the map does
 not say which. `layouts/CLAUDE.md` says to ask rather than guess, so they shipped
 as `UNLABELED` until the field owner confirmed them as **`Br`**, which is what
 their footprint already matched exactly. They now carry
