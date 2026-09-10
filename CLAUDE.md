@@ -44,7 +44,8 @@ Guest · Staff/Coach · League Admin · Participant (form only)
 
 ## Tabs
 
-Phone: Playbook, Tally, Scout, Sightlines, More.
+Phone: Playbook, Tally, Scout, Sightlines, More — a bar along the bottom.
+Tablet, and any screen past 900 px: the same five in a rail down the left.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Classes, League, Nexus.
 
@@ -102,10 +103,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     of their calls stored against the team and shown beside the call on
     Playbook; Rep is the recognition drill, the field drawing one of the twelve
     with nothing naming it and a clock that holds you to two seconds.
-11. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
-    `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
-    is deliberately different and what is missing. Top of that list now: the
-    tablet side rail, the blast group picker and class detail.
+11. ~~Close the rest of the gaps against the spec.~~ Done — `docs/SPEC-COVERAGE.md`
+    walks `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line, and nothing it asks
+    for is unbuilt. The last eight went in together: the tablet rail past
+    900 px, the blast group picker, class start time / notes / open-close /
+    share, division search and press-and-hold for the left pit, the squad code
+    and one player's own word for a bunker, the Nexus field list, X-for-out and
+    gunfight rings on the Scout field, and the Smooth chip. Two things stay
+    deliberately different and say so on screen: there is no event feed, because
+    there is no network; and "how to anticipate" is a sub-tab, not a menu.
 12. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
@@ -128,6 +134,10 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 - Hand-edit `BREAK_PLANTS`. Run `node tools/plants.js --write`; the suite fails
   if the app and the rule disagree.
 - Open the tutorial on launch.
+- Trust a passing suite as proof a screen is right. The tablet rail measured as
+  a rail and every check was green while each button was a 146 px slab with its
+  label under the marker, because the media block sat above the base rule it
+  meant to override. Take the screenshot.
 - Assert what is on screen with `document.body.textContent`. The whole app
   sits in a `<script>` inside `<body>`, so that matches any string literal in
   the source and passes whether or not anything rendered. Read

@@ -170,19 +170,30 @@ cards that name the players you logged, hardest first; a counter-picker derived
 from the opponent read and the match state; Breakouts counting the calls you have
 seen a team make; Layers drawing everything logged against them where it happened;
 Games replaying a point out by out; a board that opens on NXL Pro X-Ball, with the semi-pro list behind a picker, a FILM
-column marking the teams you have something on, and a way to add a team the
-season list missed); Sightlines with real blocking geometry; the NXL 2026 Lone Star Open, Tampa Bay Open and Midwest Open
+column marking the teams you have something on, a search that narrows it, a tap
+to load the right pit and a press-and-hold to load the left, and a way to add a
+team the season list missed); an Outs overlay marking every bunker a man was
+shot at and ringing the ones that traded both ways; Sightlines with real
+blocking geometry; the NXL 2026 Lone Star Open, Tampa Bay Open and Midwest Open
 layout digitized from the official labeled 2D (58 bunkers) with its own
 breakouts landing on real bunkers; the 8-way face pad, shot targets and P|S
 roles, stored per layout per break and drawn travelling with the player; path
 editing on the field — drag a corner, tap to remove one, tap the line to add
-one, drag a player to point him, reset back to the routed line; team
-bunker calls that overlay the official codes everywhere; Movement rotations
+one, drag a player to point him, reset back to the routed line, and a Smooth
+chip that swaps rounded corners for the legs exactly as routed; team
+bunker calls that overlay the official codes everywhere, plus one player's own
+word for a bunker, which shows on his card and never on the field; Movement rotations
 drawn on the field; Assess grading with per-player averages; Bunker stats built
 from tally and movement with a heat overlay; an editable roster; Lineups that
 set who is on the point and actually direct the break; Walk notes pinned to a
-bunker or a wire; code words with what each one means; Messages; Classes as a pass-the-phone sign-in sheet; League groups with
-blasts and a blast log; Nexus, and Save/Load a copy — a JSON file of the season that merges into another phone rather than clobbering it.
+bunker or a wire; code words with what each one means; Messages; Classes as a pass-the-phone sign-in sheet, each with a start
+time, notes, a share sheet and an open/close that actually takes the form away;
+League groups with blasts addressed to the groups you pick and a blast log; Nexus, listing every field with its bunker count and where its map was read from, and Save/Load a copy — a JSON file of the season that merges into another phone rather than clobbering it, stamped with a squad code so a merge that mixes two teams says so.
+
+Past 900 px — a tablet, or a phone turned sideways — the five destinations leave
+the bottom of the screen and stand in a rail down the left, with the header
+beside them and the field given the room. Below that the bottom bar is right and
+stays.
 
 The staff password is salted and hashed with the platform's own crypto and only
 the hash is stored. An account created before that is upgraded on the next

@@ -28,6 +28,8 @@ const URL = process.env.APP_URL || "http://localhost:5173/";
 
 const TAP = 44;        // px, short axis
 const MEASURE = 80;    // characters a line
+const RAIL = 900;      // px wide, the width the bottom bar becomes a left rail
+const RAIL_ROW = 96;   // px, the tallest a rail row may be before it is a slab
 
 // Logical CSS px, portrait. Every one of these is a device still taking iOS 17+.
 const DEVICES = [
@@ -64,6 +66,17 @@ const measure = () => {
   const tabs = document.querySelector(".tabs");
   const r = tabs && tabs.getBoundingClientRect();
   out.tabsIn = !!r && Math.ceil(r.bottom) <= window.innerHeight + 1 && r.top >= 0;
+
+  // Where the five destinations stand, and what shape they are. A rail that
+  // lands in the right column but whose buttons still stack icon-over-label and
+  // stretch to fill a metre of black is not a rail; the geometry above says
+  // nothing about that, so measure the buttons too.
+  const btns = [...document.querySelectorAll(".tabs button")].map(b => b.getBoundingClientRect());
+  out.rail = !!r && r.width < 320 && r.height > window.innerHeight * 0.5;
+  out.btnTall = btns.length ? Math.ceil(Math.max(...btns.map(b => b.height))) : 0;
+  out.btnRow = btns.length > 0 && btns.every(b => b.width > b.height);
+  out.clash = !!(r && main && r.right > main.left + 1 && r.left < main.right - 1
+                          && r.bottom > main.top + 1 && r.top < main.bottom - 1);
 
   // Smallest interactive target on screen, by its short axis. A horizontal
   // scroller can park a control off-screen; those are not on screen, so skip.
@@ -116,13 +129,18 @@ const measure = () => {
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(320);
 
-    const worst = { over: 0, tap: null, line: null, tabsIn: true };
+    const worst = { over: 0, tap: null, line: null, tabsIn: true,
+                    rail: true, btnTall: 0, btnRow: true, clash: false };
     for (const tab of TABS) {
       await page.locator(".tabs button", { hasText: tab }).click();
       await page.waitForTimeout(260);
       const m = await page.evaluate(measure);
       worst.over = Math.max(worst.over, m.over);
       worst.tabsIn = worst.tabsIn && m.tabsIn;
+      worst.rail = worst.rail && m.rail;
+      worst.btnRow = worst.btnRow && m.btnRow;
+      worst.clash = worst.clash || m.clash;
+      worst.btnTall = Math.max(worst.btnTall, m.btnTall);
       if (m.tap && (!worst.tap || m.tap.px < worst.tap.px)) worst.tap = { ...m.tap, tab };
       if (m.line && (!worst.line || m.line.ch > worst.line.ch)) worst.line = { ...m.line, tab };
     }
@@ -136,6 +154,17 @@ const measure = () => {
           worst.tap ? `${worst.tap.px}px "${worst.tap.what}" on ${worst.tap.tab}` : "");
     check(g, `${name} — text under ${MEASURE} ch`, !worst.line || worst.line.ch <= MEASURE,
           worst.line ? `${worst.line.ch} ch on ${worst.line.tab}` : "");
+
+    // The five destinations. Wide enough and they stand in a rail down the
+    // left, each one a row you can read; narrow and the bottom bar is right.
+    if (w >= RAIL) {
+      check(g, `${name} — five in a rail down the left`, worst.rail && !worst.clash,
+            worst.rail ? (worst.clash ? "rail sits over the page" : "") : "still the bottom bar");
+      check(g, `${name} — rail rows read as rows`, worst.btnRow && worst.btnTall <= RAIL_ROW,
+            worst.btnRow ? (worst.btnTall > RAIL_ROW ? `${worst.btnTall}px tall` : "") : "label under the marker");
+    } else {
+      check(g, `${name} — the bottom bar stays`, !worst.rail, worst.rail ? "went to a rail" : "");
+    }
   }
   await browser.close();
 

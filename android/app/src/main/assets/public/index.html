@@ -130,6 +130,30 @@ h1,h2,h3,p{margin:0}
 .tabs button.on{color:var(--ink)}
 .tabs button.on i{background:var(--accent-lit)}
 
+/* Tablet. A row of five destinations along the bottom of a 1024 px screen is a
+   phone habit: the thumb is nowhere near it and the labels swim in a metre of
+   black. On a wide screen the same five stand in a rail down the left, the
+   header sits beside them, and the field gets the room. Below 900 the bottom
+   bar is right and stays. */
+@media (min-width:900px){
+  .app{display:grid;grid-template-columns:216px minmax(0,1fr);
+       grid-template-rows:auto minmax(0,1fr);grid-template-areas:"rail hdr" "rail main"}
+  .hdr{grid-area:hdr}
+  .main{grid-area:main}
+  .tabs{
+    grid-area:rail;flex-direction:column;justify-content:flex-start;gap:2px;
+    border-top:0;border-right:1px solid var(--line);
+    padding:var(--s4) var(--s2) calc(var(--s4) + env(safe-area-inset-bottom)) calc(var(--s2) + env(safe-area-inset-left));
+  }
+  .tabs button{
+    flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:var(--s3);
+    min-height:52px;padding:0 var(--s3);border-radius:var(--r-md);
+    font-size:var(--t-sm);letter-spacing:.08em;
+  }
+  .tabs button i{width:3px;height:20px;border-radius:2px}
+  .tabs button.on{background:var(--panel)}
+}
+
 /* ============================================================
    SECTION — an eyebrow and a rule, not another card.
    Cards are reserved for things that are actually objects.
@@ -451,7 +475,10 @@ svg.field{width:100%;height:auto;display:block}
 .verdict--yes b{color:var(--ok)}
 .verdict--no{border-left-color:var(--red-lit)}
 .verdict--no b{color:var(--red-lit)}
-/* A table row that answers a question is a control, and has to be hittable. */
+/* A table row that answers a question is a control, and has to be hittable.
+   Some of them answer a second question on a press and hold, so the row must
+   not select its own text or raise the iOS callout while you are holding it. */
+tr.tap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 tr.tap td{cursor:pointer}
 tr.tap td:first-child{position:relative}
 tr.tap--on td{background:var(--sunk)}
@@ -809,12 +836,23 @@ function currentPaths(){
 // The same five curves are rebuilt sixty times a second otherwise.
 const _runCache = {};
 function drawnRun(p, legs, sx, sy){
-  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${p.id}|${sx}|${JSON.stringify(p.via||[])}`;
+  const sm = S.smoothOn === false ? 0 : 1;
+  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${p.id}|${sx}|${sm}|${JSON.stringify(p.via||[])}`;
   return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
 }
+/* Rounded corners, or the line as it is routed.
+ *
+ * Smoothing is on because a man does not turn on a dime and a mitre reads as an
+ * instruction to stop and pivot. But a corner you dragged to a foot off a
+ * bunker is not where the rounded line goes, and a coach setting a path that
+ * tight wants to see the thing he actually set. So it comes off, and the legs
+ * are drawn as routed. Nothing else changes: the plants, the timing and where
+ * each man ends up are the same either way — this is the drawing, not the run.
+ */
 function smoothD(pts, sx, sy){
   const P = pts.map(q => [q[0] * sx, q[1] * sy]);
-  if(P.length < 3) return `M${P.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join("L")}`;
+  const straight = `M${P.map(q => q[0].toFixed(1) + " " + q[1].toFixed(1)).join("L")}`;
+  if(P.length < 3 || S.smoothOn === false) return straight;
   const R = 9;
   let d = `M${P[0][0].toFixed(1)} ${P[0][1].toFixed(1)}`;
   for(let i = 1; i < P.length - 1; i++){
@@ -1108,7 +1146,7 @@ const defaultState = () => ({
   // tab is for, is not on screen until you play it. Play the break runs it from
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
-  faceOn:true, shotOn:true, rolesOn:true,
+  faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false,
   left:{name:"Blast Camp"},        // which team is in the pit; what you know
   right:{name:"Rejects"},          // about them lives in scout[], keyed by team
   scout:{},                        // team -> {tend, threat, notes, players[]}
@@ -1135,7 +1173,7 @@ const defaultState = () => ({
   teams:{},
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
-  bunkerCalls:{},
+  bunkerCalls:{}, playerCalls:{}, teamCode:"",
   direct:{},
   pad:null,
   moves:[],
@@ -1251,7 +1289,17 @@ const BUNKER = {
 // A team can rename any bunker for the event. The call overlays the official
 // code on the field, per the spec, and falls back to the printed code.
 function bunkerCalls(){ return (S.bunkerCalls || {})[S.layoutKey] || {}; }
-function callOf(b){ return bunkerCalls()[b.id] || b.n; }
+function playerCalls(who){ return (((S.playerCalls || {})[S.layoutKey] || {})[who] || {}); }
+/* What to call a bunker, and to whom.
+ *
+ * The team's call is the team's language and overlays the official code
+ * everywhere. But a coach shouting at one man uses that man's word for it, so a
+ * player may have his own name for a bunker he lives behind. His word is only
+ * ever used when the app is speaking to him — his card — and never on the
+ * field, where five people are reading the same picture. */
+function callOf(b, who){
+  return (who && playerCalls(who)[b.id]) || bunkerCalls()[b.id] || b.n;
+}
 // The roster is the spine: Playbook names the five off it, Tally logs outs
 // against it, Movement and Assess pick players from it. It shipped read-only,
 // with two placeholders called "Snake" and "Center" and no way to change them.
@@ -1520,9 +1568,9 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","left","right","tally","calls","reps","moves","assessments","walk","codes",
-                  "lineups","bunkerCalls","direct","pathEdits","classes","responses","groups",
-                  "blasts","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","bunkerCalls","codes"];
+                  "lineups","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "blasts","blastTo","messages","point","layoutKey","script","matchState"];
+const KEEP_SQUAD = ["roster","scout","bunkerCalls","playerCalls","teamCode","codes"];
 
 function copyPayload(scope){
   const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
@@ -1554,6 +1602,7 @@ const SAME = {
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
   groups:      g => g.id,
   blasts:      b => [b.at, b.body].join("|"),
+  blastTo:     id => id,
   codes:       c => (c.word || "").toLowerCase(),
   messages:    m => String(m),
 };
@@ -1613,13 +1662,22 @@ window.loadCopy = mode => {
   const r = readCopy(el && el.value);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
-  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + copySummary(d);
+  // Two squads' rosters stirred together is a mess nobody notices until the
+  // five on Playbook are strangers. The code says whose copy this is; a merge
+  // that mixes squads still happens, but it says so out loud.
+  const clash = mode !== "replace" && d.teamCode && S.teamCode && d.teamCode !== S.teamCode
+                && (S.roster || []).length && (d.roster || []).length;
+  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + copySummary(d)
+    + (clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.`
+             : "");
   // Replace swaps the data, not the session: you stay signed in, on this screen,
   // looking at the message that says what just happened.
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
   const held = {};
   SESSION.forEach(k => { held[k] = S[k]; });
+  const mine = S.teamCode;
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
+  if(mode !== "replace" && mine) next.teamCode = mine;   // a merge joins them to me
   Object.keys(next).forEach(k => { S[k] = next[k]; });
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   dropPathCache();
@@ -1828,7 +1886,9 @@ window.clearLineup = () => {
 window.setCall = () => {
   const id = document.getElementById('bcId').value;
   const nm = clean(document.getElementById('bcName').value.trim());
+  const who = (document.getElementById('bcWho') || {}).value || "";
   if(!id) return;
+  if(who) return setPlayerCall(who, id, nm);
   const all = {...(S.bunkerCalls || {})};
   const layer = {...(all[S.layoutKey] || {})};
   if(nm) layer[id] = nm; else delete layer[id];
@@ -1841,6 +1901,33 @@ window.clearCall = id => {
   delete layer[id];
   all[S.layoutKey] = layer;
   S.bunkerCalls = all; save(S); render();
+};
+window.setPlayerCall = (who, id, nm) => {
+  const all = {...(S.playerCalls || {})};
+  const layer = {...(all[S.layoutKey] || {})};
+  const mine = {...(layer[who] || {})};
+  if(nm) mine[id] = nm; else delete mine[id];
+  if(Object.keys(mine).length) layer[who] = mine; else delete layer[who];
+  all[S.layoutKey] = layer;
+  S.playerCalls = all; save(S); render();
+};
+window.clearPlayerCall = (who, id) => setPlayerCall(who, id, "");
+
+/* The squad code.
+ *
+ * There is no server, so this cannot fetch a roster — nothing here can. What it
+ * does is name the squad, and travel inside a squad copy, so that pasting one
+ * on a second phone can tell you whether you are merging your own team in or
+ * quietly stirring somebody else's roster into yours. Read it out; the player
+ * checks it against what he pasted. */
+const newSquadCode = () => "SQ-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+function squadCode(){
+  if(!S.teamCode){ S.teamCode = newSquadCode(); save(S); }
+  return S.teamCode;
+}
+window.rollSquadCode = () => {
+  if(!confirm("A new code makes copies already out there read as another squad. Change it?")) return;
+  S.teamCode = newSquadCode(); save(S); render();
 };
 
 // ---- bunker traffic, from the tally sheet ----
@@ -2296,6 +2383,54 @@ function fieldSVG(opts={}, runnersOnly){
     }).join("");
   }
 
+  /* Where men actually went out, and where they went out both ways.
+   *
+   * An X sits on a bunker somebody was shot at, one arm heavier the more often
+   * it happened. A ring around it means the trade went both directions there —
+   * we lost men behind that paint and so did they. That is a gunfight, and it
+   * is the thing a coach wants off a field drawing rather than a table: the two
+   * or three bunkers where the point is actually decided.
+   *
+   * Both are counted straight off the tally, on this layout. Nothing is
+   * modelled, and a bunker nobody has been shot at carries no mark at all. */
+  let outs = "";
+  if(opts.outs){
+    const here = new Set(layout.bunkers.map(b=>b.id));
+    const at = {};
+    (S.tally||[]).forEach(o => {
+      if(typeof o!=="object" || o.layout!==layout.key || !o.shotAt || !here.has(o.shotAt)) return;
+      at[o.shotAt] = at[o.shotAt] || {us:0, them:0};
+      at[o.shotAt][o.side==="them"?"them":"us"]++;
+    });
+    const peak = Math.max(1, ...Object.values(at).map(v=>v.us+v.them));
+    outs = layout.bunkers.map(b => {
+      const v = at[b.id]; if(!v) return "";
+      const n = v.us + v.them, k = n/peak;
+      const s2 = bunkerSize(b, sx, sy);
+      const x = b.x*sx, y = b.y*sy;
+      const r = Math.max(6, Math.min(s2.h, s2.v) + 4 + k*4);
+      const w = (1.4 + k*2.2).toFixed(1);
+      // White, like the shot lanes, because it has to read on a red bunker and
+      // on a blue one.
+      let g = `<g opacity="${(0.55+k*0.45).toFixed(2)}">`
+        + `<path d="M${(x-r*0.55).toFixed(1)} ${(y-r*0.55).toFixed(1)}L${(x+r*0.55).toFixed(1)} ${(y+r*0.55).toFixed(1)}`
+        + `M${(x+r*0.55).toFixed(1)} ${(y-r*0.55).toFixed(1)}L${(x-r*0.55).toFixed(1)} ${(y+r*0.55).toFixed(1)}" `
+        + `stroke="#000" stroke-width="${(+w+2).toFixed(1)}" stroke-linecap="round" opacity=".6"/>`
+        + `<path d="M${(x-r*0.55).toFixed(1)} ${(y-r*0.55).toFixed(1)}L${(x+r*0.55).toFixed(1)} ${(y+r*0.55).toFixed(1)}`
+        + `M${(x+r*0.55).toFixed(1)} ${(y-r*0.55).toFixed(1)}L${(x-r*0.55).toFixed(1)} ${(y+r*0.55).toFixed(1)}" `
+        + `stroke="#efedeb" stroke-width="${w}" stroke-linecap="round"/>`;
+      // Traded both ways: the ring, as heavy as the thinner side of the trade.
+      if(v.us && v.them){
+        const two = Math.min(v.us, v.them) / peak;
+        g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="none" `
+           + `stroke="#000" stroke-width="${(2.2+two*3).toFixed(1)}" opacity=".55"/>`
+           + `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="none" `
+           + `stroke="#ffb020" stroke-width="${(1.2+two*2.6).toFixed(1)}"/>`;
+      }
+      return g + "</g>";
+    }).join("");
+  }
+
   if(runnersOnly) return paths;
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
@@ -2332,6 +2467,7 @@ function fieldSVG(opts={}, runnersOnly){
 
     <g filter="url(#bnkLift)">${bunks}</g>
     ${heat}
+    ${outs}
     ${moveArrows}
     ${sight}
     ${bunkerLabels(layout.bunkers, sx, sy)}
@@ -2713,6 +2849,7 @@ function playbook(){
   <div class="toggles">
     <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
     <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+    <button class="tgl ${S.smoothOn===false?"":"on"}" onclick="setSmooth(S.smoothOn===false)"><i></i>Smooth</button>
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
     <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
   </div>
@@ -2818,11 +2955,14 @@ function cardLines(){
     const who = five[i];
     const lane = shotLane(d.shot);
     const shotB = d.shot ? curLayout().bunkers.find(b => b.id === d.shot) : null;
+    // His card is the app speaking to him, so it uses his word for the bunker
+    // where he has one. The field keeps the team's.
+    const mine = who && who.name;
     return {n: p.id, who, job: p.label, wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
-            bunker: callOf(curLayout().bunkers.find(b => b.id === p.bunker) || {n: "—"}),
+            bunker: callOf(curLayout().bunkers.find(b => b.id === p.bunker) || {n: "—"}, mine),
             role: d.role === "S" ? "Secondary" : "Primary",
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
-            shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB) : "the lane he is running"};
+            shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running"};
   });
 }
 window.shareCards = () => {
@@ -2955,7 +3095,7 @@ window.playPath = () => {
 // Repaint just the field SVGs. A full render() per frame rebuilt the entire
 // document — including the division table — sixty times a second.
 function paintField(){
-  const opts = S.tab==="scout" ? {both:true} : {edit:S.editPath};
+  const opts = S.tab==="scout" ? {both:true, outs:!!S.outsOn} : {edit:S.editPath};
   const layer = fieldRunners(opts);
   document.querySelectorAll(".field-wrap[data-live]").forEach(el => {
     const g = el.querySelector("svg.field g.live");
@@ -3152,6 +3292,9 @@ window.unlogCall = i => {
 const SCOUT_TABS=[["matchup","Matchup"],["breakouts","Breakouts"],["anticipate","Anticipate"],
                   ["counter","Counter"],["layers","Layers"],["games","Games"],["board","Division"]];
 
+function outsLogged(){
+  return (S.tally||[]).some(o => typeof o==="object" && o.layout===S.layoutKey && o.shotAt);
+}
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
@@ -3164,13 +3307,18 @@ function scout(){
   ${sec("The break, both pits", `<div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+      <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
     </div>
-    <div class="field-wrap" data-live>${fieldSVG({both:true})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.name)}</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.name)}</span>
+      ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
     </div>
+    ${S.outsOn&&!outsLogged()?`<div class="empty">No outs logged on ${esc(curLayout().name)} yet. Tally an out
+      and set <b>Shot at</b> on it, and the field marks where the point was decided.</div>`:""}
     <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
       counted from what you logged or scored yourself. Officials govern the live call.</p>`)}
 
@@ -3511,11 +3659,16 @@ function scoutBoard(){
       ${DIVISIONS.map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
     </div>
     ${div.note?`<p class="note">${esc(div.note)}</p>`:""}`, list.length+" teams")
-  + sec("Scout board", `<div class="tblwrap"><table class="tbl">
+  + sec("Scout board", `<div class="fld"><label>Find a team</label>
+      <input id="boardFind" placeholder="Type a few letters" autocapitalize="none"
+             oninput="findTeam(this.value)"/></div>
+    <div class="tblwrap"><table class="tbl">
       <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Tend</th><th>Threat</th><th>Read from</th></tr></thead>
-      <tbody>${list.map((t,i)=>{
+      <tbody id="boardRows">${list.map((t,i)=>{
         const pr=profileOf(t.name);
-        return `<tr onclick="loadPit('${esc(t.name)}')">
+        return `<tr class="tap" oncontextmenu="return false"
+          onpointerdown="pressTeam('${esc(t.name)}')" onpointerup="releaseTeam('${esc(t.name)}')"
+          onpointerleave="cancelTeam()" onpointercancel="cancelTeam()">
         <td class="num">${i+1}</td>
         <td>${esc(t.name)}</td>
         <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
@@ -3528,8 +3681,9 @@ function scoutBoard(){
              :`<span class="note">—</span>`}</td>
       </tr>`;}).join("")}</tbody>
     </table></div>
-    <p class="note">Tap a row to load it into the right pit. A dash means nobody has scored it yet —
-      set the tendency and threat on the pit card and it fills in here.</p>`, esc(div.name))
+    <p class="note">Tap a row to load it into the right pit, <b>press and hold</b> to load it into the
+      left. A dash means nobody has scored it yet — set the tendency and threat on the pit card and it
+      fills in here.</p>`, esc(div.name))
   + sec("Missing a team?", `<p class="lede">Divisions change every season. Add anyone who is not on the
       list and they behave like any other team — you can scout them, log their five and their calls.</p>
     <div class="who2">
@@ -3546,9 +3700,41 @@ function scoutBoard(){
 }
 // Tapping a row only changes which team is in the pit. What you know about
 // them comes with them, and what you knew about the last team stays with it.
-window.loadPit = name => {
+window.loadPit = (name, side) => {
   if(!anyTeam(name)) return;
-  S.right = {name}; save(S); render();
+  S[side === "left" ? "left" : "right"] = {name}; save(S); render();
+};
+
+/* Both pits off one board.
+ *
+ * A tap loads who you are about to play; a press and hold loads the other pit,
+ * which is how you set up a matchup you are not in — two teams you are scouting
+ * for the bracket. Held is 450 ms, and the row is taken out of the running for
+ * the tap so a hold never does both.
+ */
+let _press = null;
+window.pressTeam = name => {
+  cancelTeam();
+  _press = {name, held:false};
+  _press.t = setTimeout(() => { _press.held = true; loadPit(name, "left"); }, 450);
+};
+window.releaseTeam = name => {
+  const p = _press; if(!p) return;
+  clearTimeout(p.t); _press = null;
+  if(!p.held) loadPit(name, "right");
+};
+window.cancelTeam = () => { if(_press) clearTimeout(_press.t); _press = null; };
+
+/* Narrowing the board is this moment's business, not something to keep, so it
+ * hides rows in place rather than going through state — which would also take
+ * the keyboard down on every letter. */
+window.findTeam = q => {
+  const t = clean(q || "").trim().toLowerCase();
+  const body = document.getElementById("boardRows"); if(!body) return;
+  [...body.rows].forEach(tr => {
+    const cell = tr.children[1];
+    tr.hidden = !!t && !(cell && cell.textContent.toLowerCase().includes(t));
+  });
 };
 
 /* ============================================================
@@ -3616,8 +3802,11 @@ function classesPage(){
 
   ${sec("Sign in to a session", `<div class="fld"><label>Code</label>
       <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
-    ${join?formBox(join)
-      :(S.joinCode
+    ${join&&join.open?formBox(join)
+      :(join
+        ? `<p class="warn">Sign-ins for <b>${esc(join.title)}</b> are closed. The coach can reopen them
+           on this phone.</p>`
+        :S.joinCode
         ? `<p class="warn">No open session with that code <b>on this phone</b>. Sessions live on the device
            that created them — sign in on the coach's phone, not your own.</p>`
         : `<p class="note">No account needed. A session lives on this phone — sign in on the one the
@@ -3640,6 +3829,17 @@ function classesPage(){
               <p class="note">Read it out and hand the phone over. Signing in never needs an account —
               and it happens on this phone, because that is where the session lives.</p>
             </div>
+          </div>
+          <div class="fld"><label>Starts</label>
+            <input type="datetime-local" value="${esc(c.when||"")}"
+                   onchange="setClass('${c.code}','when',this.value)"/></div>
+          <div class="fld"><label>Notes</label>
+            <textarea placeholder="Bring a full pod pack. Meet at the pit gate."
+                      onchange="setClass('${c.code}','notes',this.value)">${esc(c.notes||"")}</textarea></div>
+          <div class="btnrow">
+            <button class="btn btn--ghost grow" onclick="setClass('${c.code}','open',${c.open?"false":"true"})">
+              ${c.open?"Close sign-ins":"Open sign-ins"}</button>
+            <button class="btn btn--quiet grow" onclick="shareClass('${c.code}')">Share the details</button>
           </div>
           ${r.length?`<div class="assigns">${r.map(x=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc((x.name||"?")[0].toUpperCase())}</span>
@@ -3667,8 +3867,26 @@ function formBox(c){
 window.makeClass = () => {
   if(!staffed()) return;
   const code="GL-"+Math.random().toString(36).slice(2,6).toUpperCase();
-  S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true},...S.classes];
+  S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true,when:"",notes:""},...S.classes];
   save(S); render();
+};
+/* A class is a session, not a title. When it starts, what to bring, and whether
+ * the sheet is still taking names are the three things anyone asks, so they sit
+ * on the class rather than in the coach's head. Closing it closes it: the form
+ * is gone, not just the tag. */
+window.setClass = (code, key, val) => {
+  S.classes = S.classes.map(c => c.code===code ? {...c, [key]: val} : c);
+  save(S); render();
+};
+window.shareClass = code => {
+  const c = S.classes.find(x => x.code === code); if(!c) return;
+  const when = c.when ? new Date(c.when).toLocaleString([], {weekday:"short", month:"short",
+                          day:"numeric", hour:"numeric", minute:"2-digit"}) : "";
+  const t = [c.title, when && "Starts " + when, "Code " + c.code,
+             clean(c.notes||""), c.open ? "" : "Sign-ins are closed.",
+             "Sign in on the coach's phone — the session lives there."]
+            .filter(Boolean).join("\n");
+  if(window.gridlockShare) window.gridlockShare(t, "GRIDLOCK class"); else prompt("Class", t);
 };
 window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
@@ -3711,18 +3929,56 @@ function leaguePage(){
 
   ${sec("Blast", `<div class="fld"><label>Update</label>
       <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${esc(S.blastBody)}</textarea></div>
-    <button class="btn btn--block" onclick="sendBlast()">Send to ${people} ${people===1?"person":"people"}</button>
-    <p class="aid">Not a bulk-messaging tool. <b>Only message people who agreed to league ops texts.</b></p>
+    <div class="fld"><label>Who gets it</label>
+      <div class="toggles">${S.groups.map(g=>`
+        <button class="tgl${blastPicked(g.id)?" on":""}" onclick="toggleBlastGroup('${g.id}')">
+          <i></i>${esc(g.name)} <span class="list__count">${reachable(g).length}</span>
+        </button>`).join("") || `<span class="empty">Make a group first.</span>`}</div></div>
+    <button class="btn btn--block" onclick="sendBlast()">${
+      blastTo().length ? `Send to ${blastCount()} ${blastCount()===1?"person":"people"}` : "Pick a group"}</button>
+    <p class="aid">Not a bulk-messaging tool. <b>Only message people who agreed to league ops texts.</b>
+      A gate time is for ops; it is not for refs, and it is not for everybody.</p>
     ${(S.blasts||[]).length?`<div class="assigns">${S.blasts.map(b=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(b.body)}</span>
-      <span class="assign__who">${esc(b.at)} · ${b.n} recipients</span></span>
+      <span class="assign__who">${esc(b.at)} · ${b.n} recipients${b.to?" · "+esc(b.to):""}</span></span>
     </div>`).join("")}</div>`:""}`, (S.blasts||[]).length?S.blasts.length+" sent":"")}`;
 }
+
+/* Who a blast actually goes to.
+ *
+ * Sending every update to every member is how a league teaches its refs to
+ * stop reading the texts. A gate time is for ops; a rules change is for refs.
+ * So the blast carries a set of groups, and only members with a contact on
+ * file are counted — the button used to promise a number that included people
+ * there was no way to reach.
+ *
+ * No pick means no send, not everybody: a missed tap must not become a text to
+ * two hundred people. New groups start picked so the common case is one tap.
+ */
+const reachable = g => (g.members||[]).filter(m => clean(m.phone||m.email||""));
+function blastTo(){
+  const live = S.groups.map(g=>g.id);
+  return (S.blastTo || live).filter(id => live.includes(id));
+}
+const blastPicked = id => blastTo().includes(id);
+const blastCount = () => S.groups.filter(g=>blastPicked(g.id))
+  .reduce((n,g)=>n+reachable(g).length, 0);
+window.toggleBlastGroup = id => {
+  const on = blastTo();
+  S.blastTo = on.includes(id) ? on.filter(x=>x!==id) : [...on, id];
+  save(S); render();
+};
 window.addGroup = () => {
   const n=document.getElementById("ng").value.trim(); if(!n) return;
-  S.groups=[...S.groups,{id:"g"+Date.now(),name:n,members:[]}]; save(S); render();
+  const id="g"+Date.now();
+  S.blastTo=[...blastTo(), id];
+  S.groups=[...S.groups,{id,name:n,members:[]}]; save(S); render();
 };
-window.delGroup = id => { S.groups=S.groups.filter(g=>g.id!==id); save(S); render(); };
+window.delGroup = id => {
+  S.groups=S.groups.filter(g=>g.id!==id);
+  if(S.blastTo) S.blastTo=S.blastTo.filter(x=>x!==id);
+  save(S); render();
+};
 window.addMem = id => {
   const name=document.getElementById("mn-"+id).value.trim();
   const phone=document.getElementById("mp-"+id).value.trim();
@@ -3735,9 +3991,12 @@ window.delMem = (id,i) => {
 window.sendBlast = () => {
   const body=clean(S.blastBody||"");
   if(!body){alert("Write the update first.");return}
+  const picked=S.groups.filter(g=>blastPicked(g.id));
+  if(!picked.length){alert("Pick at least one group.");return}
   const rec=[];
-  S.groups.forEach(g=>g.members.forEach(m=>{ if(m.phone) rec.push(m.phone); }));
-  S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body},...S.blasts];
+  picked.forEach(g=>reachable(g).forEach(m=>rec.push(m.phone||m.email)));
+  S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body,
+             to:picked.map(g=>g.name).join(", ")},...S.blasts];
   save(S);
   if(rec.length && window.gridlockShare) window.gridlockShare(body+"\n"+rec.join(", "),"GRIDLOCK league blast");
   else prompt("Copy this blast", body+"\n"+rec.join(", "));
@@ -3870,14 +4129,30 @@ function moreBody(k){
         </div>
       </div>
       <button class="btn btn--block" onclick="addPlayer()">Add player</button>`;
+    const pcall=((S.playerCalls||{})[S.layoutKey])||{};
+    const pcRows=Object.entries(pcall).flatMap(([who,m])=>Object.entries(m).map(([id,word])=>[who,id,word]));
     return sec("Team", editor, roster.length+(roster.length===1?" player":" players"))
-    + sec("Bunker calls", `<p class="lede">Give a bunker your team's name for it. The call replaces the official code on every field in the app.</p>
+    + sec("Squad code", `<p class="lede">Your squad's name for itself. It travels inside a squad copy, so a
+      player pasting one on his own phone can see whether he is adding <b>your</b> team or somebody
+      else's. It cannot fetch anything — nothing in this app reaches a network.</p>
+      <div class="joinrow"><div>
+        <div class="joincode">${esc(squadCode())}</div>
+        <p class="note">Read it out with the copy. Nexus → Save a copy is what actually moves the squad.</p>
+      </div></div>
+      <button class="btn btn--quiet" onclick="rollSquadCode()">New code</button>`, "This squad")
+    + sec("Bunker calls", `<p class="lede">Give a bunker your team's name for it. The call replaces the
+      official code on every field in the app. Set it for one player instead and it is his word alone —
+      it shows on his card, and never on the field, where five people read the same picture.</p>
       <div class="who2">
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker</span>
           <select id="bcId">${list.map(b=>`<option value="${esc(b.id)}">${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
           <input id="bcName" placeholder="Home"/></label>
       </div>
+      <div class="fld"><label>Who calls it that</label>
+        <select id="bcWho"><option value="">The whole team</option>
+          ${roster.filter(p=>p.name).map(p=>`<option value="${esc(p.name)}">${esc(p.name)} only</option>`).join("")}
+        </select></div>
       <button class="btn btn--block" onclick="setCall()">Save call</button>
       ${named.length?`<div class="assigns">${named.map(id=>{
         const b=list.find(x=>x.id===id);
@@ -3886,8 +4161,16 @@ function moreBody(k){
           <span class="assign__who">${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
           <button class="btn btn--danger" onclick="clearCall('${esc(id)}')">Clear</button></div>`;
       }).join("")}</div>`:`<div class="empty">No calls yet. The official codes show until you set one.</div>`}
+      ${pcRows.length?`<h3 class="panel__title" style="margin-top:var(--s4)">One player's word</h3>
+        <div class="assigns">${pcRows.map(([who,id,word])=>{
+          const b=list.find(x=>x.id===id);
+          return `<div class="assign"><span class="assign__body">
+            <span class="assign__job">${esc(word)}</span>
+            <span class="assign__who">${esc(who)} · ${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
+            <button class="btn btn--danger" onclick="clearPlayerCall('${esc(who)}','${esc(id)}')">Clear</button></div>`;
+        }).join("")}</div>`:""}
       <div class="field-wrap">${fieldSVG({static:true})}</div>`,
-      named.length?named.length+" named":layoutName);
+      named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName);
   }
   if(k==="movement"){
     const list=curLayout().bunkers;
@@ -4014,6 +4297,21 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
     <p class="note">GRIDLOCK System · powered by UPRA</p>`)
+  + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
+      event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
+      all follow it.</p>
+    <div class="assigns">${Object.values(LAYOUTS).map(L=>`
+      <div class="assign" style="flex-wrap:wrap">
+        <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
+        <span class="assign__who">${L.bunkers.length} bunkers</span></span>
+        ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`
+          :`<button class="btn btn--quiet" onclick="pickEvent('${esc(L.key)}')">Use this field</button>`}
+        <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
+      </div>`).join("")}</div>
+    <p class="note">There is no event feed. Nothing in this app makes a network request, so a schedule
+      cannot arrive on its own — a field ships with a release, measured off that event's own official 2D
+      map. That is also why nobody can change what your app says from the outside.</p>`,
+    Object.keys(LAYOUTS).length+" fields")
   + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
       is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>
@@ -4100,6 +4398,8 @@ window.cycleEvent = () => {
   const keys=Object.keys(LAYOUTS);
   set({layoutKey:keys[(keys.indexOf(S.layoutKey)+1)%keys.length]});
 };
+window.pickEvent = key => { if(LAYOUTS[key]) set({layoutKey:key}); };
+window.setSmooth = on => set({smoothOn:!!on});
 
 // Every tap rebuilds the whole screen, and the browser puts a rebuilt scroller
 // back at the top. So grading a man at the bottom of a long card, or dropping a

@@ -119,6 +119,54 @@ on Bunker stats, rotation arrows on Movement, bunker calls on Team, the class
 join code and sign-in form, the four default league groups, the blast log with
 its one-line consent note, and sign-out plus show-the-tutorial-again on Nexus.
 
+**On a tablet.** Past 900 px the five destinations leave the bottom of the
+screen and stand in a rail down the left, each one a row you can read, with the
+header beside them and the field given the room. Below that the bottom bar is
+right and stays. A phone turned sideways is wide and very short, so it gets the
+rail too — the call sits beside the whole field, and the rail is under the left
+thumb.
+
+**Who a blast goes to.** A blast carries a set of groups, so a gate time can go
+to Ops and Refs without going to Registration and Vendors. Only members with a
+contact on file are counted — the button used to promise a number that included
+people there was no way to reach. No pick is no send, not everybody, because a
+missed tap must not become a text to two hundred people. The log records who
+you addressed and how many could actually be reached, which are not the same
+number.
+
+**A class is a session, not a title.** When it starts, what to bring, and
+whether the sheet is still taking names. Closing it closes it — the form is
+gone, not just the tag. Share the details puts the title, the time, the code and
+the notes in the share sheet.
+
+**The board, both pits.** Type a few letters to narrow it. A tap loads the team
+you are about to play; press and hold loads the other pit, which is how you set
+up a matchup you are not in.
+
+**The squad code, and one man's word.** The squad has a code that travels inside
+a squad copy, so a player pasting one on his own phone can see whether he is
+adding your team or somebody else's — a merge that mixes two squads says so
+rather than quietly stirring their roster into yours. It cannot fetch anything;
+nothing here can. And a bunker call can belong to one player instead of the
+team: his word shows on his card and never on the field, where five people are
+reading the same picture.
+
+**The fields this app carries.** Nexus lists every one with its bunker count and
+where its map was read from, marks the one you are on, and switches to another.
+
+**Where the point was decided.** Outs on the Scout field: an X on every bunker a
+man was shot at, heavier the more often it happened, and a ring around the ones
+that traded both ways — we lost men behind that paint and so did they. That is a
+gunfight, and it is the thing worth having off a field drawing rather than a
+table. Counted straight off the tally, on this layout; a bunker nobody has been
+shot at carries no mark.
+
+**Smooth.** Corners are rounded because a man does not turn on a dime and a
+mitre reads as an instruction to stop and pivot. Turn it off and the legs are
+drawn as routed, which is what you want when you have dragged a corner to a foot
+off a bunker. The plants, the timing and where each man ends up are the same
+either way — it is the drawing, not the run.
+
 **House rules.** The banned name appears nowhere in the product; the control is
 Shot lanes. The training-aid line is on Playbook and Scout. No auto tutorial.
 No invented official scores — a team nobody has scored reads as a dash.
@@ -140,6 +188,16 @@ dark ground rather than turf. `CLAUDE.md` is the newer instruction and wins.
 `layouts/bunkers.json`, measured once off the clean Midwest 2D, because a
 bunker type is one inflatable — see `docs/LAYOUTS.md`.
 
+**No event feed.** The spec wants an optional HTTPS feed URL so a schedule can
+arrive on its own. That needs a network, and this app makes no network request
+at all — which is also why nobody can change what it says from the outside. A
+field ships with a release, measured off that event's own official 2D map, and
+Nexus says so rather than leaving a dead box on screen.
+
+**How to anticipate.** The spec puts it behind a menu. It is its own sub-tab
+under Scout instead, because it is a screen you read rather than a thing you
+pick.
+
 **QR.** The encoder is written, hand-rolled because the app has no network, and
 pinned in the suite against a matrix an outside decoder verified. Nothing draws
 one on a class card yet, on purpose: a scan opens the app to a session that
@@ -148,22 +206,11 @@ created them. It ships the day a session can be reached from another device.
 
 ## Not built
 
-Ordered by what a coach would miss first.
+Nothing on the spec's list is unbuilt. The one thing it asks for that this app
+will not do is above, under Differs — an event feed needs a network, and this
+app makes no network request at all.
 
-1. **Tablet side rail.** A large screen gets one centred column with the field
-   at 860 px, not a rail. Every destination is reachable; it is the phone
-   layout, well behaved.
-2. **Blast group picker.** A blast goes to every member of every group. The
-   spec wants Ops and Refs without Registration and Vendors.
-3. **Class detail.** Title only. No notes, no start time, no open / close
-   toggle, no share sheet on the class itself.
-4. **Division board search, and long-press for the left pit.** Tap loads the
-   right pit; that is all.
-5. **Team join code and per-player bunker nicknames.** Bunker calls are per
-   team, not per player, and there is no code to join a team.
-6. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
-    Nexus shows the event you are on.
-7. **Gunfight rings and X-for-out on the Scout field**, and the "How to
-    anticipate" menu as a menu. Anticipate is its own sub-tab instead.
-8. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
-    Catmull–Rom alternative.
+The list that used to sit here — the tablet rail, the blast group picker, class
+detail, division search and long-press, the team code and per-player calls, the
+Nexus event list, gunfight rings and X-for-out, and the Smooth chip — is now in
+**Built**, above.

@@ -2125,6 +2125,201 @@ const ROSTER = [
     return true;
   });
 
+  /* -------------------------------------------- the rest of the spec gaps */
+  // Eight things the coverage doc listed as not built. Each is checked for the
+  // thing it is actually for, not for the string that names it.
+  G("Closing the gaps");
+
+  // --- who a blast goes to ---
+  await seed({ tab: "more", more: "league", role: "staff",
+    groups: [{id:"g1", name:"Ops",  members:[{name:"Ann", phone:"1"},{name:"Bo", phone:"2"}]},
+             {id:"g2", name:"Refs", members:[{name:"Cy",  phone:"3"}]},
+             {id:"g3", name:"Vendors", members:[{name:"Dee"}]}],
+    blastTo: undefined, blastBody: "Gate opens 8:00", blasts: [] });
+  check("a blast starts addressed to every group", await ev(() => blastTo().length === 3));
+  check("only people you can reach are counted", await ev(() => blastCount() === 3));
+  check("dropping a group drops its people", await ev(() => {
+    window.toggleBlastGroup("g2");
+    return !blastPicked("g2") && blastCount() === 2;
+  }));
+  // The log names who you addressed and counts who could actually be reached,
+  // which are not the same number: Vendors is picked and has nobody with a
+  // contact on file, so it is in the line and adds nothing to the count.
+  check("a blast goes to the groups you picked, and says which", await ev(() => {
+    window.prompt = () => {};
+    window.sendBlast();
+    const b = S.blasts[0];
+    return b && b.n === 2 && b.to === "Ops, Vendors" && !/Refs/.test(b.to);
+  }));
+  check("no group picked is no send, not everybody", await ev(() => {
+    ["g1","g3"].forEach(id => window.toggleBlastGroup(id));
+    const before = S.blasts.length;
+    let said = ""; window.alert = m => { said = m; };
+    window.sendBlast();
+    return S.blasts.length === before && /group/i.test(said);
+  }));
+  check("deleting a group takes it out of the picked set", await ev(() => {
+    window.toggleBlastGroup("g1");
+    window.delGroup("g1");
+    return !blastTo().includes("g1");
+  }));
+
+  // --- a class is a session, not a title ---
+  await seed({ tab: "more", more: "classes", role: "staff",
+    classes: [{id:"GL-AAAA", code:"GL-AAAA", title:"Tuesday clinic", open:true, when:"", notes:""}],
+    responses: [], joinCode: "" });
+  check("a class carries a start time and notes", await ev(() => {
+    window.setClass("GL-AAAA", "when", "2026-10-03T09:00");
+    window.setClass("GL-AAAA", "notes", "Meet at the pit gate");
+    const c = S.classes[0];
+    return c.when === "2026-10-03T09:00" && c.notes === "Meet at the pit gate";
+  }));
+  check("closing sign-ins takes the form away, not just the tag", await ev(() => {
+    window.set({ joinCode: "GL-AAAA" });
+    const open = !!document.getElementById("fn");
+    window.setClass("GL-AAAA", "open", false);
+    window.set({ joinCode: "GL-AAAA" });
+    const shut = !document.getElementById("fn")
+              && /closed/i.test(document.getElementById("root").textContent);
+    window.setClass("GL-AAAA", "open", true);
+    return open && shut;
+  }));
+  check("sharing a class carries the code, the time and the notes", await ev(() => {
+    let out = ""; window.prompt = (_, t) => { out = t; return null; };
+    delete window.gridlockShare;
+    window.shareClass("GL-AAAA");
+    return out.includes("GL-AAAA") && out.includes("Tuesday clinic")
+        && out.includes("Meet at the pit gate") && /Starts/.test(out);
+  }));
+
+  // --- the division board ---
+  await seed({ tab: "scout", scoutTab: "board", division: "cin",
+               left: { name: "Blast Camp" }, right: { name: "Rejects" } });
+  check("the board can be narrowed to one team", await ev(() => {
+    const rows = () => [...document.querySelectorAll("#boardRows tr")];
+    const all = rows().length;
+    window.findTeam(rows()[0].children[1].textContent.slice(0, 4));
+    const some = rows().filter(r => !r.hidden).length;
+    window.findTeam("");
+    return all > 2 && some >= 1 && some < all && rows().filter(r => !r.hidden).length === all;
+  }));
+  check("a tap loads the right pit, a hold loads the left", await ev(async () => {
+    const name = teamsHere()[1].name;
+    window.pressTeam(name); window.releaseTeam(name);       // a tap
+    const right = S.right.name === name;
+    const other = teamsHere()[2].name;
+    window.pressTeam(other);
+    await new Promise(r => setTimeout(r, 600));             // held
+    const left = S.left.name === other;
+    window.releaseTeam(other);
+    return right && left && S.right.name === name;          // the hold did not also tap
+  }));
+
+  // --- the squad, and what one man calls a bunker ---
+  await seed({ tab: "more", more: "team", layoutKey: "lso" });
+  check("the squad has a code, and it keeps it", await ev(() => {
+    const a = squadCode();
+    return /^SQ-[A-Z0-9]{4}$/.test(a) && squadCode() === a && S.teamCode === a;
+  }));
+  check("a squad copy carries the code", await ev(() =>
+    JSON.parse(copyPayload("squad")).data.teamCode === S.teamCode));
+  check("merging another squad's copy says so and keeps your code", await ev(() => {
+    const mine = S.teamCode;
+    const theirs = JSON.parse(copyPayload("squad"));
+    theirs.data.teamCode = "SQ-ZZZZ";
+    theirs.data.roster = [{ num: "9", name: "Someone Else" }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(theirs);
+    window.loadCopy("merge");
+    return S.teamCode === mine && /SQ-ZZZZ/.test(S.copyStatus);
+  }));
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake" });
+  check("one player's word for a bunker is his alone", await ev(() => {
+    const b = curLayout().bunkers.find(x => x.n === "GP");
+    const who = S.roster[0].name;
+    window.setPlayerCall(who, b.id, "Nest");
+    const his = callOf(b, who) === "Nest";
+    const team = callOf(b) === b.n;                 // the field keeps the code
+    window.setCall && 0;
+    return his && team;
+  }));
+  check("his card uses his word, the field does not", await ev(() => {
+    const five = fiveFor(1);
+    const p = currentPaths()[0];
+    const b = curLayout().bunkers.find(x => x.id === p.bunker);
+    window.setPlayerCall(five[0].name, b.id, "Doghouse");
+    const card = cardLines()[0].bunker === "Doghouse";
+    window.set({ tab: "playbook" });
+    const field = !/Doghouse/.test(document.querySelector("svg.field").textContent);
+    return card && field;
+  }));
+
+  // --- the fields this app carries ---
+  await seed({ tab: "more", more: "nexus" });
+  check("Nexus lists every field and marks the one you are on", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return Object.values(LAYOUTS).every(L => t.includes(L.name)) && /\bON\b/.test(t);
+  }));
+  check("picking a field on Nexus changes the layout everywhere", await ev(() => {
+    const other = Object.keys(LAYOUTS).find(k => k !== S.layoutKey);
+    window.pickEvent(other);
+    window.set({ tab: "playbook" });
+    return S.layoutKey === other
+        && document.getElementById("root").textContent.includes(LAYOUTS[other].name);
+  }));
+  check("Nexus says there is no feed rather than leaving a dead box", await ev(() => {
+    window.set({ tab: "more", more: "nexus" });
+    return /no event feed/i.test(document.getElementById("root").textContent);
+  }));
+
+  // --- where the point was decided ---
+  await seed({ tab: "scout", scoutTab: "matchup", layoutKey: "lso", outsOn: false });
+  check("with nothing tallied the field carries no marks", await ev(() => {
+    window.set({ outsOn: true });
+    const svg = document.querySelector("svg.field").outerHTML;
+    return !/#ffb020/.test(svg) && /No outs logged/.test(document.getElementById("root").textContent);
+  }));
+  check("an X lands on the bunker a man was shot at", await ev(() => {
+    const gp = curLayout().bunkers.find(b => b.n === "GP").id;
+    S.tally = [{ pt:1, side:"us", name:"A", layout:"lso", shotAt:gp }];
+    window.set({ outsOn: true });
+    const marks = [...document.querySelectorAll("svg.field path[stroke='#efedeb']")];
+    return marks.some(m => /M[\d.]+ [\d.]+L[\d.]+ [\d.]+M/.test(m.getAttribute("d")));
+  }));
+  check("a ring only appears where it went both ways", await ev(() => {
+    const gp = curLayout().bunkers.find(b => b.n === "GP").id;
+    const one = document.querySelector("svg.field").outerHTML;
+    S.tally = [...S.tally, { pt:1, side:"them", name:"B", layout:"lso", shotAt:gp }];
+    window.set({ outsOn: true });
+    const two = document.querySelector("svg.field").outerHTML;
+    return !/#ffb020/.test(one) && /#ffb020/.test(two);
+  }));
+  check("an out on another field does not mark this one", await ev(() => {
+    S.tally = [{ pt:1, side:"us", name:"A", layout:"tby",
+                 shotAt:LAYOUTS.tby.bunkers[0].id }];
+    window.set({ outsOn: true });
+    return !/stroke="#efedeb"/.test(document.querySelector("svg.field").outerHTML);
+  }));
+
+  // --- rounded, or as routed ---
+  await seed({ tab: "playbook", layoutKey: "lso", script: "base", smoothOn: true });
+  check("Smooth is on, and the corners are curves", await ev(() => {
+    const d = document.querySelector("svg.field g.live path").getAttribute("d");
+    return S.smoothOn !== false && d.includes("Q");
+  }));
+  check("turning it off draws the legs as routed", await ev(() => {
+    window.setSmooth(false);
+    const ds = [...document.querySelectorAll("svg.field g.live path")]
+      .map(p => p.getAttribute("d"));
+    return !ds.some(d => d.includes("Q")) && ds.some(d => d.includes("L"));
+  }));
+  check("the plants do not move when the drawing changes", await ev(() => {
+    const straight = currentPaths().map(p => p.bunker + "@" + p.to.join(","));
+    window.setSmooth(true);
+    const curved = currentPaths().map(p => p.bunker + "@" + p.to.join(","));
+    return straight.join("|") === curved.join("|");
+  }));
+
   /* ------------------------------------------------------------ house rules */
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
