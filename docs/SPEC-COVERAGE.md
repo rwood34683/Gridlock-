@@ -70,6 +70,26 @@ much less ground he has to cover — about half that difference, capped at a
 quarter of the break, because a man stood still while the point is on reads as
 a mistake rather than a plan.
 
+**Cards, Opp and Rep.** The last three chips the spec puts on Playbook.
+
+*Cards* is one card a man — his number and name, the bunker in big type, the
+wire he is on, Primary or Secondary, which way he faces and what he lanes, in
+words rather than glyphs. Share the five puts the same text in the squad chat.
+
+*Opp* is the opponent library, on Scout → Counter: your own answer to each of
+their twelve calls, written against the team rather than the pit so it follows
+them in and out of the slot. The calls you have actually logged them running
+sort to the top, and Playbook shows the answer beside the call with a button to
+make it. It is the coach's line, not the picker's — the ranking above it is a
+heuristic and says so.
+
+*Rep* is the recognition drill: the field draws one of the twelve and nothing
+on screen says which — no call card, and a header that reads Name the call
+instead of naming it. The clock runs from the moment it is up to the moment he
+taps one of the twelve. Right, average and best, and a verdict at two seconds.
+The call he was on is put back when he stops, because a drill must not quietly
+change what he is about to call.
+
 **Tally.** Point number, your five and theirs, out or alive, how he went out,
 who got him, shot-at bunker and moved-to bunker, feeding Bunker stats.
 
@@ -130,23 +150,20 @@ created them. It ships the day a session can be reached from another device.
 
 Ordered by what a coach would miss first.
 
-1. **Cards, Opp and Rep.** Assignment cards to read off or share; an opponent
-   library keyed "they run X, we run Y"; the recognition drill that runs the
-   break at the coach until the call is under two seconds.
-2. **Tablet side rail.** A large screen gets one centred column with the field
+1. **Tablet side rail.** A large screen gets one centred column with the field
    at 860 px, not a rail. Every destination is reachable; it is the phone
    layout, well behaved.
-3. **Blast group picker.** A blast goes to every member of every group. The
+2. **Blast group picker.** A blast goes to every member of every group. The
    spec wants Ops and Refs without Registration and Vendors.
-4. **Class detail.** Title only. No notes, no start time, no open / close
+3. **Class detail.** Title only. No notes, no start time, no open / close
    toggle, no share sheet on the class itself.
-5. **Division board search, and long-press for the left pit.** Tap loads the
+4. **Division board search, and long-press for the left pit.** Tap loads the
    right pit; that is all.
-6. **Team join code and per-player bunker nicknames.** Bunker calls are per
+5. **Team join code and per-player bunker nicknames.** Bunker calls are per
    team, not per player, and there is no code to join a team.
-7. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
+6. **Nexus event feed.** No optional HTTPS event feed URL and no event list —
     Nexus shows the event you are on.
-8. **Gunfight rings and X-for-out on the Scout field**, and the "How to
+7. **Gunfight rings and X-for-out on the Scout field**, and the "How to
     anticipate" menu as a menu. Anticipate is its own sub-tab instead.
-9. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
+8. **The Smooth chip.** Paths are always smoothed; there is no toggle, and no
     Catmull–Rom alternative.

@@ -97,11 +97,16 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    and counts how predictable you have been on this field, warning when one
    call is half of your last ten; and the five leave in order now, the longest
    run on the buzzer and the short ones holding.
-10. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
+10. ~~Cards, Opp and Rep.~~ Done — Cards is one card a man with a Share the
+    five; Opp is the opponent library on Scout → Counter, your answer to each
+    of their calls stored against the team and shown beside the call on
+    Playbook; Rep is the recognition drill, the field drawing one of the twelve
+    with nothing naming it and a clock that holds you to two seconds.
+11. Close the rest of the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
     `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
-    is deliberately different and what is missing. Top of that list now: Cards /
-    Opp / Rep, then the tablet side rail and the blast group picker.
-11. Bring iOS SwiftUI up to web parity, then Android Compose.
+    is deliberately different and what is missing. Top of that list now: the
+    tablet side rail, the blast group picker and class detail.
+12. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 
@@ -123,3 +128,8 @@ User, Team, Player, Event, Layout/Bunker, PathEdit, TallyEntry, ScoutEntry, Scou
 - Hand-edit `BREAK_PLANTS`. Run `node tools/plants.js --write`; the suite fails
   if the app and the rule disagree.
 - Open the tutorial on launch.
+- Assert what is on screen with `document.body.textContent`. The whole app
+  sits in a `<script>` inside `<body>`, so that matches any string literal in
+  the source and passes whether or not anything rendered. Read
+  `document.getElementById("root")` instead. Twelve checks were written that
+  way and one of them was a false positive.

@@ -216,7 +216,7 @@ const ROSTER = [
   check("marking out logs an entry", await ev(() => S.tally.length === 2));
   await ev(() => window.markOut("us", "Reyes"));
   check("the same player cannot go out twice in a point", await ev(() => S.tally.length === 2));
-  check("alive counts drop", await ev(() => document.body.textContent.includes("4")));
+  check("alive counts drop", await ev(() => document.getElementById("root").textContent.includes("4")));
   await ev(() => { window.setOutBunker(0, "shotAt", "SB#6"); window.setOutBunker(0, "movedTo", "GP#1"); });
   check("shot-at bunker attaches to an out", await ev(() => S.tally[0].shotAt === "SB#6"));
   check("moved-to bunker attaches to an out", await ev(() => S.tally[0].movedTo === "GP#1"));
@@ -265,7 +265,15 @@ const ROSTER = [
     const svg = fieldSVG({ both: true }); return svg.includes("#e5342f") && svg.includes("#3d8bff");
   }));
   check("the not-a-prediction line is on Scout", await ev(() => {
-    window.set({ scoutTab: "matchup" }); return document.body.textContent.includes("not a prediction");
+    // On Scout itself, above the sub-tabs, so it is on screen whichever one is
+    // open. Checked against the rendered app: the whole source sits in a script
+    // tag inside body, so document.body.textContent matches any string literal
+    // in it and says nothing about what a coach can see.
+    return SCOUT_TABS.every(([k]) => {
+      window.set({ scoutTab: k });
+      const aid = [...document.querySelectorAll("#root .aid")];
+      return aid.some(el => /not a prediction/i.test(el.textContent));
+    });
   }));
 
   /* ------------------------------------------------------------- sightlines */
@@ -1267,7 +1275,7 @@ const ROSTER = [
                                  && t.tend === undefined && t.threat === undefined)));
   check("the board shows the provenance beside each team", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", division: "pro" });
-    const t = document.body.textContent;
+    const t = document.getElementById("root").textContent;
     return t.includes("Read from") && t.includes("LEAGUE") && t.includes("EVENT");
   }));
   check("a team can be added to a division", await ev(() => {
@@ -1744,6 +1752,89 @@ const ROSTER = [
     return before !== JSON.stringify(currentPaths().map(p => p.to));
   }));
 
+  /* ------------------------------------------------ cards, opp and rep */
+  // The last three chips the spec puts on Playbook.
+  G("Cards, Opp and Rep");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake", pbView: null,
+               point: 1, rep: { running: false, log: [] } });
+  check("cards name the man, the bunker and the job", await ev(() => {
+    const c = cardLines();
+    return c.length === 5 && c.every(x => x.bunker && x.job && x.role && x.face && x.shot)
+        && c[0].who && c[0].who.name;
+  }));
+  check("a card says the lane he was given, in words", await ev(() => {
+    window.setDirect("1", "shot", "@-90");
+    window.setDirect("2", "face", 45);
+    const c = cardLines();
+    return c[0].shot === LANE_NAME["-90"] && c[1].face === LANE_NAME["45"];
+  }));
+  check("Cards opens on Playbook and goes back", await ev(() => {
+    window.set({ pbView: "cards" });
+    const on = document.getElementById("root").textContent.includes("One card a man");
+    window.set({ pbView: null });
+    return on && !document.getElementById("root").textContent.includes("One card a man");
+  }));
+
+  check("an answer to their call is written against the team", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter", right: { name: "Rejects" } });
+    window.setAnswer("right", "snake", "flood");
+    const kept = S.scout["Rejects"].answers.snake === "flood";
+    window.setPitTeam("right", "Blast Camp");
+    const gone = !answersFor("right").snake;          // it belongs to the Rejects
+    window.setPitTeam("right", "Rejects");
+    return kept && gone && answersFor("right").snake === "flood";
+  }));
+  check("Playbook shows the answer for the call they run most", await ev(() => {
+    window.logTheirBreak("right", "snake");
+    window.logTheirBreak("right", "snake");
+    const a = oppAnswer("right");
+    window.set({ tab: "playbook", script: "hold" });
+    return a.theirs === "snake" && a.ours === "flood" && a.seen === 2
+        && document.getElementById("root").textContent.includes("You wrote down");
+  }));
+  check("an answer can be taken back off", await ev(() => {
+    window.setAnswer("right", "snake", "");
+    return !oppAnswer("right");
+  }));
+
+  check("the drill shows a break and does not name it", await ev(() => {
+    window.set({ tab: "playbook" });
+    window.startRep();
+    const t = document.getElementById("root").textContent;
+    return S.rep.running && S.pbView === "rep" && !!S.rep.ask
+        && S.script === S.rep.ask
+        && t.includes("Name the call")
+        // The twelve names are on screen as the answers. What must not be is
+        // anything saying which one it is: no call card, and a header that
+        // does not name the break it is drawing.
+        && !document.querySelector("#root .call__name")
+        && !document.querySelector("#root .ctx__line").textContent.includes(BREAKS[S.rep.ask].name);
+  }));
+  check("it times the answer and says whether it was right", await ev(() => {
+    const ask = S.rep.ask;
+    window.answerRep(ask);
+    const first = S.rep.log[0];
+    return first.right === true && first.ask === ask && first.ms >= 0
+        && S.rep.ask !== ask;                          // it moves on
+  }));
+  check("a wrong call is recorded as wrong", await ev(() => {
+    const ask = S.rep.ask;
+    const other = Object.keys(BREAKS).find(k => k !== ask);
+    window.answerRep(other);
+    return S.rep.log[0].right === false && S.rep.log[0].said === other;
+  }));
+  check("stopping the drill puts the call you were on back", await ev(() => {
+    const was = S.rep.was;
+    window.stopRep();
+    return S.script === was && S.pbView === null && S.rep.running === false;
+  }));
+  check("the score counts only the ones you got right", await ev(() => {
+    const sc = repScore();
+    return sc.n === 2 && sc.right === 1 && sc.avg >= 0 && sc.best >= 0;
+  }));
+  check("two seconds is the target it holds you to", await ev(() =>
+    REP_TARGET === 2000));
+
   /* ------------------------------------------------------ log the call */
   // The spec's Log break chip, and the read it exists for: how predictable you
   // have been. Counted off the calls a coach pressed the button on, never
@@ -1751,7 +1842,7 @@ const ROSTER = [
   G("Log the call");
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", calls: [] });
   check("nothing is logged until you log it", await ev(() =>
-    selfScout().n === 0 && document.body.textContent.includes("Nothing logged on")));
+    selfScout().n === 0 && document.getElementById("root").textContent.includes("Nothing logged on")));
   check("logging the call records the field, the point and who you were on", await ev(() => {
     window.set({ point: 3 });
     window.logCall();
@@ -1774,7 +1865,7 @@ const ROSTER = [
     window.set({ script: "snake" });
     for (let i = 0; i < 3; i++) window.logCall();
     const ss = selfScout();
-    return ss.tell >= 0.5 && document.body.textContent.includes("Anyone filming you has that too");
+    return ss.tell >= 0.5 && document.getElementById("root").textContent.includes("Anyone filming you has that too");
   }));
   check("a logged call can be taken back", await ev(() => {
     const before = selfScout().n;
@@ -1851,7 +1942,7 @@ const ROSTER = [
   // so is the point — the key lists the pack, not the field.
   check("the key says which of its codes this field does not use", await ev(() => {
     window.set({ tab: "more", more: "codes" });
-    const t = document.body.textContent;
+    const t = document.getElementById("root").textContent;
     return t.includes("Tall Cake") && t.includes("not on this field")
         && t.includes("Maya Temple") && t.includes("Snake Beam");
   }));
@@ -2038,8 +2129,8 @@ const ROSTER = [
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
-  check("the control is called Shot lanes", await ev(() => { window.set({ tab: "playbook" }); return document.body.textContent.includes("Shot lanes"); }));
-  check("the UPRA mark is on screen", await ev(() => document.body.textContent.includes("powered by UPRA")));
+  check("the control is called Shot lanes", await ev(() => { window.set({ tab: "playbook" }); return document.getElementById("root").textContent.includes("Shot lanes"); }));
+  check("the UPRA mark is on screen", await ev(() => document.getElementById("root").textContent.includes("powered by UPRA")));
 
   /* ------------------------------------------------------------------ report */
   const pad = (s, n) => String(s).padEnd(n);
