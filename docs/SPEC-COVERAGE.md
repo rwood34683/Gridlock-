@@ -178,6 +178,12 @@ drawn as routed, which is what you want when you have dragged a corner to a foot
 off a bunker. The plants, the timing and where each man ends up are the same
 either way — it is the drawing, not the run.
 
+**The screen stays awake.** A coach makes the call, puts the phone down, and
+picks it up on the buzzer — locked. The Screen Wake Lock API rather than a
+plugin, so the phone app and the browser behave the same; the system releases it
+whenever the app stops being visible, so it costs nothing in a pocket. A switch
+on Nexus, on by default, shown only where the phone can do it.
+
 **House rules.** The banned name appears nowhere in the product; the control is
 Shot lanes. The training-aid line is on Playbook and Scout. No auto tutorial.
 No invented official scores — a team nobody has scored reads as a dash.
