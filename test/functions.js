@@ -1751,6 +1751,32 @@ const ROSTER = [
     return document.querySelectorAll("svg.field circle[stroke-dasharray]").length === 0;
   }));
 
+  // The spec asks for a shot that can be a lane as well as a named bunker: a
+  // man told to hold a gap is not aiming at anything.
+  check("a shot can be a lane with no bunker named", await ev(() => {
+    window.set({ tab: "playbook" });
+    window.setDirect("2", "shot", "@45");
+    const wedges = document.querySelectorAll("svg.field polygon[fill='#fff']").length;
+    // A lane draws the wedge and no ring, because there is no bunker to ring.
+    return shotLane("@45") === 45 && wedges === 5
+        && document.querySelectorAll("svg.field circle[stroke-dasharray]").length === 0;
+  }));
+  check("straight up the field is a lane like any other", await ev(() => {
+    // Zero degrees is falsy. The chip read "Shot" as though nothing was set.
+    window.setDirect("2", "shot", "@0");
+    window.set({ pad: null });
+    const chip = [...document.querySelectorAll(".assign .tgl")].filter(b => b.classList.contains("on"));
+    return shotLane("@0") === 0 && chip.some(b => b.textContent.trim() === "\u2192");
+  }));
+  check("the picker offers the eight lanes and every bunker", await ev(() => {
+    window.openPad("shot", "2");
+    const s = document.querySelector(".assign select");
+    const groups = [...s.querySelectorAll("optgroup")];
+    return groups.length === 2
+        && groups[0].children.length === 8
+        && groups[1].children.length === LAYOUTS[S.layoutKey].bunkers.length;
+  }));
+
   /* ------------------------------------------------ one bunker, one size */
   // A medium dorito is the same inflatable in Garland that it was in
   // Cincinnati. Read off each map it comes back a different size, because the

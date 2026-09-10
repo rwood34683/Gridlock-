@@ -1774,6 +1774,16 @@ const FACE_PAD = [
   ["\u2199",  135], ["\u2193",  90], ["\u2198",  45]
 ];
 const FACE_GLYPH = Object.fromEntries(FACE_PAD.filter(f => f[1] !== null).map(f => [f[1], f[0]]));
+// What each of the eight is called on a field, so the picker reads like a
+// coach talks rather than like a compass.
+const LANE_NAME = {"-135":"back toward the dorito tape", "-90":"the dorito tape",
+  "-45":"up-field, dorito side", "180":"back down the field", "0":"straight up the field",
+  "135":"back toward the snake", "90":"the snake tape", "45":"up-field, snake side"};
+// A shot is either a bunker on this field or a lane the coach pointed. A lane
+// is stored as "@<degrees>" so one field holds both and nothing else changes.
+function shotLane(v){
+  return (typeof v === "string" && v[0] === "@") ? Number(v.slice(1)) : null;
+}
 
 function bunkerTraffic(keep){
   // Bunker ids belong to a layout, so traffic logged on one field must not
@@ -2067,7 +2077,13 @@ function fieldSVG(opts={}, runnersOnly){
 
     if(S.shotOn){
       let ang = travel, len = 26, mark = "";
-      if(d.shot){
+      const lane = shotLane(d.shot);
+      if(lane !== null){
+        // A lane the coach pointed, with no bunker named. The spec asks for
+        // this as well as a target: a man can be told to hold a gap.
+        ang = lane * Math.PI / 180;
+        len = 34;
+      } else if(d.shot){
         const tb = layout.bunkers.find(x=>x.id===d.shot);
         if(tb){
           const tx=tb.x*sx, ty=tb.y*sy;
@@ -2093,7 +2109,8 @@ function fieldSVG(opts={}, runnersOnly){
       // the difference between "he is covering this" and "he is laning that".
       const sp=0.22, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
       const tip=P(0,len).split(",");
-      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity="${d.shot?".22":".3"}" stroke="#000" stroke-width=".8" stroke-opacity=".5"/>`;
+      const named = !!d.shot && lane === null;
+      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity="${named?".22":".3"}" stroke="#000" stroke-width=".8" stroke-opacity=".5"/>`;
       if(d.shot) out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>`
            + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
       out += mark;
@@ -2586,7 +2603,7 @@ function playbook(){
       ${currentPaths().map((pth,i)=>{
         const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
         const bl=curLayout().bunkers;
-        const shotB=d.shot?bl.find(b=>b.id===d.shot):null;
+        const shotB=d.shot?bl.find(b=>b.id===d.shot):null;   // null when it is a lane
         const role=d.role||"P";
         const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
         return `<div class="assign" style="flex-wrap:wrap">
@@ -2601,7 +2618,7 @@ function playbook(){
               <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
-            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?FACE_GLYPH[shotLane(d.shot)]:shotB?esc(callOf(shotB)):"Shot"}</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
@@ -2611,12 +2628,19 @@ function playbook(){
           ${openShot?`<div style="flex-basis:100%">
             <select onchange="setDirect('${pth.id}','shot',this.value)">
               <option value="">Lane he is running — no fixed target</option>
-              ${bl.map(b=>`<option value="${esc(b.id)}" ${d.shot===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+              <optgroup label="A lane, no bunker named">
+                ${FACE_PAD.filter(f=>f[1]!==null).map(([g,deg])=>
+                  `<option value="@${deg}" ${d.shot===("@"+deg)?"selected":""}>${g} ${esc(LANE_NAME[deg])}</option>`).join("")}
+              </optgroup>
+              <optgroup label="A bunker on this field">
+                ${bl.map(b=>`<option value="${esc(b.id)}" ${d.shot===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+              </optgroup>
             </select></div>`:""}
         </div>`;
       }).join("")}
     </div>
-    <p class="note">Face sets which way he points. Shot picks the bunker he lanes. Both travel with him down the path.</p>
+    <p class="note">Face sets which way he points. Shot is the bunker he lanes, or a lane
+      with no bunker named — a gap he holds. Both travel with him down the path.</p>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}`;
 }
 

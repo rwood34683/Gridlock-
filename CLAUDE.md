@@ -85,7 +85,12 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    `layouts/bunkers.json`, measured once off the clean high-resolution Midwest
    2D, because one bunker type is one inflatable; positions still come from each
    event's own map. Every bunker keeps what its map drew alongside.
-8. Bring iOS SwiftUI up to web parity, then Android Compose.
+8. Close the gaps against the spec. `docs/SPEC-COVERAGE.md` walks
+   `docs/GRIDLOCK-OVERSKILL-SPEC.md` line by line and says what is built, what
+   is deliberately different and what is missing. Top of that list: seven of
+   the twelve breaks, Log break, staggered starts off the buzzer, and Cards /
+   Opp / Rep.
+9. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (persist in localStorage for web; SwiftData/Room later)
 
