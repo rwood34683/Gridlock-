@@ -2125,6 +2125,70 @@ const ROSTER = [
     return true;
   });
 
+  /* ------------------------------------------------- nobody in the pit yet */
+  // The app used to ship with two real teams already in the pits, and pitOf()
+  // fell back to the first team of the division, so there was no way to be
+  // between opponents. A coach who never picked anyone saw two strangers on
+  // five tabs, and every out he tallied was stamped with a team he had never
+  // played.
+  G("Nobody in the pit yet");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(200);
+  await ev(() => window.set({ entered: true, role: "staff",
+    tips: {pb:1, tally:1, scout:1, sl:1, class:1, lg:1} }));
+
+  check("a fresh app has nobody in either pit", await ev(() =>
+    !pitNamed("left") && !pitNamed("right") && !pitOf("right").named));
+  check("and does not name one anyway", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return !/Blast Camp|Rejects/.test(t);
+  }));
+  check("Playbook asks instead of reading a team you did not pick", await ev(() => {
+    window.set({ tab: "playbook" });
+    const t = document.getElementById("root").textContent;
+    return /right pit on Scout/.test(t) && !/Rejects/.test(t);
+  }));
+  check("the point sheet says Them", await ev(() => {
+    window.set({ tab: "tally" });
+    const t = document.getElementById("root").textContent;
+    return /THEM/i.test(t) && !/Rejects/.test(t);
+  }));
+  check("the opening sheet has no opponent rather than a guess", await ev(() =>
+    curMatch().vs === "" && matchVs() === ""));
+  check("a new match refuses to invent one", await ev(() => {
+    let said = ""; window.alert = m => { said = m; };
+    const before = S.matches.length;
+    window.newMatch();
+    return S.matches.length === before && /right pit/i.test(said) && S.tab === "scout";
+  }));
+  check("Scout's reads wait for a team, but Division does not", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter" });
+    const asks = /Who are you playing/.test(document.getElementById("root").textContent);
+    window.set({ scoutTab: "board" });
+    const board = document.getElementById("root").textContent.includes("Scout board");
+    return asks && board;
+  }));
+
+  check("naming the right pit names the sheet you have not started", await ev(() => {
+    window.setPitTeam("right", "Rejects");
+    return matchVs() === "Rejects" && curMatch().vs === "Rejects";
+  }));
+  check("...and an out is then logged against the team you chose", await ev(() => {
+    window.set({ tab: "tally" });
+    window.markOut("us", "1");
+    return rowsHere(S.tally)[0].vs === "Rejects";
+  }));
+  check("...but naming it does not rewrite a sheet already played", await ev(() => {
+    const was = curMatch().vs;
+    window.setPitTeam("right", "Malicious");
+    return curMatch().vs === was && rowsHere(S.tally)[0].vs === was;
+  }));
+  check("a pit can be emptied again", await ev(() => {
+    window.setPitTeam("right", "");
+    return !pitNamed("right") && curMatch().vs === "Rejects";   // the sheet keeps its own
+  }));
+
   /* --------------------------------------------------------------- matches */
   // A point number only means something inside a match. These check the two
   // halves of that: that the boundary works, and that a season logged before

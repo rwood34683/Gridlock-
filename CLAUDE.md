@@ -159,6 +159,11 @@ its id in `m`. Point numbers are per match and start at one. Lineups are keyed
 - Open the tutorial on launch.
 - Log a row on a sideline without stamping `m: S.matchId`, or key anything by
   point number alone. Point 3 exists in every match ever played.
+- Put a team in a pit the coach did not pick. Both pits start empty and
+  `pitOf()` returns no name, because the app shipped with two real teams already
+  loaded and every out a coach tallied was stamped with a team he had never
+  played. `pitNamed(side)` is what to branch on; a match refuses to start
+  without an opponent.
 - Let a write to storage throw out of `save()`. It escapes through `set()`
   before `render()` and the screen freezes mid-tap saying nothing.
 - Tell the browser build it has a durable second copy. It does not — only the

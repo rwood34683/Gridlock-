@@ -1147,8 +1147,9 @@ const defaultState = () => ({
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false,
-  left:{name:"Blast Camp"},        // which team is in the pit; what you know
-  right:{name:"Rejects"},          // about them lives in scout[], keyed by team
+  // Empty, because the app does not know who you are playing. What you learn
+  // about whoever you put here lives in scout[], keyed by team.
+  left:{}, right:{},
   scout:{},                        // team -> {tend, threat, notes, players[]}
   matchState:"Even",
   // A match is what makes a point number mean anything. Without one, "point 3"
@@ -1324,7 +1325,8 @@ function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || n
 function matchLabel(m){
   if(!m) return "";
   const d = new Date(m.at);
-  return `vs ${m.vs || "—"} · ${d.toLocaleDateString([], {month:"short", day:"numeric"})}`;
+  const day = d.toLocaleDateString([], {month:"short", day:"numeric"});
+  return m.vs ? `vs ${m.vs} · ${day}` : `No opponent yet · ${day}`;
 }
 // How much is actually recorded against a match, so New match can warn before
 // it walks away from a sheet and Matches can say what is in each one.
@@ -1339,7 +1341,15 @@ function matchSize(id){
  * pit follows him there. What gets stamped on an out has to be who was actually
  * across the tape when it happened, which is the match's own opponent.
  */
-function matchVs(){ const m = curMatch(); return (m && m.vs) || (S.right || {}).name || "—"; }
+function matchVs(){ const m = curMatch(); return (m && m.vs) || ""; }
+// The opening sheet has no opponent until you name one. Naming the right pit
+// while nothing has been logged names it, rather than leaving a coach to work
+// out that he had to start a match before the tally would say who he played.
+function adoptPitAsOpponent(){
+  const m = curMatch();
+  if(!m || m.vs || !pitNamed("right") || matchSize(m.id)) return;
+  S.matches = S.matches.map(x => x.id === m.id ? {...x, vs: S.right.name} : x);
+}
 // This match's rows, out of a season of them.
 const rowsHere = list => (list || []).filter(o => o && typeof o === "object" && o.m === S.matchId);
 
@@ -1392,7 +1402,7 @@ const lineKey = (pt, mid) => `${mid || S.matchId}|${pt}`;
 // every writer would have to check.
 if(!curMatch()){
   const id = newMatchId();
-  S.matches = [{id, at: Date.now(), vs: (S.right || {}).name || "—", layout: S.layoutKey},
+  S.matches = [{id, at: Date.now(), vs: (S.right || {}).name || "", layout: S.layoutKey},
                ...(S.matches || [])];
   S.matchId = id;
   if(!S.point) S.point = 1;
@@ -2664,6 +2674,8 @@ function teamMeta(name){
   return anyTeam(name) || {name};
 }
 function profileOf(name){
+  if(!name) return {tend:"Balanced", threat:3, notes:"", players:[], breaks:[],
+                    answers:{}, unscored:true};
   const kept = (S.scout || {})[name];
   if(kept) return {players:[], breaks:[], answers:{}, ...kept};
   // Seeded where the event data knew; neutral where it did not. A team nobody
@@ -2673,20 +2685,45 @@ function profileOf(name){
           threat: t.threat || 3, notes: "", players: [], breaks: [], answers: {},
           unscored: t.threat === undefined};
 }
+/* Who is in a pit, or nobody.
+ *
+ * This used to fall back to the first team of the division, and the app shipped
+ * with two real teams already in the pits. A coach who never picked anyone saw
+ * two strangers on five tabs — and once a match record existed, every out he
+ * tallied was stamped with a team he had never played. That is invented
+ * opposition written into his season, which is the same thing the pro board is
+ * forbidden from doing.
+ *
+ * So an unset pit has no name. `named` is what callers branch on; the display
+ * name is theirs to choose, because "Them" is right on a point sheet and
+ * "Pick a team" is right on a picker.
+ */
 function pitOf(side){
-  const name = ((S[side] || {}).name) || teamsHere()[0].name;
-  return {name, pts: teamMeta(name).pts, ...profileOf(name)};
+  const name = ((S[side] || {}).name) || "";
+  return {name, named: !!name, pts: name ? teamMeta(name).pts : undefined, ...profileOf(name)};
 }
+const pitNamed = side => !!((S[side] || {}).name);
+// What to print for a pit. Never a team the coach did not pick: the caller says
+// what an empty one reads as, because "Them" is right on a point sheet and
+// "Right pit" is right on a legend.
+const pitName = (side, blank) => ((S[side] || {}).name) || blank;
 function scouted(name){
   const p = (S.scout || {})[name];
   return !!p && (!!(p.notes || "").trim() || (p.players || []).length > 0);
 }
 function editProfile(side, patch){
   const name = pitOf(side).name;
+  // Nobody in the pit means nothing to write against. Without this the scout
+  // book grows an entry keyed on the empty string that no team can ever reach.
+  if(!name) return;
   S.scout = {...(S.scout || {}), [name]: {...profileOf(name), ...patch}};
   save(S);
 }
-window.setPitTeam = (side, name) => { S[side] = {...(S[side] || {}), name}; save(S); render(); };
+window.setPitTeam = (side, name) => {
+  S[side] = {...(S[side] || {}), name: name || ""};
+  if(side === "right") adoptPitAsOpponent();
+  save(S); render();
+};
 window.setPitTend = (side, tend) => { editProfile(side, {tend}); render(); };
 window.setPitNotes = (side, notes) => editProfile(side, {notes: clean(notes)});   // no redraw mid-type
 
@@ -3007,7 +3044,8 @@ function playbook(){
           onclick="set({script:'${ans.ours}',t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
-      <span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>
+      ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
+        :`<span class="vs">Put the other team in the right pit on Scout and the read shows here.</span>`}
     </div>
   </div>
 
@@ -3310,7 +3348,7 @@ function tally(){
       <span class="fact"><b>${outs.length}</b><span>This match</span></span>
     </div>
     <p class="note">Tap a player the moment he goes out.</p>
-    ${(S.right||{}).name && (S.right||{}).name !== matchVs()
+    ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
            <b>${esc(S.right.name)}</b> — scouting them does not move the sheet.</p>
@@ -3320,7 +3358,7 @@ function tally(){
     <div class="who2">
       ${col("us", mine.length?"Your five":"Your five · add them in Team", "var(--red)",
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
-      ${col("them",esc(matchVs()),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+      ${col("them",esc(matchVs()||"Them"),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
     <div class="btnrow">
       ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
@@ -3425,12 +3463,19 @@ window.backPoint = () => { S.point=Math.max(1,(S.point||1)-1); save(S); render()
  * anything in it asks first.
  */
 window.newMatch = () => {
+  // The opponent is stamped on every out this sheet records, so it has to be a
+  // team the coach picked, not whoever the app happened to have in the pit.
+  if(!pitNamed("right")){
+    alert("Put the team you are playing in the right pit on Scout first — "
+        + "every out on this sheet is logged against them.");
+    return set({tab:"scout", scoutTab:"matchup"});
+  }
   const cur = curMatch();
   const n = cur ? matchSize(cur.id) : 0;
   if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
                  + `${n===1?"entry":"entries"} — the point goes back to 1 for the new one.`)) return;
   const id = newMatchId();
-  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "—", layout: S.layoutKey},
+  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey},
                ...(S.matches || [])];
   S.matchId = id; S.point = 1;
   save(S); render();
@@ -3519,8 +3564,16 @@ function outsLogged(){
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
-  const body={matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
-              counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
+  // Every sub-tab but the board reads off the team in the right pit. With
+  // nobody in it there is nothing to say, and saying it about whoever the app
+  // picked is how a coach ends up scouting a team he is not playing. Division
+  // is exempt — it is where you pick one.
+  const body = (!R.named && view !== "board")
+    ? sec("Who are you playing?", `<div class="empty">Nothing here until the other team is in the
+        right pit. Tap a row on Division to load one, or pick from the card above.</div>
+        <button class="btn btn--block" onclick="set({scoutTab:'board'})">Open Division</button>`)
+    : {matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
+       counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
@@ -3533,8 +3586,8 @@ function scout(){
     </div>
     <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.name)}</span>
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.name)}</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")}</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")}</span>
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
     </div>
@@ -3553,12 +3606,17 @@ function pit(side,T,label){
   return `<div class="pit pit--${side==="left"?"l":"r"}">
     <div class="pit__side">${label}</div>
     <div>
-      <div class="pit__name">${esc(T.name)}</div>
-      <div class="pit__pts">${T.pts === undefined ? "US — · not scored yet" : "US "+T.pts+" pts"}</div>
+      <div class="pit__name"${T.named?"":` style="color:var(--dim)"`}>${T.named?esc(T.name):"Pick a team"}</div>
+      <div class="pit__pts">${!T.named ? "nobody in this pit yet"
+        : T.pts === undefined ? "US — · not scored yet" : "US "+T.pts+" pts"}</div>
     </div>
     <select onchange="setPitTeam('${side}',this.value)">
+      <option value=""${T.named?"":" selected"}>${T.named?"— clear this pit —":"Pick a team"}</option>
       ${teamsHere().map(t=>`<option ${t.name===T.name?"selected":""}>${esc(t.name)}</option>`).join("")}
     </select>
+    ${!T.named?`<p class="note">Pick who is in this pit and everything you learn about them —
+      tendency, threat, their five, the calls you see them run — is kept against that team, so it
+      follows them into the next event. Division has the season list.</p>`:`
     <div class="fld"><label>Tendency · your film read</label>
       <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
     </div>
@@ -3612,7 +3670,7 @@ function pit(side,T,label){
       </div>
       ${S.pasteSide === side ? pasteBox(side) : ""}
       ${S.pasteNote && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
-    </div>
+    </div>`}
   </div>`;
 }
 
@@ -4345,13 +4403,15 @@ function moreBody(k){
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
     return sec("This match", `<div class="panel">
-        <h3 class="panel__title">${esc(matchVs())}</h3>
+        <h3 class="panel__title"${matchVs()?"":` style="color:var(--dim)"`}>${
+          esc(matchVs()||"No opponent yet")}</h3>
         <p class="note">${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
           point ${S.point||1} · ${matchSize(S.matchId)} logged</p>
       </div>
-      <button class="btn btn--block" onclick="newMatch()">New match vs ${esc((S.right||{}).name||"—")}</button>
+      <button class="btn btn--block" onclick="newMatch()">${
+        pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>`, matchLabel(curMatch()))
@@ -4359,7 +4419,7 @@ function moreBody(k){
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
-          <span class="assign__body"><span class="assign__job">${esc(m.vs||"—")}${on?" · on now":""}</span>
+          <span class="assign__body"><span class="assign__job">${esc(m.vs||"No opponent")}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
           ${on?"":`<button class="btn btn--quiet" onclick="openMatch('${m.id}')">Open</button>`}

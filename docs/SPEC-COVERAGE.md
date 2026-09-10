@@ -112,8 +112,9 @@ that it cannot be called complete. No pro team carries points, registration,
 tendency or threat; those are the coach's to enter, and an unscored team reads
 as a dash.
 
-**Scout.** Two pit cards with team, points, picker, tendency, threat stars and
-notes; the shared field underneath with red left and blue right and a legend;
+**Scout.** Two pit cards, both starting empty — the app does not know who you
+are playing and does not guess. Pick a team and the card opens: points, picker,
+tendency, threat stars and notes; the shared field underneath with red left and blue right and a legend;
 Roles and Shot lanes toggles and Play break. Seven sub-tabs against the spec's
 four: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division. The
 counter-picker with Ahead / Even / Must-score and a ranked list. Copy matchup
