@@ -1878,9 +1878,21 @@ window.loadCopy = mode => {
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
   const held = {};
   SESSION.forEach(k => { held[k] = S[k]; });
-  const mine = S.teamCode;
+  /* A merge takes their records, never their place in the day.
+   *
+   * matchId, point, layoutKey and script are where *this* coach is standing:
+   * the sheet in front of him, the point he is on, the field and the call. They
+   * are scalars, so mergeInto took the incoming side and a coach who merged an
+   * assistant's copy between points was silently moved onto the assistant's
+   * sheet, at the assistant's point number. The next out he tapped landed on
+   * the wrong match. Replace is different — that is asking to become the other
+   * phone, and it takes the lot.
+   */
+  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script"];
+  const mine = {};
+  HERE.forEach(k => { mine[k] = S[k]; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
-  if(mode !== "replace" && mine) next.teamCode = mine;   // a merge joins them to me
+  if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
   Object.keys(next).forEach(k => { S[k] = next[k]; });
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   dropPathCache();

@@ -2152,6 +2152,42 @@ const ROSTER = [
     return !pitNamed("right");
   }));
 
+  // A merge brings in the other phone's records. It must not bring in its place
+  // in the day: the sheet, the point, the field and the call are this coach's.
+  check("merging another phone does not move you onto its sheet", await ev(() => {
+    window.set({ tab: "tally", layoutKey: "lso", script: "snake" });
+    window.markOut("us", "Rex");
+    const mine = { m: S.matchId, pt: S.point, layout: S.layoutKey, script: S.script };
+    const theirs = JSON.parse(copyPayload("all"));
+    theirs.data.matches = [{id:"THEIRS", at: 1700000000000, vs:"Malicious", layout:"tby"}];
+    theirs.data.matchId = "THEIRS";
+    theirs.data.point = 9;
+    theirs.data.layoutKey = "tby";
+    theirs.data.script = "blitz";
+    theirs.data.tally = [{pt:1, side:"us", name:"Zed", m:"THEIRS", at:1700000001000,
+                          layout:"tby", vs:"Malicious"}];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(theirs);
+    window.loadCopy("merge");
+    return S.matchId === mine.m && S.point === mine.pt
+        && S.layoutKey === mine.layout && S.script === mine.script;
+  }));
+  check("...but it does bring their sheet in, openable", await ev(() =>
+    S.matches.some(m => m.id === "THEIRS")
+    && S.tally.some(o => o.m === "THEIRS" && o.name === "Zed")
+    && rowsHere(S.tally).every(o => o.m !== "THEIRS")));
+  check("...and a replace does take their place in the day", await ev(() => {
+    const theirs = JSON.parse(copyPayload("all"));
+    theirs.data.matchId = "THEIRS"; theirs.data.point = 9;
+    document.getElementById("copyIn").value = JSON.stringify(theirs);
+    window.loadCopy("replace");
+    return S.matchId === "THEIRS" && S.point === 9;
+  }));
+
+  // That replace left this page as another phone. Back to a known state.
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake",
+               right: { name: "Rejects" }, left: {} });
+
   // The drill puts a call on the field the coach did not make. Only Stop put his
   // own back, so walking away mid-drill left him on a random one — one tap from
   // playing it, or logging it as the call he made.
