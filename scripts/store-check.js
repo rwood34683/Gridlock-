@@ -104,7 +104,10 @@ const SYNCED = [
 const PLACEHOLDERS = [
   ["site/privacy.html", "support@your-domain.example", "support email"],
   ["site/support.html", "support@your-domain.example", "support email"],
-  ["site/index.html", "id0000000000", "App Store ID"],
+  // Not the old id0000000000: the badge no longer links to an app that does
+  // not exist. While it is still the "Coming to the App Store" form, the ID is
+  // unset — npm run contact -- --appstore <id> turns it into a real link.
+  ["site/index.html", "badge--soon", "App Store ID"],
   ["android/app/src/main/AndroidManifest.xml", "gridlocksystem.app", "app-link domain"],
   ["site/.well-known/assetlinks.json", "REPLACE_WITH_YOUR_RELEASE_SHA256", "release signing fingerprint"],
 ];
@@ -120,6 +123,6 @@ console.log(`\n${rows.length - bad}/${rows.length} checks passed.`);
 
 if (pending.length) {
   console.log("\nStill to fill in before you submit (not a failure — see docs/STORE-LISTING.md):");
-  for (const [f, , what] of pending) console.log(`  ${what.padEnd(16)} ${f}`);
+  for (const [f, , what] of pending) console.log(`  ${what.padEnd(28)} ${f}`);
 }
 process.exit(bad ? 1 : 0);

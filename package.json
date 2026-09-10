@@ -2,7 +2,7 @@
   "name": "gridlock-coach",
   "version": "1.0.0",
   "private": true,
-  "description": "GRIDLOCK System · powered by UPRA · Coach Edition — paintball coaching and league-ops app",
+  "description": "GRIDLOCK System \u00b7 powered by UPRA \u00b7 Coach Edition \u2014 paintball coaching and league-ops app",
   "scripts": {
     "sync": "cap sync",
     "open:ios": "cap open ios",
@@ -13,6 +13,7 @@
     "shots": "node scripts/capture-shots.js && node scripts/optimise-shots.js",
     "store": "node scripts/store-assets.js",
     "store:check": "node scripts/store-check.js",
+    "site:check": "node scripts/site-check.js",
     "site:artifact": "node scripts/build-artifact-page.js",
     "app:artifact": "node scripts/build-app-artifact.js",
     "icons": "python3 brand/generate-assets.py",

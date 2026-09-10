@@ -12,7 +12,10 @@ site/
   img/icon.svg        the mark
   img/icon-512.png    the mark, raster
   img/shots/*.png     real screenshots, captured from the running app
-  build/artifact.html generated — see below
+  .nojekyll           so a branch deploy does not eat .well-known
+  CNAME               the custom domain Pages serves from
+  .well-known/assetlinks.json   what lets Android open your links
+  build/artifact.html generated — see below, and not uploaded
 ```
 
 `privacy.html` and `support.html` are ordinary documents and share `legal.css`.
@@ -21,35 +24,67 @@ single-file artifact.
 
 ## Deploy
 
-Upload the contents of `site/` to any static host (Netlify, Vercel, Cloudflare
-Pages, S3, GitHub Pages). There is no server, no JavaScript and no tracking.
+`npm run site:check` first — it is what the deploy runs, and a failure there is
+a page that would have gone up broken.
 
-## Before you launch
+The site is served by **GitHub Pages** from `.github/workflows/site.yml`. It
+runs on any push to `main` that touches `site/`, and can be run by hand from the
+Actions tab. Turn it on once:
 
-Three things need real values:
+1. Settings → Pages → Source: **GitHub Actions**.
+2. Settings → Pages → Custom domain: `gridlockpb.com`.
+3. At the registrar, four A records for the apex to GitHub's Pages addresses
+   (`185.199.108.153`, `.109.153`, `.110.153`, `.111.153`) and a CNAME for
+   `www` to `rwood34683.github.io`.
+4. When the certificate is issued, tick **Enforce HTTPS**. Both stores require
+   the privacy and support URLs over HTTPS.
 
-1. **App Store link.** `index.html` has `https://apps.apple.com/app/id0000000000`
-   in two places (hero and closing CTA). Replace `id0000000000` with the App
-   Store ID that App Store Connect assigns you. The Google Play link is already
-   correct — it points at `com.upra.gridlock.coach`.
+`site/CNAME` already names the domain; Pages reads it from the upload.
 
-2. **Official store badges.** The badges are drawn inline so the page looks
-   right today, but Apple and Google both require their own artwork. Download
-   the real ones and swap the two `<a class="badge">` blocks:
-   - Apple — Marketing Resources → "Download on the App Store" badge
-   - Google — Play Console brand guidelines → "Get it on Google Play" badge
+Any other static host works the same way — Cloudflare Pages, Netlify, Vercel,
+S3. Connect the repo, leave the build command empty, publish directory `site`.
+Nothing in this repo is host-specific except the workflow file.
 
-3. **The support address.** Set to `support@gridlockpb.com`. It has to actually
-   receive mail before you submit — Apple tests the contact on a support page. If
-   the domain ever changes, one command does the lot from the repo root:
+### What gets uploaded, and what does not
 
-   ```bash
-   npm run contact -- --domain gridlockpb.com
-   ```
+`site/build/` and this README are excluded. `build/` is generated for the Claude
+artifact host, nothing on the page links to it, and the two files in it are the
+better part of a megabyte. That leaves 19 files, about 1 MB.
 
-   That writes the address into both pages — the link and the words the reader
-   sees — the host Android claims for app links, and the three URLs the stores
-   ask for.
+### The three things that break a static deploy
+
+**`.well-known/assetlinks.json` has to be served, verbatim, at that exact
+path.** It is how Android decides your app may open `https://gridlockpb.com/...`
+links. Get it wrong and nothing errors — the link simply opens in a browser,
+forever. The Actions deploy does not run Jekyll, so the dot-directory survives;
+`site/.nojekyll` is there for anyone who later switches to a branch deploy,
+where Jekyll drops dotfiles and takes app links with them. The workflow fetches
+the file after publishing and fails if it is not a 200.
+
+**The fingerprint in it is still a placeholder.** Play re-signs your upload with
+its own key, so the value that belongs there is the one Play shows — Play
+Console → Test and release → App signing → SHA-256 certificate fingerprint —
+not your upload keystore's. A local keystore prints its own with
+`keytool -list -v -keystore release.jks -alias <alias>`. Then:
+
+```bash
+npm run contact -- --sha256 AB:CD:EF:...
+```
+
+**Nothing may link to an app that does not exist.** Until Apple assigns an ID,
+the App Store badge reads *Coming to the App Store* and is not a link. When the
+ID arrives:
+
+```bash
+npm run contact -- --appstore 6501234567
+npm run site:artifact          # index.html is inlined into the artifact build
+```
+
+That turns the badge back into a real link in both places on the page.
+
+Neither of those last two blocks the deploy, on purpose: the site has to be live
+*before* you submit, because Apple checks that the privacy and support URLs
+resolve.
 
 ## Screenshots
 

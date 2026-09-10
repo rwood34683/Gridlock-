@@ -213,6 +213,11 @@ section + section{border-top:1px solid var(--line)}
   transition:border-color .18s ease, background .18s ease, transform .18s ease;
 }
 .badge:hover{border-color:var(--red-lit);background:#1d1f1f;transform:translateY(-1px);text-decoration:none}
+/* Before the App Store assigns an ID there is nothing to link to. A badge
+   that looks live and goes nowhere is worse than one that says "coming":
+   npm run contact -- --appstore <id> turns it back into a real link. */
+.badge--soon{opacity:.55;cursor:default}
+.badge--soon:hover{border-color:var(--line-lit);background:var(--panel);transform:none}
 /* first badge in a row is the primary call to action */
 .badges .badge:first-child{background:var(--red);border-color:var(--red)}
 .badges .badge:first-child .badge__small{color:#f3c9c9}
@@ -480,12 +485,12 @@ footer{background:var(--night);border-top:1px solid var(--line);padding-block:40
       <div class="badges">
         <!-- Replace these with Apple's and Google's official badge artwork
              before launch. See site/README.md. -->
-        <a class="badge" href="https://apps.apple.com/app/id0000000000">
+        <a class="badge badge--soon" aria-disabled="true">
           <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
             <path d="M18.1 13.8c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.2-2.3-1.8-.2-3.5 1-4.4 1-.9 0-2.3-1-3.8-1C6.3 7 4.5 8.1 3.5 9.9c-2 3.5-.5 8.7 1.4 11.6.9 1.4 2 3 3.5 2.9 1.4-.1 1.9-.9 3.6-.9 1.7 0 2.2.9 3.7.9 1.5 0 2.5-1.4 3.4-2.8 1.1-1.6 1.5-3.2 1.5-3.3-.1 0-2.9-1.1-3-4.5zM15.3 4.9c.8-1 1.3-2.3 1.2-3.6-1.2 0-2.6.8-3.4 1.7-.7.9-1.4 2.2-1.2 3.5 1.3.1 2.6-.7 3.4-1.6z"/>
           </svg>
           <span class="badge__text">
-            <span class="badge__small">Download on the</span>
+            <span class="badge__small">Coming to the</span>
             <span class="badge__big">App Store</span>
           </span>
         </a>
@@ -714,12 +719,12 @@ footer{background:var(--night);border-top:1px solid var(--line);padding-block:40
     </p>
 
     <div class="badges">
-      <a class="badge" href="https://apps.apple.com/app/id0000000000">
+      <a class="badge badge--soon" aria-disabled="true">
         <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true" focusable="false">
           <path d="M18.1 13.8c0-3 2.4-4.4 2.5-4.5-1.4-2-3.5-2.3-4.2-2.3-1.8-.2-3.5 1-4.4 1-.9 0-2.3-1-3.8-1C6.3 7 4.5 8.1 3.5 9.9c-2 3.5-.5 8.7 1.4 11.6.9 1.4 2 3 3.5 2.9 1.4-.1 1.9-.9 3.6-.9 1.7 0 2.2.9 3.7.9 1.5 0 2.5-1.4 3.4-2.8 1.1-1.6 1.5-3.2 1.5-3.3-.1 0-2.9-1.1-3-4.5zM15.3 4.9c.8-1 1.3-2.3 1.2-3.6-1.2 0-2.6.8-3.4 1.7-.7.9-1.4 2.2-1.2 3.5 1.3.1 2.6-.7 3.4-1.6z"/>
         </svg>
         <span class="badge__text">
-          <span class="badge__small">Download on the</span>
+          <span class="badge__small">Coming to the</span>
           <span class="badge__big">App Store</span>
         </span>
       </a>
