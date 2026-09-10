@@ -2295,10 +2295,15 @@ const ROSTER = [
   // The drill puts a call on the field the coach did not make. Only Stop put his
   // own back, so walking away mid-drill left him on a random one — one tap from
   // playing it, or logging it as the call he made.
+  // Never assert that the drill's random call differs from the one you were on —
+  // it picks from the twelve, so one run in twelve it picks the same one and a
+  // correct app fails the check. What matters is that the drill is running and
+  // holding your call, and that leaving gives it back.
   check("a drill does not follow you off Playbook", await ev(() => {
     window.set({ tab: "playbook", script: "snake", pbView: null });
     window.startRep();
-    const drilling = repState().running && S.script !== "snake";
+    const drilling = repState().running && repState().was === "snake"
+                  && S.pbView === "rep";
     window.set({ tab: "tally" });
     return drilling && !repState().running && S.script === "snake" && S.pbView === null;
   }));
