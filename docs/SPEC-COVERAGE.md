@@ -29,6 +29,17 @@ overlaying those codes, and changing the event changing the layout on every tab
 that draws one. Three layouts, all measured off official 2D maps: Lone Star,
 Tampa Bay, Midwest. The spec asked for one.
 
+A bunker is filled to the footprint that was measured and outlined *inside* that
+fill. Insetting the whole shape instead — which is what an SVG stroke wants,
+since it straddles the line it sits on — put the outer edge of the paint on the
+measurement and left the outer half-stroke reading as field, so two bunkers that
+touch showed a stripe of black between them. On the snake that is exactly where
+it shows: the beams run into the giant plus on the official map, and on screen
+they stopped a third of a foot short of it. The angled beam's ends are squared
+for the same reason, because a beam is the one bunker that butts another.
+`npm run verify:bunkers` measures the drawn geometry against the layout JSON and
+now has nothing to add back for stroke: 173/173 at 0.0000 ft.
+
 **Motion.** Five players, a unique path per layout per break, planting on a
 bunker. Ease-out interpolation with exact endpoints. The face chevron and the
 shot lane travel with the player rather than jumping to the plant. Editing:

@@ -87,7 +87,12 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
    every centre a foot toward the light. Footprints now come from
    `layouts/bunkers.json`, measured once off the clean high-resolution Midwest
    2D, because one bunker type is one inflatable; positions still come from each
-   event's own map. Every bunker keeps what its map drew alongside.
+   event's own map. Every bunker keeps what its map drew alongside. The fill runs
+   to that measurement and the outline is drawn *inside* it: a stroke straddles
+   its path, so insetting the whole shape left the outer half-stroke reading as
+   field and put a stripe of black between two bunkers that touch — most visibly
+   where the snake beams butt the giant plus. Angled beam ends are squared for
+   the same reason.
 8. ~~All twelve breaks.~~ Done — the seven the spec named and nobody had built
    are in, and none of the sixty plants is typed. `tools/plants.js` reads a
    call the way a coach says it, how many men on which wire and how far up the

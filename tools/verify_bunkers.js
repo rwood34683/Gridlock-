@@ -22,10 +22,11 @@ const LAYOUTS = [
   ["lso", "nxl_2026_lone_star.json"],
 ];
 const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line weight
-// The app insets every outline by half its stroke so the paint lands on the
-// measurement rather than half a stroke outside it. getBBox reports geometry,
-// not paint, so the stroke goes back on here.
-const STROKE = 0.35;   // ft
+// The app used to inset the whole shape by half a stroke so the outer edge of
+// the paint landed on the measurement, and the stroke had to be added back
+// here. It now fills to the measurement and draws the outline inside, so the
+// geometry getBBox reports IS the footprint and there is nothing to add.
+const STROKE = 0;      // ft
 
 (async () => {
   const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });

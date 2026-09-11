@@ -1697,15 +1697,41 @@ const ROSTER = [
     return gp.length === 6 && gp.every(b => Math.abs(b.k - w) < 0.01 && b.k > 3 && b.k < b.w / 2);
   }, JSON.parse(fs.readFileSync(path.join(__dirname, "..", "layouts", "bunkers.json"), "utf8"))
       .bunkers.giant_plus.arm_ft));
-  // The outline is stroked, and a stroke straddles the line it sits on, so a
-  // shape built at its measured size paints half a stroke wider all round —
-  // a quarter of a foot on a beam a foot and a half thick.
-  check("a bunker is built inset by its own stroke, so the paint is the size",
-    await ev(() => {
-      const b = LAYOUTS.lso.bunkers.find(x => x.n === "SB" && !x.a);
-      const s = bunkerSize(b, 2, 2);
-      return Math.abs((s.v * 2 + BNK_STROKE) / 2 - b.h) < 0.001;
-    }));
+  // A stroke straddles the line it sits on. Insetting the whole shape by half a
+  // stroke put the outer edge of the paint on the measurement — right for the
+  // footprint, wrong for the picture, because that outer half-stroke is
+  // near-black and two bunkers that touch showed a stripe of field between
+  // their fills. The fill is the measurement now and the outline goes inside.
+  check("a bunker is filled to its measured footprint", await ev(() => {
+    const b = LAYOUTS.lso.bunkers.find(x => x.n === "SB" && !x.a);
+    const s = bunkerSize(b, 2, 2);
+    return Math.abs(s.h * 2 - b.w * 2) < 0.001 && Math.abs(s.v * 2 - b.h * 2) < 0.001;
+  }));
+  check("and outlined inside it, not across the edge", await ev(() => {
+    const m = [...bunkerShape(LAYOUTS.lso.bunkers.find(x => x.n === "SB" && !x.a), 2, 2)
+      .matchAll(/width="([\d.]+)"/g)].map(x => +x[1]);
+    // The filled box first, the stroked box a stroke narrower, then the caps.
+    return BNK_IN === BNK_STROKE / 2 && m.length >= 2
+        && Math.abs(m[0] - m[1] - BNK_STROKE) < 0.01;
+  }));
+  // The one that matters on a field drawing: the snake runs into the giant
+  // plus on the official map, and on screen it stopped a third of a foot short
+  // with black in between.
+  check("the snake beam ends on the plus arm it runs into", await ev(() => {
+    const gp = LAYOUTS.lso.bunkers.find(b => b.id === "GP#1");
+    const sb = LAYOUTS.lso.bunkers.find(b => b.id === "SB#1");
+    const rad = d => d * Math.PI / 180;
+    const g = bunkerSize(gp, 2, 2), s = bunkerSize(sb, 2, 2);
+    // The plus is turned 45°, so its arms reach out along 45/135/225/315. The
+    // lower left one is the arm this beam runs into.
+    const reach = (g.h + g.v) / 2;        // 11.31 x 11.09 — square to a tenth of a foot
+    const tip = [gp.x * 2 + Math.cos(rad(135)) * reach, gp.y * 2 + Math.sin(rad(135)) * reach];
+    const end = [sb.x * 2 + Math.cos(rad(sb.a)) * s.h, sb.y * 2 + Math.sin(rad(sb.a)) * s.h];
+    // What is left is the map's own precision — one pixel there is 0.12 ft — not
+    // a hole in the drawing. Insetting both shapes put 0.65 units of field
+    // between them on top of this, which is what showed up as a gap.
+    return Math.hypot(tip[0] - end[0], tip[1] - end[1]) < 0.3;
+  }));
 
   check("a turned plus is drawn turned, not just recorded as turned", await ev(() => {
     window.set({ layoutKey: "lso" });
