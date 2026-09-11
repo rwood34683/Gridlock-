@@ -3100,6 +3100,19 @@ const ROSTER = [
       return quiet === "" && /sign-in/.test(loud) && /awake/.test(loud);
     }));
 
+  check("playing the break does not wipe what you type on the next tab",
+    await ev(async () => {
+      window.set({ tab:"playbook" });
+      window.playPath();                                  // 2.2s of repaints
+      window.set({ tab:"more", more:"messages" });
+      const el = document.getElementById("md");
+      if(!el) return false;
+      el.value = "Pit gate opens at 8";
+      await new Promise(r => setTimeout(r, 2600));         // outlast the run
+      const survived = (document.getElementById("md") || {}).value === "Pit gate opens at 8";
+      return survived && S.playing === false;
+    }));
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));

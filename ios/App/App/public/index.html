@@ -1529,6 +1529,9 @@ function set(patch){
   if(repState().running &&
      (("tab" in patch && patch.tab !== "playbook") ||
       ("pbView" in patch && patch.pbView !== "rep"))) endRep();
+  // Same reasoning for the break animation: it repaints, and a repaint on a tab
+  // the coach has left costs him whatever he was typing on the one he is on.
+  if(S.playing && "tab" in patch && patch.tab !== S.tab) stopPlaying();
   Object.assign(S, patch); save(S); render();
 }
 // Put back what he was on, without a redraw — the caller is about to do one.
@@ -3530,6 +3533,19 @@ function repView(){
 }
 
 let raf=null;
+/* Stop the break, without drawing anything.
+ *
+ * The loop ends by calling render(), which rebuilds the whole screen. That is
+ * right while you are watching the break and wrong the moment you are not: tap
+ * Play, go to Messages or Walk and start typing, and 2.2 seconds later the
+ * animation finishes on a tab you cannot see and wipes what you had typed.
+ * Nothing is committed until onchange, so it is simply gone. Leaving the tab
+ * ends the run, the same way leaving Playbook ends the drill.
+ */
+function stopPlaying(){
+  if(raf) cancelAnimationFrame(raf);
+  raf = null; S.playing = false;
+}
 window.playPath = () => {
   S.playing=!S.playing;
   if(!S.playing){ if(raf) cancelAnimationFrame(raf); render(); return; }

@@ -295,6 +295,9 @@ throughout and stayed green; all four of these came out of reading and fuzzing.
   last one's result.
 - **A non-secure address silently disables sign-in, screen-wake and Share.**
   The app says so on screen where it is true.
+- **Playing the break wiped what you typed on the next tab.** The animation ends
+  by rebuilding the screen, 2.2 seconds after you left Playbook. Leaving stops
+  the run now.
 
 ## Not built
 

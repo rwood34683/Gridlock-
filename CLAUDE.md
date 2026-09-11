@@ -241,6 +241,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   — how anyone tests the web build on a real phone — sign-in refuses and the
   other two fail silently. `contextWarning()` says so on screen; it cannot show
   on the installed app, because that is a secure context.
+- Leave the break animation running when the coach leaves the tab. The loop
+  ends by calling `render()`, which rebuilds the screen — right while he is
+  watching it, wrong two seconds later on a tab he has moved to. Tap Play, go to
+  Messages or Walk or the roster paste box, start typing, and the run finishes
+  and wipes it, because nothing is committed until `onchange`. `set()` stops it
+  the same way it ends the drill.
 - Trust a passing suite as proof a screen is right. The tablet rail measured as
   a rail and every check was green while each button was a 146 px slab with its
   label under the marker, because the media block sat above the base rule it
