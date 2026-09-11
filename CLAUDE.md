@@ -158,11 +158,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     instead of being a toggle he has to remember to flip, and he can still say
     otherwise. Back a point takes its result with it, or Back becomes a way to
     score the same point twice.
-18. Rosters for the rest of the pro teams. They cannot be fetched from here —
+18. ~~The call, on the sheet.~~ Done — the loop on a sideline is: point ends,
+    who won it, what are we calling, play it, tally the outs. Three of those
+    five lived on Tally and the call lived a tab away, so every point of a long
+    day cost two tab switches to read a name the coach was about to shout. The
+    call now sits on the point sheet between the score and the five, where it is
+    read: change it there and it is the same `script` Playbook is on, so the
+    field follows. Logging is there too, because a coach who never opened
+    Playbook was never logging and self-scout is only worth having if the calls
+    are in it.
+19. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
-19. Bring iOS SwiftUI up to web parity, then Android Compose.
+20. Bring iOS SwiftUI up to web parity, then Android Compose.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

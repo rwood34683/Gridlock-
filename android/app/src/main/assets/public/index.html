@@ -3514,7 +3514,37 @@ function tally(){
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${sc.us+sc.them}</b><span>Points played</span></span>
     </div>
-    <p class="note">Tap a player the moment he goes out.</p>
+  ${/* The call, on the sheet.
+       *
+       * The loop on a sideline is: point ends, who won it, what are we calling,
+       * play it, tally the outs. Three of those five live on Tally and the call
+       * lived a tab away, so every point of a long day cost two tab switches to
+       * read a name the coach was about to shout. It is the same call — this
+       * sets the same `script` Playbook does, so changing it here changes it
+       * there and the field redraws to match. Logging is here too, because a
+       * coach who never opens Playbook was never logging, and self-scout is
+       * only worth anything if it has the calls in it. */""}
+    <div class="sec__head" style="margin-top:var(--s4)">
+      <span class="sec__eyebrow">The call</span></div>
+    <div class="call" style="padding:var(--s3) var(--s4)">
+      <div class="call__name" style="font-size:var(--t-xl)">${esc(BREAKS[S.script].name)}</div>
+      <div class="call__read">${esc(breakMeta(S.script).read)}</div>
+    </div>
+    <div class="btnrow">
+      <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
+        S.tallyPick?"Close":"Change the call"}</button>
+      <button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>
+    </div>
+    ${S.tallyPick?`<div class="seg seg--wrap">
+      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+        onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(v.name)}</button>`).join("")}
+    </div>`:""}
+    ${(() => {
+      const n = loggedCalls().filter(c => c.m === S.matchId).length;
+      return n ? `<p class="note">${n} call${n===1?"":"s"} logged on this sheet. Playbook counts how
+        predictable you have been on this field.</p>` : "";
+    })()}
+    <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out.</p>
     ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
       ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
          You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`

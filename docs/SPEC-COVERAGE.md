@@ -94,6 +94,14 @@ change what he is about to call.
 alive, how he went out, who got him, shot-at bunker and moved-to bunker, feeding
 Bunker stats.
 
+**The sideline loop, on one screen.** Point ends, who won it, what are we
+calling, play it, tally the outs. Three of those lived on Tally and the call
+lived a tab away, so every point cost two tab switches. The call is on the point
+sheet now, between the score and the five — the order a coach reads them in —
+and it is the same call: change it there and Playbook and the field follow.
+Logging is there too, so the coach who never opens Playbook still feeds
+self-scout.
+
 **The score.** A point has a winner, and it is one tap: We won it or They won
 it. The score is the count of them — in the header beside the Staff chip where
 nothing crops it, on the point sheet, and against each sheet in Matches. It also

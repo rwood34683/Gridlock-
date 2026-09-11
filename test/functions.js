@@ -2147,6 +2147,50 @@ const ROSTER = [
     return true;
   });
 
+  /* -------------------------------------------------- the call, on the sheet */
+  // The loop on a sideline is: point ends, who won it, what are we calling, play
+  // it, tally the outs. Three of those live on Tally and the call lived a tab
+  // away, so every point cost two tab switches to read a name.
+  G("The call, on the sheet");
+  await seed({ tab: "tally", script: "snake", right: { name: "Rejects" }, left: {},
+               tallyPick: false, calls: [] });
+
+  check("the sheet says what the call is", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return t.includes(BREAKS.snake.name) && t.includes(breakMeta("snake").read);
+  }));
+  check("it can be changed without leaving Tally", await ev(() => {
+    window.set({ tallyPick: true });
+    const open = document.getElementById("root").textContent.includes(BREAKS.blitz.name);
+    window.set({ script: "blitz", t: 1, playing: false, tallyPick: false });
+    return open && S.script === "blitz" && S.tab === "tally";
+  }));
+  check("and it is the same call Playbook is on", await ev(() => {
+    window.set({ tab: "playbook" });
+    const t = document.getElementById("root").textContent;
+    return S.script === "blitz" && t.includes(BREAKS.blitz.name);
+  }));
+  check("the field follows it", await ev(() => {
+    const plants = currentPaths().map(p => p.bunker).join();
+    window.set({ tab: "tally" });
+    window.set({ script: "hold", t: 1, playing: false, tallyPick: false });
+    return plants !== currentPaths().map(p => p.bunker).join();
+  }));
+  check("it can be logged from the sheet, against this match", await ev(() => {
+    window.set({ tab: "tally" });
+    window.logCall();
+    const c = (S.calls || [])[0];
+    return c && c.script === "hold" && c.m === S.matchId && c.pt === S.point;
+  }));
+  check("and the sheet says how many are logged on it", await ev(() =>
+    /1 call logged on this sheet/.test(document.getElementById("root").textContent)));
+  check("a new sheet starts that count again", await ev(() => {
+    window.confirm = () => true;
+    window.newMatch();
+    return !/logged on this sheet/.test(document.getElementById("root").textContent)
+        && (S.calls || []).length === 1;      // the old one is kept, not deleted
+  }));
+
   /* ------------------------------------------------------------- the score */
   // The app tallied who went out and never recorded who won the point, so the
   // one number a coach lives by was not in it.
