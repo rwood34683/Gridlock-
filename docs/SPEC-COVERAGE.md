@@ -279,6 +279,23 @@ one on a class card yet, on purpose: a scan opens the app to a session that
 does not exist on the scanner's phone, because sessions live on the device that
 created them. It ships the day a session can be reached from another device.
 
+## Found by reading, not by the suite
+
+Before the first sideline test, the app was read line by line and its handlers
+fuzzed — 4,000 random sequences of the things a coach actually taps — with the
+state checked against its invariants after every one. The suite was green
+throughout and stayed green; all four of these came out of reading and fuzzing.
+
+- **A break key this build does not have white-screened the app.** `layoutKey`
+  was guarded at every door; `script` was not, and the header reads it on every
+  screen. Guarded now, and `breakName()` is the only way in.
+- **Reopening a match scored but never tallied put the coach back on point 1**,
+  where his next result overwrote the first. `lastPoint()` asks every list.
+- **Ahead / Must-score carried across a new match**, ranking a 0-0 sheet on the
+  last one's result.
+- **A non-secure address silently disables sign-in, screen-wake and Share.**
+  The app says so on screen where it is true.
+
 ## Not built
 
 Nothing on the spec's list is unbuilt. The one thing it asks for that this app

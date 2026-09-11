@@ -221,6 +221,26 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   before `render()` and the screen freezes mid-tap saying nothing.
 - Tell the browser build it has a durable second copy. It does not — only the
   phone app does. `window.gridlockDurable` says which you are on.
+- Reach into `BREAKS[S.script]` directly. Use `breakName()` / `curBreak()`. A
+  saved state naming a break this build does not have — an older copy, a
+  hand-edited file, a key renamed later — made that throw, and one of the seven
+  places reading it was the header, which is on every screen. The app went
+  white, and the bad key was already in `localStorage`, so relaunching did it
+  again. `layoutKey` had been guarded at every door since the fabricated layouts
+  were pulled; `script` never was. `fixBreak()` guards the same doors now.
+- Work out where a match got to from the tally alone. A coach who taps who won
+  every point without tallying an out — most of a blowout — has a sheet with
+  results and no outs, and reopening it put him back on point 1, where his next
+  result overwrote point 1's, then point 2's. The score walked backwards and
+  nothing said so. `lastPoint()` asks every list; a point that already has a
+  winner is finished, so open on the next one.
+- Recompute `matchState` wherever the match changes, not only in `endPoint`.
+  A new sheet is 0-0, and Ahead / Must-score is read off the score.
+- Assume the web build has what the phone has. `crypto.subtle`, the Wake Lock
+  API and the share sheet are secure-context only, so on `http://<laptop-ip>:5173`
+  — how anyone tests the web build on a real phone — sign-in refuses and the
+  other two fail silently. `contextWarning()` says so on screen; it cannot show
+  on the installed app, because that is a secure context.
 - Trust a passing suite as proof a screen is right. The tablet rail measured as
   a rail and every check was green while each button was a 146 px slab with its
   label under the marker, because the media block sat above the base rule it

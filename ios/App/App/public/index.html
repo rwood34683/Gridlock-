@@ -1273,6 +1273,7 @@ window.gridlockRestore = text => {
   Object.keys(d).forEach(k => { S[k] = d[k]; });
   Object.assign(S, held);
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  fixBreak();
   _hadLocal = true;
   S.restored = new Date(d.savedAt).toLocaleString([], {month:"short", day:"numeric",
                                                       hour:"numeric", minute:"2-digit"});
@@ -1282,6 +1283,24 @@ window.gridlockRestore = text => {
 };
 // Said once, at the top of the screen, because both of these mean the coach
 // cannot trust what he is looking at to still be there later.
+/* Served over plain http to a phone, half the app is quietly switched off.
+ *
+ * crypto.subtle, the Wake Lock API and the share sheet are all secure-context
+ * only, so on http://<laptop-ip>:5173 — which is exactly how someone tests the
+ * web build on a real phone — staff sign-in refuses, the screen sleeps mid-point
+ * and Share does nothing. Sign-in at least says so; the other two fail silently,
+ * which is worse: you conclude the feature is broken rather than the address.
+ *
+ * localhost and the installed app are both secure contexts, so this never shows
+ * on the thing that actually ships. It only shows where it is true.
+ */
+function contextWarning(){
+  if(window.isSecureContext !== false) return "";
+  return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
+    <span><b>This address is not a secure one, so the phone has switched parts of the app off.</b>
+    Staff sign-in, keeping the screen awake and Share will not work here. Everything else does.
+    Use the installed app, or open this on the same machine at localhost.</span></div>`;
+}
 function storeWarning(){
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
     <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
@@ -1296,6 +1315,7 @@ let S = load();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
 if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  fixBreak();
 
 // A half-finished paste is scratch, not a record. It should not still be sitting
 // open three days later at the next event.
@@ -1395,6 +1415,26 @@ function derivedState(){
   const s = matchScore();
   return s.us > s.them ? "Ahead" : s.us < s.them ? "Must-score" : "Even";
 }
+/* The last point this match got to.
+ *
+ * This read the tally alone, and a coach who taps "We won it" every point
+ * without tallying a single out — which is most of a blowout — has a match
+ * with five results and no outs in it. Reopening it put him back on point 1,
+ * and the next result he recorded overwrote point 1's, then point 2's: the
+ * score walked backwards and nothing said so. A point exists if ANYTHING was
+ * recorded against it, so all of them are asked.
+ */
+function lastPoint(mid){
+  const id = mid || S.matchId;
+  const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
+  const pts = [...hit(S.tally), ...hit(S.results), ...hit(S.calls),
+               ...hit(S.moves), ...hit(S.assessments),
+               ...Object.keys(S.lineups || {})
+                  .filter(k => k.startsWith(id + "|"))
+                  .map(k => Number(k.split("|")[1]))]
+    .filter(n => Number.isFinite(n) && n > 0);
+  return pts.length ? Math.max(...pts) : 1;
+}
 function resultFor(pt){
   return (S.results || []).find(r => r && r.m === S.matchId && r.pt === pt) || null;
 }
@@ -1462,6 +1502,21 @@ if(!curMatch()){
 // a layout that stopped shipping, a corrupted save — took the whole screen
 // down instead of showing the field it does have.
 function curLayout(){ return LAYOUTS[S.layoutKey] || LAYOUTS.lso; }
+/* The call, safely.
+ *
+ * `layoutKey` has been guarded at every door since the fabricated layouts were
+ * pulled; `script` never was, and it is the more dangerous of the two. A saved
+ * state naming a break this build does not have — a copy off a phone on an
+ * older version, a hand-edited file, a key that gets renamed later — made
+ * that dereference throw, and one of the seven places that reads it is
+ * the header, which is on every screen. The whole app went white, and because
+ * the bad key was already in localStorage, relaunching did it again.
+ *
+ * So: the same shape as curLayout(), used everywhere, and the doors below put
+ * a real key back rather than leaving a live grenade in storage. */
+function curBreak(){ return BREAKS[S.script] || BREAKS[defaultState().script]; }
+function breakName(){ return curBreak().name; }
+function fixBreak(){ if(!BREAKS[S.script]) S.script = defaultState().script; }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
 if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
@@ -1945,6 +2000,7 @@ window.loadCopy = mode => {
   if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
   Object.keys(next).forEach(k => { S[k] = next[k]; });
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  fixBreak();
   dropPathCache();
   S.copyText = ""; save(S); render();
 };
@@ -2532,7 +2588,7 @@ function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
   const W=300,H=240,sx=W/150,sy=H/120;
   const M=18;                                  // margin for the side labels
-  const br = BREAKS[S.script] || BREAKS.snake;
+  const br = curBreak();
   const brPaths = currentPaths();
   const t = opts.static?1:S.t;
 
@@ -3369,7 +3425,7 @@ function cardLines(){
   });
 }
 window.shareCards = () => {
-  const t = `GRIDLOCK · ${BREAKS[S.script].name} · ${curLayout().name}\n\n`
+  const t = `GRIDLOCK · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
         + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`).join("\n\n");
   if(window.gridlockShare) window.gridlockShare(t, "GRIDLOCK cards"); else prompt("Cards", t);
@@ -3436,7 +3492,7 @@ function cardsView(){
     </div>
     <button class="btn btn--block" onclick="shareCards()">Share the five</button>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`,
-    esc(BREAKS[S.script].name))}`;
+    esc(breakName()))}`;
 }
 
 function repView(){
@@ -3550,7 +3606,7 @@ function tally(){
     <div class="sec__head" style="margin-top:var(--s4)">
       <span class="sec__eyebrow">The call</span></div>
     <div class="call" style="padding:var(--s3) var(--s4)">
-      <div class="call__name" style="font-size:var(--t-xl)">${esc(BREAKS[S.script].name)}</div>
+      <div class="call__name" style="font-size:var(--t-xl)">${esc(breakName())}</div>
       <div class="call__read">${esc(breakMeta(S.script).read)}</div>
     </div>
     <div class="btnrow">
@@ -3729,6 +3785,10 @@ window.newMatch = () => {
   S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey},
                ...(S.matches || [])];
   S.matchId = id; S.point = 1;
+  // A fresh sheet is level. Ahead / Must-score is read off the score, so it has
+  // to be recomputed here or the counter-picker ranks the new match on the last
+  // one's result.
+  S.matchState = derivedState();
   save(S); render();
 };
 // An old sheet is worth reading, and worth adding to when you tallied a point
@@ -3736,8 +3796,13 @@ window.newMatch = () => {
 window.openMatch = id => {
   if(!(S.matches || []).some(m => m.id === id)) return;
   S.matchId = id;
-  const pts = rowsHere(S.tally).map(o => o.pt);
-  S.point = pts.length ? Math.max(...pts) : 1;
+  // Where he actually left off. A point that already has a winner recorded is
+  // finished, so land on the next one — otherwise the first "We won it" after
+  // reopening replaces that result instead of adding to the score. A point with
+  // outs but no winner is one he was still playing, so land on it.
+  const last = lastPoint(id);
+  S.point = resultFor(last) ? last + 1 : last;
+  S.matchState = derivedState();
   save(S); render();
 };
 // kept: older builds called this
@@ -4008,13 +4073,13 @@ function scoutMatchup(){
         <span style="color:var(--blue)">${"★".repeat(R.threat||0)} ${esc(R.name)}</span>
       </div>
     </div>
-    <p class="lede">Your call is <b>${esc(BREAKS[S.script].name)}</b>. It puts your five here:</p>
+    <p class="lede">Your call is <b>${esc(breakName())}</b>. It puts your five here:</p>
     <div class="facts">
       ${Object.entries(split).map(([k,n])=>`<span class="fact"><b>${n}</b><span>${k}</span></span>`).join("")}
       <span class="fact"><b>${(L.players||[]).length + (R.players||[]).length}</b><span>Players logged</span></span>
     </div>
     <div class="who2">
-      <div><h4>Your five · ${esc(BREAKS[S.script].name)}</h4><ol>
+      <div><h4>Your five · ${esc(breakName())}</h4><ol>
         ${five.map((p,i)=>`<li><b>${i+1}</b>${esc(p.label)}</li>`).join("")}
       </ol></div>
       <div><h4>${esc(R.name)} · logged</h4><ol>
@@ -4224,7 +4289,7 @@ function scoutCounter(){
     })();
 }
 window.copyMatchup = () => {
-  const t=`GRIDLOCK · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${BREAKS[S.script].name}.`;
+  const t=`GRIDLOCK · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
   if(window.gridlockShare) window.gridlockShare(t,"GRIDLOCK matchup"); else prompt("Matchup card", t);
 };
 
@@ -5032,14 +5097,14 @@ function shell(){
       </div>
       ${Object.keys(LAYOUTS).length>1
         ? `<button class="ctx" onclick="cycleEvent()">
-        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(BREAKS[S.script].name)}${crumb}</span>
+        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}${crumb}</span>
         <span class="ctx__caret">CHANGE ▾</span>
       </button>`
         : `<div class="ctx">
-        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(BREAKS[S.script].name)}${crumb}</span>
+        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}${crumb}</span>
       </div>`}
     </header>
-    <main class="main">${storeWarning()}${tut}${page}
+    <main class="main">${contextWarning()}${storeWarning()}${tut}${page}
       <p class="note">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>

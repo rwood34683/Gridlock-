@@ -3044,6 +3044,62 @@ const ROSTER = [
   }));
 
   /* ------------------------------------------------------------ house rules */
+  /* ---------------------------------------------------------------------
+     Ready for a sideline
+
+     Four things that a green suite said nothing about, found by reading the
+     code and by fuzzing the handlers rather than by any check that existed.
+     Each one is measured here the way it actually bites, not restated.
+     --------------------------------------------------------------------- */
+  G("Ready for a sideline");
+
+  check("a break key this build does not have cannot white-screen the app",
+    await ev(() => {
+      const was = S.script;
+      S.script = "wire-split-v2";          // a key BREAKS has never had
+      let drew = 0, threw = "";
+      try { render(); drew = document.getElementById("root").textContent.trim().length; }
+      catch(e){ threw = e.message; }
+      S.script = was; render();
+      return drew > 0 && !threw;
+    }));
+
+  check("and such a key is put back on the way in", await ev(() => {
+    S.script = "nonsense"; fixBreak(); return !!BREAKS[S.script];
+  }));
+
+  check("a match scored but never tallied reopens where it left off",
+    await ev(() => {
+      window.set({ right:{name:"Dynasty"} }); window.newMatch();
+      const id = S.matchId;
+      for (let i=0;i<5;i++) window.endPoint("us");     // 5-0, no outs tapped
+      window.set({ right:{name:"Infamous"} }); window.newMatch();
+      window.openMatch(id);
+      const landedOn = S.point;
+      window.endPoint("us");                           // must add, not overwrite
+      return landedOn === 6 && matchScore().us === 6;
+    }));
+
+  check("a new sheet is Even, not the last one's result", await ev(() => {
+    window.set({ right:{name:"Dynasty"} }); window.newMatch();
+    window.endPoint("us"); window.endPoint("us");      // 2-0 up -> Ahead
+    const ahead = S.matchState;
+    window.set({ right:{name:"Royalty"} }); window.newMatch();
+    return ahead === "Ahead" && S.matchState === "Even";
+  }));
+
+  // Measured, not read off the source: the flag is swapped and the banner asked
+  // what it renders. This run is localhost, so the honest answer is nothing.
+  check("an insecure address says so, because it silently disables sign-in",
+    await ev(() => {
+      const quiet = contextWarning();
+      const real = Object.getOwnPropertyDescriptor(window, "isSecureContext");
+      Object.defineProperty(window, "isSecureContext", {value:false, configurable:true});
+      const loud = contextWarning();
+      if(real) Object.defineProperty(window, "isSecureContext", real);
+      return quiet === "" && /sign-in/.test(loud) && /awake/.test(loud);
+    }));
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
