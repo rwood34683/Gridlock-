@@ -54,6 +54,23 @@ Select the **App** target → **Signing & Capabilities**.
 Unlike Android there is no keystore to make or protect. Apple issues and holds
 the certificates; Xcode fetches them. Nothing to lose.
 
+## The first time you run on your own phone
+
+With a free Apple ID — no paid membership — three things catch everyone, in this
+order, and none of them is an error you can read:
+
+1. **Trust the computer.** Unlock the phone, plug it in, tap **Trust** on the
+   prompt. Xcode will not list a locked phone as a destination.
+2. **Trust the developer, on the phone.** The first launch fails with
+   *"Untrusted Developer"*. Go to **Settings → General → VPN & Device
+   Management**, tap your Apple ID, tap **Trust**. Then launch it again. Nothing
+   in Xcode tells you this is what is wrong.
+3. **It expires in seven days.** A free-provisioned build stops launching after
+   a week; rebuild from Xcode and it is another seven days. A paid account makes
+   it a year. Free accounts also cap you at three side-loaded apps at once.
+
+None of this applies to a paid Developer Program account except the expiry.
+
 ## Run it
 
 Pick a simulator — iPhone 16 or similar — and press Run. You should get the promo
