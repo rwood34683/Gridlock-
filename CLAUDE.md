@@ -319,3 +319,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   legs themselves now. The Scout field draws one pit at a time for the same
   reason it draws their call rather than yours turned round: ten lines
   crossing at the fifty said nothing, and a mirror is not a scout.
+- Draw the break on a screen that is not about the break. Movement, Bunker
+  stats, Team's bunker naming, Scout's layers and Sightlines each drew the five
+  red paths over the thing they are actually for, so a coach logging a rotation
+  was reading a call nobody made on that screen. `noPaths:true` on every field
+  whose subject is something else; Playbook, the Rep drill and Scout's own
+  break section keep them. The suite counts runners per screen.

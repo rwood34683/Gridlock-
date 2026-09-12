@@ -3466,6 +3466,33 @@ const ROSTER = [
   }));
   await ev(() => window.set({ tallySel:null, tallyDraft:null, tallyTrace:false, breakouts:[], results:[], point:1 }));
 
+  /* --------------------------------------------------------------------
+     The break belongs on the screens about the break
+
+     Movement, Bunker stats, Codes, Layers and Sightlines were each drawing
+     the five break paths over the thing they are actually about. A coach
+     logging a rotation was reading a call nobody made on that screen.
+     -------------------------------------------------------------------- */
+  G("The break only where it belongs");
+  const runnersOn = () => ev(() => document.querySelectorAll(".field-wrap svg.field g.live circle[r='6']").length);
+  const fieldsOn = () => ev(() => document.querySelectorAll(".field-wrap svg.field").length);
+  for (const [tab, more, name] of [["more","movement","Movement"], ["more","stats","Bunker stats"],
+                                   ["more","team","Team, naming bunkers"], ["sightlines",null,"Sightlines"]]) {
+    await go(tab, more);
+    const [n, f] = [await runnersOn(), await fieldsOn()];
+    check(`${name} draws the field and no break runners`, f > 0 && n === 0, `${f} field(s), ${n} runners`);
+  }
+  // Scout always carries its own break section above the sub-tab, and that one
+  // is meant to have runners. The layers field underneath is not.
+  await ev(() => window.set({ tab:"scout", scoutTab:"layers", right:{name:"Rejects"} }));
+  check("Scout layers draws no break runners over the layers",
+    await ev(() => document.querySelectorAll(".field-wrap:not([data-live]) svg.field g.live circle[r='6']").length) === 0);
+  // and the screens that ARE about the break still draw it
+  await go("playbook");
+  check("Playbook still draws the five", await runnersOn() === 5);
+  await ev(() => window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them" }));
+  check("Scout's break section still draws a five", await runnersOn() === 5);
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
