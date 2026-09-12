@@ -13,7 +13,7 @@ const { launchOptions } = require("../scripts/browser.js");
     page.on("pageerror", error => errors.push(error.message));
     const url = process.env.APP_URL || "http://localhost:5173/";
     await page.goto(url);
-    await page.getByRole("button", { name: "Continue as guest", exact: true }).click();
+    await page.getByRole("button", { name: "Start coaching", exact: true }).click();
     await page.evaluate(async () => {
       if (!("serviceWorker" in navigator)) throw new Error("Service worker API unavailable");
       await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error("Offline installation timed out")), 15000))]);

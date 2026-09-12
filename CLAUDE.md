@@ -331,6 +331,20 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Paper the field with bunker codes. Forty-five two-letter labels at the same
+  weight as the bunkers is a wall of type on a phone, and the break, the outs
+  and their five are all read through it. `bunkerLabels` is a layer like every
+  other: `S.namesOn` (off by default) drives the **Names** chip on Playbook and
+  Scout, and `opts.names` forces it on only where a named bunker is the subject
+  — Sightlines, Movement, Bunker stats, the arrival trail, Team's own naming.
+  Tally needs none of it: the sheet names the bunker the moment you tap it.
+- Lead the welcome page with an account. It opened with **Staff — create
+  account** as the one red button and *use the app* fourth and quietest of four
+  equal choices, and nothing on the screen said what the app does — a slogan is
+  not an explanation. It says what it does in three lines now, the big button is
+  **Start coaching**, and the account is one quiet line that says what it is for
+  (a clinic, a league blast) rather than asking a coach to decide whether he
+  counts as "staff". Create and sign in are one door with a switch inside it.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday

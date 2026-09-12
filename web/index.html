@@ -605,8 +605,17 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__mark{display:flex;flex-direction:column;gap:var(--s2)}
 .promo__name{font-size:44px;font-weight:800;letter-spacing:.14em;line-height:1}
 .promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
-.promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:15ch}
+.promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:19ch}
 .promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
+/* What it does, before he has to decide anything. */
+.promo__does{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;max-width:40ch}
+.promo__does li{
+  position:relative;padding-left:18px;color:var(--ink);font-size:var(--t-sm);line-height:1.45;
+}
+.promo__does li::before{
+  content:"";position:absolute;left:0;top:.55em;width:7px;height:2px;border-radius:1px;background:var(--accent-lit);
+}
+.promo__free{margin:0;color:var(--mute);font-size:var(--t-xs);line-height:1.45;max-width:42ch}
 .stack{display:flex;flex-direction:column;gap:var(--s2)}
 </style>
 <style>
@@ -1247,6 +1256,7 @@ const defaultState = () => ({
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
+  namesOn:false,
   scoutShow:"them",               // the Scout field draws one pit at a time: theirs, yours, or both
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
@@ -2402,7 +2412,7 @@ window.resetAllPaths = () => {
     if(wrap){
       const list = curLayout().bunkers;
       const from = S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
-      wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true, noPaths:true});
+      wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true, noPaths:true, names:true});
       drag.svg = wrap.querySelector("svg.field");
     }
   });
@@ -2874,7 +2884,7 @@ function bunkerLabels(list, sx, sy){
     const spot = !hits(below) ? below : (!hits(above) ? above : null);
     if(!spot) return "";                       // no room — the shape still reads
     placed.push(spot);
-    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#f2f4f5" stroke="#0b0c0d" stroke-width="2.1" paint-order="stroke" stroke-linejoin="round">${esc(g.nm)}</text>`;
+    return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#d7dbdc" stroke="#0b0c0d" stroke-width="2.3" paint-order="stroke" stroke-linejoin="round">${esc(g.nm)}</text>`;
   }).join("");
 }
 
@@ -3254,7 +3264,13 @@ function fieldSVG(opts={}, runnersOnly){
     ${outs}
     ${moveArrows}
     ${sight}
-    ${bunkerLabels(layout.bunkers, sx, sy)}
+    ${/* Forty-five two-letter codes at the same weight as the bunkers made a
+          wall of type on a phone, and the break, the outs and their five were
+          all read through it. The names are a layer now like everything else:
+          forced on where a named bunker is the subject (Sightlines, Movement,
+          Bunker stats, the arrival trail and Team's own naming) and on the
+          Names chip everywhere else. */""}
+    ${(opts.names || S.namesOn) ? bunkerLabels(layout.bunkers, sx, sy) : ""}
     <g class="live">${paths}</g>
     ${/* Their men sit above the break, or a marker disappears under a path the
           moment the two coincide — which is exactly where a scouted plant and a
@@ -3615,37 +3631,66 @@ function staffGate(what){
 /* ============================================================
    Promo
    ============================================================ */
+/* The first screen a coach ever sees.
+ *
+ * It used to lead with "Staff — create account" in the one red button, and
+ * the thing he actually wanted — use the app — was the fourth and quietest
+ * of four equal choices. Worse, nothing on it said what the app does: a
+ * slogan is not an explanation, and a coach standing in a car park at seven
+ * in the morning has no interest in working it out.
+ *
+ * So it says what it does in three lines, in the order he will meet them,
+ * and the big button starts him coaching. An account exists only to run a
+ * clinic or send a league message, which the sign-in line now says out loud
+ * rather than leaving him to guess whether he counts as "staff".
+ */
 function promo(){
+  const has = hasAccount();
   return `<div class="promo">
     <div class="promo__mark">
       <div class="promo__name">GRIDLOCK</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px">
-      <p class="promo__tag">Call the break. Direct the five. Own the point.</p>
-      <p class="promo__sub">The sideline tool for coaches and league staff. Between points, on a phone, with gloves on.</p>
+      <p class="promo__tag">Call the break.<br/>Chart the point.<br/>Know what worked.</p>
+      <ul class="promo__does">
+        <li>All twelve breaks, drawn on the field you are actually playing.</li>
+        <li>Tap the bunker a man broke to. That is the whole chart.</li>
+        <li>By Sunday it tells you which bunkers win you points, and which cost you.</li>
+      </ul>
     </div>
     <div class="stack">
-      <button class="btn btn--lg btn--block" onclick="set({mode:'create'})">Staff — create account</button>
-      <button class="btn btn--ghost btn--block" onclick="set({mode:'login'})">Staff — log in</button>
-      <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Tutorial</button>
-      <button class="btn btn--ghost btn--block" onclick="set({entered:true,role:'guest'})">Continue as guest</button>
+      <button class="btn btn--lg btn--block" onclick="set({entered:true,role:'guest'})">Start coaching</button>
+      <p class="promo__free">No account needed. There is no signal on a field, so nothing ever leaves your phone.</p>
+      <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Show me how it works</button>
+      <button class="btn btn--quiet btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">Running a clinic or a league? Sign in</button>
     </div>
     <p class="note">GRIDLOCK System · powered by UPRA</p>
     ${authForm()}
   </div>`;
 }
+// Whether this phone already carries a staff account, so the sign-in line
+// opens the right half of the form instead of the wrong one.
+function hasAccount(){
+  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "null");
+       return !!(a && a.email); }catch(e){ return false; }
+}
 function authForm(){
   if(S.mode!=="create" && S.mode!=="login") return "";
+  const make = S.mode === "create";
   return `<div class="panel">
-    <h3 class="panel__title">${S.mode==="create"?"Create staff account":"Staff log in"}</h3>
-    <div class="fld"><label>Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
-    <div class="fld"><label>Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
+    <h3 class="panel__title">${make?"Create an account":"Sign in"}</h3>
+    <p class="note" style="margin-top:0">An account is only needed to run a clinic or send a league
+      message. Coaching a match needs none, and nothing you log here depends on it.</p>
+    <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
+    <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
     <div class="btnrow">
-      <button class="btn grow" onclick="doAuth()">${S.mode==="create"?"Create account":"Log in"}</button>
+      <button class="btn grow" onclick="doAuth()">${make?"Create account":"Sign in"}</button>
       <button class="btn btn--ghost" onclick="set({mode:null})">Back</button>
     </div>
-    <p class="note">Stored on this device only, salted and hashed. Nothing is sent anywhere.</p>
+    <button class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}'})">${
+      make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
+    <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
   </div>`;
 }
 // The staff password never touches storage in the clear. It is salted and
@@ -3767,6 +3812,7 @@ function playbook(){
   <div class="toggles">
     <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
     <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+    <button class="tgl ${S.namesOn?"on":""}" onclick="set({namesOn:!S.namesOn})"><i></i>Names</button>
     <button class="tgl ${S.smoothOn===false?"":"on"}" onclick="setSmooth(S.smoothOn===false)"><i></i>Smooth</button>
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
     <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
@@ -4744,6 +4790,7 @@ function scout(){
     <div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
+      <button class="tgl ${S.namesOn?"on":""}" onclick="set({namesOn:!S.namesOn})"><i></i>Names</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
@@ -5277,7 +5324,7 @@ function scoutArrival(){
     <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player))} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
     <div class="fld"><label for="arrival-destination">Bunker they reached</label><select id="arrival-destination" onchange="setArrival({destination:this.value})"><option value="">Choose a destination</option>${bunkerOptions(options.destination)}</select></div>
     <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Pick destination</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Pick earlier sighting</button></div>
-    <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:arrivalOverlay(model)})}</div>
+    <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,names:true,overlay:arrivalOverlay(model)})}</div>
     ${route ? `<div class="seg seg--wrap">${result.routes.map(r=>`<button class="${route.id===r.id?'on':''}" onclick="setArrival({route:'${r.id}'})">${esc(r.label)} · ~${Math.round(r.length)} ft</button>`).join("")}</div>
       <div class="arrival-playback"><button class="btn btn--quiet" onclick="stepArrival(-1)">Previous stop</button><button class="btn" onclick="playArrival()">${_arrivalPlayback.running?'Pause route':'Play route'}</button><button class="btn btn--quiet" onclick="stepArrival(1)">Next stop</button></div>
       <p id="arrival-progress" class="note" aria-live="off">${Math.round(_arrivalPlayback.t*100)}% of possible route</p>` : ""}
@@ -5821,7 +5868,7 @@ function sightlines(){
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
-    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true,noPaths:true})}</div>
+    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true,noPaths:true,names:true})}</div>
     ${aimed
       ? `<div class="verdict ${aimed.blocked?"verdict--no":"verdict--yes"}">
            <b>${aimed.blocked?"Blocked":"Clear"}</b>
@@ -6092,6 +6139,7 @@ const HELP = {
     how:["Tap a break to pick it. The five paths redraw on the event layout.",
          "Play break runs it, so you can watch who leaves first.",
          "Face and Shot set where each man looks and what he lanes.",
+         "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "Log it records the call you actually made, which is what self-scout counts."],
     watch:"Self-scout only knows the calls you logged. If you never tap Log it, it has nothing to tell you."},
   "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
@@ -6106,11 +6154,12 @@ const HELP = {
          "Say what you saw: made it or shot on the break, battling in or clean, which way he was shooting.",
          "Log this breakout, then tap the next man's bunker.",
          "When the point ends tap We won it or They won it. That is the score."],
-    watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice."},
+    watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
   scout: {t:"Scout", w:"What you know about the other team.",
     how:["Put them in the right pit first. Nothing else works until you do.",
          "The sub-tabs above are the different reads.",
-         "The match strip under the pits is the same match and point Tally is on."]},
+         "The match strip under the pits is the same match and point Tally is on.",
+         "Names writes the bunker codes on the field when you need to find one."]},
   "scout/matchup": {t:"Matchup", w:"The head-to-head read.",
     how:["Their tendency and threat are your film read, typed by you.",
          "The break above draws their most-logged call in blue and yours in red."],
@@ -6447,7 +6496,7 @@ function moreBody(k){
             <span class="assign__who">${esc(who)} · ${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
             <button class="btn btn--danger" onclick="clearPlayerCall(${jsq(who)},${jsq(id)})">Clear</button></div>`;
         }).join("")}</div>`:""}
-      <div class="field-wrap">${fieldSVG({static:true,noPaths:true})}</div>`,
+      <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>`,
       named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName);
   }
   if(k==="movement"){
@@ -6466,7 +6515,7 @@ function moreBody(k){
         <div class="fld"><label>To</label><select id="mvTo">${list.map(opt).join("")}</select></div>
       </div>
       <button class="btn btn--block" onclick="logMove()">Log the move</button>`, "Point "+(S.point||1))
-    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true,noPaths:true})}</div>
+    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true,noPaths:true,names:true})}</div>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
                  :`<div class="empty">No rotations logged on this layout yet.</div>`}`, layoutName)
     + (mvHere.length?sec("Rotations", `<div class="assigns">
@@ -6490,14 +6539,14 @@ function moreBody(k){
           <span class="fact"><b>${rows.reduce((n,r)=>n+r.outs,0)}</b><span>Outs</span></span>
           <span class="fact"><b>${rows.reduce((n,r)=>n+r.visits,0)}</b><span>Moves in</span></span>
         </div>
-        <div class="field-wrap">${fieldSVG({static:true,heat:true,noPaths:true})}</div>
+        <div class="field-wrap">${fieldSVG({static:true,heat:true,noPaths:true,names:true})}</div>
         <div class="tblwrap"><table class="tbl">
           <thead><tr><th>Bunker</th><th>Code</th><th>Outs</th><th>Moves in</th></tr></thead>
           <tbody>${rows.map(r=>`<tr><td>${esc(callOf(r.b))}</td><td class="num">${esc(r.id)}</td>
             <td class="num">${r.outs}</td><td class="num">${r.visits}</td></tr>`).join("")}</tbody>
         </table></div>`
       : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
-         <div class="field-wrap">${fieldSVG({static:true,noPaths:true})}</div>
+         <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>
          <div class="empty">Nothing logged yet. Set <b>shot at</b> or <b>moved to</b> on an out in Tally, or log a rotation in Movement, and it lands here.</div>`,
       layoutName);
   }

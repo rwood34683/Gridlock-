@@ -56,10 +56,46 @@ const ROSTER = [
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
   check("promo shows first, never the tutorial", await ev(() => !S.entered && !S.showTutorial));
-  check("all four promo routes render", await page.locator(".promo .btn").count() === 4);
+  // Three routes, not four: create and sign in were two buttons for one door,
+  // and a first-time coach could not tell which of them he was.
+  check("the promo offers three routes and no more", await page.locator(".promo .btn").count() === 3);
+  check("and they are coach, tutorial, sign in", await ev(() =>
+    [...document.querySelectorAll(".promo .btn")].map(b => b.textContent.trim()).join("|"))
+    === "Start coaching|Show me how it works|Running a clinic or a league? Sign in");
   await ev(() => window.set({ entered: true, role: "guest" }));
   check("guest can enter without an account", await ev(() => S.entered && S.role === "guest"));
   check("tab bar has the five phone tabs", await page.locator(".tabs button").count() === 5);
+
+  /* ------------------------------------------------------------ the welcome */
+  G("The welcome page");
+  await ev(() => { localStorage.clear(); window.set({ entered: false, mode: null }); });
+  await page.waitForTimeout(80);
+  const promoText = () => ev(() => document.getElementById("root").innerText);
+  check("it says what the app does before it asks for anything", await (async () => {
+    const t = await promoText();
+    return /twelve breaks/i.test(t) && /bunker a man broke to/i.test(t) && /win you points/i.test(t);
+  })());
+  check("the loudest button starts him coaching, not an account", await ev(() => {
+    const big = document.querySelector("#root .btn--lg");
+    return !!big && /Start coaching/.test(big.textContent);
+  }));
+  check("it says no account is needed, and why", await (async () => {
+    const t = await promoText();
+    return /No account needed/i.test(t) && /nothing ever leaves your phone/i.test(t);
+  })());
+  check("the sign-in line says what an account is for", await (async () =>
+    /clinic or a league/i.test(await promoText()))());
+  check("a phone with no account opens the form on Create", await ev(() => {
+    [...document.querySelectorAll("#root button")].find(b => /Sign in/.test(b.textContent)).click();
+    return S.mode === "create";
+  }));
+  check("and the form switches to signing in without going back", await ev(() => {
+    [...document.querySelectorAll("#root button")].find(b => /Already have one/.test(b.textContent)).click();
+    return S.mode === "login";
+  }));
+  check("the form says coaching does not depend on it",
+    await ev(() => /Coaching a match needs none/.test(document.getElementById("root").innerText)));
+  await ev(() => window.set({ mode: null }));
 
   /* --------------------------------------------------------------- staff auth */
   G("Staff auth");
@@ -372,7 +408,11 @@ const ROSTER = [
   await ev(() => { document.getElementById("bcId").value = "GP#1"; document.getElementById("bcName").value = "Home"; window.setCall(); });
   await page.waitForTimeout(80);
   check("a bunker call is saved", await ev(() => bunkerCalls()["GP#1"] === "Home"));
-  check("the call overlays the official code on the field", await ev(() => fieldSVG({ static: true }).includes(">Home<")));
+  check("the call overlays the official code on the field",
+    await ev(() => fieldSVG({ static: true, names: true }).includes(">Home<")));
+  check("Team draws the codes without asking, because naming them is the screen",
+    await ev(() => { window.set({ namesOn: false });
+      return document.querySelector("#root .field-wrap svg.field").innerHTML.includes(">Home<"); }));
   check("calls are scoped to the layout", await ev(() => {
     window.set({ layoutKey: "not-a-field" }); const n = Object.keys(bunkerCalls()).length;
     window.set({ layoutKey: "mwo" }); return n === 0;
@@ -1403,7 +1443,7 @@ const ROSTER = [
   await ev(() => { localStorage.removeItem("gridlock.coach.v2"); });
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(200);
-  await page.locator("button", { hasText: "Continue as guest" }).click();
+  await page.locator("button", { hasText: "Start coaching" }).click();
   await page.waitForTimeout(350);
   check("the field is on screen without scrolling", await ev(() => {
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
@@ -3495,6 +3535,36 @@ const ROSTER = [
       await ev(() => document.querySelectorAll(".field-wrap svg.field").length)];
     check(`${name} is a table, with no break drawn over it`, runners === 0, `${fields} field(s), ${runners} runners`);
   }
+  /* -------------------------------------------------- the names are a layer */
+  G("Bunker codes are a layer, not the wallpaper");
+  const codesOn = () => ev(() => {
+    const f = document.querySelector("#root .field-wrap svg.field");
+    return f ? [...f.querySelectorAll("text")]
+      .filter(t => /^[A-Za-z]{1,2}[0-9]*$/.test(t.textContent.trim())).length : -1;
+  });
+  await seed({ tab: "scout", scoutTab: "matchup", right: { name: "Rejects" } });
+  check("a coach opens on a field he can read, not a wall of codes",
+    await ev(() => S.namesOn === false) && await codesOn() === 0);
+  await ev(() => window.set({ namesOn: true }));
+  check("the Names chip writes them on", await codesOn() > 20);
+  await ev(() => window.set({ namesOn: false }));
+  check("and takes them off again", await codesOn() === 0);
+  check("the chip is on Playbook and on Scout", await ev(() => {
+    const hasIt = () => [...document.querySelectorAll("#root .tgl")].some(b => /Names/.test(b.textContent));
+    window.set({ tab: "playbook" }); const pb = hasIt();
+    window.set({ tab: "scout", scoutTab: "matchup" }); return pb && hasIt();
+  }));
+  // Where a named bunker is the subject the codes are not optional.
+  for (const [tab, more, label] of [["sightlines", null, "Sightlines"],
+                                    ["more", "movement", "Movement"],
+                                    ["more", "stats", "Bunker stats"]]) {
+    await ev(x => window.set({ tab: x[0], more: x[1], namesOn: false }), [tab, more]);
+    check(label + " keeps the codes whatever the chip says", await codesOn() > 20);
+  }
+  await seed({ tab: "tally" });
+  check("Tally opens on a clean field \u2014 the sheet names the bunker you tap",
+    await codesOn() === 0);
+
   check("the training-aid line is on every Scout view, tables and voice included", await ev(() => {
     return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
       return /training aid, not a prediction/i.test(document.getElementById("root").textContent); });
