@@ -1612,6 +1612,19 @@ function editFingerprint(){
   for(const k in all) if(k.startsWith(pre)) out += k + JSON.stringify(all[k]);
   return out;
 }
+// The routed paths for a call on this field, unedited. Cached by call, the
+// same as the current one, so drawing their break every animation frame does
+// not route it every animation frame.
+function routedFor(script){
+  const rk = S.layoutKey + "|" + script;
+  return _routeCache[rk] || (_routeCache[rk] = breakPaths(S.layoutKey, script));
+}
+// The call the right pit has been seen running most on this field, if one has
+// been logged against them. Nothing is guessed: no log, no call.
+function theirScript(){
+  const hit = breakFreq("right").find(([k]) => BREAKS[k]);
+  return hit ? hit[0] : null;
+}
 function currentPaths(){
   const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${editFingerprint()}`;
   const hit = _drawCache[k];
@@ -1632,7 +1645,12 @@ function currentPaths(){
 const _runCache = {};
 function drawnRun(p, legs, sx, sy){
   const sm = S.smoothOn === false ? 0 : 1;
-  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${p.id}|${sx}|${sm}|${JSON.stringify(p.via||[])}`;
+  // Keyed on the legs themselves. It was keyed on the path number and the
+  // current call, and their break drawn on Scout carries the same numbers under
+  // the same call, mirrored — so the mirrored curve was handed back for your
+  // own path on Playbook, and the sampled run cut through two bunkers on Lone
+  // Star that the real route clears.
+  const k = `${sx}|${sy}|${sm}|${JSON.stringify(legs)}`;
   return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
 }
 /* Rounded corners, or the line as it is routed.
@@ -1956,6 +1974,7 @@ const defaultState = () => ({
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
+  scoutShow:"them",               // the Scout field draws one pit at a time: theirs, yours, or both
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -3726,10 +3745,19 @@ function fieldSVG(opts={}, runnersOnly){
     return out;
   }).join("");
 
-  let paths = opts.noPaths ? "" : runner(brPaths, opts.color||"#e5342f", 0);
-  if(opts.both){
+  /* Two fives at once was ten lines and ten numbers crossing at the fifty,
+     and with the same call mirrored both plants landed on the same bunker. So
+     the Scout field draws one pit at a time unless asked for both, and the
+     blue side is their call — the one logged most against them on this field
+     — not yours turned round. With nothing logged it falls back to the mirror
+     and the legend says so. */
+  const show = opts.both ? (opts.show || "both") : "us";
+  let paths = (opts.noPaths || show === "them") ? "" : runner(brPaths, opts.color||"#e5342f", 0);
+  if(opts.both && show !== "us"){
     const flip=q=>[150-q[0],q[1]];
-    paths += runner(brPaths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
+    const ts = theirScript();
+    const theirs = ts ? routedFor(ts) : brPaths;
+    paths += runner(theirs.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
   }
 
   // Sightlines replace the break paths when a source bunker is picked.
@@ -4701,7 +4729,7 @@ window.playPath = () => {
 // Repaint just the field SVGs. A full render() per frame rebuilt the entire
 // document — including the division table — sixty times a second.
 function paintField(){
-  const opts = S.tab==="scout" ? {both:true, outs:!!S.outsOn, their:!!S.theirOn} : {edit:S.editPath};
+  const opts = S.tab==="scout" ? {both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn} : {edit:S.editPath};
   const layer = fieldRunners(opts);
   document.querySelectorAll(".field-wrap[data-live]").forEach(el => {
     const g = el.querySelector("svg.field g.live");
@@ -5410,17 +5438,24 @@ function scout(){
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
 
-  ${sec("The break, both pits", `<div class="toggles">
+  ${sec("The break", `<div class="seg">
+      <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">Theirs</button>
+      <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
+      <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
+    </div>
+    <div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
     </div>
-    <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn, their:!!S.theirOn})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")}</span>
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")}</span>
+      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
+      ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
+        return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
+          ts ? `${esc((BREAKS[ts]||{}).name||ts)}, logged ${n} time${n===1?"":"s"}` : "their call not logged yet, so this is yours mirrored"}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
