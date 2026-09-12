@@ -331,3 +331,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Persist what the coach was in the middle of. `playing` was reset on load and
+  nothing else was, so eleven scratch keys rode a relaunch — and two of them
+  wrote bad data rather than merely looking odd: a Right read ticked on Saturday
+  and never used was recorded against whatever point was ended next, and a
+  half-filled breakout sheet came back open on yesterday's bunker, one tap from
+  being logged under today's point number. A launch is a fresh start on every
+  screen; only what was logged survives it. The block that clears `paste` clears
+  all of them now, and the suite reloads the page to check it.

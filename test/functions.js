@@ -3565,6 +3565,40 @@ const ROSTER = [
     return ok;
   }));
 
+  /* --------------------------------------------------------------------
+     A launch is a fresh start on every screen
+
+     `playing` was reset on load and nothing else was, so a Right read ticked
+     and never used rode to whatever point was ended next, and a half-filled
+     breakout sheet came back open on yesterday's bunker under today's point.
+     -------------------------------------------------------------------- */
+  G("Nothing half-done survives a relaunch");
+  await ev(() => {
+    window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
+                 editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10] });
+    window.selectBunker(curLayout().bunkers[3].id);
+    window.setDraft({ player:"Reyes", alive:false });
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(200);
+  {
+    const left = await ev(() => Object.entries({
+      tallySel:S.tallySel, tallyDraft:S.tallyDraft, tallyTrace:S.tallyTrace, tallyRead:S.tallyRead,
+      tallyPick:S.tallyPick, tallyLast:S.tallyLast, helpFor:S.helpFor, helpQ:S.helpQ,
+      editPath:S.editPath, pad:S.pad, replayPt:S.replayPt, replayStep:S.replayStep,
+      theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
+    }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
+      .map(([k]) => k).join(", "));
+    check("nothing a coach was in the middle of survives a relaunch", !left, left);
+  }
+  check("a read ticked last session cannot ride onto the next point", await ev(() => {
+    const pt = S.point || 1;
+    window.endPoint("us");
+    const r = (S.results || []).find(x => x.m === S.matchId && x.pt === pt);
+    window.backPoint();
+    return r && !r.read;
+  }));
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));

@@ -2186,6 +2186,22 @@ if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
 // open three days later at the next event.
 S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 
+/* Everything a coach was in the middle of, cleared the same way.
+ *
+ * `playing` was reset here and nothing else was, so eleven other scratch keys
+ * rode a relaunch. Two of them wrote bad data rather than merely looking odd:
+ * a Right read ticked on Saturday and never used got recorded against the next
+ * point ended, whenever that was; and a half-filled breakout sheet came back
+ * open on yesterday's bunker, one tap from being logged under today's point
+ * number. The rest just opened the app mid-action — a face pad hanging open, a
+ * replay stopped at step two, Playbook in path-edit mode. A launch is a fresh
+ * start on every screen; only what was logged survives it. */
+S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
+S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
+S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
+S.helpFor = ""; S.helpQ = -1;
+S.theirPick = []; S.sightAim = null;
+
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
 if(S.walkNotes && !((S.walk||{})[S.layoutKey]||[]).length){
