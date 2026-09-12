@@ -381,6 +381,20 @@ svg.field{width:100%;height:auto;display:block}
 }
 .ps button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
+/* The wall. A panel, not a dead end: it is the shape of a call card so it
+   reads as something the app is telling him, not an error. */
+.gate{
+  background:linear-gradient(150deg,#1a1010,#0f1011 60%);
+  border:1px solid var(--line-lit);border-radius:var(--r-lg);
+  padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
+}
+.gate__tag{
+  align-self:flex-start;font-size:var(--t-xs);font-weight:700;letter-spacing:.2em;
+  text-transform:uppercase;color:#fff;background:var(--accent);
+  border-radius:var(--r-pill);padding:4px 11px;
+}
+.gate__name{font-size:var(--t-xl);font-weight:800;line-height:1.15;margin:0}
+
 .help-btn{
   /* 44 px because a thumb needs it, even though the ring reads smaller: the
      border is drawn on an inner box so the target is bigger than it looks. */
@@ -1298,6 +1312,7 @@ const defaultState = () => ({
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
+  billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"",
   direct:{},
   pad:null,
   moves:[],
@@ -4695,7 +4710,16 @@ window.newMatch = () => {
 };
 // An old sheet is worth reading, and worth adding to when you tallied a point
 // late. Opening one puts you on its last point rather than back at one.
+/* Opening an older sheet is the paid half of Matches. The sheet in play never
+   is — a coach mid-tournament must always be able to get back to it — and
+   nothing is deleted or hidden either way: the list shows every match he has,
+   with a lock on the ones he cannot open yet. */
 window.openMatch = id => {
+  if(id !== S.matchId && !entitled("team"))
+    return set({tab:"more", more:"plan", billingSaid:""});
+  openMatchNow(id);
+};
+const openMatchNow = id => {
   if(!(S.matches || []).some(m => m.id === id)) return;
   S.matchId = id;
   // Where he actually left off. A point that already has a winner recorded is
@@ -6306,6 +6330,11 @@ const HELP = {
   "more/league": {t:"League", w:"Groups and ops blasts.",
     how:["Staff login required to send a blast.",
          "Pick the group, write it once, and it goes in the log."]},
+  "more/plan": {t:"Plan", w:"What is free, what Team adds, and getting a purchase back.",
+    how:["Everything you do while a point is on is free and always will be.",
+         "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
+         "Restore purchases asks the store, so a new phone needs no account."],
+    watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
   "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
     how:["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
@@ -6324,6 +6353,7 @@ const HELP_Q = [
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
+  ["What does it cost?", "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
 ];
 
@@ -6343,6 +6373,57 @@ function helpCard(k){
     ${h.watch ? `<p class="warn">${esc(h.watch)}</p>` : ""}`,
     k.includes("/") ? k.split("/")[0] : "");
 }
+/* The plan screen. It leads with what stays free, because that is the honest
+   thing a coach wants to know first, and it never hides what he already has. */
+function planPage(){
+  const now = planOf(), said = S.billingSaid || "";
+  const row = (a, b) => `<div class="kv__row"><span class="kv__k">${a}</span><span class="kv__v">${b}</span></div>`;
+  return sec("Your plan", `<div class="call">
+      <div class="call__label">On this phone</div>
+      <div class="call__name">${esc(PLAN_NAME[now])}</div>
+      <p class="call__read">${BILLING_LIVE
+        ? (now === "free" ? "The whole sideline loop, on every field, forever."
+                          : "Everything is unlocked on this phone.")
+        : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
+    </div>
+    ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, BILLING_LIVE ? "" : "not selling yet")
+  + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire, it does
+      not need a signal, and it does not need an account.</p>
+    <div class="kv">
+      ${row("Playbook", "All twelve breaks on every measured field, Face, Shot, Job, and Log it.")}
+      ${row("Tally", "The bunker-first break chart, the point sheet, the score, and where your points come from.")}
+      ${row("Sightlines", "What any bunker can see, and the dragged lane.")}
+      ${row("The field", "Walk notes, Movement, Bunker stats.")}
+      ${row("The squad", "Roster, Lineups, your words for every bunker, call and job, Codes, Messages.")}
+      ${row("Save a copy", "Your backup is never behind a wall. There is no server here, so that file is the only thing protecting your season.")}
+      ${row("The match in play", "Always. A sheet you are on is never locked.")}
+    </div>`)
+  + sec("Team", `<p class="lede">What you do between events. £ and $ shown per season; a season renews
+      once a year and you can leave any time.</p>
+    <div class="kv">
+      ${row("Scout", "The whole opponent library — their five, the calls you have seen them run, your answer to each, Layers and the season board.")}
+      ${row("Cards", "One card a man, to hand over or share.")}
+      ${row("Rep", "The recognition drill, on a two-second clock.")}
+      ${row("Assess", "Grade a player after the point, and his season average.")}
+      ${row("Every sheet", "Open any match you have kept, not only the one you are on.")}
+      ${row("Three phones", "You and two assistants.")}
+    </div>
+    <div class="btnrow">
+      <button class="btn grow" onclick="buyPlan('team_season')">Team · $99 a season</button>
+      <button class="btn btn--ghost grow" onclick="buyPlan('team_month')">$14.99 a month</button>
+    </div>
+    <button class="btn btn--quiet btn--block" onclick="buyPlan('event_pass')">One event weekend · $25</button>
+    <p class="note">A season is the same as seven months of monthly, and it does not ask you again in
+      the off-season.</p>`, "$99 a season")
+  + sec("Already paid?", `<p class="lede">New phone, or reinstalled? The store remembers, not us — there is no
+      account and nothing about you leaves the phone.</p>
+    <button class="btn btn--block" onclick="restorePlan()">Restore purchases</button>`)
+  + (staffed() ? sec("Preview", `<p class="lede">Show yourself exactly what a coach on the free plan sees.
+      This only changes what is on screen — it buys nothing and cancels nothing.</p>
+    <button class="btn ${S.preview?"":"btn--quiet"} btn--block" onclick="set({preview:!S.preview})">${
+      S.preview ? "Stop previewing the free plan" : "Show me the free plan"}</button>`, "Staff") : "");
+}
+
 function helpPage(){
   const here = S.helpFor;
   const order = Object.keys(HELP);
@@ -6366,6 +6447,119 @@ function helpPage(){
       <button class="btn btn--quiet btn--block" onclick="showHints()">Show the hints again</button>`);
 }
 
+/* ============================================================
+   What is paid for
+   ============================================================
+
+   Nothing a coach does *during a point* is ever behind a wall. He calls the
+   break, charts it bunker by bunker, scores it and reads which bunkers are
+   winning him points — all of that is free, on every field, forever, because
+   a tool that stops working on a Saturday is not a tool. What is paid for is
+   everything he does between events: the opponent library, the drills, the
+   grading, and last month's sheets.
+
+   Two things are deliberately free that a freemium app would normally charge
+   for, and both for the same reason — there is no server here:
+
+     · Save a copy. The only backup a season has is the file he exports. A
+       paywall in front of it makes his own data a hostage, and the app would
+       be holding the one thing that protects him.
+     · Lineups. Who is on this point is read mid-point, inside the loop.
+
+   The plan is cached on the phone and mirrored like everything else, because
+   a field has no signal. That cache is a convenience and never evidence:
+   Restore purchases is the only proof, and it is what the store is asked. */
+const PLANS = {free: 0, team: 1, program: 2};
+const PLAN_NAME = {free: "Free", team: "Team", program: "Program"};
+
+/* Until a store is actually wired up there is nothing to sell, so the gate is
+   built, tested and off. Flipping this on is the whole switch — see
+   docs/PAYWALL.md for the products and the RevenueCat side. */
+const BILLING_LIVE = false;
+
+/* Which screen needs which plan. A screen not named here is free. */
+const PAID = {
+  "scout":          "team",     // the whole opponent library
+  "playbook/cards": "team",
+  "playbook/rep":   "team",
+  "more/assess":    "team",
+};
+const PAID_WHY = {
+  "scout":          "Everything you know about the other team — their five, the calls they run, your answer to each one, and the season board.",
+  "playbook/cards": "One card a man, to hand over or share into the squad chat.",
+  "playbook/rep":   "The recognition drill, with a clock that holds you to two seconds.",
+  "more/assess":    "Grade a player after the point, and keep his season average.",
+  "past-match":     "Every sheet you have kept, not just the one you are on.",
+};
+
+function planOf(){
+  if(!BILLING_LIVE) return S.preview ? "free" : "program";
+  const p = ((S.billing || {}).plan) || "free";
+  const exp = (S.billing || {}).exp || 0;
+  if(exp && Date.now() > exp) return "free";
+  return PLANS[p] === undefined ? "free" : p;
+}
+function entitled(need){ return PLANS[planOf()] >= (PLANS[need] || 0); }
+function gateFor(key){ const need = PAID[key]; return need && !entitled(need) ? need : null; }
+/* Which wall the screen he is standing on is behind, if any. helpKey() is a
+   sub-screen ("scout/matchup"), and a paid *tab* is named by its tab alone —
+   so ask for the exact screen first and fall back to the tab it lives in, or
+   every Scout sub-tab would have to be listed and a new one would ship open. */
+function gateKey(){
+  const k = helpKey();
+  if(PAID[k]) return gateFor(k) ? k : null;
+  const tab = k.split("/")[0];
+  return PAID[tab] && gateFor(tab) ? tab : null;
+}
+
+/* What the store told us, cached. Called by the native shim after a purchase
+   or a restore; also how a lapse is recorded, by handing back free. */
+window.gridlockEntitle = e => {
+  const plan = e && PLANS[e.plan] !== undefined ? e.plan : "free";
+  S.billing = {plan, exp: (e && +e.exp) || 0, source: (e && e.source) || "", at: Date.now()};
+  save(S); render();
+  return plan;
+};
+window.buyPlan = async id => {
+  const b = window.gridlockBilling;
+  if(!b || !b.buy) return set({billingSaid: "There is nothing to buy yet — the store is not switched on in this build."});
+  set({billingSaid: "Talking to the store…"});
+  try{
+    const got = await b.buy(id);
+    if(got) { window.gridlockEntitle(got); set({billingSaid: ""}); }
+    else set({billingSaid: "Nothing was bought. Nothing has changed."});
+  }catch(err){ set({billingSaid: "The store could not be reached. Nothing has changed."}); }
+};
+window.restorePlan = async () => {
+  const b = window.gridlockBilling;
+  if(!b || !b.restore) return set({billingSaid: "There is nothing to restore yet — the store is not switched on in this build."});
+  set({billingSaid: "Asking the store what you own…"});
+  try{
+    const got = await b.restore();
+    if(got && got.plan && got.plan !== "free"){ window.gridlockEntitle(got); set({billingSaid: ""}); }
+    else set({billingSaid: "The store has no purchase on this Apple ID. If you bought on another account, sign in with that one."});
+  }catch(err){ set({billingSaid: "The store could not be reached. Nothing has changed."}); }
+};
+
+/* The wall itself. Never a dead end: it says what is behind it, what the
+   coach keeps for nothing, and how to get back in on a phone he has already
+   paid on. */
+function upgradePanel(key){
+  const why = PAID_WHY[key] || "";
+  return `<div class="gate">
+    <span class="gate__tag">Team</span>
+    <h3 class="gate__name">${esc(MORE_TITLES[(key||"").replace("more/","")] || GATE_TITLE[key] || "This screen")} is part of Team</h3>
+    ${why ? `<p class="lede">${esc(why)}</p>` : ""}
+    <p class="note">Calling the break, charting the point and the score stay free on every field,
+      and so does Save a copy. Nothing you have logged is locked away.</p>
+    <div class="btnrow">
+      <button class="btn grow" onclick="set({tab:'more',more:'plan'})">See Team</button>
+      <button class="btn btn--quiet" onclick="restorePlan()">Restore purchases</button>
+    </div>
+  </div>`;
+}
+const GATE_TITLE = {"scout":"Scout", "playbook/cards":"Cards", "playbook/rep":"Rep", "past-match":"An older sheet"};
+
 const MORE_GROUPS=[
   ["The field",[
     ["walk","Walk","Field-walk notes against this layout"],
@@ -6382,6 +6576,7 @@ const MORE_GROUPS=[
     ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
   ["Device",[
+    ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","What every screen does, and the usual questions"],
     ["nexus","Nexus","Account, tutorial and privacy"]]]
 ];
@@ -6489,7 +6684,7 @@ function moreBody(k){
             (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
-          ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">Open</button>`}
+          ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>`}
         </div>`;
       }).join("")}</div>`
       :`<div class="empty">This is your first sheet. Tap New match when the next game starts and
@@ -6714,6 +6909,7 @@ function moreBody(k){
        <button class="btn" onclick="sendMsg()">Send</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
+  if(k==="plan") return planPage();
   if(k==="help") return helpPage();
   if(k==="nexus") return sec("Nexus", `<div class="panel">
       <div class="kv">
@@ -6798,7 +6994,9 @@ window.sendMsg = () => {
    ============================================================ */
 function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
-  const page={playbook,tally,scout,sightlines,more:morePage}[S.tab]();
+  const blocked = gateKey();
+  const page = blocked ? upgradePanel(blocked)
+                       : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
     <div class="kv">

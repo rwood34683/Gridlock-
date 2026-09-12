@@ -340,6 +340,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Put a wall in front of anything a coach does while a point is on, and never
+  in front of **Save a copy**. There is no server: that file is the only thing
+  protecting his season, so charging for it makes his own data a hostage. The
+  free plan is the whole sideline loop — Playbook, Tally, the score, Sightlines,
+  the field screens, his own words for everything, and the match he is on. Team
+  is the between-events half: Scout, Cards, Rep, Assess, and opening an older
+  sheet. `PAID` names it, `gateKey()` reads the exact screen before falling back
+  to its tab, and `BILLING_LIVE` is off until a store is wired up. Nothing is
+  ever deleted or hidden to make somebody pay — a locked sheet is still listed.
+  `docs/PAYWALL.md` is the switch-on.
 - Print the app's name for a job either. A job is written as the bunker and
   the wire — "SB · snake wire" — which is a description, not a play, and a team
   that calls the break "Rocket" calls its five "Rocket 1" through "Rocket 5".

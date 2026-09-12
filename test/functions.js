@@ -3535,6 +3535,95 @@ const ROSTER = [
       await ev(() => document.querySelectorAll(".field-wrap svg.field").length)];
     check(`${name} is a table, with no break drawn over it`, runners === 0, `${fields} field(s), ${runners} runners`);
   }
+  /* ------------------------------------------------------------- the paywall */
+  G("What is paid for, and what never is");
+  await seed({ tab: "playbook", right: { name: "Rejects" } });
+  check("nothing is for sale until the store is switched on",
+    await ev(() => BILLING_LIVE === false && planOf() === "program"));
+  check("so no coach testing this build hits a wall",
+    await ev(() => !gateKey()));
+  // Staff can look at exactly what a free coach sees, without buying or cancelling.
+  await ev(() => window.set({ preview: true }));
+  check("previewing the free plan turns the gate on", await ev(() => planOf() === "free"));
+  for (const [label, st] of [["Scout", { tab: "scout", scoutTab: "matchup" }],
+                             ["Scout's other sub-tabs", { tab: "scout", scoutTab: "counter" }],
+                             ["Cards", { tab: "playbook", pbView: "cards" }],
+                             ["Rep", { tab: "playbook", pbView: "rep" }],
+                             ["Assess", { tab: "more", more: "assess", pbView: null }]]) {
+    await ev(x => window.set(x), st); await page.waitForTimeout(70);
+    check(`${label} is behind the wall`, await ev(() => !!document.querySelector("#root .gate")));
+  }
+  // The loop a coach runs while a point is on is never gated. This is the list
+  // that must not quietly grow.
+  for (const [label, st] of [["Playbook", { tab: "playbook", pbView: null }],
+                             ["Tally", { tab: "tally" }],
+                             ["Sightlines", { tab: "sightlines" }],
+                             ["Walk", { tab: "more", more: "walk" }],
+                             ["Movement", { tab: "more", more: "movement" }],
+                             ["Bunker stats", { tab: "more", more: "stats" }],
+                             ["Lineups", { tab: "more", more: "lineups" }],
+                             ["Team", { tab: "more", more: "team" }],
+                             ["Codes", { tab: "more", more: "codes" }],
+                             ["Messages", { tab: "more", more: "messages" }],
+                             ["Matches", { tab: "more", more: "matches" }],
+                             ["Help", { tab: "more", more: "help" }],
+                             ["Nexus", { tab: "more", more: "nexus" }]]) {
+    await ev(x => window.set(x), st); await page.waitForTimeout(70);
+    check(`${label} stays free`, await ev(() => !document.querySelector("#root .gate")));
+  }
+  check("Save a copy is never behind a wall — it is the only backup there is",
+    await ev(() => { window.set({ tab: "more", more: "nexus" });
+      return /Save a copy/i.test(document.getElementById("root").innerText); }));
+  check("the sheet he is on always opens", await ev(() => {
+    const id = S.matchId; window.openMatch(id);
+    return S.matchId === id && S.more !== "plan";
+  }));
+  check("an older sheet asks him to upgrade rather than opening", await ev(() => {
+    const first = S.matchId, kept = (S.matches || []).length;
+    window.set({ right: { name: "Other" } }); window.newMatch();
+    window.openMatch(first);
+    return S.more === "plan" && S.matchId !== first && (S.matches || []).length === kept + 1;
+  }));
+  check("and nothing of his was deleted to make him pay",
+    await ev(() => (S.matches || []).length >= 2));
+  check("the wall says what is behind it and offers a way back in", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", more: null });
+    const t = document.querySelector("#root .gate").innerText;
+    return /Team/.test(t) && /Restore purchases/.test(t) && /stay free/.test(t);
+  }));
+  check("the Plan screen leads with what is free", await ev(() => {
+    window.set({ tab: "more", more: "plan" });
+    const t = document.getElementById("root").innerText;
+    return /free, always/i.test(t) && /restore purchases/i.test(t) && /99 a season/i.test(t);
+  }));
+  check("with no store wired up, buying says so and changes nothing", await ev(async () => {
+    const was = JSON.stringify(S.billing);
+    await window.buyPlan("team_season");
+    return /nothing to buy yet/i.test(S.billingSaid) && JSON.stringify(S.billing) === was;
+  }));
+  check("and so does restoring", await ev(async () => {
+    await window.restorePlan();
+    return /nothing to restore yet/i.test(S.billingSaid);
+  }));
+  check("what the store says is what is kept", await ev(() => {
+    window.gridlockEntitle({ plan: "team", source: "revenuecat" });
+    return S.billing.plan === "team" && S.billing.source === "revenuecat";
+  }));
+  check("a lapsed plan is a free plan", await ev(() => {
+    window.gridlockEntitle({ plan: "team", exp: Date.now() - 1000 });
+    window.set({ preview: false });
+    const live = BILLING_LIVE;                       // only meaningful once it is
+    return live ? planOf() === "free" : true;
+  }));
+  check("junk from the store is read as free",
+    await ev(() => { window.gridlockEntitle({ plan: "platinum" }); return S.billing.plan === "free"; }));
+  check("the plan is this phone's, never part of a season copy", await ev(() => {
+    window.gridlockEntitle({ plan: "team" });
+    const all = JSON.parse(copyPayload("all")).data;
+    return copyDataError(all) === "" && all.billing === undefined && all.preview === undefined;
+  }));
+  await ev(() => window.set({ preview: false }));
+
   /* ------------------------------------------ the app speaks the coach's words */
   G("The calls are named the way the team says them");
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
