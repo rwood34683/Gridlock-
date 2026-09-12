@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="description" content="GRIDLOCK Coach: plan paintball breakouts, scout opponents, track matches and manage your squad on the sideline."/>
 <meta name="theme-color" content="#0b0c0d"/>
 <meta name="color-scheme" content="dark"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -70,7 +71,7 @@ h1,h2,h3,p{margin:0}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
 .main{
   flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:var(--s4) calc(var(--s4) + env(safe-area-inset-left)) var(--s6) calc(var(--s4) + env(safe-area-inset-right));
+  padding:var(--s4) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))) var(--s6) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)));
   display:flex;flex-direction:column;gap:var(--s5);
 }
 /* A scrolling flex column shrinks its children to fit. Without this every
@@ -90,8 +91,8 @@ h1,h2,h3,p{margin:0}
 
 .hdr{
   background:#000;border-bottom:1px solid var(--line);
-  padding:var(--s3) calc(var(--s4) + env(safe-area-inset-right)) 0 calc(var(--s4) + env(safe-area-inset-left));
-  padding-top:calc(var(--s3) + env(safe-area-inset-top));
+  padding:var(--s3) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) 0 calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
+  padding-top:calc(var(--s3) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
 }
 .hdr__top{display:flex;align-items:center;gap:var(--s3)}
 .brand{font-size:var(--t-md);font-weight:800;letter-spacing:.14em;line-height:1}
@@ -129,7 +130,7 @@ h1,h2,h3,p{margin:0}
 
 .tabs{
   display:flex;background:#000;border-top:1px solid var(--line);
-  padding:var(--s1) calc(var(--s2) + env(safe-area-inset-left)) calc(var(--s2) + env(safe-area-inset-bottom)) calc(var(--s2) + env(safe-area-inset-right));
+  padding:var(--s1) calc(var(--s2) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))) calc(var(--s2) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s2) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)));
 }
 .tabs button{
   flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
@@ -152,7 +153,7 @@ h1,h2,h3,p{margin:0}
   .tabs{
     grid-area:rail;flex-direction:column;justify-content:flex-start;gap:2px;
     border-top:0;border-right:1px solid var(--line);
-    padding:var(--s4) var(--s2) calc(var(--s4) + env(safe-area-inset-bottom)) calc(var(--s2) + env(safe-area-inset-left));
+    padding:var(--s4) var(--s2) calc(var(--s4) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s2) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
   }
   .tabs button{
     flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:var(--s3);
@@ -313,6 +314,21 @@ select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
 .aim{cursor:grab}
 svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.arrival-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
+.arrival-grid .fld{min-width:0}
+.arrival-grid select,.arrival-grid input{width:100%;min-width:0;min-height:48px}
+.arrival-add{margin-top:var(--s2);min-height:44px}
+.arrival-custom{grid-column:1/-1;min-width:0;border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s3)}
+.arrival-custom .btnrow{flex-wrap:wrap;margin-top:var(--s3)}
+.arrival-narrative{margin:0;padding-left:24px;display:grid;gap:var(--s3);font-size:var(--t-sm)}
+.arrival-context{border:1px solid var(--line);border-radius:var(--r-sm);padding:0 var(--s3)}
+.arrival-context summary{min-height:48px;padding:var(--s3) 0;cursor:pointer;font-size:var(--t-sm);font-weight:700}
+.arrival-context .arrival-grid{padding-bottom:var(--s3)}
+.arrival-playback{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2)}
+.arrival-playback .btn{padding:8px;min-height:48px;font-size:var(--t-sm);text-align:center;justify-content:center;line-height:1.3}
+#arrival-map{touch-action:pan-y}
+button:disabled{opacity:.45;cursor:default}
+@media(max-width:360px){.arrival-grid{grid-template-columns:minmax(0,1fr)}}
 svg.field{width:100%;height:auto;display:block}
 /* A phone turned sideways is short, and the field is 150 by 120 — at full width
    it comes out taller than the screen, so you see less of it than in portrait,
@@ -549,7 +565,7 @@ svg.field [data-pick]{cursor:crosshair}
    ============================================================ */
 .promo{
   height:100%;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:calc(var(--s6) + env(safe-area-inset-top)) calc(var(--s5) + env(safe-area-inset-right)) calc(var(--s5) + env(safe-area-inset-bottom)) calc(var(--s5) + env(safe-area-inset-left));
+  padding:calc(var(--s6) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(var(--s5) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) calc(var(--s5) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s5) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
   gap:var(--s5);
   background:
     radial-gradient(1200px 540px at 50% 0%, rgba(173,21,21,.32) 0%, transparent 60%),
@@ -563,9 +579,22 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
 .stack{display:flex;flex-direction:column;gap:var(--s2)}
 </style>
+<style>
+.voice-live,.voice-event{padding:14px;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--sunk);overflow-wrap:anywhere}
+.voice-live[data-listening="true"]{border-color:#3ecf8e}
+.voice-status{font-weight:700;margin:0 0 8px}.voice-partial{min-height:1.5em;color:var(--dim)}
+.voice-event--review{border-color:#9f772c}.voice-meta{font-size:var(--t-xs);color:var(--dim);margin-bottom:8px}
+.voice-transcript{white-space:pre-wrap;margin:10px 0}.voice-tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.voice-editor{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.voice-editor textarea,#voice-manual{width:100%;min-height:72px}
+.voice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.voice-grid .fld{min-width:0}.voice-grid select{width:100%;min-width:0}
+@media(max-width:420px){.voice-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div id="root"></div>
+<script src="voice-parser.js"></script>
+<script src="speech.js"></script>
+<script src="voice.js"></script>
 <script>
 const STORE_KEY = "gridlock.coach.v2";
 const BANNED = /gunz\s*up/ig;
@@ -1197,6 +1226,9 @@ const defaultState = () => ({
   showTutorial:false,
   point:1,
   scoutTab:"matchup",
+  arrival:{},                    // route viewer controls; observations live below
+  arrivalSightings:[],            // ordered, scoped observations; never inferred positions
+  voice:{}, voiceEvents:[],       // transcripts; microphone state is never persisted
   division:"pro",       // pro is the point; the semi-pro board is still there
   teams:{},
   scoutLayers:{theirOuts:true},
@@ -1241,16 +1273,31 @@ const defaultState = () => ({
  */
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
+const RECOVERY_KEY = STORE_KEY + ".recovery";
+let _recoveryText = "";
+try{ _recoveryText = localStorage.getItem(RECOVERY_KEY) || ""; }catch(e){}
 function load(){
+  let raw = "";
   try{
-    const raw = localStorage.getItem(STORE_KEY);
+    raw = localStorage.getItem(STORE_KEY);
     if(!raw) return defaultState();
     const parsed = JSON.parse(raw);
+    if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
     return Object.assign(defaultState(), parsed);
-  }catch(e){return defaultState()}   // unreadable counts as nothing to come back to
+  }catch(e){
+    // Keep the exact bytes before a new session can overwrite the broken save.
+    // They may contain recoverable work even when this build cannot open it.
+    if(raw){
+      _recoveryText = raw;
+      try{ localStorage.setItem(RECOVERY_KEY, raw); }catch(ignore){}
+    }
+    return defaultState();
+  }
 }
 function save(s){
+  // A slow native restore must not overwrite work already started this launch.
+  _hadLocal = true;
   s.savedAt = Date.now();
   const text = JSON.stringify(s);
   // A throw here used to escape through set() before render() ever ran, so the
@@ -1268,10 +1315,11 @@ window.gridlockRestore = text => {
   if(_hadLocal || !text) return false;
   let d = null;
   try{ d = JSON.parse(text); }catch(e){ return false; }
-  if(!d || typeof d !== "object" || !d.savedAt) return false;
+  if(!plainRecord(d) || !d.savedAt || copyDataError(d)) return false;
   const held = {tab:S.tab, more:S.more, scoutTab:S.scoutTab};
   Object.keys(d).forEach(k => { S[k] = d[k]; });
   Object.assign(S, held);
+  resetLiveState();
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   _hadLocal = true;
@@ -1305,13 +1353,31 @@ function storeWarning(){
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
     <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
     Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
+  if(window.gridlockDurableError) return `<div class="tip" style="border-color:var(--red)">
+    <span>${esc(window.gridlockDurableError)}</span></div>`;
   if(S.restored) return `<div class="tip">
     <span>This phone had lost its saved season, so it was put back from the copy the app keeps —
     everything up to <b>${esc(S.restored)}</b>.</span>
     <button onclick="set({restored:null})">OK</button></div>`;
+  if(_recoveryText) return `<div class="tip" style="border-color:var(--red)">
+    <span>A saved season could not be opened. Its original text is preserved for recovery on Nexus.</span>
+    <button onclick="set({entered:true,tab:'more',more:'nexus'})">Open Nexus</button></div>`;
   return "";
 }
 let S = load();
+// A running animation/drill cannot resume from its saved timers after a reload.
+// Keep the coach's real call, and reopen with every player at the set.
+function resetLiveState(){
+  if(S.rep && S.rep.running){
+    if(S.rep.was) S.script = S.rep.was;
+    S.rep = {...S.rep, running:false, ask:null};
+    S.pbView = null;
+  }
+  S.playing = false;
+  if(!Number.isFinite(S.t)) S.t = 1;
+  if(!["playbook", "tally", "scout", "sightlines", "more"].includes(S.tab)) S.tab = "playbook";
+}
+resetLiveState();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
 if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
@@ -1375,7 +1441,7 @@ function matchLabel(m){
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls)
+  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.voiceEvents)
        + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
 }
 /* Who the match is against.
@@ -1428,7 +1494,7 @@ function lastPoint(mid){
   const id = mid || S.matchId;
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
   const pts = [...hit(S.tally), ...hit(S.results), ...hit(S.calls),
-               ...hit(S.moves), ...hit(S.assessments),
+               ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.voiceEvents),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
                   .map(k => Number(k.split("|")[1]))]
@@ -1532,6 +1598,7 @@ function set(patch){
   // Same reasoning for the break animation: it repaints, and a repaint on a tab
   // the coach has left costs him whatever he was typing on the one he is on.
   if(S.playing && "tab" in patch && patch.tab !== S.tab) stopPlaying();
+  if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   Object.assign(S, patch); save(S); render();
 }
 // Put back what he was on, without a redraw — the caller is about to do one.
@@ -1876,10 +1943,13 @@ const COPY_VERSION = 1;
 
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","left","right","tally","calls","reps","moves","assessments","walk","codes",
-                  "lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","calls","moves","assessments","walk","codes",
+                  "arrivalSightings","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","bunkerCalls","playerCalls","teamCode","codes"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","teamCode","codes"];
+// Keep an import draft in memory, outside the season and its backups. Repainting
+// the status message must not erase the file the coach just chose.
+let copyDraft = "";
 
 function copyPayload(scope){
   const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
@@ -1892,7 +1962,7 @@ function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
   const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"]];
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("voiceEvents"), "voice event"]];
   return bits.filter(b => b[0])
              .map(b => `${b[0]} ${b[1]}${b[0] === 1 ? "" : b[1].endsWith("scouted") ? "s scouted" : "s"}`
                         .replace("team scouteds scouted", "teams scouted"))
@@ -1902,11 +1972,13 @@ function copySummary(d){
 // both lots. Lists join on what makes an entry the same entry; maps take the
 // incoming side for a key that exists on both.
 const SAME = {
+  arrivalSightings: o => o.id,
+  voiceEvents: o => o.id,
   roster:      r => (r.name || "").toLowerCase(),
-  tally:       o => [o.pt, o.side, o.name, o.at].join("|"),
-  moves:       m => [m.pt, m.who, m.from, m.to, m.at].join("|"),
-  assessments: a => [a.who, a.pt, a.at].join("|"),
-  calls:       c => [c.at, c.script].join("|"),
+  tally:       o => [o.m, o.pt, o.side, o.name, o.at].join("|"),
+  moves:       m => [m.m, m.pt, m.who, m.from, m.to, m.at].join("|"),
+  assessments: a => [a.m, a.who, a.pt, a.at].join("|"),
+  calls:       c => [c.m, c.pt, c.at, c.script].join("|"),
   classes:     c => c.code,
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
   matches:     m => m.id,
@@ -1917,17 +1989,54 @@ const SAME = {
   codes:       c => (c.word || "").toLowerCase(),
   messages:    m => String(m),
 };
+// Maps hold independent work too: one team's two players, two groups' members,
+// or notes from two walks. Recursing keeps both lists while scalar conflicts
+// follow the documented incoming-value rule. Point lineups and path corners
+// remain whole values; combining them would invent a lineup or a route.
+function mergeMapValue(mine, incoming, trail){
+  if(Array.isArray(mine) && Array.isArray(incoming)){
+    const end = trail[trail.length - 1];
+    const identity = trail[0] === "teams" ? x => x.name.toLowerCase()
+      : trail[0] === "walk" ? x => [x.where, x.note, x.at].join("|")
+      : end === "players" ? x => String(x.num || x.name || "").toLowerCase()
+      : end === "breaks" ? x => [x.pt, x.script, x.at].join("|")
+      : end === "members" ? x => [x.name, x.phone || x.email || ""].join("|").toLowerCase()
+      : null;
+    if(!identity) return incoming;
+    const out = mine.slice(), indexes = new Map(out.map((x, i) => [identity(x), i]));
+    incoming.forEach(x => {
+      const key = identity(x), i = indexes.get(key);
+      if(i === undefined){ indexes.set(key, out.length); out.push(x); }
+      else out[i] = mergeMapValue(out[i], x, trail.concat(key));
+    });
+    return out;
+  }
+  if(plainRecord(mine) && plainRecord(incoming)){
+    const out = {...mine};
+    Object.entries(incoming).forEach(([k, v]) => { out[k] = mergeMapValue(mine[k], v, trail.concat(k)); });
+    return out;
+  }
+  return incoming;
+}
 function mergeInto(cur, incoming){
   const out = {...cur};
   Object.entries(incoming).forEach(([k, v]) => {
     const mine = cur[k];
     if(Array.isArray(v) && Array.isArray(mine) && SAME[k]){
       const seen = new Set(mine.map(SAME[k]));
-      out[k] = [...mine, ...v.filter(x => !seen.has(SAME[k](x)))];
+      out[k] = [...mine, ...v.filter(x => {
+        const id = SAME[k](x);
+        if(seen.has(id)) return false;
+        seen.add(id); return true;
+      })];
+      if(k === "groups") out[k] = out[k].map(g => {
+        const added = v.find(x => x.id === g.id);
+        return added ? mergeMapValue(g, added, [k]) : g;
+      });
     } else if(Array.isArray(v)){
       out[k] = v;
     } else if(v && typeof v === "object" && mine && typeof mine === "object"){
-      out[k] = {...mine, ...v};
+      out[k] = mergeMapValue(mine, v, [k]);
     } else {
       out[k] = v;
     }
@@ -1939,16 +2048,126 @@ function readCopy(text){
   try { p = JSON.parse(String(text || "").trim()); }
   catch(e){ return {error: "That is not a GRIDLOCK copy — it is not readable as JSON."}; }
   if(!p || p.format !== COPY_FORMAT) return {error: "That file is not a GRIDLOCK copy."};
-  if(!(p.v <= COPY_VERSION)) return {error: `That copy was written by a newer version of the app (v${p.v}).`};
-  if(!p.data || typeof p.data !== "object") return {error: "That copy has nothing in it."};
-  return {payload: p};
+  if(!Number.isInteger(p.v) || p.v < 1) return {error: "That copy has an invalid version number."};
+  if(p.v > COPY_VERSION) return {error: `That copy was written by a newer version of the app (v${p.v}).`};
+  if(!plainRecord(p.data)) return {error: "That copy has nothing in it."};
+  const error = copyDataError(p.data);
+  if(error) return {error: `That copy has invalid data (${error}). Nothing was loaded.`};
+  // A copy contains records, never executable/session state. Ignore extra keys
+  // from a different build instead of allowing a file to change sign-in or UI.
+  const data = {};
+  KEEP_ALL.forEach(k => { if(Object.prototype.hasOwnProperty.call(p.data, k)) data[k] = p.data[k]; });
+  prepareCopyMatches(data, p);
+  return {payload: {...p, data}};
 }
 
-window.saveCopy = scope => {
+function prepareCopyMatches(data, payload){
+  const lists = ["tally", "moves", "assessments", "calls"];
+  const loose = lists.some(k => (data[k] || []).some(x => typeof x === "string" || !x.m));
+  const bareLines = Object.keys(data.lineups || {}).some(k => !k.includes("|"));
+  if(!loose && !bareLines) return;
+  // The same old copy must get the same sheet ID on every merge. A fresh random
+  // ID would duplicate its whole match every time an assistant passed it back.
+  let hash = 2166136261;
+  const fingerprint = JSON.stringify([payload.at, lists.map(k => data[k]), data.lineups]);
+  for(let i = 0; i < fingerprint.length; i++) hash = Math.imul(hash ^ fingerprint.charCodeAt(i), 16777619);
+  const id = data.matchId || "import-" + (hash >>> 0).toString(36);
+  const at = Date.parse(payload.at) || Math.min(...lists.flatMap(k => (data[k] || [])
+    .map(x => x && x.at).filter(t => typeof t === "number" && Number.isFinite(t))), Date.now());
+  if(!(data.matches || []).some(m => m.id === id)) data.matches = [
+    ...(data.matches || []), {id, at, vs:(data.right || {}).name || "", layout:data.layoutKey || "lso"},
+  ];
+  lists.forEach(k => { if(data[k]) data[k] = data[k].map(x => typeof x === "string"
+    ? {name:x, m:id, at, legacy:true} : x.m ? x : {...x, m:id}); });
+  if(data.lineups) data.lineups = Object.fromEntries(Object.entries(data.lineups)
+    .map(([k,v]) => [k.includes("|") ? k : id + "|" + k, v]));
+  if(!data.matchId) data.matchId = id;
+}
+
+function plainRecord(v){ return !!v && typeof v === "object" && !Array.isArray(v); }
+function copyDataError(data){
+  const str = v => typeof v === "string";
+  const num = v => typeof v === "number" && Number.isFinite(v);
+  const record = (v, fields = {}) => plainRecord(v)
+    && Object.entries(fields).every(([k, test]) => v[k] === undefined || test(v[k]));
+  const list = test => v => Array.isArray(v) && v.every(test);
+  const map = test => v => plainRecord(v) && Object.values(v).every(test);
+  const scalar = v => str(v) || num(v) || typeof v === "boolean" || v === null;
+  const row = v => record(v) && Object.values(v).every(scalar);
+  const nameRow = v => row(v) && str(v.name);
+  const strings = map(str);
+  const fields = {
+    roster:list(v => nameRow(v) && record(v, {p:str, s:str})),
+    scout:map(v => record(v, {name:str, notes:str, tend:str, threat:num,
+      players:list(p => record(p, {name:str, wire:str, note:str, threat:num,
+      num:v => str(v)||num(v), plant:strings})), breaks:list(row), answers:strings})),
+    teams:map(list(nameRow)),
+    left:v => row(v) && (v.name === undefined || str(v.name)),
+    right:v => row(v) && (v.name === undefined || str(v.name)),
+    tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
+    arrival:v => row(v) && record(v, {side:v=>["left","right"].includes(v),startEnd:v=>["left","right"].includes(v),
+      team:str,player:str,layout:str,matchId:str,point:v=>v===null || Number.isInteger(v)&&v>0,
+      startBunker:str,destination:str,sightingBunker:str,notice:str,scope:str,route:str,pick:str,details:v=>typeof v==="boolean"}),
+    arrivalSightings:list(v => row(v) && ["id","team","player","layout","m","bunker"].every(k => str(v[k]) && v[k].length > 0)
+      && Number.isInteger(v.pt) && v.pt > 0 && Number.isInteger(v.seq) && v.seq > 0 && num(v.at)),
+    voice:v => row(v) && record(v,{side:v=>["left","right"].includes(v),team:str,player:str,language:str}),
+    voiceEvents:list(v => row(v) && ["id","text","team","layout","m"].every(k=>str(v[k]) && v[k].length>0)
+      && record(v,{side:v=>["left","right"].includes(v)})
+      && ["player","playerName","bunker","bunkerName","reason"].every(k=>str(v[k]))
+      && ["out","move","hit","note"].includes(v.kind) && ["speech","typed"].includes(v.source)
+      && typeof v.review==="boolean" && Number.isInteger(v.pt) && v.pt>0 && num(v.at)),
+    matches:list(v => row(v) && str(v.id)),
+    results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
+      && ["us", "them"].includes(v.won)),
+    walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
+    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)),
+    direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
+    classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
+    groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
+    blasts:list(row), blastTo:list(str), messages:list(str),
+    point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
+    matchId:str, matchState:str, teamCode:str, division:str,
+  };
+  // These names can modify object prototypes when maps are copied or assigned.
+  const unsafe = (v, depth = 0) => depth > 40 || (v && typeof v === "object" && Object.entries(v).some(([k, x]) =>
+    ["__proto__", "prototype", "constructor"].includes(k) || unsafe(x, depth + 1)));
+  if(unsafe(data)) return "unsupported object key";
+  for(const [k, test] of Object.entries(fields)){
+    if(Object.prototype.hasOwnProperty.call(data, k) && !test(data[k])) return k;
+  }
+  return "";
+}
+
+let copyExporting = false;
+window.saveCopy = async scope => {
+  if(copyExporting) return;
   const text = copyPayload(scope);
   const stamp = new Date().toISOString().slice(0, 10);
   const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
-  if(window.gridlockShare) window.gridlockShare(text, name);
+  if(typeof window.gridlockExportFile === "function"){
+    copyExporting = true;
+    S.copyStatus = "Preparing your backup file…";
+    render();
+    try {
+      const result = await window.gridlockExportFile(text, name);
+      if(result && result.status === "shared"){
+        S.copyStatus = `Backup file sent to the share sheet · ${copySummary(JSON.parse(text).data)}. Keep ${name} in Files or your chosen destination.`;
+      } else if(result && result.status === "cancelled"){
+        S.copyStatus = "Share cancelled. Tap Save a copy to try again, or use Show it as text.";
+      } else {
+        S.copyText = text;
+        S.copyStatus = "The phone could not share the backup file. Copy the backup text below and keep it somewhere safe.";
+      }
+    } catch(e){
+      S.copyText = text;
+      S.copyStatus = "The phone could not share the backup file. Copy the backup text below and keep it somewhere safe.";
+    } finally {
+      copyExporting = false;
+      save(S);
+      render();
+    }
+    return;
+  }
   // A download as well, where the browser allows one. Some sandboxes refuse it
   // outright and say nothing, so never promise the file landed — point at the
   // text box, which works everywhere.
@@ -1970,7 +2189,8 @@ window.saveCopy = scope => {
 window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
 window.loadCopy = mode => {
   const el = document.getElementById("copyIn");
-  const r = readCopy(el && el.value);
+  copyDraft = el ? el.value : copyDraft;
+  const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
   // Two squads' rosters stirred together is a mess nobody notices until the
@@ -1996,23 +2216,30 @@ window.loadCopy = mode => {
    * the wrong match. Replace is different — that is asking to become the other
    * phone, and it takes the lot.
    */
-  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script"];
+  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "division", "matchState"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
   Object.keys(next).forEach(k => { S[k] = next[k]; });
+  if(!curMatch()){
+    const id = newMatchId();
+    S.matches = [{id, at:Date.now(), vs:(S.right || {}).name || "", layout:S.layoutKey}, ...(S.matches || [])];
+    S.matchId = id;
+  }
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   dropPathCache();
+  copyDraft = "";
   S.copyText = ""; save(S); render();
 };
 window.readCopyFile = input => {
   const f = input.files && input.files[0];
   if(!f) return;
   const fr = new FileReader();
-  fr.onload = () => { const el = document.getElementById("copyIn"); if(el) el.value = fr.result;
+  fr.onload = () => { copyDraft = String(fr.result || "");
                       S.copyStatus = `Read ${f.name} — now choose Merge or Replace.`; save(S); render(); };
+  fr.onerror = () => { S.copyStatus = `Could not read ${f.name}. Choose the file again.`; save(S); render(); };
   fr.readAsText(f);
 };
 
@@ -2670,7 +2897,7 @@ function fieldSVG(opts={}, runnersOnly){
     return out;
   }).join("");
 
-  let paths = runner(brPaths, opts.color||"#e5342f", 0);
+  let paths = opts.noPaths ? "" : runner(brPaths, opts.color||"#e5342f", 0);
   if(opts.both){
     const flip=q=>[150-q[0],q[1]];
     paths += runner(brPaths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
@@ -2867,6 +3094,7 @@ function fieldSVG(opts={}, runnersOnly){
           moment the two coincide — which is exactly where a scouted plant and a
           break runner both want to be. */""}
     ${their}
+    ${opts.overlay || ""}
     ${pick}
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
@@ -3132,6 +3360,10 @@ function staffed(){return S.role==="staff"||S.role==="admin"}
    View helpers
    ============================================================ */
 const esc = v => String(v==null?"":v).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+// Handler arguments need JavaScript string encoding *and* HTML encoding. HTML
+// escaping alone turns O'Brien into a broken call, and entities/backslashes can
+// become executable syntax when the browser decodes the attribute.
+const jsq = v => esc(JSON.stringify(String(v == null ? "" : v)));
 
 // A section is an eyebrow and a rule. Cards are for things that are
 // actually objects — a pit, a class, a group — not for every block.
@@ -3293,7 +3525,7 @@ function playbook(){
       — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc((BREAKS[ans.ours]||{}).name||ans.ours)}</b>.
       ${ans.ours===key ? "That is this call." :
         `<button class="btn btn--quiet" style="min-height:34px;margin-top:6px"
-          onclick="set({script:'${ans.ours}',t:1,playing:false})">Call it</button>`}</p>` : ""}
+          onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
       ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
@@ -3592,7 +3824,7 @@ function tally(){
   const col=(side,label,colour,names)=>`<div>
     <h4 class="sec__eyebrow" style="color:${colour};margin-bottom:8px">${label} · ${alive(side)} up</h4>
     <div class="assigns">
-      ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${JSON.stringify(n).replace(/"/g,'&quot;')})" style="${isOut(side,n)?"opacity:.4":""}">
+      ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${jsq(n)})" style="${isOut(side,n)?"opacity:.4":""}">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
         <span class="assign__body"><span class="assign__job">${esc(n)}</span>
         ${isOut(side,n)?`<span class="assign__who">out</span>`:""}</span>
@@ -3888,7 +4120,7 @@ window.unlogCall = i => {
    Scout — sub-tabs, because six stacked panels is not a screen
    ============================================================ */
 const SCOUT_TABS=[["matchup","Matchup"],["breakouts","Breakouts"],["anticipate","Anticipate"],
-                  ["counter","Counter"],["layers","Layers"],["games","Games"],["board","Division"]];
+                  ["arrival","How did they get there?"],["voice","Voice log"],["counter","Counter"],["layers","Layers"],["games","Games"],["board","Division"]];
 
 function plantsLogged(){
   return ["left","right"].some(side =>
@@ -3900,6 +4132,9 @@ function outsLogged(){
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
+  const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>`;
+  if(view === "arrival") return navigation + scoutArrival();
+  if(view === "voice") return navigation + scoutVoice();
   // Every sub-tab but the board reads off the team in the right pit. With
   // nobody in it there is nothing to say, and saying it about whoever the app
   // picked is how a coach ends up scouting a team he is not playing. Division
@@ -3911,6 +4146,7 @@ function scout(){
     : {matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
+  ${navigation}
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
 
@@ -3936,9 +4172,452 @@ function scout(){
     <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
       counted from what you logged or scored yourself. Officials govern the live call.</p>`)}
 
-  <div class="seg seg--wrap">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>
   ${body}`;
 }
+
+/* How did they get there?
+ * Observations are evidence; every connecting line is a possible route. A
+ * plant in a roster has no match/point/time, so opening it only selects a
+ * destination. It does not silently become a sighting in today's game. */
+const _arrivalRoutesCache = new Map();
+const _arrivalGeometryCache = new Map();
+let _arrivalPlayback = {raf:null, running:false, t:0, key:""};
+let _arrivalCustom = null; // Unsubmitted form text never becomes season data.
+const arrivalText = value => clean(String(value || "").trim().replace(/\s+/g," "));
+const arrivalCompare = value => arrivalText(value).toLowerCase();
+function arrivalTeamNames(){
+  return [...new Set([arrivalContext().team,...["left","right"].map(s=>pitOf(s)).filter(p=>p.named).map(p=>p.name),
+    ...teamsHere().map(t=>t.name),...Object.values(S.teams || {}).flat().map(t=>t.name),
+    ...Object.keys(S.scout || {}),...(S.arrivalSightings || []).map(o=>o.team),...(S.voiceEvents || []).map(o=>o.team)])];
+}
+window.toggleArrivalCustom = kind => {
+  stopArrivalPlayback();
+  _arrivalCustom = _arrivalCustom && _arrivalCustom.kind === kind ? null
+    : {kind,scope:arrivalScope(),team:"",name:"",number:"",error:""};
+  render();
+  const input = document.getElementById(kind === "team" ? "arrival-custom-team" : "arrival-custom-name");
+  if(input) input.focus();
+};
+window.cancelArrivalCustom = () => { _arrivalCustom = null; render(); };
+window.editArrivalCustom = (field,value) => {
+  if(_arrivalCustom && ["team","name","number"].includes(field)) _arrivalCustom[field] = value;
+};
+function arrivalCustomReady(kind){
+  if(!_arrivalCustom || _arrivalCustom.kind !== kind) return false;
+  if(_arrivalCustom.scope !== arrivalScope()){
+    _arrivalCustom = null;
+    S.arrival = {...(S.arrival || {}),notice:"The opponent or point changed. Open the form again before saving."};
+    render(); return false;
+  }
+  return true;
+}
+function arrivalCustomError(message){ _arrivalCustom.error = message; render(); }
+window.saveArrivalTeam = () => {
+  if(!arrivalCustomReady("team")) return;
+  const input = document.getElementById("arrival-custom-team");
+  const name = arrivalText(input ? input.value : _arrivalCustom.team);
+  if(!name) return arrivalCustomError("Enter the opponent team name.");
+  if(name.length > 80) return arrivalCustomError("Use 80 characters or fewer for the team name.");
+  if(["__proto__","prototype","constructor"].includes(name.toLowerCase())) return arrivalCustomError("Choose a different team name.");
+  const known = [...arrivalTeamNames(),...DIVISIONS.flatMap(d=>divisionTeams(d.id).map(t=>t.name))];
+  const existing = known.find(t=>arrivalCompare(t) === arrivalCompare(name));
+  const selected = existing || name;
+  if(!existing){
+    const id = divisionOf().id;
+    S.teams = {...(S.teams || {}),[id]:[...addedTeams(id),{name:selected}]};
+  }
+  if(!Object.prototype.hasOwnProperty.call(S.scout || {},selected)){
+    S.scout = {...(S.scout || {}),[selected]:profileOf(selected)};
+  }
+  _arrivalCustom = null;
+  setArrival({team:selected});
+  S.arrival.notice = existing ? `Selected saved team ${selected}.` : `${selected} saved. Add or select their player next.`;
+  save(S); render();
+};
+window.saveArrivalPlayer = () => {
+  if(!arrivalCustomReady("player")) return;
+  const field = (id,key) => { const el = document.getElementById(id); return arrivalText(el ? el.value : _arrivalCustom[key]); };
+  const name = field("arrival-custom-name","name"), num = field("arrival-custom-number","number");
+  if(!name && !num) return arrivalCustomError("Enter a player name or jersey number.");
+  if(name.length > 80 || num.length > 30) return arrivalCustomError("Use up to 80 characters for the name and 30 for the number.");
+  const context = arrivalContext(), profile = profileOf(context.team), players = [...(profile.players || [])];
+  let index = num ? players.findIndex(p=>arrivalCompare(p.num) === arrivalCompare(num))
+    : players.findIndex(p=>name && arrivalCompare(p.name) === arrivalCompare(name));
+  // Completing a previously unnamed/unnumbered player keeps their sightings.
+  if(index < 0 && num && name){
+    const unnamedNumber = players.map((p,i)=>({p,i})).filter(({p})=>!arrivalText(p.num) && arrivalCompare(p.name) === arrivalCompare(name));
+    if(unnamedNumber.length === 1) index = unnamedNumber[0].i;
+  }
+  const existing = index >= 0;
+  if(existing){
+    const before = players[index], oldKey = arrivalPlayerKey(before);
+    players[index] = {...before,name:arrivalText(before.name) ? before.name : name,num:arrivalText(before.num) ? before.num : num};
+    const newKey = arrivalPlayerKey(players[index]);
+    if(oldKey !== newKey){
+      S.arrivalSightings = (S.arrivalSightings || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey} : o);
+      S.voiceEvents = (S.voiceEvents || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey,playerName:players[index].name || '#'+players[index].num} : o);
+    }
+  } else {
+    index = players.length;
+    players.push({name,num,wire:"",note:"",threat:3});
+  }
+  S.scout = {...(S.scout || {}),[context.team]:{...profile,players}};
+  const selected = players[index];
+  _arrivalCustom = null;
+  setArrival({player:arrivalPlayerKey(selected)});
+  S.arrival.notice = `${existing ? "Selected saved player" : "Player saved"}: ${selected.num ? "#"+selected.num+" " : ""}${selected.name || "Unnamed opponent"} · ${context.team}.`;
+  save(S); render();
+};
+function arrivalCustomForm(kind){
+  const draft = _arrivalCustom;
+  if(!draft || draft.kind !== kind) return "";
+  const team = kind === "team";
+  return `<form class="arrival-custom" aria-label="Custom opponent ${kind}" onsubmit="event.preventDefault();${team?'saveArrivalTeam':'saveArrivalPlayer'}()">
+    ${team ? `<div class="fld"><label for="arrival-custom-team">Team name</label><input id="arrival-custom-team" maxlength="80" autocomplete="off" value="${esc(draft.team)}" placeholder="Enter any opponent team" oninput="editArrivalCustom('team',this.value)"/></div>`
+    : `<div class="arrival-grid"><div class="fld"><label for="arrival-custom-name">Player name</label><input id="arrival-custom-name" maxlength="80" autocomplete="off" value="${esc(draft.name)}" placeholder="Name or nickname" oninput="editArrivalCustom('name',this.value)"/></div>
+      <div class="fld"><label for="arrival-custom-number">Player number (optional)</label><input id="arrival-custom-number" maxlength="30" inputmode="numeric" autocomplete="off" value="${esc(draft.number)}" placeholder="Jersey number" oninput="editArrivalCustom('number',this.value)"/></div></div>
+      <p class="note">Saved to ${esc(arrivalContext().team)}. A name or number is enough. An existing jersey number selects the saved player.</p>`}
+    ${draft.error ? `<p class="note" role="alert">${esc(draft.error)}</p>` : ""}
+    <div class="btnrow"><button class="btn" type="submit">Save ${kind}</button><button class="btn btn--quiet" type="button" onclick="cancelArrivalCustom()">Cancel</button></div>
+  </form>`;
+}
+function arrivalPlayerKey(player){
+  return player && String(player.num || "").trim()
+    ? "number:" + String(player.num).trim().toLowerCase()
+    : "name:" + String((player || {}).name || "unknown").trim().toLowerCase();
+}
+function arrivalContext(){
+  const a = S.arrival || {}, side = a.side === "left" ? "left" : "right";
+  const pit = pitOf(side), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
+  return {side, team, player:a.player || "number:1", layout:S.layoutKey,
+          m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : S.point || 1};
+}
+function arrivalSightings(context = arrivalContext()){
+  return (S.arrivalSightings || []).filter(o => o.team === context.team && o.player === context.player
+    && o.layout === context.layout && o.m === context.m && o.pt === context.pt)
+    .slice().sort((a,b) => a.seq-b.seq || a.at-b.at || a.id.localeCompare(b.id));
+}
+function arrivalScope(context = arrivalContext()){
+  return JSON.stringify([context.team,context.player,context.layout,context.m,context.pt]);
+}
+function arrivalGeometry(key){
+  if(_arrivalGeometryCache.has(key)) return _arrivalGeometryCache.get(key);
+  const layout = LAYOUTS[key];
+  if(!layout) return null;
+  const obstacles = routeObstacles(layout.bunkers, 0.9);
+  const inside = (p,o) => Math.abs(p[0]-o.x) <= o.hw && Math.abs(p[1]-o.y) <= o.hh;
+  const free = p => p.every(Number.isFinite) && p[0] > 1 && p[0] < 149 && p[1] > 1 && p[1] < 119
+    && !obstacles.some(o => inside(p,o));
+  const clear = (a,b) => !obstacles.some(o => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh));
+  // A bunker coordinate is its centre, not a place a player can stand. Put
+  // each anchor just outside the padded footprint, including joined snakes.
+  const stand = (b,end) => {
+    const candidates = [];
+    obstacles.filter(o => o.ids.has(b.id)).forEach(o => {
+      const xs = [o.x-o.hw-1.5, Math.max(o.x-o.hw,Math.min(o.x+o.hw,b.x)), o.x+o.hw+1.5];
+      const ys = [o.y-o.hh-1.5, Math.max(o.y-o.hh,Math.min(o.y+o.hh,b.y)), o.y+o.hh+1.5];
+      xs.forEach((x,i) => ys.forEach((y,j) => { if(i !== 1 || j !== 1) candidates.push([x,y]); }));
+    });
+    return candidates.filter(free).sort((p,q) => {
+      const cost = v => Math.hypot(v[0]-b.x,v[1]-b.y) + ((end === "right" ? v[0] < b.x : v[0] > b.x) ? 2 : 0);
+      return cost(p)-cost(q);
+    })[0] || null;
+  };
+  const station = end => {
+    const x = end === "right" ? 147 : 3;
+    const candidates = [[x,60]];
+    for(let gap=2; gap<=24; gap+=2) candidates.push([x,60-gap],[x,60+gap]);
+    return candidates.find(free) || null;
+  };
+  const leg = (a,b) => {
+    if(!free(a) || !free(b)) return null;
+    const points = [a,...routeClear(a,b,"",obstacles),b];
+    // routeClear returns [] both for a direct route and for a failed search.
+    // Verify every leg so a failed search never draws through an obstacle.
+    if(points.some((p,i) => i && !clear(points[i-1],p))) return null;
+    return {points, length:points.reduce((n,p,i) => n + (i ? Math.hypot(p[0]-points[i-1][0],p[1]-points[i-1][1]) : 0),0)};
+  };
+  const result = {layout,obstacles,free,clear,stand,station,leg};
+  _arrivalGeometryCache.set(key,result);
+  return result;
+}
+function arrivalRoutes(layoutKey, options = {}){
+  const end = options.startEnd === "left" || options.startEnd === "right" ? options.startEnd
+    : options.side === "left" ? "left" : "right";
+  const sightings = options.sightings || [];
+  const cacheKey = JSON.stringify([layoutKey,end,options.startBunker || "",options.destination || "",sightings.map(o=>o.bunker)]);
+  if(_arrivalRoutesCache.has(cacheKey)) return _arrivalRoutesCache.get(cacheKey);
+  const g = arrivalGeometry(layoutKey), anchors = [], routes = [];
+  const finish = warning => {
+    const result = {anchors,routes,warning:warning || "",startEnd:end};
+    if(_arrivalRoutesCache.size >= 48) _arrivalRoutesCache.delete(_arrivalRoutesCache.keys().next().value);
+    _arrivalRoutesCache.set(cacheKey,result); return result;
+  };
+  if(!g) return finish("This field is unavailable. Choose a field with measured bunkers.");
+  const bunker = id => g.layout.bunkers.find(b=>b.id===id);
+  const target = bunker(options.destination);
+  if(!target) return finish("Choose the bunker they reached to see possible routes.");
+  const startBunker = options.startBunker ? bunker(options.startBunker) : null;
+  if(options.startBunker && !startBunker) return finish("The starting bunker is not on this field. Choose it again.");
+  const start = startBunker ? g.stand(startBunker,end) : g.station(end);
+  if(!start) return finish("No clear starting position is available at that end. Choose a starting bunker.");
+  anchors.push({point:start,bunker:startBunker ? startBunker.id : "",kind:"start",label:startBunker ? startBunker.id : `${end === "right" ? "Right" : "Left"} start station`});
+  for(let i=0; i<sightings.length; i++){
+    const b = bunker(sightings[i].bunker), point = b && g.stand(b,end);
+    if(!point) return finish("A recorded sighting cannot be placed on this field. Review its bunker before routing.");
+    anchors.push({point,bunker:b.id,kind:"observed",number:i+1,label:`Sighting ${i+1}`});
+  }
+  const point = g.stand(target,end);
+  if(!point) return finish("This bunker has no clear approach in the measured layout. Try a nearby bunker.");
+  // Reaching the last observed bunker is still the same visit, not a second
+  // invented observation and not a phantom extra leg.
+  if(anchors.length > 1 && anchors[anchors.length-1].bunker === target.id) anchors[anchors.length-1].destination = true;
+  else anchors.push({point,bunker:target.id,kind:"destination",label:"Selected destination",destination:true});
+  const legs = [];
+  for(let i=1; i<anchors.length; i++){
+    const leg = g.leg(anchors[i-1].point,anchors[i].point);
+    if(!leg) return finish("No clear route connects these positions within the field. Review the start and sightings.");
+    legs.push({...leg,from:i-1,to:i});
+  }
+  const combine = (id,label,parts) => ({id,label,legs:parts,
+    points:parts.flatMap((p,i)=>i ? p.points.slice(1) : p.points),
+    length:parts.reduce((n,p)=>n+p.length,0)});
+  const shortest = combine("shortest","Shortest clear route",legs);
+  routes.push(shortest);
+  // Keep observed order fixed. Offer a wire approach only for the longest
+  // unknown leg, so a route never oscillates between wires after every stop.
+  const longest = legs.reduce((best,p,i) => p.length > (legs[best] || {length:-1}).length ? i : best,0);
+  if(legs.length && legs[longest].length > 10){
+    const base = legs[longest], a = base.points[0], b = base.points[base.points.length-1];
+    [["dorito","Dorito-side alternative",3],["snake","Snake-side alternative",117]].forEach(([id,label,y]) => {
+      const mid = Math.max(6,Math.min(144,(a[0]+b[0])/2));
+      const via = [mid,mid-8,mid+8].map(x=>[x,y]).find(g.free);
+      if(!via) return;
+      const first = g.leg(a,via), second = g.leg(via,b);
+      if(!first || !second) return;
+      const detour = {...base,points:first.points.concat(second.points.slice(1)),length:first.length+second.length};
+      const candidate = combine(id,label,legs.map((p,i)=>i === longest ? detour : p));
+      if(candidate.length > shortest.length + 5 && candidate.length <= shortest.length*1.9 + 20) routes.push(candidate);
+    });
+  }
+  return finish();
+}
+function arrivalModel(){
+  const context = arrivalContext(), a = S.arrival || {}, sightings = arrivalSightings(context);
+  // Viewing another field never reuses a bunker ID from the previous one.
+  const sameLayout = (!a.layout || a.layout === context.layout) && (!a.scope || a.scope === arrivalScope(context));
+  const options = {side:context.side,startEnd:a.startEnd || context.side,
+    startBunker:sameLayout ? a.startBunker || "" : "",destination:sameLayout ? a.destination || "" : "",
+    sightingBunker:sameLayout ? a.sightingBunker || "" : "",sightings};
+  const result = arrivalRoutes(context.layout,options);
+  const route = result.routes.find(r=>r.id===a.route) || result.routes[0] || null;
+  return {context,sightings,options,result,route,key:JSON.stringify([context,options,route && route.id])};
+}
+function stopArrivalPlayback(reset = false){
+  if(_arrivalPlayback.raf) cancelAnimationFrame(_arrivalPlayback.raf);
+  _arrivalPlayback.raf = null; _arrivalPlayback.running = false;
+  if(reset) _arrivalPlayback.t = 0;
+}
+window.setArrival = patch => {
+  stopArrivalPlayback(true);
+  let previous = S.arrival || {};
+  const details = document.querySelector("details.arrival-context");
+  if(details) previous = {...previous,details:details.open};
+  if((previous.layout && previous.layout !== S.layoutKey) || (previous.scope && previous.scope !== arrivalScope())) previous = {...previous,startBunker:"",destination:"",sightingBunker:""};
+  S.arrival = {...previous,...patch,layout:S.layoutKey};
+  const unlessChosen = (key,value) => { if(!(key in patch)) S.arrival[key] = value; };
+  if("side" in patch){ unlessChosen("startEnd",patch.side); unlessChosen("team",""); unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
+  if("team" in patch){ unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
+  if("player" in patch) unlessChosen("startBunker","");
+  if(["side","team","player","matchId","point"].some(k=>k in patch)) unlessChosen("sightingBunker","");
+  if("player" in patch || "matchId" in patch || "point" in patch){
+    if(!("destination" in patch)) S.arrival.destination = "";
+  }
+  S.arrival.notice = "";
+  S.arrival.scope = arrivalScope();
+  save(S); render();
+};
+window.openArrival = (side,index) => {
+  const pit = pitOf(side), player = (pit.players || [])[index];
+  if(!player) return;
+  stopPlaying(); stopArrivalPlayback(true);
+  S.arrival = {side,startEnd:side,team:pit.name,player:arrivalPlayerKey(player),destination:plantOf(player),
+    layout:S.layoutKey,matchId:"",point:null,route:"shortest",pick:"destination"};
+  S.arrival.scope = arrivalScope();
+  set({tab:"scout",scoutTab:"arrival"});
+};
+window.setArrivalNumber = value => {
+  const number = clean(String(value || "").trim()).slice(0,30);
+  if(number) setArrival({player:"number:"+number.toLowerCase()});
+};
+window.arrivalDetailsToggle = element => {
+  if(!element.isConnected) return;
+  if(!!(S.arrival || {}).details === element.open) return;
+  S.arrival = {...(S.arrival || {}),details:element.open}; save(S);
+};
+window.pickArrivalBunker = id => {
+  if(!curLayout().bunkers.some(b=>b.id===id)) return;
+  setArrival((S.arrival || {}).pick === "sighting" ? {sightingBunker:id} : {destination:id});
+};
+window.logArrivalSighting = () => {
+  const a = S.arrival || {}, id = a.sightingBunker || a.destination;
+  if((a.layout && a.layout !== S.layoutKey) || (a.scope && a.scope !== arrivalScope())){
+    S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(),destination:"",sightingBunker:"",startBunker:"",
+      notice:"The field or point context changed. Choose a bunker again before recording a sighting."};
+    save(S); render(); return;
+  }
+  if(!curLayout().bunkers.some(b=>b.id===id)){
+    S.arrival = {...a,notice:"Choose a bunker before recording a sighting."}; render(); return;
+  }
+  const context = arrivalContext(), rows = arrivalSightings(context), at = Date.now();
+  if(rows.length && rows[rows.length-1].bunker === id){
+    S.arrival = {...a,notice:"That is already the latest sighting. Choose the next bunker they moved to."}; render(); return;
+  }
+  const entry = {id:"s"+at.toString(36)+Math.random().toString(36).slice(2,9),
+    team:context.team,player:context.player,layout:context.layout,m:context.m,pt:context.pt,
+    bunker:id,seq:rows.reduce((n,o)=>Math.max(n,o.seq),0)+1,at};
+  S.arrivalSightings = [...(S.arrivalSightings || []),entry];
+  stopArrivalPlayback(true);
+  // Hold the chosen bunker until the coach selects the next one. Clearing it
+  // would make a fast second tap record the destination as a new observation.
+  S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(context),sightingBunker:id,notice:`Sighting ${rows.length+1} recorded. Choose the next bunker they were seen at.`,
+    destination:a.destination || id};
+  save(S); render();
+};
+window.undoArrivalSighting = () => {
+  const rows = arrivalSightings(), last = rows[rows.length-1];
+  if(!last) return;
+  S.arrivalSightings = S.arrivalSightings.filter(o=>o.id!==last.id);
+  stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Last sighting removed."}; save(S); render();
+};
+window.resetArrivalSightings = () => {
+  const rows = arrivalSightings();
+  if(!rows.length || !confirm(`Clear these ${rows.length} sightings for this opponent, match and point?`)) return;
+  const ids = new Set(rows.map(o=>o.id));
+  S.arrivalSightings = S.arrivalSightings.filter(o=>!ids.has(o.id));
+  stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Sightings cleared for this point."}; save(S); render();
+};
+function arrivalPosition(route,t){
+  if(!route || !route.points.length) return null;
+  let remaining = Math.max(0,Math.min(1,t))*route.length;
+  for(let i=1; i<route.points.length; i++){
+    const a = route.points[i-1], b = route.points[i], length = Math.hypot(b[0]-a[0],b[1]-a[1]);
+    if(length && remaining <= length){ const q = remaining/length; return [a[0]+(b[0]-a[0])*q,a[1]+(b[1]-a[1])*q]; }
+    remaining -= length;
+  }
+  return route.points[route.points.length-1];
+}
+window.stepArrival = delta => {
+  const model = arrivalModel(); if(!model.route) return;
+  stopArrivalPlayback();
+  let sum = 0;
+  const stops = [0,...model.route.legs.map(leg => (sum+=leg.length)/(model.route.length || 1)),1];
+  const t = _arrivalPlayback.t;
+  _arrivalPlayback.t = delta < 0 ? stops.filter(n=>n<t-0.001).pop() || 0
+    : stops.find(n=>n>t+0.001) || 1;
+  _arrivalPlayback.key = model.key; render();
+};
+window.playArrival = () => {
+  const model = arrivalModel(); if(!model.route) return;
+  if(_arrivalPlayback.running){ stopArrivalPlayback(); render(); return; }
+  if(_arrivalPlayback.t >= 1) _arrivalPlayback.t = 0;
+  _arrivalPlayback.running = true; _arrivalPlayback.key = model.key;
+  const start = performance.now()-_arrivalPlayback.t*5000;
+  render();
+  const frame = now => {
+    if(!_arrivalPlayback.running) return;
+    if(S.tab!=="scout" || S.scoutTab!=="arrival" || arrivalModel().key!==model.key){ stopArrivalPlayback(true); return; }
+    _arrivalPlayback.t = Math.min(1,(now-start)/5000);
+    const point = arrivalPosition(model.route,_arrivalPlayback.t), marker = document.getElementById("arrival-runner");
+    if(marker && point) marker.setAttribute("transform",`translate(${point[0]*2} ${point[1]*2})`);
+    const progress = document.getElementById("arrival-progress");
+    if(progress) progress.textContent = `${Math.round(_arrivalPlayback.t*100)}% of possible route`;
+    if(_arrivalPlayback.t < 1) _arrivalPlayback.raf = requestAnimationFrame(frame);
+    else { stopArrivalPlayback(); render(); }
+  };
+  _arrivalPlayback.raf = requestAnimationFrame(frame);
+};
+function arrivalOverlay(model){
+  const route = model.route, {anchors} = model.result;
+  if(!route) return "";
+  const path = `M${route.points.map(p=>`${p[0]*2},${p[1]*2}`).join("L")}`;
+  const marker = arrivalPosition(route,_arrivalPlayback.t);
+  return `<g class="arrival-overlay" pointer-events="none">
+    <path d="${path}" fill="none" stroke="#070808" stroke-width="5" stroke-linejoin="round"/>
+    <path d="${path}" fill="none" stroke="#e0a33a" stroke-width="2.5" stroke-dasharray="6 4" stroke-linejoin="round"/>
+    ${anchors.map(a=>{
+      const b = curLayout().bunkers.find(b=>b.id===a.bunker), x = (b ? b.x : a.point[0])*2, y = (b ? b.y : a.point[1])*2;
+      return `<g><line x1="${a.point[0]*2}" y1="${a.point[1]*2}" x2="${x}" y2="${y}" stroke="#9b9d9e" stroke-width=".7"/>
+        ${a.kind === "observed" ? `<rect x="${x-6}" y="${y-6}" width="12" height="12" rx="2" fill="#3ecf8e" stroke="#071b12"/>
+        <text x="${x}" y="${y+2.8}" text-anchor="middle" font-size="8" font-weight="800" fill="#061d13">${a.number}</text>`
+        : `<circle cx="${x}" cy="${y}" r="7" fill="#101111" stroke="${a.kind==='start'?'#eee':'#e0a33a'}" stroke-width="2"/>
+          <text x="${x}" y="${y+2.6}" text-anchor="middle" font-size="8" fill="#fff" font-weight="800">${a.kind==='start'?'S':'?'}</text>`}</g>`;
+    }).join("")}
+    <g id="arrival-runner" transform="translate(${marker[0]*2} ${marker[1]*2})"><circle r="5" fill="#fff" stroke="#101111" stroke-width="2"/></g>
+  </g>`;
+}
+function scoutArrival(){
+  const model = arrivalModel(), {context:c,sightings,options,result,route} = model, a = S.arrival || {};
+  if(_arrivalCustom && _arrivalCustom.scope !== arrivalScope(c)) _arrivalCustom = null;
+  if(_arrivalPlayback.key !== model.key){ stopArrivalPlayback(true); _arrivalPlayback.key = model.key; }
+  const roster = profileOf(c.team).players || [];
+  const players = new Map(roster.map(p=>[arrivalPlayerKey(p),`${p.num ? '#'+p.num+' ' : ''}${p.name || 'Unnamed opponent'}`]));
+  (S.arrivalSightings || []).filter(o=>o.team===c.team).forEach(o=>{if(!players.has(o.player)) players.set(o.player,o.player.replace(/^number:/,'#').replace(/^name:/,''));});
+  if(!players.has(c.player)) players.set(c.player,c.player.replace(/^number:/,'#').replace(/^name:/,''));
+  const teams = arrivalTeamNames();
+  const label = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? `${callOf(b)} · ${b.id}` : id; };
+  const bunkerOptions = selected => curLayout().bunkers.map(b=>`<option value="${esc(b.id)}"${selected===b.id?' selected':''}>${esc(label(b.id))}</option>`).join("");
+  const pick = a.pick === "sighting" ? "sighting" : "destination";
+  return sec("How did they get there?",`<p class="lede">Choose an opponent and the bunker they reached. Add the places you actually saw them, in order, to narrow the possible routes.</p>
+    <p class="aid"><b>Possible routes are a training aid, not a prediction.</b> Green numbered markers are recorded sightings. Dashed lines are inferred connections.</p>
+    <div class="arrival-grid">
+      <div class="fld"><label for="arrival-side">Pit being scouted</label><select id="arrival-side" onchange="setArrival({side:this.value})">
+        <option value="left"${c.side==='left'?' selected':''}>Left pit</option><option value="right"${c.side==='right'?' selected':''}>Right pit</option></select></div>
+      <div class="fld"><label for="arrival-team">Opponent team</label><select id="arrival-team" onchange="setArrival({team:this.value})">${teams.map(t=>`<option${t===c.team?' selected':''}>${esc(t)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('team')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='team')}">Add team</button></div>
+      ${arrivalCustomForm("team")}
+      <div class="fld"><label for="arrival-player">Opponent player</label><select id="arrival-player" onchange="setArrival({player:this.value})">${[...players].map(([key,name])=>`<option value="${esc(key)}"${key===c.player?' selected':''}>${esc(name)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('player')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='player')}">Add player</button></div>
+      <div class="fld"><label for="arrival-number">Or enter their number</label><input id="arrival-number" inputmode="numeric" maxlength="30" value="${esc(c.player.startsWith('number:')?c.player.slice(7):'')}" placeholder="Number is enough" onchange="setArrivalNumber(this.value)"/></div>
+      ${arrivalCustomForm("player")}
+    </div>
+    <details class="arrival-context"${a.details?' open':''} ontoggle="arrivalDetailsToggle(this)"><summary>Match &amp; starting end · Point ${c.pt} · ${options.startEnd==='right'?'Right → left':'Left → right'}</summary>
+    <div class="arrival-grid">
+      <div class="fld"><label for="arrival-match">Match</label><select id="arrival-match" onchange="setArrival({matchId:this.value,point:null})">
+        <option value=""${!a.matchId?' selected':''}>Current match · ${esc(matchLabel(curMatch()))}</option>
+        ${(S.matches || []).map(m=>`<option value="${esc(m.id)}"${a.matchId===m.id?' selected':''}>${esc(matchLabel(m))}</option>`).join("")}</select></div>
+      <div class="fld"><label for="arrival-point">Point</label><select id="arrival-point" onchange="setArrival({point:this.value?Number(this.value):null})">
+        <option value=""${!a.point?' selected':''}>${a.matchId?'Latest recorded point':'Current point'} · ${a.matchId?lastPoint(c.m):S.point || 1}</option>
+        ${Array.from({length:Math.min(500,Math.max(lastPoint(c.m),c.pt))},(_,i)=>i+1).map(n=>`<option value="${n}"${a.point===n?' selected':''}>Point ${n}</option>`).join("")}</select></div>
+      <div class="fld"><label for="arrival-end">Their starting end</label><select id="arrival-end" onchange="setArrival({startEnd:this.value})">
+        <option value="left"${options.startEnd==='left'?' selected':''}>Left end → moving right</option><option value="right"${options.startEnd==='right'?' selected':''}>Right end → moving left</option></select></div>
+      <div class="fld"><label for="arrival-start">Start from</label><select id="arrival-start" onchange="setArrival({startBunker:this.value})"><option value="">Start station</option>${bunkerOptions(options.startBunker)}</select></div>
+    </div>
+    </details>
+    <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player))} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
+    <div class="fld"><label for="arrival-destination">Bunker they reached</label><select id="arrival-destination" onchange="setArrival({destination:this.value})"><option value="">Choose a destination</option>${bunkerOptions(options.destination)}</select></div>
+    <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Pick destination</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Pick earlier sighting</button></div>
+    <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:arrivalOverlay(model)})}</div>
+    ${route ? `<div class="seg seg--wrap">${result.routes.map(r=>`<button class="${route.id===r.id?'on':''}" onclick="setArrival({route:'${r.id}'})">${esc(r.label)} · ~${Math.round(r.length)} ft</button>`).join("")}</div>
+      <div class="arrival-playback"><button class="btn btn--quiet" onclick="stepArrival(-1)">Previous stop</button><button class="btn" onclick="playArrival()">${_arrivalPlayback.running?'Pause route':'Play route'}</button><button class="btn btn--quiet" onclick="stepArrival(1)">Next stop</button></div>
+      <p id="arrival-progress" class="note" aria-live="off">${Math.round(_arrivalPlayback.t*100)}% of possible route</p>` : ""}
+    <p class="note">Tap the field to select the nearest bunker for ${pick==='sighting'?'an earlier sighting':'the destination'}, or use the list below. Selecting a bunker does not record a sighting.</p>
+      <div class="fld"><label for="arrival-sighting">Bunker actually seen</label><select id="arrival-sighting" onchange="setArrival({sightingBunker:this.value})"><option value="">${options.destination?'Use selected destination':'Choose a sighting'}</option>${bunkerOptions(options.sightingBunker)}</select></div>
+    <div class="btnrow"><button class="btn" onclick="logArrivalSighting()"${!options.sightingBunker&&!options.destination?' disabled':''}>Record sighting</button>
+      <button class="btn btn--quiet" onclick="undoArrivalSighting()"${sightings.length?'':' disabled'}>Undo last sighting</button>
+      <button class="btn btn--quiet" onclick="resetArrivalSightings()"${sightings.length?'':' disabled'}>Clear this point</button></div>
+    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. Sightings belong only to this team, player, field, match and point.')}</p>`)
+  + sec("Possible route",`${route ? `<p class="aid"><b>Inferred route, not confirmed movement.</b> Green numbered squares are your recorded sightings. The dashed amber line is one possible connection; the ? bunker is selected, not yet observed. The white marker demonstrates travel, with no measured timing.</p>
+      <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Possible leg ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
+      <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
+    : `<div class="empty">${esc(result.warning)}</div>`}`)
+  + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">No observations for this opponent on this field, match and point. The route is entirely a geometric possibility until you add what you saw.</div>`);
+}
+document.addEventListener("click",ev=>{
+  if(S.tab!=="scout" || S.scoutTab!=="arrival") return;
+  const surface = ev.target.closest("#arrival-map [data-pick]");
+  if(!surface) return;
+  const b = bunkerAt(fieldFeet(surface.closest("svg.field"),ev));
+  if(b) pickArrivalBunker(b.id);
+});
 
 const SCOUT_WIRES = ["Snake","Dorito","Centre","Back","Flex"];
 function pit(side,T,label){
@@ -3997,6 +4676,7 @@ function pit(side,T,label){
                 ${curLayout().bunkers.map(bk=>`<option value="${esc(bk.id)}"${
                   plantOf(m)===bk.id?" selected":""}>${esc(callOf(bk))} · ${esc(bk.id)}</option>`).join("")}
               </select></label>
+            <button class="btn btn--quiet" style="grid-column:1/-1" onclick="openArrival('${side}',${i})">How did they get there?</button>
           </div>
           <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
@@ -4226,7 +4906,7 @@ function scoutGames(){
   const named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
-      ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:'${g.id}',replayPt:null,replayStep:null})">${
+      ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
         when(g.at)}${g.id===S.matchId?" · on now":""}</button>`).join("")}
     </div>`:""}
     <div class="seg" style="flex-wrap:wrap">
@@ -4325,7 +5005,7 @@ function scoutBoard(){
       <tbody id="boardRows">${list.map((t,i)=>{
         const pr=profileOf(t.name);
         return `<tr class="tap" oncontextmenu="return false"
-          onpointerdown="pressTeam('${esc(t.name)}')" onpointerup="releaseTeam('${esc(t.name)}')"
+          onpointerdown="pressTeam(${jsq(t.name)})" onpointerup="releaseTeam(${jsq(t.name)})"
           onpointerleave="cancelTeam()" onpointercancel="cancelTeam()">
         <td class="num">${i+1}</td>
         <td>${esc(t.name)}</td>
@@ -4356,13 +5036,13 @@ function scoutBoard(){
     <div class="who2">
       <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Team name</span>
         <input id="newTeam" placeholder="Add to ${esc(div.name)}"/></label>
-      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">&nbsp;</span>
-        <button class="btn" onclick="addTeam()">Add team</button></label>
+      <div style="display:flex;flex-direction:column;gap:4px"><span class="note" aria-hidden="true">&nbsp;</span>
+        <button class="btn" onclick="addTeam()">Add team</button></div>
     </div>
     ${added.length?`<div class="assigns">${added.map(n=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(n)}</span>
       <span class="assign__who">you added this one</span></span>
-      <button class="btn btn--danger" onclick="delTeam('${esc(n)}')">Remove</button></div>`).join("")}</div>`:""}`,
+      <button class="btn btn--danger" onclick="delTeam(${jsq(n)})">Remove</button></div>`).join("")}</div>`:""}`,
     added.length?added.length+" added":"");
 }
 // Tapping a row only changes which team is in the pit. What you know about
@@ -4454,7 +5134,7 @@ function sightlines(){
   ${sec("Every lane from here", `<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
       <tbody>${res.lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}"
-          onclick="pickSight('to','${esc(l.to.id)}')">
+          onclick="pickSight('to',${jsq(l.to.id)})">
         <td>${esc(l.to.n)}</td><td class="num">${esc(l.to.id)}</td>
         <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked
           ? "blocked by "+esc(name(l.by[0]))
@@ -4502,14 +5182,14 @@ function classesPage(){
           </div>
           <div class="fld"><label>Starts</label>
             <input type="datetime-local" value="${esc(c.when||"")}"
-                   onchange="setClass('${c.code}','when',this.value)"/></div>
+                   onchange="setClass(${jsq(c.code)},'when',this.value)"/></div>
           <div class="fld"><label>Notes</label>
             <textarea placeholder="Bring a full pod pack. Meet at the pit gate."
-                      onchange="setClass('${c.code}','notes',this.value)">${esc(c.notes||"")}</textarea></div>
+                      onchange="setClass(${jsq(c.code)},'notes',this.value)">${esc(c.notes||"")}</textarea></div>
           <div class="btnrow">
-            <button class="btn btn--ghost grow" onclick="setClass('${c.code}','open',${c.open?"false":"true"})">
+            <button class="btn btn--ghost grow" onclick="setClass(${jsq(c.code)},'open',${c.open?"false":"true"})">
               ${c.open?"Close sign-ins":"Open sign-ins"}</button>
-            <button class="btn btn--quiet grow" onclick="shareClass('${c.code}')">Share the details</button>
+            <button class="btn btn--quiet grow" onclick="shareClass(${jsq(c.code)})">Share the details</button>
           </div>
           ${r.length?`<div class="assigns">${r.map(x=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc((x.name||"?")[0].toUpperCase())}</span>
@@ -4531,7 +5211,7 @@ function formBox(c){
       <select id="fw"><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select></div>
     <div class="fld"><label>Notes</label><textarea id="ft" placeholder="Anything the coach should know"></textarea></div>
     <label class="checkrow"><input type="checkbox" id="fa"/> This is a training sign-in form</label>
-    <button class="btn btn--block" onclick="submitForm('${esc(c.code)}')">Submit</button>
+    <button class="btn btn--block" onclick="submitForm(${jsq(c.code)})">Submit</button>
   </div>`;
 }
 window.makeClass = () => {
@@ -4583,17 +5263,17 @@ function leaguePage(){
       <div style="display:flex;align-items:center;gap:12px">
         <h3 class="panel__title grow">${esc(g.name)}</h3>
         <span class="list__count">${(g.members||[]).length}</span>
-        <button class="btn btn--danger" onclick="delGroup('${g.id}')">Delete</button>
+        <button class="btn btn--danger" onclick="delGroup(${jsq(g.id)})">Delete</button>
       </div>
       ${(g.members||[]).length?`<div class="assigns">${(g.members||[]).map((m,i)=>`<div class="assign">
         <span class="assign__body"><span class="assign__job">${esc(m.name)}</span>
         <span class="assign__who">${esc(m.phone||m.email||"no contact")}</span></span>
-        <button class="btn btn--danger" onclick="delMem('${g.id}',${i})">Remove</button>
+        <button class="btn btn--danger" onclick="delMem(${jsq(g.id)},${i})">Remove</button>
       </div>`).join("")}</div>`:`<div class="empty">Nobody in this group yet.</div>`}
       <div class="btnrow">
-        <input id="mn-${g.id}" placeholder="Name" class="grow"/>
-        <input id="mp-${g.id}" placeholder="Phone or email" class="grow"/>
-        <button class="btn btn--ghost" onclick="addMem('${g.id}')">Add member</button>
+        <input id="mn-${esc(g.id)}" placeholder="Name" class="grow"/>
+        <input id="mp-${esc(g.id)}" placeholder="Phone or email" class="grow"/>
+        <button class="btn btn--ghost" onclick="addMem(${jsq(g.id)})">Add member</button>
       </div>
     </div>`).join("")}`, people+" people")}
 
@@ -4601,7 +5281,7 @@ function leaguePage(){
       <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${esc(S.blastBody)}</textarea></div>
     <div class="fld"><label>Who gets it</label>
       <div class="toggles">${S.groups.map(g=>`
-        <button class="tgl${blastPicked(g.id)?" on":""}" onclick="toggleBlastGroup('${g.id}')">
+        <button class="tgl${blastPicked(g.id)?" on":""}" onclick="toggleBlastGroup(${jsq(g.id)})">
           <i></i>${esc(g.name)} <span class="list__count">${reachable(g).length}</span>
         </button>`).join("") || `<span class="empty">Make a group first.</span>`}</div></div>
     <button class="btn btn--block" onclick="sendBlast()">${
@@ -4798,7 +5478,7 @@ function moreBody(k){
             (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
-          ${on?"":`<button class="btn btn--quiet" onclick="openMatch('${m.id}')">Open</button>`}
+          ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">Open</button>`}
         </div>`;
       }).join("")}</div>`
       :`<div class="empty">This is your first sheet. Tap New match when the next game starts and
@@ -4862,7 +5542,7 @@ function moreBody(k){
         return `<div class="assign"><span class="assign__body">
           <span class="assign__job">${esc(calls[id])}</span>
           <span class="assign__who">${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
-          <button class="btn btn--danger" onclick="clearCall('${esc(id)}')">Clear</button></div>`;
+          <button class="btn btn--danger" onclick="clearCall(${jsq(id)})">Clear</button></div>`;
       }).join("")}</div>`:`<div class="empty">No calls yet. The official codes show until you set one.</div>`}
       ${pcRows.length?`<h3 class="panel__title" style="margin-top:var(--s4)">One player's word</h3>
         <div class="assigns">${pcRows.map(([who,id,word])=>{
@@ -4870,7 +5550,7 @@ function moreBody(k){
           return `<div class="assign"><span class="assign__body">
             <span class="assign__job">${esc(word)}</span>
             <span class="assign__who">${esc(who)} · ${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
-            <button class="btn btn--danger" onclick="clearPlayerCall('${esc(who)}','${esc(id)}')">Clear</button></div>`;
+            <button class="btn btn--danger" onclick="clearPlayerCall(${jsq(who)},${jsq(id)})">Clear</button></div>`;
         }).join("")}</div>`:""}
       <div class="field-wrap">${fieldSVG({static:true})}</div>`,
       named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName);
@@ -5006,9 +5686,9 @@ function moreBody(k){
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.</span></div>
         <div class="kv__row"><span class="kv__k">Kept safe</span><span class="kv__v">${
-          window.gridlockDurable
-            ? `The app keeps a second copy in the phone's own storage, which the system does not clear to reclaim space and which rides along in your device backup. It is a safety net on this phone, not a backup you own — Save a copy below is that.`
-            : `In a browser there is only one copy, in this site's storage, and clearing your browsing data clears it. On the phone app there is a second copy the system does not touch. Either way, Save a copy below is the one you own.`
+          window.gridlockDurableError ? `The second copy is waiting for a successful save. Use Save a copy below to keep your work.` : window.gridlockDurable
+            ? `The installed app keeps a second copy in the phone's own storage. Removing the app can remove both copies. Save a copy below gives you a backup you own.`
+            : `In a browser there is only one copy, in this site's storage, and clearing your browsing data clears it. On the installed phone app, a second copy is kept in app storage. Removing the app can remove both copies. Save a copy below is the one you own.`
           }${S.savedAt?` Last saved ${esc(new Date(S.savedAt).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}))}.`:""}</span></div>
       </div>
     </div>
@@ -5028,12 +5708,11 @@ function moreBody(k){
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
         <span class="assign__who">${L.bunkers.length} bunkers</span></span>
         ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`
-          :`<button class="btn btn--quiet" onclick="pickEvent('${esc(L.key)}')">Use this field</button>`}
+          :`<button class="btn btn--quiet" onclick="pickEvent(${jsq(L.key)})">Use this field</button>`}
         <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
       </div>`).join("")}</div>
-    <p class="note">There is no event feed. Nothing in this app makes a network request, so a schedule
-      cannot arrive on its own — a field ships with a release, measured off that event's own official 2D
-      map. That is also why nobody can change what your app says from the outside.</p>`,
+    <p class="note">Field layouts come with the app and update with a new release. There is no live
+      event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
   + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
       is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
@@ -5054,13 +5733,17 @@ function moreBody(k){
         onclick="this.select()">${esc(S.copyText)}</textarea></div>`:""}
     ${S.copyStatus?`<p class="note" style="color:var(--accent-lit)">${esc(S.copyStatus)}</p>`:""}`,
     copySummary(S))
+  + (_recoveryText ? sec("Recover an unreadable save", `<p class="lede">This is the original saved text that
+      the app could not open. Keep it before repairing or replacing any data.</p>
+    <div class="fld"><label>Original saved text</label><textarea readonly style="min-height:150px"
+      onclick="this.select()">${esc(_recoveryText)}</textarea></div>`) : "")
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>
       <input type="file" accept="application/json,.json,text/plain" onchange="readCopyFile(this)"/></div>
     <div class="fld"><label>Or paste it</label>
-      <textarea id="copyIn" placeholder='{"format":"gridlock.coach.copy", …}'
-        style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px"></textarea></div>
+      <textarea id="copyIn" placeholder='{"format":"gridlock.coach.copy", …}' oninput="copyDraft=this.value"
+        style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px">${esc(copyDraft)}</textarea></div>
     <div class="toggles">
       <button class="btn" onclick="loadCopy('merge')">Merge it in</button>
       <button class="btn btn--danger" onclick="loadCopy('replace')">Replace everything</button>
@@ -5151,10 +5834,12 @@ window.setAwake = on => {
 // at the top.
 let _where = "";
 function render(){
+  guardVoiceSession();
+  if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
   const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
-  document.getElementById("root").innerHTML = S.entered ? shell() : promo();
+  document.getElementById("root").innerHTML = S.entered ? shell() : promo() + (_recoveryText ? storeWarning() : "");
   const next = document.querySelector(".main");
   if(next && screen === _where) next.scrollTop = at;
   _where = screen;
@@ -5162,5 +5847,6 @@ function render(){
 render();
 </script>
 <script src="native.js"></script>
+<script src="offline.js"></script>
 </body>
 </html>

@@ -13,10 +13,10 @@
     "scrollEnabled": false
   },
   "plugins": {
-    "StatusBar": {
+    "SystemBars": {
       "style": "DARK",
-      "backgroundColor": "#000000",
-      "overlaysWebView": false
+      "insetsHandling": "css",
+      "hidden": false
     }
   }
 }

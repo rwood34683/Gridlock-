@@ -11,9 +11,9 @@
  */
 const path = require("path");
 const fs = require("fs");
-const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
+const { chromium } = require("playwright-core");
+const { launchOptions } = require("../scripts/browser.js");
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const URL = process.env.APP_URL || "http://localhost:5173/";
 // Every layout the app ships, against the event record it was measured from.
 const LAYOUTS = [
@@ -29,7 +29,7 @@ const TOL = 0.05;   // ft — a twentieth of a foot, well under the map's line w
 const STROKE = 0;      // ft
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   const page = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();
   await page.goto(URL, { waitUntil: "networkidle" });
 

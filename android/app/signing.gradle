@@ -1,0 +1,23 @@
+// Keep upload credentials in android/keystore.properties (git-ignored).
+def signingFile = rootProject.file('keystore.properties')
+def signingValues = new Properties()
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingValues.load(it) }
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { key ->
+        if (!signingValues[key]) throw new GradleException("Missing " + key + " in keystore.properties")
+    }
+    android.signingConfigs {
+        release {
+            storeFile rootProject.file(signingValues['storeFile'])
+            storePassword signingValues['storePassword']
+            keyAlias signingValues['keyAlias']
+            keyPassword signingValues['keyPassword']
+        }
+    }
+    android.buildTypes.release.signingConfig = android.signingConfigs.release
+}
+gradle.taskGraph.whenReady { graph ->
+    if (!signingFile.exists() && graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }) {
+        throw new GradleException('Release signing is required. Copy keystore.properties.example to keystore.properties and configure your upload key, or build assembleDebug.')
+    }
+}

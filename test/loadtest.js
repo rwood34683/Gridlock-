@@ -9,9 +9,9 @@
  * This measures those. Run the dev server first (npm run serve).
  */
 const path = require("path");
-const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
+const { chromium } = require("playwright-core");
+const { launchOptions } = require("../scripts/browser.js");
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const URL = process.env.APP_URL || "http://localhost:5173/";
 
 // A season, not a demo: what a busy league actually accumulates.
@@ -35,7 +35,7 @@ function pct(arr, p) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   // Throttle to something like a mid-range phone, not a datacentre CPU.
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();

@@ -13,19 +13,55 @@
 
   /* Share: native sheet on device, Web Share API in the browser, clipboard last. */
   window.gridlockShare = function (text, title) {
+    function canceled(error) { return error && (error.name === "AbortError" || /cancel/i.test(error.message || "")); }
+    function showText() { window.prompt("Copy this text to share it:", text); return false; }
+    function copy() {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) return Promise.resolve(showText());
+      return navigator.clipboard.writeText(text).then(function () {
+        alert("Copied."); return true;
+      }).catch(showText);
+    }
     if (native && P.Share) {
-      return P.Share.share({ title: title || "GRIDLOCK", text: text }).catch(function () {});
+      return P.Share.share({ title: title || "GRIDLOCK", text: text }).catch(function (error) {
+        return canceled(error) ? false : copy();
+      });
     }
     if (navigator.share) {
-      return navigator.share({ title: title || "GRIDLOCK", text: text }).catch(function () {});
+      return navigator.share({ title: title || "GRIDLOCK", text: text }).catch(function (error) {
+        return canceled(error) ? false : copy();
+      });
     }
-    if (navigator.clipboard) {
-      return navigator.clipboard.writeText(text).then(function () {
-        alert("Copied.");
-      }).catch(function () {});
-    }
-    return Promise.resolve();
+    return copy();
   };
+
+  /* Export a real JSON attachment. The calling UI keeps a text fallback and
+     decides what to say; handing a file to another app is not a saved receipt. */
+  if (native) {
+    var exportPending = null;
+    window.gridlockExportFile = function (text, filename) {
+      if (exportPending) return exportPending;
+      exportPending = Promise.resolve().then(function () {
+        if (!P.Filesystem || !P.Share) throw new Error("File sharing is unavailable in this app build.");
+        if (typeof text !== "string" || !text.length) throw new Error("The backup is empty.");
+        JSON.parse(text);
+        var name = String(filename || "GRIDLOCK-backup.json").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/^\.+/, "").slice(0, 120);
+        if (!name) name = "GRIDLOCK-backup.json";
+        if (!/\.json$/i.test(name)) name += ".json";
+        var file = "gridlock-exports/" + name;
+        return P.Filesystem.writeFile({ path: file, data: text, directory: "CACHE", encoding: "utf8", recursive: true }).then(function (written) {
+          if (written && written.uri) return written;
+          return P.Filesystem.getUri({ path: file, directory: "CACHE" });
+        }).then(function (written) {
+          if (!written || !/^file:\/\//.test(written.uri || "")) throw new Error("The backup file could not be located.");
+          return P.Share.share({ title: "GRIDLOCK backup", files: [written.uri], dialogTitle: "Save or share GRIDLOCK backup" });
+        }).then(function () { return { status: "shared" }; });
+      }).catch(function (error) {
+        if (error && (error.name === "AbortError" || /cancel/i.test(error.message || ""))) return { status: "cancelled" };
+        return { status: "failed", message: error && error.message ? error.message : "The backup could not be shared." };
+      }).then(function (result) { exportPending = null; return result; });
+      return exportPending;
+    };
+  }
 
   /* The durable copy of the season.
    *
@@ -42,20 +78,44 @@
    */
   var KEY = "gridlock.coach.v2";
   var ACCOUNT = "gridlock.staff.v2";
-  var pending = {}, timer = null;
+  var pending = {}, timer = null, flushing = null;
+
+  function storageStatus(failed) {
+    var message = failed ? "The phone could not update its second copy. Keep a backup with Save a copy on Nexus." : "";
+    if (window.gridlockDurableError === message) return;
+    window.gridlockDurableError = message;
+    if (typeof window.render === "function") window.render();
+  }
 
   function flush() {
     if (timer) { clearTimeout(timer); timer = null; }
     if (!P.Preferences) return Promise.resolve();
+    // Keep plugin writes ordered: a slow older write must never finish after a
+    // newer one and roll the durable copy backwards.
+    if (flushing) return flushing.then(flush);
+    if (!Object.keys(pending).length) return Promise.resolve();
     var out = pending; pending = {};
-    return Promise.all(Object.keys(out).map(function (k) {
-      return P.Preferences.set({ key: k, value: out[k] }).catch(function () {});
-    }));
+    var failed = false;
+    flushing = Promise.all(Object.keys(out).map(function (k) {
+      return Promise.resolve().then(function () {
+        return P.Preferences.set({ key: k, value: out[k] });
+      }).catch(function () {
+        failed = true;
+        // Retry the failed text only if an even newer save is not queued.
+        if (!(k in pending)) pending[k] = out[k];
+      });
+    })).then(function () {
+      flushing = null;
+      storageStatus(failed);
+      if (Object.keys(pending).length && !timer) timer = setTimeout(flush, failed ? 5000 : 0);
+    });
+    return flushing;
   }
 
   // Whether there is anywhere durable to keep it. Nexus reads this rather than
   // promising a safety net a browser does not have.
   window.gridlockDurable = !!(native && P.Preferences);
+  window.gridlockDurableError = "";
 
   window.gridlockKeep = function (text, key) {
     if (!window.gridlockDurable) return;         // a browser has nowhere durable
@@ -73,25 +133,30 @@
    * in a pocket — but it means it has to be taken again on the way back.
    */
   window.gridlockCanAwake = !!(navigator.wakeLock && navigator.wakeLock.request);
-  var lock = null;
+  var lock = null, acquiring = false;
   var wanted = function () { return !(window.S && window.S.awake === false); };
 
   function acquire() {
-    if (!window.gridlockCanAwake || lock || !wanted()) return;
+    if (!window.gridlockCanAwake || lock || acquiring || !wanted()) return;
     if (document.visibilityState !== "visible") return;
+    acquiring = true;
     navigator.wakeLock.request("screen").then(function (l) {
+      acquiring = false;
+      if (!wanted() || document.visibilityState !== "visible") {
+        return l.release().catch(function () {});
+      }
       lock = l;
-      l.addEventListener("release", function () { lock = null; });
-    }).catch(function () {});          // denied, low battery, no permission
+      l.addEventListener("release", function () { if (lock === l) lock = null; });
+    }).catch(function () { acquiring = false; }); // denied, low battery, no permission
   }
   function drop() {
     if (!lock) return;
-    try { lock.release(); } catch (e) {}
+    try { lock.release().catch(function () {}); } catch (e) {}
     lock = null;
   }
   window.gridlockAwake = function (on) { if (on) acquire(); else drop(); };
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") acquire(); else lock = null;
+    if (document.visibilityState === "visible") acquire(); else drop();
   });
   acquire();
 
@@ -112,7 +177,9 @@
   }
 
   /* Dark stadium status bar. */
-  if (P.StatusBar) {
+  if (P.SystemBars) {
+    P.SystemBars.setStyle({ style: "DARK" }).catch(function () {});
+  } else if (P.StatusBar) {
     P.StatusBar.setStyle({ style: "DARK" }).catch(function () {});
     if (Cap.getPlatform() === "android") {
       P.StatusBar.setBackgroundColor({ color: "#000000" }).catch(function () {});
@@ -133,6 +200,11 @@
   }
 
   if (P.App) {
+    // appUrlOpen covers a running app. A link that launches a stopped app is
+    // delivered separately, and otherwise its class code never reaches the UI.
+    if (P.App.getLaunchUrl) P.App.getLaunchUrl().then(function (event) {
+      openJoinCode(codeFromUrl(event && event.url));
+    }).catch(function () {});
     P.App.addListener("appUrlOpen", function (event) {
       openJoinCode(codeFromUrl(event && event.url));
     });
@@ -152,6 +224,8 @@
         return;
       }
       if (S.mode) return window.set({ mode: null });
+      if (S.pbView) return window.set({ pbView: null });
+      if (S.pad) return window.set({ pad: null });
       if (S.tab === "more" && S.more) return window.set({ more: null });
       if (S.tab && S.tab !== "playbook") return window.set({ tab: "playbook" });
       P.App.exitApp();

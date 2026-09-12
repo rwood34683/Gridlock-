@@ -20,10 +20,10 @@
  */
 const path = require("path");
 const fs = require("fs");
-const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
+const { chromium } = require("playwright-core");
+const { launchOptions } = require("../scripts/browser.js");
 const SEED = require(path.join(__dirname, "..", "scripts", "seed.js"));
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const URL = process.env.APP_URL || "http://localhost:5173/";
 
 const TAP = 44;        // px, short axis
@@ -117,7 +117,7 @@ const measure = () => {
     check("Safe areas", `${sel} pads for the ${side} inset`, block.test(css));
   }
 
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   const rows = [];
 
   for (const [name, w, h] of DEVICES) {

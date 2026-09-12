@@ -1,33 +1,22 @@
 node_modules/
-npm-debug.log*
-.DS_Store
-
-# Generated brand renders — rebuild with: npm run icons
-brand/out/
-
-# Intermediate captures behind the store panels — rebuild with: npm run store.
-# The finished store images in store/app-store and store/play are committed:
-# they are what you upload, and you should not need a toolchain to get them.
-store/_raw/
-
-# Generated artifact build — rebuild with: npm run site:artifact
+dist/
 site/build/
-
-# Native build output
-ios/App/Pods/
-ios/App/build/
-android/app/build/
-android/build/
+work/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
 android/.gradle/
 android/local.properties
-
-# Release signing — never commit
-keystore.properties
+android/**/build/
+android/keystore.properties
 *.jks
 *.keystore
-
-# The web app copied into each native shell is a build product of web/index.html,
-# but it is committed on purpose: without it Xcode and Android Studio open to a
-# white screen, and "run npx cap sync first" is a bad first impression of your own
-# project. Re-run `npm run sync` after changing web/ and commit what moves.
-__pycache__/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/DerivedData/
+*.xcuserstate
+.idea/

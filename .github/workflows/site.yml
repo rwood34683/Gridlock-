@@ -1,62 +1,30 @@
-# Publish the landing page to GitHub Pages.
-#
-# Turn it on once: repository Settings -> Pages -> Source: "GitHub Actions".
-# Then point the domain at GitHub — for the apex gridlockpb.com, four A records
-# to 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153, and a
-# CNAME for www -> rwood34683.github.io. HTTPS is issued automatically once DNS
-# resolves; tick "Enforce HTTPS" when the certificate appears.
-#
-# This path does not run Jekyll, so site/.well-known survives on its own. The
-# .nojekyll file is there for anyone who later deploys from a branch instead,
-# where Jekyll would drop the dot-directory and take Android app links with it.
-name: site
-
+name: Publish GRIDLOCK site
+# Deliberately manual: configure GitHub Pages and run this workflow to publish.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "site/**"
-      - "scripts/site-check.js"
-      - ".github/workflows/site.yml"
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
-# One deploy at a time, and never cancel one that is mid-flight: a half-uploaded
-# site is a broken site.
 concurrency:
   group: pages
   cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Nothing stands between an edit and the public internet here, so the
-      # check runs first and a failure stops the upload.
-      - name: Check the site can go up
-        run: node scripts/site-check.js
-
-      # site/build is generated for the Claude artifact host and site/README.md
-      # is for whoever works on this repo. Neither is part of the website.
-      - name: Stage the upload
-        run: |
-          mkdir -p _site
-          cp -r site/. _site/
-          rm -rf _site/build _site/README.md
-          echo "--- uploading ---"
-          find _site -type f | sort
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run site:check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
-
+          path: dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -66,16 +34,3 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v4
-
-      # The one file whose absence fails silently. If Android cannot fetch it
-      # the app link just opens a browser, forever, with no error anywhere —
-      # so prove it is being served before anyone relies on it.
-      - name: Prove .well-known is served
-        run: |
-          url="${{ steps.deploy.outputs.page_url }}"
-          url="${url%/}/.well-known/assetlinks.json"
-          echo "GET $url"
-          code=$(curl -sS -o /tmp/al.json -w '%{http_code}' --retry 5 --retry-all-errors "$url")
-          echo "HTTP $code"
-          cat /tmp/al.json
-          test "$code" = "200"

@@ -10,9 +10,20 @@ Three states only:
 - **Differs** — built another way on purpose, with the reason.
 - **Not built** — missing. No hedging.
 
-Last walked: the commit that added this file. Re-walk it when the spec changes.
+The original feature audit below is retained as project history. The runnable
+package was reviewed and completed for its device-local architecture on
+September 11, 2026. See `IMPLEMENTATION.md` and the root README for the current
+distribution, validation, and explicit cloud/native boundaries.
 
 ## Built
+
+**How did they get there?** Scout now has an opponent route viewer with a
+shortcut from each pit player. It connects a selected starting position,
+ordered recorded sightings and a destination using clear paths around measured
+bunkers. Available wire alternatives, playback and step controls are included.
+Sightings persist per team, player, layout, match and point and travel in full
+backups. Routes are explicitly inferred; there is no automatic video tracking.
+See `HOW-DID-THEY-GET-THERE.md` for the workflow.
 
 **Shell and roles.** Promo first, never the tutorial. Staff create / log in,
 tutorial, continue as guest. Guest, staff and league admin. Staff login gates
@@ -249,7 +260,9 @@ the app. In a browser there is no such store and the app says so rather than
 promising a safety net it does not have.
 
 **No server.** The spec assumes Overskill's sign-in, database, email and push.
-There is none of that here and the app makes no network requests at all. Staff
+There is none of that here. Coaching calculations and saved records are local;
+optional voice dictation may use the device or browser's online speech provider,
+and the website host delivers the app files. Staff
 sign-in is local, salted and hashed; classes live on the phone that made them;
 a blast opens the share sheet with the recipients and body rather than sending;
 Nexus → Save a copy is the answer to backup and moving between phones. Google
@@ -264,8 +277,7 @@ dark ground rather than turf. `CLAUDE.md` is the newer instruction and wins.
 bunker type is one inflatable — see `docs/LAYOUTS.md`.
 
 **No event feed.** The spec wants an optional HTTPS feed URL so a schedule can
-arrive on its own. That needs a network, and this app makes no network request
-at all — which is also why nobody can change what it says from the outside. A
+arrive on its own. This build has no event-feed service or automatic data updates. A
 field ships with a release, measured off that event's own official 2D map, and
 Nexus says so rather than leaving a dead box on screen.
 
@@ -273,7 +285,7 @@ Nexus says so rather than leaving a dead box on screen.
 under Scout instead, because it is a screen you read rather than a thing you
 pick.
 
-**QR.** The encoder is written, hand-rolled because the app has no network, and
+**QR.** The encoder runs locally without a remote service, and is
 pinned in the suite against a matrix an outside decoder verified. Nothing draws
 one on a class card yet, on purpose: a scan opens the app to a session that
 does not exist on the scanner's phone, because sessions live on the device that
@@ -301,9 +313,16 @@ throughout and stayed green; all four of these came out of reading and fuzzing.
 
 ## Not built
 
-Nothing on the spec's list is unbuilt. The one thing it asks for that this app
-will not do is above, under Differs — an event feed needs a network, and this
-app makes no network request at all.
+The offline coaching interface is implemented. The original Overskill spec
+also assumes services that this package does not contain: cloud authentication
+(including Google/Apple sign-in), shared sessions and remote class joining,
+server-delivered email/push notices, synchronized records, and a live event
+feed. These require a backend and are not implemented or simulated here.
+
+The generated iOS and Android Capacitor projects use the complete shared web
+interface. The separate early SwiftUI snapshot is archival; an independent
+SwiftUI/Android Compose rewrite is not included. Native release binaries still
+require platform tooling and signing.
 
 The list that used to sit here — the tablet rail, the blast group picker, class
 detail, division search and long-press, the team code and per-player calls, the

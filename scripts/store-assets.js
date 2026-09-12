@@ -22,7 +22,7 @@ const fs = require("fs");
 const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
 const SEED = require("./seed");
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const { launchOptions } = require('./browser');
 const URL = process.env.APP_URL || "http://localhost:5173/";
 const OUT = path.join(__dirname, "..", "store");
 const BRAND = path.join(__dirname, "..", "brand", "out");
@@ -40,7 +40,7 @@ const SCENES = [
   { file: "1-playbook",   go: t => tab(t, "Playbook"), focus: ".field-wrap",
     eyebrow: "Playbook",
     head: "Call the break.\nDirect all five.",
-    sub: "Every bunker measured off the official map." },
+    sub: "Five routes on the included field layout." },
 
   { file: "2-scout",      go: t => tab(t, "Scout"),
     eyebrow: "Scout",
@@ -54,8 +54,8 @@ const SCENES = [
 
   { file: "4-sightlines", go: t => tab(t, "Sightlines"), focus: ".field-wrap",
     eyebrow: "Sightlines",
-    head: "See which lanes\nare actually open.",
-    sub: "Every lane checked against every footprint." },
+    head: "Explore the lanes\nfrom your bunker.",
+    sub: "Sightlines on the included field layout." },
 
   { file: "5-classes",    go: more("Classes"),
     eyebrow: "Classes",
@@ -64,9 +64,15 @@ const SCENES = [
 
   { file: "6-league",     go: more("League"),
     eyebrow: "League",
-    head: "Reach ops, refs\nand the gate.",
-    sub: "Groups, blasts, and a log of what you sent." },
+    head: "Keep ops, refs\nand the gate in view.",
+    sub: "Local groups and notices, ready to share." },
 ];
+const requestedScene = process.argv.find(arg => arg.startsWith('--scene='))?.slice('--scene='.length);
+if (requestedScene && !SCENES.some(scene => scene.file === requestedScene)) {
+  console.error('Unknown scene. Use one of: ' + SCENES.map(scene => scene.file).join(', '));
+  process.exit(1);
+}
+const selectedScenes = requestedScene ? SCENES.filter(scene => scene.file === requestedScene) : SCENES;
 
 function tab(page, name) {
   return page.locator(".tabs button", { hasText: name }).click();
@@ -88,7 +94,6 @@ function panelHTML(px, py, shotDataURI, scene) {
   const capH = Math.round(py * 0.26);
   const inset = Math.round(px * 0.055);
   return `<!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500&display=swap">
 <style>
   html,body{margin:0;width:${px}px;height:${py}px;overflow:hidden;background:#000}
   .panel{position:relative;width:${px}px;height:${py}px;
@@ -129,12 +134,11 @@ function panelHTML(px, py, shotDataURI, scene) {
    nothing that matters goes near an edge. */
 function featureHTML(iconDataURI) {
   return `<!doctype html><html><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500&display=swap">
 <style>
   html,body{margin:0;width:1024px;height:500px;overflow:hidden;background:#000}
   /* Play crops this graphic toward the centre on some surfaces, so the lockup
      is centred rather than set against the left edge. */
-  .fg{position:relative;width:1024px;height:500px;display:flex;align-items:center;
+  .fg{box-sizing:border-box;position:relative;width:1024px;height:500px;display:flex;align-items:center;
     justify-content:center;gap:44px;padding:0 64px;
     background:radial-gradient(900px 460px at 22% 6%, rgba(173,21,21,.36) 0%, rgba(173,21,21,0) 64%),
                linear-gradient(#111213,#0b0c0d)}
@@ -175,7 +179,7 @@ function featureHTML(iconDataURI) {
 const dataURI = f => `data:image/png;base64,${fs.readFileSync(f).toString("base64")}`;
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   const errors = [];
   const written = [];
 
@@ -204,7 +208,7 @@ const dataURI = f => `data:image/png;base64,${fs.readFileSync(f).toString("base6
     await page.waitForTimeout(400);
 
     const px = d.w * d.dsf, py = d.h * d.dsf;
-    for (const scene of SCENES) {
+    for (const scene of selectedScenes) {
       await scene.go(page);
       await page.waitForTimeout(350);
       // Put the thing the caption is talking about at the top of the panel —

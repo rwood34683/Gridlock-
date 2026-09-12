@@ -1,125 +1,30 @@
-# GRIDLOCK landing page
+# GRIDLOCK static site
 
-Static marketing site for **GRIDLOCK System · Coach Edition**. No build step —
-`site/index.html` is the page, and everything it needs sits beside it.
+`index.html`, `support.html` and `privacy.html` restore the missing static companion site. The landing page uses actual app captures with example data. It does not claim store availability or message delivery.
 
-```
-site/
-  index.html          the page
-  privacy.html        privacy policy — required by both stores
-  support.html        support page — required by the App Store
-  legal.css           shared styling for the two document pages
-  img/icon.svg        the mark
-  img/icon-512.png    the mark, raster
-  img/shots/*.png     real screenshots, captured from the running app
-  .nojekyll           so a branch deploy does not eat .well-known
-  CNAME               the custom domain Pages serves from
-  .well-known/assetlinks.json   what lets Android open your links
-  build/artifact.html generated — see below, and not uploaded
+From the project root:
+
+```sh
+npm run serve
+npm run shots
+npm run app:artifact
+npm run site:check
 ```
 
-`privacy.html` and `support.html` are ordinary documents and share `legal.css`.
-Only `index.html` carries inline CSS, because only it is built into the
-single-file artifact.
+To preview the companion site, stop the app server and run `node scripts/serve.js --root site`, then open `http://localhost:5173/`. `app:artifact` creates `site/app.html` and `site/build/app.html`; each is a complete single-file browser app. `site:artifact` creates a self-contained landing page at `site/build/artifact.html` with working embedded app, privacy and support destinations. Regenerate after source changes. Files in `build/` are convenience exports and can be excluded from a static upload.
 
-## Deploy
+Use the existing app at the same address to keep access to that browser's local season. Browsers separate local storage by origin. No data is sent to a cloud account.
 
-`npm run site:check` first — it is what the deploy runs, and a failure there is
-a page that would have gone up broken.
+## Configure an actual release
 
-The site is served by **GitHub Pages** from `.github/workflows/site.yml`. It
-runs on any push to `main` that touches `site/`, and can be run by hand from the
-Actions tab. Turn it on once:
+No support mailbox, domain, store ID or signing identity was provided. `contact.json` records these as null, the support page says so, and the app-link association is an empty valid JSON array. Set only values you control:
 
-1. Settings → Pages → Source: **GitHub Actions**.
-2. Settings → Pages → Custom domain: `gridlockpb.com`.
-3. At the registrar, four A records for the apex to GitHub's Pages addresses
-   (`185.199.108.153`, `.109.153`, `.110.153`, `.111.153`) and a CNAME for
-   `www` to `rwood34683.github.io`.
-4. When the certificate is issued, tick **Enforce HTTPS**. Both stores require
-   the privacy and support URLs over HTTPS.
-
-`site/CNAME` already names the domain; Pages reads it from the upload.
-
-Any other static host works the same way — Cloudflare Pages, Netlify, Vercel,
-S3. Connect the repo, leave the build command empty, publish directory `site`.
-Nothing in this repo is host-specific except the workflow file.
-
-### What gets uploaded, and what does not
-
-`site/build/` and this README are excluded. `build/` is generated for the Claude
-artifact host, nothing on the page links to it, and the two files in it are the
-better part of a megabyte. That leaves 19 files, about 1 MB.
-
-### The three things that break a static deploy
-
-**`.well-known/assetlinks.json` has to be served, verbatim, at that exact
-path.** It is how Android decides your app may open `https://gridlockpb.com/...`
-links. Get it wrong and nothing errors — the link simply opens in a browser,
-forever. The Actions deploy does not run Jekyll, so the dot-directory survives;
-`site/.nojekyll` is there for anyone who later switches to a branch deploy,
-where Jekyll drops dotfiles and takes app links with them. The workflow fetches
-the file after publishing and fails if it is not a 200.
-
-**The fingerprint in it is still a placeholder.** Play re-signs your upload with
-its own key, so the value that belongs there is the one Play shows — Play
-Console → Test and release → App signing → SHA-256 certificate fingerprint —
-not your upload keystore's. A local keystore prints its own with
-`keytool -list -v -keystore release.jks -alias <alias>`. Then:
-
-```bash
-npm run contact -- --sha256 AB:CD:EF:...
+```sh
+npm run contact -- --domain your-real-domain.com --email support@your-real-domain.com
+npm run contact -- --appstore YOUR_NUMERIC_ID
+npm run contact -- --play https://play.google.com/store/apps/details?id=com.upra.gridlock.coach
+npm run contact -- --sha256 YOUR_COLON_SEPARATED_SHA256
+npm run site:check -- --release
 ```
 
-**Nothing may link to an app that does not exist.** Until Apple assigns an ID,
-the App Store badge reads *Coming to the App Store* and is not a link. When the
-ID arrives:
-
-```bash
-npm run contact -- --appstore 6501234567
-npm run site:artifact          # index.html is inlined into the artifact build
-```
-
-That turns the badge back into a real link in both places on the page.
-
-Neither of those last two blocks the deploy, on purpose: the site has to be live
-*before* you submit, because Apple checks that the privacy and support URLs
-resolve.
-
-## Screenshots
-
-`img/shots/*.png` are real captures of the running app, not mockups. To refresh
-them after a UI change:
-
-```bash
-npm run serve                      # serves web/ on :5173
-node scripts/capture-shots.js      # rewrites site/img/shots/
-```
-
-`scout-sim.png` is not used on the page — it is kept as a spare.
-
-The store screenshots are a separate, larger set at each store's exact pixel
-sizes. See `docs/STORE-LISTING.md` and `npm run store`.
-
-## The artifact build
-
-`site/build/artifact.html` is generated by `node scripts/build-artifact-page.js`.
-It strips the document shell and inlines every image as a data URI, because the
-Claude artifact host blocks external images. Edit `site/index.html` and re-run
-the script; never edit the build output.
-
-## Design notes
-
-The palette, the tone and the copy rules come from `CLAUDE.md` at the repo root:
-black `#0b0c0d` ground, red `#ad1515` for solid fills, `#e5252a` for small
-accents, off-white `#efedeb` type. No second hue — the wires (left pit red,
-right pit blue) are the only other colour, and they are semantic. Single dark
-theme is deliberate — a light version would contradict the brand.
-
-Type is Oswald (display, stadium signage), Barlow (body) and IBM Plex Mono
-(bunker codes and join codes), all from Google Fonts.
-
-The page only advertises what ships today. Features still on the roadmap — the
-8-way face pad, path editing, bunker naming, QR codes for class join codes —
-are deliberately absent. Keep it that way; App Store review checks marketing
-against the build.
+Setting a domain does not invent a support email. Store links remain absent until explicitly configured. Setting a signing fingerprint writes the Android association file. A real release still needs the domain, support contact, store entries and signing verification. The privacy notice describes this code's behavior; review it for any services or distribution changes you introduce. This work does not publish anything.

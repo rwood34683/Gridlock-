@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>GRIDLOCK five-player direction mark</title>
+<defs><linearGradient id="mark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5252a"/><stop offset="1" stop-color="#ad1515"/></linearGradient></defs>
+<g transform="translate(180 160) scale(.65)" fill="url(#mark)"><path d="M512 196 742 474H636L512 324 388 474H282Z"/><circle cx="222" cy="754" r="62"/><circle cx="367" cy="700" r="62"/><circle cx="512" cy="678" r="62"/><circle cx="657" cy="700" r="62"/><circle cx="802" cy="754" r="62"/><rect x="222" y="856" width="580" height="16" rx="8" fill="#efedeb" opacity=".34"/></g>
+</svg>

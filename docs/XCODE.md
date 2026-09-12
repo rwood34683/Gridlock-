@@ -1,171 +1,66 @@
-# Getting GRIDLOCK Coach into Xcode
+# Open GRIDLOCK in Xcode
 
-The `ios/` folder is a real Xcode project and the app itself is committed with
-it, so what you open is the actual product, not a shell.
+Copy the **entire project folder** to your Mac, including `web/`, `scripts/`, `package.json`, `package-lock.json`, and `ios/`. The archive includes the Xcode project and web app. CocoaPods dependencies are installed on the Mac.
 
-One thing is still missing from a fresh clone: `ios/App/Pods/`, the CocoaPods
-dependency tree. Capacitor cannot build without it and it does not belong in git.
-That is the one command below.
+## First setup
 
-## What you need on the Mac
+Install these tools first:
 
-| | |
-|---|---|
-| macOS | Recent enough for the Xcode below |
-| Xcode | 16 or newer — the App Store rejects builds made with older SDKs |
-| Node | 20 or newer |
-| CocoaPods | `sudo gem install cocoapods`, or `brew install cocoapods` |
+- Xcode **26 or newer**, with the iOS 26 or newer platform and simulator components. Open Xcode once to finish setup and accept its license.
+- Node.js **22 or newer**, including npm.
+- CocoaPods (`pod --version` should work in Terminal).
 
-Apple Developer Program membership ($99/yr) is needed to upload, but **not** to
-build and run on your own device or the simulator. You can see the app working
-before you pay anything.
+These requirements follow the [Capacitor 8 migration guide](https://capacitorjs.com/docs/updating/8-0).
 
-## First run
+Double-click **OPEN-IN-XCODE.command**, or run this from the project folder in Terminal:
 
-```bash
-cd ios/App && pod install
-open App.xcworkspace
+```sh
+bash OPEN-IN-XCODE.command
 ```
 
-Then press Run. That is the whole thing.
+The launcher checks the installed tools before changing or downloading anything. When those checks pass, it runs `npm ci`, syncs the current app and plugins, installs pods, verifies source packaging, and opens **ios/App/App.xcworkspace**. It never changes your development team or signing credentials.
 
-`npm run ios:setup` does the same from a clean clone if you also want the test
-tooling and a fresh sync — it installs, syncs, pods and opens Xcode for you.
+Choose an iPhone simulator in Xcode and press Run. Open the `.xcworkspace`, which includes the pods. Opening only the `.xcodeproj` omits those dependencies.
 
-> Open the **`.xcworkspace`**, never `App.xcodeproj`. With CocoaPods the project
-> alone does not know about its dependencies and the build fails with missing
-> Capacitor headers. This is the single most common way to lose an hour here.
+## After editing the app
 
-Or let Capacitor open it for you, which picks the right one:
-
-```bash
+```sh
+npm run sync
 npm run open:ios
 ```
 
-## Signing
+To verify a simulator compilation from Terminal after setup:
 
-Select the **App** target → **Signing & Capabilities**.
-
-1. Tick **Automatically manage signing**.
-2. Pick your Team. With a paid account that is your developer team; without one,
-   your personal Apple ID works for device builds.
-3. The bundle identifier is already `com.upra.gridlock.coach`.
-
-Unlike Android there is no keystore to make or protect. Apple issues and holds
-the certificates; Xcode fetches them. Nothing to lose.
-
-## The first time you run on your own phone
-
-With a free Apple ID — no paid membership — three things catch everyone, in this
-order, and none of them is an error you can read:
-
-1. **Trust the computer.** Unlock the phone, plug it in, tap **Trust** on the
-   prompt. Xcode will not list a locked phone as a destination.
-2. **Trust the developer, on the phone.** The first launch fails with
-   *"Untrusted Developer"*. Go to **Settings → General → VPN & Device
-   Management**, tap your Apple ID, tap **Trust**. Then launch it again. Nothing
-   in Xcode tells you this is what is wrong.
-3. **It expires in seven days.** A free-provisioned build stops launching after
-   a week; rebuild from Xcode and it is another seven days. A paid account makes
-   it a year. Free accounts also cap you at three side-loaded apps at once.
-
-None of this applies to a paid Developer Program account except the expiry.
-
-## Run it
-
-Pick a simulator — iPhone 16 or similar — and press Run. You should get the promo
-gate, then the app. If the screen is white, `npx cap sync ios` was not run: the
-web assets are missing.
-
-Run on a real phone at least once before submitting. The simulator does not tell
-you the truth about touch targets, the safe area under a notch, or how the field
-reads outdoors.
-
-## The first run on a real phone
-
-Everything in the test suites is a headless browser at phone-sized viewports.
-That is honest about geometry and silent about the list below, every item of
-which is a real risk in this app and none of which can be checked from here.
-Go through it once, on the phone, in daylight.
-
-- [ ] **Sunlight.** Take it outside. The whole design is a black field with red
-      and blue bunkers; if it washes out on a bright sideline the product does
-      not work, and nothing else on this list matters.
-- [ ] **Scroll position holds.** On Scout, scroll down to a player and tap a
-      threat star. The screen should stay where it is. This was broken until
-      recently — every tap rebuilds the screen — so it is worth confirming that
-      the fix survives WKWebView.
-- [ ] **Rubber-banding.** Drag past the top and bottom of a long tab. The page
-      should scroll; the whole web view should not bounce as one sheet.
-      `contentInset: never` and `scrollEnabled: false` in `capacitor.config.json`
-      are what stop that.
-- [ ] **The keyboard.** Open Scout → Notes and type. Check the box is not hidden
-      behind the keyboard, and that you can dismiss it and still reach the tab bar.
-- [ ] **Safe areas.** Under a Dynamic Island, the header must clear it. At the
-      bottom, the tab bar must sit above the home indicator, and a swipe up must
-      not fire a tab.
-- [ ] **Rotate it.** Playbook should go to two columns, call left, field right.
-      Rotate back. Then rotate on Scout and Tally too.
-- [ ] **Kill and reopen.** Log a few outs on Tally, swipe the app away, reopen.
-      Everything should still be there. This is localStorage surviving an app
-      kill, which is not the same as surviving a page reload.
-- [ ] **Gloves on.** Every tap target is at least 44px by measurement. That is
-      the floor, not proof — try it the way you would use it between points.
-- [ ] **The break animation.** Play the break a few times. It runs at 57fps in a
-      throttled desktop browser; a phone is a different machine.
-
-Anything that misbehaves, tell me what you saw and on which screen — that is
-worth more than any test I can write in here.
-
-## After you change `web/index.html`
-
-```bash
-npx cap sync ios     # or: npm run sync   (does iOS and Android)
+```sh
+npm run build:ios:simulator
 ```
 
-Then build again. Xcode does not watch `web/`, and a stale `public/` folder is
-the reason a change you know you made is not on screen.
+This uses the shared App scheme and builds with signing disabled. Its output is under `ios/DerivedData/Build/Products/Debug-iphonesimulator/`. It does not create an App Store archive.
 
-## Uploading to App Store Connect
+## What is prepared
 
-1. Create the app record at appstoreconnect.apple.com. Bundle ID
-   `com.upra.gridlock.coach`, name **GRIDLOCK Coach**.
-2. In Xcode set the destination to **Any iOS Device (arm64)** — you cannot archive
-   against a simulator.
-3. **Product → Archive**, then **Distribute App → App Store Connect**.
-4. Fill the listing from `docs/STORE-LISTING.md`. Every field is pre-written
-   inside its character limit. Screenshots are in `store/app-store/`, already at
-   the exact sizes each device class needs.
-5. Once App Store Connect assigns the app an ID, put it in the landing page:
+The existing CocoaPods project has been upgraded to Capacitor **8.5.2**, with an iOS **15.0** deployment target. SceneDelegate is registered in the target, creates the app window, and forwards class links through Capacitor's scene proxy, following its [scene migration guide](https://capacitorjs.com/docs/updating/8-5). The app retains bundle identifier `com.upra.gridlock.coach`.
 
-   ```bash
-   npm run contact -- --appstore 6501234567
-   ```
+Save a copy now writes a UTF-8 JSON file into the app cache and presents the native file share sheet. Choose Save to Files or another destination there. The sheet can be cancelled without changing your season. Preferences still maintains its separate durable copy. The privacy manifest declares UserDefaults (`CA92.1`) and FileTimestamp (`C617.1`) access, as specified by the installed [Preferences](https://capacitorjs.com/docs/apis/preferences) and [Filesystem](https://capacitorjs.com/docs/apis/filesystem) plugins.
 
-## Already handled
+The macOS workflow `.github/workflows/ios.yml` compiles an unsigned simulator app when run in GitHub Actions. It has not been executed as part of this Windows delivery.
 
-- **Privacy manifest.** `ios/App/App/PrivacyInfo.xcprivacy` is written and
-  registered in the project — no tracking, no collected data, one required-reason
-  API (`UserDefaults`, reason `CA92.1`) because the app stores everything locally.
-  Apple rejects a submission without this.
-- **Version.** `MARKETING_VERSION` 1.0.0, `CURRENT_PROJECT_VERSION` 1. Bump the
-  build number on every upload; App Store Connect refuses a repeat.
-- **Deep link.** `gridlock://class/<code>` is registered in `Info.plist`.
-- **Deployment target.** iOS 14, which covers every phone from 2015 on.
+## Remaining Mac verification
 
-## When it goes wrong
+Source structure, plugin registration, JavaScript and web behavior were checked on Windows. An Xcode compilation and device run still need the Mac toolchain. Before distributing a device build, select your team under App → Signing & Capabilities, then verify:
 
-**White screen on launch** — the copy of the app in the shell went missing. Run
-`npm run sync`. `npm run store:check` also tells you when it has drifted from
-`web/index.html`.
+1. Launch, rotate, background and reopen the app; saved season data remains intact.
+2. Open `gridlock://class/GL-7K2M` both with the app running and after closing it.
+3. Save a copy to Files, cancel a share, and load the saved JSON again.
+4. Use “How did they get there?” on a field and confirm the controls remain above the system bars.
+5. Start voice scouting, grant microphone and speech permissions, speak one observation, then stop. Verify cancellation, backgrounding and denied permission leave the microphone off. Confirm finalized observations appear once and can be corrected. Speech may require the device's speech service and internet connection; no audio is retained by GRIDLOCK.
 
-**"Module 'Capacitor' not found"** — you opened `App.xcodeproj`. Close it and open
-`App.xcworkspace`.
+For distribution, set an appropriate build number and use Product → Archive with a device destination. Signing, provisioning, App Store records and publication remain account-specific steps.
 
-**`pod install` fails on Apple silicon** — `sudo gem install ffi` first, or install
-CocoaPods through Homebrew instead of the system Ruby.
+## If setup stops
 
-**Signing errors after cloning to a second Mac** — clear the derived data
-(`~/Library/Developer/Xcode/DerivedData`) and let Xcode re-fetch the profiles.
-
-**A change to the app is not showing** — `npx cap sync ios`, every time.
+- **Xcode command-line tools only:** select the full Xcode installation in Xcode → Settings → Locations → Command Line Tools.
+- **Platform or first-launch setup missing:** finish Xcode's component installation, then rerun the launcher.
+- **`pod` missing:** install CocoaPods, open a new Terminal, confirm `pod --version`, and retry.
+- **Pod download failure:** restore network access and rerun setup. Filesystem also resolves its native `IONFilesystemLib` dependency through CocoaPods.
+- **A source change is absent on the phone:** run `npm run sync` before rebuilding.

@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+"use strict";
+// Browser integration of the native contract; this does not compile an iOS app.
+const assert = require("node:assert/strict");
+const { chromium } = require("playwright-core");
+const { launchOptions } = require("../scripts/browser");
+
+(async () => {
+  const browser = await chromium.launch(launchOptions());
+  let server;
+  let count = 0;
+  const check = (condition, message) => { assert(condition, message); count++; console.log("PASS " + message); };
+  const url = process.env.APP_URL || await (async () => {
+    server = require("../scripts/serve").createServer();
+    await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+    return `http://127.0.0.1:${server.address().port}/`;
+  })();
+  try {
+    const errors = [];
+    const context = await browser.newContext({ serviceWorkers: "block" });
+    await context.addInitScript(() => {
+      Object.hasOwn = undefined; // The API is absent in the minimum supported iOS version.
+      if (!localStorage.getItem("gridlock.coach.v2")) localStorage.setItem("gridlock.coach.v2", JSON.stringify({
+        savedAt: 1700000000000, entered: true, roster: [{ name: "Saved coach’s player", num: 14, p: "GP", s: "snake" }],
+        layoutKey: "tby", walkNotes: "Keep my season"
+      }));
+    });
+    const page = await context.newPage();
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(url);
+    check(await page.evaluate(() => !Object.hasOwn && S.roster[0].name === "Saved coach’s player" && S.layoutKey === "tby"), "existing season loads without Object.hasOwn");
+    check(await page.evaluate(() => !localStorage.getItem("gridlock.coach.v2.recovery")), "valid season is not misclassified as damaged on older WebKit");
+    check(await page.evaluate(() => {
+      const parsed = readCopy(copyPayload("all"));
+      return !parsed.error && parsed.payload.data.roster[0].num === 14;
+    }), "backup parses without Object.hasOwn");
+    await page.evaluate(() => {
+      const text = copyPayload("all");
+      window.set({ tab: "more", more: "nexus", roster: [] });
+      document.getElementById("copyIn").value = text;
+      window.loadCopy("merge");
+    });
+    await page.reload();
+    check(await page.evaluate(() => S.roster.some(player => player.num === 14)), "backup import survives reload on older WebKit");
+    check(await page.evaluate(() => typeof window.gridlockExportFile === "undefined"), "browser keeps its download path without a native file bridge");
+    await context.close();
+
+    const native = await browser.newContext({ serviceWorkers: "block" });
+    await native.addInitScript(() => {
+      window.__fileCalls = { writes: [], shares: [], mode: "success", blobs: 0, legacyShares: 0 };
+      const calls = window.__fileCalls;
+      window.Capacitor = {
+        isNativePlatform: () => true, getPlatform: () => "ios",
+        Plugins: {
+          Preferences: { get: async () => ({ value: null }), set: async () => {} },
+          Filesystem: {
+            writeFile: async args => {
+              calls.writes.push(args);
+              if (calls.mode === "diskFailure") throw new Error("Cannot write cache file");
+              return { uri: "file:///private/cache/" + args.path };
+            },
+            getUri: async args => ({ uri: "file:///private/cache/" + args.path })
+          },
+          Share: { share: async args => {
+            calls.shares.push(args);
+            await new Promise(resolve => setTimeout(resolve, 30));
+            if (calls.mode === "cancel") throw Object.assign(new Error("Share cancelled"), { name: "AbortError" });
+            if (calls.mode === "shareFailure") throw new Error("Share service unavailable");
+            return { activityType: "com.apple.UIKit.activity.SaveToFiles" };
+          } }
+        }
+      };
+      URL.createObjectURL = () => { calls.blobs++; throw new Error("Native export must not attempt a blob download"); };
+    });
+    const phone = await native.newPage();
+    phone.on("pageerror", error => errors.push(error.message));
+    phone.on("dialog", async dialog => { errors.push("Unexpected dialog: " + dialog.message()); await dialog.dismiss(); });
+    await phone.goto(url);
+    await phone.evaluate(() => {
+      window.set({ entered: true, tab: "more", more: "nexus", roster: [{ name: "José \"Snake\"", num: 7, p: "GP", s: "snake" }] });
+      window.gridlockShare = () => { window.__fileCalls.legacyShares++; };
+    });
+    check(await phone.evaluate(() => typeof window.gridlockExportFile === "function"), "native builds expose the file export contract");
+    await phone.evaluate(async () => { await Promise.all([window.saveCopy("all"), window.saveCopy("all")]); });
+    const first = await phone.evaluate(() => ({ ...window.__fileCalls, status: S.copyStatus }));
+    check(first.writes.length === 1 && first.shares.length === 1, "repeated taps export one file while the share sheet is open");
+    check(first.writes[0].directory === "CACHE" && /\.json$/.test(first.writes[0].path), "backup is a JSON file in the native cache");
+    check(first.writes[0].encoding === "utf8" && JSON.parse(first.writes[0].data).data.roster[0].name === "José \"Snake\"", "UTF-8 JSON backup preserves names and season data");
+    check(first.shares[0].files?.length === 1 && first.shares[0].files[0].startsWith("file:///private/cache/"), "share sheet receives an actual local file URI");
+    check(!first.shares[0].text && !first.blobs && !first.legacyShares, "native backup is not duplicated as a text share or blob download");
+    check(/share sheet/i.test(first.status), "export status describes the handoff without claiming a confirmed save");
+    await phone.evaluate(async () => { window.__fileCalls.mode = "cancel"; await window.saveCopy("all"); });
+    check(await phone.evaluate(() => /cancelled/i.test(S.copyStatus) && S.roster.length === 1), "cancelled sharing retains the season and permits retry");
+    await phone.evaluate(async () => { window.__fileCalls.mode = "diskFailure"; await window.saveCopy("all"); });
+    check(await phone.evaluate(() => /could not share/i.test(S.copyStatus) && !readCopy(S.copyText).error), "cache write failure exposes a usable text backup");
+    check(await phone.evaluate(() => window.__fileCalls.shares.length === 2), "failed file writes never launch a share sheet");
+    await phone.evaluate(async () => { window.__fileCalls.mode = "shareFailure"; await window.saveCopy("all"); });
+    check(await phone.evaluate(() => /could not share/i.test(S.copyStatus) && JSON.parse(S.copyText).data.roster[0].num === 7), "share service failure keeps a complete copy available as text");
+    await phone.evaluate(async () => { window.__fileCalls.mode = "success"; await window.saveCopy("squad"); });
+    check(await phone.evaluate(() => {
+      const data = JSON.parse(window.__fileCalls.writes.at(-1).data).data;
+      return /share sheet/i.test(S.copyStatus) && data.roster.length === 1 && data.tally === undefined;
+    }), "export retries successfully and respects squad scope");
+    await native.close();
+    check(!errors.length, "no uncaught page errors or unexpected dialogs: " + errors.join("; "));
+    console.log(`Platform contract: ${count}/${count} checks passed (plugin stubs, not an iOS binary).`);
+  } finally {
+    await browser.close();
+    if (server) { server.closeAllConnections(); server.close(); }
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

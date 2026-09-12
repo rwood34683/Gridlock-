@@ -1,24 +1,21 @@
 #!/usr/bin/env node
-/* Downscale and quantise the captured screenshots.
-
-   Captures come out at 3x (1170px wide). The page never shows them wider
-   than ~320 CSS px, so 640px is plenty, and flat UI quantises to a 256-colour
-   palette with no visible loss — about a 5x saving over the raw PNGs. */
-const { execFileSync } = require("child_process");
-const path = require("path");
-
-const dir = path.join(__dirname, "..", "site", "img", "shots");
-execFileSync("python3", ["-c", `
-import glob, os
-from PIL import Image
-total = 0
-for f in sorted(glob.glob(os.path.join(${JSON.stringify(dir)}, '*.png'))):
-    im = Image.open(f).convert('RGB')
-    if im.width > 640:
-        im = im.resize((640, round(640 * im.height / im.width)), Image.LANCZOS)
-    im.quantize(colors=256, method=Image.MEDIANCUT, dither=Image.FLOYDSTEINBERG).save(f, optimize=True)
-    kb = os.path.getsize(f) / 1024
-    total += kb
-    print('  %-20s %4d KB' % (os.path.basename(f), round(kb)))
-print('  total %d KB' % round(total))
-`], { stdio: "inherit" });
+// Portable resizing and palette optimization of real screenshot captures.
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const dir = path.resolve(__dirname, '../site/img/shots');
+async function main() {
+  if (!fs.existsSync(dir)) throw new Error('No screenshots found. Run npm run shots with the app server running.');
+  const files = fs.readdirSync(dir).filter(file=>file.endsWith('.png')).sort();
+  if (!files.length) throw new Error('No PNG screenshots found. Run scripts/capture-shots.js first.');
+  let bytes = 0;
+  for (const file of files) {
+    const target = path.join(dir, file);
+    const output = await sharp(fs.readFileSync(target)).resize({width:640,withoutEnlargement:true}).png({palette:true,colours:256,compressionLevel:9}).toBuffer();
+    fs.writeFileSync(target, output);
+    bytes += output.length;
+    console.log(`${file.padEnd(20)} ${(output.length/1024).toFixed(0)} KB`);
+  }
+  console.log(`Total: ${(bytes/1024).toFixed(0)} KB`);
+}
+main().catch(error=>{console.error(error.message);process.exitCode=1;});

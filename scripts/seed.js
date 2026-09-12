@@ -8,7 +8,7 @@ module.exports = {
   entered: true, role: "staff", email: "coach@team.com",
   tab: "playbook", script: "snake", layoutKey: "lso",
   faceOn: true, shotOn: true, t: 0.62, matchState: "Even",
-  tips: { pb: true, tally: true, scout: true, sl: true, class: true },
+  tips: { pb: true, tally: true, scout: true, sl: true, class: true, lg: true },
   left: {
     name: "Blast Camp", tend: "Balanced", threat: 5, pts: 200,
     notes: "Snake runner is #7, goes on the buzzer every time. Weak on the D-wire when they trade.",

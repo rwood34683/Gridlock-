@@ -10,7 +10,7 @@
 const path = require("path");
 const fs = require("fs");
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const { launchOptions } = require('./browser');
 const URL = process.env.APP_URL || "http://localhost:5173/";
 const OUT = path.join(__dirname, "..", "site", "img", "shots");
 
@@ -25,7 +25,7 @@ const top = page => page.evaluate(() => {
   const { chromium } = require("playwright-core");
   fs.mkdirSync(OUT, { recursive: true });
 
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
   const page = await ctx.newPage();
   const errors = [];

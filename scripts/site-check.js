@@ -1,139 +1,51 @@
 #!/usr/bin/env node
-/* Can this site actually go up, and will it work when it does?
- *
- *   npm run site:check
- *
- * The landing page is four static files and there is no build step, which
- * means nothing between a bad edit and the public internet. The things that
- * break a static deploy are boring and silent:
- *
- *   - a relative link to a file that is not in the upload, which is a 404 the
- *     day you rename something;
- *   - .well-known disappearing, which is Android app links failing forever
- *     with no error anywhere;
- *   - a store badge linking to an app that does not exist yet.
- *
- * None of those throw. So they are checked here, and the deploy workflow runs
- * this before it publishes: a failure stops the upload rather than shipping a
- * broken page.
- *
- * Two things WARN rather than fail, on purpose. The App Store ID and the
- * release signing fingerprint do not exist until Apple and Google issue them,
- * and the site has to be live *before* you submit — Apple checks that the
- * privacy and support URLs resolve. So an unfinished app must not block the
- * page that the submission depends on.
- */
-const fs = require("fs");
-const path = require("path");
-
-const ROOT = path.join(__dirname, "..");
-const SITE = path.join(ROOT, "site");
-const PAGES = ["index.html", "privacy.html", "support.html"];
-
-// Generated for the Claude artifact host, not for the web: nothing on the site
-// links to them and together they are the better part of a megabyte.
-const NOT_UPLOADED = ["build", "README.md"];
-
+// Structural checks run locally; --release also requires operator-owned details.
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+const SITE = path.join(ROOT, 'site');
 const rows = [];
-const ok = (name, pass, detail) => { rows.push([!!pass, name, detail || ""]); return !!pass; };
-const warns = [];
-const warn = (what, detail) => warns.push([what, detail]);
-
-const read = rel => fs.readFileSync(path.join(SITE, rel), "utf8");
-const has = rel => fs.existsSync(path.join(SITE, rel));
-
-/* ---- what gets uploaded ------------------------------------------------ */
-const uploaded = new Set();
-(function walk(dir, prefix){
-  for(const e of fs.readdirSync(dir, {withFileTypes:true})){
-    const rel = prefix ? `${prefix}/${e.name}` : e.name;
-    if(NOT_UPLOADED.includes(rel)) continue;
-    if(e.isDirectory()) walk(path.join(dir, e.name), rel);
-    else uploaded.add(rel);
+const warnings = [];
+const ok = (name, pass, detail = '') => rows.push({name, pass:!!pass, detail});
+const release = process.argv.includes('--release');
+const read = rel => fs.readFileSync(path.join(SITE, rel), 'utf8');
+const exists = rel => fs.existsSync(path.join(SITE, rel));
+const pages = ['index.html', 'privacy.html', 'support.html', 'app.html'];
+for (const page of pages) {
+  if (!exists(page)) { ok(`${page} exists`, false, page === 'app.html' ? 'run npm run app:artifact' : 'missing'); continue; }
+  const html = read(page);
+  ok(`${page} has a complete document`, /<!doctype html>/i.test(html) && /<html[^>]*lang="en"/i.test(html) && /<title>.+?<\/title>/i.test(html) && /name="viewport"/.test(html));
+  const broken = [];
+  // Inline app code includes dynamically generated href attributes; inspect its shell only.
+  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+  for (const match of markup.matchAll(/\b(?:href|src)="([^"\s]+)"/g)) {
+    const ref = match[1];
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#|\$\{)/i.test(ref)) continue;
+    const clean = decodeURIComponent(ref.split(/[?#]/)[0]);
+    if (!clean) continue;
+    const target = path.resolve(SITE, clean);
+    if (!target.startsWith(SITE + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) broken.push(clean);
   }
-})(SITE, "");
-
-/* ---- the host has to serve the dot-directory --------------------------- */
-// GitHub Pages runs Jekyll on a branch deploy, and Jekyll drops anything
-// beginning with a dot — including the one file Android goes looking for.
-ok(".nojekyll is there, so .well-known survives", uploaded.has(".nojekyll"));
-ok("CNAME names the domain", uploaded.has("CNAME"),
-   uploaded.has("CNAME") ? read("CNAME").trim() : "no custom domain — the page lands on github.io");
-
-/* ---- app links --------------------------------------------------------- */
-const AL = ".well-known/assetlinks.json";
-if(ok("assetlinks.json is in the upload", uploaded.has(AL))){
-  let j = null;
-  try { j = JSON.parse(read(AL)); } catch(e){}
-  ok("assetlinks.json is valid JSON", !!j, j ? "" : "Android reads this literally — a stray comma is a silent failure");
-  const pkg = j && j[0] && j[0].target && j[0].target.package_name;
-  const manifest = fs.readFileSync(
-    path.join(ROOT, "android/app/src/main/AndroidManifest.xml"), "utf8");
-  const appId = (manifest.match(/package="([^"]+)"/) || [])[1]
-    || (fs.readFileSync(path.join(ROOT, "android/app/build.gradle"), "utf8")
-        .match(/applicationId\s+"([^"]+)"/) || [])[1];
-  ok("it names the app Android is asked to open", !appId || pkg === appId,
-     pkg === appId ? pkg : `${pkg} vs ${appId}`);
-
-  const host = (manifest.match(/android:host="([^"]+)"/) || [])[1];
-  const cname = uploaded.has("CNAME") ? read("CNAME").trim() : "";
-  ok("the app claims the host this site is deployed to", !host || !cname || host === cname,
-     host === cname ? host : `app claims ${host}, site is ${cname}`);
-
-  const fp = j && j[0] && (j[0].target.sha256_cert_fingerprints || [])[0];
-  if(!fp || /REPLACE/.test(fp))
-    warn("release signing fingerprint",
-      "assetlinks.json still has the placeholder — links open in a browser, never the app.\n"
-      + "    Play Console → Test and release → App signing → SHA-256, then:\n"
-      + "    npm run contact -- --sha256 <32 hex pairs>");
+  ok(`${page} local assets and links exist`, broken.length === 0, [...new Set(broken)].join(', '));
+  if (page !== 'app.html') ok(`${page} has no remote fonts or scripts`, !/<(?:script|link)[^>]+(?:src|href)="https?:/i.test(html));
 }
-
-/* ---- no dead links ----------------------------------------------------- */
-// Every relative href and src on every page has to be a file that is actually
-// going up. This is the check that catches excluding build/ by mistake, or a
-// renamed screenshot.
-const missing = [];
-for(const page of PAGES){
-  if(!has(page)) { ok(`${page} exists`, false); continue; }
-  const src = read(page);
-  const refs = [...src.matchAll(/(?:href|src)="([^"#][^"]*)"/g)].map(m => m[1]);
-  for(const r of refs){
-    if(/^(https?:|mailto:|data:|tel:|\/\/)/.test(r)) continue;
-    const clean = r.split("?")[0].split("#")[0];
-    if(!clean) continue;
-    if(!uploaded.has(clean)) missing.push(`${page} → ${clean}`);
-  }
+ok('Static styles and favicon exist', exists('styles.css') && exists('img/icon.svg'));
+ok('Dot-directory is retained on static hosts', exists('.nojekyll'));
+let config = {};
+try { config = JSON.parse(read('contact.json')); ok('Contact configuration is valid', true); } catch (err) { ok('Contact configuration is valid', false, err.message); }
+let associations;
+try { associations = JSON.parse(read('.well-known/assetlinks.json')); ok('App-link association is valid JSON array', Array.isArray(associations)); } catch (err) { ok('App-link association is valid JSON array', false, err.message); }
+for (const [key, label] of [['domain','Owned domain'], ['email','Monitored support email'], ['appstore','App Store listing ID'], ['play','Google Play listing URL'], ['sha256','Android release signing fingerprint']]) {
+  if (!config[key]) { if (release) ok(label, false, 'not configured'); else warnings.push(`${label} is not configured.`); }
 }
-ok("every relative link points at a file that ships", !missing.length, missing.join(", "));
-
-/* ---- no link to an app that does not exist ----------------------------- */
-const index = has("index.html") ? read("index.html") : "";
-const dead = /apps\.apple\.com\/app\/id0+["/]/.test(index);
-ok("no dead App Store link", !dead, dead ? "the badge still points at id0000000000" : "");
-if(/badge--soon/.test(index))
-  warn("App Store ID",
-    "the badge reads \"Coming to the App Store\" and does not link — correct until Apple issues an ID.\n"
-    + "    npm run contact -- --appstore <id>");
-
-/* ---- the support address Apple will test ------------------------------- */
-const support = has("support.html") ? read("support.html") : "";
-const addr = (support.match(/mailto:([^"?]+)/) || [])[1] || "";
-ok("the support page carries a real address", !!addr && !/your-domain\.example/.test(addr), addr);
-
-/* ---- report ------------------------------------------------------------ */
-const bad = rows.filter(r => !r[0]).length;
-console.log("GRIDLOCK site check");
-console.log("===================\n");
-for(const [pass, name, detail] of rows)
-  console.log(`  ${pass ? "PASS" : "FAIL"}  ${name.padEnd(52)}${detail}`);
-
-const bytes = [...uploaded].reduce((n, f) => n + fs.statSync(path.join(SITE, f)).size, 0);
-console.log(`\n${rows.length - bad}/${rows.length} checks passed.`);
-console.log(`Upload: ${uploaded.size} files, ${(bytes / 1024).toFixed(0)} KB `
-  + `(site/build and site/README.md are not part of it).`);
-
-if(warns.length){
-  console.log("\nThe site can go up, but these are not finished yet:");
-  for(const [what, detail] of warns) console.log(`  ${what}\n    ${detail}`);
+if (config.domain) ok('CNAME agrees with configured domain', exists('CNAME') && read('CNAME').trim() === config.domain);
+if (config.email) for (const file of ['support.html','privacy.html']) ok(`${file} uses configured support email`, read(file).includes(`mailto:${config.email.replace(/&/g,'&amp;').replace(/'/g,'&#39;')}`));
+if (config.sha256) {
+  const appId = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8')).appId;
+  ok('App links match app ID and signing fingerprint', associations?.some(item => item.target?.package_name === appId && item.target.sha256_cert_fingerprints?.includes(config.sha256)));
 }
-process.exit(bad ? 1 : 0);
+console.log('GRIDLOCK site check' + (release ? ' (release)' : ' (local)'));
+for (const row of rows) console.log(`${row.pass ? 'PASS' : 'FAIL'} ${row.name}${row.detail ? ': '+row.detail : ''}`);
+for (const warning of warnings) console.log(`PENDING ${warning}`);
+console.log(`${rows.filter(row => row.pass).length}/${rows.length} checks passed. Release ownership and publication remain manual.`);
+process.exitCode = rows.some(row => !row.pass) ? 1 : 0;

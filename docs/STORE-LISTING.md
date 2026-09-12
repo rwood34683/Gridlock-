@@ -1,51 +1,32 @@
-# Store listing — GRIDLOCK Coach
+# Store listing draft — GRIDLOCK Coach
 
-Everything App Store Connect and Google Play Console ask for, written out so a
-submission is copy-and-paste rather than an afternoon of drafting. Field limits
-are noted; `npm run store:check` re-counts them if you edit the copy.
+This is editable release copy for the supplied local app, not confirmation of a store listing or an approved submission. `npm run store:check` checks the copy limits and generated image dimensions configured in this project. Check the current store-console requirements against the final signed binary before submitting.
 
-> **One rule for everything below.** The listing may only describe what the build
-> actually does. Both stores check marketing against the binary, and a claim the
-> app cannot back up is a rejection. Features still on the roadmap — a second
-> event layout, remote clinic sign-in, live sync between phones — are
-> deliberately absent. Keep them out until they ship.
+## Values the owner must supply
 
----
+`site/contact.json` contains null values until they are explicitly configured. No domain, support inbox, App Store ID, Google Play listing or release certificate was supplied. The static site displays that state without linking to nonexistent apps.
 
-## Before you submit — four values only you can fill in
+1. Configure a monitored support email: `npm run contact -- --email YOUR_SUPPORT_EMAIL`.
+2. Configure an owned domain: `npm run contact -- --domain YOUR_DOMAIN`. This does not create an email inbox. Publish the finished site separately and verify the live support and privacy pages.
+3. After creating the actual store listings, set `--appstore YOUR_NUMERIC_ID` and `--play YOUR_GOOGLE_PLAY_APP_URL`. These create ordinary text links on the site.
+4. Configure the SHA-256 release signing certificate using `--sha256 YOUR_COLON_SEPARATED_FINGERPRINT` if using Android verified app links.
+5. Review pricing, distribution, content rating, age targeting, privacy disclosures, signing and support ownership in the actual store consoles. They are release decisions, not values inferred by this code.
 
-1. **Support email.** Both stores email the address you give them, and Apple
-   rejects a support page whose contact bounces, so it has to be one you actually
-   read. Set it with `npm run contact -- --email you@your-domain.com` — that writes
-   it into `site/privacy.html` and `site/support.html`, both the link and the
-   visible text. Run `npm run contact` on its own to see what is set.
-2. **The two page URLs.** Deploy `site/` and note where `privacy.html` and
-   `support.html` land. Both stores require the privacy URL; Apple also requires
-   the support URL.
-3. **App Store ID.** App Store Connect assigns it. Then
-   `npm run contact -- --appstore 6501234567`, which writes it into both store
-   badges on `site/index.html`.
-4. **Official store badges.** The inline badges on the landing page are stand-ins.
-   Swap in Apple's and Google's own artwork before launch.
-
----
+`npm run site:check -- --release` and `npm run store:check -- --release` fail while required local release configuration remains unset. They do not verify domain ownership, mailbox delivery, store approval or certificate ownership.
 
 ## Shared identity
 
-| | |
+| Field | Draft value |
 |---|---|
-| App name | **GRIDLOCK Coach** |
-| Bundle / application id | `com.upra.gridlock.coach` |
-| Version | `1.0.0` (build 1) |
-| Primary category | Sports |
-| Secondary category | Utilities *(App Store only)* |
-| Age rating | 4+ (Apple) · Everyone (Play) |
-| Price | Free, no in-app purchases, no ads |
-| Privacy policy URL | `https://gridlockpb.com/privacy.html` |
-| Support URL | `https://gridlockpb.com/support.html` |
-| Marketing URL | `https://gridlockpb.com/` |
-
----
+| App name | GRIDLOCK Coach |
+| Bundle / application ID | `com.upra.gridlock.coach` |
+| Version | `1.0.0` |
+| Suggested category | Sports / Utilities |
+| Pricing | Owner to choose; this build implements no purchase flow |
+| Age rating and target audience | Owner to complete in the consoles |
+| Privacy URL | **Not configured** — publish `privacy.html` on the owned domain |
+| Support URL | **Not configured** — publish `support.html` on the owned domain |
+| Marketing URL | **Not configured** — publish the static site on the owned domain |
 
 ## App Store
 
@@ -59,93 +40,78 @@ GRIDLOCK Coach
 Paintball sideline playbook
 ```
 
-### Promotional text — 170 char limit (editable without a new build)
+### Promotional text — 170 char limit
 ```
-Every bunker on the field is measured off the official NXL map, not drawn from memory. Call the break, direct all five, and read the other pit between points.
+Call the break, direct all five and keep your read on the other pit. Playbook, point sheets and team notes together on your device.
 ```
 
-### Keywords — 100 char limit, comma separated, no spaces
+### Keywords — 100 char limit
 ```
 paintball,coach,xball,nxl,speedball,breakout,sideline,layout,bunker,scrimmage,league,tournament
 ```
 
 ### Description — 4000 char limit
 ```
-GRIDLOCK Coach is the sideline tool for paintball coaches and league staff. Pick the event, call the break, direct all five players, and read the other pit — between points, on a phone, with gloves on.
-
-MEASURED, NOT DRAWN
-Three NXL 2026 fields ship — the Lone Star Open, the Tampa Bay Open and the Midwest Open — each digitized from its official labeled 2D against the printed 10-ft grid. Every one of the 173 bunkers matches its map to within a hundredth of a foot, and the app ships a check that proves it on every build. A field that is nearly right is worse than no field at all when you are calling a break off it.
+GRIDLOCK Coach keeps a paintball coach's playbook, point sheets and scouting notes together on the sideline.
 
 PLAYBOOK
-Five breakouts, each one drawn as real routes to real bunkers — routed around the snake and everything else, because nobody runs through an inflatable. Direct all five: set primary and secondary roles, point a player's face any of eight ways, and give them a named bunker to lane. Play the break and watch it develop, with each chevron and shot cone travelling with its player.
+Pick one of the three included 2026 event layouts: Lone Star Open, Tampa Bay Open or Midwest Open. Choose a breakout, set the five players' routes and roles, point their faces and assign shot lanes. Play the break or share a set of player cards.
 
 SCOUT
-Read both pits side by side. Record how a team tends to break, how much of a threat they are, and what your own film says. A counter-picker ranks your breaks against what you just saw and whether you can afford to be patient. Heuristic scout reads are a training aid, not a prediction — officials govern the live call.
+Keep film notes and player reads against each team. Log the calls you see, compare the two pits and review your own counter choices. Scout reads and sightlines are coaching aids, not predictions. Officials govern the live call.
 
 TALLY
-Log a point in two taps. Who went out, which side, which point. No signal required.
+Log outs as the point develops. Keep the point sheet with its match and review earlier games. Connect the out with a player and a bunker when you know where it happened.
 
 SIGHTLINES
-Stand behind any bunker and see which lanes are actually open. Every lane is tested against every measured footprint on the field, so a lane that reads clear is clear.
+Explore lanes from the bunkers on the included field layouts. Use the layout geometry to prepare a plan, then check real conditions on the field.
 
-AND UNDER MORE
-Walk the field and keep notes. Set lineups. Track rotations. Grade a player after a point. Give your team its own name for a bunker and see it overlay the official code everywhere. Tint the field by where you are winning and losing. Run a clinic sign-in sheet on your phone — signing in never requires an account. Message your group. Organise league ops into groups, send a blast, and keep a log of what you sent.
+YOUR SQUAD
+Edit the roster, set lineups, record movements, grade players and keep field-walk notes. Give a bunker the name your team uses. Review player cards and bunker statistics built from your records.
 
-WORKS WITH NO SIGNAL
-The app makes no network requests at all. Airplane mode changes nothing. There is no account to create, nothing to sign into, and no waiting on a bar of service in a field in the middle of nowhere.
+CLINICS AND LEAGUE NOTES
+Run a clinic sign-in sheet on the device that created it. Joining that local sheet needs no account. A local staff login gates creating a class and recording a league notice. Organize contacts into groups, keep notices and use your own messaging apps to share them. A saved notice is not a delivered message. Class codes do not sync a class to another device.
 
-WE COLLECT NOTHING
-No analytics, no advertising, no tracking, no server. Everything you enter is written to storage on your own device and stays there.
+LOCAL FIRST
+The coaching tools calculate and save on your device without a cloud account. Installed native builds work without signal. A browser needs an initial load and an available local copy. There is no live event feed, cloud sync or remote recovery service.
 
-BACK IT UP YOURSELF
-Because there is no server, nothing backs your season up for you and nothing syncs between phones. So the app hands you the file instead: Save a copy writes your roster, scouting, tally, sessions and league groups to a single file you own. Mail it to yourself before a tournament, move to a new phone, or hand an assistant coach just the squad. Loading one back either merges into what is already there or replaces it, and merging the same copy twice changes nothing.
+KEEP A COPY
+Use Save a copy to export your season to a file you control. Load a copy to merge with the current season or deliberately replace it. Keep a backup before changing devices, clearing browser data or uninstalling. Exported files may contain roster and participant information, so share them only with the people you intend.
+
+The app includes no analytics, advertising or tracking SDK. Native device backups and services you choose for sharing have their own behavior and policies.
 
 GRIDLOCK System · powered by UPRA
 ```
 
 ### What's New — 4000 char limit
 ```
-First release.
+Initial release candidate: local playbook, scouting, point sheets, field notes, rosters, clinic sign-ins, league notices and season backup tools.
 ```
 
-### App Privacy answers
-- **Data collected:** none. Select *Data Not Collected*.
-- **Tracking:** no. `NSPrivacyTracking` is `false` and there are no tracking domains.
-- The privacy manifest at `ios/App/App/PrivacyInfo.xcprivacy` declares one
-  required-reason API: `NSPrivacyAccessedAPICategoryUserDefaults`, reason
-  `CA92.1` (the app's own settings on this device), used by
-  `@capacitor/preferences`.
+### Privacy and encryption review
 
-### Export compliance
-`ITSAppUsesNonExemptEncryption` is already `false` in `Info.plist`. The only
-cryptography is a salted SHA-256 hash of the local staff password via the Web
-Crypto API, which is exempt. No compliance documentation is required.
+The supplied app has no cloud database, analytics or advertising SDK. It keeps season data and the local staff account on the device, and provides exports and optional sharing through user-chosen services. The native privacy manifest and platform configuration must be reviewed alongside the final plugins and binary. If distribution adds analytics, a server, payments or other services, revise the disclosures and privacy notice before release. Device backups, hosting logs and copies shared by the user should be considered when completing the consoles' questionnaires.
+
+Optional **Scout → Voice log** uses microphone and speech-recognition permissions, requested only after Start listening. The device or browser's speech provider may process audio remotely and require internet. GRIDLOCK retains finalized transcripts and event metadata locally, including original text after correction, but does not store audio. Full season exports include this history. Typed entry works without microphone permission. Include this feature and the final speech provider behavior when completing privacy and Data safety disclosures; do not describe the entire build as transmitting no audio. The supplied privacy page explains the feature.
+
+Local staff authentication hashes passwords using the platform cryptographic API. Review the final build's encryption declaration and the applicable console questions; this draft does not determine export-compliance treatment.
 
 ### Review notes
 ```
-No account is required to use the app or to sign in to a clinic session. A
-clinic sheet lives on the phone that created it and is passed around like a
-clipboard; nothing is transmitted. A staff login gates creating a session and
-sending a league blast; it is created on-device and its
-password never leaves the phone, so there is no demo account to provide — tap
-Staff, then create one with any email and password.
+Guest tools and signing in to a clinic sheet do not need a cloud account. Staff tools use an account created on the current device: choose Staff and create a local account with your own test credentials.
 
-The app makes no network requests. It works fully in airplane mode.
+The clinic sheet lives on the device that created it and can be passed around for sign-ins. A class code is not a remote invitation and does not sync to another phone. League notices are local records; the user must finish sharing in a separate app to send them.
 
-The break paths and scout ranks are a coaching aid computed on-device from the
-official published layout. They are not live scores and are not a prediction;
-the app says so on screen.
+The installed coaching tools calculate locally. There is no live event feed or cross-device account. Save a copy exports the local season; Load a copy imports it.
+
+Break paths, scout reads and sightlines are training aids from the included layout geometry and entered observations. The UI identifies them as aids rather than live predictions.
 ```
 
-### Screenshots
-`store/app-store/iphone-6.9/` (1290 × 2796, required) and
-`store/app-store/iphone-6.5/` (1242 × 2688). Six panels, in order: Playbook,
-Scout, Tally, Sightlines, Classes, League. Regenerate with `npm run store`.
+### Screenshots and icon
 
-### Icon
-`brand/out/app-store-icon-1024.png` (1024 × 1024, no alpha). `npm run icons`.
+The configured screenshot outputs are `store/app-store/iphone-6.9/` (1290 × 2796) and `store/app-store/iphone-6.5/` (1242 × 2688). Each has six actual app captures with example data: Playbook, Scout, Tally, Sightlines, Classes and League. Generate with `npm run store` after starting the app server. Verify the upload slots in the current console.
 
----
+The opaque icon is `brand/out/app-store-icon-1024.png` (1024 × 1024). Generate with `npm run icons`.
 
 ## Google Play
 
@@ -160,60 +126,33 @@ Call the break, direct all five, and read the other pit between points.
 ```
 
 ### Full description — 4000 char limit
-Same body as the App Store description above. Play renders plain text, so keep
-the section headings in caps and leave a blank line between blocks.
 
-### Data safety
-- **Does your app collect or share any required user data types?** No.
-- **Is all of the user data collected by your app encrypted in transit?** Not
-  applicable — no data is transmitted.
-- **Do you provide a way for users to request that their data be deleted?**
-  Data is only ever on the user's own device; uninstalling the app deletes it.
-  The app can write a copy to a file at the user's request, which is a local
-  file operation, not a transfer to us. Point the answer at
-  `https://gridlockpb.com/privacy.html`, which says so.
-
-### Content rating questionnaire
-Sports/utility app. No violence, no sexual content, no profanity, no gambling,
-no user-generated content shared publicly, no location sharing, no purchases.
-Expected result: **Everyone**.
-
-### Ads
-No ads. Answer *No* to "contains ads".
-
-### Target audience
-13+. The app is a tool for coaches and league staff, not a children's app, and
-is not designed for or directed to children.
-
-### Permissions
-`INTERNET` only, required by the Android WebView platform. The app makes no
-requests with it. No sensitive or restricted permissions are declared, so no
-permissions declaration form is needed.
+Use the same description above. Review the actual Data safety, content rating, target audience, permissions, ads and pricing questions against the signed release. The supplied code implements no ads, purchases, remote messaging or public profile service. Personal information entered by a coach can still appear in local files and copies the coach chooses to share. The supplied privacy page explains the local storage and deletion behavior; configure and publish its real URL before submission.
 
 ### Graphics
-| Asset | Size | File |
+
+| Output | Size | File |
 |---|---|---|
 | Phone screenshots | 1080 × 1920 | `store/play/phone/*.png` (6) |
 | Feature graphic | 1024 × 500 | `store/play/feature-graphic.png` |
 | App icon | 512 × 512 | `brand/out/play-store-icon-512.png` |
 
 ### Signing
-Release signing reads `android/keystore.properties`, which is git-ignored along
-with `*.jks` and `*.keystore`. Copy `android/keystore.properties.example`, fill
-it in, and keep the keystore somewhere you will still have it in five years —
-losing it means you can never update the listing. Then:
 
-```bash
-npm run bundle:android      # android/app/build/outputs/bundle/release/app-release.aab
+The restored Android shell reads `android/keystore.properties` when configured. Copy `android/keystore.properties.example` and enter your own signing values. Keep keystores and passwords out of source control. Run `npm run bundle:android` only with a configured Android SDK/JDK and signing environment. A generated screenshot package or a passing local check is not a signed binary or a store submission.
+
+## Regenerate and check
+
+```sh
+npm run serve             # leave the app server running
+npm run icons
+npm run shots
+npm run store
+npm run sync              # platform tooling may require macOS / Android SDK
+npm run store:check
+npm run app:artifact
+npm run site:artifact
+npm run site:check
 ```
 
----
-
-## Regenerating everything
-
-```bash
-npm run serve      # terminal 1
-npm run store      # store/ — every screenshot and the feature graphic
-npm run icons      # brand/out/ — both store icons and the splash
-npm run store:check   # re-count the character-limited fields
-```
+Before publishing, configure the real release values and repeat both checks with `-- --release`. Publish or submit separately when authorized.

@@ -9,9 +9,9 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { chromium } = require(path.join(__dirname, "..", "node_modules", "playwright-core"));
+const { chromium } = require("playwright-core");
+const { launchOptions } = require("../scripts/browser.js");
 
-const CHROME = process.env.CHROME_PATH || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const URL = process.env.APP_URL || "http://localhost:5173/";
 
 const results = [];
@@ -26,7 +26,7 @@ const ROSTER = [
 ];
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: CHROME, args: ["--no-sandbox"] });
+  const browser = await chromium.launch(launchOptions());
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const errors = [];
@@ -749,6 +749,76 @@ const ROSTER = [
     const txt = document.querySelector(".main").textContent;
     return /Save a copy/.test(txt) && /Load a copy/.test(txt) && /no automatic backup/.test(txt);
   }));
+
+  // Exercise the actual file picker: setting the textarea in evaluate() hid a
+  // repaint that discarded every selected file before Merge could read it.
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "season.json", mimeType: "application/json", buffer: Buffer.from(copy),
+  });
+  await page.waitForFunction(() => /Read season.json/.test(S.copyStatus || ""));
+  check("a file remains loaded after its status message redraws", await ev(t =>
+    document.getElementById("copyIn").value === t, copy));
+  await page.getByRole("button", { name:"Merge it in", exact:true }).click();
+  check("the chosen file can be merged with the visible button", await ev(() =>
+    /Merged in/.test(S.copyStatus) && document.getElementById("copyIn").value === ""));
+  check("an invalid pasted copy stays available to correct", await ev(() => {
+    document.getElementById("copyIn").value = "{broken";
+    window.loadCopy("merge");
+    return /not readable/.test(S.copyStatus) && document.getElementById("copyIn").value === "{broken";
+  }));
+  check("malformed record collections never replace the season", await ev(() => {
+    const before = JSON.stringify(S.roster);
+    for(const data of [{roster:null}, {classes:[{}]}, {groups:[{id:"g",name:"Ops",members:{}}]},
+      {pathEdits:{"lso|snake|1":[["bad", 2]]}}, {scout:{Team:{players:{}}}}]){
+      document.getElementById("copyIn").value = JSON.stringify({format:COPY_FORMAT, v:1, data});
+      window.loadCopy("replace");
+      if(!/invalid data/.test(S.copyStatus) || JSON.stringify(S.roster) !== before) return false;
+    }
+    return true;
+  }));
+  check("copies cannot change session privileges or object prototypes", await ev(() => {
+    const parsed = readCopy('{"format":"gridlock.coach.copy","v":1,"data":{"role":"staff","entered":true,"roster":[]}}');
+    const bad = readCopy('{"format":"gridlock.coach.copy","v":1,"data":{"__proto__":{"polluted":true}}}');
+    return !parsed.error && parsed.payload.data.role === undefined
+      && parsed.payload.data.entered === undefined && !!bad.error && !({}).polluted;
+  }));
+  check("a season and squad copy both keep custom division teams", await ev(() => {
+    S.teams = {pro:[{name:"Local Crew"}]};
+    return ["all", "squad"].every(scope => JSON.parse(copyPayload(scope)).data.teams.pro[0].name === "Local Crew");
+  }));
+  check("merge preserves identical-looking outs in different matches", await ev(() => {
+    const row = {pt:1, side:"us", name:"Rex", at:123};
+    const merged = mergeInto({tally:[{...row,m:"one"}]}, {tally:[{...row,m:"two"}, {...row,m:"two"}]});
+    return merged.tally.length === 2 && merged.tally.some(r => r.m === "two");
+  }));
+  check("merging two scouts keeps both players, calls and bunker aliases", await ev(() => {
+    const a = {scout:{Crew:{notes:"old",players:[{num:"1",name:"A"}],breaks:[{pt:1,script:"snake",at:1}]}},
+      bunkerCalls:{lso:{one:"Home"}}, teams:{pro:[{name:"Crew"}]}};
+    const b = {scout:{Crew:{notes:"new",players:[{num:"2",name:"B"}],breaks:[{pt:2,script:"blitz",at:2}]}},
+      bunkerCalls:{lso:{two:"House"}}, teams:{pro:[{name:"Local"}]}};
+    const m = mergeInto(a,b);
+    return m.scout.Crew.players.length === 2 && m.scout.Crew.breaks.length === 2
+      && m.scout.Crew.notes === "new" && m.bunkerCalls.lso.one === "Home"
+      && m.bunkerCalls.lso.two === "House" && m.teams.pro.length === 2;
+  }));
+  check("a legacy copy gets an openable sheet without duplicating on reread", await ev(() => {
+    const text = JSON.stringify({format:COPY_FORMAT,v:1,at:"2026-01-01T00:00:00Z",data:{
+      tally:[{pt:1,side:"us",name:"Rex",at:1}],lineups:{1:["Rex"]}}});
+    const a = readCopy(text).payload.data, b = readCopy(text).payload.data;
+    return a.matchId === b.matchId && a.matches[0].id === a.matchId
+      && a.tally[0].m === a.matchId && a.lineups[a.matchId + "|1"][0] === "Rex";
+  }));
+  await ev(() => window.set({tab:"scout",scoutTab:"board",division:"pro"}));
+  const quotedTeam = `O'Brien "Crew" &quot; \\ North`;
+  await page.locator("#newTeam").fill(quotedTeam);
+  await page.getByRole("button", {name:"Add team",exact:true}).click();
+  await page.locator("#boardRows tr").filter({hasText:quotedTeam}).click();
+  check("the board loads team names containing quotes and HTML entities", await ev(name =>
+    S.right.name === name, quotedTeam));
+  await ev(() => window.set({scoutTab:"board"}));
+  await page.locator(".assign").filter({hasText:quotedTeam}).getByRole("button", {name:"Remove",exact:true}).click();
+  check("that team can also be removed through its visible control", await ev(name =>
+    !(S.teams.pro || []).some(t => t.name === name), quotedTeam));
 
   /* --------------------------------------- the matchup panel, actually counted */
   G("Matchup");
@@ -2850,7 +2920,7 @@ const ROSTER = [
   }));
   check("Nexus says there is no feed rather than leaving a dead box", await ev(() => {
     window.set({ tab: "more", more: "nexus" });
-    return /no event feed/i.test(document.getElementById("root").textContent);
+    return /no live\s+event feed/i.test(document.getElementById("root").textContent);
   }));
 
   // --- where the point was decided ---
@@ -2910,13 +2980,18 @@ const ROSTER = [
   G("Durable storage");
   {
     const kept = {};                       // stands in for UserDefaults
+    let failKeeps = false;
     const ctxN = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const pg = await ctxN.newPage();
     pg.on("pageerror", e => errors.push("native pageerror: " + e.message));
     await pg.exposeFunction("__prefsGet", k => (k in kept ? kept[k] : null));
-    await pg.exposeFunction("__prefsSet", (k, v) => { kept[k] = v; return null; });
+    await pg.exposeFunction("__prefsSet", (k, v) => {
+      if(failKeeps) throw new Error("Device storage unavailable");
+      kept[k] = v; return null;
+    });
     await pg.addInitScript(() => {
       const done = () => Promise.resolve();
+      window.__appListeners = {};
       window.Capacitor = {
         isNativePlatform: () => true,
         getPlatform: () => "ios",
@@ -2925,7 +3000,7 @@ const ROSTER = [
             get: ({key}) => window.__prefsGet(key).then(value => ({value})),
             set: ({key, value}) => window.__prefsSet(key, value),
           },
-          App: { addListener: () => done(), exitApp: () => done() },
+          App: { addListener: (name, listener) => { window.__appListeners[name] = listener; return done(); }, exitApp: () => done() },
           StatusBar: { setStyle: done, setBackgroundColor: done },
           Share: { share: done },
         },
@@ -2949,6 +3024,18 @@ const ROSTER = [
     })());
     check("the copy carries when it was written", await (async () =>
       !!JSON.parse(kept["gridlock.coach.v2"]).savedAt)());
+    failKeeps = true;
+    await evN(() => window.set({point:10}));
+    await pg.waitForFunction(() => !!window.gridlockDurableError);
+    check("a failed second-copy write is visible and preserves its last good copy", await evN(() =>
+      /could not update its second copy/.test(document.getElementById("root").textContent))
+      && JSON.parse(kept["gridlock.coach.v2"]).point === 9);
+    failKeeps = false;
+    await evN(() => { window.set({point:11}); window.__appListeners.appStateChange({isActive:false}); });
+    await pg.waitForFunction(() => !window.gridlockDurableError);
+    check("retry keeps the newest queued save and clears the warning", JSON.parse(kept["gridlock.coach.v2"]).point === 11);
+    await evN(() => { window.set({point:9}); window.__appListeners.appStateChange({isActive:false}); });
+    await pg.waitForTimeout(150);
 
     // The failure this exists for: the OS reclaims space and the web view comes
     // back empty, while app storage still has the season.

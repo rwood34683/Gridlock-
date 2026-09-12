@@ -113,6 +113,13 @@ const PLACEHOLDERS = [
 ];
 const pending = PLACEHOLDERS.filter(([f, needle]) =>
   fs.existsSync(path.join(ROOT, f)) && fs.readFileSync(path.join(ROOT, f), "utf8").includes(needle));
+const contactFile = path.join(ROOT, 'site/contact.json');
+if (fs.existsSync(contactFile)) {
+  const contact = JSON.parse(fs.readFileSync(contactFile, 'utf8'));
+  for (const [key, label] of [['domain', 'owned domain'], ['email', 'monitored support email'], ['appstore', 'App Store ID'], ['play', 'Google Play URL'], ['sha256', 'release signing fingerprint']]) {
+    if (!contact[key]) pending.push(['site/contact.json', '', label]);
+  }
+}
 
 console.log("GRIDLOCK store listing check");
 console.log("============================\n");
@@ -125,4 +132,4 @@ if (pending.length) {
   console.log("\nStill to fill in before you submit (not a failure — see docs/STORE-LISTING.md):");
   for (const [f, , what] of pending) console.log(`  ${what.padEnd(28)} ${f}`);
 }
-process.exit(bad ? 1 : 0);
+process.exit(bad || (process.argv.includes('--release') && pending.length) ? 1 : 0);

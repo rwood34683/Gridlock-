@@ -1,51 +1,22 @@
 #!/usr/bin/env node
-/* Produce the Artifact build of the landing page.
-
-   The Artifact host blocks external images and wraps the file in its own
-   <!doctype>/<head>/<body>, so this strips the document shell and inlines
-   every local asset as a data: URI. site/index.html stays the source. */
-const fs = require("fs");
-const path = require("path");
-
-const SITE = path.join(__dirname, "..", "site");
-const OUT = path.join(__dirname, "..", "site", "build", "artifact.html");
-
-const MIME = { ".png": "image/png", ".svg": "image/svg+xml", ".jpg": "image/jpeg" };
-
-let html = fs.readFileSync(path.join(SITE, "index.html"), "utf8");
-
-// Keep <title>, <style> and the Google Fonts link; drop the rest of the shell.
-const head = html.slice(html.indexOf("<head>"), html.indexOf("</head>"));
-const title = /<title>[\s\S]*?<\/title>/.exec(head)[0];
-const fonts = /<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/.exec(head)[0];
-const style = /<style>[\s\S]*?<\/style>/.exec(head)[0];
-const body = html.slice(html.indexOf("<body>") + 6, html.lastIndexOf("</body>"));
-
-let page = `${title}\n${fonts}\n${style}\n${body}`;
-
-// Inline every local asset the page references.
-let inlined = 0;
-page = page.replace(/(src|href)="((?!https?:|data:|#)[^"]+\.(?:png|svg|jpg))"/g, (m, attr, rel) => {
-  const file = path.join(SITE, rel);
-  if (!fs.existsSync(file)) {
-    console.warn("  missing:", rel);
-    return m;
-  }
-  const mime = MIME[path.extname(file).toLowerCase()];
-  inlined++;
-  return `${attr}="data:${mime};base64,${fs.readFileSync(file).toString("base64")}"`;
-});
-
-// Sibling pages (privacy, support) are real files on the static host but do not
-// exist inside a single-file artifact, so neutralise those links rather than
-// shipping a preview with dead ones.
-let neutralised = 0;
-page = page.replace(/<a href="((?!https?:|data:|#)[^"]+\.html)">([\s\S]*?)<\/a>/g, (m, rel, text) => {
-  neutralised++;
-  return `<span title="${rel} — on the deployed site" style="color:var(--dim)">${text}</span>`;
-});
-
-fs.mkdirSync(path.dirname(OUT), { recursive: true });
-fs.writeFileSync(OUT, page);
-console.log(`  neutralised ${neutralised} link(s) to sibling pages`);
-console.log(`inlined ${inlined} assets → ${OUT} (${(Buffer.byteLength(page) / 1048576).toFixed(2)} MB)`);
+// Bundle landing, support, privacy and the app into a single working file.
+const fs = require('fs');
+const path = require('path');
+const SITE = path.resolve(__dirname, '../site');
+const mime = {'.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg'};
+function inline(rel) {
+  let html = fs.readFileSync(path.join(SITE, rel), 'utf8');
+  html = html.replace(/<link rel="stylesheet" href="([^"]+)"[^>]*>/g, (_, css) => `<style>${fs.readFileSync(path.join(SITE, css), 'utf8')}</style>`);
+  html = html.replace(/\b(src|href)="([^"\s]+\.(?:png|svg|jpg))"/g, (tag, attr, file) => {
+    if (/^(?:data:|https?:)/i.test(file)) return tag;
+    return `${attr}="data:${mime[path.extname(file)]};base64,${fs.readFileSync(path.join(SITE, file)).toString('base64')}"`;
+  });
+  return html;
+}
+const pages = Object.fromEntries(['index.html','support.html','privacy.html','app.html'].map(name => [name, inline(name)]));
+const payload = JSON.stringify(pages).replace(/</g, '\\u003c');
+const output = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GRIDLOCK Coach</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#0b0c0d}iframe{display:block}</style></head><body><iframe id="view" title="GRIDLOCK Coach"></iframe><script>const pages=${payload};const view=document.getElementById('view');function show(name,anchor){if(!pages[name])return;view.srcdoc=pages[name];view.onload=()=>{const doc=view.contentDocument;doc.addEventListener('click',event=>{const link=event.target.closest('a');if(!link)return;const href=link.getAttribute('href')||'';const parts=href.split('#');if(pages[parts[0]]){event.preventDefault();show(parts[0],parts[1]);}});if(anchor)doc.getElementById(anchor)?.scrollIntoView();};}show('index.html');<\/script></body></html>`;
+const out = path.join(SITE, 'build/artifact.html');
+fs.mkdirSync(path.dirname(out), {recursive:true});
+fs.writeFileSync(out, output);
+console.log(`site/build/artifact.html: ${(Buffer.byteLength(output)/1048576).toFixed(2)} MB; four embedded pages`);
