@@ -103,6 +103,37 @@ const { launchOptions } = require("../scripts/browser");
     }), "export retries successfully and respects squad scope");
     await native.close();
     check(!errors.length, "no uncaught page errors or unexpected dialogs: " + errors.join("; "));
+
+    /* The Mac preflight, checked from a machine that has no Mac.
+     *
+     * It reports every problem at once because it used to report the first and
+     * stop: a Mac with last year's tools failed Node, then CocoaPods, then the
+     * Xcode version, each an hour and a separate install apart. The logic is a
+     * pure function over probe readings precisely so it can be tested here. */
+    const { evaluate, describe } = require("../scripts/xcode");
+    const ok = { node: "22.22.2", selected: "/Applications/Xcode.app/Contents/Developer",
+                 xcode: "Xcode 26.0", sdk: "26.0", pods: "1.16.2", npm: "10.8.2" };
+    check(evaluate(ok).length === 0, "a Mac with everything installed reports no problems");
+
+    const stale = evaluate({ ...ok, node: "20.18.1", pods: null });
+    check(stale.length === 2, "an old Node and a missing CocoaPods are reported together, not one at a time");
+    check(stale.every(p => p.what && p.have && p.fix), "every problem names what, what you have, and the command that fixes it");
+
+    const bare = evaluate({ node: "18.0.0", selected: null, xcode: null, sdk: null, pods: null, npm: null });
+    check(bare.length >= 5, "a Mac with nothing installed reports all of it at once, and never throws");
+    check(!/undefined|null|NaN/.test(describe(bare)), "the report never shows undefined, null or NaN to a coach");
+
+    const tools = evaluate({ ...ok, selected: "/Library/Developer/CommandLineTools" });
+    check(tools.length === 1 && /full Xcode/.test(tools[0].what),
+      "command line tools selected instead of Xcode is caught, and named in plain words");
+
+    const oldXcode = evaluate({ ...ok, xcode: "Xcode 15.4" });
+    check(oldXcode.length === 1 && /26/.test(oldXcode[0].what), "an Xcode older than 26 is caught");
+
+    check(/blind/.test(describe(stale)) && /brew\.sh/.test(describe(stale)),
+      "when a fix needs Homebrew, the report explains its invisible password prompt");
+    check(!/brew\.sh/.test(describe(oldXcode)),
+      "and stays quiet about Homebrew when no fix needs it");
     console.log(`Platform contract: ${count}/${count} checks passed (plugin stubs, not an iOS binary).`);
   } finally {
     await browser.close();

@@ -12,8 +12,29 @@ Install these tools first:
 
 These requirements follow the [Capacitor 8 migration guide](https://capacitorjs.com/docs/updating/8-0).
 
-Check all three before you start, because the launcher stops on the first one
-that is wrong and each is a separate install:
+Once the project is on the Mac, one command tells you everything that is
+missing, all of it at once, with the command that fixes each:
+
+```sh
+npm run ios:preflight
+```
+
+It changes nothing and downloads nothing — it only looks. A Mac carrying last
+year's tools gets back something like:
+
+```
+GRIDLOCK cannot open Xcode yet. 2 things need fixing:
+
+  1. Node 22 or newer
+     now: you have 20.18.1
+     fix: brew install node
+
+  2. CocoaPods
+     now: not installed
+     fix: brew install cocoapods
+```
+
+Before the project is copied across, these are the same three readings by hand:
 
 ```sh
 node -v          # must be 22 or newer
