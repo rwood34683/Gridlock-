@@ -1983,6 +1983,8 @@ const defaultState = () => ({
   moves:[],
   assessments:[],
   sightFrom:null, sightTo:null, sightPick:"from",
+  sightAim:null,                  // feet; where he would actually put the paint, dragged off the bunker
+  theirPick:[],                   // up to five bunkers tapped for the opponent's break, before it is logged
   walkNotes:"",                   // legacy free-text; migrated into walk[] on load
   walk:{},                        // per layout: [{where, note, at}]
   codeWords:"",                   // legacy free-text; migrated into codes[] on load
@@ -3033,13 +3035,48 @@ window.resetAllPaths = () => {
     // he is looking at. Setting the first advances to the second on its own, so
     // nobody has to think about a mode — and the chips above go back.
     if(S.sightPick === "to" && S.sightFrom){
-      set({sightTo: (b.id === S.sightTo || b.id === S.sightFrom) ? null : b.id});
+      set({sightTo: (b.id === S.sightTo || b.id === S.sightFrom) ? null : b.id, sightAim:null});
     } else {
-      set({sightFrom:b.id, sightTo:null, sightPick:"to"});
+      set({sightFrom:b.id, sightTo:null, sightAim:null, sightPick:"to"});
     }
   });
 })();
 
+// Drag the far end of the lane you are asking about. The field is redrawn
+// under the finger and the verdict follows on release.
+(function sightAiming(){
+  let drag = null;
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "sightlines") return;
+    const h = ev.target.closest("[data-aim-sight]"); if(!h) return;
+    const svg = h.closest("svg.field"); if(!svg) return;
+    ev.preventDefault(); ev.stopPropagation();
+    drag = {svg, x0:ev.clientX, y0:ev.clientY, moved:false};
+  });
+  document.addEventListener("pointermove", ev => {
+    if(!drag) return;
+    // A finger that has not gone anywhere is a tap, not a drag. Four pixels is
+    // under anything a hand does on purpose and over what it does by accident.
+    if(!drag.moved && Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 4) return;
+    drag.moved = true;
+    S.sightAim = fieldFeet(drag.svg, ev);
+    const wrap = document.getElementById("sight-map");
+    if(wrap){
+      const list = curLayout().bunkers;
+      const from = S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
+      wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true});
+      drag.svg = wrap.querySelector("svg.field");
+    }
+  });
+  document.addEventListener("pointerup", () => {
+    if(!drag) return;
+    const tapped = !drag.moved; drag = null;
+    // The handle sits on the bunker being asked about, so a tap on it is the
+    // tap that always meant "drop the question". Keep that gesture.
+    if(tapped){ set({sightTo:null, sightAim:null}); return; }
+    save(S); render();
+  });
+})();
 // One delegated listener on the app, so it survives every repaint.
 (function pathEditing(){
   let drag = null;
@@ -3519,6 +3556,23 @@ function segHitsBox(x1,y1,x2,y2,cx,cy,hw,hh){
   return t0<t1;
 }
 
+/* Where the paint actually goes.
+ *
+ * "As playing, we don't shoot directly at the bunker." A lane drawn
+ * centre-to-centre answers a question nobody asks; the shot is at the edge a
+ * head comes round, a foot to one side. So the far end can be dragged
+ * anywhere on the field, and the lane is judged to that point: solid when
+ * nothing is in the way, dashed when something is — including the bunker you
+ * are aiming beside, if the line clips it. Geometry only, in feet.
+ */
+function aimLane(fromId, aim){
+  const list = curLayout().bunkers, src = list.find(b=>b.id===fromId);
+  if(!src || !aim) return null;
+  const by = list.filter(o => o!==src && bunkerBoxes(o).some(k =>
+      segHitsBox(src.x,src.y,aim[0],aim[1],k.x,k.y,k.w/2,k.h/2)))
+    .sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
+  return {src, aim, blocked:by.length>0, by, ft:Math.round(Math.hypot(aim[0]-src.x, aim[1]-src.y))};
+}
 function sightLines(fromId, sx, sy){
   const list = curLayout().bunkers;
   const src  = list.find(b=>b.id===fromId) || list[0];
@@ -3658,8 +3712,9 @@ function fieldSVG(opts={}, runnersOnly){
     if(S1.src){
       const fx=(S1.src.x*sx).toFixed(1), fy=(S1.src.y*sy).toFixed(1);
       const lit = opts.sightTo;              // the one lane being asked about
+      const aimed = lit && opts.sightAim ? aimLane(opts.sightFrom, opts.sightAim) : null;
       sight = S1.lines.map(l=>{
-        const on = lit && l.to.id === lit;
+        const on = lit && l.to.id === lit && !aimed;
         const dim = lit && !on;
         return `<line x1="${fx}" y1="${fy}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" `
           + `stroke="${l.blocked?"#e5342f":"#3ecf8e"}" stroke-width="${on?3:l.blocked?1:1.6}" `
@@ -3671,8 +3726,22 @@ function fieldSVG(opts={}, runnersOnly){
         ).join("") : "")
       + (lit ? (()=>{ const t=S1.lines.find(l=>l.to.id===lit);
           return t ? `<circle cx="${t.x.toFixed(1)}" cy="${t.y.toFixed(1)}" r="6" fill="none" stroke="#fff" stroke-width="1.6"/>` : ""; })() : "")
-      + `<circle cx="${fx}" cy="${fy}" r="7" fill="none" stroke="#fff" stroke-width="1.8"/>`;
+      + `<circle cx="${fx}" cy="${fy}" r="7" fill="none" stroke="#fff" stroke-width="1.8"/>`
+      // The dragged lane replaces the centre-to-centre one: solid if clear,
+      // dashed if something is in the way, and that something is ringed.
+      + (aimed ? `<line class="aim-lane" x1="${fx}" y1="${fy}" x2="${(aimed.aim[0]*sx).toFixed(1)}" y2="${(aimed.aim[1]*sy).toFixed(1)}" `
+          + `stroke="${aimed.blocked?"#e5342f":"#3ecf8e"}" stroke-width="3" ${aimed.blocked?'stroke-dasharray="6 4"':''} stroke-linecap="round"/>`
+          + aimed.by.map(o=>`<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e5342f" stroke-width="1.6"/>`).join("") : "");
     }
+  }
+  // The handle sits above the tap surface, or it could never be grabbed.
+  let aimHandle = "";
+  if(opts.sightFrom && opts.sightTo){
+    const t = layout.bunkers.find(b=>b.id===opts.sightTo);
+    const p = opts.sightAim ? [opts.sightAim[0]*sx, opts.sightAim[1]*sy] : t ? [t.x*sx, t.y*sy] : null;
+    if(p) aimHandle = `<g data-aim-sight="1" style="cursor:grab;touch-action:none">`
+      + `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="14" fill="transparent"/>`
+      + `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="6" fill="#fff" stroke="#101111" stroke-width="2"/></g>`;
   }
 
   const bunks = layout.bunkers.map(b=>`<g class="bnk" data-b="${b.id}">${bunkerShape(b,sx,sy)}</g>`).join("");
@@ -3794,6 +3863,9 @@ function fieldSVG(opts={}, runnersOnly){
           + `font-size="7" fill="#fff" font-weight="800">${esc(tag)}</text></g>`;
       }).join("");
     }).join("");
+    // The five logged for this point on Breakouts, nameless, numbered as tapped.
+    const five = theirFiveLogged("right");
+    if(five) their += fiveSquares(five.plants, sx, sy, "#3d8bff");
   }
 
   if(runnersOnly) return paths;
@@ -3843,6 +3915,7 @@ function fieldSVG(opts={}, runnersOnly){
     ${their}
     ${opts.overlay || ""}
     ${pick}
+    ${aimHandle}
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
@@ -3919,14 +3992,71 @@ window.setPitNotes = (side, notes) => editProfile(side, {notes: clean(notes)}); 
 // Nothing recorded the opponent's call. Their tendency was a single word you
 // picked off film; this is the count behind it.
 function theirBreaks(side){ return pitOf(side).breaks || []; }
+// The record counts named calls. A five logged with no name is where they
+// went, not what they ran, and it is counted by bunker below instead.
 function breakFreq(side){
-  const seen = theirBreaks(side).reduce((m,b) => ({...m, [b.script]:(m[b.script]||0)+1}), {});
+  const seen = theirBreaks(side).filter(b => b.script).reduce((m,b) => ({...m, [b.script]:(m[b.script]||0)+1}), {});
   return Object.entries(seen).sort((a,b) => b[1]-a[1]);
 }
-window.logTheirBreak = (side, script) => {
-  editProfile(side, {breaks: [{script, pt:S.point||1, at:Date.now()}, ...theirBreaks(side)]});
-  render();
+/* Where their five went, without knowing who they were.
+ *
+ * "Log a breakout without naming the exact players for now." Arrival is one
+ * named man at a time, and off the buzzer nobody has names — five bodies went
+ * five places. So a break can carry `plants`: the bunkers tapped on the field,
+ * up to five, in any order, stamped with the match and the field so point 3
+ * against this team in March is not point 3 today. A named call logged while
+ * five are picked takes them with it; the five can also be logged on their
+ * own, and Arrival can put names to them later.
+ */
+window.logTheirBreak = (side, script, plants) => {
+  const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
+  const entry = {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()};
+  if(picked.length) entry.plants = picked;
+  editProfile(side, {breaks: [entry, ...theirBreaks(side)]});
+  if(picked.length) S.theirPick = [];
+  save(S); render();
 };
+window.logTheirFive = side => { if((S.theirPick || []).length) logTheirBreak(side, "", S.theirPick); };
+// The logged five for the point being looked at, if any.
+function theirFiveLogged(side = "right"){
+  const pt = S.point || 1;
+  return theirBreaks(side).find(b => Array.isArray(b.plants) && b.plants.length
+    && b.m === S.matchId && b.pt === pt && (!b.layout || b.layout === S.layoutKey)) || null;
+}
+// Every bunker their five have been logged on, on this field, most often first.
+function plantCounts(side = "right"){
+  const c = new Map();
+  theirBreaks(side).filter(b => Array.isArray(b.plants) && (!b.layout || b.layout === S.layoutKey))
+    .forEach(b => b.plants.forEach(id => c.set(id, (c.get(id) || 0) + 1)));
+  return [...c].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
+}
+// Five numbered squares — square because a runner on the break is a circle.
+function fiveSquares(ids, sx, sy, colour){
+  const bl = curLayout().bunkers;
+  return (ids || []).map((id, i) => {
+    const b = bl.find(x => x.id === id); if(!b) return "";
+    const x = b.x*sx, y = b.y*sy, r = 6.2;
+    return `<g class="their-five" opacity=".95">`
+      + `<rect x="${(x-r-0.6).toFixed(1)}" y="${(y-r-0.6).toFixed(1)}" width="${(r*2+1.2).toFixed(1)}" height="${(r*2+1.2).toFixed(1)}" rx="2.4" fill="#000" opacity=".55"/>`
+      + `<rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" height="${(r*2).toFixed(1)}" rx="2" fill="${colour}" stroke="#efedeb" stroke-width="1.3"/>`
+      + `<text x="${x.toFixed(1)}" y="${(y+2.6).toFixed(1)}" text-anchor="middle" font-size="7" fill="#fff" font-weight="800">${i+1}</text></g>`;
+  }).join("");
+}
+// Tap the field on Breakouts: a bunker goes into the five, tapping it again
+// takes it out. Nothing is logged until the button says so.
+(function theirPicking(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "scout" || S.scoutTab !== "breakouts") return;
+    const surface = ev.target.closest("#their-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    const b = bunkerAt(fieldFeet(svg, ev)); if(!b) return;
+    const cur = S.theirPick || [];
+    if(cur.includes(b.id)) set({theirPick: cur.filter(x => x !== b.id)});
+    else if(cur.length < 5) set({theirPick: [...cur, b.id]});
+  });
+})();
 window.unlogTheirBreak = (side, i) => {
   editProfile(side, {breaks: theirBreaks(side).filter((_,k) => k !== i)});
   render();
@@ -4871,10 +5001,28 @@ const SCOUT_TABS=[["matchup","Matchup"],["breakouts","Breakouts"],["anticipate",
 
 function plantsLogged(){
   return ["left","right"].some(side =>
-    (pitOf(side).players || []).some(m => plantOf(m)));
+    (pitOf(side).players || []).some(m => plantOf(m))) || !!theirFiveLogged("right");
 }
 function outsLogged(){
   return (S.tally||[]).some(o => typeof o==="object" && o.layout===S.layoutKey && o.shotAt);
+}
+/* The match, where the teams get picked.
+ *
+ * Two coaches stood on Scout with both pits filled and could not start a
+ * match or clear the point — those buttons lived a tab away on Tally, and
+ * "I can't even start a new match right here" was the whole of the first
+ * field test. The sheet and the point are shown where the teams are chosen,
+ * with the same handlers Tally uses, so there is one match and one point
+ * whichever tab you are on.
+ */
+function matchStrip(){
+  const pt = S.point || 1, m = curMatch();
+  return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
+    <span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b> · point ${pt}</span>
+    ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+    <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
+    <button class="btn" onclick="newMatch()">New match</button>
+  </div>`;
 }
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
@@ -4896,6 +5044,7 @@ function scout(){
   ${navigation}
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
+  ${matchStrip()}
 
   ${sec("The break, both pits", `<div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
@@ -5660,14 +5809,34 @@ function scoutAnticipate(){
 /* ---- Breakouts: what this team has actually run, counted ---------------- */
 function scoutBreakouts(){
   const R=pitOf("right"), seen=theirBreaks("right"), freq=breakFreq("right");
-  const total=seen.length;
-  return sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
-      film; this is the count behind it.</p>
+  const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=S.point||1;
+  const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
+  const plants=plantCounts("right");
+  return sec("Where did they go?", `<p class="lede">Tap the field where each of their five ended up, in any order.
+      No names needed — those can come later on How did they get there?</p>
+    <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,"#3d8bff")})}</div>
+    <div class="btnrow">
+      <button class="btn" onclick="logTheirFive('right')"${picked.length?'':' disabled'}>Log their five · point ${pt}</button>
+      <button class="btn btn--quiet" onclick="set({theirPick:(S.theirPick||[]).slice(0,-1)})"${picked.length?'':' disabled'}>Undo last</button>
+      <button class="btn btn--quiet" onclick="set({theirPick:[]})"${picked.length?'':' disabled'}>Clear</button>
+    </div>
+    <p class="note" role="status">${picked.length
+      ? `${picked.length} of 5 placed: ${picked.map(id=>esc(label(id))).join(", ")}. Log the five on their own, or tap a named call below to log it with them.`
+      : `Nothing placed yet. Tap a bunker; tap it again to take it out.`}</p>`,
+    esc(R.name))
+  + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
+      film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
       ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(v.name)}</button>`).join("")}
     </div>
-    <p class="note">Logged against point ${S.point||1}, on ${esc(curLayout().name)}.</p>`,
+    <p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`,
     esc(R.name))
+  + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([id,n])=>`<div class="assign">
+        <span class="assign__n" style="background:var(--blue)">${n}</span>
+        <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${n} of ${seen.filter(b=>b.plants).length} logged fives</span></span>
+      </div>`).join("")}</div>
+      <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
+      `${seen.filter(b=>b.plants).length} logged`) : "")
   + sec("Their record", total
       ? `<div class="assigns">${freq.map(([k,n])=>{
           const pct=Math.round(n/total*100);
@@ -5680,10 +5849,10 @@ function scoutBreakouts(){
         <p class="note">Counted from what you logged. Nothing here is a prediction.</p>`
       : `<div class="empty">Nothing logged on ${esc(R.name)} yet. Tap their call above the moment you read it.</div>`,
       total?total+" seen":"")
-  + (total?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
+  + (seen.length?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
         <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt}</span>
-        <span class="assign__body"><span class="assign__job">${esc((BREAKS[b.script]||{}).name||b.script)}</span>
-        <span class="assign__who">point ${b.pt}</span></span>
+        <span class="assign__body"><span class="assign__job">${esc(b.script ? ((BREAKS[b.script]||{}).name||b.script) : "Where they went")}</span>
+        <span class="assign__who">point ${b.pt}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
         <button class="btn btn--danger" onclick="unlogTheirBreak('right',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
@@ -5927,14 +6096,15 @@ window.findTeam = q => {
    ============================================================ */
 window.setSightPick = which => set({sightPick:which});
 window.pickSight = (which, id) => which === "from"
-  ? set({sightFrom:id, sightTo:null, sightPick:"to"})
-  : set({sightTo: id === S.sightTo ? null : id, sightPick:"to"});
+  ? set({sightFrom:id, sightTo:null, sightAim:null, sightPick:"to"})
+  : set({sightTo: id === S.sightTo ? null : id, sightAim:null, sightPick:"to"});
 
 function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
   const res=sightLines(from,300/150,240/120);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
+  const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim) : null;
   // Four bunkers on this field are called Tr. A coach's own call wins when he
   // has set one; otherwise the unique code does, because "SD to Tr" names
   // nothing he can stand in.
@@ -5943,19 +6113,27 @@ function sightlines(){
                   const call=bunkerCalls()[o.id];
                   return call || o.id; };
   const picking=S.sightPick==="to" ? "to" : "from";
-  return `${tip("sl","Tap the field where you are standing. Tap again on what you want to see. Green is a clear lane, red is blocked.")}
+  return `${tip("sl","Tap the field where you are standing. Tap again on what you want to see. Then drag the white dot to where you would actually put the paint — solid is clear, dashed is blocked.")}
 
   ${sec("Tap the field", `<div class="seg">
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
-    <div class="field-wrap">${fieldSVG({sightFrom:from,sightTo:S.sightTo,static:true,pick:true})}</div>
-    ${lane
+    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true})}</div>
+    ${aimed
+      ? `<div class="verdict ${aimed.blocked?"verdict--no":"verdict--yes"}">
+           <b>${aimed.blocked?"Blocked":"Clear"}</b>
+           <span>${esc(name(from))} to a spot by ${esc(name(S.sightTo))} · ${aimed.ft} ft${
+             aimed.blocked ? " · " + aimed.by.slice(0,2).map(o=>esc(name(o))).join(" then ") + " in the way" : ""}</span>
+         </div>
+         <div class="btnrow"><button class="btn btn--quiet" onclick="set({sightAim:null})">Back to the bunker</button></div>`
+      : lane
       ? `<div class="verdict ${lane.blocked?"verdict--no":"verdict--yes"}">
            <b>${lane.blocked?"Blocked":"Clear"}</b>
            <span>${esc(name(from))} to ${esc(name(lane.to.id))} · ${lane.ft} ft${
              lane.blocked ? " · " + lane.by.slice(0,2).map(o=>esc(name(o))).join(" then ") + " in the way" : ""}</span>
-         </div>`
+         </div>
+         <p class="note">Drag the white dot off the bunker to where the paint would actually go. Nobody shoots the middle of a bunker.</p>`
       : `<p class="note">Tap a bunker to ask about one lane. Everything red is clipped by something
          between you and it.</p>`}
     <div class="facts">

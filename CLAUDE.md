@@ -186,6 +186,23 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     places him there as a sighting, because that is what a coach means. **Their
     lanes** counts the team's from→to pairs on the field across every match —
     `teamLanes()` — a count of what was logged, never a model.
+22. ~~The first field test.~~ Done — two coaches with the app in hand, transcribed.
+    Three things, in the order they said them. **"I can't even start a new
+    match right here"**: Scout had no match controls, so `matchStrip()` puts the
+    sheet, the point, Next point and New match under the pits — the same
+    handlers Tally uses, one match whichever tab you are on. **"Log a breakout
+    without naming the exact players"**: Breakouts opens with the field; tap
+    where each of their five ended up, up to five, any order, and `logTheirFive`
+    stores them as `plants` on a break record stamped with match, field and
+    point — a named call logged while five are picked takes them with it, the
+    Scout field draws the five for the current point, and *Where they plant*
+    counts bunkers across every logged five. Nameless fives are counted by
+    bunker, never as a named call. **"We don't shoot directly at the bunker"**:
+    on Sightlines the far end of the asked-about lane is a handle you drag
+    anywhere on the field; `aimLane()` judges the lane to that spot in feet,
+    solid when clear, dashed when something is in the way, with the blocker
+    ringed. The handle renders after the tap surface or it could never be
+    grabbed. A new question drops the aim.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -256,6 +273,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Messages or Walk or the roster paste box, start typing, and the run finishes
   and wipes it, because nothing is committed until `onchange`. `set()` stops it
   the same way it ends the drill.
+- Draw anything a finger has to grab below the `data-pick` surface in
+  `fieldSVG`. The tap surface is the top layer on purpose — a bunker is ten
+  pixels across and the field takes the tap — so a handle rendered anywhere
+  before `${pick}` cannot receive a pointer. The `aimHandle` slot after it is
+  where grabbable things go.
 - Trust a passing suite as proof a screen is right. The tablet rail measured as
   a rail and every check was green while each button was a 146 px slab with its
   label under the marker, because the media block sat above the base rule it

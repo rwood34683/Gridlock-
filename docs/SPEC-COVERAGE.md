@@ -298,6 +298,17 @@ every lane in the app. Recording one places him at the bunker he shot from.
 *Their lanes* counts a team's from→to pairs on the field across all matches:
 arithmetic on what was logged, never a prediction.
 
+**The first field test.** Two coaches, app in hand, transcribed. *"I can't
+even start a new match right here"* — Scout had no match controls; it has the
+sheet, the point, Next point and New match under the pits now, the same handlers
+as Tally. *"Log a breakout without naming the exact players"* — Breakouts opens
+with the field: tap where their five ended up, log the five, and the Scout field
+draws them for that point; a named call logged with five picked takes them with
+it; *Where they plant* counts bunkers across every logged five. *"We don't shoot
+directly at the bunker"* — on Sightlines the far end of the lane is a handle you
+drag to where the paint would actually go, judged to that spot: solid clear,
+dashed blocked, the blocker ringed.
+
 ## Found by reading, not by the suite
 
 Before the first sideline test, the app was read line by line and its handlers

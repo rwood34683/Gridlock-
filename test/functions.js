@@ -3200,6 +3200,133 @@ const ROSTER = [
       return survived && S.playing === false;
     }));
 
+  /* ---------------------------------------------------------------------
+     From the field test
+
+     Two coaches with the app in hand, transcribed. Each check here is one
+     thing they said, measured the way it bit them.
+     --------------------------------------------------------------------- */
+  G("From the field test");
+
+  // "I can't even start a new match right here."
+  check("Scout shows the match and lets you start a new one", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"matchup", right:{name:"Aftershock"} });
+    const t = document.getElementById("root").textContent;
+    return /New match/.test(t) && /Next point/.test(t) && /point \d+/.test(t);
+  }));
+  check("Next point on Scout moves the same point Tally is on", await ev(() => {
+    const was = S.point || 1; window.nextPoint(); const now = S.point;
+    window.backPoint(); return now === was + 1 && S.point === was;
+  }));
+
+  // "Log a breakout without naming the exact players for now."
+  check("tapping the Breakouts field picks a bunker for their five", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"breakouts", theirPick:[] });
+    const svg = document.querySelector("#their-map svg.field"); if(!svg) return false;
+    const b = curLayout().bunkers[4];
+    const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    return (S.theirPick || [])[0] === b.id;
+  }));
+  check("tapping it again takes it out", await ev(() => {
+    const svg = document.querySelector("#their-map svg.field");
+    const b = curLayout().bunkers[4];
+    const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    return (S.theirPick || []).length === 0;
+  }));
+  check("no more than five go on the field", await ev(() => {
+    const ids = curLayout().bunkers.slice(0,5).map(b=>b.id);
+    window.set({ theirPick: ids });
+    const svg = document.querySelector("#their-map svg.field");
+    const b = curLayout().bunkers[7];
+    const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    return S.theirPick.length === 5 && !S.theirPick.includes(b.id);
+  }));
+  check("the picked five draw as numbered squares before anything is logged", await ev(() =>
+    (document.querySelector("#their-map").innerHTML.match(/class="their-five"/g) || []).length === 5));
+  check("logging the five stamps match, field and point, with no name", await ev(() => {
+    const before = theirBreaks("right").length;
+    window.logTheirFive("right");
+    const b = theirBreaks("right")[0];
+    return theirBreaks("right").length === before + 1 && b.script === "" && b.m === S.matchId
+      && b.layout === S.layoutKey && b.pt === (S.point||1) && b.plants.length === 5 && S.theirPick.length === 0;
+  }));
+  check("a nameless five does not count as a named call", await ev(() => !breakFreq("right").some(f => f[0] === "")));
+  check("but it shows on the Scout field for this point", await ev(() => {
+    window.set({ scoutTab:"matchup", theirOn:true });
+    const n = (document.querySelector(".field-wrap[data-live]").innerHTML.match(/class="their-five"/g) || []).length;
+    return n === 5 && plantsLogged();
+  }));
+  check("and not on the next point", await ev(() => {
+    window.nextPoint();
+    const n = (document.querySelector(".field-wrap[data-live]").innerHTML.match(/class="their-five"/g) || []).length;
+    window.backPoint(); return n === 0;
+  }));
+  check("a named call logged with five picked takes them with it", await ev(() => {
+    window.set({ scoutTab:"breakouts", theirPick: curLayout().bunkers.slice(5,8).map(b=>b.id) });
+    window.logTheirBreak("right", "snake");
+    const b = theirBreaks("right")[0];
+    return b.script === "snake" && b.plants.length === 3 && S.theirPick.length === 0;
+  }));
+  check("Where they plant counts bunkers across logged fives", await ev(() => {
+    const c = plantCounts("right");
+    return c.length >= 5 && c.every(([id,n]) => typeof id === "string" && n >= 1)
+      && /Where they plant/.test(document.getElementById("root").textContent);
+  }));
+  await ev(() => { window.set({ theirOn:false, theirPick:[] }); });
+
+  // "We don't shoot directly at the bunker."
+  check("a lane can be aimed off the bunker and judged to that spot", await ev(() => {
+    const list = curLayout().bunkers;
+    window.set({ tab:"sightlines", sightFrom:list[0].id, sightTo:list[1].id, sightAim:null });
+    // A spot just past the target, one foot to its side.
+    const t = list[1], aim = [t.x + 3, t.y + 3];
+    window.set({ sightAim: aim });
+    const a = aimLane(list[0].id, aim);
+    const manual = list.filter(o => o !== list[0] && bunkerBoxes(o).some(k => segHitsBox(list[0].x, list[0].y, aim[0], aim[1], k.x, k.y, k.w/2, k.h/2))).length > 0;
+    return a && a.blocked === manual && a.ft === Math.round(Math.hypot(aim[0]-list[0].x, aim[1]-list[0].y));
+  }));
+  check("the drawn lane is dashed when blocked and solid when clear", await ev(() => {
+    const svg = document.querySelector("#sight-map").innerHTML;
+    const m = svg.match(/<line class="aim-lane"[^>]*>/); if(!m) return false;
+    const dashed = /stroke-dasharray/.test(m[0]);
+    return dashed === aimLane(S.sightFrom, S.sightAim).blocked;
+  }));
+  check("the handle sits above the tap surface, so it can be grabbed", await ev(() => {
+    const svg = document.querySelector("#sight-map svg.field");
+    const kids = [...svg.children].map(c => c.getAttribute("data-pick") ? "pick" : c.getAttribute("data-aim-sight") ? "aim" : "");
+    return kids.indexOf("aim") > kids.indexOf("pick") && kids.indexOf("pick") >= 0;
+  }));
+  check("dragging the handle moves the aim and redraws under the finger", await ev(() => {
+    const svg = document.querySelector("#sight-map svg.field");
+    const h = svg.querySelector("[data-aim-sight]");
+    const start = h.getBoundingClientRect();
+    h.dispatchEvent(new PointerEvent("pointerdown", {clientX:start.x+14, clientY:start.y+14, bubbles:true, pointerId:2}));
+    const to = new DOMPoint(70*2, 60*2).matrixTransform(svg.getScreenCTM());
+    document.dispatchEvent(new PointerEvent("pointermove", {clientX:to.x, clientY:to.y, bubbles:true, pointerId:2}));
+    const mid = S.sightAim && Math.abs(S.sightAim[0]-70) < 1 && Math.abs(S.sightAim[1]-60) < 1;
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:2}));
+    return mid && /Back to the bunker/.test(document.getElementById("root").textContent);
+  }));
+  check("a tap on the handle, without moving, still drops the question", await ev(() => {
+    const list = curLayout().bunkers;
+    window.set({ sightFrom:list[0].id, sightTo:list[1].id, sightAim:null });
+    const h = document.querySelector("#sight-map [data-aim-sight]");
+    const r = h.getBoundingClientRect(), x = r.x + r.width/2, y = r.y + r.height/2;
+    h.dispatchEvent(new PointerEvent("pointerdown", {clientX:x, clientY:y, bubbles:true, pointerId:3}));
+    document.dispatchEvent(new PointerEvent("pointerup", {clientX:x, clientY:y, bubbles:true, pointerId:3}));
+    return S.sightTo === null && S.sightAim === null;
+  }));
+  check("asking about a different lane drops the aim", await ev(() => {
+    window.set({ sightFrom:curLayout().bunkers[0].id, sightTo:curLayout().bunkers[1].id, sightAim:[70,60] });
+    const list = curLayout().bunkers;
+    window.pickSight("to", list[2].id);
+    return S.sightAim === null && S.sightTo === list[2].id;
+  }));
+  await ev(() => { window.set({ sightAim:null, sightTo:null }); });
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
