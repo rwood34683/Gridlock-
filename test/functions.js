@@ -3237,6 +3237,27 @@ const ROSTER = [
     return ok && S.matchId === here;
   }));
 
+  // "Make this part less messy": one five at a time on the Scout field.
+  check("the Scout field draws one pit at a time by default", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them", right:{name:"Rejects"} });
+    const nums = [...document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']")];
+    return nums.length === 5 && nums.every(c => c.getAttribute("fill") === "#3d8bff");
+  }));
+  check("Both draws ten, Yours draws your five in red", await ev(() => {
+    window.set({ scoutShow:"both" }); const both = document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']").length;
+    window.set({ scoutShow:"us" }); const us = [...document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']")];
+    return both === 10 && us.length === 5 && us.every(c => c.getAttribute("fill") === "#e5342f");
+  }));
+  check("their side is the call logged most against them, and the legend says so", await ev(() => {
+    window.set({ scoutShow:"them", script:"snake" });
+    const other = Object.keys(BREAKS).find(k => k !== "snake");
+    editProfile("right", {breaks:[]}); window.logTheirBreak("right", other, []); window.logTheirBreak("right", other, []);
+    const t = document.getElementById("root").textContent;
+    const ok = theirScript() === other && t.includes(BREAKS[other].name + ", logged 2 times");
+    editProfile("right", {breaks:[]}); render();
+    return ok && theirScript() === null && /yours mirrored/.test(document.getElementById("root").textContent);
+  }));
+
   // "Log a breakout without naming the exact players for now."
   check("tapping the Breakouts field picks a bunker for their five", await ev(() => {
     window.set({ tab:"scout", scoutTab:"breakouts", theirPick:[] });

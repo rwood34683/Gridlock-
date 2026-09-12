@@ -312,3 +312,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   copy of a season that had one refused as "scout" — a backup that cannot be
   restored. `breakouts` carries `route` the same way; the schema names the
   one non-scalar field and checks its shape.
+- Key a drawing cache on the path number and the current call. Their break on
+  Scout carries the same numbers under the same call, mirrored, so
+  `drawnRun` handed the mirrored curve back for your own path on Playbook
+  and the sampled run cut through two bunkers on Lone Star. The key is the
+  legs themselves now. The Scout field draws one pit at a time for the same
+  reason it draws their call rather than yours turned round: ten lines
+  crossing at the fifty said nothing, and a mirror is not a scout.
