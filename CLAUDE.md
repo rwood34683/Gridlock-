@@ -325,3 +325,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was reading a call nobody made on that screen. `noPaths:true` on every field
   whose subject is something else; Playbook, the Rep drill and Scout's own
   break section keep them. The suite counts runners per screen.
+- Ship a screen with no answer behind it. A coach on a sideline has no signal
+  and nobody to ask. Every screen has an entry in `HELP`, the header carries a
+  `?` that opens the entry for the screen he is standing on, and `HELP_Q`
+  answers the questions in the words he asks them. The suite fails when a tab,
+  Scout sub-tab or More section has no entry, so a new screen cannot ship
+  undocumented. Page hints are dismissible and `showHints()` puts them back.

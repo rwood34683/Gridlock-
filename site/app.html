@@ -381,6 +381,22 @@ svg.field{width:100%;height:auto;display:block}
 }
 .ps button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
+.help-btn{
+  /* 44 px because a thumb needs it, even though the ring reads smaller: the
+     border is drawn on an inner box so the target is bigger than it looks. */
+  flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;
+  color:var(--mute);font-size:var(--t-md);font-weight:800;line-height:1;
+  display:grid;place-items:center;padding:0;
+}
+.help-btn::before{
+  content:"?";width:30px;height:30px;border-radius:50%;border:1px solid var(--line-lit);
+  background:var(--panel);display:grid;place-items:center;
+}
+.help-btn:active::before{background:var(--accent);border-color:var(--accent);color:#fff}
+.howto{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.howto li{font-size:var(--t-sm);color:var(--ink);line-height:1.5}
+.list__desc{white-space:normal}
+
 /* the breakout sheet on Tally — one bunker, one man, everything you saw */
 .tsheet{border:1px solid var(--accent);border-radius:var(--r-md);padding:var(--s3);background:var(--panel);
   display:flex;flex-direction:column;gap:var(--s2)}
@@ -2002,6 +2018,8 @@ const defaultState = () => ({
   pbView:null,                    // null | "cards" | "rep" — Playbook's chips
   rep:{running:false, ask:null, at:0, log:[]},   // the recognition drill
   showTutorial:false,
+  helpFor:"",                     // which screen's help to open on, set by the header "?"
+  helpQ:-1,                       // which question is open
   point:1,
   scoutTab:"matchup",
   arrival:{},                    // route viewer controls; observations live below
@@ -6783,6 +6801,182 @@ window.sendBlast = () => {
 /* ============================================================
    More — a grouped list of places, not eleven identical pills
    ============================================================ */
+/* ============================================================
+   Help — what every screen is for, in a coach's words
+   ============================================================
+
+   A coach on a sideline has no signal and nobody to ask. Every screen in the
+   app has an entry here: one line on what it is for, the steps to use it, and
+   the thing that catches people out. The header carries a "?" that opens the
+   entry for the screen he is standing on, so the answer is one tap from the
+   question rather than a hunt through a manual.
+
+   Keys are "<tab>" or "<tab>/<sub>", matching helpKey(). Nothing here is
+   generated: if a screen changes, this changes with it, and the suite fails
+   when a screen has no entry. */
+const HELP = {
+  playbook: {t:"Playbook", w:"The call, drawn on the real field.",
+    how:["Tap a break to pick it. The five paths redraw on the event layout.",
+         "Play break runs it, so you can watch who leaves first.",
+         "Face and Shot set where each man looks and what he lanes.",
+         "Log it records the call you actually made, which is what self-scout counts."],
+    watch:"Self-scout only knows the calls you logged. If you never tap Log it, it has nothing to tell you."},
+  "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
+    how:["Each card names his bunker, his job and his lane for the call you are on.",
+         "Share sends the five as text."]},
+  "playbook/rep": {t:"Rep", w:"The recognition drill.",
+    how:["The field draws one of the twelve and nothing says which.",
+         "Name it. The clock holds you to two seconds.",
+         "Under two seconds means you are calling it, not reading it."]},
+  tally: {t:"Tally", w:"The break chart and the point sheet.",
+    how:["Tap the bunker a man broke to. The sheet opens under it.",
+         "Say what you saw: made it or shot on the break, battling in or clean, which way he was shooting.",
+         "Log this breakout, then tap the next man's bunker.",
+         "When the point ends tap We won it or They won it. That is the score."],
+    watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice."},
+  scout: {t:"Scout", w:"What you know about the other team.",
+    how:["Put them in the right pit first. Nothing else works until you do.",
+         "The sub-tabs above are the different reads.",
+         "The match strip under the pits is the same match and point Tally is on."]},
+  "scout/matchup": {t:"Matchup", w:"The head-to-head read.",
+    how:["Their tendency and threat are your film read, typed by you.",
+         "The break above draws their most-logged call in blue and yours in red."],
+    watch:"A team nobody has scored reads as a dash. The app never guesses a number."},
+  "scout/breakouts": {t:"Breakouts", w:"Where their five went, without needing names.",
+    how:["Tap the field where each of their five ended up, up to five, any order.",
+         "Log their five. If you know the call, log that with it.",
+         "Where they plant counts bunkers across every five you have logged."]},
+  "scout/anticipate": {t:"Anticipate", w:"How to read a break before it happens.",
+    how:["The tells to watch in the set: a body cheating a wire, a gun already up.",
+         "This is teaching, not a prediction about tonight."]},
+  "scout/arrival": {t:"How did they get there?", w:"One named man, bunker by bunker.",
+    how:["Pick the team and the man, then the bunker he reached.",
+         "Add the places you actually saw him, in order, and the possible routes narrow.",
+         "Record shot logs where he was and where the paint went."],
+    watch:"Green markers are sightings you recorded. Dashed lines are the app joining them up, not something you saw."},
+  "scout/voice": {t:"Voice log", w:"Call the point out loud instead of tapping.",
+    how:["Start listening, then say what happened as it happens.",
+         "Every line lands as a draft you review before it counts.",
+         "Type instead if the microphone is refused or it is too loud."]},
+  "scout/counter": {t:"Counter", w:"They run X, we run Y.",
+    how:["The picker ranks the twelve against their tendency and the score.",
+         "Opp is your own answer written down, which beats any ranking.",
+         "Whatever you save here shows beside their call on Playbook."]},
+  "scout/layers": {t:"Layers", w:"Everything you logged, painted on the field.",
+    how:["Toggle outs, rotations, their five and the rest on and off.",
+         "Each count tells you how much is behind the layer."],
+    watch:"Empty until you have logged against this team on this field. Day one it is bare on purpose."},
+  "scout/games": {t:"Games", w:"Replay a point you logged.",
+    how:["Step through the outs in the order you tapped them.",
+         "Useful between matches, not during one."]},
+  "scout/board": {t:"Division", w:"Who is entered, off the league's own page.",
+    how:["Tap a row to load that team into the right pit.",
+         "Press and hold to put them in the left pit instead.",
+         "Search by name when the list is long."],
+    watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
+  sightlines: {t:"Sightlines", w:"What one bunker can see.",
+    how:["Tap where you are standing. Every lane fans out, green for clear, red for blocked.",
+         "Tap a second bunker to ask about one lane.",
+         "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
+         "Dashed means something is in the way, and the blocker is ringed."]},
+  "more/walk": {t:"Walk", w:"What you learned walking the field.",
+    how:["Add a note against a bunker while you are standing at it.",
+         "Notes are kept per field, so they follow the event."]},
+  "more/movement": {t:"Movement", w:"Bunker to bunker after the break.",
+    how:["Pick the player, where he came from and where he went.",
+         "Log the move. Green arrows on the field are what you logged.",
+         "It feeds Bunker stats and the Layers view."]},
+  "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
+    how:["Counted from the outs and rotations you logged on this field.",
+         "The ring on a bunker gets heavier the more traffic it has seen."],
+    watch:"Nothing shows until you set Shot at or Moved to on an out, or log a rotation."},
+  "more/lineups": {t:"Lineups", w:"Who is on this point.",
+    how:["Set the five for the point you are on.",
+         "Kept per match and per point, so point three of two games is two different fives."]},
+  "more/team": {t:"Team", w:"Your roster, and what you call each bunker.",
+    how:["Add players with their numbers and positions.",
+         "Rename any bunker to your team's word for it. It shows everywhere.",
+         "The squad code lets a player join without an account."]},
+  "more/assess": {t:"Assess", w:"Grade a player after the point.",
+    how:["Pick the player, score him, write the reason.",
+         "After the point, never during it.",
+         "Averages are his season; the list under them is this match."]},
+  "more/codes": {t:"Codes", w:"Your code words for this event.",
+    how:["Write the word and what it means.",
+         "Kept on the phone, shared with the squad by you, not by the app."]},
+  "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
+    how:["Write it once and it is on the phone for the weekend.",
+         "There is no network, so nothing sends anywhere."]},
+  "more/matches": {t:"Matches", w:"Every sheet you have kept.",
+    how:["The one in play is at the top with its score.",
+         "Open an old one and you land on its last point, so you can still tally something you missed.",
+         "New match starts a fresh sheet and puts the point back to one. Nothing is deleted."]},
+  "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
+    how:["Staff login required to create one.",
+         "Joining does not need an account. Scan the code or type it.",
+         "Everything stays on this phone."]},
+  "more/league": {t:"League", w:"Groups and ops blasts.",
+    how:["Staff login required to send a blast.",
+         "Pick the group, write it once, and it goes in the log."]},
+  "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
+    how:["Save a copy is your backup and how you move to another phone.",
+         "Keep the screen awake is on by default and costs nothing in a pocket.",
+         "Every field the app carries is listed with where its map came from."],
+    watch:"Save a copy before every event. It is the only backup there is."},
+};
+/* The questions a coach actually asks, in the words he asks them. */
+const HELP_Q = [
+  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
+  ["I tapped the wrong player out.", "Undo on that row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
+  ["The field looks wrong for this event.", "Change at the top of any screen switches the event, and every tab follows it. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
+  ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
+  ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
+  ["Do I need a signal?", "No. The app makes no network calls at all. Everything is on the phone and stays there."],
+  ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
+  ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
+  ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
+];
+
+/* Which entry belongs to the screen a coach is standing on. */
+function helpKey(){
+  if(S.tab === "scout") return "scout/" + (S.scoutTab || "matchup");
+  if(S.tab === "more") return S.more ? "more/" + S.more : "more";
+  if(S.tab === "playbook" && S.pbView) return "playbook/" + S.pbView;
+  return S.tab;
+}
+window.openHelp = key => set({tab:"more", more:"help", helpFor: key || helpKey()});
+window.showHints = () => { S.tips = {}; S.helpFor = ""; save(S); render(); };
+function helpCard(k){
+  const h = HELP[k]; if(!h) return "";
+  return sec(h.t, `<p class="lede">${esc(h.w)}</p>
+    <ol class="howto">${(h.how || []).map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+    ${h.watch ? `<p class="warn">${esc(h.watch)}</p>` : ""}`,
+    k.includes("/") ? k.split("/")[0] : "");
+}
+function helpPage(){
+  const here = S.helpFor;
+  const order = Object.keys(HELP);
+  return (here && HELP[here]
+      ? `<div class="tip"><span class="grow">Help for the screen you came from.</span>
+         <button onclick="set({helpFor:''})">Show all</button></div>` + helpCard(here)
+      : "")
+    + sec("Questions", `<div class="list">${HELP_Q.map(([q, a], i) => `
+        <button class="list__row" onclick="set({helpQ: S.helpQ===${i} ? -1 : ${i}})">
+          <span class="list__body"><span class="list__name">${esc(q)}</span>
+          ${S.helpQ === i ? `<span class="list__desc">${esc(a)}</span>` : ""}</span>
+          <span class="list__go">${S.helpQ === i ? "▾" : "›"}</span>
+        </button>`).join("")}</div>`, HELP_Q.length + " answered")
+    + (here && HELP[here] ? "" : sec("Every screen", `<div class="list">
+        ${order.map(k => `<button class="list__row" onclick="set({helpFor:'${k}'})">
+          <span class="list__body"><span class="list__name">${esc(HELP[k].t)}</span>
+          <span class="list__desc">${esc(HELP[k].w)}</span></span><span class="list__go">›</span>
+        </button>`).join("")}</div>`, order.length + " screens"))
+    + sec("Hints", `<p class="lede">Every screen shows a one-line hint the first time, until you tap Got it.
+        This puts them all back.</p>
+      <button class="btn btn--quiet btn--block" onclick="showHints()">Show the hints again</button>`);
+}
+
 const MORE_GROUPS=[
   ["The field",[
     ["walk","Walk","Field-walk notes against this layout"],
@@ -6799,6 +6993,7 @@ const MORE_GROUPS=[
     ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
   ["Device",[
+    ["help","Help","What every screen does, and the usual questions"],
     ["nexus","Nexus","Account, tutorial and privacy"]]]
 ];
 const MORE_TITLES=Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
@@ -7107,6 +7302,7 @@ function moreBody(k){
        <button class="btn" onclick="sendMsg()">Send</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
+  if(k==="help") return helpPage();
   if(k==="nexus") return sec("Nexus", `<div class="panel">
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
@@ -7195,11 +7391,15 @@ function shell(){
     <h3 class="panel__title">How it works</h3>
     <div class="kv">
       <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
-      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap a player the moment he goes out.</span></div>
+      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker a man broke to, say what you saw, log it. Then who won the point.</span></div>
       <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — tendency, threat and your counter.</span></div>
-      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics and league ops.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
+      <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
     </div>
-    <button class="btn btn--block" onclick="set({showTutorial:false})">Start coaching</button>
+    <div class="btnrow">
+      <button class="btn grow" onclick="set({showTutorial:false})">Start coaching</button>
+      <button class="btn btn--quiet grow" onclick="set({showTutorial:false,tab:'more',more:'help',helpFor:''})">Read the help</button>
+    </div>
   </div>`:"";
 
   const crumb = S.tab==="more" && S.more ? ` <span class="ctx__sep">·</span> <b>${MORE_TITLES[S.more]||""}</b>` : "";
@@ -7219,6 +7419,7 @@ function shell(){
         <div class="brand">GRIDLOCK<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
         ${line}
+        <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
         <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
       </div>
       ${Object.keys(LAYOUTS).length>1

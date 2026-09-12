@@ -3511,6 +3511,60 @@ const ROSTER = [
   await ev(() => window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them" }));
   check("Scout's break section still draws a five", await runnersOn() === 5);
 
+  /* --------------------------------------------------------------------
+     Help — a coach on a sideline has no signal and nobody to ask
+     -------------------------------------------------------------------- */
+  G("Help");
+  check("every screen in the app has a help entry", await ev(() => {
+    const want = ["playbook","playbook/cards","playbook/rep","tally","sightlines",
+      ...SCOUT_TABS.map(([k]) => "scout/" + k),
+      ...MORE_GROUPS.flatMap(([, rows]) => rows.map(r => "more/" + r[0])).filter(k => k !== "more/help")];
+    const missing = want.filter(k => !HELP[k]);
+    window.__missing = missing.join(", ");
+    return missing.length === 0;
+  }), await ev(() => window.__missing));
+  check("the header ? opens help for the screen you are on", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"counter" });
+    const btn = document.querySelector(".help-btn"); if(!btn) return false;
+    btn.click();
+    return S.tab === "more" && S.more === "help" && S.helpFor === "scout/counter"
+      && /They run X, we run Y/.test(document.getElementById("root").textContent);
+  }));
+  check("help for a screen names what it is for and how to use it", await ev(() => {
+    window.set({ tab:"more", more:"help", helpFor:"tally" });
+    const t = document.getElementById("root").textContent;
+    return /break chart and the point sheet/.test(t) && document.querySelectorAll(".howto li").length >= 3;
+  }));
+  check("Show all lists every screen", await ev(() => {
+    window.set({ helpFor:"" });
+    return document.querySelectorAll(".list__row").length >= Object.keys(HELP).length;
+  }));
+  check("a question opens its answer in place", await ev(() => {
+    window.set({ tab:"more", more:"help", helpFor:"", helpQ:-1 });
+    const before = document.getElementById("root").textContent;
+    window.set({ helpQ: 0 });
+    const after = document.getElementById("root").textContent;
+    return after.length > before.length && /Save a copy/.test(after);
+  }));
+  check("the hints can be put back after they were dismissed", await ev(() => {
+    window.set({ tips:{ tally:1 }, tab:"tally" });
+    const gone = !/Tap the bunker a man broke to/.test(document.querySelector(".tip")?.textContent || "");
+    window.showHints();
+    window.set({ tab:"tally" });
+    return gone && !!document.querySelector(".tip");
+  }));
+  check("Help is in the More menu", await ev(() => {
+    window.set({ tab:"more", more:null });
+    return /What every screen does/.test(document.getElementById("root").textContent);
+  }));
+  check("the tutorial describes the Tally that actually exists", await ev(() => {
+    window.set({ showTutorial:true, tab:"playbook" });
+    const t = document.getElementById("root").textContent;
+    const ok = /Tap the bunker a man broke to/.test(t) && !/Tap a player the moment he goes out\.<\/span>/.test(t);
+    window.set({ showTutorial:false });
+    return ok;
+  }));
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
