@@ -4624,8 +4624,19 @@ function outsLogged(){
  */
 function matchStrip(){
   const pt = S.point || 1, m = curMatch();
+  // Every game you have kept, newest first. Picking one opens it on its last
+  // point — the same as Open on More → Matches — so switching games between
+  // a scouting look and a sheet is one tap, not a trip through More.
+  const games = [...(S.matches || [])].sort((a, b) => b.at - a.at);
+  const pick = games.length > 1
+    ? `<select aria-label="Game" onchange="openMatch(this.value)" style="flex:1 1 160px;font-size:var(--t-sm)">
+        ${games.map(g => { const sc = scoreOf(g.id);
+          return `<option value="${esc(g.id)}" ${g.id === S.matchId ? "selected" : ""}>${esc(matchLabel(g))}${sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : ""}</option>`; }).join("")}
+      </select>`
+    : `<span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
-    <span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b> · point ${pt}</span>
+    ${pick}
+    <span class="note" style="margin:0;white-space:nowrap">point ${pt}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
     <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
     <button class="btn" onclick="newMatch()">New match</button>
@@ -4635,8 +4646,11 @@ function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
   const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>`;
-  if(view === "arrival") return navigation + scoutArrival();
-  if(view === "voice") return navigation + scoutVoice();
+  // The match and the point ride under the views on every one of them. The
+  // strip sat under the pits, which Arrival and Voice do not draw, so a coach
+  // on How did they get there had no Next point and no way to switch games.
+  if(view === "arrival") return navigation + matchStrip() + scoutArrival();
+  if(view === "voice") return navigation + matchStrip() + scoutVoice();
   // Every sub-tab but the board reads off the team in the right pit. With
   // nobody in it there is nothing to say, and saying it about whoever the app
   // picked is how a coach ends up scouting a team he is not playing. Division
@@ -4649,9 +4663,9 @@ function scout(){
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
   ${navigation}
+  ${matchStrip()}
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
-  ${matchStrip()}
 
   ${sec("The break, both pits", `<div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>

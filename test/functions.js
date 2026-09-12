@@ -3218,6 +3218,24 @@ const ROSTER = [
     const was = S.point || 1; window.nextPoint(); const now = S.point;
     window.backPoint(); return now === was + 1 && S.point === was;
   }));
+  // "We need a spot for next point in a game in the scout tab. Also how do we switch games."
+  check("Next point is on every Scout view, Arrival and Voice included", await ev(() => {
+    return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
+      return /Next point/.test(document.getElementById("root").textContent); });
+  }));
+  check("the strip switches games and lands on that game's last point", await ev(() => {
+    const here = S.matchId;
+    const old = {id:"m-old-game", at: Date.now() - 86400000, vs:"Aftershock", layout:S.layoutKey};
+    window.set({ tab:"scout", scoutTab:"breakouts", matches:[...(S.matches||[]), old],
+      results:[...(S.results||[]), {m:old.id, pt:1, won:"us", at:1}, {m:old.id, pt:2, won:"them", at:2}] });
+    const sel = document.querySelector("select[aria-label=Game]");
+    if(!sel || [...sel.options].length < 2) return false;
+    sel.value = old.id; sel.dispatchEvent(new Event("change"));
+    const ok = S.matchId === old.id && S.point === 3 && document.querySelector("select[aria-label=Game]").value === old.id;
+    window.openMatch(here);
+    window.set({ matches:S.matches.filter(m => m.id !== old.id), results:S.results.filter(r => r.m !== old.id) });
+    return ok && S.matchId === here;
+  }));
 
   // "Log a breakout without naming the exact players for now."
   check("tapping the Breakouts field picks a bunker for their five", await ev(() => {
