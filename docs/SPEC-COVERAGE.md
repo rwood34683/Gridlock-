@@ -291,6 +291,13 @@ one on a class card yet, on purpose: a scan opens the app to a session that
 does not exist on the scanner's phone, because sessions live on the device that
 created them. It ships the day a session can be reached from another device.
 
+**How are they shooting.** Arrival logged where an opponent went and nothing
+about what he did there. A shot is now its own observation — from this bunker,
+at that one — with a sighting's exact scope, drawn white over black casing like
+every lane in the app. Recording one places him at the bunker he shot from.
+*Their lanes* counts a team's from→to pairs on the field across all matches:
+arithmetic on what was logged, never a prediction.
+
 ## Found by reading, not by the suite
 
 Before the first sideline test, the app was read line by line and its handlers

@@ -24,6 +24,17 @@ has this shortcut; it opens the tool with that player and their assigned bunker.
    times. **Undo last sighting** removes a mistake. **Clear this point** removes
    only the observations for the selected player, team, field, match and point.
 
+6. **How are they shooting.** With a bunker selected above, choose **Shooting
+   at** — the bunker the paint was going to — and tap **Record shot**. It is
+   drawn as a white line on the field, over a black casing, the way Sightlines
+   draws a lane. Recording a shot from a bunker also places him there as a
+   sighting, because that is what "he's laning from the snake" means. **Undo
+   last shot** removes the shot only; the sighting it placed stays unless you
+   undo that too. **Clear this point** removes both.
+7. **Their lanes** below counts every lane this team has been seen to shoot on
+   this field, across all matches and points, most-seen first. It is a count of
+   what you logged — not a prediction.
+
 Green numbered squares show your recorded sightings. The dashed amber line
 shows a possible connection between them. An unobserved destination has a
 question mark. Every line between observations remains inferred: the tool has

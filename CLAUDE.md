@@ -177,6 +177,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
 20. Bring iOS SwiftUI up to web parity, then Android Compose.
+21. ~~How are they shooting.~~ Done — Scout → How did they get there? records a
+    **shot**: the bunker he was at and the bunker the paint went to. Its own
+    observation in `S.arrivalShots`, scoped exactly like a sighting (team,
+    player, field, match, point), so it merges by id, clears with the point and
+    rides in a full copy but not a squad one. Drawn white over black casing per
+    the lane rule; it never feeds the router. Recording a shot from a bunker
+    places him there as a sighting, because that is what a coach means. **Their
+    lanes** counts the team's from→to pairs on the field across every match —
+    `teamLanes()` — a count of what was logged, never a model.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

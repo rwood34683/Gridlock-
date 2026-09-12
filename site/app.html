@@ -1971,6 +1971,7 @@ const defaultState = () => ({
   scoutTab:"matchup",
   arrival:{},                    // route viewer controls; observations live below
   arrivalSightings:[],            // ordered, scoped observations; never inferred positions
+  arrivalShots:[],                // where they shot from and at, same scope; a lane is an observation too
   voice:{}, voiceEvents:[],       // transcripts; microphone state is never persisted
   division:"pro",       // pro is the point; the semi-pro board is still there
   teams:{},
@@ -2184,7 +2185,7 @@ function matchLabel(m){
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.voiceEvents)
+  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents)
        + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
 }
 /* Who the match is against.
@@ -2237,7 +2238,7 @@ function lastPoint(mid){
   const id = mid || S.matchId;
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
   const pts = [...hit(S.tally), ...hit(S.results), ...hit(S.calls),
-               ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.voiceEvents),
+               ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
                   .map(k => Number(k.split("|")[1]))]
@@ -2687,7 +2688,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
@@ -2705,7 +2706,7 @@ function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
   const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("voiceEvents"), "voice event"]];
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"]];
   return bits.filter(b => b[0])
              .map(b => `${b[0]} ${b[1]}${b[0] === 1 ? "" : b[1].endsWith("scouted") ? "s scouted" : "s"}`
                         .replace("team scouteds scouted", "teams scouted"))
@@ -2716,6 +2717,7 @@ function copySummary(d){
 // incoming side for a key that exists on both.
 const SAME = {
   arrivalSightings: o => o.id,
+  arrivalShots: o => o.id,
   voiceEvents: o => o.id,
   roster:      r => (r.name || "").toLowerCase(),
   tally:       o => [o.m, o.pt, o.side, o.name, o.at].join("|"),
@@ -2850,9 +2852,11 @@ function copyDataError(data){
     tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
     arrival:v => row(v) && record(v, {side:v=>["left","right"].includes(v),startEnd:v=>["left","right"].includes(v),
       team:str,player:str,layout:str,matchId:str,point:v=>v===null || Number.isInteger(v)&&v>0,
-      startBunker:str,destination:str,sightingBunker:str,notice:str,scope:str,route:str,pick:str,details:v=>typeof v==="boolean"}),
+      startBunker:str,destination:str,sightingBunker:str,shotAt:str,notice:str,scope:str,route:str,pick:str,details:v=>typeof v==="boolean"}),
     arrivalSightings:list(v => row(v) && ["id","team","player","layout","m","bunker"].every(k => str(v[k]) && v[k].length > 0)
       && Number.isInteger(v.pt) && v.pt > 0 && Number.isInteger(v.seq) && v.seq > 0 && num(v.at)),
+    arrivalShots:list(v => row(v) && ["id","team","player","layout","m","from","to"].every(k => str(v[k]) && v[k].length > 0)
+      && v.from !== v.to && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
     voice:v => row(v) && record(v,{side:v=>["left","right"].includes(v),team:str,player:str,language:str}),
     voiceEvents:list(v => row(v) && ["id","text","team","layout","m"].every(k=>str(v[k]) && v[k].length>0)
       && record(v,{side:v=>["left","right"].includes(v)})
@@ -4931,7 +4935,7 @@ const arrivalCompare = value => arrivalText(value).toLowerCase();
 function arrivalTeamNames(){
   return [...new Set([arrivalContext().team,...["left","right"].map(s=>pitOf(s)).filter(p=>p.named).map(p=>p.name),
     ...teamsHere().map(t=>t.name),...Object.values(S.teams || {}).flat().map(t=>t.name),
-    ...Object.keys(S.scout || {}),...(S.arrivalSightings || []).map(o=>o.team),...(S.voiceEvents || []).map(o=>o.team)])];
+    ...Object.keys(S.scout || {}),...(S.arrivalSightings || []).map(o=>o.team),...(S.arrivalShots || []).map(o=>o.team),...(S.voiceEvents || []).map(o=>o.team)])];
 }
 window.toggleArrivalCustom = kind => {
   stopArrivalPlayback();
@@ -4998,6 +5002,7 @@ window.saveArrivalPlayer = () => {
     const newKey = arrivalPlayerKey(players[index]);
     if(oldKey !== newKey){
       S.arrivalSightings = (S.arrivalSightings || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey} : o);
+      S.arrivalShots = (S.arrivalShots || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey} : o);
       S.voiceEvents = (S.voiceEvents || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey,playerName:players[index].name || '#'+players[index].num} : o);
     }
   } else {
@@ -5039,6 +5044,31 @@ function arrivalSightings(context = arrivalContext()){
   return (S.arrivalSightings || []).filter(o => o.team === context.team && o.player === context.player
     && o.layout === context.layout && o.m === context.m && o.pt === context.pt)
     .slice().sort((a,b) => a.seq-b.seq || a.at-b.at || a.id.localeCompare(b.id));
+}
+/* Where they shot from, and at what.
+ *
+ * A sighting says where a man was. A shot says what he was doing there, and
+ * for a coach that is the half that matters: a snake runner who lanes the
+ * dorito 2 off the break is a different problem from one who plays his own
+ * side. It is its own observation with the same scope as a sighting — team,
+ * player, field, match, point — so it merges, clears and travels the same way,
+ * and it never touches the router: a lane is not movement.
+ */
+function arrivalShots(context = arrivalContext()){
+  return (S.arrivalShots || []).filter(o => o.team === context.team && o.player === context.player
+    && o.layout === context.layout && o.m === context.m && o.pt === context.pt)
+    .slice().sort((a,b) => a.at-b.at || a.id.localeCompare(b.id));
+}
+// Every lane this team has been seen to shoot on this field, across every match
+// and point — counted, not modelled. Sorted most-seen first.
+function teamLanes(team, layout = S.layoutKey){
+  const count = new Map();
+  (S.arrivalShots || []).filter(o => o.team === team && o.layout === layout).forEach(o => {
+    const k = o.from + "→" + o.to;
+    count.set(k, (count.get(k) || 0) + 1);
+  });
+  return [...count].map(([k,n]) => { const [from,to] = k.split("→"); return {from,to,n}; })
+    .sort((a,b) => b.n - a.n || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
 }
 function arrivalScope(context = arrivalContext()){
   return JSON.stringify([context.team,context.player,context.layout,context.m,context.pt]);
@@ -5166,13 +5196,13 @@ window.setArrival = patch => {
   let previous = S.arrival || {};
   const details = document.querySelector("details.arrival-context");
   if(details) previous = {...previous,details:details.open};
-  if((previous.layout && previous.layout !== S.layoutKey) || (previous.scope && previous.scope !== arrivalScope())) previous = {...previous,startBunker:"",destination:"",sightingBunker:""};
+  if((previous.layout && previous.layout !== S.layoutKey) || (previous.scope && previous.scope !== arrivalScope())) previous = {...previous,startBunker:"",destination:"",sightingBunker:"",shotAt:""};
   S.arrival = {...previous,...patch,layout:S.layoutKey};
   const unlessChosen = (key,value) => { if(!(key in patch)) S.arrival[key] = value; };
   if("side" in patch){ unlessChosen("startEnd",patch.side); unlessChosen("team",""); unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
   if("team" in patch){ unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
   if("player" in patch) unlessChosen("startBunker","");
-  if(["side","team","player","matchId","point"].some(k=>k in patch)) unlessChosen("sightingBunker","");
+  if(["side","team","player","matchId","point"].some(k=>k in patch)){ unlessChosen("sightingBunker",""); unlessChosen("shotAt",""); }
   if("player" in patch || "matchId" in patch || "point" in patch){
     if(!("destination" in patch)) S.arrival.destination = "";
   }
@@ -5205,7 +5235,7 @@ window.pickArrivalBunker = id => {
 window.logArrivalSighting = () => {
   const a = S.arrival || {}, id = a.sightingBunker || a.destination;
   if((a.layout && a.layout !== S.layoutKey) || (a.scope && a.scope !== arrivalScope())){
-    S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(),destination:"",sightingBunker:"",startBunker:"",
+    S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(),destination:"",sightingBunker:"",startBunker:"",shotAt:"",
       notice:"The field or point context changed. Choose a bunker again before recording a sighting."};
     save(S); render(); return;
   }
@@ -5233,12 +5263,55 @@ window.undoArrivalSighting = () => {
   S.arrivalSightings = S.arrivalSightings.filter(o=>o.id!==last.id);
   stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Last sighting removed."}; save(S); render();
 };
+window.logArrivalShot = () => {
+  const a = S.arrival || {}, from = a.sightingBunker || a.destination, to = a.shotAt;
+  if((a.layout && a.layout !== S.layoutKey) || (a.scope && a.scope !== arrivalScope())){
+    S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(),destination:"",sightingBunker:"",startBunker:"",shotAt:"",
+      notice:"The field or point context changed. Choose the bunkers again before recording a shot."};
+    save(S); render(); return;
+  }
+  const has = id => curLayout().bunkers.some(b=>b.id===id);
+  if(!has(from)){ S.arrival = {...a,notice:"Choose the bunker they were shooting from first — the sighting above."}; render(); return; }
+  if(!has(to)){ S.arrival = {...a,notice:"Choose the bunker they were shooting at."}; render(); return; }
+  if(from === to){ S.arrival = {...a,notice:"A man does not shoot the bunker he is in. Choose where the paint was going."}; render(); return; }
+  const context = arrivalContext(), shots = arrivalShots(context), last = shots[shots.length-1], at = Date.now();
+  if(last && last.from === from && last.to === to){
+    S.arrival = {...a,notice:"That lane is already the latest shot recorded. Choose a different one, or move him first."}; render(); return;
+  }
+  // Shooting from a bunker puts him at that bunker. If the last sighting is
+  // not already there, the shot places him — that is what a coach means by
+  // "he's laning from the snake", and it costs nothing to say so.
+  const rows = arrivalSightings(context);
+  let placed = false;
+  if(!rows.length || rows[rows.length-1].bunker !== from){
+    S.arrivalSightings = [...(S.arrivalSightings || []),{id:"s"+at.toString(36)+Math.random().toString(36).slice(2,9),
+      team:context.team,player:context.player,layout:context.layout,m:context.m,pt:context.pt,
+      bunker:from,seq:rows.reduce((n,o)=>Math.max(n,o.seq),0)+1,at}];
+    placed = true;
+  }
+  S.arrivalShots = [...(S.arrivalShots || []),{id:"h"+at.toString(36)+Math.random().toString(36).slice(2,9),
+    team:context.team,player:context.player,layout:context.layout,m:context.m,pt:context.pt,from,to,at}];
+  stopArrivalPlayback(true);
+  const name = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? callOf(b) : id; };
+  S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(context),sightingBunker:from,destination:a.destination || from,shotAt:"",
+    notice:`Shot recorded: from ${name(from)} at ${name(to)}.${placed ? ` That puts him at ${name(from)} — sighting ${rows.length+1}.` : ""}`};
+  save(S); render();
+};
+window.undoArrivalShot = () => {
+  const shots = arrivalShots(), last = shots[shots.length-1];
+  if(!last) return;
+  S.arrivalShots = S.arrivalShots.filter(o=>o.id!==last.id);
+  S.arrival = {...(S.arrival || {}),notice:"Last shot removed. A sighting it placed stays — undo that separately if it was wrong."}; save(S); render();
+};
 window.resetArrivalSightings = () => {
-  const rows = arrivalSightings();
-  if(!rows.length || !confirm(`Clear these ${rows.length} sightings for this opponent, match and point?`)) return;
-  const ids = new Set(rows.map(o=>o.id));
-  S.arrivalSightings = S.arrivalSightings.filter(o=>!ids.has(o.id));
-  stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Sightings cleared for this point."}; save(S); render();
+  const rows = arrivalSightings(), shots = arrivalShots();
+  if(!rows.length && !shots.length) return;
+  const what = [rows.length ? `${rows.length} sighting${rows.length===1?"":"s"}` : "", shots.length ? `${shots.length} shot${shots.length===1?"":"s"}` : ""].filter(Boolean).join(" and ");
+  if(!confirm(`Clear ${what} for this opponent, match and point?`)) return;
+  const ids = new Set(rows.map(o=>o.id)), hids = new Set(shots.map(o=>o.id));
+  S.arrivalSightings = (S.arrivalSightings || []).filter(o=>!ids.has(o.id));
+  S.arrivalShots = (S.arrivalShots || []).filter(o=>!hids.has(o.id));
+  stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Sightings and shots cleared for this point."}; save(S); render();
 };
 function arrivalPosition(route,t){
   if(!route || !route.points.length) return null;
@@ -5280,12 +5353,27 @@ window.playArrival = () => {
   };
   _arrivalPlayback.raf = requestAnimationFrame(frame);
 };
+// Shot lanes are white, so they read against both wires — the same rule the
+// Sightlines tab keeps — and run over a black casing like every path here.
+function arrivalShotLayer(context){
+  const bl = curLayout().bunkers, at = id => bl.find(b=>b.id===id);
+  return arrivalShots(context).map(o => {
+    const f = at(o.from), t = at(o.to);
+    if(!f || !t) return "";
+    const x1=f.x*2,y1=f.y*2,x2=t.x*2,y2=t.y*2;
+    return `<g class="arrival-shot"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#070808" stroke-width="4" stroke-linecap="round"/>
+      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+      <circle cx="${x2}" cy="${y2}" r="3.2" fill="#ffffff" stroke="#070808" stroke-width="1.2"/></g>`;
+  }).join("");
+}
 function arrivalOverlay(model){
   const route = model.route, {anchors} = model.result;
-  if(!route) return "";
+  const shots = arrivalShotLayer(model.context);
+  if(!route) return shots ? `<g class="arrival-overlay" pointer-events="none">${shots}</g>` : "";
   const path = `M${route.points.map(p=>`${p[0]*2},${p[1]*2}`).join("L")}`;
   const marker = arrivalPosition(route,_arrivalPlayback.t);
   return `<g class="arrival-overlay" pointer-events="none">
+    ${shots}
     <path d="${path}" fill="none" stroke="#070808" stroke-width="5" stroke-linejoin="round"/>
     <path d="${path}" fill="none" stroke="#e0a33a" stroke-width="2.5" stroke-dasharray="6 4" stroke-linejoin="round"/>
     ${anchors.map(a=>{
@@ -5300,7 +5388,7 @@ function arrivalOverlay(model){
   </g>`;
 }
 function scoutArrival(){
-  const model = arrivalModel(), {context:c,sightings,options,result,route} = model, a = S.arrival || {};
+  const model = arrivalModel(), {context:c,sightings,options,result,route} = model, a = S.arrival || {}, shots = arrivalShots(c);
   if(_arrivalCustom && _arrivalCustom.scope !== arrivalScope(c)) _arrivalCustom = null;
   if(_arrivalPlayback.key !== model.key){ stopArrivalPlayback(true); _arrivalPlayback.key = model.key; }
   const roster = profileOf(c.team).players || [];
@@ -5346,12 +5434,19 @@ function scoutArrival(){
       <div class="fld"><label for="arrival-sighting">Bunker actually seen</label><select id="arrival-sighting" onchange="setArrival({sightingBunker:this.value})"><option value="">${options.destination?'Use selected destination':'Choose a sighting'}</option>${bunkerOptions(options.sightingBunker)}</select></div>
     <div class="btnrow"><button class="btn" onclick="logArrivalSighting()"${!options.sightingBunker&&!options.destination?' disabled':''}>Record sighting</button>
       <button class="btn btn--quiet" onclick="undoArrivalSighting()"${sightings.length?'':' disabled'}>Undo last sighting</button>
-      <button class="btn btn--quiet" onclick="resetArrivalSightings()"${sightings.length?'':' disabled'}>Clear this point</button></div>
-    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. Sightings belong only to this team, player, field, match and point.')}</p>`)
+      <button class="btn btn--quiet" onclick="resetArrivalSightings()"${sightings.length||shots.length?'':' disabled'}>Clear this point</button></div>
+    <div class="fld"><label for="arrival-shot">Shooting at</label><select id="arrival-shot" onchange="setArrival({shotAt:this.value})"><option value="">${options.sightingBunker||options.destination?'From '+esc(label(options.sightingBunker||options.destination))+' — choose where the paint went':'Choose the bunker they were at first'}</option>${bunkerOptions(a.shotAt||"")}</select></div>
+    <div class="btnrow"><button class="btn" onclick="logArrivalShot()"${(options.sightingBunker||options.destination)&&a.shotAt?'':' disabled'}>Record shot</button>
+      <button class="btn btn--quiet" onclick="undoArrivalShot()"${shots.length?'':' disabled'}>Undo last shot</button></div>
+    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there. Everything belongs only to this team, player, field, match and point.')}</p>`)
   + sec("Possible route",`${route ? `<p class="aid"><b>Inferred route, not confirmed movement.</b> Green numbered squares are your recorded sightings. The dashed amber line is one possible connection; the ? bunker is selected, not yet observed. The white marker demonstrates travel, with no measured timing.</p>
       <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Possible leg ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
       <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
     : `<div class="empty">${esc(result.warning)}</div>`}`)
+  + sec(`Shots seen · ${shots.length}`,shots.length ? `<ol class="arrival-narrative">${shots.map((o,i)=>`<li><b>${i+1}. From ${esc(label(o.from))} at ${esc(label(o.to))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · white line on the field</span></li>`).join("")}</ol>` : `<div class="empty">No shots recorded for this player on this point. Pick the bunker he was at, then the one he was shooting at.</div>`)
+  + (lanes => sec(`Their lanes · ${esc(curLayout().name)}`,lanes.length ? `<p class="lede">Every lane <b>${esc(c.team)}</b> has been seen to shoot on this field, all matches, all points — counted from what you logged.</p>
+      <ol class="arrival-narrative">${lanes.slice(0,8).map(l=>`<li><b>${esc(label(l.from))} → ${esc(label(l.to))}</b> <span class="tag">${l.n}×</span></li>`).join("")}</ol>${lanes.length>8?`<p class="note">Showing the eight most seen of ${lanes.length}.</p>`:""}
+      <p class="aid"><b>A count, not a prediction.</b> It says where they have shot from and at when you were watching. Officials govern the live call.</p>` : `<div class="empty">Nothing logged yet for ${esc(c.team)} on this field. Shots you record above build this up through the match.</div>`))(teamLanes(c.team,c.layout))
   + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">No observations for this opponent on this field, match and point. The route is entirely a geometric possibility until you add what you saw.</div>`);
 }
 document.addEventListener("click",ev=>{

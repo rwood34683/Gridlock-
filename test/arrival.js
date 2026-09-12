@@ -283,7 +283,50 @@ async function integrationChecks(page) {
   await page.getByRole("button", {name: "Clear this point", exact: true}).click();
   assert.equal(await page.evaluate(() => arrivalSightings().length), 0, "Clear removes this context's observations");
   assert.deepEqual(await page.evaluate(() => S.arrivalSightings.map(o => o.id)), [otherPointId], "Undo and clear preserve sightings from other points");
-  console.log("PASS arrival integration: pit entry, field selection, observed vs inferred labels, ordered logging, playback, context isolation, reload, backup merge/replace, undo/clear, phone layout.");
+
+  /* Shots: where they shot from and at. Its own observation, same scope as a
+   * sighting, drawn white over black casing, and never a route input. */
+  await page.evaluate(() => setArrival({destination: "GW#1", sightingBunker: "MD#1", shotAt: "C#4"}));
+  assert.equal(await page.evaluate(() => arrivalShots().length), 0, "Choosing a lane is not evidence until Record shot");
+  await page.getByRole("button", {name: "Record shot", exact: true}).click();
+  const shot = await page.evaluate(() => arrivalShots());
+  assert.equal(shot.length, 1, "Record shot stores one observation");
+  assert.deepEqual([shot[0].from, shot[0].to], ["MD#1", "C#4"], "A shot carries where from and where at");
+  assert(shot[0].team === "Test Opponent" && shot[0].player === "number:7" && shot[0].layout === "mwo" && shot[0].m === "arrival-match-one" && shot[0].pt === 3,
+    "A shot carries the exact selected context");
+  assert.deepEqual(await page.evaluate(() => arrivalSightings().map(o => o.bunker)), ["MD#1"], "Shooting from a bunker places him there as a sighting");
+  assert.equal(await page.evaluate(() => S.arrival.shotAt), "", "The lane target clears after recording so a second tap needs a choice");
+  await page.evaluate(() => { S.arrival.shotAt = "C#4"; logArrivalShot(); });
+  assert.equal(await page.evaluate(() => arrivalShots().length), 1, "An identical consecutive shot is refused, not duplicated");
+  assert.equal(await page.evaluate(() => arrivalSightings().length), 1, "A refused shot places nobody");
+  await page.evaluate(() => { S.arrival.shotAt = "MD#1"; logArrivalShot(); });
+  assert.equal(await page.evaluate(() => arrivalShots().length), 1, "A man cannot shoot the bunker he is in");
+  assert.equal(await page.locator("#arrival-map svg .arrival-shot").count(), 1, "The shot is drawn on the field");
+  const stroke = await page.locator("#arrival-map svg .arrival-shot line").last().getAttribute("stroke");
+  assert.equal(stroke.toLowerCase(), "#ffffff", "Shot lanes are white, as the house rule says");
+  await page.evaluate(() => setArrival({sightingBunker: "C#4", shotAt: "T#1"}));
+  await page.getByRole("button", {name: "Record shot", exact: true}).click();
+  assert.equal(await page.evaluate(() => arrivalShots().length), 2, "A second, different shot records");
+  assert.deepEqual(await page.evaluate(() => arrivalSightings().map(o => o.bunker)), ["MD#1", "C#4"], "Moving to shoot from a new bunker places him there in order");
+  assert.equal(await page.locator("#arrival-map svg .arrival-shot").count(), 2, "Both shots are drawn");
+  assert(/their lanes/i.test(await page.locator("main").innerText()), "The team's lanes on this field are summarised");
+  assert.deepEqual(await page.evaluate(() => teamLanes("Test Opponent", "mwo").map(l => [l.from, l.to, l.n])), [["C#4", "T#1", 1], ["MD#1", "C#4", 1]],
+    "Their lanes count what was logged for the team on this field");
+  assert.equal(await page.evaluate(() => teamLanes("Other Opponent", "mwo").length), 0, "Another team's lanes are its own");
+  assert.equal(await page.evaluate(() => copyDataError(JSON.parse(localStorage.getItem("gridlock.coach.v2")))), "", "Saved shots satisfy the import/reload schema");
+  const shotIds = await page.evaluate(() => arrivalShots().map(o => o.id));
+  await page.reload({waitUntil: "networkidle"});
+  assert.deepEqual(await page.evaluate(() => arrivalShots().map(o => o.id)), shotIds, "Shots persist on reload");
+  const shotBackup = JSON.parse(await page.evaluate(() => copyPayload("all")));
+  assert.deepEqual(shotBackup.data.arrivalShots.map(o => o.id), shotIds, "Full backup includes shots");
+  assert.equal(JSON.parse(await page.evaluate(() => copyPayload("squad"))).data.arrivalShots, undefined, "A squad copy carries no match shots");
+  await page.getByRole("button", {name: "Undo last shot", exact: true}).click();
+  assert.equal(await page.evaluate(() => arrivalShots().length), 1, "Undo removes only the latest shot");
+  assert.equal(await page.evaluate(() => arrivalSightings().length), 2, "Undoing a shot does not silently remove the sighting it placed");
+  await page.getByRole("button", {name: "Clear this point", exact: true}).click();
+  assert.equal(await page.evaluate(() => arrivalShots().length + arrivalSightings().length), 0, "Clear removes this point's shots and sightings together");
+  assert.deepEqual(await page.evaluate(() => S.arrivalSightings.map(o => o.id)), [otherPointId], "Clearing shots leaves other points alone");
+  console.log("PASS arrival integration: pit entry, field selection, observed vs inferred labels, ordered logging, playback, context isolation, reload, backup merge/replace, undo/clear, shots and their lanes, phone layout.");
 }
 
 async function main() {
