@@ -22,6 +22,13 @@ All project/target deployment settings are iOS 15.0. The scene lifecycle uses th
 
 ## Android
 
+One command says what this machine is missing, all of it at once, with the fix
+for each — it changes nothing and downloads nothing:
+
+```sh
+npm run android:preflight
+```
+
 Install Android Studio Otter 2025.2.1 or newer, JDK 21 and Android SDK platform 36. The included wrapper uses Gradle 8.14.3 and Android Gradle Plugin 8.13.0. These versions and SDK settings follow the [Capacitor 8 migration guide](https://capacitorjs.com/docs/updating/8-0).
 
 ```sh

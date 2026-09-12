@@ -10,13 +10,8 @@ function command(name, args, capture = false) {
   if (result.status !== 0) throw new Error(`${name} ${args.join(" ")} failed. ${(result.stderr || result.stdout || "").trim()}`);
   return (result.stdout || "").trim();
 }
-// A probe that answers "not installed" instead of throwing, so one missing tool
-// cannot hide the other three.
-function probeCommand(name, args) {
-  const result = spawnSync(name, args, { cwd: ROOT, encoding: "utf8", stdio: "pipe", windowsHide: true });
-  if (result.error || result.status !== 0) return null;
-  return (result.stdout || "").trim();
-}
+const { probeCommand, describe } = require("./toolcheck");
+const probe1 = (name, args) => probeCommand(name, args, ROOT);
 
 /* What is wrong with this Mac, all of it, in one answer.
  *
@@ -72,39 +67,18 @@ function evaluate(probe) {
   return problems;
 }
 
-// One block a person can work through, rather than a sentence that sends them
-// back for the next sentence.
-function describe(problems) {
-  const lines = [`GRIDLOCK cannot open Xcode yet. ${problems.length} ${problems.length === 1 ? "thing needs" : "things need"} fixing:`, ""];
-  problems.forEach((p, i) => {
-    lines.push(`  ${i + 1}. ${p.what}`);
-    lines.push(`     now: ${p.have}`);
-    lines.push(`     fix: ${p.fix}`);
-    lines.push("");
-  });
-  if (problems.some(p => p.fix.startsWith("brew "))) {
-    lines.push("  Homebrew installs the first of those in one command. If `brew` itself is");
-    lines.push("  missing, get it from https://brew.sh — its installer asks for your Mac");
-    lines.push("  login password, and Terminal shows nothing at all as you type it. That is");
-    lines.push("  normal: type it blind, or paste it, and press Return.");
-    lines.push("");
-  }
-  lines.push("  Fix them in any order and run this again. docs/XCODE.md has the detail.");
-  return lines.join("\n");
-}
-
 function preflight() {
   if (process.platform !== "darwin") throw new Error("Xcode requires a Mac. Copy this entire project to macOS and open OPEN-IN-XCODE.command; see docs/XCODE.md.");
   const probe = {
     node: process.versions.node,
-    selected: probeCommand("xcode-select", ["-p"]),
-    xcode: probeCommand("xcodebuild", ["-version"]),
-    sdk: probeCommand("xcrun", ["--sdk", "iphonesimulator", "--show-sdk-version"]),
-    pods: probeCommand("pod", ["--version"]),
-    npm: probeCommand("npm", ["--version"]),
+    selected: probe1("xcode-select", ["-p"]),
+    xcode: probe1("xcodebuild", ["-version"]),
+    sdk: probe1("xcrun", ["--sdk", "iphonesimulator", "--show-sdk-version"]),
+    pods: probe1("pod", ["--version"]),
+    npm: probe1("npm", ["--version"]),
   };
   const problems = evaluate(probe);
-  if (problems.length) throw new Error(describe(problems));
+  if (problems.length) throw new Error(describe("GRIDLOCK cannot open Xcode yet.", problems));
   command("xcodebuild", ["-checkFirstLaunchStatus"], true);
   console.log(`Ready: ${probe.xcode.split("\n")[0]}, iOS simulator SDK ${probe.sdk}, Node ${probe.node}, CocoaPods ${probe.pods}, npm ${probe.npm}.`);
 }
@@ -126,4 +100,4 @@ function main() {
   }
 }
 if (require.main === module) { try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; } }
-module.exports = { preflight, evaluate, describe };
+module.exports = { preflight, evaluate };

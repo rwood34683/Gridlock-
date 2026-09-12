@@ -110,7 +110,8 @@ const { launchOptions } = require("../scripts/browser");
      * stop: a Mac with last year's tools failed Node, then CocoaPods, then the
      * Xcode version, each an hour and a separate install apart. The logic is a
      * pure function over probe readings precisely so it can be tested here. */
-    const { evaluate, describe } = require("../scripts/xcode");
+    const { evaluate } = require("../scripts/xcode");
+    const { describe } = require("../scripts/toolcheck");
     const ok = { node: "22.22.2", selected: "/Applications/Xcode.app/Contents/Developer",
                  xcode: "Xcode 26.0", sdk: "26.0", pods: "1.16.2", npm: "10.8.2" };
     check(evaluate(ok).length === 0, "a Mac with everything installed reports no problems");
@@ -121,7 +122,7 @@ const { launchOptions } = require("../scripts/browser");
 
     const bare = evaluate({ node: "18.0.0", selected: null, xcode: null, sdk: null, pods: null, npm: null });
     check(bare.length >= 5, "a Mac with nothing installed reports all of it at once, and never throws");
-    check(!/undefined|null|NaN/.test(describe(bare)), "the report never shows undefined, null or NaN to a coach");
+    check(!/undefined|null|NaN/.test(describe("x", bare)), "the report never shows undefined, null or NaN to a coach");
 
     const tools = evaluate({ ...ok, selected: "/Library/Developer/CommandLineTools" });
     check(tools.length === 1 && /full Xcode/.test(tools[0].what),
@@ -130,10 +131,37 @@ const { launchOptions } = require("../scripts/browser");
     const oldXcode = evaluate({ ...ok, xcode: "Xcode 15.4" });
     check(oldXcode.length === 1 && /26/.test(oldXcode[0].what), "an Xcode older than 26 is caught");
 
-    check(/blind/.test(describe(stale)) && /brew\.sh/.test(describe(stale)),
+    check(/blind/.test(describe("x", stale)) && /brew\.sh/.test(describe("x", stale)),
       "when a fix needs Homebrew, the report explains its invisible password prompt");
-    check(!/brew\.sh/.test(describe(oldXcode)),
+    check(!/brew\.sh/.test(describe("x", oldXcode)),
       "and stays quiet about Homebrew when no fix needs it");
+
+    /* Android had no preflight at all, so Gradle said it instead — after a
+     * download, in a stack trace, one cause at a time. "Unsupported class file
+     * major version" is not a sentence that tells a coach to install JDK 21. */
+    const android = require("../scripts/android");
+    const androidOk = { mac: true, node: "22.22.2", java: 'openjdk version "21.0.10" 2026-01-20',
+                        sdkRoot: "/Users/c/Library/Android/sdk", sdkExists: true,
+                        platforms: ["android-36"], platform36: true };
+    check(android.evaluate(androidOk).length === 0, "a machine ready for Android reports no problems");
+
+    // The bug this very check was written after: java -version exits 0 and
+    // writes the version to stderr, so a stdout-only probe reads a good JDK as
+    // empty and calls it unreadable.
+    check(android.evaluate({ ...androidOk, java: 'openjdk version "21.0.10"' }).length === 0,
+      "a JDK whose version only ever appears on stderr still reads as installed");
+    check(android.evaluate({ ...androidOk, java: 'openjdk version "17.0.9"' })
+      .some(p => /21/.test(p.what)), "a JDK older than 21 is caught");
+    check(android.evaluate({ ...androidOk, java: null }).length === 1, "no java at all is one problem, not a crash");
+
+    const noSdk = android.evaluate({ ...androidOk, sdkRoot: "", sdkExists: false, platforms: [], platform36: false });
+    check(noSdk.length === 1 && /ANDROID_HOME/.test(noSdk[0].have), "a missing Android SDK says which variable is unset");
+    const oldApi = android.evaluate({ ...androidOk, platforms: ["android-34"], platform36: false });
+    check(oldApi.length === 1 && /36/.test(oldApi[0].what), "an Android SDK without platform 36 is caught");
+
+    const bareMachine = android.evaluate({ mac: false, node: "18.0.0", java: null, sdkRoot: "", sdkExists: false, platforms: [], platform36: false });
+    check(bareMachine.length === 3, "a machine with nothing reports all three at once");
+    check(!/brew /.test(describe("x", bareMachine)), "and is not told to use Homebrew when it is not a Mac");
     console.log(`Platform contract: ${count}/${count} checks passed (plugin stubs, not an iOS binary).`);
   } finally {
     await browser.close();

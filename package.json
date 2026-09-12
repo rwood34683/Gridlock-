@@ -43,7 +43,8 @@
     "build:ios:simulator": "node scripts/xcode.js build",
     "test:voice-parser": "node scripts/run-checks.js voice-parser",
     "test:voice": "node scripts/run-checks.js voice",
-    "test:speech-native": "node scripts/run-checks.js speech-native"
+    "test:speech-native": "node scripts/run-checks.js speech-native",
+    "android:preflight": "node scripts/android.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
