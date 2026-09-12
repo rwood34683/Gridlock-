@@ -3327,6 +3327,106 @@ const ROSTER = [
   }));
   await ev(() => { window.set({ sightAim:null, sightTo:null }); });
 
+  /* ---------------------------------------------------------------------
+     Bunker tally
+
+     The hand chart, bunker first. Tap the bunker a man broke to, answer
+     what you saw, log it. Every check reads the screen or the rows.
+     --------------------------------------------------------------------- */
+  G("Bunker tally");
+  const tapTally = ft => ev(ft => {
+    const svg = document.querySelector("#tally-map svg.field"); if(!svg) return false;
+    const p = new DOMPoint(ft[0]*2, ft[1]*2).matrixTransform(svg.getScreenCTM());
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    return true;
+  }, ft);
+  await ev(() => window.set({ tab:"tally", tallySel:null, tallyDraft:null, tallyTrace:false, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
+  check("Tally has the field", await ev(() => !!document.querySelector("#tally-map svg.field [data-pick]")));
+  const ours = await ev(() => { const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 80); return {id:b.id, x:b.x, y:b.y}; });
+  await tapTally([ours.x + 3, ours.y - 3]);
+  check("a tap near a bunker lands on it, no dead ground", await ev(id => S.tallySel === id, ours.id));
+  check("the sheet names the bunker and the point", await ev(id => {
+    const t = (document.getElementById("tally-sheet") || {}).textContent || "";
+    return t.includes(id) && /point 1/.test(t) && /Did he make it/.test(t) && /Log this breakout/.test(t);
+  }, ours.id));
+  check("a bunker on your half is your player", await ev(() => S.tallyDraft.side === "us"));
+  const theirs = await ev(() => { const b = curLayout().bunkers.find(x => x.x > 90 && x.y > 80); return {id:b.id, x:b.x, y:b.y}; });
+  await tapTally([theirs.x, theirs.y]);
+  check("past the fifty it is theirs", await ev(() => S.tallyDraft.side === "them"));
+  check("the sheet offers their numbers, not your roster", await ev(() => {
+    const t = document.getElementById("tally-sheet").textContent; return /#1/.test(t) && !/Reyes/.test(t);
+  }));
+  await tapTally([ours.x, ours.y]);
+  check("Shot from waits until he was shot", await ev(() => !/Shot from/.test(document.getElementById("tally-sheet").textContent)));
+  await ev(() => window.setDraft({ alive:false, entry:"battle", dir:-90, player:"Reyes" }));
+  check("Shot from appears once he was, listing only the far side", await ev(() => {
+    const sheet = document.getElementById("tally-sheet");
+    if(!/Shot from/.test(sheet.textContent)) return false;
+    const sel = [...sheet.querySelectorAll("select")][0];
+    const ids = [...sel.options].map(o => o.value).filter(Boolean);
+    return ids.length > 0 && ids.every(id => curLayout().bunkers.find(b => b.id === id).x > 75);
+  }));
+  check("the pad shows the lane he was shooting", await ev(() => document.querySelector("#tally-sheet .pad button.on").textContent === "↑"));
+  await ev(() => window.set({ tallyTrace:true }));
+  for (const p of [[20,100],[40,90],[50,95],[60,100],[65,105],[70,110]]) await tapTally(p);
+  check("tracing lays up to five points and refuses the sixth", await ev(() => S.tallyDraft.route.length === 5));
+  check("the route is drawn from what was tapped", await ev(() => document.querySelectorAll("#tally-map .tally-route").length >= 5 && document.querySelectorAll("#tally-map .tally-pt").length === 5));
+  await tapTally(await ev(() => [S.tallyDraft.route[0].x + 2, S.tallyDraft.route[0].y]));
+  check("tapping a laid point marks a hold, drawn dashed", await ev(() => S.tallyDraft.route[0].dl === true && !!document.querySelector("#tally-map .tally-route[stroke-dasharray]")));
+  await ev(() => window.set({ tallyTrace:false }));
+  await tapTally([theirs.x, theirs.y]);
+  check("switching bunkers keeps the answers, drops the man and the route", await ev(() => {
+    const d = S.tallyDraft; return d.alive === false && d.entry === "battle" && d.player === "" && d.route.length === 0;
+  }));
+  await tapTally([ours.x, ours.y]);
+  await ev(() => window.setDraft({ side:"us", sideSet:true, player:"Reyes", route:[{x:20,y:100,b:"",dl:true}], routeType:"Deep", movedTo:curLayout().bunkers[10].id }));
+  await ev(() => window.logBreakout());
+  check("Log stamps the match, the point and the field", await ev(id => {
+    const r = S.breakouts[0]; return r.m === S.matchId && r.pt === 1 && r.layout === S.layoutKey && r.bunker === id && r.side === "us";
+  }, ours.id));
+  check("a named man shot on the break is an out, at that bunker", await ev(id => {
+    const o = S.tally.find(o => o.m === S.matchId && o.pt === 1 && o.side === "us" && o.name === "Reyes");
+    return !!o && o.shotAt === id && /4 up/.test(document.getElementById("root").textContent);
+  }, ours.id));
+  check("the sheet closes and says what was logged, with Undo", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return !S.tallySel && /Logged:/.test(t) && /Reyes/.test(t) && /Deep route/.test(t) && !!document.querySelector("button[onclick^='undoBreakout']");
+  }));
+  check("this point's man sits on the field, crossed out", await ev(() => document.querySelectorAll("#tally-map .tally-man").length === 1 && /✕/.test(document.querySelector("#tally-map .tally-man").textContent)));
+  await ev(() => window.undoBreakout(S.breakouts[0].id));
+  check("Undo takes the breakout and its out together", await ev(() => S.breakouts.length === 0 && !S.tally.some(o => o.name === "Reyes")));
+  await tapTally([ours.x, ours.y]);
+  await ev(() => { window.setDraft({ alive:true, entry:"clean", player:"Okafor" }); window.logBreakout(); });
+  check("a man who made it is not an out", await ev(() => S.breakouts.length === 1 && S.tally.length === 0));
+  await ev(() => window.setRead("right"));
+  check("the read is ticked on screen before the result", await ev(() => S.tallyRead === "right" && document.querySelector("button[onclick=\"setRead('right')\"]").classList.contains("on")));
+  await ev(() => window.endPoint("us"));
+  check("the read rides on the result and clears for the next point", await ev(() => S.results[0].read === "right" && S.tallyRead === "" && S.point === 2 && !S.tallySel));
+  check("the value table counts the point that bunker won", await ev(id => {
+    const v = bunkerValue("us")[0]; const t = document.getElementById("root").textContent;
+    return v.id === id && v.att === 1 && v.made === 1 && v.net === 1 && /Best bunker/.test(t) && !!document.querySelector("#tally-map .tally-worth");
+  }, ours.id));
+  check("reads are counted on the sheet", await ev(() => /1 right/.test(document.getElementById("root").textContent)));
+  check("another field shows none of it", await ev(() => {
+    const was = S.layoutKey; window.set({ layoutKey: Object.keys(LAYOUTS).find(k => k !== was) });
+    const none = bunkerValue("us").length === 0 && !document.querySelector("#tally-map .tally-worth");
+    window.set({ layoutKey: was }); return none;
+  }));
+  check("a breakout alone is enough for the match to remember its point", await ev(() => {
+    S.breakouts = [{...S.breakouts[0], pt:7, id:"b-late"}, ...S.breakouts]; const n = lastPoint(S.matchId);
+    S.breakouts = S.breakouts.filter(r => r.id !== "b-late"); return n === 7;
+  }));
+  {
+    const r = await ev(() => { const d = JSON.parse(copyPayload("all")).data;
+      return { ok: matchSize(S.matchId) >= 1 && Array.isArray(d.breakouts) && d.breakouts.length === 1 && copyDataError(d) === "", err: copyDataError(d), n: (d.breakouts||[]).length }; });
+    check("breakouts count toward the sheet and travel in a copy", r.ok, r.ok ? "" : JSON.stringify(r));
+  }
+  check("a copy with a bad breakout is refused by name", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data; d.breakouts = [{id:"x", m:"m", layout:"l", bunker:"b", side:"nobody", pt:1, at:1}];
+    return copyDataError(d) === "breakouts";
+  }));
+  await ev(() => window.set({ tallySel:null, tallyDraft:null, tallyTrace:false, breakouts:[], results:[], point:1 }));
+
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));

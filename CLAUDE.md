@@ -203,10 +203,26 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     solid when clear, dashed when something is in the way, with the blocker
     ringed. The handle renders after the tap surface or it could never be
     grabbed. A new question drops the aim.
+23. ~~Tally, bunker first.~~ Done — the sheet was player-first, tap the man who
+    went out, and a coach charts the break the other way round, by bunker. Tally
+    opens on the field: tap the bunker a man broke to (nearest wins, no dead
+    ground) and the breakout sheet opens under it — your player or theirs, who,
+    made it or shot on the break and from where, battling in or no pressure,
+    the eight-way lane he was shooting and at what, delayed, moved to and
+    whether late, and the route traced by tapping the field (up to five points,
+    a re-tap marks a hold, drawn dashed). One row a man a point in
+    `S.breakouts`, stamped with match, point and field; a named man shot on the
+    break is also the out the columns record, at that bunker. Right read /
+    wrong read is ticked before We won it and rides on the result. *Where the
+    points come from* counts breaks, made-it % and net points per bunker on
+    this field from the results, and the field rings the bunkers green (wins),
+    amber (costs). Below 900 px the field scrolls to the top when a bunker is
+    tapped so the field and the questions share the screen; past it the sheet
+    stands beside the field.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
-User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
+User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
 
 A **Match** is `{id, at, vs, layout}` and every row logged on a sideline carries
 its id in `m`. A **result** is `{m, pt, won}` — one per point, and the score is
@@ -287,3 +303,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the source and passes whether or not anything rendered. Read
   `document.getElementById("root")` instead. Twelve checks were written that
   way and one of them was a false positive.
+- Open something under the field and call it done. On a phone the field is
+  most of the screen, so a sheet that renders beneath it renders below the
+  fold: the coach taps a bunker and nothing appears to happen. Scroll the field
+  to the top of `.main` when the sheet opens, or put the sheet beside it.
+- Add a list to a row without teaching `copyDataError` about it. Rows are
+  scalars-only by default, so the `plants` list on a logged break made every
+  copy of a season that had one refused as "scout" — a backup that cannot be
+  restored. `breakouts` carries `route` the same way; the schema names the
+  one non-scalar field and checks its shape.

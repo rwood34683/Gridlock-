@@ -114,7 +114,12 @@ change what he is about to call.
 
 **Tally, and the match around it.** Point number, your five and theirs, out or
 alive, how he went out, who got him, shot-at bunker and moved-to bunker, feeding
-Bunker stats.
+Bunker stats. Bunker first, since the field test: Tally opens on the field, a
+tap on the bunker a man broke to opens the breakout sheet — who, made it or
+shot on the break and from where, battling in or no pressure, the lane he was
+shooting and at what, delayed, moved to, and the route traced on the field —
+and *Where the points come from* counts what each bunker has been worth to
+your five on this field, from the results.
 
 **The sideline loop, on one screen.** Point ends, who won it, what are we
 calling, play it, tally the outs. Three of those lived on Tally and the call
