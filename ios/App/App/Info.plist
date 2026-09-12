@@ -29,6 +29,14 @@
 		<key>CFBundleURLName</key><string>com.upra.gridlock.coach</string>
 		<key>CFBundleURLSchemes</key><array><string>gridlock</string></array>
 	</dict></array>
+	<!-- Export compliance, answered once here instead of on every upload.
+	     false is the accurate answer: the app's only use of cryptography is
+	     SHA-256 hashing of the staff password with a random salt, entirely on
+	     the device. Hashing is not covered encryption, the app makes no network
+	     request of its own, and nothing is transmitted. Without this key App
+	     Store Connect stops and asks the question on every single build. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

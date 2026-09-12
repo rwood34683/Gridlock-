@@ -12,6 +12,40 @@ Install these tools first:
 
 These requirements follow the [Capacitor 8 migration guide](https://capacitorjs.com/docs/updating/8-0).
 
+Check all three before you start, because the launcher stops on the first one
+that is wrong and each is a separate install:
+
+```sh
+node -v          # must be 22 or newer
+pod --version    # must print a version
+xcodebuild -version
+```
+
+**Node 20 is not enough.** `package.json` sets `engines.node >= 22`, the
+Capacitor 8 CLI requires the same, and `scripts/xcode.js` refuses to go further
+— a Mac carrying the Node 20 that was current last year fails here, and the
+message says only "Install Node.js 22 or newer".
+
+Homebrew covers the first two together:
+
+```sh
+brew install node cocoapods
+```
+
+If `brew` itself is missing, install it from [brew.sh](https://brew.sh). Its
+installer asks for your Mac login password; Terminal shows nothing at all as
+you type it, which is normal — type it blind, or paste it, and press Return.
+
+## Export compliance
+
+`Info.plist` declares `ITSAppUsesNonExemptEncryption` as `false`, so App Store
+Connect stops asking on every upload. That answer is accurate for this app and
+worth understanding rather than trusting: its only use of cryptography is
+SHA-256 hashing of the staff password with a random salt, on the device.
+Hashing is not covered encryption, the app makes no network request of its own,
+and nothing is transmitted anywhere. If the app ever gains real encryption or a
+server, this key has to be revisited.
+
 Double-click **OPEN-IN-XCODE.command**, or run this from the project folder in Terminal:
 
 ```sh
