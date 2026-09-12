@@ -3111,7 +3111,7 @@ window.resetAllPaths = () => {
     if(wrap){
       const list = curLayout().bunkers;
       const from = S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
-      wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true});
+      wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true, noPaths:true});
       drag.svg = wrap.querySelector("svg.field");
     }
   });
@@ -6279,7 +6279,7 @@ function scoutLayers(){
       ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
         onclick="toggleLayer('${k}')"><i></i>${n} · ${counts[k]}</button>`).join("")}
     </div>
-    <div class="field-wrap">${fieldSVG({static:true, heat, moves:on.rotations?(()=>true):false})}</div>
+    <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?(()=>true):false})}</div>
     ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${n.toLowerCase()}`).join(" · ")}.</p>`
         :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
           the Tally tab, on the point you are on.</div>`}`,
@@ -6518,7 +6518,7 @@ function sightlines(){
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
-    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true})}</div>
+    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true,noPaths:true})}</div>
     ${aimed
       ? `<div class="verdict ${aimed.blocked?"verdict--no":"verdict--yes"}">
            <b>${aimed.blocked?"Blocked":"Clear"}</b>
@@ -6967,7 +6967,7 @@ function moreBody(k){
             <span class="assign__who">${esc(who)} · ${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
             <button class="btn btn--danger" onclick="clearPlayerCall(${jsq(who)},${jsq(id)})">Clear</button></div>`;
         }).join("")}</div>`:""}
-      <div class="field-wrap">${fieldSVG({static:true})}</div>`,
+      <div class="field-wrap">${fieldSVG({static:true,noPaths:true})}</div>`,
       named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName);
   }
   if(k==="movement"){
@@ -6986,7 +6986,7 @@ function moreBody(k){
         <div class="fld"><label>To</label><select id="mvTo">${list.map(opt).join("")}</select></div>
       </div>
       <button class="btn btn--block" onclick="logMove()">Log the move</button>`, "Point "+(S.point||1))
-    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true})}</div>
+    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true,noPaths:true})}</div>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
                  :`<div class="empty">No rotations logged on this layout yet.</div>`}`, layoutName)
     + (mvHere.length?sec("Rotations", `<div class="assigns">
@@ -7010,14 +7010,14 @@ function moreBody(k){
           <span class="fact"><b>${rows.reduce((n,r)=>n+r.outs,0)}</b><span>Outs</span></span>
           <span class="fact"><b>${rows.reduce((n,r)=>n+r.visits,0)}</b><span>Moves in</span></span>
         </div>
-        <div class="field-wrap">${fieldSVG({static:true,heat:true})}</div>
+        <div class="field-wrap">${fieldSVG({static:true,heat:true,noPaths:true})}</div>
         <div class="tblwrap"><table class="tbl">
           <thead><tr><th>Bunker</th><th>Code</th><th>Outs</th><th>Moves in</th></tr></thead>
           <tbody>${rows.map(r=>`<tr><td>${esc(callOf(r.b))}</td><td class="num">${esc(r.id)}</td>
             <td class="num">${r.outs}</td><td class="num">${r.visits}</td></tr>`).join("")}</tbody>
         </table></div>`
       : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
-         <div class="field-wrap">${fieldSVG({static:true})}</div>
+         <div class="field-wrap">${fieldSVG({static:true,noPaths:true})}</div>
          <div class="empty">Nothing logged yet. Set <b>shot at</b> or <b>moved to</b> on an out in Tally, or log a rotation in Movement, and it lands here.</div>`,
       layoutName);
   }
