@@ -172,12 +172,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     field follows. Logging is there too, because a coach who never opened
     Playbook was never logging and self-scout is only worth having if the calls
     are in it.
-19. Rosters for the rest of the pro teams. They cannot be fetched from here —
+19. ~~The app in the coach's own words.~~ Done — bunker naming had existed
+    since item 4 but the twelve calls were still the app's: a coach reading
+    "Snake Stack" when his team shouts "Rocket" is translating on a sideline.
+    `callName()` is the single door every screen reads a call through, and
+    More → Team names all twelve beside the app's own name. The key is what is
+    stored, so a rename re-labels every call ever logged and loses nothing.
+20. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
-20. Bring iOS SwiftUI up to web parity, then Android Compose.
-21. ~~How are they shooting.~~ Done — Scout → How did they get there? records a
+21. Bring iOS SwiftUI up to web parity, then Android Compose.
+22. ~~How are they shooting.~~ Done — Scout → How did they get there? records a
     **shot**: the bunker he was at and the bunker the paint went to. Its own
     observation in `S.arrivalShots`, scoped exactly like a sighting (team,
     player, field, match, point), so it merges by id, clears with the point and
@@ -186,7 +192,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     places him there as a sighting, because that is what a coach means. **Their
     lanes** counts the team's from→to pairs on the field across every match —
     `teamLanes()` — a count of what was logged, never a model.
-22. ~~The first field test.~~ Done — two coaches with the app in hand, transcribed.
+23. ~~The first field test.~~ Done — two coaches with the app in hand, transcribed.
     Three things, in the order they said them. **"I can't even start a new
     match right here"**: Scout had no match controls, so `matchStrip()` puts the
     sheet, the point, Next point and New match under the pits — the same
@@ -203,7 +209,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     solid when clear, dashed when something is in the way, with the blocker
     ringed. The handle renders after the tap surface or it could never be
     grabbed. A new question drops the aim.
-23. ~~Tally, bunker first.~~ Done — the sheet was player-first, tap the man who
+24. ~~Tally, bunker first.~~ Done — the sheet was player-first, tap the man who
     went out, and a coach charts the break the other way round, by bunker. Tally
     opens on the field: tap the bunker a man broke to (nearest wins, no dead
     ground) and the breakout sheet opens under it — your player or theirs, who,
@@ -331,6 +337,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Print the app's name for a call when the team has its own word for it. A
+  coach shouts what his team has always shouted, and an app answering in its
+  own vocabulary is one more thing to translate between points. `callName(key)`
+  is the only place that decides what a break is called — never
+  `BREAKS[k].name` on a screen — and Team names all twelve the way Bunker calls
+  already names the field. A rename is a label and never a record: a logged
+  call keeps the break's key, so renaming re-labels the whole season at once.
 - Paper the field with bunker codes. Forty-five two-letter labels at the same
   weight as the bunkers is a wall of type on a phone, and the break, the outs
   and their five are all read through it. `bunkerLabels` is a layer like every

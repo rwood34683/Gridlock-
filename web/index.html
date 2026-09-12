@@ -971,7 +971,7 @@ function counterRank(theirTendency, matchState){
   return Object.entries(BREAKS).map(([k,v])=>{
     const m = breakMeta(k);
     const fit = (m.vs && m.vs[theirTendency]) || 0;
-    return {key:k, name:v.name, aggr:m.aggr, pct:Math.round(45 + fit + bias*(m.aggr-3)*2.5)};
+    return {key:k, name:callName(k), aggr:m.aggr, pct:Math.round(45 + fit + bias*(m.aggr-3)*2.5)};
   }).sort((a,b)=>b.pct-a.pct || a.aggr-b.aggr);
 }
 
@@ -1297,7 +1297,7 @@ const defaultState = () => ({
   teams:{},
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
-  bunkerCalls:{}, playerCalls:{}, teamCode:"",
+  bunkerCalls:{}, playerCalls:{}, breakCalls:{}, teamCode:"",
   direct:{},
   pad:null,
   moves:[],
@@ -1663,7 +1663,31 @@ function curLayout(){ return LAYOUTS[S.layoutKey] || LAYOUTS.lso; }
  * So: the same shape as curLayout(), used everywhere, and the doors below put
  * a real key back rather than leaving a live grenade in storage. */
 function curBreak(){ return BREAKS[S.script] || BREAKS[defaultState().script]; }
-function breakName(){ return curBreak().name; }
+/* What this team calls this break.
+ *
+ * A coach does not shout "Snake Stack" — he shouts whatever his team has
+ * always shouted, and an app that answers in its own vocabulary is one more
+ * thing to translate between points. So every screen that prints a call
+ * prints his word for it, the same way a renamed bunker already overrides
+ * the official code everywhere.
+ *
+ * What is *stored* never changes: a logged call keeps the break's key, so a
+ * rename re-labels the whole season at once and loses nothing. The app's own
+ * name stays beside his on the screen where he sets it, because that is the
+ * one place he needs to know which of the twelve he is naming.
+ */
+function callName(key){
+  return ((S.breakCalls || {})[key] || "").trim() || (BREAKS[key] || {}).name || key;
+}
+function breakName(){ return callName(S.script); }
+window.setBreakCall = key => {
+  const el = document.getElementById("brc-" + key); if(!el) return;
+  const word = (el.value || "").trim().slice(0, 28);
+  const all = {...(S.breakCalls || {})};
+  if(word && word !== (BREAKS[key] || {}).name) all[key] = word; else delete all[key];
+  S.breakCalls = all; save(S); render();
+};
+window.clearBreakCalls = () => { S.breakCalls = {}; save(S); render(); };
 function fixBreak(){ if(!BREAKS[S.script]) S.script = defaultState().script; }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
@@ -2026,9 +2050,9 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","teamCode","codes"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -2217,7 +2241,7 @@ function copyDataError(data){
     results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
-    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)),
+    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings,
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
@@ -3784,16 +3808,16 @@ function playbook(){
   <div class="pbtop">
   <div class="call">
     <div class="call__label">The call</div>
-    <div class="call__name">${esc(br.name)}</div>
+    <div class="call__name">${esc(callName(key))}</div>
     <p class="call__read">${m.read}</p>
     ${(()=>{const r=breakRecord(key); return r.points
       ? `<p class="note">On ${esc(curLayout().name)} you have called this ${r.points} time${r.points===1?"":"s"} —
          ${r.us} out${r.us===1?"":"s"} against you, ${r.them} against them.</p>`
       : "";})()}
-    ${ans ? `<p class="note">You wrote down: they run <b>${esc((BREAKS[ans.theirs]||{}).name||ans.theirs)}</b>
-      — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc((BREAKS[ans.ours]||{}).name||ans.ours)}</b>.
+    ${ans ? `<p class="note">You wrote down: they run <b>${esc(callName(ans.theirs))}</b>
+      — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc(callName(ans.ours))}</b>.
       ${ans.ours===key ? "That is this call." :
-        `<button class="btn btn--quiet" style="min-height:34px;margin-top:6px"
+        `<button class="btn btn--quiet" style="margin-top:6px"
           onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
@@ -3828,8 +3852,12 @@ function playbook(){
   </div>
 
   ${sec("Break", `<div class="seg seg--wrap">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(v.name)}</button>`).join("")}
-    </div>`, curLayout().name)}
+      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(callName(k))}</button>`).join("")}
+    </div>
+    ${Object.keys(S.breakCalls || {}).length ? "" :
+      `<p class="note">Not your words for them? The app will use yours on every screen.
+        <button class="btn btn--quiet" style="margin-top:6px"
+          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}`, curLayout().name)}
 
   ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
@@ -3881,7 +3909,7 @@ function playbook(){
   ${(()=>{ const ss = selfScout();
     return sec("What you have called", ss.n
       ? `${ss.tell >= 0.5 ? `<p class="warn">${Math.round(ss.tell*100)}% of your last ${ss.recent.length}
-          calls have been <b>${esc((BREAKS[ss.top[0]]||{}).name||ss.top[0])}</b>. Anyone filming you has that too.</p>`
+          calls have been <b>${esc(callName(ss.top[0]))}</b>. Anyone filming you has that too.</p>`
         : `<p class="lede">Counted from the calls you logged on this field. Nothing here is a prediction —
           it is the same arithmetic a team watching your film would do.</p>`}
         <div class="assigns">
@@ -3889,7 +3917,7 @@ function playbook(){
             const pct = Math.round(n/ss.n*100);
             return `<div class="assign" style="flex-wrap:wrap">
               <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
-              <span class="assign__body"><span class="assign__job">${esc((BREAKS[k]||{}).name||k)}</span>
+              <span class="assign__body"><span class="assign__job">${esc(callName(k))}</span>
               <span class="assign__who">${pct}% of ${ss.n} logged here</span></span>
               <span class="bar" style="flex:1 0 100%;margin-top:6px"><i style="width:${pct}%;background:${
                 ss.top && k===ss.top[0] && ss.tell>=0.5 ? "var(--warn)" : "var(--accent)"}"></i></span>
@@ -3898,7 +3926,7 @@ function playbook(){
         <div class="assigns" style="margin-top:var(--s3)">
           ${ss.recent.map((c,i)=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${c.pt}</span>
-            <span class="assign__body"><span class="assign__job">${esc((BREAKS[c.script]||{}).name||c.script)}</span>
+            <span class="assign__body"><span class="assign__job">${esc(callName(c.script))}</span>
             <span class="assign__who">point ${c.pt}${c.vs?" · vs "+esc(c.vs):""}</span></span>
             <button class="btn btn--danger" onclick="unlogCall(${i})">Undo</button>
           </div>`).join("")}
@@ -4009,7 +4037,7 @@ function repView(){
       and you are calling it, not reading it.</p>
     <div class="field-wrap">${fieldSVG({static:true})}</div>
     ${r.running ? `<div class="seg seg--wrap">
-        ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(v.name)}</button>`).join("")}
+        ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(callName(k))}</button>`).join("")}
       </div>` : ""}
     <div class="facts">
       <span class="fact"><b>${sc.right}/${sc.n}</b><span>Right</span></span>
@@ -4028,8 +4056,8 @@ function repView(){
     </div>
     ${sc.n ? `<div class="assigns">${(r.log||[]).slice(0,10).map(x=>`<div class="assign">
         <span class="assign__n" style="background:${x.right?"var(--ok)":"var(--red)"};color:${x.right?"#06210f":"#fff"};font-size:11px">${x.right?"✓":"✕"}</span>
-        <span class="assign__body"><span class="assign__job">${esc((BREAKS[x.ask]||{}).name||x.ask)}</span>
-        <span class="assign__who">${x.right?"":`you said ${esc((BREAKS[x.said]||{}).name||x.said)} · `}${(x.ms/1000).toFixed(1)}s</span></span>
+        <span class="assign__body"><span class="assign__job">${esc(callName(x.ask))}</span>
+        <span class="assign__who">${x.right?"":`you said ${esc(callName(x.said))} · `}${(x.ms/1000).toFixed(1)}s</span></span>
       </div>`).join("")}</div>` : ""}`,
     r.running ? "drill running" : done ? "stopped" : curLayout().name)}`;
 }
@@ -4435,7 +4463,7 @@ function tally(){
     </div>
     ${S.tallyPick?`<div class="seg seg--wrap">
       ${Object.entries(BREAKS).map(([k,v])=>`<button class="${S.script===k?"on":""}"
-        onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(v.name)}</button>`).join("")}
+        onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
     </div>`:""}
     ${(() => {
       const n = loggedCalls().filter(c => c.m === S.matchId).length;
@@ -4800,7 +4828,7 @@ function scout(){
       ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
-          ts ? `${esc((BREAKS[ts]||{}).name||ts)}, logged ${n} time${n===1?"":"s"}` : "their call not logged yet, so this is yours mirrored"}</span>`; })():""}
+          ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their call not logged yet, so this is yours mirrored"}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
@@ -5576,7 +5604,7 @@ function scoutBreakouts(){
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(v.name)}</button>`).join("")}
+      ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(callName(k))}</button>`).join("")}
     </div>
     <p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`,
     esc(R.name))
@@ -5591,7 +5619,7 @@ function scoutBreakouts(){
           const pct=Math.round(n/total*100);
           return `<div class="assign" style="flex-wrap:wrap">
             <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
-            <span class="assign__body"><span class="assign__job">${esc((BREAKS[k]||{}).name||k)}</span>
+            <span class="assign__body"><span class="assign__job">${esc(callName(k))}</span>
             <span class="assign__who">${pct}% of ${total} seen</span></span>
             <span class="bar" style="flex:1 0 100%;margin-top:6px"><i style="width:${pct}%;background:var(--accent)"></i></span>
           </div>`;}).join("")}</div>
@@ -5600,7 +5628,7 @@ function scoutBreakouts(){
       total?total+" seen":"")
   + (seen.length?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
         <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt}</span>
-        <span class="assign__body"><span class="assign__job">${esc(b.script ? ((BREAKS[b.script]||{}).name||b.script) : "Where they went")}</span>
+        <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
         <span class="assign__who">point ${b.pt}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
         <button class="btn btn--danger" onclick="unlogTheirBreak('right',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
@@ -5704,7 +5732,7 @@ function scoutCounter(){
       esc(pitNamed("left") ? pitOf("left").name : "your team")}</b> against ${esc(R.name)}'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
     ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
       return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
-        <b>${esc((BREAKS[f[0][0]]||{}).name||f[0][0])}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
+        <b>${esc(callName(f[0][0]))}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
         <span class="rank__n">${i+1}</span>
@@ -5726,12 +5754,12 @@ function scoutCounter(){
         <div class="assigns">
           ${rows.map(k=>`<div class="assign" style="flex-wrap:wrap">
             <span class="assign__n" style="background:${seen[k]?"var(--accent)":"var(--panel-2)"};color:${seen[k]?"#fff":"var(--dim)"};font-size:11px">${seen[k]||"·"}</span>
-            <span class="assign__body"><span class="assign__job">${esc(BREAKS[k].name)}</span>
+            <span class="assign__body"><span class="assign__job">${esc(callName(k))}</span>
             <span class="assign__who">${seen[k]?`seen ${seen[k]} time${seen[k]===1?"":"s"}`:"not seen yet"}</span></span>
             <span class="assign__ctl" style="flex-basis:100%">
               <select onchange="setAnswer('right','${k}',this.value)">
                 <option value="">— no answer written down —</option>
-                ${Object.entries(BREAKS).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(v.name)}</option>`).join("")}
+                ${Object.entries(BREAKS).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
               </select>
             </span>
           </div>`).join("")}
@@ -6140,6 +6168,7 @@ const HELP = {
          "Play break runs it, so you can watch who leaves first.",
          "Face and Shot set where each man looks and what he lanes.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
+         "The twelve are named your way. Team names them once and every screen uses your word.",
          "Log it records the call you actually made, which is what self-scout counts."],
     watch:"Self-scout only knows the calls you logged. If you never tap Log it, it has nothing to tell you."},
   "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
@@ -6218,6 +6247,7 @@ const HELP = {
   "more/team": {t:"Team", w:"Your roster, and what you call each bunker.",
     how:["Add players with their numbers and positions.",
          "Rename any bunker to your team's word for it. It shows everywhere.",
+         "Break calls names the twelve your way — what you shout, not what the app calls it.",
          "The squad code lets a player join without an account."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Pick the player, score him, write the reason.",
@@ -6257,6 +6287,7 @@ const HELP_Q = [
   ["Do I need a signal?", "No. The app makes no network calls at all. Everything is on the phone and stays there."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
+  ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. Your word then shows on Playbook, on the point sheet, on Scout and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
 ];
 
@@ -6497,7 +6528,28 @@ function moreBody(k){
             <button class="btn btn--danger" onclick="clearPlayerCall(${jsq(who)},${jsq(id)})">Clear</button></div>`;
         }).join("")}</div>`:""}
       <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>`,
-      named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName);
+      named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName)
+    + (() => {
+      const mine = S.breakCalls || {};
+      const n = Object.keys(BREAKS).filter(x => (mine[x] || "").trim()).length;
+      return sec("Break calls", `<p class="lede">What your team shouts for each of the twelve. Your word
+        replaces the app's on Playbook, on the point sheet, on Scout and everywhere else a call is
+        printed. Leave one blank to keep the app's name.</p>
+      <div class="assigns">${Object.keys(BREAKS).map(x => `<div class="assign">
+        <span class="assign__body">
+          <input id="brc-${x}" value="${esc((mine[x] || "").trim())}" maxlength="28"
+            placeholder="${esc(BREAKS[x].name)}" onchange="setBreakCall('${x}')"
+            aria-label="What we call ${esc(BREAKS[x].name)}"/>
+          ${/* Only once he has renamed it. Until then the box already shows the
+                app's name as its placeholder, and printing it again underneath
+                is the same word twice on nine rows out of twelve. */""}
+          ${(mine[x] || "").trim() ? `<span class="assign__who">${esc(BREAKS[x].name)}</span>` : ""}</span>
+      </div>`).join("")}</div>
+      ${n ? `<button class="btn btn--danger" onclick="clearBreakCalls()">Put the app's names back</button>` : ""}
+      <p class="note">A rename changes the label, never the record. Every call you have logged is kept
+        as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>`,
+        n ? n + " renamed" : "Twelve calls");
+    })();
   }
   if(k==="movement"){
     const list=curLayout().bunkers;

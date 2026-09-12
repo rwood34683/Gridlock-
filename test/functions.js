@@ -3535,6 +3535,77 @@ const ROSTER = [
       await ev(() => document.querySelectorAll(".field-wrap svg.field").length)];
     check(`${name} is a table, with no break drawn over it`, runners === 0, `${fields} field(s), ${runners} runners`);
   }
+  /* ------------------------------------------ the app speaks the coach's words */
+  G("The calls are named the way the team says them");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
+  check("out of the box the app uses its own names",
+    await ev(() => breakName() === BREAKS.snake.name));
+  // Log one first, so the sheets that only print a call they have actually seen
+  // have one to print. The header uppercases its line in CSS, so innerText
+  // comes back as ROCKET — every match here is deliberately case-insensitive.
+  await ev(() => { window.set({ breakCalls: { snake: "Rocket" } }); window.logCall(); });
+  const saysRocket = async st => {
+    await ev(x => window.set(x), st); await page.waitForTimeout(90);
+    return ev(() => { const t = document.getElementById("root").innerText;
+      return /rocket/i.test(t) && !new RegExp(BREAKS.snake.name, "i").test(t); });
+  };
+  for (const [label, st] of [["Playbook", { tab: "playbook", pbView: null }],
+                             ["the point sheet", { tab: "tally" }],
+                             ["Scout", { tab: "scout", scoutTab: "matchup" }],
+                             ["Counter", { tab: "scout", scoutTab: "counter" }],
+                             ["Cards", { tab: "playbook", pbView: "cards" }],
+                             ["Matches", { tab: "more", more: "matches", pbView: null }]])
+    check(`${label} says the coach's word and not the app's`, await saysRocket(st));
+  check("and so does the line in the header", await ev(() =>
+    /ROCKET/i.test(document.querySelector(".ctx__line").innerText)));
+  // The record is the break, never the label, or a rename would rewrite history.
+  check("a logged call keeps the break, not the word",
+    await ev(() => (S.calls || [])[0].script === "snake"));
+  check("renaming re-labels a call logged before the rename", await ev(() => {
+    window.set({ breakCalls: { snake: "Tomahawk" } });
+    return callName((S.calls || [])[0].script) === "Tomahawk";
+  }));
+  check("putting the app's names back leaves the logged calls alone", await ev(() => {
+    window.clearBreakCalls();
+    return callName("snake") === BREAKS.snake.name && (S.calls || [])[0].script === "snake";
+  }));
+  check("a blank word is not a name", await ev(() => {
+    window.set({ breakCalls: { snake: "   " } });
+    return callName("snake") === BREAKS.snake.name;
+  }));
+  check("the words travel in a copy, and in a squad copy", await ev(() => {
+    window.set({ breakCalls: { snake: "Rocket" } });
+    const all = JSON.parse(copyPayload("all")).data, squad = JSON.parse(copyPayload("squad")).data;
+    return copyDataError(all) === "" && all.breakCalls.snake === "Rocket"
+        && squad.breakCalls.snake === "Rocket";
+  }));
+  check("a copy carrying a broken word is refused", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data; d.breakCalls = { snake: 7 };
+    return copyDataError(d) === "breakCalls";
+  }));
+  check("Team is where the twelve are named", await ev(() => {
+    window.set({ tab: "more", more: "team", breakCalls: {} });
+    return document.querySelectorAll("#root input[id^='brc-']").length === Object.keys(BREAKS).length;
+  }));
+  check("a renamed call still shows which of the twelve it is", await ev(() => {
+    window.set({ breakCalls: { snake: "Rocket" } });
+    const t = document.getElementById("root").innerText;
+    return t.includes(BREAKS.snake.name);
+  }));
+  check("an un-renamed one says the app's name once, not twice", await ev(() => {
+    window.set({ breakCalls: {} });
+    const t = document.getElementById("root").innerText;
+    return !t.includes(BREAKS.conserve.name);        // placeholder only
+  }));
+  check("Playbook points at it until he has used it once", await ev(() => {
+    window.set({ tab: "playbook", more: null, breakCalls: {} });
+    const before = /Name the twelve/.test(document.getElementById("root").innerText);
+    window.set({ breakCalls: { snake: "Rocket" } });
+    const after = /Name the twelve/.test(document.getElementById("root").innerText);
+    window.set({ breakCalls: {} });
+    return before && !after;
+  }));
+
   /* -------------------------------------------------- the names are a layer */
   G("Bunker codes are a layer, not the wallpaper");
   const codesOn = () => ev(() => {
