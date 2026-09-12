@@ -381,6 +381,20 @@ svg.field{width:100%;height:auto;display:block}
 }
 .ps button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
+/* the breakout sheet on Tally — one bunker, one man, everything you saw */
+.tsheet{border:1px solid var(--accent);border-radius:var(--r-md);padding:var(--s3);background:var(--panel);
+  display:flex;flex-direction:column;gap:var(--s2)}
+.tsheet .pad{margin-top:0}
+.tsheet .fld{margin-top:var(--s1)}
+svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
+.tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
+/* On a tablet the field is most of the screen, so the sheet under it was off
+   it. Past 900 px the questions stand beside the field instead. */
+@media (min-width:900px){
+  .tally-chart:has(.tsheet){display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,36%);align-items:start;gap:var(--s4)}
+}
+@keyframes tsel{from{opacity:.55}to{opacity:1}}
+
 /* the 8-way face pad the spec asks for */
 .pad{
   flex-basis:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
@@ -855,6 +869,19 @@ function editFingerprint(){
   for(const k in all) if(k.startsWith(pre)) out += k + JSON.stringify(all[k]);
   return out;
 }
+// The routed paths for a call on this field, unedited. Cached by call, the
+// same as the current one, so drawing their break every animation frame does
+// not route it every animation frame.
+function routedFor(script){
+  const rk = S.layoutKey + "|" + script;
+  return _routeCache[rk] || (_routeCache[rk] = breakPaths(S.layoutKey, script));
+}
+// The call the right pit has been seen running most on this field, if one has
+// been logged against them. Nothing is guessed: no log, no call.
+function theirScript(){
+  const hit = breakFreq("right").find(([k]) => BREAKS[k]);
+  return hit ? hit[0] : null;
+}
 function currentPaths(){
   const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${editFingerprint()}`;
   const hit = _drawCache[k];
@@ -875,7 +902,12 @@ function currentPaths(){
 const _runCache = {};
 function drawnRun(p, legs, sx, sy){
   const sm = S.smoothOn === false ? 0 : 1;
-  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${p.id}|${sx}|${sm}|${JSON.stringify(p.via||[])}`;
+  // Keyed on the legs themselves. It was keyed on the path number and the
+  // current call, and their break drawn on Scout carries the same numbers under
+  // the same call, mirrored — so the mirrored curve was handed back for your
+  // own path on Playbook, and the sampled run cut through two bunkers on Lone
+  // Star that the real route clears.
+  const k = `${sx}|${sy}|${sm}|${JSON.stringify(legs)}`;
   return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
 }
 /* Rounded corners, or the line as it is routed.
@@ -1199,6 +1231,7 @@ const defaultState = () => ({
   // the line; Reset puts them back there.
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
+  scoutShow:"them",               // the Scout field draws one pit at a time: theirs, yours, or both
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -1220,6 +1253,8 @@ const defaultState = () => ({
   roster:[],                      // yours, from Team — not two invented players
   messages:[],
   tally:[],
+  breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
+  tallySel:null, tallyDraft:null, tallyTrace:false, tallyLast:"", tallyRead:"", tallyValue:"us",
   calls:[],                       // what you actually called, for self-scout
   pbView:null,                    // null | "cards" | "rep" — Playbook's chips
   rep:{running:false, ask:null, at:0, log:[]},   // the recognition drill
@@ -1444,7 +1479,7 @@ function matchLabel(m){
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents)
+  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents)
        + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
 }
 /* Who the match is against.
@@ -1496,7 +1531,7 @@ function derivedState(){
 function lastPoint(mid){
   const id = mid || S.matchId;
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
-  const pts = [...hit(S.tally), ...hit(S.results), ...hit(S.calls),
+  const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls),
                ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
@@ -1946,7 +1981,7 @@ const COPY_VERSION = 1;
 
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","calls","moves","assessments","walk","codes",
+const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","teamCode","codes"];
@@ -1963,7 +1998,7 @@ function copyPayload(scope){
 }
 function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
-  const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"],
+  const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"], [n("breakouts"), "breakout"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
                 [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"]];
   return bits.filter(b => b[0])
@@ -1980,6 +2015,7 @@ const SAME = {
   voiceEvents: o => o.id,
   roster:      r => (r.name || "").toLowerCase(),
   tally:       o => [o.m, o.pt, o.side, o.name, o.at].join("|"),
+  breakouts:   b => b.id,
   moves:       m => [m.m, m.pt, m.who, m.from, m.to, m.at].join("|"),
   assessments: a => [a.m, a.who, a.pt, a.at].join("|"),
   calls:       c => [c.m, c.pt, c.at, c.script].join("|"),
@@ -2104,11 +2140,22 @@ function copyDataError(data){
     roster:list(v => nameRow(v) && record(v, {p:str, s:str})),
     scout:map(v => record(v, {name:str, notes:str, tend:str, threat:num,
       players:list(p => record(p, {name:str, wire:str, note:str, threat:num,
-      num:v => str(v)||num(v), plant:strings})), breaks:list(row), answers:strings})),
+      num:v => str(v)||num(v), plant:strings})),
+      // A logged break may carry the five bunkers they were seen at. That list
+      // is the one non-scalar on the row; a copy with it in was being refused.
+      breaks:list(v => record(v, {plants:list(str)}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
+      answers:strings})),
     teams:map(list(nameRow)),
     left:v => row(v) && (v.name === undefined || str(v.name)),
     right:v => row(v) && (v.name === undefined || str(v.name)),
     tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
+    // A breakout is the one row with a list in it — the route he ran, up to
+    // five points in feet. Everything else on it is a scalar.
+    breakouts:list(v => record(v, {route:list(p => row(p) && num(p.x) && num(p.y))})
+      && ["id","m","layout","bunker"].every(k => str(v[k]) && v[k].length > 0)
+      && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)
+      && (v.alive === null || v.alive === undefined || typeof v.alive === "boolean")
+      && Object.entries(v).every(([k, x]) => k === "route" || scalar(x))),
     arrival:v => row(v) && record(v, {side:v=>["left","right"].includes(v),startEnd:v=>["left","right"].includes(v),
       team:str,player:str,layout:str,matchId:str,point:v=>v===null || Number.isInteger(v)&&v>0,
       startBunker:str,destination:str,sightingBunker:str,shotAt:str,notice:str,scope:str,route:str,pick:str,details:v=>typeof v==="boolean"}),
@@ -2955,10 +3002,19 @@ function fieldSVG(opts={}, runnersOnly){
     return out;
   }).join("");
 
-  let paths = opts.noPaths ? "" : runner(brPaths, opts.color||"#e5342f", 0);
-  if(opts.both){
+  /* Two fives at once was ten lines and ten numbers crossing at the fifty,
+     and with the same call mirrored both plants landed on the same bunker. So
+     the Scout field draws one pit at a time unless asked for both, and the
+     blue side is their call — the one logged most against them on this field
+     — not yours turned round. With nothing logged it falls back to the mirror
+     and the legend says so. */
+  const show = opts.both ? (opts.show || "both") : "us";
+  let paths = (opts.noPaths || show === "them") ? "" : runner(brPaths, opts.color||"#e5342f", 0);
+  if(opts.both && show !== "us"){
     const flip=q=>[150-q[0],q[1]];
-    paths += runner(brPaths.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
+    const ts = theirScript();
+    const theirs = ts ? routedFor(ts) : brPaths;
+    paths += runner(theirs.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
   }
 
   // Sightlines replace the break paths when a source bunker is picked.
@@ -3930,7 +3986,7 @@ window.playPath = () => {
 // Repaint just the field SVGs. A full render() per frame rebuilt the entire
 // document — including the division table — sixty times a second.
 function paintField(){
-  const opts = S.tab==="scout" ? {both:true, outs:!!S.outsOn, their:!!S.theirOn} : {edit:S.editPath};
+  const opts = S.tab==="scout" ? {both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn} : {edit:S.editPath};
   const layer = fieldRunners(opts);
   document.querySelectorAll(".field-wrap[data-live]").forEach(el => {
     const g = el.querySelector("svg.field g.live");
@@ -3943,6 +3999,263 @@ function paintField(){
 /* ============================================================
    Tally — a point sheet, tap a player to mark him out
    ============================================================ */
+/* ============================================================
+   Tally — the hand chart a coach keeps, bunker first
+   ============================================================
+
+   The sheet was player-first: tap the man who went out. A coach on a sideline
+   charts the break the other way round — by bunker. Every man's breakout is
+   one row against the bunker he broke to: did he make it, was he battling in
+   or clean, which way he was shooting and at what, was he late, where he moved
+   after, and the route he ran to get there. Tap the bunker on the field, answer
+   what you saw, log it. The payoff is the one number a coach asked for: which
+   bunkers win us points and which lose them — counted from the results, never
+   modelled.
+
+   Each row carries the match, the point and the field, like everything else
+   logged here, so point 3 is point 3 of one game, and the field a bunker id
+   belongs to is never guessed. */
+const ROUTE_TYPES = ["Deep", "L", "Out", "Direct", "Tight", "Up & over"];
+const breakoutsHere = () => rowsHere(S.breakouts);
+const draft = () => S.tallyDraft || {};
+const selBunker = () => curLayout().bunkers.find(b => b.id === S.tallySel) || null;
+// Nearest bunker, no threshold. On Tally the whole field is the target: a tap
+// anywhere lands on something, and there is no dead ground to hunt for with a
+// gloved thumb between points.
+function nearestBunker(at){
+  let best = null, bestD = Infinity;
+  curLayout().bunkers.forEach(b => {
+    const d = Math.hypot(b.x - at[0], b.y - at[1]);
+    if(d < bestD){ bestD = d; best = b; }
+  });
+  return best;
+}
+// Which pit a man breaking to this bunker came from: yours run from the left,
+// and a bunker past the fifty is somebody else's plant. One tap says otherwise.
+const sideOfBunker = b => b.x < 75 ? "us" : "them";
+window.setDraft = patch => set({tallyDraft: {...draft(), ...patch}});
+window.selectBunker = id => {
+  const b = curLayout().bunkers.find(x => x.id === id); if(!b) return;
+  const d = draft(), same = S.tallySel === id;
+  // Switching bunkers keeps what was ticked — dead, battling in, the lane — and
+  // drops what belonged to the other bunker: the man, and the route to it.
+  const side = d.sideSet ? d.side : sideOfBunker(b);
+  set({tallySel:id, tallyTrace:false,
+       tallyDraft:{...d, side, player: same ? d.player : "", route: same ? (d.route || []) : []}});
+  // The sheet opens under the field, and on a phone that is below the fold: the
+  // coach tapped a bunker and saw nothing happen. Bring the field to the top so
+  // the field and the questions under it share the screen while he traces.
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+};
+window.tallyTap = at => {
+  const d = draft();
+  if(S.tallySel && S.tallyTrace){
+    const route = [...(d.route || [])];
+    // Tap a laid point again to flag it as a hold — he waited there before
+    // moving on. Tap it a third time and it is a plain point again. The reach
+    // is the same eight feet a point snaps to a bunker by, so the tap that laid
+    // a point is the tap that finds it.
+    const hit = route.findIndex(p => Math.hypot(p.x - at[0], p.y - at[1]) <= 8);
+    if(hit >= 0){ route[hit] = {...route[hit], dl: !route[hit].dl}; return setDraft({route}); }
+    if(route.length >= 5) return;
+    const near = nearestBunker(at);
+    const b = near && Math.hypot(near.x - at[0], near.y - at[1]) <= 8 ? near : null;
+    route.push(b ? {x:b.x, y:b.y, b:b.id, dl:false}
+                 : {x:Math.round(at[0]*2)/2, y:Math.round(at[1]*2)/2, b:"", dl:false});
+    return setDraft({route});
+  }
+  const b = nearestBunker(at); if(b) selectBunker(b.id);
+};
+window.tallyDone = () => set({tallySel:null, tallyTrace:false, tallyDraft:null});
+window.logBreakout = () => {
+  const b = selBunker(); if(!b) return;
+  const d = draft(), pt = S.point || 1, at = Date.now();
+  const side = d.side || sideOfBunker(b);
+  const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
+    m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
+    player:d.player || "", alive:d.alive === undefined ? null : d.alive,
+    shotFrom:d.alive === false ? (d.shotFrom || "") : "",
+    entry:d.entry || "", dir:d.dir == null ? null : d.dir, shootAt:d.shootAt || "",
+    delayed:!!d.delayed, movedTo:d.movedTo || "", movedDelayed:!!(d.movedTo && d.movedDelayed),
+    routeType:d.routeType || "",
+    route:(d.route || []).map(p => ({x:p.x, y:p.y, b:p.b || "", dl:!!p.dl})),
+    vs:matchVs(), script:S.script};
+  S.breakouts = [row, ...(S.breakouts || [])];
+  // A named man logged shot on the break is an out — the same out the columns
+  // record — so who is up and the log both move, and Bunker stats gets the
+  // bunker he was shot at without a second trip through the pickers.
+  if(row.alive === false && row.player)
+    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {})});
+  S.tallyLast = row.id;
+  S.tallySel = null; S.tallyTrace = false;
+  // The side sticks if the coach set it — he is working through their five —
+  // and everything else starts clean for the next man.
+  S.tallyDraft = d.sideSet ? {side, sideSet:true} : null;
+  save(S); render();
+};
+window.undoBreakout = id => {
+  const row = (S.breakouts || []).find(r => r && r.id === id); if(!row) return;
+  S.breakouts = (S.breakouts || []).filter(r => r !== row);
+  if(row.alive === false && row.player)
+    S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === row.m && o.pt === row.pt
+                                           && o.side === row.side && o.name === row.player));
+  if(S.tallyLast === id) S.tallyLast = "";
+  save(S); render();
+};
+// Right read or wrong read, ticked before the result and kept on it.
+window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
+
+// What each bunker has been worth to one side on this field, across every
+// match played here: how many broke to it, how many made it, and the points
+// won minus lost on the points they did. Nothing is weighted or modelled.
+function bunkerValue(side){
+  const won = new Map((S.results || []).filter(r => r && r.m).map(r => [r.m + "|" + r.pt, r.won]));
+  const by = {};
+  (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side).forEach(r => {
+    const t = by[r.bunker] = by[r.bunker] || {att:0, made:0, dead:0, won:0, lost:0};
+    t.att++;
+    if(r.alive === true) t.made++; else if(r.alive === false) t.dead++;
+    const w = won.get(r.m + "|" + r.pt);
+    if(w){ if(w === side) t.won++; else t.lost++; }
+  });
+  return Object.entries(by).map(([id, t]) => ({id, ...t, net:t.won - t.lost}))
+    .sort((a, b) => b.net - a.net || b.att - a.att);
+}
+function describeBreakout(r){
+  const bl = curLayout().bunkers;
+  const named = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id; };
+  const bits = [
+    `${r.player || (r.side === "them" ? "one of theirs" : "one of yours")} → ${named(r.bunker)}`,
+    r.alive === true ? "made it" : r.alive === false ? ("shot on the break" + (r.shotFrom ? " from " + named(r.shotFrom) : "")) : "",
+    r.entry === "battle" ? "battling in" : r.entry === "clean" ? "no pressure" : "",
+    r.dir != null && LANE_NAME[String(r.dir)] ? "shooting " + LANE_NAME[String(r.dir)] : "",
+    r.shootAt ? "at " + named(r.shootAt) : "",
+    r.delayed ? "delayed" : "",
+    r.movedTo ? "moved to " + named(r.movedTo) + (r.movedDelayed ? " late" : "") : "",
+    r.routeType ? r.routeType + " route" : (r.route || []).length ? `route, ${r.route.length} point${r.route.length === 1 ? "" : "s"}` : ""
+  ];
+  return bits.filter(Boolean).join(" · ");
+}
+// Everything the chart puts on the field, above the bunkers and under the tap
+// surface: what each bunker is worth, this point's men, and the one being logged.
+function tallyOverlay(){
+  const sx = 2, sy = 2, pt = S.point || 1;
+  const byId = Object.fromEntries(curLayout().bunkers.map(b => [b.id, b]));
+  let out = "";
+  bunkerValue("us").forEach(r => {
+    const b = byId[r.id]; if(!b) return;
+    const s2 = bunkerSize(b, sx, sy);
+    const col = r.net > 0 ? "#3ecf8e" : r.net < 0 ? "#e0a33a" : "#8d9092";
+    out += `<rect class="tally-worth" x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${col}" stroke-width="1.4" opacity=".9"/>`
+         + `<text x="${(b.x*sx+s2.h+2).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" font-size="7" font-weight="800" fill="${col}">${r.att}</text>`;
+  });
+  breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).forEach(r => {
+    const b = byId[r.bunker]; if(!b) return;
+    const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1, y = b.y*sy - s2.v + 1;
+    const col = r.side === "them" ? "#3d8bff" : "#e5342f";
+    out += `<g class="tally-man"><rect x="${(x-4.5).toFixed(1)}" y="${(y-4.5).toFixed(1)}" width="9" height="9" rx="2" fill="${col}" stroke="#efedeb" stroke-width="1"/>`
+         + (r.alive === false ? `<text x="${x.toFixed(1)}" y="${(y+2.7).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="900" fill="#fff">✕</text>` : "")
+         + `</g>`;
+  });
+  const sel = selBunker(), d = draft();
+  if(sel){
+    const side = d.side || sideOfBunker(sel), col = side === "them" ? "#3d8bff" : "#e5342f";
+    const pts = d.route || [];
+    if(pts.length){
+      // The route he ran, from his box through the points he was seen at to
+      // the bunker. Drawn only from what was tapped — a dashed leg is a hold.
+      const start = side === "us" ? [2, 60] : [148, 60];
+      const legs = [start, ...pts.map(p => [p.x, p.y])];
+      if(pts[pts.length-1].b !== sel.id) legs.push([sel.x, sel.y]);
+      for(let i = 1; i < legs.length; i++){
+        const a = legs[i-1], z = legs[i], hold = pts[i-1] && pts[i-1].dl;
+        const xy = `x1="${(a[0]*sx).toFixed(1)}" y1="${(a[1]*sy).toFixed(1)}" x2="${(z[0]*sx).toFixed(1)}" y2="${(z[1]*sy).toFixed(1)}"`;
+        out += `<line ${xy} stroke="#000" stroke-width="4.2" stroke-linecap="round" opacity=".75"/>`
+             + `<line class="tally-route" ${xy} stroke="${col}" stroke-width="2.2" stroke-linecap="round"${hold ? ' stroke-dasharray="5 4"' : ""}/>`;
+      }
+      pts.forEach(p => out += `<circle class="tally-pt" cx="${(p.x*sx).toFixed(1)}" cy="${(p.y*sy).toFixed(1)}" r="4" fill="${p.dl ? "#0b0c0d" : col}" stroke="#efedeb" stroke-width="1.4"/>`);
+    }
+    const s2 = bunkerSize(sel, sx, sy);
+    out += `<rect class="tally-sel" x="${(sel.x*sx-s2.h-4).toFixed(1)}" y="${(sel.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="5" fill="none" stroke="#efedeb" stroke-width="2"/>`;
+  }
+  return out;
+}
+// Tap the field on Tally: while tracing a route the tap is a point on it;
+// otherwise the nearest bunker opens for logging.
+(function tallyTapping(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "tally") return;
+    const surface = ev.target.closest("#tally-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    tallyTap(fieldFeet(svg, ev));
+  });
+})();
+
+// The sheet for one man at one bunker. Every question is a row of big buttons
+// a thumb can hit; nothing is required, and Log takes whatever was answered.
+function breakoutSheet(){
+  const b = selBunker(); if(!b) return "";
+  const d = draft(), pt = S.point || 1, bl = curLayout().bunkers;
+  const side = d.side || sideOfBunker(b);
+  const mine = fiveFor(pt).filter(Boolean).map(p => p.name);
+  const names = side === "us"
+    ? (mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
+    : ["1","2","3","4","5"].map(n => "#" + n);
+  const others = bl.filter(o => o.id !== b.id);
+  const far = others.filter(o => side === "us" ? o.x > 75 : o.x < 75);
+  const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
+    `<option value="${esc(o.id)}" ${val === o.id ? "selected" : ""}>${esc(callOf(o))} · ${esc(o.id)}</option>`).join("");
+  const seg = items => `<div class="seg seg--wrap">${items.map(([on, label, click]) =>
+    `<button class="${on ? "on" : ""}" onclick="${click}">${label}</button>`).join("")}</div>`;
+  const q = t => `<span class="sec__eyebrow" style="display:block;margin-top:var(--s2)">${t}</span>`;
+  const route = d.route || [];
+  const flip = (field, val, on) => `setDraft({${field}:${on ? "''" : jsq(val)}})`;
+  return `<div class="tsheet" id="tally-sheet">
+    <div class="btnrow" style="align-items:center">
+      <span class="grow"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
+        <span class="note" style="display:inline"> · ${esc(b.id)} · point ${pt}</span></span>
+      <button class="btn btn--quiet" onclick="tallyDone()">Done</button>
+    </div>
+    ${seg([[side === "us", "Your player", "setDraft({side:'us',sideSet:true,player:''})"],
+           [side === "them", "Theirs", "setDraft({side:'them',sideSet:true,player:''})"]])}
+    ${q("Who")}
+    ${seg([[!d.player, "No name", "setDraft({player:''})"],
+           ...names.map(n => [d.player === n, esc(n), `setDraft({player:${jsq(n)}})`])])}
+    ${q("Did he make it?")}
+    ${seg([[d.alive === true, "Made it", `setDraft({alive:${d.alive === true ? "null" : "true"}})`],
+           [d.alive === false, "Shot on the break", `setDraft({alive:${d.alive === false ? "null" : "false"}})`]])}
+    ${d.alive === false ? `<div class="fld"><label>Shot from</label>
+      <select onchange="setDraft({shotFrom:this.value})">${opts(far, d.shotFrom)}</select></div>` : ""}
+    ${q("How did he get in?")}
+    ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
+           [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
+    ${q("Shooting which way?")}
+    <div class="pad">${FACE_PAD.map(([g, deg]) =>
+      `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}"
+        onclick="setDraft({dir:${deg === null ? "null" : deg}})">${g}</button>`).join("")}</div>
+    <div class="fld"><label>Shooting at</label>
+      <select onchange="setDraft({shootAt:this.value})">${opts(others, d.shootAt)}</select></div>
+    ${q("Timing")}
+    ${seg([[!!d.delayed, d.delayed ? "✓ Delayed break" : "Delayed break", `setDraft({delayed:${!d.delayed}})`]])}
+    ${q("Moved to")}
+    <div class="fld"><label>Second bunker</label>
+      <select onchange="setDraft({movedTo:this.value})">${opts(others, d.movedTo)}</select></div>
+    ${d.movedTo ? seg([[!!d.movedDelayed, d.movedDelayed ? "✓ Delayed move" : "Delayed move", `setDraft({movedDelayed:${!d.movedDelayed}})`]]) : ""}
+    ${q("Route")}
+    <div class="btnrow">
+      <button class="btn ${S.tallyTrace ? "" : "btn--quiet"} grow" onclick="set({tallyTrace:${!S.tallyTrace}})">${
+        S.tallyTrace ? "Tracing — tap the field" : "Trace the route"}</button>
+      ${route.length ? `<button class="btn btn--quiet" onclick="setDraft({route:[]})">Clear route</button>` : ""}
+    </div>
+    <p class="note" style="margin:0">${route.length}/5 points${route.length ? " · tap a point again to mark a hold" : S.tallyTrace ? " · tap where he went, in order" : ""}</p>
+    ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
+    <button class="btn btn--lg btn--block" style="margin-top:var(--s3)" onclick="logBreakout()">✓&nbsp; Log this breakout</button>
+  </div>`;
+}
+
 function tally(){
   const pt=S.point||1;
   const sc=matchScore(), was=resultFor(pt);
@@ -3954,6 +4267,12 @@ function tally(){
   const thisPoint=outs.filter(o=>o.pt===pt);
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
   const alive=side=>5-thisPoint.filter(o=>o.side===side).length;
+  const sel = selBunker();
+  const chart = breakoutsHere();
+  const chartPt = chart.filter(r => r.pt === pt);
+  const last = chart.find(r => r.id === S.tallyLast && r.pt === pt);
+  const reads = (S.results || []).filter(r => r && r.m === S.matchId && r.read);
+  const right = reads.filter(r => r.read === "right").length;
 
   const col=(side,label,colour,names)=>`<div>
     <h4 class="sec__eyebrow" style="color:${colour};margin-bottom:8px">${label} · ${alive(side)} up</h4>
@@ -3965,16 +4284,54 @@ function tally(){
       </button>`).join("")}
     </div></div>`;
 
-  return `${tip("tally","Tap a player the moment he goes out. Next point clears the sheet and keeps the log.")}
+  // Where the points come from: the table under the field, one side at a time.
+  const valueSide = S.tallyValue === "them" ? "them" : "us";
+  const value = bunkerValue(valueSide);
+  const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
+  const best = value[0], worst = value[value.length-1];
+  const netColour = n => n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)";
+  const valueSeg = `<div class="seg">
+      <button class="${valueSide==="us"?"on":""}" onclick="set({tallyValue:'us'})">Your five</button>
+      <button class="${valueSide==="them"?"on":""}" onclick="set({tallyValue:'them'})">Theirs</button>
+    </div>`;
+  const valueRow = r => `<tr><td>${named(r.id)} <span class="note" style="display:inline">${esc(r.id)}</span></td>
+        <td class="num">${r.att}</td>
+        <td class="num">${r.made+r.dead ? Math.round(100*r.made/(r.made+r.dead))+"%" : "—"}</td>
+        <td class="num" style="font-weight:800;color:${netColour(r.net)}">${r.net>0?"+":""}${r.net}</td></tr>`;
+  const breaks = n => n + " break" + (n===1 ? "" : "s");
+  const valueTable = `<div class="tblwrap"><table class="tbl">
+      <thead><tr><th>Bunker</th><th>Breaks</th><th>Made it</th><th>Net pts</th></tr></thead>
+      <tbody>${value.map(valueRow).join("")}</tbody></table></div>
+    ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
+    ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
+    <p class="note">Every match on ${esc(curLayout().name)}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.</p>`;
+  const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
-  ${sec("Point sheet", `<div class="facts">
+  return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
+
+  ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
         <span>${esc(matchVs()||"Them")} · point ${pt}</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
-      <span class="fact"><b>${sc.us+sc.them}</b><span>Points played</span></span>
+      <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
+    <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
+      amber costs you. The number is how often your five have broken to it.</p>
+    <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
+    ${sel ? breakoutSheet()
+          : last ? `<div class="btnrow" style="align-items:center">
+              <span class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>. Tap the next man's bunker.</span>
+              <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>`
+          : ""}</div>
+    ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
+      ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
+         You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`
+      : ""}`,
+    matchLabel(curMatch()))}
+
+  ${sec("Point sheet", `
   ${/* The call, on the sheet.
        *
        * The loop on a sideline is: point ends, who won it, what are we calling,
@@ -3985,7 +4342,7 @@ function tally(){
        * there and the field redraws to match. Logging is here too, because a
        * coach who never opens Playbook was never logging, and self-scout is
        * only worth anything if it has the calls in it. */""}
-    <div class="sec__head" style="margin-top:var(--s4)">
+    <div class="sec__head">
       <span class="sec__eyebrow">The call</span></div>
     <div class="call" style="padding:var(--s3) var(--s4)">
       <div class="call__name" style="font-size:var(--t-xl)">${esc(breakName())}</div>
@@ -4005,11 +4362,7 @@ function tally(){
       return n ? `<p class="note">${n} call${n===1?"":"s"} logged on this sheet. Playbook counts how
         predictable you have been on this field.</p>` : "";
     })()}
-    <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out.</p>
-    ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
-      ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
-         You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`
-      : ""}
+    <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out. A man logged shot on the break above is already here.</p>
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
@@ -4022,8 +4375,12 @@ function tally(){
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
       ${col("them",esc(matchVs()||"Them"),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
-    <p class="note">Who won it? That is the whole score, and it sets Ahead / Even / Must-score
-      on the counter-picker for you.</p>
+    <p class="note" style="max-width:56ch">Right read or wrong read, then who won it. That is the whole score, and it
+      sets Ahead / Even / Must-score for you.</p>
+    <div class="seg seg--wrap">
+      <button class="${S.tallyRead==="right"?"on":""}" onclick="setRead('right')">✓ Right read</button>
+      <button class="${S.tallyRead==="wrong"?"on":""}" onclick="setRead('wrong')">✗ Wrong read</button>
+    </div>
     <div class="btnrow">
       <button class="btn grow btn--lg" onclick="endPoint('us')">We won it</button>
       <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">They won it</button>
@@ -4032,8 +4389,22 @@ function tally(){
       ${pt > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
     </div>
+    ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
+      · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
     <button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`,
     matchLabel(curMatch()))}
+
+  ${sec("Where the points come from", valueSeg + (value.length ? valueTable : valueEmpty), curLayout().name)}
+
+  ${chart.length ? sec("Breakouts", `<div class="assigns">
+      ${chart.slice(0,40).map(r=>`<div class="assign">
+        <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${r.pt}</span>
+        <span class="assign__body"><span class="assign__job">${esc(describeBreakout(r))}</span>
+        <span class="assign__who">${r.side==="us"?"your player":esc(r.vs||matchVs()||"theirs")}${r.layout!==S.layoutKey?" · another field":""}</span></span>
+        <button class="btn btn--danger" onclick="undoBreakout(${jsq(r.id)})">Undo</button>
+      </div>`).join("")}
+    </div>${chart.length>40?`<p class="note">Showing the last 40 of ${chart.length}.</p>`:""}`,
+    chart.length+" on this sheet") : ""}
 
   ${sec("Log", outs.length?`<div class="assigns">
       ${outs.slice(0,40).map(o=>{
@@ -4046,7 +4417,6 @@ function tally(){
         // so rendering them for the whole log costs thousands of nodes a
         // repaint — and you should not be editing an old point by accident.
         const live = !!o.pt && o.pt === pt;
-        const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
         const where = [o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
           o.shotAt?`at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
           .filter(Boolean).join(" · ");
@@ -4105,17 +4475,20 @@ window.setOutBunker = (i, field, val) => {
   S.tally = t; save(S); render();
 };
 
-window.markOut = (side,name) => {
+// One out row, whichever way it was logged: a tap on the man in the columns,
+// or a man logged dead on the break chart. Refuses the same man twice a point.
+function outRow(side, name, extra = {}){
   const pt=S.point||1;
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.m===S.matchId && o.pt===pt
                                     && o.side===side && o.name===name);
-  if(already) return;
+  if(already) return false;
   // Enough context to count honestly afterwards: which break was called, on
   // which field, against whom. Without these an out is a number with no story.
   S.tally=[{pt,side,name,at:Date.now(),m:S.matchId,
-            script:S.script, layout:S.layoutKey, vs:matchVs()},...(S.tally||[])];
-  save(S); render();
-};
+            script:S.script, layout:S.layoutKey, vs:matchVs(), ...extra},...(S.tally||[])];
+  return true;
+}
+window.markOut = (side,name) => { if(outRow(side, name)){ save(S); render(); } };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
 /* Who won it, and on to the next. One tap, because it happens between every
@@ -4124,7 +4497,12 @@ window.nextPoint = () => { S.point=(S.point||1)+1; save(S); render(); };
 window.endPoint = won => {
   const pt = S.point || 1;
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
-               {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now()}];
+               {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
+                // Was the call the right read? Ticked before the result, kept on it.
+                ...(S.tallyRead ? {read: S.tallyRead} : {})}];
+  S.tallyRead = "";
+  // The next point starts with the field clear: nothing half-logged carries.
+  S.tallySel = null; S.tallyTrace = false; S.tallyLast = "";
   // The score is the read. Ahead / Even / Must-score follows it rather than
   // waiting to be told.
   S.matchState = derivedState();
@@ -4274,8 +4652,19 @@ function outsLogged(){
  */
 function matchStrip(){
   const pt = S.point || 1, m = curMatch();
+  // Every game you have kept, newest first. Picking one opens it on its last
+  // point — the same as Open on More → Matches — so switching games between
+  // a scouting look and a sheet is one tap, not a trip through More.
+  const games = [...(S.matches || [])].sort((a, b) => b.at - a.at);
+  const pick = games.length > 1
+    ? `<select aria-label="Game" onchange="openMatch(this.value)" style="flex:1 1 160px;font-size:var(--t-sm)">
+        ${games.map(g => { const sc = scoreOf(g.id);
+          return `<option value="${esc(g.id)}" ${g.id === S.matchId ? "selected" : ""}>${esc(matchLabel(g))}${sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : ""}</option>`; }).join("")}
+      </select>`
+    : `<span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
-    <span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b> · point ${pt}</span>
+    ${pick}
+    <span class="note" style="margin:0;white-space:nowrap">point ${pt}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
     <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
     <button class="btn" onclick="newMatch()">New match</button>
@@ -4285,8 +4674,11 @@ function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
   const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>`;
-  if(view === "arrival") return navigation + scoutArrival();
-  if(view === "voice") return navigation + scoutVoice();
+  // The match and the point ride under the views on every one of them. The
+  // strip sat under the pits, which Arrival and Voice do not draw, so a coach
+  // on How did they get there had no Next point and no way to switch games.
+  if(view === "arrival") return navigation + matchStrip() + scoutArrival();
+  if(view === "voice") return navigation + matchStrip() + scoutVoice();
   // Every sub-tab but the board reads off the team in the right pit. With
   // nobody in it there is nothing to say, and saying it about whoever the app
   // picked is how a coach ends up scouting a team he is not playing. Division
@@ -4299,21 +4691,28 @@ function scout(){
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
   ${navigation}
-
-  <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
   ${matchStrip()}
 
-  ${sec("The break, both pits", `<div class="toggles">
+  <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
+
+  ${sec("The break", `<div class="seg">
+      <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">Theirs</button>
+      <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
+      <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
+    </div>
+    <div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
     </div>
-    <div class="field-wrap" data-live>${fieldSVG({both:true, outs:!!S.outsOn, their:!!S.theirOn})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")}</span>
-      <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")}</span>
+      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
+      ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
+        return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
+          ts ? `${esc((BREAKS[ts]||{}).name||ts)}, logged ${n} time${n===1?"":"s"}` : "their call not logged yet, so this is yours mirrored"}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
