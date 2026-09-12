@@ -5421,7 +5421,11 @@ function scout(){
   // strip sat under the pits, which Arrival and Voice do not draw, so a coach
   // on How did they get there had no Next point and no way to switch games.
   if(view === "arrival") return navigation + matchStrip() + scoutArrival();
-  if(view === "voice") return navigation + matchStrip() + scoutVoice();
+  // The house rule is not optional on one sub-tab. Arrival carries its own
+  // version of this line; the voice log had none at all.
+  if(view === "voice") return navigation + matchStrip() + scoutVoice()
+    + `<p class="aid"><b>A training aid, not a prediction.</b> Everything here is counted from what you
+       logged or scored yourself. Officials govern the live call.</p>`;
   // Every sub-tab but the board reads off the team in the right pit. With
   // nobody in it there is nothing to say, and saying it about whoever the app
   // picked is how a coach ends up scouting a team he is not playing. Division
@@ -5438,7 +5442,10 @@ function scout(){
 
   <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
 
-  ${sec("The break", `<div class="seg">
+  ${/* Games and Division are tables. A break drawn over a list of twenty teams
+       is a call nobody made on that screen, so those two get the pits and the
+       match strip and nothing else. */""}
+  ${["games","board"].includes(view) ? "" : sec("The break", `<div class="seg">
       <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">Theirs</button>
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
@@ -5464,8 +5471,13 @@ function scout(){
       the pit card above and set <b>Plants on</b> for each man you have seen set up.</div>`:""}
     ${S.outsOn&&!outsLogged()?`<div class="empty">No outs logged on ${esc(curLayout().name)} yet. Tally an out
       and set <b>Shot at</b> on it, and the field marks where the point was decided.</div>`:""}
-    <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
-      counted from what you logged or scored yourself. Officials govern the live call.</p>`)}
+`)}
+
+  ${/* The house rule outranks the layout: this line is on Scout whichever
+       sub-tab is open, so it stays outside the break section that Games and
+       Division do without. */""}
+  <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
+    counted from what you logged or scored yourself. Officials govern the live call.</p>
 
   ${body}`;
 }

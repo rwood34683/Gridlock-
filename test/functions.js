@@ -3487,6 +3487,24 @@ const ROSTER = [
   await ev(() => window.set({ tab:"scout", scoutTab:"layers", right:{name:"Rejects"} }));
   check("Scout layers draws no break runners over the layers",
     await ev(() => document.querySelectorAll(".field-wrap:not([data-live]) svg.field g.live circle[r='6']").length) === 0);
+  // Games and Division are tables. The break section is gone from those two.
+  for (const [v, name] of [["games","Scout games"], ["board","Scout division"]]) {
+    await ev(x => window.set({ tab:"scout", scoutTab:x, right:{name:"Rejects"} }), v);
+    const [runners, fields] = [
+      await ev(() => document.querySelectorAll(".field-wrap svg.field g.live circle[r='6']").length),
+      await ev(() => document.querySelectorAll(".field-wrap svg.field").length)];
+    check(`${name} is a table, with no break drawn over it`, runners === 0, `${fields} field(s), ${runners} runners`);
+  }
+  check("the training-aid line is on every Scout view, tables and voice included", await ev(() => {
+    return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
+      return /training aid, not a prediction/i.test(document.getElementById("root").textContent); });
+  }));
+  for (const v of ["matchup","anticipate","counter"]) {
+    await ev(x => window.set({ tab:"scout", scoutTab:x }), v);
+    check(`Scout ${v} keeps the break section`,
+      await ev(() => document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']").length) === 5);
+  }
+
   // and the screens that ARE about the break still draw it
   await go("playbook");
   check("Playbook still draws the five", await runnersOn() === 5);
