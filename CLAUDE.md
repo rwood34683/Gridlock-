@@ -173,10 +173,13 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     Playbook was never logging and self-scout is only worth having if the calls
     are in it.
 19. ~~The app in the coach's own words.~~ Done — bunker naming had existed
-    since item 4 but the twelve calls were still the app's: a coach reading
-    "Snake Stack" when his team shouts "Rocket" is translating on a sideline.
-    `callName()` is the single door every screen reads a call through, and
-    More → Team names all twelve beside the app's own name. The key is what is
+    since item 4 but the twelve calls, and the five jobs inside them, were
+    still the app's: a coach reading "Snake Stack · SB · snake wire" when his
+    team shouts "Rocket 1" is translating on a sideline. `callName()` and
+    `jobName()` are the single doors every screen reads them through. More →
+    Team names all twelve beside the app's own name; the Job chip on the man's
+    row on Playbook names his job, per call and per slot rather than per field,
+    because slot 1 is the same job wherever it is played. The key is what is
     stored, so a rename re-labels every call ever logged and loses nothing.
 20. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
@@ -337,6 +340,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Print the app's name for a job either. A job is written as the bunker and
+  the wire — "SB · snake wire" — which is a description, not a play, and a team
+  that calls the break "Rocket" calls its five "Rocket 1" through "Rocket 5".
+  `jobName(script, id, fallback)` is the door; the Job chip on the man's row on
+  Playbook is where it is set. Kept per call and per slot, never per field:
+  slot 1 is the same job wherever it is played, though the bunker it plants on
+  changes with the layout.
 - Print the app's name for a call when the team has its own word for it. A
   coach shouts what his team has always shouted, and an app answering in its
   own vocabulary is one more thing to translate between points. `callName(key)`

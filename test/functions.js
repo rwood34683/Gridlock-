@@ -3606,6 +3606,72 @@ const ROSTER = [
     return before && !after;
   }));
 
+  /* ------------------------------------------------- and the five jobs too */
+  G("The five jobs are named the way the team says them");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake",
+               roster: [{ name: "Reyes", num: 7 }] });
+  check("the app writes a job as the bunker and the wire", await ev(() =>
+    /·/.test(currentPaths()[0].label)));
+  await ev(() => window.set({ breakCalls: { snake: "Rocket" },
+                              jobCalls: { snake: { 1: "Rocket 1", 3: "Snake runner" } } }));
+  check("the row on Playbook says the coach's word",
+    await ev(() => document.querySelector("#root .assign .assign__job").textContent === "Rocket 1"));
+  check("a job he has not named keeps the app's",
+    await ev(() => jobName("snake", 2, currentPaths()[1].label) === currentPaths()[1].label));
+  check("his card says it too, and so does the share text",
+    await ev(() => { const c = cardLines(); return c[0].job === "Rocket 1" && c[2].job === "Snake runner"; }));
+  check("and Scout's matchup list", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup" });
+    const t = document.getElementById("root").innerText;
+    return /Rocket 1/.test(t) && /Snake runner/.test(t);
+  }));
+  // A job follows the call, not the field: the bunker changes, the job does not.
+  check("the same job on another field is still his word", await ev(() => {
+    window.set({ tab: "playbook", layoutKey: "mwo" });
+    const same = document.querySelector("#root .assign .assign__job").textContent === "Rocket 1";
+    window.set({ layoutKey: "lso" });
+    return same;
+  }));
+  check("naming a job under one call leaves the others alone", await ev(() => {
+    window.set({ script: "flood" });
+    const other = document.querySelector("#root .assign .assign__job").textContent;
+    window.set({ script: "snake" });
+    return other !== "Rocket 1";
+  }));
+  check("a blank word is not a name",
+    await ev(() => { window.set({ jobCalls: { snake: { 1: "   " } } });
+      return jobName("snake", 1, "the app's") === "the app's"; }));
+  check("Job on the row opens the box, and closes again", await ev(() => {
+    window.set({ jobCalls: {} });
+    const chip = [...document.querySelectorAll("#root .assign .tgl")].find(b => /Job/.test(b.textContent));
+    if(!chip) return false;
+    chip.click();
+    const open = !!document.getElementById("jbc-1");
+    window.openPad("job", "1");
+    return open && !document.getElementById("jbc-1");
+  }));
+  check("typing a word in it names the job", await ev(() => {
+    window.openPad("job", "1");
+    document.getElementById("jbc-1").value = "Wire runner";
+    window.setJobCall("1");
+    return jobName("snake", "1", "nope") === "Wire runner";
+  }));
+  check("emptying it puts the app's back", await ev(() => {
+    window.openPad("job", "1");
+    document.getElementById("jbc-1").value = "";
+    window.setJobCall("1");
+    return !((S.jobCalls || {}).snake || {})["1"];
+  }));
+  check("the words travel in a copy and in a squad copy", await ev(() => {
+    window.set({ jobCalls: { snake: { 1: "Rocket 1" } } });
+    const all = JSON.parse(copyPayload("all")).data, squad = JSON.parse(copyPayload("squad")).data;
+    return copyDataError(all) === "" && squad.jobCalls.snake["1"] === "Rocket 1";
+  }));
+  check("a copy carrying a broken one is refused", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data; d.jobCalls = { snake: { 1: 5 } };
+    return copyDataError(d) === "jobCalls";
+  }));
+
   /* -------------------------------------------------- the names are a layer */
   G("Bunker codes are a layer, not the wallpaper");
   const codesOn = () => ev(() => {

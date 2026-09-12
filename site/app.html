@@ -2040,7 +2040,7 @@ const defaultState = () => ({
   teams:{},
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
-  bunkerCalls:{}, playerCalls:{}, breakCalls:{}, teamCode:"",
+  bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   direct:{},
   pad:null,
   moves:[],
@@ -2431,6 +2431,31 @@ window.setBreakCall = key => {
   S.breakCalls = all; save(S); render();
 };
 window.clearBreakCalls = () => { S.breakCalls = {}; save(S); render(); };
+
+/* And what the team calls each of the five jobs inside a call.
+ *
+ * The app writes a job as the bunker he plants on and the wire he is on —
+ * "T · snake" — which is a description, not a play. A team that calls the
+ * break "Rocket" calls its five "Rocket 1" through "Rocket 5", or "snake
+ * runner", or a man's name. So a job takes the team's word too.
+ *
+ * Kept per call and per slot, not per field: slot 1 of a call is the same job
+ * wherever it is played, even though the bunker he plants on changes with the
+ * layout. Blank falls back to what the app worked out, so a coach names the
+ * two he shouts and leaves the rest.
+ */
+function jobName(scriptKey, id, fallback){
+  return ((((S.jobCalls || {})[scriptKey] || {})[id] || "").trim()) || fallback;
+}
+window.setJobCall = id => {
+  const el = document.getElementById("jbc-" + id); if(!el) return;
+  const word = (el.value || "").trim().slice(0, 28);
+  const all = {...(S.jobCalls || {})};
+  const mine = {...(all[S.script] || {})};
+  if(word) mine[id] = word; else delete mine[id];
+  if(Object.keys(mine).length) all[S.script] = mine; else delete all[S.script];
+  S.jobCalls = all; S.pad = null; save(S); render();
+};
 function fixBreak(){ if(!BREAKS[S.script]) S.script = defaultState().script; }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
@@ -2793,9 +2818,9 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","teamCode","codes"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -2984,7 +3009,7 @@ function copyDataError(data){
     results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
-    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings,
+    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings),
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
@@ -4612,10 +4637,11 @@ function playbook(){
         const shotB=d.shot?bl.find(b=>b.id===d.shot):null;   // null when it is a lane
         const role=d.role||"P";
         const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
+        const openJob=S.pad==="job:"+pth.id, myJob=(((S.jobCalls||{})[key]||{})[pth.id]||"").trim();
         return `<div class="assign" style="flex-wrap:wrap">
           <span class="assign__n">${pth.id}</span>
           <span class="assign__body">
-            <span class="assign__job">${esc(pth.label)}</span>
+            <span class="assign__job">${esc(jobName(key, pth.id, pth.label))}</span>
             <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"no one on this job yet"}</span>
           </span>
           <span class="assign__ctl">
@@ -4625,11 +4651,19 @@ function playbook(){
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
             <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?FACE_GLYPH[shotLane(d.shot)]:shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
             ${FACE_PAD.map(([g,deg])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}"
               onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${g}</button>`).join("")}
+          </div>`:""}
+          ${openJob?`<div style="flex-basis:100%">
+            <input id="jbc-${pth.id}" value="${esc(myJob)}" maxlength="28"
+              placeholder="${esc(pth.label)}" onchange="setJobCall('${pth.id}')"
+              aria-label="What we call job ${pth.id}"/>
+            <p class="note">What you shout for this job in ${esc(callName(key))}. It is the same job on
+              every field, so this follows the call, not the layout. Leave it blank for the app's.</p>
           </div>`:""}
           ${openShot?`<div style="flex-basis:100%">
             <select onchange="setDirect('${pth.id}','shot',this.value)">
@@ -4693,7 +4727,7 @@ function cardLines(){
     // His card is the app speaking to him, so it uses his word for the bunker
     // where he has one. The field keeps the team's.
     const mine = who && who.name;
-    return {n: p.id, who, job: p.label, wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
+    return {n: p.id, who, job: jobName(S.script, p.id, p.label), wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
             bunker: callOf(curLayout().bunkers.find(b => b.id === p.bunker) || {n: "—"}, mine),
             role: d.role === "S" ? "Secondary" : "Primary",
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
@@ -6283,7 +6317,7 @@ function scoutMatchup(){
     </div>
     <div class="who2">
       <div><h4>Your five · ${esc(breakName())}</h4><ol>
-        ${five.map((p,i)=>`<li><b>${i+1}</b>${esc(p.label)}</li>`).join("")}
+        ${five.map((p,i)=>`<li><b>${i+1}</b>${esc(jobName(S.script, p.id, p.label))}</li>`).join("")}
       </ol></div>
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
@@ -6912,6 +6946,7 @@ const HELP = {
          "Face and Shot set where each man looks and what he lanes.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "The twelve are named your way. Team names them once and every screen uses your word.",
+         "Job on a man's row names what you shout for that job. It follows the call, so it is the same on every field.",
          "Log it records the call you actually made, which is what self-scout counts."],
     watch:"Self-scout only knows the calls you logged. If you never tap Log it, it has nothing to tell you."},
   "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
@@ -6991,6 +7026,7 @@ const HELP = {
     how:["Add players with their numbers and positions.",
          "Rename any bunker to your team's word for it. It shows everywhere.",
          "Break calls names the twelve your way — what you shout, not what the app calls it.",
+         "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Pick the player, score him, write the reason.",
@@ -7030,7 +7066,7 @@ const HELP_Q = [
   ["Do I need a signal?", "No. The app makes no network calls at all. Everything is on the phone and stays there."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
-  ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. Your word then shows on Playbook, on the point sheet, on Scout and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
+  ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
 ];
 
@@ -7290,7 +7326,9 @@ function moreBody(k){
       </div>`).join("")}</div>
       ${n ? `<button class="btn btn--danger" onclick="clearBreakCalls()">Put the app's names back</button>` : ""}
       <p class="note">A rename changes the label, never the record. Every call you have logged is kept
-        as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>`,
+        as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>
+      <p class="note">The five jobs inside a call are named on Playbook: pick the call, then tap
+        <b>Job</b> on the man's row.</p>`,
         n ? n + " renamed" : "Twelve calls");
     })();
   }
