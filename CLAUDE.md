@@ -181,12 +181,21 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     row on Playbook names his job, per call and per slot rather than per field,
     because slot 1 is the same job wherever it is played. The key is what is
     stored, so a rename re-labels every call ever logged and loses nothing.
-20. Rosters for the rest of the pro teams. They cannot be fetched from here —
+20. ~~A playbook of his own.~~ Done — the app shipped with twelve calls and a
+    coach runs plays it has never heard of, so the twelve were a ceiling. A
+    break here is five bunker ids per field and nothing else, so writing one
+    is: name it, tap the bunker each man plants on, done. `allPlays()` merges
+    `S.plays` over `BREAKS` and every picker, the router, Face, Shot, Job,
+    P|S, path edits, logging, self-scout, Cards, Rep and Counter work on it
+    unchanged, because all of them already keyed off `S.script`. Plants are
+    per field and never guessed: at a new event it says it has no five there
+    and offers to build it.
+21. Rosters for the rest of the pro teams. They cannot be fetched from here —
     the league site and PBLeagues are both blocked by the egress proxy — so they
     arrive either off a screenshot the coach pastes, or as a data file written
     by a script run somewhere with reach. Never typed from memory.
-21. Bring iOS SwiftUI up to web parity, then Android Compose.
-22. ~~How are they shooting.~~ Done — Scout → How did they get there? records a
+22. Bring iOS SwiftUI up to web parity, then Android Compose.
+23. ~~How are they shooting.~~ Done — Scout → How did they get there? records a
     **shot**: the bunker he was at and the bunker the paint went to. Its own
     observation in `S.arrivalShots`, scoped exactly like a sighting (team,
     player, field, match, point), so it merges by id, clears with the point and
@@ -195,7 +204,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     places him there as a sighting, because that is what a coach means. **Their
     lanes** counts the team's from→to pairs on the field across every match —
     `teamLanes()` — a count of what was logged, never a model.
-23. ~~The first field test.~~ Done — two coaches with the app in hand, transcribed.
+24. ~~The first field test.~~ Done — two coaches with the app in hand, transcribed.
     Three things, in the order they said them. **"I can't even start a new
     match right here"**: Scout had no match controls, so `matchStrip()` puts the
     sheet, the point, Next point and New match under the pits — the same
@@ -212,7 +221,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     solid when clear, dashed when something is in the way, with the blocker
     ringed. The handle renders after the tap surface or it could never be
     grabbed. A new question drops the aim.
-24. ~~Tally, bunker first.~~ Done — the sheet was player-first, tap the man who
+25. ~~Tally, bunker first.~~ Done — the sheet was player-first, tap the man who
     went out, and a coach charts the break the other way round, by bunker. Tally
     opens on the field: tap the bunker a man broke to (nearest wins, no dead
     ground) and the breakout sheet opens under it — your player or theirs, who,
@@ -340,6 +349,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Assume there are twelve calls. A coach runs plays the app has never heard
+  of, and a break here is only five bunker ids per field — the paths, the
+  buzzer order and the job labels all fall out of those five against the
+  measured layout. So `S.plays` holds his own, keyed `my:<n>` so it can never
+  collide with a built-in, and `allPlays()` / `playKeys()` are what every
+  picker and every lookup reads. Never `Object.entries(BREAKS)` on a screen.
+  Plants are per field and are never guessed: a play written at one event says
+  so at the next and offers to be built there. Team renames the app's twelve
+  only — a play already carries the name he gave it, and a second name on top
+  of the first is a trap.
 - Put a wall in front of anything a coach does while a point is on, and never
   in front of **Save a copy**. There is no server: that file is the only thing
   protecting his season, so charging for it makes his own data a hostage. The

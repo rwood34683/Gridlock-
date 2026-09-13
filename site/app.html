@@ -1429,7 +1429,16 @@ const BREAK_META = {
   counter: {aggr:3, read:"Take the middle first, then answer whichever wire they committed to.",
           vs:{Snake:4, Balanced:2, Dorito:4}}
 };
-function breakMeta(k){ return BREAK_META[k] || BREAK_META.base; }
+function breakMeta(k){
+  if(isMine(k)){
+    const p = customPlay(k) || {};
+    // No vs-tendency table: a ranking against a team is the app's opinion, and
+    // it has none about a call it has never seen. Counter shows his own answer.
+    return {aggr: Math.min(5, Math.max(1, +p.aggr || 3)),
+            read: (p.read || "").trim() || "Your own call. Write the read on Playbook.", vs: {}};
+  }
+  return BREAK_META[k] || BREAK_META.base;
+}
 
 // A break on a digitized layout is written as the bunker each player plants
 // on, never as a typed coordinate — the position comes from the layout, so
@@ -1594,7 +1603,7 @@ function breakPaths(layoutKey, scriptKey){
   // before plants existed carry their own shape; the rest borrow the balanced
   // one rather than have five more sets of coordinates typed by hand.
   const fallback = (BREAKS[scriptKey] || {}).paths || BREAKS.base.paths;
-  const plants = (BREAK_PLANTS[layoutKey] || {})[scriptKey];
+  const plants = (BREAK_PLANTS[layoutKey] || {})[scriptKey] || myPlants(scriptKey, layoutKey);
   const layout = LAYOUTS[layoutKey];
   if(!plants || !layout) return fallback;
   const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
@@ -1666,7 +1675,7 @@ function routedFor(script){
 // The call the right pit has been seen running most on this field, if one has
 // been logged against them. Nothing is guessed: no log, no call.
 function theirScript(){
-  const hit = breakFreq("right").find(([k]) => BREAKS[k]);
+  const hit = breakFreq("right").find(([k]) => allPlays()[k]);
   return hit ? hit[0] : null;
 }
 function currentPaths(){
@@ -1730,7 +1739,7 @@ function smoothD(pts, sx, sy){
 const STATE_BIAS = {Ahead:-1, Even:0, "Must-score":1};
 function counterRank(theirTendency, matchState){
   const bias = STATE_BIAS[matchState] || 0;
-  return Object.entries(BREAKS).map(([k,v])=>{
+  return Object.entries(allPlays()).map(([k,v])=>{
     const m = breakMeta(k);
     const fit = (m.vs && m.vs[theirTendency]) || 0;
     return {key:k, name:callName(k), aggr:m.aggr, pct:Math.round(45 + fit + bias*(m.aggr-3)*2.5)};
@@ -2061,6 +2070,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"",
+  plays:[], building:null,
   direct:{},
   pad:null,
   moves:[],
@@ -2425,7 +2435,89 @@ function curLayout(){ return LAYOUTS[S.layoutKey] || LAYOUTS.lso; }
  *
  * So: the same shape as curLayout(), used everywhere, and the doors below put
  * a real key back rather than leaving a live grenade in storage. */
-function curBreak(){ return BREAKS[S.script] || BREAKS[defaultState().script]; }
+/* ============================================================
+   Plays the coach wrote himself
+   ============================================================
+
+   A break on this app is five bunker ids per field and nothing else — the
+   paths, the order off the buzzer and the job labels are all worked out from
+   those five against the measured layout. So a coach's own call is the same
+   shape as one of the twelve: a name, a read, how aggressive it is, and the
+   bunker each man plants on.
+
+   Keys are "my:<n>" so a custom play can never collide with a built-in, now
+   or after a future build adds a thirteenth. Plants are per field, because a
+   play *is* different bunkers on different layouts — the app refuses to guess
+   where his snake runner goes on a field he has not built it on, and says so
+   instead. Everything downstream — Face, Shot, Job, P|S, path edits, logging,
+   self-scout, Cards, Rep, Counter — already keys off S.script, so a custom
+   play gets all of it for free. */
+function customPlays(){ return Array.isArray(S.plays) ? S.plays : []; }
+function customPlay(k){ return customPlays().find(p => p && p.k === k) || null; }
+const isMine = k => typeof k === "string" && k.slice(0, 3) === "my:";
+/* Every call the app can draw: the twelve, then his. */
+function allPlays(){
+  const out = {...BREAKS};
+  customPlays().forEach(p => { if(p && p.k) out[p.k] = {name: p.name || "Untitled"}; });
+  return out;
+}
+const playKeys = () => Object.keys(allPlays());
+/* The five he plants on this field, or nothing if he has not built it here. */
+function myPlants(k, layoutKey){
+  const p = customPlay(k); if(!p) return null;
+  const five = (p.plants || {})[layoutKey || S.layoutKey];
+  return Array.isArray(five) && five.length === 5 ? five : null;
+}
+
+/* Writing one. The whole build is: name it, then tap the bunker each of the
+   five plants on, in order. Nothing else is asked, because nothing else is
+   needed — the router draws the run, the buzzer order falls out of the
+   distances, and Face, Shot and Job are set afterwards the same way they are
+   on any other call. */
+window.newPlay = () => set({building: {k: "", name: "", plants: [], read: "", aggr: 3}});
+window.buildPlay = k => {                       // build it here, or edit it where it is built
+  const p = customPlay(k); if(!p) return;
+  set({script: k, building: {k, name: p.name, plants: myPlants(k) || [],
+                             read: p.read || "", aggr: p.aggr || 3}});
+};
+window.cancelPlay = () => set({building: null});
+window.playPick = id => {
+  const b = S.building; if(!b) return;
+  const five = [...(b.plants || [])];
+  const at = five.indexOf(id);
+  if(at >= 0) five.splice(at, 1);               // tap a picked bunker to take him off
+  else if(five.length < 5) five.push(id);
+  else return;                                  // five is five
+  set({building: {...b, plants: five}});
+};
+window.setPlayField = (what, value) => {
+  const b = S.building; if(!b) return;
+  set({building: {...b, [what]: what === "aggr" ? Math.min(5, Math.max(1, +value || 3)) : value}});
+};
+window.savePlay = () => {
+  const b = S.building; if(!b) return;
+  const name = (b.name || "").trim().slice(0, 28);
+  if(!name || (b.plants || []).length !== 5) return;
+  const rest = customPlays().filter(p => p.k !== b.k);
+  const k = b.k || ("my:" + Date.now().toString(36));
+  const was = customPlay(b.k) || {};
+  S.plays = [...rest, {k, name, read: (b.read || "").trim().slice(0, 140),
+                       aggr: Math.min(5, Math.max(1, +b.aggr || 3)),
+                       plants: {...(was.plants || {}), [S.layoutKey]: b.plants},
+                       at: was.at || Date.now()}];
+  S.building = null; S.script = k; S.t = 1; S.playing = false;
+  save(S); render();
+};
+window.dropPlay = k => {
+  S.plays = customPlays().filter(p => p.k !== k);
+  // Everything logged against it keeps its key and still counts; only the
+  // drawing is gone. The header would throw on a key this build no longer
+  // has, so move off it the way a missing layout is handled.
+  if(S.script === k) S.script = defaultState().script;
+  S.building = null; save(S); render();
+};
+
+function curBreak(){ return allPlays()[S.script] || BREAKS[defaultState().script]; }
 /* What this team calls this break.
  *
  * A coach does not shout "Snake Stack" — he shouts whatever his team has
@@ -2440,14 +2532,14 @@ function curBreak(){ return BREAKS[S.script] || BREAKS[defaultState().script]; }
  * one place he needs to know which of the twelve he is naming.
  */
 function callName(key){
-  return ((S.breakCalls || {})[key] || "").trim() || (BREAKS[key] || {}).name || key;
+  return ((S.breakCalls || {})[key] || "").trim() || (allPlays()[key] || {}).name || key;
 }
 function breakName(){ return callName(S.script); }
 window.setBreakCall = key => {
   const el = document.getElementById("brc-" + key); if(!el) return;
   const word = (el.value || "").trim().slice(0, 28);
   const all = {...(S.breakCalls || {})};
-  if(word && word !== (BREAKS[key] || {}).name) all[key] = word; else delete all[key];
+  if(word && word !== (allPlays()[key] || {}).name) all[key] = word; else delete all[key];
   S.breakCalls = all; save(S); render();
 };
 window.clearBreakCalls = () => { S.breakCalls = {}; save(S); render(); };
@@ -2476,7 +2568,7 @@ window.setJobCall = id => {
   if(Object.keys(mine).length) all[S.script] = mine; else delete all[S.script];
   S.jobCalls = all; S.pad = null; save(S); render();
 };
-function fixBreak(){ if(!BREAKS[S.script]) S.script = defaultState().script; }
+function fixBreak(){ if(!allPlays()[S.script]) S.script = defaultState().script; }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
 if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
@@ -2838,9 +2930,9 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","teamCode","codes"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -3030,6 +3122,12 @@ function copyDataError(data){
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
     lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings),
+    // A play carries one non-scalar field — the five per field — so the schema
+    // names it and checks its shape, or a season with a play in it is a copy
+    // that cannot be restored.
+    plays:list(v => record(v, {plants:map(l => Array.isArray(l) && l.length === 5 && l.every(str))})
+      && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
+      && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
@@ -4217,6 +4315,20 @@ function fiveSquares(ids, sx, sy, colour){
       + `<text x="${x.toFixed(1)}" y="${(y+2.6).toFixed(1)}" text-anchor="middle" font-size="7" fill="#fff" font-weight="800">${i+1}</text></g>`;
   }).join("");
 }
+// Tap the field while writing a play: the bunker becomes the next man, and
+// tapping a picked one takes him off. Same shape as picking their five.
+(function playPicking(){
+  document.addEventListener("pointerdown", ev => {
+    if(!S.building) return;
+    const surface = ev.target.closest("#build-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    const b = bunkerAt(fieldFeet(svg, ev)); if(!b) return;
+    window.playPick(b.id);
+  });
+})();
+
 // Tap the field on Breakouts: a bunker goes into the five, tapping it again
 // takes it out. Nothing is logged until the button says so.
 (function theirPicking(){
@@ -4585,7 +4697,7 @@ window.doAuth = async () => {
    Playbook — leads with the call, because that is the job
    ============================================================ */
 function playbook(){
-  const key=S.script, br=BREAKS[key], m=breakMeta(key);
+  const key=S.script, br=curBreak(), m=breakMeta(key);
   const opp=pitOf("right");
   const roster=S.roster||[];
   if(S.pbView === "rep") return repView();
@@ -4614,6 +4726,14 @@ function playbook(){
     </div>
   </div>
 
+  ${isMine(key) && !myPlants(key) ? `<div class="gate">
+      <span class="gate__tag">Not built here</span>
+      <h3 class="gate__name">${esc(callName(key))} has no five on ${esc(curLayout().name)}</h3>
+      <p class="lede">A play is the bunkers your men plant on, and those are different on every
+        field. This one was written somewhere else, so the app will not guess where your snake
+        runner goes here.</p>
+      <button class="btn btn--block" onclick="buildPlay('${key}')">Build it on this field</button>
+    </div>` : ""}
   <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
 
   </div>
@@ -4639,13 +4759,19 @@ function playbook(){
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
+  ${S.building ? playBuilder() : ""}
   ${sec("Break", `<div class="seg seg--wrap">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(callName(k))}</button>`).join("")}
+      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(callName(k))}</button>`).join("")}
     </div>
     ${Object.keys(S.breakCalls || {}).length ? "" :
       `<p class="note">Not your words for them? The app will use yours on every screen.
         <button class="btn btn--quiet" style="margin-top:6px"
-          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}`, curLayout().name)}
+          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}
+    <div class="btnrow" style="margin-top:var(--s2)">
+      <button class="btn btn--quiet" onclick="newPlay()">+ A play of your own</button>
+      ${isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit this play</button>
+        <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete this play</button>` : ""}
+    </div>`, curLayout().name)}
 
   ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
@@ -4773,7 +4899,7 @@ window.shareCards = () => {
 const REP_TARGET = 2000;
 function repState(){ return S.rep || {log:[]}; }
 window.startRep = () => {
-  const keys = Object.keys(BREAKS);
+  const keys = playKeys();
   S.rep = {running:true, was:S.script, wasT:S.t, log:[],
            ask:keys[Math.floor(Math.random()*keys.length)], at:Date.now()};
   S.script = S.rep.ask; S.t = 1; S.playing = false; S.pbView = "rep";
@@ -4783,7 +4909,7 @@ window.answerRep = key => {
   const r = repState();
   if(!r.running || !r.ask) return;
   const ms = Date.now() - r.at;
-  const keys = Object.keys(BREAKS).filter(k => k !== r.ask);
+  const keys = playKeys().filter(k => k !== r.ask);
   const next = keys[Math.floor(Math.random()*keys.length)];
   S.rep = {...r, log:[{ask:r.ask, said:key, ms, right:key === r.ask}, ...r.log],
            ask: next, at: Date.now()};
@@ -4800,6 +4926,42 @@ function repScore(){
 }
 
 /* ---- the two Playbook views the chips open ------------------------------ */
+/* The builder, on Playbook, because the field is already there and the five
+   are picked on it. */
+function playBuilder(){
+  const b = S.building, five = b.plants || [], list = curLayout().bunkers;
+  const nameOf = id => { const x = list.find(v => v.id === id); return x ? callOf(x) + " · " + x.id : id; };
+  const ready = (b.name || "").trim() && five.length === 5;
+  return sec(b.k ? "Build it on this field" : "A play of your own", `
+    <p class="lede">Tap the bunker each man plants on, in order — one is the
+      first name you tap, five is the last. Tap a picked bunker again to take him off.
+      The app draws the runs and works out who leaves on the buzzer.</p>
+    <div class="fld"><label for="pl-name">What you call it</label>
+      <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
+        onchange="setPlayField('name', this.value)"/></div>
+    <div class="field-wrap" id="build-map">${fieldSVG({static:true, pick:true, noPaths:true, names:true,
+      overlay: fiveSquares(five, 2, 2, "#e5342f")})}</div>
+    <div class="assigns">${[1,2,3,4,5].map(n => `<div class="assign">
+      <span class="assign__n"${five[n-1] ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
+      <span class="assign__body"><span class="assign__job">${five[n-1] ? esc(nameOf(five[n-1])) : "tap his bunker"}</span></span>
+    </div>`).join("")}</div>
+    <div class="fld"><label for="pl-read">The read, in your words</label>
+      <input id="pl-read" value="${esc(b.read || "")}" maxlength="140"
+        placeholder="Overload the snake, centre holds the gap"
+        onchange="setPlayField('read', this.value)"/></div>
+    <div class="fld"><label for="pl-aggr">How aggressive · ${b.aggr || 3} of 5</label>
+      <input id="pl-aggr" type="range" min="1" max="5" step="1" value="${b.aggr || 3}"
+        onchange="setPlayField('aggr', this.value)"/></div>
+    <div class="btnrow">
+      <button class="btn grow" onclick="savePlay()" ${ready ? "" : "disabled"}>${
+        ready ? "Save this play" : five.length === 5 ? "Name it first" : `Pick ${5 - five.length} more`}</button>
+      <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
+    </div>
+    <p class="note">A play is the five bunkers, and those change from field to field — so this is
+      saved against ${esc(curLayout().name)}. On another event it will ask you to build it there.</p>`,
+    curLayout().name);
+}
+
 function cardsView(){
   const cards = cardLines();
   return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({pbView:null})">‹ Playbook</button>
@@ -4834,7 +4996,7 @@ function repView(){
       and you are calling it, not reading it.</p>
     <div class="field-wrap">${fieldSVG({static:true})}</div>
     ${r.running ? `<div class="seg seg--wrap">
-        ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(callName(k))}</button>`).join("")}
+        ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(callName(k))}</button>`).join("")}
       </div>` : ""}
     <div class="facts">
       <span class="fact"><b>${sc.right}/${sc.n}</b><span>Right</span></span>
@@ -5259,7 +5421,7 @@ function tally(){
       <button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>
     </div>
     ${S.tallyPick?`<div class="seg seg--wrap">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
     </div>`:""}
     ${(() => {
@@ -6410,7 +6572,7 @@ function scoutBreakouts(){
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
-      ${Object.entries(BREAKS).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(callName(k))}</button>`).join("")}
+      ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(callName(k))}</button>`).join("")}
     </div>
     <p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`,
     esc(R.name))
@@ -6552,7 +6714,7 @@ function scoutCounter(){
     state)
   + (()=>{ const seen = Object.fromEntries(breakFreq("right"));
       const a = answersFor("right");
-      const rows = Object.keys(BREAKS).sort((p,q)=>(seen[q]||0)-(seen[p]||0));
+      const rows = playKeys().sort((p,q)=>(seen[q]||0)-(seen[p]||0));
       const written = Object.keys(a).length;
       return sec("They run X, we run Y", `<p class="lede">Your own answer to each of their calls, written
         down against <b>${esc(R.name)}</b> rather than worked out again on the sideline. It follows them in
@@ -6565,7 +6727,7 @@ function scoutCounter(){
             <span class="assign__ctl" style="flex-basis:100%">
               <select onchange="setAnswer('right','${k}',this.value)">
                 <option value="">— no answer written down —</option>
-                ${Object.entries(BREAKS).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
+                ${Object.entries(allPlays()).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
               </select>
             </span>
           </div>`).join("")}
@@ -6975,9 +7137,10 @@ const HELP = {
          "Face and Shot set where each man looks and what he lanes.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "The twelve are named your way. Team names them once and every screen uses your word.",
+         "A play of your own writes a thirteenth: name it, tap the bunker each of the five plants on, and the app draws the runs.",
          "Job on a man's row names what you shout for that job. It follows the call, so it is the same on every field.",
          "Log it records the call you actually made, which is what self-scout counts."],
-    watch:"Self-scout only knows the calls you logged. If you never tap Log it, it has nothing to tell you."},
+    watch:"A play you wrote is the five bunkers, and those change from field to field — so it asks you to build it again at a new event rather than guessing where your snake runner goes."},
   "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
     how:["Each card names his bunker, his job and his lane for the call you are on.",
          "Share sends the five as text."]},
@@ -7102,6 +7265,7 @@ const HELP_Q = [
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["What does it cost?", "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
+  ["We run a play the app doesn't have.", "Write it. On Playbook, under the twelve, tap A play of your own: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
 ];
 
@@ -7517,8 +7681,8 @@ function moreBody(k){
       <div class="assigns">${Object.keys(BREAKS).map(x => `<div class="assign">
         <span class="assign__body">
           <input id="brc-${x}" value="${esc((mine[x] || "").trim())}" maxlength="28"
-            placeholder="${esc(BREAKS[x].name)}" onchange="setBreakCall('${x}')"
-            aria-label="What we call ${esc(BREAKS[x].name)}"/>
+            placeholder="${esc(allPlays()[x].name)}" onchange="setBreakCall('${x}')"
+            aria-label="What we call ${esc(allPlays()[x].name)}"/>
           ${/* Only once he has renamed it. Until then the box already shows the
                 app's name as its placeholder, and printing it again underneath
                 is the same word twice on nine rows out of twelve. */""}
@@ -7528,7 +7692,9 @@ function moreBody(k){
       <p class="note">A rename changes the label, never the record. Every call you have logged is kept
         as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>
       <p class="note">The five jobs inside a call are named on Playbook: pick the call, then tap
-        <b>Job</b> on the man's row.</p>`,
+        <b>Job</b> on the man's row.</p>
+      ${customPlays().length ? `<p class="note">Your own plays already carry the name you gave them —
+        ${esc(customPlays().map(x => x.name).join(", "))}. Rename one on Playbook, where it was written.</p>` : ""}`,
         n ? n + " renamed" : "Twelve calls");
     })();
   }

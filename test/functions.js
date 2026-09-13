@@ -3535,6 +3535,102 @@ const ROSTER = [
       await ev(() => document.querySelectorAll(".field-wrap svg.field").length)];
     check(`${name} is a table, with no break drawn over it`, runners === 0, `${fields} field(s), ${runners} runners`);
   }
+  /* --------------------------------------------------- a play he wrote himself */
+  G("A play of your own");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
+  check("the app ships with twelve", await ev(() => playKeys().length === 12));
+  const writePlay = () => ev(() => {
+    window.newPlay(); window.setPlayField("name", "Rocket");
+    const bl = curLayout().bunkers;
+    ["SB", "Tr", "GB", "MT", "MD"].forEach(t => window.playPick(bl.find(b => b.id.startsWith(t)).id));
+    window.setPlayField("read", "Overload the snake, centre holds the gap");
+    window.setPlayField("aggr", 5);
+    window.savePlay();
+  });
+  check("Save is refused until it has a name and five men", await ev(() => {
+    window.newPlay(); window.setPlayField("name", "Half");
+    window.playPick(curLayout().bunkers[0].id);
+    const btn = [...document.querySelectorAll("#root .btn")].find(x => /Pick 4 more/.test(x.textContent));
+    const blocked = !!btn && btn.disabled;
+    window.savePlay();                              // must do nothing
+    const none = customPlays().length === 0;
+    window.cancelPlay();
+    return blocked && none;
+  }));
+  await writePlay();
+  check("a written play joins the twelve", await ev(() => playKeys().length === 13 && isMine(S.script)));
+  check("and the app lands on it", await ev(() => callName(S.script) === "Rocket"));
+  check("the header and the card carry it", await ev(() => {
+    const t = document.getElementById("root").innerText;
+    return /ROCKET/i.test(document.querySelector(".ctx__line").innerText)
+      && /Overload the snake/.test(t);
+  }));
+  check("the router draws five real runs off his five bunkers", await ev(() =>
+    currentPaths().length === 5
+    && currentPaths().every(x => curLayout().bunkers.some(b => b.id === x.bunker))));
+  check("Face, Shot and Job work on it like any other call", await ev(() => {
+    const id = currentPaths()[0].id;
+    window.setDirect(id, "face", 90);
+    window.set({ jobCalls: { ...(S.jobCalls || {}), [S.script]: { 1: "Rocket 1" } } });
+    return directOf(id).face === 90 && jobName(S.script, 1, "x") === "Rocket 1";
+  }));
+  check("logging it counts against it", await ev(() => {
+    window.logCall(); return (S.calls || [])[0].script === S.script && isMine((S.calls || [])[0].script);
+  }));
+  for (const [label, st] of [["Tally's picker", { tab: "tally", tallyPick: true }],
+                             ["Scout's their-call picker", { tab: "scout", scoutTab: "breakouts", tallyPick: false }]]) {
+    await ev(x => window.set(x), st); await page.waitForTimeout(70);
+    check(`${label} offers it`, await ev(() => /Rocket/.test(document.getElementById("root").innerText)));
+  }
+  check("the Rep drill can draw it", await ev(() => playKeys().includes(S.plays[0].k)));
+  // A play is its five bunkers, and those are different on every field.
+  await ev(() => window.set({ tab: "playbook", tallyPick: false, layoutKey: "mwo" }));
+  check("on a field it was not built on it says so, and guesses nothing", await ev(() => {
+    const t = document.getElementById("root").innerText;
+    return myPlants(S.script) === null && /has no five on/.test(t) && /Build it on this field/.test(t);
+  }));
+  check("building it there leaves the first field alone", await ev(() => {
+    window.buildPlay(S.script);
+    curLayout().bunkers.slice(0, 5).forEach(b => window.playPick(b.id));
+    window.savePlay();
+    const here = (myPlants(S.script) || []).length === 5;
+    window.set({ layoutKey: "lso" });
+    return here && (myPlants(S.script) || []).length === 5;
+  }));
+  check("editing one opens with its five already picked", await ev(() => {
+    window.buildPlay(S.script);
+    const got = (S.building.plants || []).length === 5 && S.building.name === "Rocket";
+    window.cancelPlay();
+    return got;
+  }));
+  // Team renames the app's twelve. A play already carries the name he gave it,
+  // and a second name on top of the first is a trap.
+  check("Team's rename list is the twelve, not his own", await ev(() => {
+    window.set({ tab: "more", more: "team" });
+    return document.querySelectorAll("#root input[id^='brc-']").length === 12
+      && /Rename one on Playbook/.test(document.getElementById("root").innerText);
+  }));
+  check("a play travels in a copy and in a squad copy", await ev(() => {
+    const all = JSON.parse(copyPayload("all")).data, squad = JSON.parse(copyPayload("squad")).data;
+    return copyDataError(all) === "" && (squad.plays || []).length === 1
+      && squad.plays[0].plants.lso.length === 5;
+  }));
+  check("a play with a broken five is refused rather than restored", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data;
+    d.plays[0].plants = { lso: ["only", "three", "ids"] };
+    return copyDataError(d) === "plays";
+  }));
+  check("deleting one moves you off it and keeps what you logged", await ev(() => {
+    window.set({ tab: "playbook", more: null });
+    const k = S.script; window.dropPlay(k);
+    return !isMine(S.script) && playKeys().length === 12 && (S.calls || [])[0].script === k;
+  }));
+  check("a saved play this build no longer has is survivable", await ev(() => {
+    window.set({ script: "my:ghost" });
+    return document.getElementById("root").innerText.length > 200;
+  }));
+  await ev(() => window.set({ script: "snake", plays: [], building: null }));
+
   /* ------------------------------------------------------------- the paywall */
   G("What is paid for, and what never is");
   await seed({ tab: "playbook", right: { name: "Rejects" } });
