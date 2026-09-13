@@ -2150,7 +2150,14 @@ window.gridlockRestore = text => {
   let d = null;
   try{ d = JSON.parse(text); }catch(e){ return false; }
   if(!plainRecord(d) || !d.savedAt || copyDataError(d)) return false;
-  const held = {tab:S.tab, more:S.more, scoutTab:S.scoutTab};
+  /* Whether somebody is signed in on *this* phone is this phone's business, not
+     the backup's. save() writes the whole of S, so entered/role/email ride in
+     the durable copy — and a fresh install restoring it opened straight into
+     the app, past the sign-in the app now requires, on a device that may carry
+     no account at all. The season restores; the session does not, the same way
+     the screen he is standing on does not. */
+  const held = {tab:S.tab, more:S.more, scoutTab:S.scoutTab,
+                entered:S.entered, role:S.role, email:S.email};
   Object.keys(d).forEach(k => { S[k] = d[k]; });
   Object.assign(S, held);
   resetLiveState();
@@ -4588,6 +4595,9 @@ function promo(){
   const has = hasAccount();
   return `<div class="promo">
     ${contextWarning()}
+    ${/* A restored season lands here now, not inside the app, so the notice
+           that it came back has to be here or he signs in thinking it is gone. */""}
+    ${storeWarning()}
     <div class="promo__mark">
       <div class="promo__name">GRIDLOCK</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
@@ -8140,7 +8150,7 @@ function render(){
   const main = document.querySelector(".main");
   const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
-  document.getElementById("root").innerHTML = S.entered ? shell() : promo() + (_recoveryText ? storeWarning() : "");
+  document.getElementById("root").innerHTML = S.entered ? shell() : promo();
   const next = document.querySelector(".main");
   if(next && screen === _where) next.scrollTop = at;
   _where = screen;

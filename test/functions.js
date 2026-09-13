@@ -205,6 +205,27 @@ const ROSTER = [
   }));
   await ev(() => window.set({ entered: true, role: "staff", mode: null, authSaid: "" }));
 
+  /* ------------------------------------- a backup restores a season, not a login */
+  G("A restored season does not walk past the sign-in");
+  check("a durable copy carries the session, because save() writes all of S",
+    await ev(() => {
+      localStorage.clear();
+      window.set({ entered: true, role: "staff", email: "c@t.com" });
+      const blob = JSON.parse(localStorage.getItem("gridlock.coach.v2") || "{}");
+      return blob.entered === true;                 // the hole, if nothing held it back
+    }));
+  check("but restoring it onto a phone nobody has signed in on does not let them in",
+    await ev(() => {
+      const blob = localStorage.getItem("gridlock.coach.v2");
+      localStorage.clear();
+      window.set({ entered: false, role: "guest", email: "" });
+      window._hadLocal = false;
+      const took = window.gridlockRestore(blob);
+      return !S.entered && S.role !== "staff" && S.email === "";
+    }));
+  check("and the season itself still comes across", await ev(() => Array.isArray(S.matches)));
+  await ev(() => { localStorage.clear(); window.set({ entered: true, role: "staff", email: "" }); });
+
   /* ------------------------------------------------------- who he is, provable */
   G("Sign in with Apple, and the phone step");
   // Both are adapters the native shell fills in. In a browser neither exists,
@@ -3281,8 +3302,11 @@ const ROSTER = [
       return await evN(() => S.point === 9 && (S.roster || []).length === 1
                           && S.roster[0].name === "Rex");
     })());
-    check("and is told, rather than finding out later", await evN(() =>
-      /lost its saved season/i.test(document.getElementById("root").textContent)));
+    // The restore lands on the sign-in page, because a backup restores a season
+    // and never a login — so the notice has to be there, or he signs in
+    // believing his season is gone.
+    check("and is told on the screen he actually lands on", await evN(() =>
+      !S.entered && /lost its saved season/i.test(document.getElementById("root").innerText)));
     check("the restore is written back to the web view too", await evN(() =>
       JSON.parse(localStorage.getItem("gridlock.coach.v2")).point === 9));
 

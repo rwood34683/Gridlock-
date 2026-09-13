@@ -411,6 +411,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   because on an address the phone calls insecure there is no `crypto.subtle` to
   hash a password with and sign-in refuses — which used to cost one feature and
   now costs the whole app.
+- Let a restore carry the session. `save()` writes the whole of `S`, so
+  `entered`, `role` and `email` ride in the durable copy — and a fresh install
+  restoring it opened straight into the app, past the sign-in the app now
+  requires, on a device that may hold no account at all. `gridlockRestore` holds
+  those three back the same way it holds the screen he is standing on: the
+  season restores, the session does not. The recovery notice therefore has to
+  render on the **promo**, because that is now where a restore lands — a coach
+  whose phone lost its storage must not sign in believing his season is gone.
 - Put a credential in the app, or let it make or check a verification code.
   The app makes no network calls — there is not one `fetch` in it, and that is
   why it works on a field with no signal. So identity that needs a network is an
