@@ -359,6 +359,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   so at the next and offers to be built there. Team renames the app's twelve
   only — a play already carries the name he gave it, and a second name on top
   of the first is a trap.
+- Let the welcome page promise something the app stops doing the day billing
+  goes live. **No account needed** is a promise about sign-up, not about price,
+  and it stays true forever — the money runs through the coach's Apple ID, so
+  there is never a GRIDLOCK account to make. But while that line stood alone
+  the page read as entirely free, and a wall on Scout after it would be a
+  bait. It is branched on `BILLING_LIVE` now: today it says what is true, and
+  the day there is something to sell it names the free half and the paid half
+  on the first screen.
 - Put a wall in front of anything a coach does while a point is on, and never
   in front of **Save a copy**. There is no server: that file is the only thing
   protecting his season, so charging for it makes his own data a hostage. The

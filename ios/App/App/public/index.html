@@ -3842,7 +3842,16 @@ function promo(){
     </div>
     <div class="stack">
       <button class="btn btn--lg btn--block" onclick="set({entered:true,role:'guest'})">Start coaching</button>
-      <p class="promo__free">No account needed. There is no signal on a field, so nothing ever leaves your phone.</p>
+      ${/* No account needed is not the same promise as free, and the day a wall
+             goes up this line has to stop reading like one. While nothing is for
+             sale it says what is true; once it is, it names the free half and
+             the paid half on the first screen rather than letting a coach find
+             out at the wall. The account line stays either way — the money runs
+             through his Apple ID, so there is never a GRIDLOCK sign-up. */""}
+      <p class="promo__free">${BILLING_LIVE
+        ? `Calling the break and charting the point are free, forever. Team adds the scouting, from $99 a season.
+           No account either way — nothing ever leaves your phone.`
+        : `No account needed. There is no signal on a field, so nothing ever leaves your phone.`}</p>
       <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Show me how it works</button>
       <button class="btn btn--quiet btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">Running a clinic or a league? Sign in</button>
     </div>
