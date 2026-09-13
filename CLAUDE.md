@@ -380,6 +380,17 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   of their own — the same shape Tally already uses on the point sheet. Nothing
   goes *above* the field either: on first run the page hint is still there, and
   a button row over the field pushed it past the 55 % line the suite holds.
+- Treat the twelve as his playbook. They are a **library**: they ship so day one
+  is not an empty tab and so Rep, Counter and self-scout have something to work
+  against, but a coach runs six of them and two of his own, and the rest are
+  somebody else's plays sitting in his picker between points. `S.offPlays` holds
+  the built-ins he does not run and `pickPlays()` is what every picker offers —
+  Playbook, the point sheet, the Rep drill, Counter's "we call". `allPlays()`
+  stays the whole registry, because a call is still named on the sheet he ran it
+  on, `callName()` and `fixBreak()` read through it, and **their** break is never
+  limited to what he runs. Turning one off is never a delete: the count behind it
+  is untouched and one tap puts it back, the last one standing cannot be turned
+  off, and turning off the call he is standing on moves him to one he runs.
 - Assume there are twelve calls. A coach runs plays the app has never heard
   of, and a break here is only five bunker ids per field — the paths, the
   buzzer order and the job labels all fall out of those five against the

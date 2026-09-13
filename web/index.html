@@ -367,6 +367,7 @@ svg.field{width:100%;height:auto;display:block}
   background:var(--red);color:#fff;font-size:var(--t-sm);font-weight:800;
   font-variant-numeric:tabular-nums;
 }
+.assign > .tgl{flex:none}
 .assign__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
@@ -1002,7 +1003,7 @@ function smoothD(pts, sx, sy){
 const STATE_BIAS = {Ahead:-1, Even:0, "Must-score":1};
 function counterRank(theirTendency, matchState){
   const bias = STATE_BIAS[matchState] || 0;
-  return Object.entries(allPlays()).map(([k,v])=>{
+  return Object.entries(pickPlays()).map(([k,v])=>{
     const m = breakMeta(k);
     const fit = (m.vs && m.vs[theirTendency]) || 0;
     return {key:k, name:callName(k), aggr:m.aggr, pct:Math.round(45 + fit + bias*(m.aggr-3)*2.5)};
@@ -1335,6 +1336,7 @@ const defaultState = () => ({
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
   authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
   plays:[], building:null,
+  offPlays:[],          // built-in calls he does not run; a library, never a delete
   direct:{},
   pad:null,
   moves:[],
@@ -1734,6 +1736,40 @@ function allPlays(){
   return out;
 }
 const playKeys = () => Object.keys(allPlays());
+/* The twelve are a library, not a roster. A coach runs six of them and two of
+   his own; the rest are somebody else's plays sitting in his picker between
+   points. So a call he does not run is turned off on Team and stops being
+   offered anywhere he chooses one. It is never deleted: a call he ran in March
+   is still named on that sheet, the count behind it is untouched, and turning
+   it back on is one tap.
+   allPlays() stays the whole registry — names, history, fixBreak, an
+   opponent's break, which is never limited to what he runs. pickPlays() is
+   what every picker offers. */
+const playOff = () => new Set(Array.isArray(S.offPlays) ? S.offPlays : []);
+/* His own plays are always run: he wrote them. */
+function runsPlay(k){ return isMine(k) || !playOff().has(k); }
+function pickPlays(){
+  const out = {};
+  // The call he is standing on is always in the picker, or a season restored
+  // with it turned off shows a row of buttons and none of them lit.
+  Object.entries(allPlays()).forEach(([k, v]) => { if(runsPlay(k) || k === S.script) out[k] = v; });
+  return out;
+}
+const pickKeys = () => Object.keys(pickPlays());
+window.toggleRun = k => {
+  const off = playOff();
+  if(off.has(k)) off.delete(k);
+  else {
+    if(playKeys().filter(x => x !== k).filter(runsPlay).length < 1) return;
+    off.add(k);
+  }
+  S.offPlays = [...off];
+  // He turned off the call he is on: move to one he runs rather than leave the
+  // field drawing a play he has just said he does not run.
+  if(!runsPlay(S.script)) { S.script = playKeys().filter(runsPlay)[0] || S.script; S.t = 1; S.playing = false; }
+  save(S); render();
+};
+window.runAllPlays = () => { S.offPlays = []; save(S); render(); };
 /* The five he plants on this field, or nothing if he has not built it here. */
 function myPlants(k, layoutKey){
   const p = customPlay(k); if(!p) return null;
@@ -2202,9 +2238,9 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","teamCode","codes"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -2400,6 +2436,7 @@ function copyDataError(data){
     plays:list(v => record(v, {plants:map(l => Array.isArray(l) && l.length === 5 && l.every(str))})
       && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
+    offPlays:list(str),
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
@@ -4242,13 +4279,23 @@ function playbook(){
       <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete</button>` : ""}
   </div>
   ${S.pbPick ? `<div class="seg seg--wrap">
-      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
         isMine(k) ? "★ " : ""}${esc(callName(k))}</button>`).join("")}
     </div>
-    ${Object.keys(S.breakCalls || {}).length ? "" :
-      `<p class="note">Not your words for them? The app will use yours on every screen.
-        <button class="btn btn--quiet" style="margin-top:6px"
-          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}` : ""}
+    ${/* The twelve ship so day one is not an empty tab, and so Rep, Counter and
+          self-scout have something to work against. They are a library, not
+          your playbook: the ones you do not run come out of this list on Team,
+          which is the same screen that names the rest your way. One door, not
+          two — a picker with two buttons hanging off it is a menu. */""}
+    ${(() => {
+      const off = playKeys().filter(k => !runsPlay(k)).length;
+      const named = Object.keys(S.breakCalls || {}).length;
+      return `<p class="note">${off
+        ? `${off} of the twelve turned off. They are still named on every sheet you logged them on.`
+        : `The twelve ship with the app so day one is not an empty tab. Turn off the ones you don't run${
+            named ? "" : ", and name the rest the way your team shouts them"}.`}</p>
+      <button class="btn btn--quiet" onclick="set({tab:'more',more:'team'})">Which calls you run</button>`;
+    })()}` : ""}
 
   </div>
 
@@ -4393,14 +4440,14 @@ window.shareCards = () => {
    ============================================================
 
    The spec asks for the break run at the coach until the call is instant,
-   under two seconds. So the field draws one of the twelve with nothing naming
+   under two seconds. So the field draws one of the calls he runs with nothing naming
    it — not the card, not the header — and the clock runs from the moment it is
    on screen to the moment he taps. The call he was on is put back when he
    stops: a drill must not quietly change what he is about to call. */
 const REP_TARGET = 2000;
 function repState(){ return S.rep || {log:[]}; }
 window.startRep = () => {
-  const keys = playKeys();
+  const keys = pickKeys();
   S.rep = {running:true, was:S.script, wasT:S.t, log:[],
            ask:keys[Math.floor(Math.random()*keys.length)], at:Date.now()};
   S.script = S.rep.ask; S.t = 1; S.playing = false; S.pbView = "rep";
@@ -4410,7 +4457,7 @@ window.answerRep = key => {
   const r = repState();
   if(!r.running || !r.ask) return;
   const ms = Date.now() - r.at;
-  const keys = playKeys().filter(k => k !== r.ask);
+  const keys = pickKeys().filter(k => k !== r.ask);
   const next = keys[Math.floor(Math.random()*keys.length)];
   S.rep = {...r, log:[{ask:r.ask, said:key, ms, right:key === r.ask}, ...r.log],
            ask: next, at: Date.now()};
@@ -4492,12 +4539,12 @@ function repView(){
   const r = repState(), sc = repScore();
   const done = sc.n && !r.running;
   return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="stopRep()">‹ Playbook</button>
-  ${sec("Name the call", `<p class="lede">The field is one of the twelve and nothing on this screen says
+  ${sec("Name the call", `<p class="lede">The field is one of the calls you run and nothing on this screen says
       which. Name it. The clock runs from the moment it is up to the moment you tap — under two seconds
       and you are calling it, not reading it.</p>
     <div class="field-wrap">${fieldSVG({static:true})}</div>
     ${r.running ? `<div class="seg seg--wrap">
-        ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(callName(k))}</button>`).join("")}
+        ${Object.entries(pickPlays()).map(([k,v])=>`<button onclick="answerRep('${k}')">${esc(callName(k))}</button>`).join("")}
       </div>` : ""}
     <div class="facts">
       <span class="fact"><b>${sc.right}/${sc.n}</b><span>Right</span></span>
@@ -4983,7 +5030,7 @@ function tally(){
       <button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>
     </div>
     ${S.tallyPick?`<div class="seg seg--wrap">
-      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
     </div>`:""}
     ${(() => {
@@ -6289,7 +6336,7 @@ function scoutCounter(){
             <span class="assign__ctl" style="flex-basis:100%">
               <select onchange="setAnswer('right','${k}',this.value)">
                 <option value="">— no answer written down —</option>
-                ${Object.entries(allPlays()).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
+                ${Object.entries(pickPlays()).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
               </select>
             </span>
           </div>`).join("")}
@@ -6780,6 +6827,7 @@ const HELP = {
     how:["Add players with their numbers and positions.",
          "Rename any bunker to your team's word for it. It shows everywhere.",
          "Break calls names the twelve your way — what you shout, not what the app calls it.",
+         "Turn off the ones you don't run. They stop being offered; nothing you logged is lost.",
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
@@ -7263,10 +7311,15 @@ function moreBody(k){
     + (() => {
       const mine = S.breakCalls || {};
       const n = Object.keys(BREAKS).filter(x => (mine[x] || "").trim()).length;
-      return sec("Break calls", `<p class="lede">What your team shouts for each of the twelve. Your word
-        replaces the app's on Playbook, on the point sheet, on Scout and everywhere else a call is
-        printed. Leave one blank to keep the app's name.</p>
+      const off = Object.keys(BREAKS).filter(x => !runsPlay(x)).length;
+      return sec("Break calls", `<p class="lede">The twelve the app ships with, and what your team shouts
+        for each. Turn off the ones you don't run and they stop being offered when you pick a call —
+        on Playbook, on the point sheet, in the drill. Your word replaces the app's everywhere a call
+        is printed; leave one blank to keep the app's name.</p>
       <div class="assigns">${Object.keys(BREAKS).map(x => `<div class="assign">
+        <button class="tgl ${runsPlay(x) ? "on" : ""}" onclick="toggleRun('${x}')"
+          aria-pressed="${runsPlay(x)}"
+          aria-label="We run ${esc(BREAKS[x].name)}"><i></i>Run it</button>
         <span class="assign__body">
           <input id="brc-${x}" value="${esc((mine[x] || "").trim())}" maxlength="28"
             placeholder="${esc(allPlays()[x].name)}" onchange="setBreakCall('${x}')"
@@ -7276,14 +7329,17 @@ function moreBody(k){
                 is the same word twice on nine rows out of twelve. */""}
           ${(mine[x] || "").trim() ? `<span class="assign__who">${esc(BREAKS[x].name)}</span>` : ""}</span>
       </div>`).join("")}</div>
+      ${off ? `<button class="btn btn--quiet" onclick="runAllPlays()">Turn all twelve back on</button>` : ""}
       ${n ? `<button class="btn btn--danger" onclick="clearBreakCalls()">Put the app's names back</button>` : ""}
+      <p class="note">Turning one off hides it from the pickers and nothing else. Every point you ran
+        it on still names it, the count behind it is untouched, and one tap puts it back.</p>
       <p class="note">A rename changes the label, never the record. Every call you have logged is kept
         as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>
       <p class="note">The five jobs inside a call are named on Playbook: pick the call, then tap
         <b>Job</b> on the man's row.</p>
       ${customPlays().length ? `<p class="note">Your own plays already carry the name you gave them —
         ${esc(customPlays().map(x => x.name).join(", "))}. Rename one on Playbook, where it was written.</p>` : ""}`,
-        n ? n + " renamed" : "Twelve calls");
+        off ? `${12 - off} of twelve` : n ? n + " renamed" : "Twelve calls");
     })();
   }
   if(k==="movement"){

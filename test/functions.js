@@ -4005,6 +4005,70 @@ const ROSTER = [
   }));
   await ev(() => window.set({ script: "snake", plays: [], building: null }));
 
+  /* ------------------------------------------ the twelve are not his playbook */
+  G("The twelve are a library, not his playbook");
+  await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
+  check("a call he does not run comes out of every picker", await ev(() => {
+    window.set({ offPlays: [] });
+    const before = Object.keys(pickPlays()).length;
+    window.toggleRun("conserve"); window.toggleRun("lock");
+    return before === 12 && Object.keys(pickPlays()).length === 10
+      && !pickPlays().conserve && !pickPlays().lock;
+  }));
+  check("and the whole registry still has it, so nothing logged loses its name", await ev(() =>
+    Object.keys(allPlays()).length === 12 && callName("conserve") === BREAKS.conserve.name));
+  check("Playbook offers only what he runs", await ev(() => {
+    window.set({ tab: "playbook", more: null, pbPick: true });
+    const seg = document.querySelector("#root .seg--wrap");
+    const names = [...seg.querySelectorAll("button")].map(b => b.textContent.trim());
+    window.set({ pbPick: false });
+    return names.length === 10 && !names.includes(BREAKS.conserve.name);
+  }));
+  check("so does the point sheet", await ev(() => {
+    window.set({ tab: "tally", tallyPick: true });
+    const seg = document.querySelector("#root .seg--wrap");
+    const n = seg ? seg.querySelectorAll("button").length : 0;
+    window.set({ tallyPick: false, tab: "playbook" });
+    return n === 10;
+  }));
+  check("and the drill never asks a call he does not run", await ev(() => {
+    const seen = new Set();
+    for (let i = 0; i < 60; i++) { window.startRep(); seen.add(S.rep.ask); }
+    window.stopRep();
+    return ![...seen].some(k => !runsPlay(k));
+  }));
+  check("their break is never limited to what he runs", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts" });
+    const t = document.getElementById("root").innerText;
+    window.set({ tab: "playbook", scoutTab: "matchup" });
+    return t.includes(BREAKS.conserve.name);       // they run what they run
+  }));
+  check("turning off the call he is on moves him to one he runs", await ev(() => {
+    window.set({ script: "snake" });
+    window.toggleRun("snake");
+    return S.script !== "snake" && runsPlay(S.script) && !S.playing;
+  }));
+  check("the last call standing cannot be turned off", await ev(() => {
+    Object.keys(BREAKS).forEach(k => { if (runsPlay(k)) window.toggleRun(k); });
+    return playKeys().filter(runsPlay).length === 1 && Object.keys(pickPlays()).length >= 1;
+  }));
+  check("nothing is ever deleted — one tap puts them all back", await ev(() => {
+    window.runAllPlays();
+    return (S.offPlays || []).length === 0 && Object.keys(pickPlays()).length === 12;
+  }));
+  check("which ones he runs rides in a copy of the season", await ev(() => {
+    window.toggleRun("conserve");
+    const all = JSON.parse(copyPayload("all")).data, squad = JSON.parse(copyPayload("squad")).data;
+    return copyDataError(all) === "" && all.offPlays.includes("conserve")
+      && (squad.offPlays || []).includes("conserve");
+  }));
+  check("a junk list is refused rather than restored", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data;
+    d.offPlays = [{ k: "conserve" }];
+    return copyDataError(d) === "offPlays";
+  }));
+  await ev(() => window.set({ offPlays: [], script: "snake" }));
+
   /* ------------------------------------------------------------- the paywall */
   G("What is paid for, and what never is");
   await seed({ tab: "playbook", right: { name: "Rejects" } });
@@ -4157,13 +4221,16 @@ const ROSTER = [
     return !t.includes(BREAKS.conserve.name);        // placeholder only
   }));
   check("Playbook points at it until he has used it once", await ev(() => {
-    // It lives inside the folded picker now, where he is looking at the twelve.
+    // One door out of the folded picker, to the screen that both names the
+    // twelve and says which of them he runs.
     window.set({ tab: "playbook", more: null, breakCalls: {}, pbPick: true });
-    const before = /Name the twelve/.test(document.getElementById("root").innerText);
+    const t = () => document.getElementById("root").innerText;
+    const door = /Which calls you run/.test(t());
+    const before = /name the rest the way your team shouts them/i.test(t());
     window.set({ breakCalls: { snake: "Rocket" } });
-    const after = /Name the twelve/.test(document.getElementById("root").innerText);
+    const after = /name the rest the way your team shouts them/i.test(t());
     window.set({ breakCalls: {}, pbPick: false });
-    return before && !after;
+    return door && before && !after;
   }));
 
   /* ------------------------------------------------- and the five jobs too */
