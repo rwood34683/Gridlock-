@@ -1390,7 +1390,7 @@ const defaultState = () => ({
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
   namesOn:false,
-  scoutShow:"them",               // the Scout field draws one pit at a time: theirs, yours, or both
+  scoutShow:"them", scoutFold:true, scoutNavMore:false,               // the Scout field draws one pit at a time: theirs, yours, or both
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -5754,7 +5754,16 @@ function matchStrip(){
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
-  const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${SCOUT_TABS.map(([k,n])=>`<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`).join("")}</div>`;
+  // Nine sub-tabs is a wall. Five carry the day; the rest sit under More and open
+  // on their own if you land on one. Editing PRIMARY is how you reorder them.
+  const PRIMARY = ["matchup","breakouts","counter","games","board"];
+  const extraTabs = SCOUT_TABS.filter(([k]) => !PRIMARY.includes(k));
+  const showExtra = S.scoutNavMore || extraTabs.some(([k]) => k === view);
+  const navBtn = ([k,n]) => `<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`;
+  const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${
+      SCOUT_TABS.filter(([k]) => PRIMARY.includes(k)).map(navBtn).join("")}
+      <button class="${showExtra?"on":""}" onclick="set({scoutNavMore:!S.scoutNavMore})" aria-expanded="${showExtra}">More ${showExtra?"\u25b4":"\u25be"}</button></div>${
+      showExtra ? `<div class="seg seg--wrap" style="margin-top:6px" aria-label="More Scout views">${extraTabs.map(navBtn).join("")}</div>` : ""}`;
   // The match and the point ride under the views on every one of them. The
   // strip sat under the pits, which Arrival and Voice do not draw, so a coach
   // on How did they get there had no Next point and no way to switch games.
@@ -5788,14 +5797,21 @@ function scout(){
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
     </div>
+    ${/* The five display toggles are set-and-forget, so they fold behind one chip
+          — the field starts higher and the break leads. Named Overlays, not
+          Layers, because Scout already has a Layers sub-tab. */""}
     <div class="toggles">
+      <button class="tgl ${S.scoutFold?"":"on"}" onclick="set({scoutFold:!S.scoutFold})"
+        aria-expanded="${!S.scoutFold}"><i></i>Overlays ${S.scoutFold?"\u25be":"\u25b4"}</button>
+      <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
+    </div>
+    ${S.scoutFold ? "" : `<div class="toggles">
       <button class="tgl ${S.rolesOn?"on":""}" onclick="set({rolesOn:!S.rolesOn})"><i></i>Roles</button>
       <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>
       <button class="tgl ${S.namesOn?"on":""}" onclick="set({namesOn:!S.namesOn})"><i></i>Names</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
-      <button class="btn btn--quiet" onclick="playPath()">${S.playing?"Pause":"Play break"}</button>
-    </div>
+    </div>`}
     <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}

@@ -1899,8 +1899,28 @@ const ROSTER = [
     window.loadPit("Rejects");
     return /No points logged against Miami Effect/.test(txt);
   }));
-  check("every sub-tab the spec names is on screen", await ev(() => {
+  check("Scout opens on five sub-tabs plus More, not nine", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"matchup", scoutNavMore:false });
+    const bar = [...document.querySelectorAll('.seg--wrap[aria-label=\"Scout views\"] button')].map(b => b.textContent.trim());
+    return bar.length === 6 && bar[5].startsWith("More")
+      && !bar.includes("Voice log") && !bar.includes("Anticipate");
+  }));
+  check("the field controls fold behind Overlays by default, no Layers name clash", await ev(() => {
+    window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them", scoutFold:true });
+    const tgls = [...document.querySelectorAll("#root .tgl")].map(b => b.textContent.trim());
+    const folded = tgls.some(t => /Overlays/.test(t)) && !tgls.some(t => /^Roles/.test(t));
+    // "Layers" appears only as the sub-tab (under More), never as the fold chip.
+    const noClash = !tgls.some(t => /Layers/.test(t));
+    window.set({ scoutFold:false });
+    const open = [...document.querySelectorAll("#root .tgl")].some(b => /^Roles/.test(b.textContent.trim()));
+    window.set({ scoutFold:true });
+    return folded && noClash && open;
+  }));
+  check("every sub-tab the spec names is reachable", await ev(() => {
+    // The occasional four live under More now; open it, then all are on screen.
+    window.set({ tab:"scout", scoutTab:"matchup", scoutNavMore:true });
     const bar = [...document.querySelectorAll(".seg--wrap button")].map(b => b.textContent.trim());
+    window.set({ scoutNavMore:false });
     return ["Matchup","Breakouts","Anticipate","Counter","Layers","Games","Division"]
       .every(n => bar.includes(n));
   }));
@@ -4620,7 +4640,9 @@ const ROSTER = [
   check("the chip is on Playbook and on Scout", await ev(() => {
     const hasIt = () => [...document.querySelectorAll("#root .tgl")].some(b => /Names/.test(b.textContent));
     window.set({ tab: "playbook" }); const pb = hasIt();
-    window.set({ tab: "scout", scoutTab: "matchup" }); return pb && hasIt();
+    // On Scout the display toggles fold behind Overlays; open it to reach Names.
+    window.set({ tab: "scout", scoutTab: "matchup", scoutFold: false });
+    const sc = hasIt(); window.set({ scoutFold: true }); return pb && sc;
   }));
   // Where a named bunker is the subject the codes are not optional.
   for (const [tab, more, label] of [["sightlines", null, "Sightlines"],
