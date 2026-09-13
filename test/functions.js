@@ -2996,11 +2996,13 @@ const ROSTER = [
   }));
   check("the opening sheet has no opponent rather than a guess", await ev(() =>
     curMatch().vs === "" && matchVs() === ""));
-  check("a new match refuses to invent one", await ev(() => {
-    let said = ""; window.alert = m => { said = m; };
+  check("a new match refuses to invent one, and leads him to set the opponent", await ev(() => {
     const before = S.matches.length;
-    window.newMatch();
-    return S.matches.length === before && /right pit/i.test(said) && S.tab === "scout";
+    window.newMatch();                       // no opponent set
+    // No new sheet, no system alert — it lands on Tally, which now opens with
+    // the "Who are you playing?" picker.
+    return S.matches.length === before && S.tab === "tally"
+      && /Who are you playing/.test(document.getElementById("root").textContent);
   }));
   check("Scout's reads wait for a team, but Division does not", await ev(() => {
     window.set({ tab: "scout", scoutTab: "counter" });
@@ -3192,9 +3194,26 @@ const ROSTER = [
   check("no group picked is no send, not everybody", await ev(() => {
     ["g1","g3"].forEach(id => window.toggleBlastGroup(id));
     const before = S.blasts.length;
-    let said = ""; window.alert = m => { said = m; };
-    window.sendBlast();
-    return S.blasts.length === before && /group/i.test(said);
+    window.set({ flash: "" });
+    window.sendBlast();               // no group picked → an inline flash, not a modal
+    return S.blasts.length === before && /group/i.test(S.flash || "");
+  }));
+  check("a flash shows on screen and clears, replacing the system alert", await ev(() => {
+    window.flash("Test message");
+    const up = S.flash === "Test message"
+      && /Test message/.test(document.querySelector("#root .flash")?.textContent || "");
+    window.set({ flash: "" });
+    const gone = !document.querySelector("#root .flash");
+    return up && gone;
+  }));
+  check("the schedule paste error is a flash, not a modal", await ev(() => {
+    let alerted = false; const orig = window.alert; window.alert = () => { alerted = true; };
+    window.set({ flash: "", tab:"more", more:"schedule", gamePaste:"nothing here that parses" });
+    window.readSchedule();
+    window.alert = orig;
+    const ok = !alerted && /looked like a game/i.test(S.flash || "");
+    window.set({ flash: "" });
+    return ok;
   }));
   check("deleting a group takes it out of the picked set", await ev(() => {
     window.toggleBlastGroup("g1");

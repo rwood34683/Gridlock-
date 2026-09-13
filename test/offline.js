@@ -33,6 +33,8 @@ const { launchOptions } = require("../scripts/browser.js");
       assert((await page.locator("main").innerText()).trim().length > 30, tab + " renders offline");
     }
     await page.getByRole("button", {name:"Scout",exact:true}).click();
+    // Voice log is one of the occasional sub-tabs under "More" now.
+    await page.getByRole("button", {name:/^More/,exact:false}).first().click();
     await page.getByRole("button", {name:"Voice log",exact:true}).click();
     await page.locator("#voice-manual").fill("Number seven is out");
     await page.getByRole("button", {name:"Record text",exact:true}).click();

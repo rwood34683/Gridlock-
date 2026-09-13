@@ -609,6 +609,13 @@ svg.field [data-pick]{cursor:crosshair}
   background:rgba(173,21,21,.12);border:1px solid rgba(173,21,21,.5);
   border-radius:var(--r-md);padding:var(--s3);font-size:var(--t-sm);color:var(--ink);line-height:1.45;
 }
+.flash{position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(70px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  z-index:60;max-width:calc(100% - 32px);width:max-content;text-align:left;
+  background:var(--panel-2);border:1px solid var(--accent);border-radius:var(--r-md);
+  padding:12px var(--s4);color:var(--ink);font-size:var(--t-sm);line-height:1.4;cursor:pointer;
+  box-shadow:0 14px 34px -12px rgba(0,0,0,.85);animation:flashin .16s ease-out}
+@keyframes flashin{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .tip button{flex:none;color:var(--accent-lit);font-weight:700;font-size:var(--t-sm);
   min-height:44px;min-width:44px;margin:-11px 0;padding:0 var(--s2)}
 
@@ -1390,7 +1397,7 @@ const defaultState = () => ({
   layoutKey:"lso", script:"snake", playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
   namesOn:false,
-  scoutShow:"them", scoutFold:true, scoutNavMore:false,               // the Scout field draws one pit at a time: theirs, yours, or both
+  scoutShow:"them", scoutFold:true, scoutNavMore:false, flash:"",               // the Scout field draws one pit at a time: theirs, yours, or both
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -1618,7 +1625,7 @@ S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
-S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false;
+S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -3033,7 +3040,7 @@ window.logMove = () => {
   const from = document.getElementById('mvFrom').value;
   const to = document.getElementById('mvTo').value;
   if(!who || !from || !to) return;
-  if(from === to){ alert('A rotation needs two different bunkers.'); return; }
+  if(from === to){ flash('A rotation needs two different bunkers.'); return; }
   S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
   save(S); render();
 };
@@ -5142,6 +5149,19 @@ function tally(){
 
   return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
 
+  ${/* A fresh sheet has no opponent, and every out is stamped with who you are
+        playing. Tallying against nobody logs a break the app can never attach to
+        a team — so before the field, the sheet asks who, right here, and one tap
+        names them. Once named it steps aside. */""}
+  ${!matchVs() ? sec("Who are you playing?", `<p class="lede">Set the other team before you tally. Every out on
+      this sheet is logged against them, and everything you learn is kept against their name.</p>
+    <select onchange="setPitTeam('right',this.value)" aria-label="The team you are playing">
+      <option value="" selected>Pick the other team\u2026</option>
+      ${teamsHere().map(t=>`<option>${esc(t.name)}</option>`).join("")}
+    </select>
+    <p class="note">Or open a game on <b>More \u203a Schedule</b> and tap <b>We play</b>.</p>`,
+    "No opponent yet") : ""}
+
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
@@ -5465,11 +5485,10 @@ window.backPoint = () => {
 window.newMatch = () => {
   // The opponent is stamped on every out this sheet records, so it has to be a
   // team the coach picked, not whoever the app happened to have in the pit.
-  if(!pitNamed("right")){
-    alert("Put the team you are playing in the right pit on Scout first — "
-        + "every out on this sheet is logged against them.");
-    return set({tab:"scout", scoutTab:"matchup"});
-  }
+  // No opponent means there is nothing to start a match against — send him to
+  // the Tally sheet, which now leads with the opponent picker, rather than
+  // throwing a system alert and bouncing to Scout.
+  if(!pitNamed("right")) return set({tab:"tally"});
   const cur = curMatch();
   const n = cur ? matchSize(cur.id) : 0;
   if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
@@ -5539,7 +5558,7 @@ window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(
 window.saveGame = () => {
   const n = S.gameNew || {};
   if(!(n.h || "").trim() || !(n.a || "").trim())
-    return alert("Both teams, or there is no game to watch.");
+    return flash("Both teams, or there is no game to watch.");
   S.games = [...(S.games || []),
              {id: gameId(), d: n.d || SCHEDULE.games[0].d, t: n.t || "09:00",
               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()}];
@@ -5609,7 +5628,7 @@ function parseSchedule(text){
 window.readSchedule = () => {
   const rows = parseSchedule(S.gamePaste || "");
   if(!rows.length)
-    return alert("Nothing in that looked like a game. One game a line, with a time and both teams — "
+    return flash("Nothing in that looked like a game. One game a line, with a time and both teams — "
                + "for example: 9:00 AM  Dynasty vs Impact");
   S.games = [...(S.games || []), ...rows];
   set({gamePaste: "", gameOpen: null});
@@ -7022,8 +7041,8 @@ window.shareClass = code => {
 };
 window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
-  if(!name){alert("Name is required.");return}
-  if(!document.getElementById("fa").checked){alert("Tick the sign-in box to submit.");return}
+  if(!name){flash("Name is required.");return}
+  if(!document.getElementById("fa").checked){flash("Tick the sign-in box to submit.");return}
   S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
     wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
   S.joinCode=""; save(S); render();
@@ -7122,9 +7141,9 @@ window.delMem = (id,i) => {
 };
 window.sendBlast = () => {
   const body=clean(S.blastBody||"");
-  if(!body){alert("Write the update first.");return}
+  if(!body){flash("Write the update first.");return}
   const picked=S.groups.filter(g=>blastPicked(g.id));
-  if(!picked.length){alert("Pick at least one group.");return}
+  if(!picked.length){flash("Pick at least one group.");return}
   const rec=[];
   picked.forEach(g=>reachable(g).forEach(m=>rec.push(m.phone||m.email)));
   S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body,
@@ -8092,8 +8111,18 @@ function shell(){
       <p class="note">GRIDLOCK System · powered by UPRA · officials govern the live call</p>
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
+    ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
   </div>`;
 }
+// A quick non-blocking message, where the app used to throw a system alert.
+// Auto-clears; tap to dismiss. Validation belongs on screen, not in a modal.
+let _flashT = 0;
+window.flash = msg => {
+  S.flash = String(msg || "");
+  save(S); render();
+  clearTimeout(_flashT);
+  _flashT = setTimeout(() => { if(S.flash){ S.flash = ""; render(); } }, 3600);
+};
 window.cycleEvent = () => {
   const keys=Object.keys(LAYOUTS);
   set({layoutKey:keys[(keys.indexOf(S.layoutKey)+1)%keys.length]});
