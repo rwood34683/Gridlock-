@@ -136,6 +136,33 @@ const ROSTER = [
     window.set({entered: false, more: null});
     return /phone/i.test(nexus) && /signal/i.test(help);
   }));
+  // The form takes the screen instead of hanging off the bottom of the choices.
+  // Appended below, it sat under three buttons and the footer — off the fold on
+  // a phone, with two ways to do one thing both on screen.
+  check("opening the form replaces the choices rather than adding to them", await ev(() => {
+    window.set({ mode: "login", authSaid: "" });
+    const labels = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
+    const gone = !labels.some(l => /Show me how it works|I already have one$/.test(l));
+    const pitch = !/twelve breaks/i.test(document.getElementById("root").innerText);
+    window.set({ mode: null });
+    return gone && pitch;
+  }));
+  check("and it is at the top of the screen, not under the fold", await ev(() => {
+    window.set({ mode: "login", authSaid: "" });
+    const f = document.querySelector("#root .panel").getBoundingClientRect();
+    const ok = f.top >= 0 && f.top < window.innerHeight * 0.55;
+    window.set({ mode: null });
+    return ok;
+  }));
+  // A bottom-aligned scrolling column pushes its own first child above the
+  // scroll origin the moment the content is taller than the box, and it can
+  // never be scrolled back to. That is how the headline got under the clock.
+  check("the mark stays reachable when the page is taller than the phone", await ev(() => {
+    window.set({ mode: null, promoTour: true });
+    const top = document.querySelector("#root .promo__mark").getBoundingClientRect().top;
+    window.set({ promoTour: false });
+    return top >= 0;
+  }));
   check("a phone with no account leads with making one", await ev(() => {
     [...document.querySelectorAll("#root .promo .btn")].find(b => /Create your account/.test(b.textContent)).click();
     return S.mode === "create";

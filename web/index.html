@@ -608,7 +608,7 @@ svg.field [data-pick]{cursor:crosshair}
    PROMO
    ============================================================ */
 .promo{
-  height:100%;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;
+  height:100%;overflow-y:auto;display:flex;flex-direction:column;
   padding:calc(var(--s6) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(var(--s5) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) calc(var(--s5) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s5) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
   gap:var(--s5);
   background:
@@ -616,6 +616,11 @@ svg.field [data-pick]{cursor:crosshair}
     linear-gradient(#000,#0b0c0d);
 }
 .promo > *{flex:0 0 auto}
+/* Sits at the bottom when there is room and stays reachable when there is not.
+   justify-content:flex-end pushes the first child above the scroll origin the
+   moment the content is taller than the box, and it can never be scrolled back
+   to — which is how the headline ended up under the status bar. */
+.promo > :first-child{margin-top:auto}
 .promo__mark{display:flex;flex-direction:column;gap:var(--s2)}
 .promo__name{font-size:44px;font-weight:800;letter-spacing:.14em;line-height:1}
 .promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
@@ -3859,6 +3864,7 @@ function promo(){
       <div class="promo__name">GRIDLOCK</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
+    ${S.mode === "create" || S.mode === "login" ? "" : `
     <div style="display:flex;flex-direction:column;gap:12px">
       <p class="promo__tag">Call the break.<br/>Chart the point.<br/>Know what worked.</p>
       <ul class="promo__does">
@@ -3866,7 +3872,14 @@ function promo(){
         <li>Tap the bunker a man broke to. That is the whole chart.</li>
         <li>By Sunday it tells you which bunkers win you points, and which cost you.</li>
       </ul>
-    </div>
+    </div>`}
+    ${/* The form takes the screen rather than hanging off the bottom of it.
+           Appended below, it sat under three buttons and the footer — off the
+           fold on a phone, with six buttons and two ways to do one thing all
+           on screen at once. One screen, one job. */""}
+    ${S.mode === "create" || S.mode === "login" ? authForm() + `
+      <p class="note">GRIDLOCK System · powered by UPRA</p>
+    </div>` : `
     <div class="stack">
       ${/* No way past this screen but an account, by the owner's decision. The
              one exception is a class deep link (?c=CODE), which is a
@@ -3890,8 +3903,7 @@ function promo(){
         S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
     </div>
     ${S.promoTour ? tourPanel() : ""}
-    <p class="note">GRIDLOCK System · powered by UPRA</p>
-    ${authForm()}
+    <p class="note">GRIDLOCK System · powered by UPRA</p>`}
   </div>`;
 }
 // Whether this phone already carries a staff account, so the sign-in line

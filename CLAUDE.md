@@ -401,6 +401,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Scout, and `opts.names` forces it on only where a named bunker is the subject
   — Sightlines, Movement, Bunker stats, the arrival trail, Team's own naming.
   Tally needs none of it: the sheet names the bunker the moment you tap it.
+- Hang a form off the bottom of the welcome page, or bottom-align a scrolling
+  column. The sign-in panel was appended under the three buttons and the
+  footer: off the fold on a phone, with six buttons and two ways to do one
+  thing on screen at once. It replaces the choices now — one screen, one job,
+  and the pitch goes with them, because a coach filling in the form has already
+  decided. And `.promo` used `justify-content:flex-end`, which pushes the first
+  child above the scroll origin the moment the content is taller than the box,
+  where it can never be scrolled back to — that is how GRIDLOCK ended up under
+  the status bar. `margin-top:auto` on the first child does the same job and
+  collapses to nothing when it overflows.
 - Put a way past the welcome page that is not the account. The owner's call is
   that everyone signs in, so there is no guest button and nothing on that screen
   sets `entered:true` — the suite counts the routes and reads their handlers.
