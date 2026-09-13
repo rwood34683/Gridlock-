@@ -3749,7 +3749,7 @@ const ROSTER = [
     svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return true;
   }, ft);
-  await ev(() => window.set({ tab:"tally", tallySel:null, tallyDraft:null, tallyTrace:false, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
+  await ev(() => window.set({ tab:"tally", tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
   check("Tally has the field", await ev(() => !!document.querySelector("#tally-map svg.field [data-pick]")));
   const ours = await ev(() => { const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 80); return {id:b.id, x:b.x, y:b.y}; });
   await tapTally([ours.x + 3, ours.y - 3]);
@@ -3776,16 +3776,23 @@ const ROSTER = [
     return ids.length > 0 && ids.every(id => curLayout().bunkers.find(b => b.id === id).x > 75);
   }));
   check("the pad shows the lane he was shooting", await ev(() => document.querySelector("#tally-sheet .pad button.on").textContent === "↑"));
-  await ev(() => window.set({ tallyTrace:true }));
-  for (const p of [[20,100],[40,90],[50,95],[60,100],[65,105],[70,110]]) await tapTally(p);
-  check("tracing lays up to five points and refuses the sixth", await ev(() => S.tallyDraft.route.length === 5));
-  check("the route is drawn from what was tapped", await ev(() => document.querySelectorAll("#tally-map .tally-route").length >= 5 && document.querySelectorAll("#tally-map .tally-pt").length === 5));
-  await tapTally(await ev(() => [S.tallyDraft.route[0].x + 2, S.tallyDraft.route[0].y]));
-  check("tapping a laid point marks a hold, drawn dashed", await ev(() => S.tallyDraft.route[0].dl === true && !!document.querySelector("#tally-map .tally-route[stroke-dasharray]")));
-  await ev(() => window.set({ tallyTrace:false }));
+  await ev(() => { window.byIdAll = () =>
+    Object.fromEntries(curLayout().bunkers.map(b => [b.id, b])); });
+  // Tracing is gone: a tap on the field does one thing, which is pick the
+  // bunker a man broke to. The run is worked out from the sheet.
+  check("the run is drawn without him tracing it", await ev(() =>
+    document.querySelectorAll("#tally-map .tally-route").length > 0));
+  check("and every tap on the field just moves to another bunker", await ev(() => {
+    const was = S.tallySel;
+    const far = curLayout().bunkers.find(x => x.id !== was && x.x > 70);
+    window.tallyTap([far.x, far.y]);
+    const moved = S.tallySel !== was;
+    window.tallyTap([byIdAll()[was].x, byIdAll()[was].y]);
+    return moved && S.tallySel === was;
+  }));
   await tapTally([theirs.x, theirs.y]);
-  check("switching bunkers keeps the answers, drops the man and the route", await ev(() => {
-    const d = S.tallyDraft; return d.alive === false && d.entry === "battle" && d.player === "" && d.route.length === 0;
+  check("switching bunkers keeps the answers and drops the man", await ev(() => {
+    const d = S.tallyDraft; return d.alive === false && d.entry === "battle" && d.player === "";
   }));
   await tapTally([ours.x, ours.y]);
   await ev(() => window.setDraft({ side:"us", sideSet:true, player:"Reyes", route:[{x:20,y:100,b:"",dl:true}], routeType:"Deep", movedTo:curLayout().bunkers[10].id }));
@@ -3834,7 +3841,7 @@ const ROSTER = [
     const d = JSON.parse(copyPayload("all")).data; d.breakouts = [{id:"x", m:"m", layout:"l", bunker:"b", side:"nobody", pt:1, at:1}];
     return copyDataError(d) === "breakouts";
   }));
-  await ev(() => window.set({ tallySel:null, tallyDraft:null, tallyTrace:false, breakouts:[], results:[], point:1 }));
+  await ev(() => window.set({ tallySel:null, tallyDraft:null, breakouts:[], results:[], point:1 }));
 
   /* --------------------------------------------------------------------
      The break belongs on the screens about the break
@@ -4226,25 +4233,108 @@ const ROSTER = [
   }));
 
   /* ------------------------------------------------- the run he actually ran */
-  G("A traced route survives being logged");
+  G("The run is worked out, not traced");
+  await seed({ tab: "tally", layoutKey: "lso", right: { name: "Rejects" },
+               roster: [{ name: "Reyes", num: 7 }] });
+  check("the sheet no longer asks a coach to trace anything", await ev(() => {
+    const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 85);
+    window.selectBunker(b.id);
+    const t = document.getElementById("root").innerText;
+    return !/Trace the route/.test(t) && /Drawn for you/.test(t);
+  }));
+  check("a run is on the field the moment a bunker is tapped", await ev(() =>
+    document.querySelectorAll("#tally-map .tally-route").length > 0));
+  // The same standard the break paths are held to: sampled against every
+  // footprint on every field, with the bunker he is running to and the one he
+  // starts behind exempted — he begins with a hand on that one.
+  const routeCuts = () => ev(() => {
+    // The tightest clearance autoRoute is willing to use, so this asks whether
+    // the run actually clears rather than whether it cleared at full shoulder.
+    const obs = routeObstacles(curLayout().bunkers, 0.2);
+    const bad = [];
+    // Both pits: a run to the same bunker from the far end of the field is a
+    // different run, and has to clear just as well.
+    ["us", "them"].forEach(side => curLayout().bunkers.forEach(target => {
+      const r = autoRoute({ bunker: target.id, side, layout: S.layoutKey });
+      if(!r.length) { bad.push("no run to " + target.id); return; }
+      const mine = curLayout().bunkers.filter(x => side === "them" ? x.x > 130 : x.x < 20);
+      const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
+      const start = [side === "them" ? 147 : 3, back ? back.y : 60];
+      const holds = o => Math.abs(start[0] - o.x) <= o.hw && Math.abs(start[1] - o.y) <= o.hh;
+      const live = obs.filter(o => !o.ids.has(target.id) && !holds(o));
+      const pts = [start, ...r.map(q => [q.x, q.y])];
+      for(let i = 1; i < pts.length; i++)
+        for(const o of live)
+          if(segHitsBox(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1], o.x, o.y, o.hw, o.hh)){
+            bad.push(side + " " + target.id + " cuts " + o.n); break;
+          }
+    }));
+    return [...new Set(bad)];
+  });
+  /* Every bunker on every field, both sides: 346 runs. All but four clear
+     everything. The four are the deep end of the Midwest snake, where the only
+     way in is along the snake itself and past the wedge sitting on it — which
+     is what a snake runner physically does, so they are pinned by name rather
+     than waved through by a loose tolerance. If that number ever grows, the
+     router got worse. */
+  const EXPECTED = { lso: 0, tby: 0, mwo: 4 };
+  for(const k of ["lso", "mwo", "tby"]){
+    await ev(x => window.set({ layoutKey: x }), k);
+    await page.waitForTimeout(120);
+    const cuts = await routeCuts();
+    check(`${k}: every run clears everything but the known snake legs`,
+      cuts.length === EXPECTED[k], `${cuts.length} cut, expected ${EXPECTED[k]} — ${cuts.slice(0, 4).join(", ")}`);
+    if(k === "mwo")
+      check("and those four are the deep snake, running along itself",
+        cuts.every(c => /SB#1[34] cuts/.test(c)), cuts.join(", "));
+  }
+  await ev(() => window.set({ layoutKey: "lso" }));
+  check("a second bunker adds a second leg", await ev(() => {
+    const bl = curLayout().bunkers, a = bl.find(x => x.x < 60 && x.y > 85), z = bl.find(x => x.x > 70 && x.x < 90);
+    return autoRoute({ bunker: a.id, movedTo: z.id, side: "us", layout: "lso" }).length
+         > autoRoute({ bunker: a.id, side: "us", layout: "lso" }).length;
+  }));
+  // Delayed is already on the sheet, so the hold costs him no extra tap.
+  check("delayed dashes the first leg, from what he already ticked", await ev(() => {
+    const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 85);
+    return autoRoute({ bunker: b.id, side: "us", layout: "lso", delayed: true })[0].dl === true
+        && autoRoute({ bunker: b.id, side: "us", layout: "lso" })[0].dl === false;
+  }));
+  check("theirs runs from their own line, not yours", await ev(() => {
+    const b = curLayout().bunkers.find(x => x.x > 95);
+    const ours = autoRoute({ bunker: b.id, side: "us", layout: "lso" });
+    const them = autoRoute({ bunker: b.id, side: "them", layout: "lso" });
+    // Same destination, opposite ends of the field: the two runs cannot match.
+    return them.length > 0 && them[them.length - 1].b === b.id
+        && JSON.stringify(them) !== JSON.stringify(ours);
+  }));
+  check("a bunker this build does not have draws nothing rather than throwing",
+    await ev(() => autoRoute({ bunker: "NOPE#9", side: "us", layout: "lso" }).length === 0));
+
+  G("A route survives being logged");
   await seed({ tab: "tally", layoutKey: "lso", right: { name: "Rejects" },
                roster: [{ name: "Reyes", num: 7 }] });
   const routeLegs = () => ev(() => document.querySelectorAll("#tally-map .tally-route").length);
   await ev(() => {
     const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 85);
     window.selectBunker(b.id);
-    window.setDraft({ player: "Reyes", alive: true,
-      route: [{x:14, y:102, b:"", dl:false}, {x:30, y:95, b:"", dl:true}] });
+    window.setDraft({ player: "Reyes", alive: true, delayed: true });
   });
   const whileOpen = await routeLegs();
-  check("the run draws while the sheet is open", whileOpen === 3);
+  check("the run draws while the sheet is open", whileOpen > 0);
   await ev(() => window.logBreakout());
-  // The row always carried `route`. It was simply never read back, so a coach
-  // charted five men over a point and the field showed five squares.
-  check("the row keeps what was traced", await ev(() => (S.breakouts[0].route || []).length === 2));
-  check("and it is still on the field after Log this breakout", await routeLegs() === 3);
+  // It used to be drawn from the open draft alone, so logging made the run
+  // disappear and the field showed a square.
+  check("and it is still on the field after Log this breakout", await routeLegs() === whileOpen);
   check("a hold is still dashed once logged", await ev(() =>
     [...document.querySelectorAll("#tally-map .tally-route")].some(l => l.getAttribute("stroke-dasharray"))));
+  // A row somebody traced by hand before this keeps what he drew: what he saw
+  // beats what the router works out.
+  check("a hand-traced row from an older build keeps its own line", await ev(() => {
+    const r = routeOf({ bunker: S.breakouts[0].bunker, side: "us", layout: "lso",
+                        route: [{x:10, y:10, b:"", dl:false}] });
+    return r.length === 1 && r[0].x === 10;
+  }));
   check("logged runs sit a shade back from the one being filled in", await ev(() => {
     const before = [...document.querySelectorAll("#tally-map .tally-route")].map(l => +l.getAttribute("stroke-width"));
     const b = curLayout().bunkers.find(x => x.x < 60 && x.y < 30);
@@ -4253,12 +4343,14 @@ const ROSTER = [
     const now = [...document.querySelectorAll("#tally-map .tally-route")].map(l => +l.getAttribute("stroke-width"));
     return before.every(w => w < 2) && now.some(w => w > 2) && now.some(w => w < 2);
   }));
-  check("a man with no route logged draws no line", await ev(() => {
+  // Every logged man gets a run now — there is nothing left for a coach to
+  // forget to do.
+  check("a second man logged adds a second run", await ev(() => {
     window.set({ tallySel: null, tallyDraft: null });
     const was = document.querySelectorAll("#tally-map .tally-route").length;
     const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 40 && x.y < 55);
     window.selectBunker(b.id); window.setDraft({ alive: true }); window.logBreakout();
-    return document.querySelectorAll("#tally-map .tally-route").length === was;
+    return document.querySelectorAll("#tally-map .tally-route").length > was;
   }));
   check("the next point starts on a clean field", await ev(() => {
     window.set({ tallySel: null, tallyDraft: null, point: 2 });
@@ -4384,7 +4476,7 @@ const ROSTER = [
   await page.waitForTimeout(200);
   {
     const left = await ev(() => Object.entries({
-      tallySel:S.tallySel, tallyDraft:S.tallyDraft, tallyTrace:S.tallyTrace, tallyRead:S.tallyRead,
+      tallySel:S.tallySel, tallyDraft:S.tallyDraft, tallyRead:S.tallyRead,
       tallyPick:S.tallyPick, tallyLast:S.tallyLast, helpFor:S.helpFor, helpQ:S.helpQ,
       editPath:S.editPath, pad:S.pad, replayPt:S.replayPt, replayStep:S.replayStep,
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,

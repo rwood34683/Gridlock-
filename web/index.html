@@ -1314,7 +1314,7 @@ const defaultState = () => ({
   messages:[],
   tally:[],
   breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
-  tallySel:null, tallyDraft:null, tallyTrace:false, tallyLast:"", tallyRead:"", tallyValue:"us",
+  tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", tallyValue:"us",
   calls:[],                       // what you actually called, for self-scout
   pbView:null,                    // null | "cards" | "rep" — Playbook's chips
   rep:{running:false, ask:null, at:0, log:[]},   // the recognition drill
@@ -1507,7 +1507,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = "";
  * number. The rest just opened the app mid-action — a face pad hanging open, a
  * replay stopped at step two, Playbook in path-edit mode. A launch is a fresh
  * start on every screen; only what was logged survives it. */
-S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
+S.tallySel = null; S.tallyDraft = null;
 S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
@@ -4608,7 +4608,7 @@ window.selectBunker = id => {
   // Switching bunkers keeps what was ticked — dead, battling in, the lane — and
   // drops what belonged to the other bunker: the man, and the route to it.
   const side = d.sideSet ? d.side : sideOfBunker(b);
-  set({tallySel:id, tallyTrace:false,
+  set({tallySel:id,
        tallyDraft:{...d, side, player: same ? d.player : "", route: same ? (d.route || []) : []}});
   // The sheet opens under the field, and on a phone that is below the fold: the
   // coach tapped a bunker and saw nothing happen. Bring the field to the top so
@@ -4616,26 +4616,74 @@ window.selectBunker = id => {
   const main = document.querySelector(".main"), map = document.getElementById("tally-map");
   if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
 };
+/* The run he made, worked out from what the coach already told the sheet.
+ *
+ * Tracing it by tapping the field was five more taps a man, on a sideline,
+ * between points — and the coach already says where the man broke to, whether
+ * he moved on, and whether he was delayed. That is a route. The same router
+ * that draws the twelve on Playbook takes it from there, so the line goes
+ * *around* the bunkers in the way instead of through them.
+ *
+ * A row logged before this carries its own hand-traced `route` and keeps it:
+ * what he drew is what he saw, and the app does not overrule it.
+ */
+function autoRoute(row){
+  const layout = LAYOUTS[row.layout] || curLayout();
+  const b = layout.bunkers.find(x => x.id === row.bunker);
+  if(!b) return [];
+  /* A man can squeeze closer to a bunker than the break router assumes: the
+     default shoulder is what five men leaving together need, and one man
+     picking his way to a far corner does not. Clearance is tried wide first
+     and tightened only where wide finds nothing — the difference between a run
+     that goes round and a straight line drawn through a bunker. */
+  const pads = [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w));
+  /* Where a point actually starts: the centre of his own back line, anchored on
+     the back-centre bunker the same way breakPaths does it. A flat [2,60] is a
+     guess, and on a field whose back-centre sits off the middle it can start
+     him walled in — at which point routeClear gives up and the run is drawn
+     straight through whatever is in the way. */
+  const mine = row.side === "them"
+    ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
+  const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
+  const start = row.side === "them" ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+  const out = [];
+  const leg = (from, to, id, hold) => {
+    // Take the first clearance that actually yields a run that clears. A leg
+    // routeClear gives up on comes back empty, and empty is drawn as a straight
+    // line through whatever is in the way.
+    let via = [];
+    for(const obs of pads){
+      const live = obs.filter(o => !o.ids.has(id)
+        && !(Math.abs(from[0]-o.x) <= o.hw && Math.abs(from[1]-o.y) <= o.hh));
+      const pts = [from, ...routeClear(from, to, id, obs), to];
+      let clean = true;
+      for(let i = 1; i < pts.length && clean; i++)
+        if(live.some(o => segHitsBox(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1], o.x, o.y, o.hw, o.hh)))
+          clean = false;
+      if(clean){ via = pts.slice(1, -1); break; }
+    }
+    via.forEach(v => out.push({x: +v[0].toFixed(1), y: +v[1].toFixed(1), b: "", dl: false}));
+    out.push({x: +to[0].toFixed(1), y: +to[1].toFixed(1), b: id, dl: !!hold});
+  };
+  // Delayed off the line is a hold on the way to his bunker; a delayed move is
+  // a hold at it. Both are already on the sheet — nothing new to ask him.
+  leg(start, [b.x, b.y], b.id, !!row.movedDelayed);
+  const mv = row.movedTo && layout.bunkers.find(x => x.id === row.movedTo);
+  if(mv) leg([b.x, b.y], [mv.x, mv.y], mv.id, false);
+  if(row.delayed && out.length) out[0] = {...out[0], dl: true};
+  return out;
+}
+/* What to draw for a row: what he traced if he traced one, else the run the
+   app works out. Old rows keep their own. */
+function routeOf(row){
+  return (row.route && row.route.length) ? row.route : autoRoute(row);
+}
+
 window.tallyTap = at => {
-  const d = draft();
-  if(S.tallySel && S.tallyTrace){
-    const route = [...(d.route || [])];
-    // Tap a laid point again to flag it as a hold — he waited there before
-    // moving on. Tap it a third time and it is a plain point again. The reach
-    // is the same eight feet a point snaps to a bunker by, so the tap that laid
-    // a point is the tap that finds it.
-    const hit = route.findIndex(p => Math.hypot(p.x - at[0], p.y - at[1]) <= 8);
-    if(hit >= 0){ route[hit] = {...route[hit], dl: !route[hit].dl}; return setDraft({route}); }
-    if(route.length >= 5) return;
-    const near = nearestBunker(at);
-    const b = near && Math.hypot(near.x - at[0], near.y - at[1]) <= 8 ? near : null;
-    route.push(b ? {x:b.x, y:b.y, b:b.id, dl:false}
-                 : {x:Math.round(at[0]*2)/2, y:Math.round(at[1]*2)/2, b:"", dl:false});
-    return setDraft({route});
-  }
+  // One job: the bunker a man broke to. The run is worked out, not traced.
   const b = nearestBunker(at); if(b) selectBunker(b.id);
 };
-window.tallyDone = () => set({tallySel:null, tallyTrace:false, tallyDraft:null});
+window.tallyDone = () => set({tallySel:null, tallyDraft:null});
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   const d = draft(), pt = S.point || 1, at = Date.now();
@@ -4656,7 +4704,7 @@ window.logBreakout = () => {
   if(row.alive === false && row.player)
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {})});
   S.tallyLast = row.id;
-  S.tallySel = null; S.tallyTrace = false;
+  S.tallySel = null;
   // The side sticks if the coach set it — he is working through their five —
   // and everything else starts clean for the next man.
   S.tallyDraft = d.sideSet ? {side, sideSet:true} : null;
@@ -4750,7 +4798,7 @@ function tallyOverlay(){
   breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).forEach(r => {
     const b = byId[r.bunker]; if(!b) return;
     // The run first, so the marker for the man sits on top of his own line.
-    out += routeSVG(r.route, b, r.side, false);
+    out += routeSVG(routeOf(r), b, r.side, false);
     const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1, y = b.y*sy - s2.v + 1;
     const col = r.side === "them" ? "#3d8bff" : "#e5342f";
     out += `<g class="tally-man"><rect x="${(x-4.5).toFixed(1)}" y="${(y-4.5).toFixed(1)}" width="9" height="9" rx="2" fill="${col}" stroke="#efedeb" stroke-width="1"/>`
@@ -4760,7 +4808,7 @@ function tallyOverlay(){
   const sel = selBunker(), d = draft();
   if(sel){
     const side = d.side || sideOfBunker(sel), col = side === "them" ? "#3d8bff" : "#e5342f";
-    out += routeSVG(d.route, sel, side, true);
+    out += routeSVG(routeOf({...d, bunker: sel.id, side, layout: S.layoutKey}), sel, side, true);
     const s2 = bunkerSize(sel, sx, sy);
     out += `<rect class="tally-sel" x="${(sel.x*sx-s2.h-4).toFixed(1)}" y="${(sel.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="5" fill="none" stroke="#efedeb" stroke-width="2"/>`;
   }
@@ -4830,12 +4878,8 @@ function breakoutSheet(){
       <select onchange="setDraft({movedTo:this.value})">${opts(others, d.movedTo)}</select></div>
     ${d.movedTo ? seg([[!!d.movedDelayed, d.movedDelayed ? "✓ Delayed move" : "Delayed move", `setDraft({movedDelayed:${!d.movedDelayed}})`]]) : ""}
     ${q("Route")}
-    <div class="btnrow">
-      <button class="btn ${S.tallyTrace ? "" : "btn--quiet"} grow" onclick="set({tallyTrace:${!S.tallyTrace}})">${
-        S.tallyTrace ? "Tracing — tap the field" : "Trace the route"}</button>
-      ${route.length ? `<button class="btn btn--quiet" onclick="setDraft({route:[]})">Clear route</button>` : ""}
-    </div>
-    <p class="note" style="margin:0">${route.length}/5 points${route.length ? " · tap a point again to mark a hold" : S.tallyTrace ? " · tap where he went, in order" : ""}</p>
+    <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
+      bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
     ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
     <button class="btn btn--lg btn--block" style="margin-top:var(--s3)" onclick="logBreakout()">✓&nbsp; Log this breakout</button>
   </div>`;
@@ -5087,7 +5131,7 @@ window.endPoint = won => {
                 ...(S.tallyRead ? {read: S.tallyRead} : {})}];
   S.tallyRead = "";
   // The next point starts with the field clear: nothing half-logged carries.
-  S.tallySel = null; S.tallyTrace = false; S.tallyLast = "";
+  S.tallySel = null; S.tallyLast = "";
   // The score is the read. Ahead / Even / Must-score follows it rather than
   // waiting to be told.
   S.matchState = derivedState();

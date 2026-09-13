@@ -351,6 +351,19 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Ask a coach to draw what the app already knows. Tally made him trace the run
+  by tapping the field — five taps a man, between points — when the sheet
+  already told it the bunker he broke to, the bunker he moved to and whether he
+  was delayed. `autoRoute()` works it out and the same router that draws the
+  twelve takes it round the bunkers in the way, so the line goes *around* rather
+  than through. A row traced by hand in an older build keeps its own: what he
+  saw beats what the router works out, and `routeOf()` is the door. The router's
+  shoulder is tried wide first and tightened only where wide finds nothing,
+  because `routeClear` gives up on a walled-in leg and gives back a straight
+  line through whatever is there. 342 of 346 runs across three fields clear
+  everything; the four that do not are the deep end of the Midwest snake, where
+  the only way in is along the snake itself, and the suite pins that number by
+  name so it cannot quietly grow.
 - Draw something only while it is being filled in. Tally's route was rendered
   from the open draft alone, so the moment a coach tapped Log this breakout the
   run he had just traced vanished — five men charted over a point and the field
