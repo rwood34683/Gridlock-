@@ -3397,10 +3397,17 @@ function fieldSVG(opts={}, runnersOnly){
   const show = opts.both ? (opts.show || "both") : "us";
   let paths = (opts.noPaths || show === "them") ? "" : runner(brPaths, opts.color||"#e5342f", 0);
   if(opts.both && show !== "us"){
-    const flip=q=>[150-q[0],q[1]];
+    // Their break is drawn only once you have logged one — the call seen most
+    // against them on this field. With nothing logged the right pit is EMPTY,
+    // not your own call turned round: a mirror looks like a scout and is not
+    // one, and a coach glancing at it reads intel he does not have. The legend
+    // tells him to scout them instead.
     const ts = theirScript();
-    const theirs = ts ? routedFor(ts) : brPaths;
-    paths += runner(theirs.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
+    if(ts){
+      const flip=q=>[150-q[0],q[1]];
+      const theirs = routedFor(ts);
+      paths += runner(theirs.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
+    }
   }
 
   // Sightlines replace the break paths when a source bunker is picked.
@@ -5794,7 +5801,7 @@ function scout(){
       ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
-          ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their call not logged yet, so this is yours mirrored"}</span>`; })():""}
+          ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}

@@ -3608,8 +3608,12 @@ const ROSTER = [
   }));
 
   // "Make this part less messy": one five at a time on the Scout field.
+  // "Make this part less messy": one five at a time on the Scout field. Their
+  // side needs a logged call now — a mirror of your own is not a scout.
   check("the Scout field draws one pit at a time by default", await ev(() => {
-    window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them", right:{name:"Rejects"} });
+    window.setPitTeam("right","Rejects");
+    editProfile("right", {breaks:[]}); window.logTheirBreak("right","snake",[]);
+    window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them" });
     const nums = [...document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']")];
     return nums.length === 5 && nums.every(c => c.getAttribute("fill") === "#3d8bff");
   }));
@@ -3625,7 +3629,12 @@ const ROSTER = [
     const t = document.getElementById("root").textContent;
     const ok = theirScript() === other && t.includes(BREAKS[other].name + ", logged 2 times");
     editProfile("right", {breaks:[]}); render();
-    return ok && theirScript() === null && /yours mirrored/.test(document.getElementById("root").textContent);
+    // Nothing logged: the right pit is empty and the legend sends him to scout,
+    // never your own call turned round.
+    const empty = document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']").length;
+    return ok && theirScript() === null && empty === 0
+      && /scout them|shows here once you scout/i.test(document.getElementById("root").textContent)
+      && !/mirror/i.test(document.getElementById("root").textContent);
   }));
 
   // "Log a breakout without naming the exact players for now."
@@ -4629,7 +4638,7 @@ const ROSTER = [
       return /training aid, not a prediction/i.test(document.getElementById("root").textContent); });
   }));
   for (const v of ["matchup","anticipate","counter"]) {
-    await ev(x => window.set({ tab:"scout", scoutTab:x }), v);
+    await ev(x => window.set({ tab:"scout", scoutTab:x, scoutShow:"us" }), v);
     check(`Scout ${v} keeps the break section`,
       await ev(() => document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']").length) === 5);
   }
@@ -4637,8 +4646,24 @@ const ROSTER = [
   // and the screens that ARE about the break still draw it
   await go("playbook");
   check("Playbook still draws the five", await runnersOn() === 5);
-  await ev(() => window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them" }));
-  check("Scout's break section still draws a five", await runnersOn() === 5);
+  await ev(() => window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"us" }));
+  check("Scout's own break still draws a five", await runnersOn() === 5);
+
+  /* Their pit is EMPTY until scouted — a mirror of your own call looks like
+     intel and is not. Nothing logged draws nothing; a logged call draws their
+     real five. */
+  await ev(() => window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them",
+                              right:{ name:"Rejects" }, scout:{} }));
+  check("Scout theirs is empty until you scout them, not your call mirrored",
+    await runnersOn() === 0
+    && await ev(() => /scout them|shows here once you scout/i.test(document.getElementById("root").innerText)));
+  check("a logged opponent call draws their real break", await ev(() => {
+    window.setPitTeam("right","Rejects");
+    window.logTheirBreak("right","snake");
+    window.set({ tab:"scout", scoutTab:"matchup", scoutShow:"them" });
+    return document.querySelectorAll(".field-wrap[data-live] svg.field g.live circle[r='6']").length === 5;
+  }));
+  await ev(() => window.set({ scout:{}, scoutShow:"them" }));
 
   /* --------------------------------------------------------------------
      Help — a coach on a sideline has no signal and nobody to ask
