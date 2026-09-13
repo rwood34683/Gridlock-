@@ -351,6 +351,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Bury the controls under the field. Playbook's field is most of the tab, so
+  anything below it starts a screen and a half down: writing a play was at
+  1426 px, which is not shipped, it is hidden. **Change the call** and
+  **+ Yours** sit directly under the field now, a thumb from it and from Play
+  the break, at ~650 px. They are folded — twelve wrapped buttons are a screen
+  of their own — the same shape Tally already uses on the point sheet. Nothing
+  goes *above* the field either: on first run the page hint is still there, and
+  a button row over the field pushed it past the 55 % line the suite holds.
 - Assume there are twelve calls. A coach runs plays the app has never heard
   of, and a break here is only five bunker ids per field — the paths, the
   buzzer order and the job labels all fall out of those five against the

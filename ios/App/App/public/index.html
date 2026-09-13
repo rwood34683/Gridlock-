@@ -235,6 +235,13 @@ h1,h2,h3,p{margin:0}
   display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
 }
 .seg button.on{background:var(--accent);color:#fff;font-weight:700}
+/* Writing a play sits with the calls, because that is where a coach is looking
+   when he picks one — but it makes something rather than choosing something,
+   so it is outlined rather than filled. */
+.seg .seg__add{
+  border:1px dashed var(--line-lit);color:var(--ink);font-weight:700;background:transparent;
+}
+.seg .seg__add:active{border-color:var(--accent);color:var(--accent-lit)}
 
 .toggles{display:flex;gap:var(--s2);flex-wrap:wrap}
 .tgl{
@@ -1326,7 +1333,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"",
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
   plays:[], building:null,
   direct:{},
   pad:null,
@@ -1504,7 +1511,7 @@ S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
 S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
-S.verifyPhone = ""; S.verifySent = false; S.verifySaid = "";
+S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
@@ -4221,6 +4228,28 @@ function playbook(){
     </div>` : ""}
   <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
 
+  ${/* Directly under the field, a thumb from it and from Play the break —
+         nothing above it, because the field is the whole point of this tab and
+         anything added over it pushes it off the fold on first run, where the
+         page hint is still there. Folded, for the same reason: twelve wrapped
+         buttons are a screen of their own. Same shape Tally already uses on the
+         point sheet. */""}
+  <div class="btnrow">
+    <button class="btn btn--quiet grow" onclick="set({pbPick:!S.pbPick})">${
+      S.pbPick ? "Close" : "Change the call"}</button>
+    <button class="btn btn--quiet" onclick="newPlay()">+ Yours</button>
+    ${isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit</button>
+      <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete</button>` : ""}
+  </div>
+  ${S.pbPick ? `<div class="seg seg--wrap">
+      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
+        isMine(k) ? "★ " : ""}${esc(callName(k))}</button>`).join("")}
+    </div>
+    ${Object.keys(S.breakCalls || {}).length ? "" :
+      `<p class="note">Not your words for them? The app will use yours on every screen.
+        <button class="btn btn--quiet" style="margin-top:6px"
+          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}` : ""}
+
   </div>
 
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
@@ -4245,19 +4274,6 @@ function playbook(){
   </div>
 
   ${S.building ? playBuilder() : ""}
-  ${sec("Break", `<div class="seg seg--wrap">
-      ${Object.entries(allPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false})">${esc(callName(k))}</button>`).join("")}
-    </div>
-    ${Object.keys(S.breakCalls || {}).length ? "" :
-      `<p class="note">Not your words for them? The app will use yours on every screen.
-        <button class="btn btn--quiet" style="margin-top:6px"
-          onclick="set({tab:'more',more:'team'})">Name the twelve</button></p>`}
-    <div class="btnrow" style="margin-top:var(--s2)">
-      <button class="btn btn--quiet" onclick="newPlay()">+ A play of your own</button>
-      ${isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit this play</button>
-        <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete this play</button>` : ""}
-    </div>`, curLayout().name)}
-
   ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}

@@ -3869,6 +3869,37 @@ const ROSTER = [
   G("A play of your own");
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
   check("the app ships with twelve", await ev(() => playKeys().length === 12));
+  // Writing one has to sit with the calls. It was a screen and a half below the
+  // field, under the picker, where nobody was going to find it.
+  // Writing one sits beside changing the call, above the field. It was a screen
+  // and a half below, under the picker, where nobody was going to find it.
+  const yoursAt = () => ev(() => {
+    const main = document.querySelector(".main");
+    const b = [...document.querySelectorAll("#root .btn")].find(x => /\+ Yours/.test(x.textContent));
+    return b ? b.getBoundingClientRect().top + main.scrollTop : -1;
+  });
+  check("writing one sits with changing the call, right under the field", await ev(() => {
+    const main = document.querySelector(".main");
+    const b = [...document.querySelectorAll("#root .btn")].find(x => /\+ Yours/.test(x.textContent));
+    if(!b) return false;
+    const fld = document.querySelector("#root .field-wrap").getBoundingClientRect();
+    const gap = b.getBoundingClientRect().top - fld.bottom;
+    return gap >= 0 && gap < 40;
+  }));
+  check("and within a screen of the top, not a screen and a half down",
+    await yoursAt() > 0 && await yoursAt() < 932);
+  // Folded, because twelve wrapped buttons above the field push the field off
+  // the fold, and the field is the whole point of the tab.
+  check("the twelve stay folded until he asks for them", await ev(() =>
+    !S.pbPick && !document.querySelector("#root .seg seg--wrap")));
+  check("Change the call opens them, and picking one closes it again", await ev(() => {
+    [...document.querySelectorAll("#root .btn")].find(x => /Change the call/.test(x.textContent)).click();
+    const open = !!document.querySelector("#root .seg");
+    [...document.querySelectorAll("#root .seg button")].find(x => /Blitz/.test(x.textContent)).click();
+    const shut = !S.pbPick && S.script === "blitz";
+    window.set({ script: "snake" });
+    return open && shut;
+  }));
   const writePlay = () => ev(() => {
     window.newPlay(); window.setPlayField("name", "Rocket");
     const bl = curLayout().bunkers;
@@ -3889,6 +3920,12 @@ const ROSTER = [
   }));
   await writePlay();
   check("a written play joins the twelve", await ev(() => playKeys().length === 13 && isMine(S.script)));
+  check("and is marked in the picker as one of his", await ev(() => {
+    window.set({ pbPick: true });
+    const starred = [...document.querySelectorAll("#root .seg button")].some(x => /★\s*Rocket/.test(x.textContent));
+    window.set({ pbPick: false });
+    return starred;
+  }));
   check("and the app lands on it", await ev(() => callName(S.script) === "Rocket"));
   check("the header and the card carry it", await ev(() => {
     const t = document.getElementById("root").innerText;
@@ -4113,11 +4150,12 @@ const ROSTER = [
     return !t.includes(BREAKS.conserve.name);        // placeholder only
   }));
   check("Playbook points at it until he has used it once", await ev(() => {
-    window.set({ tab: "playbook", more: null, breakCalls: {} });
+    // It lives inside the folded picker now, where he is looking at the twelve.
+    window.set({ tab: "playbook", more: null, breakCalls: {}, pbPick: true });
     const before = /Name the twelve/.test(document.getElementById("root").innerText);
     window.set({ breakCalls: { snake: "Rocket" } });
     const after = /Name the twelve/.test(document.getElementById("root").innerText);
-    window.set({ breakCalls: {} });
+    window.set({ breakCalls: {}, pbPick: false });
     return before && !after;
   }));
 
