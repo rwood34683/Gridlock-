@@ -232,6 +232,90 @@ const ROSTER = [
   }));
   await ev(() => window.set({ entered: true, role: "staff", mode: null, authSaid: "" }));
 
+  /* ------------------------------------------- the account server, and no signal */
+  G("The account on a server, and a field with no bars");
+  await ev(() => {
+    localStorage.clear();
+    const users = {};
+    window.__net = true;
+    const net = () => window.__net ? null : { offline: true };
+    window.gridlockCloud = {
+      async signUp(email, pass){ const o = net(); if(o) return o;
+        if(users[email]) return {ok:false, said:"That email already has an account."};
+        users[email] = pass; return {ok:true, user:{id:"u_" + email}}; },
+      async signIn(email, pass){ const o = net(); if(o) return o;
+        return users[email] === pass ? {ok:true, user:{id:"u_" + email}}
+                                     : {ok:false, said:"Email or password is wrong."}; },
+      async sendReset(email){ const o = net(); if(o) return o;
+        return users[email] ? {ok:true} : {ok:false, said:"No account with that email."}; },
+      signOut(){}, session(){ return null; },
+    };
+    window.set({ entered: false, mode: null, authSaid: "" });
+  });
+  const cloudAuth = async (mode, em, pw) => {
+    await ev(m => window.set({ mode: m, authSaid: "", entered: false }), mode);
+    await page.waitForTimeout(60);
+    await page.fill("#em", em); await page.fill("#pw", pw);
+    await ev(async () => { await window.doAuth(); });
+    await page.waitForTimeout(140);
+    return ev(() => ({ in: S.entered, said: S.authSaid }));
+  };
+  let c = await cloudAuth("create", "coach@t.com", "sideline1");
+  check("creating an account goes to the server", c.in && !c.said);
+  check("and is mirrored onto the phone, so the next launch works offline", await ev(() => {
+    const a = JSON.parse(localStorage.getItem("gridlock.staff.v2"));
+    return a.cloud === true && !!a.salt && !!a.hash && a.uid === "u_coach@t.com";
+  }));
+  c = await cloudAuth("create", "coach@t.com", "different1");
+  check("a refusal from the server is shown as written", !c.in && /already has an account/.test(c.said));
+  c = await cloudAuth("login", "coach@t.com", "wrongpass1");
+  check("and so is a wrong password", !c.in && /Email or password is wrong/.test(c.said));
+  // The one that matters: a sideline with no bars must never be a locked door.
+  await ev(() => { window.__net = false; });
+  c = await cloudAuth("login", "coach@t.com", "sideline1");
+  check("with no signal he still gets in off the phone", c.in);
+  check("and is told nothing about the network, because it is not his problem", !c.said);
+  c = await cloudAuth("login", "coach@t.com", "nothisone1");
+  check("a wrong password with no signal is still refused", !c.in && /does not match/.test(c.said));
+  check("and says why it could not ask the server, now that there is one",
+    /no signal/.test(c.said) && !/nowhere to reset it from/.test(c.said));
+  await ev(() => { window.__net = true; });
+  check("a reset link is offered only where there is somewhere to reset from", await ev(() => {
+    window.set({ entered: false, mode: "login", authSaid: "" });
+    return /Email me a link/.test(document.getElementById("root").innerText);
+  }));
+  check("and it sends", await ev(async () => {
+    document.getElementById("em").value = "coach@t.com";
+    await window.sendReset();
+    return /Check that inbox/.test(S.authSaid);
+  }));
+  check("an unknown email is told so rather than silently succeeding", await ev(async () => {
+    document.getElementById("em").value = "nobody@t.com";
+    await window.sendReset();
+    return /No account with that email/.test(S.authSaid);
+  }));
+  // The whole basis of the deal: accounts go up, the season does not.
+  check("nothing about the season is anywhere near the account code", await ev(() => {
+    const src = String(window.doAuth) + String(window.sendReset);
+    return !/matches|tally|roster|breakouts|scout|plays/.test(src);
+  }));
+  check("and the panel says exactly what does leave the phone", await ev(() => {
+    window.set({ mode: "create", authSaid: "" });
+    const t = document.getElementById("root").innerText;
+    return /season never leaves this device/i.test(t) && /email/i.test(t);
+  }));
+  check("with no server it says the older, simpler truth instead", await ev(() => {
+    const had = window.gridlockCloud; delete window.gridlockCloud;
+    window.set({ mode: "create", authSaid: "" });
+    const t = document.getElementById("root").innerText;
+    const ok = /nowhere else/.test(t) && !/our server/.test(t)
+      && !/Email me a link/.test(t);
+    window.gridlockCloud = had;
+    return ok;
+  }));
+  await ev(() => { delete window.gridlockCloud; delete window.__net;
+    localStorage.clear(); window.set({ entered: true, role: "staff", mode: null, authSaid: "" }); });
+
   /* ------------------------------------- a backup restores a season, not a login */
   G("A restored season does not walk past the sign-in");
   check("a durable copy carries the session, because save() writes all of S",

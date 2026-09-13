@@ -3920,8 +3920,12 @@ function authForm(){
     ${/* This said "coaching a match needs none", which stopped being true the
            moment the promo required one. It now says what the account actually
            is: a lock on this phone, not a login to anything. */""}
-    <p class="note" style="margin-top:0">It lives on this phone and nowhere else — there is no server
-      to send it to, and nothing about you or your team ever leaves the device.</p>
+    <p class="note" style="margin-top:0">${window.gridlockCloud
+      ? `Your email and what you have bought are kept on our server, so you can sign in on a new
+         phone and reset a password you have forgotten. <b>Your season never leaves this device</b> —
+         not your roster, not your scouting, not one tally.`
+      : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
+         about you or your team ever leaves the device.`}</p>
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
     <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
@@ -3931,6 +3935,8 @@ function authForm(){
     </div>
     <button class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
+    ${window.gridlockCloud && !make
+      ? `<button class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
     <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
   </div>`;
 }
@@ -4038,6 +4044,51 @@ window.checkVerify = async () => {
   }catch(e){ set({verifySaid: "The code could not be checked. Nothing has changed."}); }
 };
 
+/* ============================================================
+   The account, on a server — and only the account
+   ============================================================
+
+   What goes up is who he is and what he paid for. **The season never does.**
+   Rosters, scouting, tallies and his own words stay on the phone, which keeps
+   the promise that matters — nothing about his team, or anybody else's, is on
+   a machine he does not own — while still buying the four things a device on
+   its own cannot do: a customer list, a password he can actually reset, phone
+   verification, and an account that survives a lost phone.
+
+   Offline-first is not negotiable. A field in Garland has no bars, so the
+   local account stays the working credential: a successful cloud sign-in
+   writes it, and a cloud that cannot be reached falls through to it rather
+   than standing between a coach and the point he is about to call. A server
+   that can lock him out on a sideline is worse than no server.
+
+     window.gridlockCloud
+       .signUp(email, pass)   -> {ok, user, said, offline}
+       .signIn(email, pass)   -> {ok, user, said, offline}
+       .sendReset(email)      -> {ok, said, offline}
+       .signOut()             -> void
+       .session()             -> {user} | null        // asked once on launch
+
+   `offline:true` means the network failed, not that he is wrong — the app then
+   tries the copy on the phone and says nothing about it. Anything else with
+   `ok:false` is a real refusal and `said` is shown as written.
+
+   The anon key Supabase uses is public by design; row-level security is what
+   keeps one coach out of another's row. No service key ever ships in the app.
+   docs/SERVER.md is the switch-on. */
+window.sendReset = async () => {
+  const cloud = window.gridlockCloud;
+  const email = ((document.getElementById("em") || {}).value || "").trim();
+  const say = m => set({authSaid: m});
+  if(!cloud || !cloud.sendReset) return say("There is no account server on this build to reset from.");
+  if(!email) return say("Type the email first, then ask for the link.");
+  say("Sending…");
+  try{
+    const r = await cloud.sendReset(email);
+    say(r && r.ok ? "Check that inbox — the link is good for an hour."
+                  : (r && r.said) || "That could not be sent. Nothing has changed.");
+  }catch(e){ say("The account server could not be reached. Nothing has changed."); }
+};
+
 window.doAuth = async () => {
   const email = document.getElementById("em").value.trim();
   const pass = document.getElementById("pw").value;
@@ -4048,6 +4099,30 @@ window.doAuth = async () => {
              + "Use the installed app, or open this on the same machine at localhost.");
   let acc = {};
   try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
+
+  /* The server first where there is one, and the phone whenever it cannot be
+     reached. A successful cloud sign-in writes the local account too, so the
+     next launch on a field with no signal still opens. */
+  const cloud = window.gridlockCloud;
+  if(cloud){
+    say("Checking…");
+    let r = null;
+    try{
+      r = S.mode === "create" ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
+    }catch(e){ r = {offline: true}; }
+    if(r && r.ok){
+      const salt = newSalt();
+      writeAccount({...(acc.kind === "apple" ? acc : {}), email, salt,
+                    hash: await hashPass(pass, salt),
+                    cloud: true, uid: (r.user && r.user.id) || acc.uid || ""});
+      localStorage.removeItem("gridlock.staff");
+      return set({entered: true, role: "staff", email, mode: null, authSaid: ""});
+    }
+    // A refusal is his to see. A network failure is not, and must never be the
+    // reason a coach cannot get into his own app between points.
+    if(r && !r.offline) return say(r.said || "That was refused by the account server.");
+    S.authSaid = "";
+  }
 
   if(S.mode === "create"){
     // Creating over an account that is already here is how a coach who meant to
@@ -4095,9 +4170,12 @@ window.doAuth = async () => {
   if(known !== email)
     return say("The account on this phone is " + known + ". Sign in with that one, "
              + "or make a new account — your season is kept separately and is not touched either way.");
-  say("That password does not match. There is nowhere to reset it from, because nothing about the "
-    + "account leaves this phone. Making a new account with the same email replaces the password "
-    + "and leaves your season exactly where it is.");
+  say(window.gridlockCloud
+    ? "That password does not match. If you are somewhere with no signal the app could not ask the "
+      + "server, so it checked the copy on this phone. Forgot it? Email me a link, once you have bars."
+    : "That password does not match. There is nowhere to reset it from, because nothing about the "
+      + "account leaves this phone. Making a new account with the same email replaces the password "
+      + "and leaves your season exactly where it is.");
 };
 
 /* ============================================================

@@ -421,6 +421,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   because on an address the phone calls insecure there is no `crypto.subtle` to
   hash a password with and sign-in refuses — which used to cost one feature and
   now costs the whole app.
+- Let the account server stand between a coach and the point he is calling.
+  Accounts and purchases go up; **the season never does** — roster, tallies,
+  scouting, his words and his plays all stay on the phone, which is what makes
+  the promise worth keeping and keeps competitors' data off a machine you own.
+  `window.gridlockCloud` is the adapter (Supabase behind it, anon key only —
+  the service key never ships). Offline-first is not negotiable: a successful
+  cloud sign-in writes the local salt and hash, `offline:true` falls through to
+  that copy and says nothing about the network, and only `ok:false` *without*
+  `offline` is a real refusal. A field in Garland has no bars, and a server that
+  can lock him out between points is worse than no server. `docs/SERVER.md` is
+  the switch-on, and its up/stays table and the sign-in panel's copy change in
+  the same commit or the app is lying about where the data is.
 - Let a restore carry the session. `save()` writes the whole of `S`, so
   `entered`, `role` and `email` ride in the durable copy — and a fresh install
   restoring it opened straight into the app, past the sign-in the app now
