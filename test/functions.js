@@ -4069,6 +4069,75 @@ const ROSTER = [
   }));
   await ev(() => window.set({ offPlays: [], script: "snake" }));
 
+  /* ------------------------------------------------------------ penalties */
+  G("A penalty is recorded, never called");
+  await seed({ tab: "tally", layoutKey: "lso", right: { name: "Rejects" } });
+  await ev(() => { window.setPitTeam("right", "Rejects"); window.newMatch(); });
+  check("a point starts five up until somebody takes men off", await ev(() =>
+    startUp("us", S.matchId, 1) === 5 && startUp("them", S.matchId, 1) === 5
+    && evenPoint(S.matchId, 1)));
+  check("a 2-for-1 means three men on that point and no other", await ev(() => {
+    window.set({ point: 2 }); window.addPen("us", 2);
+    return startUp("us", S.matchId, 2) === 3 && startUp("them", S.matchId, 2) === 5
+      && startUp("us", S.matchId, 1) === 5 && !evenPoint(S.matchId, 2);
+  }));
+  check("the sheet says it is not five on five", await ev(() =>
+    /3 v 5/.test(document.getElementById("root").innerText)));
+  check("the men-up count on the sheet starts from what he actually has", await ev(() =>
+    /\b3\b/.test(document.getElementById("root").innerText)
+    && startUp("us", S.matchId, 2) - (S.tally || []).filter(o => o.m === S.matchId
+        && o.pt === 2 && o.side === "us").length === 3));
+  check("nobody is ever put below one man", await ev(() => {
+    window.addPen("us", 3); window.addPen("us", 3);
+    return startUp("us", S.matchId, 2) === 1;
+  }));
+  check("undoing it puts the point back to five", await ev(() => {
+    (S.pens || []).filter(p => p.pt === 2).slice(0, 2).forEach(p => window.dropPen(p.id));
+    const left = (S.pens || []).filter(p => p.pt === 2);
+    left.forEach(p => window.dropPen(p.id));
+    return startUp("us", S.matchId, 2) === 5 && evenPoint(S.matchId, 2);
+  }));
+  check("a bunker stops wearing a point that was lost in the box", await ev(() => {
+    window.set({ breakouts: [], results: [], pens: [] });
+    const bk = curLayout().bunkers.find(x => /^SB/.test(x.id)).id;
+    const log = (pt, won, cost) => {
+      S.point = pt;
+      if (cost) window.addPen("us", cost);
+      S.breakouts = [{ id: "pb" + pt, m: S.matchId, pt, layout: S.layoutKey, side: "us",
+                       bunker: bk, alive: true, at: Date.now() }, ...(S.breakouts || [])];
+      window.endPoint(won);
+    };
+    log(1, "us", 0); log(2, "us", 0); log(3, "them", 2);
+    const all = bunkerValue("us", false).find(x => x.id === bk);
+    const even = bunkerValue("us", true).find(x => x.id === bk);
+    return all.att === 3 && all.net === 1 && even.att === 2 && even.net === 2
+      && unevenBreaks("us") === 1;
+  }));
+  check("and the switch says what it dropped rather than changing numbers quietly", await ev(() => {
+    window.set({ tab: "tally", tallyValue: "us", evenOnly: false });
+    const before = document.getElementById("root").innerText;
+    window.set({ evenOnly: true });
+    const after = document.getElementById("root").innerText;
+    return /Even points only/.test(before) && /1 of these breaks/.test(before)
+      && /counted below/.test(before) && /out of the table below/.test(after);
+  }));
+  check("a point that only had a penalty on it is still a point", await ev(() => {
+    window.set({ evenOnly: false });
+    S.point = 9; window.addPen("them", 1);
+    return lastPoint(S.matchId) === 9 && matchSize(S.matchId) > 0;
+  }));
+  check("a penalty rides in a copy of the season", await ev(() => {
+    const all = JSON.parse(copyPayload("all")).data;
+    return copyDataError(all) === "" && (all.pens || []).length > 0;
+  }));
+  check("a junk penalty is refused rather than restored", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data;
+    d.pens = [{ id: "x", m: "m1", pt: 1, side: "nobody", cost: 2 }];
+    return copyDataError(d) === "pens";
+  }));
+  await ev(() => window.set({ pens: [], breakouts: [], results: [], evenOnly: false,
+                              penOpen: false, point: 1, tab: "playbook" }));
+
   /* ------------------------------------------------- the event's schedule */
   G("The schedule, and scouting a game you are not in");
   await seed({ tab: "more", more: "schedule", layoutKey: "lso" });
@@ -4635,7 +4704,8 @@ const ROSTER = [
   G("Nothing half-done survives a relaunch");
   await ev(() => {
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
-                 editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10] });
+                 editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
+                 penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule" });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
   });
@@ -4647,6 +4717,7 @@ const ROSTER = [
       tallyPick:S.tallyPick, tallyLast:S.tallyLast, helpFor:S.helpFor, helpQ:S.helpQ,
       editPath:S.editPath, pad:S.pad, replayPt:S.replayPt, replayStep:S.replayStep,
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
+      penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);

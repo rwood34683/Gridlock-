@@ -1434,6 +1434,9 @@ const defaultState = () => ({
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
   authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
   plays:[], building:null,
+  pens:[],                 // penalties, as the official called them and the coach recorded them
+  penOpen:false,           // scratch: the penalty panel on the point sheet
+  evenOnly:false,          // count bunker value on even points only
   games:[], gamesOff:[],   // games he added, and rows off the league list he took out
   gameOpen:null, gamePaste:"", gameNew:null,   // scratch: which row is open, the paste box, the one being typed
   offPlays:[],          // built-in calls he does not run; a library, never a delete
@@ -1615,7 +1618,7 @@ S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
-S.gameOpen = null; S.gamePaste = ""; S.gameNew = null;
+S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -1674,7 +1677,7 @@ function matchLabel(m){
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents)
+  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens)
        + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
 }
 /* Who the match is against.
@@ -1734,7 +1737,7 @@ function derivedState(){
 function lastPoint(mid){
   const id = mid || S.matchId;
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
-  const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls),
+  const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls), ...hit(S.pens),
                ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
@@ -2350,7 +2353,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
@@ -2549,6 +2552,11 @@ function copyDataError(data){
       && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
     offPlays:list(str), gamesOff:list(str),
+    // A penalty is what the official took, recorded: which side, how many men.
+    pens:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
+      && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0
+      && Number.isInteger(v.cost) && v.cost > 0 && v.cost < 5
+      && Object.values(v).every(scalar)),
     // A game is five scalars and nothing else: day, clock, two teams, bracket.
     games:list(v => row(v) && ["id","d","t","h","a"].every(k => str(v[k]) && v[k].length > 0)
       && Object.values(v).every(scalar)),
@@ -4887,18 +4895,34 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
 // What each bunker has been worth to one side on this field, across every
 // match played here: how many broke to it, how many made it, and the points
 // won minus lost on the points they did. Nothing is weighted or modelled.
-function bunkerValue(side){
+/* What each bunker is worth.
+ *
+ * A point played three against five was being counted exactly like an even one,
+ * so whichever bunker a man happened to break to wore a loss that was decided
+ * in the box before the buzzer. Now that penalties are recorded, an uneven point
+ * can be left out — `Even points only` — and the table says how many it dropped
+ * rather than quietly changing the numbers under him. */
+function bunkerValue(side, evenOnly){
   const won = new Map((S.results || []).filter(r => r && r.m).map(r => [r.m + "|" + r.pt, r.won]));
   const by = {};
+  let skipped = 0;
   (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side).forEach(r => {
+    if(evenOnly && !evenPoint(r.m, r.pt)){ skipped++; return; }
     const t = by[r.bunker] = by[r.bunker] || {att:0, made:0, dead:0, won:0, lost:0};
     t.att++;
     if(r.alive === true) t.made++; else if(r.alive === false) t.dead++;
     const w = won.get(r.m + "|" + r.pt);
     if(w){ if(w === side) t.won++; else t.lost++; }
   });
-  return Object.entries(by).map(([id, t]) => ({id, ...t, net:t.won - t.lost}))
+  const rows = Object.entries(by).map(([id, t]) => ({id, ...t, net:t.won - t.lost}))
     .sort((a, b) => b.net - a.net || b.att - a.att);
+  rows.skipped = skipped;
+  return rows;
+}
+// How many charted breaks on this field were played short-handed, either side.
+function unevenBreaks(side){
+  return (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side
+    && !evenPoint(r.m, r.pt)).length;
 }
 function describeBreakout(r){
   const bl = curLayout().bunkers;
@@ -5057,7 +5081,8 @@ function tally(){
   const outs=rowsHere(S.tally);
   const thisPoint=outs.filter(o=>o.pt===pt);
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
-  const alive=side=>5-thisPoint.filter(o=>o.side===side).length;
+  // Not five minus outs: a side serving a 2-for-1 started this point with three.
+  const alive=side=>Math.max(0, startUp(side, S.matchId, pt) - thisPoint.filter(o=>o.side===side).length);
   const sel = selBunker();
   const chart = breakoutsHere();
   const chartPt = chart.filter(r => r.pt === pt);
@@ -5077,14 +5102,24 @@ function tally(){
 
   // Where the points come from: the table under the field, one side at a time.
   const valueSide = S.tallyValue === "them" ? "them" : "us";
-  const value = bunkerValue(valueSide);
+  const value = bunkerValue(valueSide, !!S.evenOnly);
+  const uneven = unevenBreaks(valueSide);
   const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
   const best = value[0], worst = value[value.length-1];
   const netColour = n => n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)";
   const valueSeg = `<div class="seg">
       <button class="${valueSide==="us"?"on":""}" onclick="set({tallyValue:'us'})">Your five</button>
       <button class="${valueSide==="them"?"on":""}" onclick="set({tallyValue:'them'})">Theirs</button>
-    </div>`;
+    </div>
+    ${/* Off by default: a switch that silently rewrites numbers he has been
+          reading all day is worse than the distortion it fixes. It appears only
+          once there is something for it to drop, and says how much. */""}
+    ${uneven || S.evenOnly ? `<div class="toggles">
+        <button class="tgl ${S.evenOnly?"on":""}" onclick="set({evenOnly:!S.evenOnly})"><i></i>Even points only</button>
+      </div>
+      <p class="note" style="color:var(--warn)">${uneven} of these breaks came on a point somebody was
+        short a man. ${S.evenOnly ? `They are out of the table below.`
+        : `They are counted below — a bunker is wearing a point that was lost in the box.`}</p>` : ""}`;
   const valueRow = r => `<tr><td>${named(r.id)} <span class="note" style="display:inline">${esc(r.id)}</span></td>
         <td class="num">${r.att}</td>
         <td class="num">${r.made+r.dead ? Math.round(100*r.made/(r.made+r.dead))+"%" : "—"}</td>
@@ -5095,7 +5130,7 @@ function tally(){
       <tbody>${value.map(valueRow).join("")}</tbody></table></div>
     ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
     ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
-    <p class="note">Every match on ${esc(curLayout().name)}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.</p>`;
+    <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.</p>`;
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
   return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
@@ -5183,6 +5218,47 @@ function tally(){
       <button class="${S.tallyRead==="right"?"on":""}" onclick="setRead('right')">✓ Right read</button>
       <button class="${S.tallyRead==="wrong"?"on":""}" onclick="setRead('wrong')">✗ Wrong read</button>
     </div>
+    ${/* The penalty sits between the read and the result, because that is where
+          it happens: the official calls it, the coach writes down what it cost,
+          then the point is won or lost short-handed. The app never decides what
+          a penalty is — it records how many men came off. */""}
+    ${(() => {
+      const here = pensFor(S.matchId, pt);
+      const word = sd => (curMatch()||{}).watch ? sideWord(sd) : (sd === "us" ? "Us" : esc(matchVs() || "Them"));
+      return `<div class="btnrow">
+        <button class="btn btn--quiet grow" onclick="togglePen()">${
+          S.penOpen ? "Close" : here.length ? `Penalty · ${here.length} on this point` : "⚑ Penalty"}</button>
+      </div>
+      ${S.penOpen ? `<p class="note" style="max-width:56ch">Whatever the official called it, say who it came
+          off and how many men. The app never decides a penalty — it records what it cost you, so a point
+          played short is not counted as an even one.</p>
+        <div class="assigns">
+          ${["us","them"].map(sd => `<div class="assign" style="flex-wrap:wrap">
+            <span class="assign__body"><span class="assign__job">${word(sd)}</span>
+            <span class="assign__who">men off for point ${pt}</span></span>
+            <span class="assign__ctl">
+              ${[1,2,3].map(c => `<button class="btn btn--quiet" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
+            </span>
+          </div>`).join("")}
+        </div>` : ""}
+      ${here.length ? `<div class="assigns">${here.map(pn => `<div class="assign" style="flex-wrap:wrap">
+          <span class="assign__n" style="background:var(--warn);color:#0b0c0d;font-size:11px">-${pn.cost}</span>
+          <span class="assign__body"><span class="assign__job">${word(pn.side)} · ${pn.cost} off</span>
+          <span class="assign__who">${startUp(pn.side, S.matchId, pt)} up at the buzzer</span></span>
+          <button class="btn btn--danger" onclick="dropPen(${jsq(pn.id)})">Undo</button>
+          <span class="assign__ctl" style="flex-basis:100%">
+            <input value="${esc(pn.why||"")}" maxlength="40" placeholder="What it was — optional"
+              onchange="setPenField(${jsq(pn.id)},'why',this.value)"
+              aria-label="What the penalty was"/>
+            <input value="${esc(pn.who||"")}" maxlength="40" placeholder="Who — optional"
+              onchange="setPenField(${jsq(pn.id)},'who',this.value)"
+              aria-label="Who got the penalty"/>
+          </span>
+        </div>`).join("")}
+        <p class="note" style="color:var(--warn);margin:var(--s3) 0">This point is <b>${startUp("us",S.matchId,pt)} v ${
+          startUp("them",S.matchId,pt)}</b>, not 5 v 5. It is kept out of the bunker numbers when
+          <b>Even points only</b> is on.</p>` : ""}`;
+    })()}
     <div class="btnrow">
       <button class="btn grow btn--lg" onclick="endPoint('us')">${
         (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
@@ -5278,6 +5354,52 @@ window.setOutBunker = (i, field, val) => {
   t[i] = {...t[i], [field]: val || undefined};
   S.tally = t; save(S); render();
 };
+
+/* A penalty, recorded the way the score is.
+ *
+ * The app does not know the rulebook and must never pretend to: an official
+ * calls it, and the coach writes down what it cost. That is the same contract
+ * as every other number in here — points, tendency and threat are his to enter,
+ * and a heuristic never overrules the man in stripes.
+ *
+ * But it cannot be left out, because bodies on the field is the one thing that
+ * makes a point unlike every other point. A 2-for-1 means three men against
+ * five, and until now that point was recorded identically to an even one: the
+ * bunker somebody happened to break to wore the loss, and *Where the points
+ * come from* has been marking a bunker down for a point that was decided in
+ * the box.
+ *
+ * One row per penalty: which side, how many men it took off, optionally who and
+ * what it was. Stamped with the match and the point it was SERVED on, because
+ * that is the point that was played short — a call at the end of point 4 that
+ * costs bodies in point 5 is recorded on 5, which is what a coach watching the
+ * field would write anyway.
+ */
+const penId = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function pensFor(mid, pt){
+  return (S.pens || []).filter(p => p && p.m === mid && p.pt === pt);
+}
+// How many men a side actually starts the point with. Never below one: a side
+// with nobody on the field is not a point, it is a typo.
+function startUp(side, mid, pt){
+  const cost = pensFor(mid || S.matchId, pt || S.point || 1)
+    .filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0);
+  return Math.max(1, 5 - cost);
+}
+// An even point is one nobody was short on. It is the only kind a bunker can be
+// fairly judged on, which is what the Even-only switch is for.
+function evenPoint(mid, pt){ return !pensFor(mid, pt).length; }
+window.togglePen = () => set({penOpen: !S.penOpen});
+window.addPen = (side, cost) => {
+  S.pens = [{id: penId(), m: S.matchId, pt: S.point || 1, side, cost: +cost || 1,
+             who: "", why: "", at: Date.now()}, ...(S.pens || [])];
+  set({penOpen: false});
+};
+window.setPenField = (id, field, value) => {
+  S.pens = (S.pens || []).map(p => p.id === id ? {...p, [field]: clean(value)} : p);
+  save(S);
+};
+window.dropPen = id => { S.pens = (S.pens || []).filter(p => p.id !== id); save(S); render(); };
 
 // One out row, whichever way it was logged: a tap on the man in the columns,
 // or a man logged dead on the break chart. Refuses the same man twice a point.
@@ -7028,7 +7150,9 @@ const HELP = {
     how:["Tap the bunker a man broke to. The sheet opens under it.",
          "Say what you saw: made it or shot on the break, battling in or clean, which way he was shooting.",
          "Log this breakout, then tap the next man's bunker.",
-         "When the point ends tap We won it or They won it. That is the score."],
+         "When the point ends tap We won it or They won it. That is the score.",
+         "Penalty records what the official took — which side, how many men. The app never calls one.",
+         "Even points only leaves short-handed points out of the bunker numbers."],
     watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
   scout: {t:"Scout", w:"What you know about the other team.",
     how:["Put them in the right pit first. Nothing else works until you do.",

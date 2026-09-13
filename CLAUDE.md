@@ -254,6 +254,19 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     pasted — best effort, line by line, and what it read lands as ordinary rows
     he can take off one at a time — or typed a game at a time.
 
+27. ~~The penalty.~~ Done — a point played three against five was recorded
+    identically to an even one, so whichever bunker a man happened to break to
+    wore a loss that was decided in the box before the buzzer. The point sheet
+    has a **Penalty** button between the read and the result, which is where it
+    happens: side, how many men, and optionally who and what it was. The app
+    never calls a penalty and never will — an official calls it and the coach
+    writes down what it cost, the same contract as every other number in here.
+    `startUp(side, m, pt)` is what a side actually began the point with, so the
+    men-up counts are right; `evenPoint(m, pt)` is what **Even points only**
+    filters on. That switch is off by default and says how many breaks it would
+    drop, because silently rewriting numbers he has read all day is worse than
+    the distortion it fixes.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -405,6 +418,23 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   limited to what he runs. Turning one off is never a delete: the count behind it
   is untouched and one tap puts it back, the last one standing cannot be turned
   off, and turning off the call he is standing on moves him to one he runs.
+- Let the app decide what a penalty is. It does not have the rulebook and must
+  never behave as if it does: an official calls it, the coach records what it
+  cost, exactly as he records who won the point. A penalty row is side + how
+  many men off, stamped with the match and the point it was **served** on —
+  which is the point that was actually played short, not the one the flag went
+  up on. `startUp()` never returns below one: a side with nobody on the field
+  is a typo, not a point.
+- Count a short-handed point like an even one. Five against three is not a
+  bunker's fault, and *Where the points come from* was marking a bunker down
+  for it. `evenPoint(m, pt)` and the **Even points only** switch are the answer,
+  and the switch defaults **off** and reports what it would drop: a toggle that
+  silently rewrites numbers a coach has been reading all day is worse than the
+  distortion it fixes.
+- Ship the league's rulebook inside the app. It is the league's document, a
+  stale copy is a coach quoting last season's rule at an official, and nothing
+  in here adjudicates anyway. Take the structure from it — what a penalty costs,
+  the match format — never the text.
 - Let a game the coach watched count as a game he played. Scouting Dynasty off
   the fence is the point of a schedule, but every row it logs is stamped with
   `S.matchId` like any other, so without a flag his own self-scout would be
