@@ -4069,6 +4069,106 @@ const ROSTER = [
   }));
   await ev(() => window.set({ offPlays: [], script: "snake" }));
 
+  /* ------------------------------------------------- the event's schedule */
+  G("The schedule, and scouting a game you are not in");
+  await seed({ tab: "more", more: "schedule", layoutKey: "lso" });
+  check("the league's schedule is in the app", await ev(() =>
+    allGames().length === 40 && new Set(allGames().map(g => g.d)).size === 2));
+  check("every game names two teams, a day and a clock", await ev(() =>
+    allGames().every(g => g.h && g.a && g.h !== g.a && /^\d{4}-\d{2}-\d{2}$/.test(g.d)
+      && /^\d{2}:\d{2}$/.test(g.t))));
+  check("and every team on it entered this event", await ev(() => {
+    const entered = new Set(DIVISIONS.find(d => d.id === "pro").teams.map(t => t.name));
+    return allGames().every(g => entered.has(g.h) && entered.has(g.a));
+  }));
+  check("it says where it was read and what it covers", await ev(() => {
+    const t = document.getElementById("root").innerText;
+    return /PBLeagues/.test(t) && /13 Sep 2026/.test(t) && /Sunday/.test(t);
+  }));
+  check("and never claims it can refresh itself", await ev(() =>
+    /no network|cannot refresh/i.test(document.getElementById("root").innerText)));
+  check("games read in time order inside a day", await ev(() => {
+    const fri = allGames().filter(g => g.d === "2026-09-18").map(g => g.t);
+    return fri.every((t, i) => i === 0 || fri[i - 1] <= t);
+  }));
+  check("watching a game puts both teams in the pits", await ev(() => {
+    const g = allGames().find(x => x.h === "San Diego Dynasty");
+    window.watchGame(g.id);
+    return (S.left || {}).name === g.h && (S.right || {}).name === g.a;
+  }));
+  check("and opens a sheet that says it is watched, not played", await ev(() => {
+    const m = curMatch();
+    return !!m.watch && m.home === "San Diego Dynasty" && S.point === 1
+      && /watched/.test(matchLabel(m));
+  }));
+  check("a call logged on it never counts toward your own self-scout", await ev(() => {
+    const before = selfScout().n;
+    window.logCall(); window.logCall();
+    return before === 0 && selfScout().n === 0 && (S.calls || []).length === 2;
+  }));
+  check("the score on it names the two teams, because neither is you", await ev(() => {
+    window.set({ tab: "tally" });
+    const t = document.getElementById("root").innerText;
+    return /San Diego Dynasty won it/.test(t) && /Royal City Seadogs won it/.test(t)
+      && !/We won it/.test(t);
+  }));
+  check("and the sheet says the five in the columns are not on that field", await ev(() =>
+    /game you are watching/i.test(document.getElementById("root").innerText)));
+  check("your own match is ordinary and says We won it", await ev(() => {
+    window.set({ tab: "more", more: "schedule" });
+    const g = allGames().find(x => x.h === "Tampa Bay Damage");
+    window.playGame(g.id, "away");
+    const m = curMatch();
+    window.set({ tab: "tally" });
+    const t = document.getElementById("root").innerText;
+    return !m.watch && m.vs === g.a && (S.right || {}).name === g.a
+      && /We won it/.test(t) && !/game you are watching/i.test(t);
+  }));
+  check("a row off the league list is taken off, never edited in place", await ev(() => {
+    window.set({ tab: "more", more: "schedule" });
+    const g = allGames()[0], n = allGames().length;
+    window.dropGame(g.id);
+    return allGames().length === n - 1 && (S.gamesOff || []).includes(g.id)
+      && SCHEDULE.games.length === 40;
+  }));
+  check("a pasted schedule is read into games", await ev(() => {
+    const rows = parseSchedule(
+      "Friday, Sep 18\n9:00 AM  Detroit Infamous vs Atlanta Jungle Cats  C Prelims\n" +
+      "Division: Pro X-Ball\t1:45 PM\tSan Diego Dynasty\tRoyal City Seadogs\tA Prelims\n" +
+      "Saturday, Sep 19\n8:00 AM Houston Heat \u2014 Atlanta Jungle Cats\n" +
+      "a line with no clock at all\n");
+    return rows.length === 3
+      && rows[0].d === "2026-09-18" && rows[0].t === "09:00"
+      && rows[0].h === "Detroit Infamous" && rows[0].a === "Atlanta Jungle Cats" && rows[0].g === "C"
+      && rows[1].h === "San Diego Dynasty" && rows[1].a === "Royal City Seadogs"
+      && rows[2].d === "2026-09-19" && rows[2].h === "Houston Heat";
+  }));
+  check("a game typed by hand joins the list in its own place", await ev(() => {
+    window.newGame();
+    window.setGameField("d", "2026-09-18"); window.setGameField("t", "07:00");
+    window.setGameField("h", "Red Legion"); window.setGameField("a", "Houston Heat");
+    window.saveGame();
+    return allGames()[0].h === "Red Legion" && (S.games || []).length === 1 && !S.gameNew;
+  }));
+  check("a game with only one team is refused", await ev(() => {
+    const n = (S.games || []).length;
+    window.newGame(); window.setGameField("h", "Red Legion"); window.saveGame();
+    window.set({ gameNew: null });
+    return (S.games || []).length === n;
+  }));
+  check("the schedule rides in a copy of the season", await ev(() => {
+    const all = JSON.parse(copyPayload("all")).data;
+    return copyDataError(all) === "" && (all.games || []).length === 1
+      && (all.gamesOff || []).length === 1;
+  }));
+  check("a junk game is refused rather than restored", await ev(() => {
+    const d = JSON.parse(copyPayload("all")).data;
+    d.games = [{ id: "x", d: "2026-09-18", t: "07:00", h: "Red Legion", a: ["not", "a", "team"] }];
+    return copyDataError(d) === "games";
+  }));
+  await ev(() => window.set({ games: [], gamesOff: [], gameNew: null, gamePaste: "",
+                              calls: [], tab: "playbook", more: null }));
+
   /* ------------------------------------------------------------- the paywall */
   G("What is paid for, and what never is");
   await seed({ tab: "playbook", right: { name: "Rejects" } });

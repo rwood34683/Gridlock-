@@ -1249,6 +1249,104 @@ const DIVISIONS = [
   {name:"Rejects",pts:186,reg:"PAID",tend:"Snake",threat:4}
   ]}
 ];
+/* ============================================================
+   THE EVENT'S SCHEDULE
+   ============================================================
+
+   A coach scouts the team he plays next, and the team he plays next is on a
+   schedule the league publishes. Without it, every team he wanted to watch had
+   to be typed in from a printed sheet held up next to the phone.
+
+   Same rule as the pro board: this is the league's fact, not the app's, so it
+   carries where it was read and when, and nothing here is from memory. The app
+   makes no network calls, so it cannot fetch a schedule and never will — this
+   came in the way the pro board did, as a screenshot from the coach. Anything
+   the league changes after that date arrives the same way, or is typed in on
+   the screen.
+
+   Read 13 September 2026 off the PBLeagues schedule page for the NXL Lone Star
+   Open, Pro X-Ball, on the NXL Pro field: Friday 18 and Saturday 19 September,
+   ten slots a day, two games a slot — C and D Prelims through the morning, A
+   and B from 1:45. The page's own legend says the HOME name takes the red pit
+   and the AWAY name the blue, which is why `h` lands in the left pit and `a` in
+   the right when a game is opened.
+
+   Sunday is not in it. The screenshot ends at Saturday 5:45 PM with the page
+   footer under it, so the app says what the read covers rather than pretending
+   it has the whole event. */
+const SCHEDULE = {
+  event:"NXL Lone Star Open", div:"Pro X-Ball", field:"NXL Pro",
+  read:"PBLeagues · NXL Lone Star Open · Pro X-Ball · Fri 18 – Sat 19 Sep · read 13 Sep 2026",
+  covers:"Friday and Saturday. Sunday was not on the page that was read.",
+  games:[
+    {d:"2026-09-18", t:"08:00", h:"Seattle Uprising", a:"Houston Heat", g:"C"},
+    {d:"2026-09-18", t:"08:00", h:"San Antonio X-Factor", a:"Chicago Aftershock", g:"D"},
+    {d:"2026-09-18", t:"09:00", h:"Detroit Infamous", a:"Atlanta Jungle Cats", g:"C"},
+    {d:"2026-09-18", t:"09:00", h:"CK Hurricanes", a:"New York Xtreme", g:"D"},
+    {d:"2026-09-18", t:"10:00", h:"Tampa Bay Damage", a:"Houston Heat", g:"C"},
+    {d:"2026-09-18", t:"10:00", h:"PaintballFIT", a:"Chicago Aftershock", g:"D"},
+    {d:"2026-09-18", t:"11:00", h:"Seattle Uprising", a:"Atlanta Jungle Cats", g:"C"},
+    {d:"2026-09-18", t:"11:00", h:"San Antonio X-Factor", a:"New York Xtreme", g:"D"},
+    {d:"2026-09-18", t:"12:00", h:"Tampa Bay Damage", a:"Detroit Infamous", g:"C"},
+    {d:"2026-09-18", t:"12:00", h:"PaintballFIT", a:"CK Hurricanes", g:"D"},
+    {d:"2026-09-18", t:"13:45", h:"San Diego Dynasty", a:"Royal City Seadogs", g:"A"},
+    {d:"2026-09-18", t:"13:45", h:"TonTon Arsenal", a:"Perris ASG Aftermath", g:"B"},
+    {d:"2026-09-18", t:"14:45", h:"Los Angeles Ironmen", a:"New Jersey Leverage", g:"A"},
+    {d:"2026-09-18", t:"14:45", h:"Los Angeles Collision", a:"Chicago Distortion", g:"B"},
+    {d:"2026-09-18", t:"15:45", h:"Edmonton Impact", a:"Royal City Seadogs", g:"A"},
+    {d:"2026-09-18", t:"15:45", h:"Red Legion", a:"Perris ASG Aftermath", g:"B"},
+    {d:"2026-09-18", t:"16:45", h:"San Diego Dynasty", a:"New Jersey Leverage", g:"A"},
+    {d:"2026-09-18", t:"16:45", h:"TonTon Arsenal", a:"Chicago Distortion", g:"B"},
+    {d:"2026-09-18", t:"17:45", h:"Edmonton Impact", a:"Los Angeles Ironmen", g:"A"},
+    {d:"2026-09-18", t:"17:45", h:"Red Legion", a:"Los Angeles Collision", g:"B"},
+    {d:"2026-09-19", t:"08:00", h:"Houston Heat", a:"Atlanta Jungle Cats", g:"C"},
+    {d:"2026-09-19", t:"08:00", h:"Chicago Aftershock", a:"New York Xtreme", g:"D"},
+    {d:"2026-09-19", t:"09:00", h:"Seattle Uprising", a:"Detroit Infamous", g:"C"},
+    {d:"2026-09-19", t:"09:00", h:"San Antonio X-Factor", a:"CK Hurricanes", g:"D"},
+    {d:"2026-09-19", t:"10:00", h:"Tampa Bay Damage", a:"Atlanta Jungle Cats", g:"C"},
+    {d:"2026-09-19", t:"10:00", h:"PaintballFIT", a:"New York Xtreme", g:"D"},
+    {d:"2026-09-19", t:"11:00", h:"Detroit Infamous", a:"Houston Heat", g:"C"},
+    {d:"2026-09-19", t:"11:00", h:"CK Hurricanes", a:"Chicago Aftershock", g:"D"},
+    {d:"2026-09-19", t:"12:00", h:"Tampa Bay Damage", a:"Seattle Uprising", g:"C"},
+    {d:"2026-09-19", t:"12:00", h:"PaintballFIT", a:"San Antonio X-Factor", g:"D"},
+    {d:"2026-09-19", t:"13:45", h:"Royal City Seadogs", a:"New Jersey Leverage", g:"A"},
+    {d:"2026-09-19", t:"13:45", h:"Perris ASG Aftermath", a:"Chicago Distortion", g:"B"},
+    {d:"2026-09-19", t:"14:45", h:"San Diego Dynasty", a:"Los Angeles Ironmen", g:"A"},
+    {d:"2026-09-19", t:"14:45", h:"TonTon Arsenal", a:"Los Angeles Collision", g:"B"},
+    {d:"2026-09-19", t:"15:45", h:"Edmonton Impact", a:"New Jersey Leverage", g:"A"},
+    {d:"2026-09-19", t:"15:45", h:"Red Legion", a:"Chicago Distortion", g:"B"},
+    {d:"2026-09-19", t:"16:45", h:"Los Angeles Ironmen", a:"Royal City Seadogs", g:"A"},
+    {d:"2026-09-19", t:"16:45", h:"Los Angeles Collision", a:"Perris ASG Aftermath", g:"B"},
+    {d:"2026-09-19", t:"17:45", h:"Edmonton Impact", a:"San Diego Dynasty", g:"A"},
+    {d:"2026-09-19", t:"17:45", h:"Red Legion", a:"TonTon Arsenal", g:"B"},
+  ]
+};
+// Days in the order they are played, named the way a coach says them.
+function dayName(d){
+  const t = Date.parse(d + "T12:00:00");
+  return Number.isNaN(t) ? d
+    : new Date(t).toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"});
+}
+// 24-hour is what sorts; a coach reads a clock.
+function clockName(t){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t || "");
+  if(!m) return t || "";
+  const h = +m[1];
+  return String(((h + 11) % 12) + 1) + ":" + m[2] + " " + (h < 12 ? "AM" : "PM");
+}
+/* Every game on the list: the league's, plus any the coach typed or pasted,
+   minus any he took off. Seeded rows are kept out of S, so a re-read of the
+   schedule replaces them wholesale instead of merging into what he added. */
+const gameId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+function allGames(){
+  const gone = new Set(Array.isArray(S.gamesOff) ? S.gamesOff : []);
+  const seeded = SCHEDULE.games.map((g, i) => ({...g, id:"sch" + i, seed:true}));
+  const mine = (Array.isArray(S.games) ? S.games : []).filter(g => g && g.id);
+  return [...seeded, ...mine].filter(g => !gone.has(g.id))
+    .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
+}
+function gameById(id){ return allGames().find(g => g.id === id) || null; }
+
 function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "pro")) || DIVISIONS[0]; }
 function addedTeams(id){ return (S.teams || {})[id] || []; }
 function divisionTeams(id){
@@ -1336,6 +1434,8 @@ const defaultState = () => ({
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
   authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
   plays:[], building:null,
+  games:[], gamesOff:[],   // games he added, and rows off the league list he took out
+  gameOpen:null, gamePaste:"", gameNew:null,   // scratch: which row is open, the paste box, the one being typed
   offPlays:[],          // built-in calls he does not run; a library, never a delete
   direct:{},
   pad:null,
@@ -1515,6 +1615,7 @@ S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
+S.gameOpen = null; S.gamePaste = ""; S.gameNew = null;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -1564,6 +1665,9 @@ function matchLabel(m){
   if(!m) return "";
   const d = new Date(m.at);
   const day = d.toLocaleDateString([], {month:"short", day:"numeric"});
+  // A watched game has no "us" in it, so naming it "vs Dynasty" would read as a
+  // sheet he played. It is named by the two teams that were actually on the field.
+  if(m.watch) return `${m.home || "?"} v ${m.away || "?"} · watched · ${day}`;
   return m.vs ? `vs ${m.vs} · ${day}` : `No opponent yet · ${day}`;
 }
 // How much is actually recorded against a match, so New match can warn before
@@ -1606,6 +1710,14 @@ function scoreOf(mid){
           them: rows.filter(r => r.won === "them").length};
 }
 function matchScore(){ return scoreOf(S.matchId); }
+/* What each side of the sheet is called. On your own match it is you and them;
+   on a game you are watching there is no "us" on the field, so the score has to
+   name the two teams that are actually playing or it means nothing a week later. */
+function sideWord(which){
+  const m = curMatch();
+  if(m && m.watch) return (which === "us" ? m.home : m.away) || (which === "us" ? "Home" : "Away");
+  return which === "us" ? "We" : "They";
+}
 function derivedState(){
   const s = matchScore();
   return s.us > s.them ? "Ahead" : s.us < s.them ? "Must-score" : "Even";
@@ -2238,7 +2350,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
@@ -2436,7 +2548,10 @@ function copyDataError(data){
     plays:list(v => record(v, {plants:map(l => Array.isArray(l) && l.length === 5 && l.every(str))})
       && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
-    offPlays:list(str),
+    offPlays:list(str), gamesOff:list(str),
+    // A game is five scalars and nothing else: day, clock, two teams, bracket.
+    games:list(v => row(v) && ["id","d","t","h","a"].every(k => str(v[k]) && v[k].length > 0)
+      && Object.values(v).every(scalar)),
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
@@ -5046,10 +5161,21 @@ function tally(){
            <button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(S.right.name)}</button>
          </div>`
       : ""}
+    ${/* A watched sheet has no "us" on the field. The columns below are still
+          the coach's own roster, which would be nonsense to tap against two
+          other teams, so the sheet says what it is and points at the screen
+          that actually charts them. */""}
+    ${(curMatch()||{}).watch ? `<div class="fld">
+         <p class="warn">This is a game you are <b>watching</b> — ${esc(sideWord("us"))} v
+           ${esc(sideWord("them"))}. The score and the field below still work; the five in the
+           columns are <b>your</b> roster, so chart what these two do on Scout instead.</p>
+         <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'breakouts'})">Open Scout</button>
+       </div>` : ""}
     <div class="who2">
-      ${col("us", mine.length?"Your five":"Your five · add them in Team", "var(--red)",
+      ${col("us", (curMatch()||{}).watch ? "Your five · not on this field"
+              : mine.length?"Your five":"Your five · add them in Team", "var(--red)",
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
-      ${col("them",esc(matchVs()||"Them"),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+      ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
     <p class="note" style="max-width:56ch">Right read or wrong read, then who won it. That is the whole score, and it
       sets Ahead / Even / Must-score for you.</p>
@@ -5058,8 +5184,10 @@ function tally(){
       <button class="${S.tallyRead==="wrong"?"on":""}" onclick="setRead('wrong')">✗ Wrong read</button>
     </div>
     <div class="btnrow">
-      <button class="btn grow btn--lg" onclick="endPoint('us')">We won it</button>
-      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">They won it</button>
+      <button class="btn grow btn--lg" onclick="endPoint('us')">${
+        (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
+      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${
+        (curMatch()||{}).watch ? esc(sideWord("them")) + " won it" : "They won it"}</button>
     </div>
     <div class="btnrow">
       ${pt > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
@@ -5227,6 +5355,137 @@ window.newMatch = () => {
   S.matchState = derivedState();
   save(S); render();
 };
+/* Opening a game off the schedule.
+ *
+ * Two different things a coach does with a row on that list, and they must not
+ * be the same button. **Watch it** is a game he is not in: both teams go in the
+ * pits, the sheet is flagged `watch` and nothing on it counts toward his own
+ * season. **We play them** is his own game: the other team goes in the right
+ * pit and it is an ordinary match, exactly as if he had picked them off
+ * Division.
+ *
+ * The league's page says the home name takes the red pit and the away name the
+ * blue, so that is where they land. Both are still a team the coach picked —
+ * he tapped the row — which is what the pit rule asks for.
+ */
+function gameGuard(){
+  const cur = curMatch();
+  const n = cur ? matchSize(cur.id) : 0;
+  return !n || confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
+    + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`);
+}
+window.watchGame = id => {
+  const g = gameById(id); if(!g || !gameGuard()) return;
+  S.left  = {...(S.left  || {}), name: g.h};
+  S.right = {...(S.right || {}), name: g.a};
+  const mid = newMatchId();
+  S.matches = [{id: mid, at: Date.now(), vs: g.a, layout: S.layoutKey,
+                watch: true, home: g.h, away: g.a,
+                when: `${dayName(g.d)} · ${clockName(g.t)}`, bracket: g.g || ""},
+               ...(S.matches || [])];
+  S.matchId = mid; S.point = 1; S.matchState = derivedState();
+  set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
+};
+window.playGame = (id, which) => {
+  const g = gameById(id); if(!g || !gameGuard()) return;
+  const them = which === "home" ? g.h : g.a;
+  S.right = {...(S.right || {}), name: them};
+  const mid = newMatchId();
+  S.matches = [{id: mid, at: Date.now(), vs: them, layout: S.layoutKey}, ...(S.matches || [])];
+  S.matchId = mid; S.point = 1; S.matchState = derivedState();
+  set({tab:"tally", more:null, gameOpen:null});
+};
+/* Taking a row off. The league's own rows are never edited in place — they are
+   a record of what was read — so one he does not want is remembered as taken
+   off rather than deleted out of the list. His own are simply removed. */
+window.dropGame = id => {
+  const g = gameById(id); if(!g) return;
+  if(!confirm(`Take ${g.h} v ${g.a} off the list?`)) return;
+  if(g.seed) S.gamesOff = [...new Set([...(S.gamesOff || []), id])];
+  else S.games = (S.games || []).filter(x => x.id !== id);
+  set({gameOpen: S.gameOpen === id ? null : S.gameOpen});
+};
+window.newGame = () => set({gameNew: {d: SCHEDULE.games[0].d, t: "09:00", h: "", a: "", g: ""}});
+window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(v)}; save(S); };
+window.saveGame = () => {
+  const n = S.gameNew || {};
+  if(!(n.h || "").trim() || !(n.a || "").trim())
+    return alert("Both teams, or there is no game to watch.");
+  S.games = [...(S.games || []),
+             {id: gameId(), d: n.d || SCHEDULE.games[0].d, t: n.t || "09:00",
+              h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()}];
+  set({gameNew: null});
+};
+/* Pasting a schedule.
+ *
+ * Best effort, and it says so: it reads a line at a time, takes the first clock
+ * it finds as the time and what is on either side of vs / v / — as the two
+ * teams, and carries the last date header it saw down the rows under it. What
+ * it read is shown back as ordinary rows he can take off one by one, because a
+ * parser that silently mis-reads a schedule is worse than typing ten games.
+ */
+function parseSchedule(text){
+  const out = [];
+  let day = SCHEDULE.games[0].d;
+  const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  (text || "").split(/\r?\n/).forEach(raw => {
+    // Everything but the tab collapses: a table copied off a page separates its
+    // cells with tabs, and flattening them turns four cells into one sentence.
+    const line = raw.replace(/[^\S\t]+/g, " ").replace(/^[ ]+|[ ]+$/g, "");
+    if(!line) return;
+    // A date header: "Friday, Sep 18" or "Sat 19 Sep 2026" or "2026-09-18".
+    const iso = /(\d{4})-(\d{2})-(\d{2})/.exec(line);
+    const md  = /\b([A-Za-z]{3,9})\.? (\d{1,2})\b/.exec(line);
+    const dm  = /\b(\d{1,2}) ([A-Za-z]{3,9})\b/.exec(line);
+    const mon = m => MON.indexOf(String(m).slice(0,3).toLowerCase());
+    const setDay = (mi, d) => {
+      if(mi < 0) return false;
+      const y = (iso && iso[1]) || (/\b(20\d{2})\b/.exec(line) || [])[1]
+             || SCHEDULE.games[0].d.slice(0, 4);
+      day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      return true;
+    };
+    const clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
+    if(!clock){
+      if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; return; }
+      if(md && setDay(mon(md[1]), md[2])) return;
+      if(dm && setDay(mon(dm[2]), dm[1])) return;
+      return;
+    }
+    let h = +clock[1];
+    const ap = (clock[3] || "").toLowerCase();
+    if(ap === "pm" && h < 12) h += 12;
+    if(ap === "am" && h === 12) h = 0;
+    const t = String(h).padStart(2, "0") + ":" + clock[2];
+    // Whatever is left once the clock is cut out, split on the usual separators.
+    const rest = line.slice(0, clock.index) + " | " + line.slice(clock.index + clock[0].length);
+    // The bracket tag, the row's own "Division:" / "Field:" labels and stray
+    // punctuation all ride along on a copied table row. A team name is what is
+    // left once they are taken off.
+    const strip = x => /^(division|field|round|bracket|group)\s*:/i.test(x) ? "" : x
+      .replace(/\b[A-D]\s?Prelims?\b/ig, "")
+      .replace(/\b(prelims?|quarters?|semis?|finals?)\b/ig, "")
+      .replace(/^(division|field|round|bracket|group)\s*:?\s*/i, "")
+      .replace(/^[\s,\-·|]+|[\s,\-·|]+$/g, "").trim();
+    const bits = rest.split(/\s*(?:\||,|\bvs?\b|\bv\.?\b|—|–|\t)\s*/i)
+      .map(strip)
+      .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x));
+    if(bits.length < 2) return;
+    const g = (/\b([A-D]) ?Prelims?\b/i.exec(line) || [])[1] || "";
+    out.push({id: gameId() + out.length, d: day, t, h: bits[0].slice(0, 40),
+              a: bits[1].slice(0, 40), g: g.toUpperCase()});
+  });
+  return out;
+}
+window.readSchedule = () => {
+  const rows = parseSchedule(S.gamePaste || "");
+  if(!rows.length)
+    return alert("Nothing in that looked like a game. One game a line, with a time and both teams — "
+               + "for example: 9:00 AM  Dynasty vs Impact");
+  S.games = [...(S.games || []), ...rows];
+  set({gamePaste: "", gameOpen: null});
+};
+
 // An old sheet is worth reading, and worth adding to when you tallied a point
 // late. Opening one puts you on its last point rather than back at one.
 /* Opening an older sheet is the paid half of Matches. The sheet in play never
@@ -5287,8 +5546,16 @@ function opponentRead(team){
    coach pressed the button on, on the field he is standing on, and reports the
    share. A team that watches your film is doing exactly this arithmetic, so it
    is better that you see it first. */
+/* A game you watched is not a call you made. Scouting Dynasty from the fence
+   logs their breaks against them, but every call logged while a watched sheet
+   is open would otherwise count toward how predictable YOU are on this field —
+   self-scout would be reading somebody else's playbook back at you. */
+function watchedMatch(id){
+  const m = (S.matches || []).find(x => x.id === id);
+  return !!(m && m.watch);
+}
 function loggedCalls(){
-  return (S.calls || []).filter(c => c && c.layout === S.layoutKey);
+  return (S.calls || []).filter(c => c && c.layout === S.layoutKey && !watchedMatch(c.m));
 }
 function selfScout(){
   const rows = loggedCalls();
@@ -6830,6 +7097,11 @@ const HELP = {
          "Turn off the ones you don't run. They stop being offered; nothing you logged is lost.",
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
+  "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
+    how:["Every game at this event, by day, read off the league's page.",
+         "Watch this game puts both teams in the pits — what you log counts against them, never you.",
+         "We play starts your own match against whichever of the two you face.",
+         "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Pick the player, score him, write the reason.",
          "After the point, never during it.",
@@ -7120,6 +7392,7 @@ const MORE_GROUPS=[
     ["codes","Codes","Your code words for this event"],
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["Running the day",[
+    ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["matches","Matches","Every sheet you have kept"],
     ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
@@ -7208,6 +7481,79 @@ function moreBody(k){
           <span class="assign__who">${lineupFor(n).filter(Boolean).length} on the point</span></span>
         </div>`).join("")}</div>`, matchLabel(curMatch())):"");
   }
+  if(k==="schedule"){
+    const games = allGames();
+    const days = [...new Set(games.map(g => g.d))];
+    const mine = new Set((S.games || []).map(g => g.id));
+    const open = S.gameOpen;
+    const n = S.gameNew;
+    const row = g => {
+      const isOpen = open === g.id;
+      // The clock leads the row. A schedule is read by time first — a coach is
+      // working out what he can get to before his own game — so it sits in its
+      // own column rather than under the names where it has to be hunted for.
+      return `<div class="assign" style="flex-wrap:wrap">
+        <span style="flex:none;width:60px;font-size:var(--t-xs);color:var(--mute);letter-spacing:.04em">${
+          esc(clockName(g.t))}</span>
+        <span class="assign__body">
+          <span class="assign__job">${esc(g.h)} <span style="color:var(--dim)">v</span> ${esc(g.a)}</span>
+          <span class="assign__who">${esc(g.g ? g.g + " Prelims" : "")}${
+            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}</span></span>
+        <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
+          isOpen ? "Close" : "Open"}</button>
+        ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
+          <button class="btn grow" onclick="watchGame(${jsq(g.id)})">Watch this game</button>
+        </span>
+        <span class="assign__ctl" style="flex-basis:100%">
+          <button class="btn btn--quiet grow" onclick="playGame(${jsq(g.id)},'home')">We play ${esc(g.h)}</button>
+          <button class="btn btn--quiet grow" onclick="playGame(${jsq(g.id)},'away')">We play ${esc(g.a)}</button>
+        </span>
+        <span class="assign__ctl" style="flex-basis:100%">
+          <button class="btn btn--danger" onclick="dropGame(${jsq(g.id)})">Take it off the list</button>
+        </span>` : ""}
+      </div>`;
+    };
+    return sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
+        teams in the pits and opens a sheet that counts against them and never against you — it is how
+        you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
+        the two is across the tape.</p>
+      <p class="note">${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
+      <p class="aid">Read off the league, not worked out here: <b>${esc(SCHEDULE.read)}</b>.
+        ${esc(SCHEDULE.covers)} The app makes no network calls, so it cannot refresh this — re-read it
+        nearer the event and paste or type anything that moved.</p>`,
+      games.length + (games.length === 1 ? " game" : " games"))
+    + days.map(d => sec(dayName(d), `<div class="assigns">${
+        games.filter(g => g.d === d).map(row).join("")}</div>`,
+        games.filter(g => g.d === d).length + " games")).join("")
+    + sec("Add a game", n
+      ? `<div class="fld"><label>Day</label>
+           <select onchange="setGameField('d',this.value)">${
+             [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
+               n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
+         <div class="fld"><label>Time · 24-hour, like 13:45</label>
+           <input value="${esc(n.t)}" maxlength="5" onchange="setGameField('t',this.value)"/></div>
+         <div class="fld"><label>Home · takes the red pit</label>
+           <input value="${esc(n.h)}" maxlength="40" onchange="setGameField('h',this.value)"/></div>
+         <div class="fld"><label>Away · takes the blue pit</label>
+           <input value="${esc(n.a)}" maxlength="40" onchange="setGameField('a',this.value)"/></div>
+         <div class="fld"><label>Bracket · optional</label>
+           <input value="${esc(n.g)}" maxlength="4" onchange="setGameField('g',this.value)"/></div>
+         <div class="btnrow">
+           <button class="btn grow" onclick="saveGame()">Add it</button>
+           <button class="btn btn--quiet" onclick="set({gameNew:null})">Cancel</button>
+         </div>`
+      : `<button class="btn btn--quiet btn--block" onclick="newGame()">+ A game the list does not have</button>`)
+    + sec("Paste a schedule", `<p class="lede">Copy the schedule off the league's page and drop it in.
+        One game a line, with a clock and both teams — <i>9:00 AM Dynasty vs Impact</i>. A line that is
+        only a date sets the day for the games under it.</p>
+      <textarea rows="5" placeholder="Friday, Sep 18&#10;9:00 AM  Detroit Infamous vs Atlanta Jungle Cats"
+        onchange="set({gamePaste:this.value})">${esc(S.gamePaste || "")}</textarea>
+      <button class="btn btn--block" onclick="readSchedule()">Read it</button>
+      <p class="note">It is best effort and it does not pretend otherwise: what it reads lands in the
+        list above as ordinary rows, so anything it got wrong you take off with one tap.</p>
+      <p class="aid">Nothing is fetched. The app has no network at all — that is why it works on a
+        field with no bars — so a schedule gets in the way you just got it in: pasted, or typed.</p>`);
+  }
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
     return sec("This match", `<div class="panel">
@@ -7228,8 +7574,9 @@ function moreBody(k){
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
-          <span class="assign__body"><span class="assign__job">${esc(m.vs||"No opponent")}${
-            (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${on?" · on now":""}</span>
+          <span class="assign__body"><span class="assign__job">${esc(m.watch ? `${m.home||"?"} v ${m.away||"?"}` : (m.vs||"No opponent"))}${
+            (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${
+            m.watch?" · watched":""}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
           ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>`}

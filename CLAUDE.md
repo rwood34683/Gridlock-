@@ -240,6 +240,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     tapped so the field and the questions share the screen; past it the sheet
     stands beside the field.
 
+26. ~~The schedule, and a game you are not in.~~ Done — a coach scouts the team
+    he plays next, and who that is is on a schedule the league publishes; the
+    app had no idea any game existed but the one in front of him. More →
+    Schedule carries every game at the event, read off PBLeagues on 13 Sep 2026
+    from a screenshot and sourced like the pro board — nothing is fetched,
+    because there is no network. A row opens three ways. **Watch this game**
+    puts the home team in the left pit and the away team in the right (the
+    league's own legend says which is which) and starts a sheet flagged
+    `watch`: it counts against those two and never against him, so a call
+    logged on it is out of `loggedCalls()` and his self-scout is still his.
+    **We play** either side starts an ordinary match. A schedule can also be
+    pasted — best effort, line by line, and what it read lands as ordinary rows
+    he can take off one at a time — or typed a game at a time.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -391,6 +405,22 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   limited to what he runs. Turning one off is never a delete: the count behind it
   is untouched and one tap puts it back, the last one standing cannot be turned
   off, and turning off the call he is standing on moves him to one he runs.
+- Let a game the coach watched count as a game he played. Scouting Dynasty off
+  the fence is the point of a schedule, but every row it logs is stamped with
+  `S.matchId` like any other, so without a flag his own self-scout would be
+  reading somebody else's playbook back at him and his score would carry points
+  he never played. A watched sheet carries `watch:true`, `home` and `away`;
+  `watchedMatch(id)` is the door, `loggedCalls()` filters through it, and
+  `matchLabel()` / `sideWord()` name the two teams rather than "us" and "them",
+  because there is no "us" on that field. Tally says so on screen and sends him
+  to Scout, which is where two other teams are actually charted.
+- Fetch a schedule, or let the app imply it could. There is not one `fetch` in
+  it and that is the whole reason it works in Garland. `SCHEDULE` is read off
+  the league the way the pro board is — a screenshot from the coach — and it
+  carries `read` (where and when) and `covers` (what the read did *not* reach;
+  Sunday was off the bottom of the page). A league row is never edited in
+  place: one he does not want goes in `S.gamesOff`, and `S.games` holds only
+  what he added, so a re-read replaces the seeded list wholesale.
 - Assume there are twelve calls. A coach runs plays the app has never heard
   of, and a break here is only five bunker ids per field — the paths, the
   buzzer order and the job labels all fall out of those five against the
