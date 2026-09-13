@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e5252a"/>
+      <stop offset="1" stop-color="#a01010"/>
+    </linearGradient>
+  </defs>
+  <!-- Adaptive-icon foreground. Artwork sits inside the centre 66% safe zone
+       so Android's launcher masks never clip it. -->
+  <g transform="translate(512 512) scale(0.62) translate(-512 -512)">
+    <path d="M512 196 L742 474 L636 474 L512 324 L388 474 L282 474 Z" fill="url(#mark)"/>
+    <g fill="url(#mark)">
+      <circle cx="222" cy="754" r="62"/>
+      <circle cx="367" cy="700" r="62"/>
+      <circle cx="512" cy="678" r="62"/>
+      <circle cx="657" cy="700" r="62"/>
+      <circle cx="802" cy="754" r="62"/>
+    </g>
+    <rect x="222" y="856" width="580" height="16" rx="8" fill="#efedeb" fill-opacity="0.42"/>
+  </g>
+</svg>

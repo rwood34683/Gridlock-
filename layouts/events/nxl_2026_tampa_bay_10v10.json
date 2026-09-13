@@ -1,0 +1,41 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 200,
+    "length_ft": 150,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "unknown \u2014 confirm on image"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "nxl_2026_tampa_bay_10v10",
+  "league": "National Xball League",
+  "league_code": "NXL",
+  "event": "Tampa Bay Open 10v10",
+  "season": 2026,
+  "dates": "2026-03-19/2026-03-22",
+  "venue": {
+    "name": "Tampa Bay Open site",
+    "city": "Tampa",
+    "state": "FL",
+    "country": "US"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/nxl_2026_tampa_10v10.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "fb",
+      "url": "https://www.facebook.com/nxlpaintball/posts/your-tampa-bay-open-10v10-layout-is-herenxlpaintball-mlpb-tampabayopen/1366179388877183/"
+    }
+  ],
+  "notes": [
+    "10-man field, not standard 150x120 Xball. Confirm dimensions from image before placing bunkers."
+  ]
+}

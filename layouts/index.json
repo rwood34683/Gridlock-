@@ -1,0 +1,30 @@
+{
+  "pack": "gridlock-claude-layouts",
+  "version": "1.0.0",
+  "generated": "2026-09-06T20:48:46Z",
+  "purpose": "Import published 2026 paintball layouts into Claude Code / Gridlock Coach. Images are ground truth. Coordinates are NOT invented.",
+  "field_default": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10
+  },
+  "how_to_import": [
+    "Drop this folder into the Claude Code project root as /layouts or copy files in.",
+    "Read CLAUDE.md first.",
+    "Load index.json, then events/<id>.json, then the image files listed in views[].",
+    "Do not fabricate bunker x,y. Digitize from official labeled 2D only."
+  ],
+  "events": [
+    "nxl_2026_midwest_open",
+    "nxl_2026_tampa_bay_open",
+    "nxl_2026_tampa_bay_10v10",
+    "nxleu_2026_czech_cup",
+    "wcppl_2026_defy_opener",
+    "mvps_2026_spring_skirmish",
+    "usxbl_2026_practice",
+    "nxl_2026_lone_star",
+    "nxl_2026_world_cup",
+    "mvps_2026_southeastern_championship",
+    "wcppl_2026_championship"
+  ]
+}

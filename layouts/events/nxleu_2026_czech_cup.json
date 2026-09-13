@@ -1,0 +1,45 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "nxleu_2026_czech_cup",
+  "league": "NXL Europe",
+  "league_code": "NXLEU",
+  "event": "Czech Cup",
+  "season": 2026,
+  "dates": "2026-05-14/2026-05-17",
+  "venue": {
+    "name": "Paintball Gotcha Spielfeld",
+    "city": "Bor u Tachova",
+    "country": "CZ"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/nxleu_2026_czech.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "ig",
+      "url": "https://www.instagram.com/p/DXJsvP0lfPt/"
+    },
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/national-xball-league-europe/"
+    },
+    {
+      "type": "fb",
+      "url": "https://www.facebook.com/nxleurope/posts/-field-layout-drop-the-wait-is-over-the-czech-cup-layout-is-live-time-to-study-t/1288731673443855/"
+    }
+  ]
+}
