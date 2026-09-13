@@ -4225,6 +4225,47 @@ const ROSTER = [
     return copyDataError(d) === "jobCalls";
   }));
 
+  /* ------------------------------------------------- the run he actually ran */
+  G("A traced route survives being logged");
+  await seed({ tab: "tally", layoutKey: "lso", right: { name: "Rejects" },
+               roster: [{ name: "Reyes", num: 7 }] });
+  const routeLegs = () => ev(() => document.querySelectorAll("#tally-map .tally-route").length);
+  await ev(() => {
+    const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 85);
+    window.selectBunker(b.id);
+    window.setDraft({ player: "Reyes", alive: true,
+      route: [{x:14, y:102, b:"", dl:false}, {x:30, y:95, b:"", dl:true}] });
+  });
+  const whileOpen = await routeLegs();
+  check("the run draws while the sheet is open", whileOpen === 3);
+  await ev(() => window.logBreakout());
+  // The row always carried `route`. It was simply never read back, so a coach
+  // charted five men over a point and the field showed five squares.
+  check("the row keeps what was traced", await ev(() => (S.breakouts[0].route || []).length === 2));
+  check("and it is still on the field after Log this breakout", await routeLegs() === 3);
+  check("a hold is still dashed once logged", await ev(() =>
+    [...document.querySelectorAll("#tally-map .tally-route")].some(l => l.getAttribute("stroke-dasharray"))));
+  check("logged runs sit a shade back from the one being filled in", await ev(() => {
+    const before = [...document.querySelectorAll("#tally-map .tally-route")].map(l => +l.getAttribute("stroke-width"));
+    const b = curLayout().bunkers.find(x => x.x < 60 && x.y < 30);
+    window.selectBunker(b.id);
+    window.setDraft({ alive: true, route: [{x:16, y:22, b:"", dl:false}] });
+    const now = [...document.querySelectorAll("#tally-map .tally-route")].map(l => +l.getAttribute("stroke-width"));
+    return before.every(w => w < 2) && now.some(w => w > 2) && now.some(w => w < 2);
+  }));
+  check("a man with no route logged draws no line", await ev(() => {
+    window.set({ tallySel: null, tallyDraft: null });
+    const was = document.querySelectorAll("#tally-map .tally-route").length;
+    const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 40 && x.y < 55);
+    window.selectBunker(b.id); window.setDraft({ alive: true }); window.logBreakout();
+    return document.querySelectorAll("#tally-map .tally-route").length === was;
+  }));
+  check("the next point starts on a clean field", await ev(() => {
+    window.set({ tallySel: null, tallyDraft: null, point: 2 });
+    return document.querySelectorAll("#tally-map .tally-route").length === 0;
+  }));
+  await ev(() => window.set({ point: 1, tallySel: null, tallyDraft: null }));
+
   /* -------------------------------------------------- the names are a layer */
   G("Bunker codes are a layer, not the wallpaper");
   const codesOn = () => ev(() => {

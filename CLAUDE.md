@@ -351,6 +351,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   answers the questions in the words he asks them. The suite fails when a tab,
   Scout sub-tab or More section has no entry, so a new screen cannot ship
   undocumented. Page hints are dismissible and `showHints()` puts them back.
+- Draw something only while it is being filled in. Tally's route was rendered
+  from the open draft alone, so the moment a coach tapped Log this breakout the
+  run he had just traced vanished — five men charted over a point and the field
+  showed five squares. The rows carried `route` the whole time; it was never
+  read back. One `routeSVG()` draws both now, logged runs a shade lighter than
+  the one in hand so the man he is working on still leads. Ask of anything
+  traced or drawn on a sheet: what does the field look like *after* it is
+  logged.
 - Bury the controls under the field. Playbook's field is most of the tab, so
   anything below it starts a screen and a half down: writing a play was at
   1426 px, which is not shipped, it is hidden. **Change the call** and

@@ -5461,8 +5461,39 @@ function tallyOverlay(){
     out += `<rect class="tally-worth" x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${col}" stroke-width="1.4" opacity=".9"/>`
          + `<text x="${(b.x*sx+s2.h+2).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" font-size="7" font-weight="800" fill="${col}">${r.att}</text>`;
   });
+  /* The route he ran, from his box through the points that were tapped to the
+     bunker he broke to. A dashed leg is a hold.
+     
+     This used to be drawn only while the sheet was open, so the moment a coach
+     tapped Log this breakout the route he had just traced vanished — five men
+     charted over a point and the field showed five squares. The rows carry
+     `route`; it was simply never read back. Logged runs are drawn a shade
+     lighter than the one being filled in, so the man he is working on still
+     leads. */
+  const routeSVG = (pts, bunker, side, live) => {
+    if(!pts || !pts.length) return "";
+    const col = side === "them" ? "#3d8bff" : "#e5342f";
+    const start = side === "us" ? [2, 60] : [148, 60];
+    const legs = [start, ...pts.map(p => [p.x, p.y])];
+    if(pts[pts.length-1].b !== bunker.id) legs.push([bunker.x, bunker.y]);
+    let g = "";
+    for(let i = 1; i < legs.length; i++){
+      const a = legs[i-1], z = legs[i], hold = pts[i-1] && pts[i-1].dl;
+      const xy = `x1="${(a[0]*sx).toFixed(1)}" y1="${(a[1]*sy).toFixed(1)}" x2="${(z[0]*sx).toFixed(1)}" y2="${(z[1]*sy).toFixed(1)}"`;
+      g += `<line ${xy} stroke="#000" stroke-width="${live ? 4.2 : 3.4}" stroke-linecap="round" opacity="${live ? .75 : .6}"/>`
+         + `<line class="tally-route" ${xy} stroke="${col}" stroke-width="${live ? 2.2 : 1.6}" stroke-linecap="round"`
+         + `${live ? "" : ' opacity=".72"'}${hold ? ' stroke-dasharray="5 4"' : ""}/>`;
+    }
+    pts.forEach(p => g += `<circle class="tally-pt" cx="${(p.x*sx).toFixed(1)}" cy="${(p.y*sy).toFixed(1)}" `
+      + `r="${live ? 4 : 2.6}" fill="${p.dl ? "#0b0c0d" : col}" stroke="#efedeb" `
+      + `stroke-width="${live ? 1.4 : 1}"${live ? "" : ' opacity=".8"'}/>`);
+    return g;
+  };
+
   breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).forEach(r => {
     const b = byId[r.bunker]; if(!b) return;
+    // The run first, so the marker for the man sits on top of his own line.
+    out += routeSVG(r.route, b, r.side, false);
     const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1, y = b.y*sy - s2.v + 1;
     const col = r.side === "them" ? "#3d8bff" : "#e5342f";
     out += `<g class="tally-man"><rect x="${(x-4.5).toFixed(1)}" y="${(y-4.5).toFixed(1)}" width="9" height="9" rx="2" fill="${col}" stroke="#efedeb" stroke-width="1"/>`
@@ -5472,21 +5503,7 @@ function tallyOverlay(){
   const sel = selBunker(), d = draft();
   if(sel){
     const side = d.side || sideOfBunker(sel), col = side === "them" ? "#3d8bff" : "#e5342f";
-    const pts = d.route || [];
-    if(pts.length){
-      // The route he ran, from his box through the points he was seen at to
-      // the bunker. Drawn only from what was tapped — a dashed leg is a hold.
-      const start = side === "us" ? [2, 60] : [148, 60];
-      const legs = [start, ...pts.map(p => [p.x, p.y])];
-      if(pts[pts.length-1].b !== sel.id) legs.push([sel.x, sel.y]);
-      for(let i = 1; i < legs.length; i++){
-        const a = legs[i-1], z = legs[i], hold = pts[i-1] && pts[i-1].dl;
-        const xy = `x1="${(a[0]*sx).toFixed(1)}" y1="${(a[1]*sy).toFixed(1)}" x2="${(z[0]*sx).toFixed(1)}" y2="${(z[1]*sy).toFixed(1)}"`;
-        out += `<line ${xy} stroke="#000" stroke-width="4.2" stroke-linecap="round" opacity=".75"/>`
-             + `<line class="tally-route" ${xy} stroke="${col}" stroke-width="2.2" stroke-linecap="round"${hold ? ' stroke-dasharray="5 4"' : ""}/>`;
-      }
-      pts.forEach(p => out += `<circle class="tally-pt" cx="${(p.x*sx).toFixed(1)}" cy="${(p.y*sy).toFixed(1)}" r="4" fill="${p.dl ? "#0b0c0d" : col}" stroke="#efedeb" stroke-width="1.4"/>`);
-    }
+    out += routeSVG(d.route, sel, side, true);
     const s2 = bunkerSize(sel, sx, sy);
     out += `<rect class="tally-sel" x="${(sel.x*sx-s2.h-4).toFixed(1)}" y="${(sel.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="5" fill="none" stroke="#efedeb" stroke-width="2"/>`;
   }
