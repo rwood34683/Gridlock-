@@ -79,28 +79,32 @@ const ROSTER = [
     const big = document.querySelector("#root .btn--lg");
     return !!big && /Start coaching/.test(big.textContent);
   }));
-  check("it says no account is needed, and why", await (async () => {
+  // The first screen sells what the app does and makes no claim about price
+  // or accounts. A welcome screen that promises nothing cannot break a promise
+  // the day a wall goes up, and the price belongs on the store page and the
+  // Plan screen, where a coach goes looking for it.
+  check("it makes no promise about price on the first screen", await (async () => {
     const t = await promoText();
-    return /No account needed/i.test(t) && /nothing ever leaves your phone/i.test(t);
+    return !/free/i.test(t) && !/a season/i.test(t) && !/\$/.test(t);
   })());
-  // "No account" is a promise about sign-up, not about price, and the day a
-  // wall goes up this line must stop reading like one. The account half stays
-  // true either way: the money runs through his Apple ID, never a GRIDLOCK
-  // sign-up. Only one branch can render in a given build, so the wording of
-  // the other is checked against the source file rather than scraped out of a
-  // script tag in the DOM — which would pass on any string literal anywhere.
-  const selling = await ev(() => BILLING_LIVE);
-  check("what it promises today matches what is actually for sale", await (async () => {
+  check("and none about accounts either", await (async () => {
     const t = await promoText();
-    return selling ? /free, forever/i.test(t) && /99 a season/i.test(t)
-                   : /No account needed/i.test(t) && !/a season/i.test(t);
+    return !/no account/i.test(t);
   })());
-  check("and the wording for the day it goes on sale is written and names both halves", (() => {
-    const src = fs.readFileSync(path.join(__dirname, "../web/index.html"), "utf8");
-    return /Calling the break and charting the point are free, forever/.test(src)
-      && /Team adds the scouting, from \$99 a season/.test(src)
-      && /No account either way/.test(src);
+  check("what it does say is still what it does", await (async () => {
+    const t = await promoText();
+    return /twelve breaks/i.test(t) && /bunker a man broke to/i.test(t) && /win you points/i.test(t);
   })());
+  // Nothing leaves the phone is still promised, where a coach goes looking for
+  // it rather than on the way past.
+  check("the privacy promise survives on the screens that are about it", await ev(() => {
+    window.set({entered: true, tab: "more", more: "nexus"});
+    const nexus = document.getElementById("root").innerText;
+    window.set({tab: "more", more: "help", helpFor: ""});
+    const help = document.getElementById("root").innerText;
+    window.set({entered: false, more: null});
+    return /phone/i.test(nexus) && /signal/i.test(help);
+  }));
   check("the sign-in line says what an account is for", await (async () =>
     /clinic or a league/i.test(await promoText()))());
   check("a phone with no account opens the form on Create", await ev(() => {

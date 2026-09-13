@@ -629,12 +629,6 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__does li::before{
   content:"";position:absolute;left:0;top:.55em;width:7px;height:2px;border-radius:1px;background:var(--accent-lit);
 }
-/* The reassurance under the big button belongs to that button, so it sits
-   tight beneath it and clear of the next one. The stack's 8px gap ran on both
-   sides, which orphaned it between two buttons and read as crowding the red
-   one on a phone. It is also the line that says nothing leaves the phone —
-   the one sentence a coach most needs to read — so it is not 11px. */
-.promo__free{margin:-3px 0 var(--s3);color:var(--mute);font-size:var(--t-sm);line-height:1.5;max-width:42ch}
 .stack{display:flex;flex-direction:column;gap:var(--s2)}
 </style>
 <style>
@@ -3842,16 +3836,12 @@ function promo(){
     </div>
     <div class="stack">
       <button class="btn btn--lg btn--block" onclick="set({entered:true,role:'guest'})">Start coaching</button>
-      ${/* No account needed is not the same promise as free, and the day a wall
-             goes up this line has to stop reading like one. While nothing is for
-             sale it says what is true; once it is, it names the free half and
-             the paid half on the first screen rather than letting a coach find
-             out at the wall. The account line stays either way — the money runs
-             through his Apple ID, so there is never a GRIDLOCK sign-up. */""}
-      <p class="promo__free">${BILLING_LIVE
-        ? `Calling the break and charting the point are free, forever. Team adds the scouting, from $99 a season.
-           No account either way — nothing ever leaves your phone.`
-        : `No account needed. There is no signal on a field, so nothing ever leaves your phone.`}</p>
+      ${/* No price claim and no account claim on the first screen, by the
+             owner's decision. The page sells what the app does and nothing
+             else. Nothing is lost that a coach needs: the store page carries
+             the price, the Plan screen carries what each tier holds, and the
+             privacy notice and Nexus both still say that nothing leaves the
+             phone. A welcome screen that makes no promise cannot break one. */""}
       <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Show me how it works</button>
       <button class="btn btn--quiet btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">Running a clinic or a league? Sign in</button>
     </div>

@@ -359,14 +359,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   so at the next and offers to be built there. Team renames the app's twelve
   only — a play already carries the name he gave it, and a second name on top
   of the first is a trap.
-- Let the welcome page promise something the app stops doing the day billing
-  goes live. **No account needed** is a promise about sign-up, not about price,
-  and it stays true forever — the money runs through the coach's Apple ID, so
-  there is never a GRIDLOCK account to make. But while that line stood alone
-  the page read as entirely free, and a wall on Scout after it would be a
-  bait. It is branched on `BILLING_LIVE` now: today it says what is true, and
-  the day there is something to sell it names the free half and the paid half
-  on the first screen.
+- Make a price or account claim on the welcome page. It carried "No account
+  needed · nothing ever leaves your phone", which is true — the money runs
+  through the coach's Apple ID, so there is never a GRIDLOCK sign-up — but on
+  a first screen it read as *this is free*, and a wall on Scout after it would
+  be a bait. The owner's call is that the page sells what the app does and
+  nothing else. A welcome screen that promises nothing cannot break a promise.
+  The price lives on the store listing and on More → Plan; the privacy promise
+  lives in the privacy notice, on Nexus and in Help, where a coach goes looking
+  for it. The suite fails if "free", "$" or "no account" reappears on the promo.
 - Put a wall in front of anything a coach does while a point is on, and never
   in front of **Save a copy**. There is no server: that file is the only thing
   protecting his season, so charging for it makes his own data a hostage. The
