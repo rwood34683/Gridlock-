@@ -13,7 +13,12 @@ const { launchOptions } = require("../scripts/browser.js");
     page.on("pageerror", error => errors.push(error.message));
     const url = process.env.APP_URL || "http://localhost:5173/";
     await page.goto(url);
-    await page.getByRole("button", { name: "Start coaching", exact: true }).click();
+    // An account is the only way past the promo now.
+    await page.evaluate(() => window.set({ mode: "create" }));
+    await page.waitForTimeout(80);
+    await page.fill("#em", "coach@team.com");
+    await page.fill("#pw", "sideline1");
+    await page.evaluate(async () => { await window.doAuth(); });
     await page.evaluate(async () => {
       if (!("serviceWorker" in navigator)) throw new Error("Service worker API unavailable");
       await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error("Offline installation timed out")), 15000))]);

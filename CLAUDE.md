@@ -32,7 +32,9 @@ Do not treat Overskill `.txt` as compiled code. It is the product prompt.
 - Wires are semantic and never change: left pit red `#e5342f`, right pit blue `#3d8bff`.
   Shot lanes are white, so they read against both.
 - Promo first. Do not auto-open the tutorial.
-- Staff login required to create a class or send a league blast.
+- **An account is required to use the app at all.** There is no guest path.
+  The one door that does not need one is a class deep link (`?c=CODE`), which
+  is a participant signing a clinic sheet rather than the coach.
 - Joining a class does **not** require an account.
 - Heuristic scout reads are a training aid, not a prediction. Officials govern the live call.
 - Changing the event changes the layout on every tab.
@@ -399,13 +401,20 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Scout, and `opts.names` forces it on only where a named bunker is the subject
   — Sightlines, Movement, Bunker stats, the arrival trail, Team's own naming.
   Tally needs none of it: the sheet names the bunker the moment you tap it.
-- Lead the welcome page with an account. It opened with **Staff — create
-  account** as the one red button and *use the app* fourth and quietest of four
-  equal choices, and nothing on the screen said what the app does — a slogan is
-  not an explanation. It says what it does in three lines now, the big button is
-  **Start coaching**, and the account is one quiet line that says what it is for
-  (a clinic, a league blast) rather than asking a coach to decide whether he
-  counts as "staff". Create and sign in are one door with a switch inside it.
+- Put a way past the welcome page that is not the account. The owner's call is
+  that everyone signs in, so there is no guest button and nothing on that screen
+  sets `entered:true` — the suite counts the routes and reads their handlers.
+  The page still has to explain the app to somebody who cannot get in yet, so it
+  leads with what it does in three lines and **Show me how it works** renders the
+  tour *on the promo* without entering. Two things must stay true with it: the
+  class deep link is the one exception, and `contextWarning()` is on the promo,
+  because on an address the phone calls insecure there is no `crypto.subtle` to
+  hash a password with and sign-in refuses — which used to cost one feature and
+  now costs the whole app.
+- Tell a coach an account is optional. The auth panel said "Coaching a match
+  needs none", which stopped being true the moment the promo required one. It
+  says what the account actually is instead: a lock on this phone, with no
+  server to send it to.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday

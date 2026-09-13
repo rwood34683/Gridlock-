@@ -2063,7 +2063,7 @@ const defaultState = () => ({
   scoutLayers:{theirOuts:true},
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
-  billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"",
+  billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
   plays:[], building:null,
   direct:{},
   pad:null,
@@ -2233,7 +2233,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
 S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
-S.helpFor = ""; S.helpQ = -1;
+S.helpFor = ""; S.helpQ = -1; S.promoTour = false;
 S.theirPick = []; S.sightAim = null;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
@@ -4562,9 +4562,30 @@ function staffGate(what){
  * clinic or send a league message, which the sign-in line now says out loud
  * rather than leaving him to guess whether he counts as "staff".
  */
+/* What the five tabs are. Shown on the promo, where it has to explain the app
+   to somebody who cannot get in yet, and inside, where it can hand him on. */
+function tourRows(){
+  return `<div class="kv">
+      <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
+      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker a man broke to, say what you saw, log it. Then who won the point.</span></div>
+      <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — tendency, threat and your counter.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
+      <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
+    </div>`;
+}
+function tourPanel(){
+  return `<div class="panel">
+    <h3 class="panel__title">How it works</h3>
+    ${tourRows()}
+    <p class="note">An account takes a moment and lives on this phone only. There is no server
+      to send it to.</p>
+  </div>`;
+}
+
 function promo(){
   const has = hasAccount();
   return `<div class="promo">
+    ${contextWarning()}
     <div class="promo__mark">
       <div class="promo__name">GRIDLOCK</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
@@ -4578,16 +4599,25 @@ function promo(){
       </ul>
     </div>
     <div class="stack">
-      <button class="btn btn--lg btn--block" onclick="set({entered:true,role:'guest'})">Start coaching</button>
+      ${/* No way past this screen but an account, by the owner's decision. The
+             one exception is a class deep link (?c=CODE), which is a
+             participant signing a clinic sheet rather than the coach — that
+             stays open, because a fifteen-year-old at a clinic is not the
+             customer and the spec has always said so. */""}
+      <button class="btn btn--lg btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">${
+        has ? "Sign in" : "Create your account"}</button>
+      <button class="btn btn--ghost btn--block" onclick="set({mode:'${has ? "create" : "login"}'})">${
+        has ? "Create a different account" : "I already have one"}</button>
       ${/* No price claim and no account claim on the first screen, by the
              owner's decision. The page sells what the app does and nothing
              else. Nothing is lost that a coach needs: the store page carries
              the price, the Plan screen carries what each tier holds, and the
              privacy notice and Nexus both still say that nothing leaves the
              phone. A welcome screen that makes no promise cannot break one. */""}
-      <button class="btn btn--ghost btn--block" onclick="set({entered:true,showTutorial:true,tab:'playbook'})">Show me how it works</button>
-      <button class="btn btn--quiet btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">Running a clinic or a league? Sign in</button>
+      <button class="btn btn--quiet btn--block" onclick="set({promoTour: !S.promoTour})">${
+        S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
     </div>
+    ${S.promoTour ? tourPanel() : ""}
     <p class="note">GRIDLOCK System · powered by UPRA</p>
     ${authForm()}
   </div>`;
@@ -4603,8 +4633,11 @@ function authForm(){
   const make = S.mode === "create";
   return `<div class="panel">
     <h3 class="panel__title">${make?"Create an account":"Sign in"}</h3>
-    <p class="note" style="margin-top:0">An account is only needed to run a clinic or send a league
-      message. Coaching a match needs none, and nothing you log here depends on it.</p>
+    ${/* This said "coaching a match needs none", which stopped being true the
+           moment the promo required one. It now says what the account actually
+           is: a lock on this phone, not a login to anything. */""}
+    <p class="note" style="margin-top:0">It lives on this phone and nowhere else — there is no server
+      to send it to, and nothing about you or your team ever leaves the device.</p>
     <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
     <div class="btnrow">
@@ -7912,13 +7945,7 @@ function shell(){
                        : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
-    <div class="kv">
-      <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
-      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker a man broke to, say what you saw, log it. Then who won the point.</span></div>
-      <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — tendency, threat and your counter.</span></div>
-      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
-      <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
-    </div>
+    ${tourRows()}
     <div class="btnrow">
       <button class="btn grow" onclick="set({showTutorial:false})">Start coaching</button>
       <button class="btn btn--quiet grow" onclick="set({showTutorial:false,tab:'more',more:'help',helpFor:''})">Read the help</button>

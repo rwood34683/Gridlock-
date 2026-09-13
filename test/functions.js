@@ -56,14 +56,45 @@ const ROSTER = [
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
   check("promo shows first, never the tutorial", await ev(() => !S.entered && !S.showTutorial));
-  // Three routes, not four: create and sign in were two buttons for one door,
-  // and a first-time coach could not tell which of them he was.
+  // There is no way past this screen but an account. The only door that does
+  // not need one is a class deep link, which is a participant signing a clinic
+  // sheet rather than the coach — checked separately below.
   check("the promo offers three routes and no more", await page.locator(".promo .btn").count() === 3);
-  check("and they are coach, tutorial, sign in", await ev(() =>
+  check("and every one of them is the account or the tour", await ev(() =>
     [...document.querySelectorAll(".promo .btn")].map(b => b.textContent.trim()).join("|"))
-    === "Start coaching|Show me how it works|Running a clinic or a league? Sign in");
-  await ev(() => window.set({ entered: true, role: "guest" }));
-  check("guest can enter without an account", await ev(() => S.entered && S.role === "guest"));
+    === "Create your account|I already have one|Show me how it works");
+  check("nothing on it lets a coach in without one", await ev(() => {
+    const opens = [...document.querySelectorAll(".promo .btn")]
+      .filter(b => /entered\s*:\s*true/.test(b.getAttribute("onclick") || ""));
+    return opens.length === 0 && !S.entered;
+  }));
+  check("the tour shows what it does without letting him through", await ev(() => {
+    [...document.querySelectorAll(".promo .btn")].find(b => /Show me/.test(b.textContent)).click();
+    const t = document.getElementById("root").innerText;
+    const shown = /How it works/.test(t) && /Tap the bunker a man broke to/.test(t);
+    const still = !S.entered;
+    window.set({ promoTour: false });
+    return shown && still;
+  }));
+  // On an address the phone calls insecure there is no crypto to hash a
+  // password with, so sign-in refuses — which used to cost one feature and now
+  // costs the whole app. The promo has to say so rather than look broken.
+  check("an insecure address says why nobody can get in", (() => {
+    const src = fs.readFileSync(path.join(__dirname, "../web/index.html"), "utf8");
+    return /function promo\(\)[\s\S]{0,220}contextWarning\(\)/.test(src);
+  })());
+  await ev(() => window.set({ entered: true, role: "staff" }));
+  // The one door that is not the account: a class deep link. That is a
+  // participant signing a clinic sheet, not the coach, and the spec has always
+  // said joining a class needs no account.
+  check("a class deep link still opens without one", await (async () => {
+    const at = page.url().split("?")[0];
+    await page.goto(at + "?c=GL-7K2M", { waitUntil: "networkidle" });
+    const got = await ev(() => S.entered && S.more === "classes" && S.joinCode === "GL-7K2M");
+    await page.goto(at, { waitUntil: "networkidle" });
+    await ev(() => window.set({ entered: true, role: "staff" }));
+    return got;
+  })());
   check("tab bar has the five phone tabs", await page.locator(".tabs button").count() === 5);
 
   /* ------------------------------------------------------------ the welcome */
@@ -75,9 +106,9 @@ const ROSTER = [
     const t = await promoText();
     return /twelve breaks/i.test(t) && /bunker a man broke to/i.test(t) && /win you points/i.test(t);
   })());
-  check("the loudest button starts him coaching, not an account", await ev(() => {
+  check("the loudest button is the account", await ev(() => {
     const big = document.querySelector("#root .btn--lg");
-    return !!big && /Start coaching/.test(big.textContent);
+    return !!big && /Create your account|Sign in/.test(big.textContent);
   }));
   // The first screen sells what the app does and makes no claim about price
   // or accounts. A welcome screen that promises nothing cannot break a promise
@@ -105,18 +136,21 @@ const ROSTER = [
     window.set({entered: false, more: null});
     return /phone/i.test(nexus) && /signal/i.test(help);
   }));
-  check("the sign-in line says what an account is for", await (async () =>
-    /clinic or a league/i.test(await promoText()))());
-  check("a phone with no account opens the form on Create", await ev(() => {
-    [...document.querySelectorAll("#root button")].find(b => /Sign in/.test(b.textContent)).click();
+  check("a phone with no account leads with making one", await ev(() => {
+    [...document.querySelectorAll("#root .promo .btn")].find(b => /Create your account/.test(b.textContent)).click();
     return S.mode === "create";
   }));
   check("and the form switches to signing in without going back", await ev(() => {
     [...document.querySelectorAll("#root button")].find(b => /Already have one/.test(b.textContent)).click();
     return S.mode === "login";
   }));
-  check("the form says coaching does not depend on it",
-    await ev(() => /Coaching a match needs none/.test(document.getElementById("root").innerText)));
+  // It used to say coaching needed no account. That stopped being true the
+  // moment the promo required one, and a form that lies about what it is for
+  // is worse than one that says nothing.
+  check("the form no longer claims coaching works without one",
+    await ev(() => !/Coaching a match needs none/.test(document.getElementById("root").innerText)));
+  check("it says what the account actually is instead",
+    await ev(() => /lives on this phone and nowhere else/i.test(document.getElementById("root").innerText)));
   await ev(() => window.set({ mode: null }));
 
   /* --------------------------------------------------------------- staff auth */
@@ -1465,7 +1499,13 @@ const ROSTER = [
   await ev(() => { localStorage.removeItem("gridlock.coach.v2"); });
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(200);
-  await page.locator("button", { hasText: "Start coaching" }).click();
+  await page.evaluate(async () => {
+    // Sign in for real, because that is the only way in now.
+    window.set({ mode: "create" });
+  });
+  await page.waitForTimeout(80);
+  await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
+  await page.evaluate(async () => { await window.doAuth(); });
   await page.waitForTimeout(350);
   check("the field is on screen without scrolling", await ev(() => {
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
