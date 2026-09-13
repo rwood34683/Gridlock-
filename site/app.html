@@ -629,7 +629,12 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__does li::before{
   content:"";position:absolute;left:0;top:.55em;width:7px;height:2px;border-radius:1px;background:var(--accent-lit);
 }
-.promo__free{margin:0;color:var(--mute);font-size:var(--t-xs);line-height:1.45;max-width:42ch}
+/* The reassurance under the big button belongs to that button, so it sits
+   tight beneath it and clear of the next one. The stack's 8px gap ran on both
+   sides, which orphaned it between two buttons and read as crowding the red
+   one on a phone. It is also the line that says nothing leaves the phone —
+   the one sentence a coach most needs to read — so it is not 11px. */
+.promo__free{margin:-3px 0 var(--s3);color:var(--mute);font-size:var(--t-sm);line-height:1.5;max-width:42ch}
 .stack{display:flex;flex-direction:column;gap:var(--s2)}
 </style>
 <style>
