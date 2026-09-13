@@ -2064,7 +2064,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"",
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"",
   plays:[], building:null,
   direct:{},
   pad:null,
@@ -2235,6 +2235,7 @@ S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
 S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
+S.verifyPhone = ""; S.verifySent = false; S.verifySaid = "";
 S.theirPick = []; S.sightAim = null;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
@@ -4605,7 +4606,10 @@ function promo(){
              participant signing a clinic sheet rather than the coach — that
              stays open, because a fifteen-year-old at a clinic is not the
              customer and the spec has always said so. */""}
-      <button class="btn btn--lg btn--block" onclick="set({mode:'${has ? "login" : "create"}',authSaid:''})">${
+      ${window.gridlockApple ? `<button class="btn btn--lg btn--block" onclick="appleSignIn()">
+           Sign in with Apple</button>
+         <p class="note" style="margin:0">One tap, and Apple never tells us anything but that it is you.</p>` : ""}
+      <button class="btn ${window.gridlockApple ? "btn--ghost" : "btn--lg"} btn--block" onclick="set({mode:'${has ? "login" : "create"}',authSaid:''})">${
         has ? "Sign in" : "Create your account"}</button>
       <button class="btn btn--ghost btn--block" onclick="set({mode:'${has ? "create" : "login"}',authSaid:''})">${
         has ? "Create a different account" : "I already have one"}</button>
@@ -4679,9 +4683,80 @@ window.gridlockRestoreAccount = text => {
   if(have && have.email) return false;              // this phone has one already
   let d = null;
   try{ d = JSON.parse(text); }catch(e){ return false; }
-  if(!d || !d.email || !d.hash) return false;
+  if(!d || !(d.email || d.sub) || !(d.hash || d.kind === "apple")) return false;
   try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
   return true;
+};
+
+/* ============================================================
+   Who he is, when the phone can prove it
+   ============================================================
+
+   The app makes no network calls, so it can never verify anybody by itself.
+   Both of these are therefore adapters the native shell fills in, and neither
+   exists in a browser: the screens appear only where the phone can actually do
+   the thing, rather than offering a button that goes nowhere.
+
+     window.gridlockApple  .signIn() -> {sub, email, name} | null
+       Sign in with Apple. Apple has already verified the person; the app only
+       accepts the result. `sub` is the stable identifier and is what an account
+       is keyed on — the email may be one of Apple's relay addresses, and may be
+       withheld entirely on a second sign-in, so it is never the key.
+
+     window.gridlockVerify .start(phone) -> {ok, said}
+                           .check(phone, code) -> {ok, said}
+       A phone number, verified by a server that sent the code. The app never
+       makes the code and never checks it: a code this device generated and then
+       marked correct proves nothing, because the answer was in its memory the
+       whole time. Off until there is a backend — see docs/IDENTITY.md.
+
+   Neither ever holds a Twilio or Apple credential. A key inside an app is a key
+   anyone can pull out of the bundle, and the bill is yours. */
+window.appleSignIn = async () => {
+  const a = window.gridlockApple;
+  if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
+  set({authSaid: "Asking Apple…"});
+  try{
+    const who = await a.signIn();
+    if(!who || !who.sub) return set({authSaid: "Apple did not return a sign-in. Nothing has changed."});
+    // An Apple account keeps no password: there is nothing to hash, and the
+    // stable id is the thing that identifies him on the next launch.
+    const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
+    writeAccount({kind: "apple", sub: who.sub,
+                  email: who.email || kept.email || "",
+                  name: who.name || kept.name || ""});
+    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: ""});
+  }catch(err){ set({authSaid: "Apple could not be reached. Nothing has changed."}); }
+};
+function phoneDone(){
+  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); return a.phone || ""; }
+  catch(e){ return ""; }
+}
+window.startVerify = async () => {
+  const v = window.gridlockVerify;
+  const phone = (document.getElementById("vph") || {}).value || "";
+  if(!v || !v.start) return set({verifySaid: "Phone verification is not switched on in this build."});
+  if(phone.replace(/\D/g, "").length < 10) return set({verifySaid: "A full phone number, with the area code."});
+  set({verifySaid: "Sending a code…"});
+  try{
+    const r = await v.start(phone);
+    set({verifyPhone: phone, verifySent: !!(r && r.ok),
+         verifySaid: (r && r.said) || (r && r.ok ? "Code sent. It expires in a few minutes." : "That number was refused.")});
+  }catch(e){ set({verifySaid: "The code could not be sent. Nothing has changed."}); }
+};
+window.checkVerify = async () => {
+  const v = window.gridlockVerify;
+  const code = (document.getElementById("vcode") || {}).value || "";
+  if(!v || !v.check) return;
+  set({verifySaid: "Checking…"});
+  try{
+    const r = await v.check(S.verifyPhone || "", code);
+    if(r && r.ok){
+      const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
+      writeAccount({...kept, phone: S.verifyPhone || "", phoneAt: Date.now()});
+      set({verifySent: false, verifySaid: "", verifyPhone: ""});
+    } else set({verifySaid: (r && r.said) || "That code does not match. Ask for a new one if it has expired."});
+  }catch(e){ set({verifySaid: "The code could not be checked. Nothing has changed."}); }
 };
 
 window.doAuth = async () => {
@@ -4730,6 +4805,9 @@ window.doAuth = async () => {
   // never heard of him — and with no server there is nothing to look up. The
   // thing he most needs told is that his season is not inside the account, so
   // making a new one costs him nothing he has logged.
+  if(acc.kind === "apple")
+    return say("This phone signs in with Apple. Use the Sign in with Apple button rather than a "
+             + "password — there is no password on this account to get wrong.");
   if(!acc.email && !old.email)
     return say("This phone has never had an account on it. There is no server to look yours up on — "
              + "make one here with the same email. Nothing you have logged is kept inside an account, "
@@ -7337,6 +7415,32 @@ function helpCard(k){
 }
 /* The plan screen. It leads with what stays free, because that is the honest
    thing a coach wants to know first, and it never hides what he already has. */
+/* The phone step. Shown only where a backend is actually wired up, because a
+   Send code button with nothing behind it is worse than no button. */
+function verifyBlock(){
+  if(!window.gridlockVerify) return "";
+  const done = phoneDone();
+  if(done && !S.verifySent) return `<div class="panel">
+    <h3 class="panel__title">Phone · verified</h3>
+    <p class="note">${esc(done)} — checked by a code sent to it. Nothing about it leaves the phone
+      except to the service that sent that code.</p></div>`;
+  return `<div class="panel">
+    <h3 class="panel__title">Verify your phone</h3>
+    <p class="note">One code, by text. It is the only thing in this app that touches a network, and
+      it is used for nothing but proving the number is yours.</p>
+    ${S.verifySaid ? `<p class="warn">${esc(S.verifySaid)}</p>` : ""}
+    ${S.verifySent ? `<div class="fld"><label for="vcode">The code we sent to ${esc(S.verifyPhone)}</label>
+        <input id="vcode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></div>
+      <div class="btnrow">
+        <button class="btn grow" onclick="checkVerify()">Check the code</button>
+        <button class="btn btn--quiet" onclick="set({verifySent:false,verifySaid:''})">Use another number</button>
+      </div>`
+    : `<div class="fld"><label for="vph">Mobile number</label>
+        <input id="vph" type="tel" inputmode="tel" autocomplete="tel" placeholder="(555) 555-0123"/></div>
+      <button class="btn btn--block" onclick="startVerify()">Send me a code</button>`}
+  </div>`;
+}
+
 function planPage(){
   const now = planOf(), said = S.billingSaid || "";
   const row = (a, b) => `<div class="kv__row"><span class="kv__k">${a}</span><span class="kv__v">${b}</span></div>`;
@@ -7892,6 +7996,7 @@ function moreBody(k){
     </div>
     <p class="note">Held only while the app is on screen — the phone drops it the moment you switch away
       or the screen goes off, so it does not run your battery down in a pocket.</p>`:""}
+    ${verifyBlock()}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
     <p class="note">GRIDLOCK System · powered by UPRA</p>`)

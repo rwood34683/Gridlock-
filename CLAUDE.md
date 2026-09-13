@@ -411,6 +411,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   because on an address the phone calls insecure there is no `crypto.subtle` to
   hash a password with and sign-in refuses — which used to cost one feature and
   now costs the whole app.
+- Put a credential in the app, or let it make or check a verification code.
+  The app makes no network calls — there is not one `fetch` in it, and that is
+  why it works on a field with no signal. So identity that needs a network is an
+  adapter the native shell fills in: `window.gridlockApple.signIn()` for Sign in
+  with Apple, `window.gridlockVerify.start/check` for a phone number. Neither
+  screen renders unless its adapter exists, because a button with nothing behind
+  it is worse than no button. A Twilio or Apple key inside a bundle is a key
+  anyone can pull out and a bill that is yours; and a code this device generated
+  and then marked correct proves nothing, because the answer was in its memory
+  the whole time. An Apple account is keyed on `sub`, never the email — Apple
+  hands back a relay address and withholds it entirely after the first sign-in.
+  `docs/IDENTITY.md` is the switch-on, including what 10DLC and SMS pumping cost.
 - Tell a coach his password is wrong when the truth is that this phone has
   never heard of him. With no guest path a failed sign-in is a lockout, and
   with no server an account cannot be looked up — so a new phone, a wrong

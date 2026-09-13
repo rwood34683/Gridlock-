@@ -205,6 +205,87 @@ const ROSTER = [
   }));
   await ev(() => window.set({ entered: true, role: "staff", mode: null, authSaid: "" }));
 
+  /* ------------------------------------------------------- who he is, provable */
+  G("Sign in with Apple, and the phone step");
+  // Both are adapters the native shell fills in. In a browser neither exists,
+  // and a button with nothing behind it is worse than no button.
+  await ev(() => { localStorage.clear(); window.set({ entered: false, mode: null }); });
+  await page.reload({ waitUntil: "networkidle" });
+  check("a browser is offered neither, because it can do neither", await ev(() => {
+    const promo = document.getElementById("root").innerText;
+    window.set({ entered: true, role: "staff", tab: "more", more: "nexus" });
+    const nexus = document.getElementById("root").innerText;
+    window.set({ entered: false, more: null });
+    return !/Sign in with Apple/.test(promo) && !/Verify your phone/.test(nexus);
+  }));
+  // Stand in for the shell: Apple hands back a verified person, and a server
+  // holds the code. The app never makes a code and never checks one.
+  await ev(() => {
+    window.gridlockApple = { signIn: async () => ({ sub: "000123.abc", email: "c@privaterelay.appleid.com", name: "R Wood" }) };
+    let sent = null;
+    window.gridlockVerify = {
+      start: async () => { sent = "424242"; return { ok: true, said: "Code sent." }; },
+      check: async (phone, code) => code === sent ? { ok: true } : { ok: false, said: "That code does not match." },
+    };
+    window.set({ entered: false, mode: null });
+  });
+  check("where the phone can do it, Apple leads", await ev(() =>
+    /Sign in with Apple/.test(document.getElementById("root").innerText)));
+  await ev(async () => { await window.appleSignIn(); });
+  await page.waitForTimeout(100);
+  check("one tap signs him in", await ev(() => S.entered && S.role === "staff"));
+  check("kept as an Apple account with no password to store", await ev(() => {
+    const a = JSON.parse(localStorage.getItem("gridlock.staff.v2"));
+    return a.kind === "apple" && !a.hash && !a.salt;
+  }));
+  // Apple withholds the email after the first sign-in and may hand back a relay
+  // address, so the stable id is the key and the email never is.
+  check("keyed on Apple's stable id, never the email", await ev(() =>
+    JSON.parse(localStorage.getItem("gridlock.staff.v2")).sub === "000123.abc"));
+  check("a password typed at an Apple account is explained, not rejected", await ev(async () => {
+    window.set({ entered: false, mode: "login", authSaid: "" });
+    document.getElementById("em").value = "c@privaterelay.appleid.com";
+    document.getElementById("pw").value = "whatever1";
+    await window.doAuth();
+    return /signs in with Apple/.test(S.authSaid) && !/does not match/.test(S.authSaid);
+  }));
+  await ev(() => window.set({ entered: true, role: "staff", mode: null, tab: "more", more: "nexus" }));
+  check("the phone step appears where a backend exists", await ev(() =>
+    /Verify your phone/.test(document.getElementById("root").innerText)));
+  check("a short number is refused before anything is sent", await ev(async () => {
+    document.getElementById("vph").value = "555";
+    await window.startVerify();
+    return !S.verifySent && /full phone number/.test(S.verifySaid);
+  }));
+  check("a real one asks the server for a code", await ev(async () => {
+    document.getElementById("vph").value = "(555) 555-0123";
+    await window.startVerify();
+    return S.verifySent === true;
+  }));
+  check("a wrong code keeps asking rather than letting him through", await ev(async () => {
+    document.getElementById("vcode").value = "111111";
+    await window.checkVerify();
+    return S.verifySent && /does not match/.test(S.verifySaid) && !phoneDone();
+  }));
+  check("the right one verifies, and the number is kept on the account", await ev(async () => {
+    document.getElementById("vcode").value = "424242";
+    await window.checkVerify();
+    const a = JSON.parse(localStorage.getItem("gridlock.staff.v2"));
+    return a.phone === "(555) 555-0123" && !!a.phoneAt && a.kind === "apple";
+  }));
+  check("and Nexus says so afterwards", await ev(() =>
+    /Phone · verified/.test(document.getElementById("root").innerText)));
+  // The whole point: the app cannot verify anybody by itself, so it must not
+  // look as though it is trying to.
+  check("the app never makes a code and never checks one", (() => {
+    const src = fs.readFileSync(path.join(__dirname, "../web/index.html"), "utf8");
+    return !/fetch\s*\(/.test(src)
+      && !/window\.startVerify[\s\S]{0,700}Math\.random/.test(src);
+  })());
+  await ev(() => { delete window.gridlockApple; delete window.gridlockVerify;
+    localStorage.removeItem("gridlock.staff.v2");
+    window.set({ entered: true, role: "staff", more: null, verifySent: false, verifySaid: "", verifyPhone: "" }); });
+
   /* --------------------------------------------------------------- staff auth */
   G("Staff auth");
   await ev(() => { localStorage.removeItem("gridlock.staff"); localStorage.removeItem("gridlock.staff.v2"); window.set({ entered: false, mode: "create" }); });
