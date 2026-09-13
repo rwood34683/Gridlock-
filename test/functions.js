@@ -153,6 +153,58 @@ const ROSTER = [
     await ev(() => /lives on this phone and nowhere else/i.test(document.getElementById("root").innerText)));
   await ev(() => window.set({ mode: null }));
 
+  /* ------------------------------------------------- what "I already have one" does */
+  G("Signing in, and every way it fails");
+  const tryAuth = async (mode, em, pw) => {
+    await ev(m => window.set({ mode: m, authSaid: "", entered: false }), mode);
+    await page.waitForTimeout(60);
+    await page.fill("#em", em); await page.fill("#pw", pw);
+    await ev(async () => { await window.doAuth(); });
+    await page.waitForTimeout(120);
+    return ev(() => ({ in: S.entered, said: S.authSaid }));
+  };
+  await ev(() => { localStorage.clear(); });
+  await page.reload({ waitUntil: "networkidle" });
+  // The one that matters most: a new phone. There is no server, so his account
+  // cannot be looked up — and the old wording blamed him for typing it wrong.
+  let r = await tryAuth("login", "coach@team.com", "sideline1");
+  check("a phone that has never had an account says exactly that", !r.in
+    && /never had an account on it/.test(r.said) && /no server to look yours up on/.test(r.said));
+  check("and tells him his season is not inside the account",
+    /Nothing you have logged is kept inside an account/.test(r.said));
+  check("and where a season actually moves from", /Save a copy/.test(r.said));
+  check("it is said on the screen, not in an alert he dismisses",
+    await ev(() => /never had an account/.test(document.getElementById("root").innerText)));
+  r = await tryAuth("create", "coach@team.com", "sideline1");
+  check("making one instead lets him in", r.in && !r.said);
+  r = await tryAuth("login", "coach@team.com", "sideline1");
+  check("and he can sign back in on that phone", r.in && !r.said);
+  r = await tryAuth("login", "coach@team.com", "wrongpass");
+  check("a wrong password is told apart from a missing account", !r.in
+    && /password does not match/.test(r.said) && !/never had an account/.test(r.said));
+  check("and says there is nowhere to reset it from, and why",
+    /nowhere to reset it from/.test(r.said) && /leaves your season exactly where it is/.test(r.said));
+  r = await tryAuth("login", "someone@else.com", "sideline1");
+  check("a different email names the one this phone has", !r.in
+    && /account on this phone is coach@team.com/.test(r.said));
+  r = await tryAuth("login", "coach@team.com", "abc");
+  check("a short password is caught before anything is hashed", !r.in
+    && /six characters or more/.test(r.said));
+  check("a stale message does not greet him on the other form", await ev(() => {
+    window.set({ mode: "create", authSaid: "" });
+    return !S.authSaid && !/does not match/.test(document.getElementById("root").innerText);
+  }));
+  // The season and the account are two different stores, which is the whole
+  // reason a locked-out coach loses nothing by making a new one.
+  check("the season is not kept inside the account", await ev(() => {
+    window.set({ entered: true, role: "staff", right: { name: "Rejects" }, mode: null });
+    window.newMatch();
+    const kept = (S.matches || []).length;
+    localStorage.removeItem("gridlock.staff.v2");
+    return kept >= 1 && (S.matches || []).length === kept;
+  }));
+  await ev(() => window.set({ entered: true, role: "staff", mode: null, authSaid: "" }));
+
   /* --------------------------------------------------------------- staff auth */
   G("Staff auth");
   await ev(() => { localStorage.removeItem("gridlock.staff"); localStorage.removeItem("gridlock.staff.v2"); window.set({ entered: false, mode: "create" }); });

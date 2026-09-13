@@ -1321,6 +1321,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
+  authSaid:"",
   plays:[], building:null,
   direct:{},
   pad:null,
@@ -1490,7 +1491,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 S.tallySel = null; S.tallyDraft = null; S.tallyTrace = false;
 S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
-S.helpFor = ""; S.helpQ = -1; S.promoTour = false;
+S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.theirPick = []; S.sightAim = null;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
@@ -3861,9 +3862,9 @@ function promo(){
              participant signing a clinic sheet rather than the coach — that
              stays open, because a fifteen-year-old at a clinic is not the
              customer and the spec has always said so. */""}
-      <button class="btn btn--lg btn--block" onclick="set({mode:'${has ? "login" : "create"}'})">${
+      <button class="btn btn--lg btn--block" onclick="set({mode:'${has ? "login" : "create"}',authSaid:''})">${
         has ? "Sign in" : "Create your account"}</button>
-      <button class="btn btn--ghost btn--block" onclick="set({mode:'${has ? "create" : "login"}'})">${
+      <button class="btn btn--ghost btn--block" onclick="set({mode:'${has ? "create" : "login"}',authSaid:''})">${
         has ? "Create a different account" : "I already have one"}</button>
       ${/* No price claim and no account claim on the first screen, by the
              owner's decision. The page sells what the app does and nothing
@@ -3895,13 +3896,14 @@ function authForm(){
            is: a lock on this phone, not a login to anything. */""}
     <p class="note" style="margin-top:0">It lives on this phone and nowhere else — there is no server
       to send it to, and nothing about you or your team ever leaves the device.</p>
+    ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
     <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
     <div class="btnrow">
       <button class="btn grow" onclick="doAuth()">${make?"Create account":"Sign in"}</button>
-      <button class="btn btn--ghost" onclick="set({mode:null})">Back</button>
+      <button class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
     </div>
-    <button class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}'})">${
+    <button class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
   </div>`;
@@ -3942,11 +3944,11 @@ window.gridlockRestoreAccount = text => {
 window.doAuth = async () => {
   const email = document.getElementById("em").value.trim();
   const pass = document.getElementById("pw").value;
-  if(!email || pass.length < 6){ alert("Email and a password of 6 characters or more."); return; }
-  if(!(window.crypto && crypto.subtle)){
-    alert("This browser cannot hash the password securely, so sign-in is disabled here. Use the app, or a browser on https.");
-    return;
-  }
+  const say = m => { S.authSaid = m; save(S); render(); };
+  if(!email || pass.length < 6) return say("An email, and a password of six characters or more.");
+  if(!(window.crypto && crypto.subtle))
+    return say("This address is not a secure one, so the phone will not hash a password here. "
+             + "Use the installed app, or open this on the same machine at localhost.");
   let acc = {};
   try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
 
@@ -3954,8 +3956,8 @@ window.doAuth = async () => {
     // Creating over an account that is already here is how a coach who meant to
     // sign in loses the one he had — nothing else on the phone can get it back.
     if(acc.email && acc.email !== email &&
-       !confirm(`This phone already has ${acc.email}. Making a new account replaces it, `
-              + `and there is no way back. Continue?`)) return;
+       !confirm(`This phone already has ${acc.email}. A new account replaces that sign-in and `
+              + `there is no way back to it. Your season is kept separately and is not touched. Continue?`)) return;
     const salt = newSalt();
     writeAccount({email, salt, hash: await hashPass(pass, salt)});
     localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
@@ -3979,7 +3981,23 @@ window.doAuth = async () => {
     set({entered:true, role:"staff", email, mode:null});
     return;
   }
-  alert("Email or password does not match. Create an account first.");
+  // Three different failures used to read as one accusing line. Which of them
+  // it is matters enormously now that there is no guest path: a coach on a new
+  // phone is not typing his password wrong, he is asking a device that has
+  // never heard of him — and with no server there is nothing to look up. The
+  // thing he most needs told is that his season is not inside the account, so
+  // making a new one costs him nothing he has logged.
+  if(!acc.email && !old.email)
+    return say("This phone has never had an account on it. There is no server to look yours up on — "
+             + "make one here with the same email. Nothing you have logged is kept inside an account, "
+             + "so you lose nothing, and Nexus \u203a Save a copy is how a season moves between phones.");
+  const known = acc.email || old.email;
+  if(known !== email)
+    return say("The account on this phone is " + known + ". Sign in with that one, "
+             + "or make a new account — your season is kept separately and is not touched either way.");
+  say("That password does not match. There is nowhere to reset it from, because nothing about the "
+    + "account leaves this phone. Making a new account with the same email replaces the password "
+    + "and leaves your season exactly where it is.");
 };
 
 /* ============================================================

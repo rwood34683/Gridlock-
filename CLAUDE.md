@@ -411,6 +411,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   because on an address the phone calls insecure there is no `crypto.subtle` to
   hash a password with and sign-in refuses — which used to cost one feature and
   now costs the whole app.
+- Tell a coach his password is wrong when the truth is that this phone has
+  never heard of him. With no guest path a failed sign-in is a lockout, and
+  with no server an account cannot be looked up — so a new phone, a wrong
+  password and a different email are three different things and say three
+  different sentences, on screen rather than in an alert. Every one of them
+  says the season is **not** kept inside the account: it is a separate store,
+  so making a new account loses nothing that was logged, and Nexus › Save a
+  copy is how a season actually moves between phones.
 - Tell a coach an account is optional. The auth panel said "Coaching a match
   needs none", which stopped being true the moment the promo required one. It
   says what the account actually is instead: a lock on this phone, with no
