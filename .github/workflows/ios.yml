@@ -1,0 +1,24 @@
+name: Build iOS simulator
+on:
+  push:
+    paths: ['web/**', 'ios/**', 'scripts/native*', 'scripts/configure-native.js', 'scripts/patch-speech-plugin.js', 'scripts/xcode.js', 'package*.json', '.github/workflows/ios.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm run ios:preflight
+      - run: npm ci
+      - run: npm run build:ios:simulator
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GRIDLOCK-iOS-simulator
+          path: ios/DerivedData/Build/Products/Debug-iphonesimulator/App.app

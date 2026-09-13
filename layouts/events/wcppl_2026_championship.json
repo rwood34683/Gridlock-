@@ -1,0 +1,35 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "none",
+  "bunkers": [],
+  "id": "wcppl_2026_championship",
+  "league": "West Coast Paintball Players League",
+  "league_code": "WCPPL",
+  "event": "Championship",
+  "dates": "2026-10-23/2026-10-25",
+  "venue": {
+    "name": "SC Village",
+    "city": "Chino",
+    "state": "CA",
+    "country": "US"
+  },
+  "status": "unreleased",
+  "notes": [
+    "Layout not dropped as of Sep 6 2026."
+  ],
+  "views": [],
+  "sources": [
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/west-coast-paintball-players-league/"
+    }
+  ],
+  "season": 2026
+}

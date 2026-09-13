@@ -1,0 +1,22 @@
+{
+  "appId": "com.upra.gridlock.coach",
+  "appName": "GRIDLOCK Coach",
+  "webDir": "web",
+  "backgroundColor": "#0b0c0d",
+  "android": {
+    "backgroundColor": "#0b0c0d",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#0b0c0d",
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK",
+      "insetsHandling": "css",
+      "hidden": false
+    }
+  }
+}
