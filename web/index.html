@@ -5615,7 +5615,17 @@ function parseSchedule(text){
       .replace(/\b(prelims?|quarters?|semis?|finals?)\b/ig, "")
       .replace(/^(division|field|round|bracket|group)\s*:?\s*/i, "")
       .replace(/^[\s,\-·|]+|[\s,\-·|]+$/g, "").trim();
-    const bits = rest.split(/\s*(?:\||,|\bvs?\b|\bv\.?\b|—|–|\t)\s*/i)
+    // A league print-out (pbleagues, say) carries the field, division and round
+    // columns inline, and the field cell — "NXL Pro - Pit 1" — hides a spaced
+    // hyphen that is NOT a team separator. Take those columns off first, then
+    // the two teams are what is left, joined by " - ".
+    const clean = rest
+      .replace(/[\w.'&/]+(?:\s+[\w.'&/]+)*\s+-\s+Pit\s*\d+/ig, " | ")
+      .replace(/\bPro\s*X-?Ball(?:\u2122|\(TM\))?/ig, " ")
+      .replace(/\b[A-D]?\s*Prelims?\b|\bQuarters?\b|\bSemis?\b|\bFinals?\b/ig, " ");
+    // Teams are split on a SPACED dash (or vs / comma / pipe / tab). The space
+    // is what tells "Seattle Uprising - Houston Heat" apart from "X-Factor".
+    const bits = clean.split(/\s+[-\u2013\u2014]\s+|\s*(?:\||,|\bvs?\b|\bv\.?\b|\t)\s*/i)
       .map(strip)
       .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x));
     if(bits.length < 2) return;

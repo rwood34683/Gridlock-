@@ -4248,6 +4248,23 @@ const ROSTER = [
     return allGames().length === n - 1 && (S.gamesOff || []).includes(g.id)
       && SCHEDULE.games.length === 40;
   }));
+  check("a pbleagues print-out pastes clean — field column and X-Factor survive", await ev(() => {
+    const rows = parseSchedule(
+      "Lone Star Open\nFriday, 18 September\n" +
+      "8:00 AM NXL Pro - Pit 1 Pro X-Ball\u2122 Seattle Uprising - Houston Heat Prelims\n" +
+      "8:00 AM NXL Pro - Pit 2 Pro X-Ball\u2122 San Antonio X-Factor - Chicago Aftershock Prelims\n" +
+      "Saturday, 19 September\n" +
+      "1:45 PM NXL Pro - Pit 1 Pro X-Ball\u2122 San Diego Dynasty - Royal City Seadogs Prelims\n");
+    return rows.length === 3
+      // the field cell "NXL Pro - Pit 1" never becomes a team
+      && !rows.some(r => /Pit|NXL|Ball/.test(r.h + r.a))
+      && rows[0].d === "2026-09-18" && rows[0].t === "08:00"
+      && rows[0].h === "Seattle Uprising" && rows[0].a === "Houston Heat"
+      // the spaced-dash split leaves the hyphen inside "X-Factor" alone
+      && rows[1].h === "San Antonio X-Factor" && rows[1].a === "Chicago Aftershock"
+      // afternoon time keeps its PM, the day header carries down
+      && rows[2].d === "2026-09-19" && rows[2].t === "13:45";
+  }));
   check("a pasted schedule is read into games", await ev(() => {
     const rows = parseSchedule(
       "Friday, Sep 18\n9:00 AM  Detroit Infamous vs Atlanta Jungle Cats  C Prelims\n" +
