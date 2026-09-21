@@ -4439,6 +4439,15 @@ function playbook(){
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
   <button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>
 
+  ${/* A one-time nudge to the play maker. It sits BELOW Play the break so it
+        never pushes that off the fold on first run, and retires itself the
+        moment he has a play of his own or opens the builder — only a coach
+        who has not made one ever sees it. */""}
+  ${(!customPlays().length && !S.building && !S.tips.pbyours) ? `<div class="tip">
+    <span class="grow">Run a play the app has never heard of? Tap <b>+ Yours</b> under the field \u2014
+      name it, tap the bunker each man plants on, done.</span>
+    <button onclick="dismissTip('pbyours')">Got it</button></div>` : ""}
+
   <div class="toggles">
     <button class="tgl ${S.faceOn?"on":""}" onclick="set({faceOn:!S.faceOn})"><i></i>Face</button>
     <button class="tgl ${S.shotOn?"on":""}" onclick="set({shotOn:!S.shotOn})"><i></i>Shot lanes</button>

@@ -3924,6 +3924,19 @@ const ROSTER = [
   G("A play of your own");
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
   check("the app ships with twelve", await ev(() => playKeys().length === 12));
+  check("a coach with no play of his own is nudged to + Yours, once", await ev(() => {
+    window.set({ tab:"playbook", more:null, plays:[], building:null, tips:{} });
+    const shown = /Run a play the app has never heard of/.test(document.getElementById("root").innerText)
+      && /\+ Yours/.test(document.getElementById("root").innerText);
+    // dismiss → gone and stays gone
+    window.dismissTip("pbyours");
+    const dismissed = !/Run a play the app has never heard of/.test(document.getElementById("root").innerText);
+    // and a coach who already has a play never sees it
+    window.set({ tips:{}, plays:[{k:"my:x", name:"Rocket", plants:{}, at:1}] });
+    const hiddenWhenHasOne = !/Run a play the app has never heard of/.test(document.getElementById("root").innerText);
+    window.set({ plays:[], tips:{ pbyours:true } });
+    return shown && dismissed && hiddenWhenHasOne;
+  }));
   // Writing one has to sit with the calls. It was a screen and a half below the
   // field, under the picker, where nobody was going to find it.
   // Writing one sits beside changing the call, above the field. It was a screen
