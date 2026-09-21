@@ -1,6 +1,6 @@
 # Native projects
 
-The existing Android and CocoaPods iOS projects wrap the complete `web/` app. Both use Capacitor **8.5.2**, with version 8 App, Preferences, Share, StatusBar and Filesystem plugins, plus Capgo Speech Recognition **8.2.0**. Project settings, GRIDLOCK assets, class links and release signing configuration have been preserved.
+The existing Android and CocoaPods iOS projects wrap the complete `web/` app. Both use Capacitor **8.5.2**, with version 8 App, Preferences, Share, StatusBar and Filesystem plugins, plus Capgo Speech Recognition **8.2.0**. Project settings, Grind X assets, class links and release signing configuration have been preserved.
 
 ## iOS
 
@@ -50,7 +50,7 @@ Release signing is required. Credentials and keystores are git-ignored. No SDK c
 
 ## Files, links and updates
 
-Voice scouting requests microphone/speech permission only when Start is tapped. iOS includes both usage descriptions; Android declares microphone permission, an optional microphone feature, and the speech-recognition service query. The adapter stops when the app is backgrounded. Speech may use the device's speech service and an internet connection; GRIDLOCK does not record or retain audio. Native callbacks commit only finalized results; partial browser transcripts are previews. The native adapter uses the [Capgo plugin's final-result promise](https://github.com/Cap-go/capacitor-speech-recognition) with `partialResults: false` and waits for native teardown before starting the next utterance. It does not use the plugin's experimental continuous-PTT mode.
+Voice scouting requests microphone/speech permission only when Start is tapped. iOS includes both usage descriptions; Android declares microphone permission, an optional microphone feature, and the speech-recognition service query. The adapter stops when the app is backgrounded. Speech may use the device's speech service and an internet connection; Grind X does not record or retain audio. Native callbacks commit only finalized results; partial browser transcripts are previews. The native adapter uses the [Capgo plugin's final-result promise](https://github.com/Cap-go/capacitor-speech-recognition) with `partialResults: false` and waits for native teardown before starting the next utterance. It does not use the plugin's experimental continuous-PTT mode.
 
 `npm ci` applies a small, version-checked Android dependency source patch to exclude `UNSTABLE_TEXT` from finalized results. See [the dependency source notice](SPEECH-PLUGIN-NOTICE.md) for the exact change and source-license details. Native synchronization reapplies the patch if dependencies were installed with scripts disabled.
 

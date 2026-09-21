@@ -38,7 +38,7 @@ function build() {
     const index = path.join(OUT, "index.html");
     fs.writeFileSync(index, fs.readFileSync(index, "utf8").replaceAll('href="app.html"', 'href="app/"'));
   } else {
-    fs.writeFileSync(path.join(OUT, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>GRIDLOCK</title><a href="app/">Open GRIDLOCK</a>');
+    fs.writeFileSync(path.join(OUT, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>Grind X</title><a href="app/">Open Grind X</a>');
   }
   fs.cpSync(WEB, path.join(OUT, "app"), { recursive: true });
   const worker = path.join(OUT, "app/sw.js");
@@ -48,11 +48,11 @@ function build() {
     if (before === after) throw new Error("Service worker VERSION declaration was not found.");
     fs.writeFileSync(worker, after);
   }
-  fs.copyFileSync(path.join(SITE, "build/app.html"), path.join(OUT, "GRIDLOCK.html"));
-  const manifest = { app: "GRIDLOCK Coach", version: require("../package.json").version, contentHash: version, files: {} };
+  fs.copyFileSync(path.join(SITE, "build/app.html"), path.join(OUT, "GrindX.html"));
+  const manifest = { app: "Grind X Coach", version: require("../package.json").version, contentHash: version, files: {} };
   for (const file of files(OUT)) manifest.files[path.relative(OUT, file).replaceAll("\\", "/")] = createHash("sha256").update(fs.readFileSync(file)).digest("hex");
   fs.writeFileSync(path.join(OUT, "build-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-  console.log(`Built ${Object.keys(manifest.files).length} files in dist/ (${version}).\nRun npm run preview, or open dist/GRIDLOCK.html directly.`);
+  console.log(`Built ${Object.keys(manifest.files).length} files in dist/ (${version}).\nRun npm run preview, or open dist/GrindX.html directly.`);
   return manifest;
 }
 if (require.main === module) { try { build(); } catch (error) { console.error(error.message); process.exitCode = 1; } }

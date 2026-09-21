@@ -168,7 +168,7 @@ const measure = () => {
   }
   await browser.close();
 
-  console.log("GRIDLOCK device suite");
+  console.log("Grind X device suite");
   console.log("=====================\n");
   console.log("DEVICE                       VIEWPORT     OVERFLOW  TAB BAR  MIN TAP  MAX LINE");
   console.log("-".repeat(80));

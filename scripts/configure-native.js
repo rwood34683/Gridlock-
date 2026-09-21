@@ -1,5 +1,5 @@
 "use strict";
-/* Idempotent GRIDLOCK additions to freshly generated Capacitor projects. */
+/* Idempotent Grind X additions to freshly generated Capacitor projects. */
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");

@@ -80,7 +80,7 @@ if (require.main === module) {
     server.on("error", error => { console.error(error.code === "EADDRINUSE" ? `Port ${port} is already in use. Set PORT to a free port.` : error.message); process.exitCode = 1; });
     server.listen(port, process.env.HOST || "127.0.0.1", () => {
       const url = `http://localhost:${server.address().port}/`;
-      console.log(`GRIDLOCK → ${url}\nServing ${root}\nPress Ctrl+C to stop.`);
+      console.log(`Grind X → ${url}\nServing ${root}\nPress Ctrl+C to stop.`);
       if (args.includes("--open")) openBrowser(url);
     });
   } catch (error) { console.error(`Cannot serve ${root}: ${error.message}`); process.exitCode = 1; }

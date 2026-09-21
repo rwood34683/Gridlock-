@@ -44,7 +44,7 @@ const { launchOptions } = require("../scripts/browser.js");
     const deepLink = new URL(url);
     deepLink.searchParams.set("c", "GL-TEST");
     await page.goto(deepLink.href);
-    assert((await page.locator("#root").innerText()).includes("GRIDLOCK"), "Class query opens the cached shell offline");
+    assert((await page.locator("#root").innerText()).includes("Grind X"), "Class query opens the cached shell offline");
     assert.equal(errors.length, 0, errors.join("\n"));
     console.log("PASS: install shell, offline reload, saved session, five destinations, typed voice events, class query; no runtime errors.");
     await context.close();

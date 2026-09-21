@@ -21,6 +21,6 @@ Stop listening before discussing something else. Leaving the screen, changing pl
 
 Transcripts are stored locally, mirrored into native app storage, and included in full season backups. Squad-only copies exclude event history. Merge keeps existing records with the same ID; use Replace when intentionally restoring corrected versions of the same events from another copy. Exports and device backups are separate copies; deleting an event here does not remove those copies.
 
-The device or browser's speech provider may process audio online and require internet. GRIDLOCK does not store audio. Browser support varies; native builds include the pinned Capacitor speech plugin plus iOS microphone/speech descriptions and Android microphone permission. Native permissions are requested only on Start. See the privacy page and native setup guides.
+The device or browser's speech provider may process audio online and require internet. Grind X does not store audio. Browser support varies; native builds include the pinned Capacitor speech plugin plus iOS microphone/speech descriptions and Android microphone permission. Native permissions are requested only on Start. See the privacy page and native setup guides.
 
 Automated checks simulate speech without opening a microphone. Test on actual iPhone and Android hardware before distributing a signed build, including denied permissions, interruptions, backgrounding and noisy-field recognition.

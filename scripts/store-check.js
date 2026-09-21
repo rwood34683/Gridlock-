@@ -121,7 +121,7 @@ if (fs.existsSync(contactFile)) {
   }
 }
 
-console.log("GRIDLOCK store listing check");
+console.log("Grind X store listing check");
 console.log("============================\n");
 for (const [pass, name, detail] of rows)
   console.log(`  ${pass ? "PASS" : "FAIL"}  ${name.padEnd(38)}${detail}`);

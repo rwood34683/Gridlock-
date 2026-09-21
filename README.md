@@ -1,6 +1,6 @@
-# GRIDLOCK Coach
+# Grind X Coach
 
-**GRIDLOCK System · powered by UPRA · Coach Edition**
+**Grind X System · powered by UPRA · Coach Edition**
 
 Call the break. Direct the five. Own the point.
 
@@ -8,7 +8,7 @@ A device-local paintball coaching app with a shared web interface and Capacitor 
 
 ## Open it
 
-On Windows, double-click **START-GRIDLOCK.cmd**. Keep its terminal open while using the app.
+On Windows, double-click **START-GRINDX.cmd**. Keep its terminal open while using the app.
 
 Or use Node.js 22 or newer:
 
@@ -100,9 +100,9 @@ No signed store binary or submission is included. See **docs/NATIVE-SETUP.md** f
 
 ## Product boundaries
 
-This is an offline-first, device-local app. Accounts, sessions, messages and groups do not synchronize between devices. Sharing opens a device share flow; GRIDLOCK has no email, SMS or push-delivery server. A class code identifies a session already on that device, including one imported from a copy.
+This is an offline-first, device-local app. Accounts, sessions, messages and groups do not synchronize between devices. Sharing opens a device share flow; Grind X has no email, SMS or push-delivery server. A class code identifies a session already on that device, including one imported from a copy.
 
-Optional speech recognition depends on a supported browser or native speech service and may use an internet connection. Permission is requested only after Start listening. GRIDLOCK keeps the transcript, not audio; the speech provider may process audio remotely. Real-device microphone accuracy and native compilation require testing on the target devices.
+Optional speech recognition depends on a supported browser or native speech service and may use an internet connection. Permission is requested only after Start listening. Grind X keeps the transcript, not audio; the speech provider may process audio remotely. Real-device microphone accuracy and native compilation require testing on the target devices.
 
 Cloud authentication, remote class joining and live feeds require a separately configured backend and are not simulated. The early SwiftUI tree remains reference material; the shared interface ships through Capacitor instead of a separate SwiftUI/Compose rewrite.
 

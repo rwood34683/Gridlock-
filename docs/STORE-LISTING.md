@@ -1,4 +1,4 @@
-# Store listing draft — GRIDLOCK Coach
+# Store listing draft — Grind X Coach
 
 This is editable release copy for the supplied local app, not confirmation of a store listing or an approved submission. `npm run store:check` checks the copy limits and generated image dimensions configured in this project. Check the current store-console requirements against the final signed binary before submitting.
 
@@ -18,7 +18,7 @@ This is editable release copy for the supplied local app, not confirmation of a 
 
 | Field | Draft value |
 |---|---|
-| App name | GRIDLOCK Coach |
+| App name | Grind X Coach |
 | Bundle / application ID | `com.upra.gridlock.coach` |
 | Version | `1.0.0` |
 | Suggested category | Sports / Utilities |
@@ -32,7 +32,7 @@ This is editable release copy for the supplied local app, not confirmation of a 
 
 ### Name — 30 char limit
 ```
-GRIDLOCK Coach
+Grind X Coach
 ```
 
 ### Subtitle — 30 char limit
@@ -52,7 +52,7 @@ paintball,coach,xball,nxl,speedball,breakout,sideline,layout,bunker,scrimmage,le
 
 ### Description — 4000 char limit
 ```
-GRIDLOCK Coach keeps a paintball coach's playbook, point sheets and scouting notes together on the sideline.
+Grind X Coach keeps a paintball coach's playbook, point sheets and scouting notes together on the sideline.
 
 PLAYBOOK
 Pick one of the three included 2026 event layouts: Lone Star Open, Tampa Bay Open or Midwest Open. Choose a breakout, set the five players' routes and roles, point their faces and assign shot lanes. Play the break or share a set of player cards.
@@ -80,7 +80,7 @@ Use Save a copy to export your season to a file you control. Load a copy to merg
 
 The app includes no analytics, advertising or tracking SDK. Native device backups and services you choose for sharing have their own behavior and policies.
 
-GRIDLOCK System · powered by UPRA
+Grind X System · powered by UPRA
 ```
 
 ### What's New — 4000 char limit
@@ -92,7 +92,7 @@ Initial release candidate: local playbook, scouting, point sheets, field notes, 
 
 The supplied app has no cloud database, analytics or advertising SDK. It keeps season data and the local staff account on the device, and provides exports and optional sharing through user-chosen services. The native privacy manifest and platform configuration must be reviewed alongside the final plugins and binary. If distribution adds analytics, a server, payments or other services, revise the disclosures and privacy notice before release. Device backups, hosting logs and copies shared by the user should be considered when completing the consoles' questionnaires.
 
-Optional **Scout → Voice log** uses microphone and speech-recognition permissions, requested only after Start listening. The device or browser's speech provider may process audio remotely and require internet. GRIDLOCK retains finalized transcripts and event metadata locally, including original text after correction, but does not store audio. Full season exports include this history. Typed entry works without microphone permission. Include this feature and the final speech provider behavior when completing privacy and Data safety disclosures; do not describe the entire build as transmitting no audio. The supplied privacy page explains the feature.
+Optional **Scout → Voice log** uses microphone and speech-recognition permissions, requested only after Start listening. The device or browser's speech provider may process audio remotely and require internet. Grind X retains finalized transcripts and event metadata locally, including original text after correction, but does not store audio. Full season exports include this history. Typed entry works without microphone permission. Include this feature and the final speech provider behavior when completing privacy and Data safety disclosures; do not describe the entire build as transmitting no audio. The supplied privacy page explains the feature.
 
 Local staff authentication hashes passwords using the platform cryptographic API. Review the final build's encryption declaration and the applicable console questions; this draft does not determine export-compliance treatment.
 
@@ -117,7 +117,7 @@ The opaque icon is `brand/out/app-store-icon-1024.png` (1024 × 1024). Generate 
 
 ### App name — 30 char limit
 ```
-GRIDLOCK Coach
+Grind X Coach
 ```
 
 ### Short description — 80 char limit

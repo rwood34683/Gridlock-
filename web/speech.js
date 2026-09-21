@@ -14,7 +14,7 @@
     var callback = session.options[name];
     if (typeof callback !== "function") return;
     try { callback.apply(null, Array.prototype.slice.call(arguments, 2)); }
-    catch (error) { console.warn("GRIDLOCK speech callback failed."); }
+    catch (error) { console.warn("Grind X speech callback failed."); }
   }
   function state(session, value) {
     if (session.state === value) return;

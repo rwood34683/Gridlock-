@@ -245,7 +245,7 @@ const dataURI = f => `data:image/png;base64,${fs.readFileSync(f).toString("base6
     const im = fs.statSync(path.join(OUT, f));
     return !im.size;
   });
-  console.log("GRIDLOCK store assets");
+  console.log("Grind X store assets");
   console.log("=====================\n");
   for (const [f, size] of written) console.log(`  ${size.padEnd(11)} ${f}`);
   console.log(`\n${written.length} images → ${OUT}`);

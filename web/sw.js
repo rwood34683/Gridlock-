@@ -44,7 +44,7 @@ self.addEventListener("fetch", event => {
     } catch (error) {
       const cached = await caches.match(key, { cacheName: CACHE });
       if (cached) return cached;
-      return new Response("Open GRIDLOCK while connected once to make it available offline.", {
+      return new Response("Open Grind X while connected once to make it available offline.", {
         status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" }
       });
     }

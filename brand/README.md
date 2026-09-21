@@ -1,4 +1,4 @@
-# GRIDLOCK brand assets
+# Grind X brand assets
 
 `icon.svg` preserves the original app's red direction mark and five player dots on the dark grid. `foreground.svg` places that mark inside the adaptive icon safe area; `splash.svg` uses it on the dark launch ground.
 

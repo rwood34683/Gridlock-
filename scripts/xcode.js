@@ -78,7 +78,7 @@ function preflight() {
     npm: probe1("npm", ["--version"]),
   };
   const problems = evaluate(probe);
-  if (problems.length) throw new Error(describe("GRIDLOCK cannot open Xcode yet.", problems));
+  if (problems.length) throw new Error(describe("Grind X cannot open Xcode yet.", problems));
   command("xcodebuild", ["-checkFirstLaunchStatus"], true);
   console.log(`Ready: ${probe.xcode.split("\n")[0]}, iOS simulator SDK ${probe.sdk}, Node ${probe.node}, CocoaPods ${probe.pods}, npm ${probe.npm}.`);
 }

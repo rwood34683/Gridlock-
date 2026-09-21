@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* GRIDLOCK function suite.
+/* Grind X function suite.
  *
  * Drives the real app in a real browser and asserts every interactive
  * function actually does what it claims. Run the dev server first:
@@ -1092,7 +1092,7 @@ const ROSTER = [
   check("someone else's JSON is refused", await ev(() => {
     document.getElementById("copyIn").value = '{"hello":"world"}';
     window.loadCopy("merge");
-    return /not a GRIDLOCK copy/.test(S.copyStatus) && S.roster.length === 2;
+    return /not a Grind X copy/.test(S.copyStatus) && S.roster.length === 2;
   }));
   check("a copy from a newer app is refused, not half-read", await ev(() => {
     document.getElementById("copyIn").value = JSON.stringify({format:"gridlock.coach.copy",v:99,data:{roster:[]}});
@@ -4835,7 +4835,7 @@ const ROSTER = [
   /* ------------------------------------------------------------------ report */
   const pad = (s, n) => String(s).padEnd(n);
   let last = "";
-  console.log("GRIDLOCK function suite");
+  console.log("Grind X function suite");
   console.log("=======================\n");
   for (const r of results) {
     if (r.group !== last) { console.log(`\n${r.group}`); console.log("-".repeat(r.group.length)); last = r.group; }

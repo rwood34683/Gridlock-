@@ -44,7 +44,7 @@ if (config.sha256) {
   const appId = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8')).appId;
   ok('App links match app ID and signing fingerprint', associations?.some(item => item.target?.package_name === appId && item.target.sha256_cert_fingerprints?.includes(config.sha256)));
 }
-console.log('GRIDLOCK site check' + (release ? ' (release)' : ' (local)'));
+console.log('Grind X site check' + (release ? ' (release)' : ' (local)'));
 for (const row of rows) console.log(`${row.pass ? 'PASS' : 'FAIL'} ${row.name}${row.detail ? ': '+row.detail : ''}`);
 for (const warning of warnings) console.log(`PENDING ${warning}`);
 console.log(`${rows.filter(row => row.pass).length}/${rows.length} checks passed. Release ownership and publication remain manual.`);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* GRIDLOCK load and stress harness.
+/* Grind X load and stress harness.
  *
  * There is no backend: the app makes zero network calls and keeps everything
  * in localStorage. So "10,000 downloads" puts no load on a server — there
@@ -48,7 +48,7 @@ function pct(arr, p) {
 
   await page.goto(URL, { waitUntil: "networkidle" });
 
-  console.log("GRIDLOCK load test");
+  console.log("Grind X load test");
   console.log("==================");
   console.log(`CPU throttled 4x (mid-range phone). Season volume:`,
     Object.entries(SEASON).map(([k, v]) => `${v} ${k}`).join(", "));

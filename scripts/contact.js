@@ -10,7 +10,7 @@ function main() {
   const config = JSON.parse(fs.readFileSync(CONFIG, 'utf8'));
   const args = process.argv.slice(2);
   if (!args.length) {
-    console.log('GRIDLOCK release contact settings');
+    console.log('Grind X release contact settings');
     for (const key of keys) console.log(`  ${key.padEnd(10)} ${config[key] || 'not configured'}`);
     return;
   }
@@ -31,7 +31,7 @@ function main() {
   }
   const pending = new Map();
   function update(rel, transform) { const file = path.join(ROOT, rel); if (fs.existsSync(file)) pending.set(file, transform(fs.readFileSync(file, 'utf8'))); }
-  const contact = config.email ? `<p>Email <a href="mailto:${esc(config.email)}">${esc(config.email)}</a>. Include the device, app or browser version, and what happened.</p>` : '<p>A support contact has not been configured for this distribution. Contact the person who supplied your copy of GRIDLOCK.</p>';
+  const contact = config.email ? `<p>Email <a href="mailto:${esc(config.email)}">${esc(config.email)}</a>. Include the device, app or browser version, and what happened.</p>` : '<p>A support contact has not been configured for this distribution. Contact the person who supplied your copy of Grind X.</p>';
   for (const rel of ['site/support.html', 'site/privacy.html']) update(rel, text => text.replace(/<!-- support-contact:start -->[\s\S]*?<!-- support-contact:end -->/g, `<!-- support-contact:start -->${contact}<!-- support-contact:end -->`));
   const stores = [];
   if (config.appstore) stores.push(`<a href="https://apps.apple.com/app/id${config.appstore}">View on the App Store</a>`);

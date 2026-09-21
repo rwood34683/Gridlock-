@@ -1,6 +1,6 @@
-# GRIDLOCK Coach — Claude Code instructions
+# Grind X Coach — Claude Code instructions
 
-You are working on **GRIDLOCK System · powered by UPRA · Coach Edition**.
+You are working on **Grind X System · powered by UPRA · Coach Edition**.
 Paintball sideline app for coaches and league staff.
 
 ## How to use this repo in Claude Code
@@ -463,7 +463,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   of the first is a trap.
 - Make a price or account claim on the welcome page. It carried "No account
   needed · nothing ever leaves your phone", which is true — the money runs
-  through the coach's Apple ID, so there is never a GRIDLOCK sign-up — but on
+  through the coach's Apple ID, so there is never a Grind X sign-up — but on
   a first screen it read as *this is free*, and a wall on Scout after it would
   be a bait. The owner's call is that the page sells what the app does and
   nothing else. A welcome screen that promises nothing cannot break a promise.
@@ -508,7 +508,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and the pitch goes with them, because a coach filling in the form has already
   decided. And `.promo` used `justify-content:flex-end`, which pushes the first
   child above the scroll origin the moment the content is taller than the box,
-  where it can never be scrolled back to — that is how GRIDLOCK ended up under
+  where it can never be scrolled back to — that is how Grind X ended up under
   the status bar. `margin-top:auto` on the first child does the same job and
   collapses to nothing when it overflows.
 - Put a way past the welcome page that is not the account. The owner's call is

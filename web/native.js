@@ -1,4 +1,4 @@
-/* GRIDLOCK Coach — native bridge.
+/* Grind X Coach — native bridge.
    Loaded on web and on device. Everything here degrades to a no-op in a
    plain browser, so web/index.html stays the single source of truth for UI. */
 (function () {
@@ -22,12 +22,12 @@
       }).catch(showText);
     }
     if (native && P.Share) {
-      return P.Share.share({ title: title || "GRIDLOCK", text: text }).catch(function (error) {
+      return P.Share.share({ title: title || "Grind X", text: text }).catch(function (error) {
         return canceled(error) ? false : copy();
       });
     }
     if (navigator.share) {
-      return navigator.share({ title: title || "GRIDLOCK", text: text }).catch(function (error) {
+      return navigator.share({ title: title || "Grind X", text: text }).catch(function (error) {
         return canceled(error) ? false : copy();
       });
     }
@@ -44,8 +44,8 @@
         if (!P.Filesystem || !P.Share) throw new Error("File sharing is unavailable in this app build.");
         if (typeof text !== "string" || !text.length) throw new Error("The backup is empty.");
         JSON.parse(text);
-        var name = String(filename || "GRIDLOCK-backup.json").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/^\.+/, "").slice(0, 120);
-        if (!name) name = "GRIDLOCK-backup.json";
+        var name = String(filename || "Grind X-backup.json").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/^\.+/, "").slice(0, 120);
+        if (!name) name = "Grind X-backup.json";
         if (!/\.json$/i.test(name)) name += ".json";
         var file = "gridlock-exports/" + name;
         return P.Filesystem.writeFile({ path: file, data: text, directory: "CACHE", encoding: "utf8", recursive: true }).then(function (written) {
@@ -53,7 +53,7 @@
           return P.Filesystem.getUri({ path: file, directory: "CACHE" });
         }).then(function (written) {
           if (!written || !/^file:\/\//.test(written.uri || "")) throw new Error("The backup file could not be located.");
-          return P.Share.share({ title: "GRIDLOCK backup", files: [written.uri], dialogTitle: "Save or share GRIDLOCK backup" });
+          return P.Share.share({ title: "Grind X backup", files: [written.uri], dialogTitle: "Save or share Grind X backup" });
         }).then(function () { return { status: "shared" }; });
       }).catch(function (error) {
         if (error && (error.name === "AbortError" || /cancel/i.test(error.message || ""))) return { status: "cancelled" };

@@ -12,7 +12,7 @@ test("local server delivers the app and contains requests to its public root", a
   const root = path.join(base, "public");
   await fs.mkdir(path.join(root, "nested"), { recursive: true });
   await fs.mkdir(path.join(base, "public-secret"));
-  await fs.writeFile(path.join(root, "index.html"), "<h1>GRIDLOCK test</h1>");
+  await fs.writeFile(path.join(root, "index.html"), "<h1>Grind X test</h1>");
   await fs.writeFile(path.join(root, "style.css"), "body{color:red}");
   await fs.writeFile(path.join(root, "nested", "index.html"), "Nested page");
   await fs.writeFile(path.join(base, "public-secret", "secret.txt"), "NEVER-SERVE-THIS");
@@ -30,7 +30,7 @@ test("local server delivers the app and contains requests to its public root", a
   try {
     await t.test("HTML, assets and query parameters", async () => {
       const home = await request("/?c=GL-TEST");
-      assert.equal(home.status, 200); assert.match(home.body, /GRIDLOCK test/);
+      assert.equal(home.status, 200); assert.match(home.body, /Grind X test/);
       assert.match(home.headers["content-type"], /text\/html/);
       assert.match((await request("/style.css")).headers["content-type"], /text\/css/);
     });

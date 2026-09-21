@@ -1,4 +1,4 @@
-# GRIDLOCK static site
+# Grind X static site
 
 `index.html`, `support.html` and `privacy.html` restore the missing static companion site. The landing page uses actual app captures with example data. It does not claim store availability or message delivery.
 

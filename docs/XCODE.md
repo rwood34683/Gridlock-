@@ -1,4 +1,4 @@
-# Open GRIDLOCK in Xcode
+# Open Grind X in Xcode
 
 Copy the **entire project folder** to your Mac, including `web/`, `scripts/`, `package.json`, `package-lock.json`, and `ios/`. The archive includes the Xcode project and web app. CocoaPods dependencies are installed on the Mac.
 
@@ -23,7 +23,7 @@ It changes nothing and downloads nothing — it only looks. A Mac carrying last
 year's tools gets back something like:
 
 ```
-GRIDLOCK cannot open Xcode yet. 2 things need fixing:
+Grind X cannot open Xcode yet. 2 things need fixing:
 
   1. Node 22 or newer
      now: you have 20.18.1
@@ -108,7 +108,7 @@ Source structure, plugin registration, JavaScript and web behavior were checked 
 2. Open `gridlock://class/GL-7K2M` both with the app running and after closing it.
 3. Save a copy to Files, cancel a share, and load the saved JSON again.
 4. Use “How did they get there?” on a field and confirm the controls remain above the system bars.
-5. Start voice scouting, grant microphone and speech permissions, speak one observation, then stop. Verify cancellation, backgrounding and denied permission leave the microphone off. Confirm finalized observations appear once and can be corrected. Speech may require the device's speech service and internet connection; no audio is retained by GRIDLOCK.
+5. Start voice scouting, grant microphone and speech permissions, speak one observation, then stop. Verify cancellation, backgrounding and denied permission leave the microphone off. Confirm finalized observations appear once and can be corrected. Speech may require the device's speech service and internet connection; no audio is retained by Grind X.
 
 For distribution, set an appropriate build number and use Product → Archive with a device destination. Signing, provisioning, App Store records and publication remain account-specific steps.
 

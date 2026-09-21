@@ -81,7 +81,7 @@ function probe() {
 function preflight() {
   const readings = probe();
   const problems = evaluate(readings);
-  if (problems.length) throw new Error(describe("GRIDLOCK cannot build for Android yet.", problems));
+  if (problems.length) throw new Error(describe("Grind X cannot build for Android yet.", problems));
   console.log(`Ready: Node ${readings.node}, ${((readings.java || "").split("\n").find(l => /version/.test(l)) || "java").trim()}, SDK ${readings.sdkRoot}, platforms ${readings.platforms.join(", ")}.`);
 }
 

@@ -7,7 +7,7 @@
   function register() {
     navigator.serviceWorker.register(new URL("sw.js", source), { updateViaCache: "none" }).catch(function (error) {
       // A browser that refuses caching can still use every coaching tool online.
-      console.warn("GRIDLOCK offline cache unavailable:", error.message);
+      console.warn("Grind X offline cache unavailable:", error.message);
     });
   }
   if (document.readyState === "complete") register();
