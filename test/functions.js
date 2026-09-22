@@ -2788,10 +2788,27 @@ const ROSTER = [
     const m = wbMarks();
     return m.length === 2 && m[1].t === "x";
   }));
+  check("the eraser rubs out a stroke the finger drags over", await ev(() => {
+    const before = wbMarks().length;                 // a pen stroke near 40..70 and an X at 80,70
+    window.wbTool("erase");                           // re-renders, so grab the field fresh after
+    const svg = document.querySelector("#wb-map"), surf = svg.querySelector("[data-wb]");
+    const C = ([x,y]) => new DOMPoint(x*2, y*2).matrixTransform(svg.getScreenCTM());
+    let p = C([41,41]);                              // start on the pen stroke's first point
+    surf.dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:13}));
+    p = C([70,64]); document.dispatchEvent(new PointerEvent("pointermove", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:13}));
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:13}));
+    return before === 2 && wbMarks().length === 1 && wbMarks()[0].t === "x";   // the pen went, the X stayed
+  }));
   check("Undo takes back the last mark, Wipe clears the board", await ev(() => {
+    window.wbTool("pen");
+    const svg = document.querySelector("#wb-map"), surf = svg.querySelector("[data-wb]");
+    const p = new DOMPoint(30*2, 30*2).matrixTransform(svg.getScreenCTM());
+    surf.dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:14}));
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:14}));
+    const two = wbMarks().length === 2;
     window.wbUndo(); const one = wbMarks().length === 1;
     window.wbWipe(); const none = wbMarks().length === 0;
-    return one && none;
+    return two && one && none;
   }));
   check("Blank swaps the field for a dark board", await ev(() => {
     window.wbField(false); const blank = !!document.querySelector("#root .wb-blank");
@@ -4957,7 +4974,7 @@ const ROSTER = [
     window.backPoint();
     return r && !r.read;
   }));
-  check("the whiteboard wipes itself on relaunch", await ev(() => !((S.wb && S.wb.marks) || []).length));
+  check("the whiteboard is kept across a relaunch", await ev(() => ((S.wb && S.wb.marks) || []).length === 1));
 
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);

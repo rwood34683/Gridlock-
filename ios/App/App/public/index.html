@@ -666,6 +666,7 @@ svg.field [data-pick]{cursor:crosshair}
 .wb-tool{width:44px;height:44px;border-radius:var(--r-sm);border:1px solid var(--line-lit);
   background:var(--panel);color:var(--ink);font-size:18px;display:grid;place-items:center}
 .wb-tool.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.wb-tool--txt{width:auto;padding:0 var(--s3);font-size:var(--t-sm);font-weight:700}
 
 /* ============================================================
    PROMO
@@ -1675,7 +1676,6 @@ S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false;
-if(S.wb) S.wb = {...S.wb, marks: []};   // the board is a teaching surface, not a record
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -7350,9 +7350,9 @@ const HELP = {
   "more/wb": {t:"Whiteboard", w:"Draw the adjustment, then wipe it.",
     how:["Draw on the field with a finger — red, blue or white.",
          "X and O drop a mark where you tap, for who covers what.",
-         "Undo takes back the last mark; Wipe clears the board.",
+         "Erase rubs out a stroke you drag over; Undo takes back the last mark; Wipe clears the board.",
          "Blank swaps the field for a dark board when you want to draw from scratch."],
-    watch:"Nothing here is saved to a sheet — it is a between-points teaching board, not a record. It clears itself when the app is relaunched."},
+    watch:"The board stays until you wipe it, so an adjustment you draw between points is still there the next time you open it. It is a teaching surface, not a record — nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Add a note against a bunker while you are standing at it.",
          "Notes are kept per field, so they follow the event."]},
@@ -8334,6 +8334,7 @@ function whiteboardPage(){
         onclick="wbColor('${c}')" aria-label="${n} pen"><i></i></button>`).join("")}
       <button class="wb-tool ${wb.tool==="x"?"on":""}" onclick="wbTool('x')" aria-label="X mark">✕</button>
       <button class="wb-tool ${wb.tool==="o"?"on":""}" onclick="wbTool('o')" aria-label="O mark">◯</button>
+      <button class="wb-tool wb-tool--txt ${wb.tool==="erase"?"on":""}" onclick="wbTool('erase')">Erase</button>
       <span class="grow"></span>
       <button class="btn btn--quiet" onclick="wbUndo()"${wbMarks().length?"":" disabled"}>Undo</button>
       <button class="btn btn--danger" onclick="wbWipe()"${wbMarks().length?"":" disabled"}>Wipe</button>
@@ -8351,29 +8352,43 @@ window.wbUndo  = () => { const w = {...wbState()}; w.marks = (w.marks || []).sli
 window.wbWipe  = () => { const w = {...wbState()}; w.marks = []; set({wb: w}); };
 // One delegated listener, so it survives every repaint. Only live on the board.
 (function whiteboardDraw(){
-  let draft = null;
+  let draft = null, erasing = false;
   const ink = () => document.getElementById("wb-map");
   const paint = extra => { const el = ink(); if(el) el.innerHTML = wbInk(extra ? [...wbMarks(), extra] : wbMarks()); };
   const commit = mark => { const w = {...wbState()}; w.marks = [...(w.marks || []), mark]; S.wb = w; save(S); render(); };
+  // Whole-stroke rubber: a mark the finger passes within reach of comes off.
+  // Pen strokes are sampled densely enough that hitting any vertex is a hit.
+  const eraseAt = at => {
+    const R = 7;
+    const hit = m => m.t === "pen"
+      ? m.pts.some(q => Math.hypot(q[0]-at[0], q[1]-at[1]) <= R)
+      : Math.hypot(m.pts[0][0]-at[0], m.pts[0][1]-at[1]) <= R;
+    const kept = wbMarks().filter(m => !hit(m));
+    if(kept.length !== wbMarks().length){ S.wb = {...wbState(), marks: kept}; paint(); }
+  };
   document.addEventListener("pointerdown", ev => {
     if(!(S.tab === "more" && S.more === "wb")) return;
     const surf = ev.target.closest("[data-wb]"); if(!surf) return;
     const svg = surf.closest("svg"); if(!svg) return;
     ev.preventDefault();
     const at = fieldFeet(svg, ev), wb = wbState();
+    try{ if(surf.setPointerCapture) surf.setPointerCapture(ev.pointerId); }catch(e){}
+    if(wb.tool === "erase"){ erasing = true; eraseAt(at); return; }
     if(wb.tool === "x" || wb.tool === "o"){ commit({t: wb.tool, c: wb.color, pts: [at]}); return; }
     draft = {t: "pen", c: wb.color, pts: [at]};
-    try{ if(surf.setPointerCapture) surf.setPointerCapture(ev.pointerId); }catch(e){}
     paint(draft);
   });
   document.addEventListener("pointermove", ev => {
-    if(!draft) return;
+    if(!draft && !erasing) return;
     const svg = ink(); if(!svg) return;
-    const at = fieldFeet(svg, ev), last = draft.pts[draft.pts.length - 1];
+    const at = fieldFeet(svg, ev);
+    if(erasing){ eraseAt(at); return; }
+    const last = draft.pts[draft.pts.length - 1];
     if(Math.hypot(at[0]-last[0], at[1]-last[1]) >= 1) draft.pts.push(at);
     paint(draft);
   });
   document.addEventListener("pointerup", () => {
+    if(erasing){ erasing = false; save(S); render(); return; }
     if(!draft) return;
     const d = draft; draft = null;
     commit(d);
