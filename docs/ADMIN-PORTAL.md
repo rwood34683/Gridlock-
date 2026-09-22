@@ -42,22 +42,26 @@ the dashboard reads that store. Understand the trade before you switch it on:
 One table holds an uploaded season per coach per push:
 
 ```sql
+-- One current season per coach, keyed on owner so each push replaces the last.
 create table public.seasons (
-  id         uuid primary key default gen_random_uuid(),
-  owner      uuid not null references auth.users on delete cascade,
+  owner      uuid primary key references auth.users on delete cascade,
   label      text,                       -- coach or team, for the dashboard
   payload    jsonb not null,             -- the Save-a-copy JSON, verbatim
   updated_at timestamptz not null default now()
 );
 alter table public.seasons enable row level security;
 
--- A coach may write only his own rows…
-create policy "own upsert" on public.seasons
+-- A coach may touch only his own row. The reference adapter upserts on owner
+-- (POST … ?on_conflict=owner, Prefer: resolution=merge-duplicates), so insert
+-- and update policies both have to pass, and delete lets him remove what he sent.
+create policy "own insert" on public.seasons
   for insert with check (auth.uid() = owner);
 create policy "own update" on public.seasons
-  for update using (auth.uid() = owner);
+  for update using (auth.uid() = owner) with check (auth.uid() = owner);
 create policy "own read"   on public.seasons
   for select using (auth.uid() = owner);
+create policy "own delete" on public.seasons
+  for delete using (auth.uid() = owner);
 ```
 
 The **admin** reads across everyone. Do that with a Supabase **view or Edge
@@ -72,23 +76,29 @@ in the dashboard — it ships to a browser.
 
 The coach app makes **no `fetch`** — that is why it works in a field with no
 signal, and it must stay that way. Uploading is an **adapter the native shell
-fills in**, exactly like `window.gridlockCloud` in `docs/SERVER.md`:
+fills in**, and the reference implementation is written for you:
+**`native/gridlock-cloud.js`**. It is deliberately outside `web/`, so it is
+never bundled into the app or `site/app.html` and every suite still proves the
+app has no `fetch`. It fills in the whole `window.gridlockCloud` contract —
+Supabase Auth sign-in plus `pushSeason` / `deleteSeason` against the table above
+— using only the anon key, with offline returns that fall through to the phone.
+
+Ship it only in a cloud-enabled build. The shell injects it and configures the
+project before it loads:
 
 ```js
-// Provided by the iOS/Android shell (or a web build with a network), never
-// inside web/index.html. Offline-first: a failed push never blocks a point.
-window.gridlockCloud = {
-  // called on an opt-in "sync my season" action, and best-effort after a save
-  pushSeason: async (label, payload) => {
-    // supabase.from('seasons').upsert({ owner: uid, label, payload })
-    // return {ok:true} | {ok:false, offline:true} | {ok:false, said:"…"}
-  }
-};
+// In the cloud build only — never added to web/ or inlined into site/app.html.
+window.GRIDLOCK_CLOUD = { url: "https://YOUR-PROJECT.supabase.co", anonKey: "…anon public key…" };
+// then load native/gridlock-cloud.js  (or, after load: window.gridlockCloudConfigure(url, anonKey))
 ```
 
-Wire it so a push that fails with `offline:true` is silent and the coach never
-notices — the copy on the phone stays the source of truth. Add the opt-in toggle
-and the "delete what I sent" control on Nexus in the same change.
+With the file absent — every default build — `window.gridlockCloud` is unset,
+League sync does not appear, and the privacy copy stays on "nothing leaves your
+phone." The opt-in toggle and the "delete what I sent" control already live on
+Nexus (`canSync()` gates them), and a push that fails with `offline:true` is
+silent so the coach never notices — the copy on the phone stays the source of
+truth. `test/cloud-adapter.js` (the `cloud` suite) exercises the adapter against
+a mocked Supabase: sign-in, refusal, offline, the upsert payload, and delete.
 
 ### Point the dashboard at it
 
