@@ -4,12 +4,17 @@ What is built, what is not, and the exact steps to switch it on.
 
 ## Where it stands
 
-The gate is **built, tested and off.** `BILLING_LIVE = false` in `web/index.html`,
-so `planOf()` returns `program` and nobody hits a wall. Flipping that one
-constant to `true` turns the whole thing on.
+The gate is **built and tested, and adapter-gated** — exactly like the cloud
+path. `billingLive()` is true only when a store adapter is present
+(`window.gridlockBilling`), so the web and offline builds never wall a coach
+with no way to buy: there `planOf()` returns `program` and nobody hits a wall.
+The reference adapter is written — **`native/gridlock-billing.js`** (RevenueCat)
+— so the only work left is the native store setup below. `BILLING_LIVE = true`
+stays as a force-on override for testing the wall without a store.
 
-Nothing else in the app needs changing to sell. What is missing is the store
-plumbing underneath it — see *Switching it on*.
+The plan lives on the phone (`S.billing`), is never in a season copy, and a
+lapsed `exp` reads as free. `entitled()` trusts it because RevenueCat validates
+receipts server-side — the client entitlement is verified, not a claim.
 
 ## What is free, forever
 
@@ -88,36 +93,45 @@ move between them without buying twice. Google Play needs the same three ids.
 - One **entitlement** called `team`, with all three products attached to it.
 - Copy the public SDK key for each platform.
 
-### 3. The plugin
+### 3. The plugin and the adapter
+
+The adapter is already written — **`native/gridlock-billing.js`** wraps
+RevenueCat and returns the `{plan, exp, source}` the app keeps. You only install
+the plugin, configure it, and load the adapter in the **native store build**
+(never in `web/`, never in `site/app.html`):
 
 ```sh
 npm i @revenuecat/purchases-capacitor
 npm run sync
 ```
 
-Then write the shim — it is the only new code — filling in
-`window.gridlockBilling` before the app renders:
-
 ```js
-window.gridlockBilling = {
-  async buy(id)   { /* Purchases.purchaseStoreProduct */ return entitlementOrNull(); },
-  async restore() { /* Purchases.restorePurchases   */ return entitlementOrNull(); },
+// In the native store build's bootstrap, before the app renders:
+import { Purchases } from "@revenuecat/purchases-capacitor";
+await Purchases.configure({ apiKey: PUBLIC_SDK_KEY });   // per platform
+window.gridlockPurchases = Purchases;
+window.GRIDLOCK_BILLING = {
+  entitlements: ["team"],                 // the RevenueCat entitlement(s) that grant Team
+  products: { team_season: "team_season", team_month: "team_month", event_pass: "event_pass" },
 };
+// then load native/gridlock-billing.js
 ```
 
-Both must resolve to `{plan, exp, source}` or `null`, where `plan` is
-`"free" | "team" | "program"` and `exp` is a timestamp in milliseconds (`0` for
-a non-expiring purchase). The app caches whatever comes back through
-`window.gridlockEntitle()`, and reads that cache offline — which is the point,
-because a field has no signal. The cache is a **convenience, never evidence**:
-Restore purchases asks the store, and the store is the only proof.
+The adapter maps our `team_season / team_month / event_pass` to the store
+products, turns a purchase or restore into `{plan, exp, source}`, returns `null`
+on a cancel, and `refresh()` entitles the app from the current customer info so a
+coach who paid last season is not asked again — call it once after the app boots.
+The plan is cached in `S.billing` and read offline, because a field has no
+signal; the cache is a **convenience, never evidence** — Restore asks the store,
+and RevenueCat's server-side receipt check is the only proof.
 
-Call `window.gridlockEntitle()` once on launch with whatever RevenueCat already
-knows, so a coach who paid last season is not asked again.
+### 4. There is no flag to flip
 
-### 4. Flip it
-
-Set `BILLING_LIVE = true`, run the suite, take the screenshots.
+Billing is **adapter-gated**: the moment `window.gridlockBilling` exists,
+`billingLive()` is true and the wall is real. The web and offline builds carry
+no adapter, so they stay free. `BILLING_LIVE = true` remains only as a way to
+test the wall without a store. Run the suite (`billing` + `functions`), take the
+screenshots.
 
 ## Why not licence keys
 

@@ -4617,6 +4617,43 @@ const ROSTER = [
   }));
   await ev(() => window.set({ preview: false }));
 
+  /* -------------------------------------- the store, once an adapter is present */
+  // Billing goes live only when a store adapter exists, so the web and offline
+  // builds never wall a coach with no way to buy.
+  G("Billing goes live when a store adapter is present");
+  await ev(() => {
+    window.__bought = null;
+    window.gridlockBilling = {
+      async buy(id){ window.__bought = id; return { plan: "team", exp: 0, source: "revenuecat" }; },
+      async restore(){ return { plan: "free" }; },
+    };
+    window.set({ tab: "playbook", preview: false, billing: { plan: "free", exp: 0, source: "", at: 0 } });
+  });
+  check("with an adapter, billing is live", await ev(() => canBill() && billingLive()));
+  check("an unpaid coach now hits the wall on Scout", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", more: null });
+    return planOf() === "free" && !!document.querySelector("#root .gate");
+  }));
+  check("buying goes through the store adapter and unlocks", await ev(async () => {
+    window.set({ tab: "more", more: "plan" });
+    await window.buyPlan("team_season");
+    return window.__bought === "team_season" && S.billing.plan === "team" && !S.billingSaid && planOf() === "team";
+  }));
+  check("and Scout opens now", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", more: null });
+    return !document.querySelector("#root .gate");
+  }));
+  check("a lapsed season falls back to free", await ev(() => {
+    window.gridlockEntitle({ plan: "team", exp: Date.now() - 1000, source: "revenuecat" });
+    return planOf() === "free";
+  }));
+  check("the plan is never carried in a season copy", await ev(() =>
+    JSON.parse(copyPayload("all")).data.billing === undefined));
+  await ev(() => { delete window.gridlockBilling; delete window.__bought;
+    window.set({ billing: { plan: "free", exp: 0, source: "", at: 0 }, preview: false, tab: "playbook", more: null }); });
+  check("remove the adapter and every build is free again",
+    await ev(() => !billingLive() && planOf() === "program"));
+
   /* ------------------------------------------ the app speaks the coach's words */
   G("The calls are named the way the team says them");
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });

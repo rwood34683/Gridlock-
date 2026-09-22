@@ -7559,12 +7559,12 @@ function planPage(){
   return sec("Your plan", `<div class="call">
       <div class="call__label">On this phone</div>
       <div class="call__name">${esc(PLAN_NAME[now])}</div>
-      <p class="call__read">${BILLING_LIVE
+      <p class="call__read">${billingLive()
         ? (now === "free" ? "The whole sideline loop, on every field, forever."
                           : "Everything is unlocked on this phone.")
         : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
     </div>
-    ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, BILLING_LIVE ? "" : "not selling yet")
+    ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, billingLive() ? "" : "not selling yet")
   + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire, it does
       not need a signal, and it does not need an account.</p>
     <div class="kv">
@@ -7650,10 +7650,14 @@ function helpPage(){
 const PLANS = {free: 0, team: 1, program: 2};
 const PLAN_NAME = {free: "Free", team: "Team", program: "Program"};
 
-/* Until a store is actually wired up there is nothing to sell, so the gate is
-   built, tested and off. Flipping this on is the whole switch — see
+/* The gate is built and tested; it goes live the moment a store adapter is
+   present, and stays off everywhere else — so the web and offline builds never
+   wall a coach with no way to buy. BILLING_LIVE is a force-on override for
+   testing the wall without a store; billingLive() is what the app reads. See
    docs/PAYWALL.md for the products and the RevenueCat side. */
 const BILLING_LIVE = false;
+const canBill = () => !!(window.gridlockBilling && window.gridlockBilling.buy);
+function billingLive(){ return BILLING_LIVE || canBill(); }
 
 /* Which screen needs which plan. A screen not named here is free. */
 const PAID = {
@@ -7671,7 +7675,7 @@ const PAID_WHY = {
 };
 
 function planOf(){
-  if(!BILLING_LIVE) return S.preview ? "free" : "program";
+  if(!billingLive()) return S.preview ? "free" : "program";
   const p = ((S.billing || {}).plan) || "free";
   const exp = (S.billing || {}).exp || 0;
   if(exp && Date.now() > exp) return "free";
