@@ -2659,6 +2659,20 @@ const ROSTER = [
     window.set({ script: "hold", t: 1, playing: false, tallyPick: false });
     return plants !== currentPaths().map(p => p.bunker).join();
   }));
+  // A coach who lives on the point sheet can write a call the app has never
+  // heard of without knowing to go to Playbook — + Yours sits with the calls
+  // here too, and opens the builder where the field is.
+  check("a custom breakout can be started from the sheet too", await ev(() => {
+    window.set({ tab: "tally", tallyPick: true });
+    const add = [...document.querySelectorAll("#root .seg button")]
+      .find(x => /\+ Yours/.test(x.textContent));
+    if(!add) return false;
+    add.click();
+    const opened = !!S.building && S.tab === "playbook" && !S.tallyPick
+      && !!document.querySelector("#root #build-map");
+    window.cancelPlay(); window.set({ tab: "tally", tallyPick: false });
+    return opened;
+  }));
   check("it can be logged from the sheet, against this match", await ev(() => {
     window.set({ tab: "tally" });
     window.logCall();
@@ -4088,7 +4102,7 @@ const ROSTER = [
   check("so does the point sheet", await ev(() => {
     window.set({ tab: "tally", tallyPick: true });
     const seg = document.querySelector("#root .seg--wrap");
-    const n = seg ? seg.querySelectorAll("button").length : 0;
+    const n = seg ? seg.querySelectorAll("button:not(.seg__add)").length : 0;
     window.set({ tallyPick: false, tab: "playbook" });
     return n === 10;
   }));

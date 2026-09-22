@@ -2647,7 +2647,8 @@ function myPlants(k, layoutKey){
    needed — the router draws the run, the buzzer order falls out of the
    distances, and Face, Shot and Job are set afterwards the same way they are
    on any other call. */
-window.newPlay = () => set({building: {k: "", name: "", plants: [], read: "", aggr: 3}});
+window.newPlay = () => set({tab: "playbook", pbPick: false, tallyPick: false,
+  building: {k: "", name: "", plants: [], read: "", aggr: 3}});
 window.buildPlay = k => {                       // build it here, or edit it where it is built
   const p = customPlay(k); if(!p) return;
   set({script: k, building: {k, name: p.name, plants: myPlants(k) || [],
@@ -5961,6 +5962,10 @@ function tally(){
     ${S.tallyPick?`<div class="seg seg--wrap">
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
+      ${/* Build a call the app has never heard of, right from the sheet. It
+            opens the builder on Playbook, where the field is, and the sheet
+            follows the moment it is saved because building sets the script. */""}
+      <button class="seg__add" onclick="newPlay()">+ Yours</button>
     </div>`:""}
     ${(() => {
       const n = loggedCalls().filter(c => c.m === S.matchId).length;
