@@ -1,0 +1,104 @@
+# The Admin Portal — the season across every coach
+
+`admin/index.html` is a standalone dashboard. It rolls a whole year up across
+every coach who sends you their season — matches, record, the breaks they
+called, penalties, and a breakdown by event and by opponent.
+
+It has **two sources**, and the first works today with nothing to stand up.
+
+## 1. Files — works now, no backend, no privacy change
+
+Each coach exports from **Nexus › Save a copy** (the app already writes this:
+`{"format":"gridlock.coach.copy", …, "data":{…}}`). They send you the file —
+email, AirDrop, a shared drive, however. You open `admin/index.html` in a
+browser and drop the files in. The reading happens in your browser; nothing is
+uploaded.
+
+This keeps the app's promise intact: the coach chooses to hand you a copy, the
+same as handing over a clipboard. The privacy notice does not change, because
+nothing leaves a phone except by the coach's own Save-a-copy.
+
+Host `admin/index.html` anywhere private (a folder on your machine, an
+access-controlled internal URL). It is a single file with no dependencies.
+
+## 2. Cloud collector — the live portal, and what it costs
+
+A live portal means every device **uploads its season** to a store you own, and
+the dashboard reads that store. Understand the trade before you switch it on:
+
+- **It reverses the app's central promise.** Today the welcome screen and the
+  privacy notice say the season never leaves the phone. A collector means you
+  hold every coach's roster, tallies, *and their scouting on teams they play* —
+  competitive data belonging to teams who play each other — on a machine you
+  own. `docs/SERVER.md`'s "what goes up / what stays" table and the sign-in
+  copy **must change in the same release**, or the app is lying about where the
+  data is. This is a product decision, not a config flag.
+- **Get consent.** A coach must opt in to uploading, in plain words, and be able
+  to turn it off and delete what was sent. "Sync my season to my league" is a
+  switch he throws, not a default.
+
+### The store (Supabase)
+
+One table holds an uploaded season per coach per push:
+
+```sql
+create table public.seasons (
+  id         uuid primary key default gen_random_uuid(),
+  owner      uuid not null references auth.users on delete cascade,
+  label      text,                       -- coach or team, for the dashboard
+  payload    jsonb not null,             -- the Save-a-copy JSON, verbatim
+  updated_at timestamptz not null default now()
+);
+alter table public.seasons enable row level security;
+
+-- A coach may write only his own rows…
+create policy "own upsert" on public.seasons
+  for insert with check (auth.uid() = owner);
+create policy "own update" on public.seasons
+  for update using (auth.uid() = owner);
+create policy "own read"   on public.seasons
+  for select using (auth.uid() = owner);
+```
+
+The **admin** reads across everyone. Do that with a Supabase **view or Edge
+Function gated to an admin claim**, not by handing the anon key select rights on
+the whole table (that would let any coach read every other coach's season).
+Simplest safe path: an Edge Function that checks the caller is on your admin
+allow-list and returns `select label, payload from seasons`; point the
+dashboard's **Endpoint URL** at that function. Never expose the service-role key
+in the dashboard — it ships to a browser.
+
+### The upload, from the app
+
+The coach app makes **no `fetch`** — that is why it works in a field with no
+signal, and it must stay that way. Uploading is an **adapter the native shell
+fills in**, exactly like `window.gridlockCloud` in `docs/SERVER.md`:
+
+```js
+// Provided by the iOS/Android shell (or a web build with a network), never
+// inside web/index.html. Offline-first: a failed push never blocks a point.
+window.gridlockCloud = {
+  // called on an opt-in "sync my season" action, and best-effort after a save
+  pushSeason: async (label, payload) => {
+    // supabase.from('seasons').upsert({ owner: uid, label, payload })
+    // return {ok:true} | {ok:false, offline:true} | {ok:false, said:"…"}
+  }
+};
+```
+
+Wire it so a push that fails with `offline:true` is silent and the coach never
+notices — the copy on the phone stays the source of truth. Add the opt-in toggle
+and the "delete what I sent" control on Nexus in the same change.
+
+### Point the dashboard at it
+
+Open `admin/index.html`, expand **Load from the cloud collector**, paste the
+Edge Function URL and the anon key, and Load. It pulls `{label, payload}` rows
+and aggregates them beside any files you dropped in.
+
+## What the dashboard counts
+
+All of it is counted from what coaches logged — nothing is modelled, same
+contract as the app. Games a coach **watched** (a scouting sheet, not one he
+played) never count toward a record. The built-in twelve calls show their
+default names unless the coach renamed them, in which case his word is used.
