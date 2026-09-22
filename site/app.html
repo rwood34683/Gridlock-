@@ -2419,6 +2419,12 @@ S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false;
+// The board used to be one flat list; it is per event now. Fold an old drawing
+// onto the field the app is opening on rather than dropping it.
+if(S.wb && Array.isArray(S.wb.marks)){
+  const {marks, ...rest} = S.wb;
+  S.wb = {...rest, boards: {...(rest.boards || {}), [S.layoutKey]: marks}};
+}
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -8095,7 +8101,7 @@ const HELP = {
          "X and O drop a mark where you tap, for who covers what.",
          "Erase rubs out a stroke you drag over; Undo takes back the last mark; Wipe clears the board.",
          "Blank swaps the field for a dark board when you want to draw from scratch."],
-    watch:"The board stays until you wipe it, so an adjustment you draw between points is still there the next time you open it. It is a teaching surface, not a record — nothing on it is saved to a sheet or carried in a copy of your season."},
+    watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Add a note against a bunker while you are standing at it.",
          "Notes are kept per field, so they follow the event."]},
@@ -9040,11 +9046,21 @@ window.closeQuick = () => {
 /* ============================================================
    Whiteboard — the coach's clipboard. Draw the adjustment on the real field
    (or a blank board), in the wire colours, then wipe it. It is a teaching
-   surface, not a record: nothing here is logged, and it clears on relaunch.
+   surface, not a record: nothing here is logged, and it is never carried in a
+   copy of a season. The board is per event — each field keeps its own — and it
+   stays until it is wiped. `boards` is keyed by layout; the pens/tool are one
+   preference across every field.
    ============================================================ */
-const WB_DEF = {field:true, color:"#e5342f", tool:"pen", marks:[]};
+const WB_DEF = {field:true, color:"#e5342f", tool:"pen", boards:{}};
 const wbState = () => S.wb || WB_DEF;
-const wbMarks = () => (S.wb && S.wb.marks) || [];
+const wbMarks = () => ((S.wb && S.wb.boards) || {})[S.layoutKey] || [];
+// This field's board, written back over the current whiteboard state, leaving
+// every other field's board alone. Pure: returns the new wb for set()/save().
+function withWbMarks(marks){
+  const w = {...wbState()};
+  w.boards = {...(w.boards || {}), [S.layoutKey]: marks};
+  return w;
+}
 function wbInk(marks){
   const P = a => a.map(p => `${p[0]*2},${p[1]*2}`).join(" ");
   const body = (marks || []).map(m => {
@@ -9070,7 +9086,7 @@ function whiteboardPage(){
    `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
     <div class="wb-wrap">
       <div class="wb-bg">${bg}</div>
-      <svg class="wb-ink" id="wb-map" viewBox="0 0 300 240" aria-label="Whiteboard">${wbInk(wb.marks || [])}</svg>
+      <svg class="wb-ink" id="wb-map" viewBox="0 0 300 240" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
     </div>
     <div class="wb-tools">
       ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"
@@ -9091,14 +9107,14 @@ function whiteboardPage(){
 window.wbTool  = t => set({wb: {...wbState(), tool: t}});
 window.wbColor = c => set({wb: {...wbState(), color: c, tool: "pen"}});
 window.wbField = on => set({wb: {...wbState(), field: !!on}});
-window.wbUndo  = () => { const w = {...wbState()}; w.marks = (w.marks || []).slice(0, -1); set({wb: w}); };
-window.wbWipe  = () => { const w = {...wbState()}; w.marks = []; set({wb: w}); };
+window.wbUndo  = () => set({wb: withWbMarks(wbMarks().slice(0, -1))});
+window.wbWipe  = () => set({wb: withWbMarks([])});
 // One delegated listener, so it survives every repaint. Only live on the board.
 (function whiteboardDraw(){
   let draft = null, erasing = false;
   const ink = () => document.getElementById("wb-map");
   const paint = extra => { const el = ink(); if(el) el.innerHTML = wbInk(extra ? [...wbMarks(), extra] : wbMarks()); };
-  const commit = mark => { const w = {...wbState()}; w.marks = [...(w.marks || []), mark]; S.wb = w; save(S); render(); };
+  const commit = mark => { S.wb = withWbMarks([...wbMarks(), mark]); save(S); render(); };
   // Whole-stroke rubber: a mark the finger passes within reach of comes off.
   // Pen strokes are sampled densely enough that hitting any vertex is a hit.
   const eraseAt = at => {
@@ -9107,7 +9123,7 @@ window.wbWipe  = () => { const w = {...wbState()}; w.marks = []; set({wb: w}); }
       ? m.pts.some(q => Math.hypot(q[0]-at[0], q[1]-at[1]) <= R)
       : Math.hypot(m.pts[0][0]-at[0], m.pts[0][1]-at[1]) <= R;
     const kept = wbMarks().filter(m => !hit(m));
-    if(kept.length !== wbMarks().length){ S.wb = {...wbState(), marks: kept}; paint(); }
+    if(kept.length !== wbMarks().length){ S.wb = withWbMarks(kept); paint(); }
   };
   document.addEventListener("pointerdown", ev => {
     if(!(S.tab === "more" && S.more === "wb")) return;

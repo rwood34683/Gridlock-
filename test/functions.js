@@ -2765,7 +2765,7 @@ const ROSTER = [
   // The coach's clipboard: draw the adjustment on the field, wipe it. A teaching
   // surface, not a record — nothing here is logged and it clears on relaunch.
   G("Whiteboard");
-  await seed({ tab: "more", more: "wb", wb: { field:true, color:"#e5342f", tool:"pen", marks:[] } });
+  await seed({ tab: "more", more: "wb", layoutKey: "lso", wb: { field:true, color:"#e5342f", tool:"pen", boards:{} } });
   check("the board opens with an ink layer over the field", await ev(() =>
     !!document.querySelector("#root .wb-bg svg") && !!document.querySelector("#root #wb-map [data-wb]")));
   check("a finger stroke leaves a mark on it", await ev(() => {
@@ -2818,6 +2818,18 @@ const ROSTER = [
   check("the board draws no break runs over the field it teaches on", await ev(() => {
     const svg = document.querySelector("#root .wb-bg svg");
     return svg && svg.querySelectorAll("path[stroke='#e5342f']").length === 0;
+  }));
+  check("each event keeps its own board", await ev(() => {
+    const here = S.layoutKey;
+    window.set({ wb: { ...S.wb, boards: { ...(S.wb.boards || {}), [here]: [{t:"x", c:"#efedeb", pts:[[50,50]]}] } } });
+    const drawn = wbMarks().length === 1;
+    const other = ["lso","mwo","tby"].find(k => k !== here);
+    window.set({ layoutKey: other });
+    const clean = wbMarks().length === 0;          // another field opens on a clean board
+    window.set({ layoutKey: here });
+    const back = wbMarks().length === 1;           // and switching back brings the drawing back
+    window.wbWipe();
+    return drawn && clean && back;
   }));
 
   /* ------------------------------------------------------------- the score */
@@ -4974,7 +4986,7 @@ const ROSTER = [
     window.backPoint();
     return r && !r.read;
   }));
-  check("the whiteboard is kept across a relaunch", await ev(() => ((S.wb && S.wb.marks) || []).length === 1));
+  check("the whiteboard is kept across a relaunch", await ev(() => wbMarks().length === 1));
 
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
