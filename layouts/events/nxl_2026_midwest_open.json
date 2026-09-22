@@ -1,0 +1,1436 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "grid_digitized",
+  "bunkers": [
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 46.5,
+      "y_ft": 13.2,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.2,
+      "drawn_h_ft": 6.1,
+      "off_ft": 0.49,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        145,
+        4,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 59.8,
+      "y_ft": 13.2,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.8,
+      "drawn_h_ft": 6.1,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        140,
+        4,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 90.3,
+      "y_ft": 13.2,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.7,
+      "drawn_h_ft": 6.2,
+      "off_ft": 0.09,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        144,
+        5,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 103.2,
+      "y_ft": 13.3,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.7,
+      "drawn_h_ft": 6.1,
+      "off_ft": 0.01,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        144,
+        4,
+        4
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MW",
+      "type": "mini_w",
+      "side": "snake",
+      "x_ft": 75.3,
+      "y_ft": 15.2,
+      "w_ft": 1.93,
+      "h_ft": 7.07,
+      "drawn_w_ft": 2.0,
+      "drawn_h_ft": 6.9,
+      "off_ft": 0.17,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        53,
+        51,
+        203
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 33.2,
+      "y_ft": 17.2,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.5,
+      "drawn_h_ft": 5.9,
+      "off_ft": 0.21,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        145,
+        4,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MD",
+      "type": "medium_dorito",
+      "side": "dorito",
+      "x_ft": 116.5,
+      "y_ft": 17.2,
+      "w_ft": 6.69,
+      "h_ft": 6.11,
+      "drawn_w_ft": 6.3,
+      "drawn_h_ft": 5.9,
+      "off_ft": 0.39,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        145,
+        5,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 70.0,
+      "y_ft": 18.8,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 3.1,
+      "off_ft": 1.61,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        29,
+        30
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 80.2,
+      "y_ft": 19.6,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        27,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "T",
+      "type": "temple",
+      "side": "home",
+      "x_ft": 18.0,
+      "y_ft": 20.3,
+      "w_ft": 4.69,
+      "h_ft": 4.82,
+      "drawn_w_ft": 4.5,
+      "drawn_h_ft": 4.8,
+      "off_ft": 0.19,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        139,
+        17,
+        15
+      ],
+      "detail_rgb": [
+        51,
+        49,
+        198
+      ]
+    },
+    {
+      "name": "T",
+      "type": "temple",
+      "side": "away",
+      "x_ft": 132.2,
+      "y_ft": 20.3,
+      "w_ft": 4.82,
+      "h_ft": 4.69,
+      "drawn_w_ft": 4.9,
+      "drawn_h_ft": 4.8,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        136,
+        16,
+        15
+      ],
+      "detail_rgb": [
+        51,
+        49,
+        198
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "away",
+      "x_ft": 121.5,
+      "y_ft": 34.0,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 7.8,
+      "off_ft": 0.24,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        212,
+        55,
+        56
+      ],
+      "detail_rgb": [
+        26,
+        45,
+        152
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "home",
+      "x_ft": 28.4,
+      "y_ft": 34.4,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.4,
+      "drawn_h_ft": 7.2,
+      "off_ft": 0.84,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        215,
+        57,
+        57
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "C",
+      "type": "cylinder",
+      "side": "away",
+      "x_ft": 137.8,
+      "y_ft": 40.1,
+      "w_ft": 4.27,
+      "h_ft": 4.11,
+      "drawn_w_ft": 4.1,
+      "drawn_h_ft": 4.0,
+      "off_ft": 0.17,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        51,
+        199
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "C",
+      "type": "cylinder",
+      "side": "home",
+      "x_ft": 12.1,
+      "y_ft": 40.2,
+      "w_ft": 4.11,
+      "h_ft": 4.27,
+      "drawn_w_ft": 4.0,
+      "drawn_h_ft": 4.0,
+      "off_ft": 0.27,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        51,
+        199
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Tr",
+      "type": "tree",
+      "side": "home",
+      "x_ft": 60.0,
+      "y_ft": 40.3,
+      "w_ft": 3.57,
+      "h_ft": 3.63,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 3.5,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        182,
+        25,
+        25
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Tr",
+      "type": "tree",
+      "side": "away",
+      "x_ft": 79.9,
+      "y_ft": 40.3,
+      "w_ft": 3.57,
+      "h_ft": 3.63,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 3.5,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        182,
+        25,
+        25
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Tr",
+      "type": "tree",
+      "side": "away",
+      "x_ft": 90.0,
+      "y_ft": 40.3,
+      "w_ft": 3.57,
+      "h_ft": 3.63,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 3.5,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        182,
+        25,
+        25
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Tr",
+      "type": "tree",
+      "side": "home",
+      "x_ft": 69.9,
+      "y_ft": 40.4,
+      "w_ft": 3.57,
+      "h_ft": 3.63,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 3.5,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        182,
+        25,
+        25
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "C",
+      "type": "cylinder",
+      "side": "away",
+      "x_ft": 107.9,
+      "y_ft": 42.0,
+      "w_ft": 4.11,
+      "h_ft": 4.27,
+      "drawn_w_ft": 4.0,
+      "drawn_h_ft": 4.0,
+      "off_ft": 0.27,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        51,
+        50,
+        198
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "C",
+      "type": "cylinder",
+      "side": "home",
+      "x_ft": 41.8,
+      "y_ft": 42.2,
+      "w_ft": 4.11,
+      "h_ft": 4.27,
+      "drawn_w_ft": 4.0,
+      "drawn_h_ft": 4.0,
+      "off_ft": 0.27,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        51,
+        50,
+        198
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "GW",
+      "type": "giant_wing",
+      "side": "center",
+      "x_ft": 75.2,
+      "y_ft": 52.6,
+      "w_ft": 5.34,
+      "h_ft": 5.66,
+      "drawn_w_ft": 5.6,
+      "drawn_h_ft": 5.6,
+      "off_ft": 0.26,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        129,
+        12,
+        12
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "GB",
+      "type": "giant_brick",
+      "side": "center",
+      "x_ft": 75.2,
+      "y_ft": 59.3,
+      "w_ft": 4.76,
+      "h_ft": 10.09,
+      "drawn_w_ft": 5.5,
+      "drawn_h_ft": 11.9,
+      "off_ft": 1.81,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": "red",
+      "body_rgb": [
+        63,
+        60,
+        220
+      ],
+      "detail_rgb": [
+        57,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "home",
+      "x_ft": 1.4,
+      "y_ft": 60.1,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.5,
+      "drawn_h_ft": 7.8,
+      "off_ft": 0.24,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        213,
+        56,
+        56
+      ],
+      "detail_rgb": [
+        25,
+        45,
+        154
+      ],
+      "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
+    },
+    {
+      "name": "T",
+      "type": "temple",
+      "side": "home",
+      "x_ft": 27.7,
+      "y_ft": 60.1,
+      "w_ft": 4.69,
+      "h_ft": 4.82,
+      "drawn_w_ft": 4.4,
+      "drawn_h_ft": 4.8,
+      "off_ft": 0.29,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        138,
+        16,
+        15
+      ],
+      "detail_rgb": [
+        51,
+        49,
+        197
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "away",
+      "x_ft": 148.7,
+      "y_ft": 60.1,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.4,
+      "drawn_h_ft": 7.8,
+      "off_ft": 0.24,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        216,
+        57,
+        57
+      ],
+      "detail_rgb": [
+        26,
+        46,
+        155
+      ],
+      "note": "no printed label on the official map; identified as Br by footprint, confirmed by the field owner"
+    },
+    {
+      "name": "T",
+      "type": "temple",
+      "side": "away",
+      "x_ft": 122.2,
+      "y_ft": 60.4,
+      "w_ft": 4.82,
+      "h_ft": 4.69,
+      "drawn_w_ft": 4.9,
+      "drawn_h_ft": 4.8,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        137,
+        16,
+        15
+      ],
+      "detail_rgb": [
+        51,
+        48,
+        196
+      ]
+    },
+    {
+      "name": "GW",
+      "type": "giant_wing",
+      "side": "center",
+      "x_ft": 75.2,
+      "y_ft": 67.5,
+      "w_ft": 5.34,
+      "h_ft": 5.66,
+      "drawn_w_ft": 5.6,
+      "drawn_h_ft": 6.1,
+      "off_ft": 0.44,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        192,
+        17,
+        18
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MT",
+      "type": "maya_temple",
+      "side": "home",
+      "x_ft": 57.4,
+      "y_ft": 67.7,
+      "w_ft": 4.98,
+      "h_ft": 4.95,
+      "drawn_w_ft": 4.7,
+      "drawn_h_ft": 4.6,
+      "off_ft": 0.35,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        124,
+        13,
+        13
+      ],
+      "detail_rgb": [
+        48,
+        46,
+        197
+      ]
+    },
+    {
+      "name": "MT",
+      "type": "maya_temple",
+      "side": "away",
+      "x_ft": 92.3,
+      "y_ft": 67.8,
+      "w_ft": 4.98,
+      "h_ft": 4.95,
+      "drawn_w_ft": 4.9,
+      "drawn_h_ft": 4.6,
+      "off_ft": 0.35,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        123,
+        13,
+        13
+      ],
+      "detail_rgb": [
+        48,
+        46,
+        197
+      ]
+    },
+    {
+      "name": "MT",
+      "type": "maya_temple",
+      "side": "away",
+      "x_ft": 137.4,
+      "y_ft": 77.6,
+      "w_ft": 4.98,
+      "h_ft": 4.95,
+      "drawn_w_ft": 4.7,
+      "drawn_h_ft": 4.6,
+      "off_ft": 0.35,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        126,
+        14,
+        13
+      ],
+      "detail_rgb": [
+        49,
+        47,
+        198
+      ]
+    },
+    {
+      "name": "MT",
+      "type": "maya_temple",
+      "side": "home",
+      "x_ft": 12.5,
+      "y_ft": 77.8,
+      "w_ft": 4.98,
+      "h_ft": 4.95,
+      "drawn_w_ft": 4.9,
+      "drawn_h_ft": 4.6,
+      "off_ft": 0.35,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        125,
+        14,
+        12
+      ],
+      "detail_rgb": [
+        49,
+        47,
+        198
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 34.1,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        27,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 44.3,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        27,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 54.5,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.7,
+      "off_ft": 0.21,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        28,
+        29
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 64.7,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        29,
+        30
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 75.0,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.7,
+      "off_ft": 0.21,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        28,
+        29
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 85.1,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        28,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 95.4,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.7,
+      "off_ft": 0.21,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        192,
+        27,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 105.6,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        27,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 115.9,
+      "y_ft": 79.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 1.6,
+      "off_ft": 0.11,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        193,
+        28,
+        28
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "Ck",
+      "type": "cake",
+      "side": "snake",
+      "x_ft": 38.1,
+      "y_ft": 82.2,
+      "w_ft": 4.15,
+      "h_ft": 4.05,
+      "drawn_w_ft": 4.1,
+      "drawn_h_ft": 4.0,
+      "off_ft": 0.05,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        51,
+        202
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Ck",
+      "type": "cake",
+      "side": "snake",
+      "x_ft": 112.0,
+      "y_ft": 82.2,
+      "w_ft": 4.05,
+      "h_ft": 4.15,
+      "drawn_w_ft": 4.1,
+      "drawn_h_ft": 4.1,
+      "off_ft": 0.05,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        51,
+        201
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MW",
+      "type": "mini_w",
+      "side": "snake",
+      "x_ft": 99.1,
+      "y_ft": 83.6,
+      "w_ft": 1.93,
+      "h_ft": 7.07,
+      "drawn_w_ft": 2.0,
+      "drawn_h_ft": 6.9,
+      "off_ft": 0.17,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        50,
+        202
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MW",
+      "type": "mini_w",
+      "side": "snake",
+      "x_ft": 50.9,
+      "y_ft": 83.7,
+      "w_ft": 1.93,
+      "h_ft": 7.07,
+      "drawn_w_ft": 2.0,
+      "drawn_h_ft": 6.9,
+      "off_ft": 0.17,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        50,
+        202
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "MW",
+      "type": "mini_w",
+      "side": "snake",
+      "x_ft": 75.2,
+      "y_ft": 83.7,
+      "w_ft": 1.93,
+      "h_ft": 7.07,
+      "drawn_w_ft": 2.0,
+      "drawn_h_ft": 6.9,
+      "off_ft": 0.17,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        52,
+        49,
+        201
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "GP",
+      "type": "giant_plus",
+      "side": "home",
+      "x_ft": 63.9,
+      "y_ft": 94.1,
+      "w_ft": 11.31,
+      "h_ft": 11.09,
+      "drawn_w_ft": 11.9,
+      "drawn_h_ft": 11.8,
+      "off_ft": 0.71,
+      "arm_ft": 4.02,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        171,
+        18,
+        18
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "GP",
+      "type": "giant_plus",
+      "side": "away",
+      "x_ft": 85.5,
+      "y_ft": 94.1,
+      "w_ft": 11.31,
+      "h_ft": 11.09,
+      "drawn_w_ft": 12.8,
+      "drawn_h_ft": 11.9,
+      "off_ft": 1.49,
+      "arm_ft": 4.02,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        169,
+        16,
+        17
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 76.0,
+      "y_ft": 94.3,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 12.0,
+      "drawn_h_ft": 4.1,
+      "off_ft": 2.61,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        191,
+        21,
+        22
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "SD",
+      "type": "small_dorito",
+      "side": "dorito",
+      "x_ft": 17.7,
+      "y_ft": 97.9,
+      "w_ft": 5.21,
+      "h_ft": 4.53,
+      "drawn_w_ft": 5.2,
+      "drawn_h_ft": 4.4,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        135,
+        5,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "SD",
+      "type": "small_dorito",
+      "side": "dorito",
+      "x_ft": 132.3,
+      "y_ft": 97.9,
+      "w_ft": 5.21,
+      "h_ft": 4.53,
+      "drawn_w_ft": 5.2,
+      "drawn_h_ft": 4.4,
+      "off_ft": 0.13,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        134,
+        5,
+        5
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 49.9,
+      "y_ft": 102.8,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 3.1,
+      "off_ft": 1.61,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        194,
+        28,
+        29
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "SB",
+      "type": "snake_beam",
+      "side": "snake",
+      "x_ft": 99.7,
+      "y_ft": 102.8,
+      "w_ft": 9.68,
+      "h_ft": 1.49,
+      "drawn_w_ft": 9.7,
+      "drawn_h_ft": 3.1,
+      "off_ft": 1.61,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        195,
+        28,
+        29
+      ],
+      "detail_rgb": [
+        52,
+        50,
+        200
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "home",
+      "x_ft": 31.6,
+      "y_ft": 104.0,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.4,
+      "drawn_h_ft": 7.8,
+      "off_ft": 0.24,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        215,
+        56,
+        57
+      ],
+      "detail_rgb": [
+        22,
+        41,
+        148
+      ]
+    },
+    {
+      "name": "Br",
+      "type": "brick",
+      "side": "away",
+      "x_ft": 118.2,
+      "y_ft": 104.1,
+      "w_ft": 3.54,
+      "h_ft": 8.04,
+      "drawn_w_ft": 3.4,
+      "drawn_h_ft": 8.0,
+      "off_ft": 0.14,
+      "arm_ft": null,
+      "body": "red",
+      "detail": "blue",
+      "body_rgb": [
+        216,
+        57,
+        57
+      ],
+      "detail_rgb": [
+        27,
+        43,
+        150
+      ]
+    },
+    {
+      "name": "GB",
+      "type": "giant_brick",
+      "side": "center",
+      "x_ft": 75.0,
+      "y_ft": 105.2,
+      "w_ft": 4.76,
+      "h_ft": 10.09,
+      "drawn_w_ft": 4.6,
+      "drawn_h_ft": 10.0,
+      "off_ft": 0.16,
+      "arm_ft": null,
+      "body": "blue",
+      "detail": null,
+      "body_rgb": [
+        61,
+        59,
+        219
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Wg",
+      "type": "wing",
+      "side": "away",
+      "x_ft": 101.2,
+      "y_ft": 105.8,
+      "w_ft": 3.05,
+      "h_ft": 7.3,
+      "drawn_w_ft": 6.7,
+      "drawn_h_ft": 8.8,
+      "off_ft": 3.65,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        175,
+        21,
+        22
+      ],
+      "detail_rgb": null
+    },
+    {
+      "name": "Wg",
+      "type": "wing",
+      "side": "home",
+      "x_ft": 48.5,
+      "y_ft": 105.9,
+      "w_ft": 3.05,
+      "h_ft": 7.3,
+      "drawn_w_ft": 6.9,
+      "drawn_h_ft": 8.9,
+      "off_ft": 3.85,
+      "arm_ft": null,
+      "body": "red",
+      "detail": null,
+      "body_rgb": [
+        175,
+        22,
+        22
+      ],
+      "detail_rgb": null
+    }
+  ],
+  "id": "nxl_2026_midwest_open",
+  "league": "National Xball League",
+  "league_code": "NXL",
+  "event": "Midwest Open",
+  "season": 2026,
+  "dates": "2026-06-25/2026-06-28",
+  "venue": {
+    "name": "Joyce Park",
+    "city": "Hamilton",
+    "state": "OH",
+    "country": "US"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "2d_labeled",
+      "kind": "2d_labeled",
+      "file": "images/nxl_2026_midwest_2d_labeled.jpg",
+      "notes": "Official NXL labeled 2D. Best source for bunker names and 10-ft grid."
+    },
+    {
+      "id": "2d",
+      "kind": "2d",
+      "file": "images/nxl_2026_midwest_2d.jpg"
+    },
+    {
+      "id": "snake",
+      "kind": "snake_3d",
+      "file": "images/nxl_2026_midwest_snake.jpg"
+    },
+    {
+      "id": "breakout",
+      "kind": "dorito_3d",
+      "file": "images/nxl_2026_midwest_breakout.jpg"
+    },
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/nxl_2026_midwest_ig.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "official_page",
+      "url": "https://www.nxlpaintball.com/us-event-layouts"
+    },
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/national-xball-league"
+    },
+    {
+      "type": "ig",
+      "url": "https://www.instagram.com/p/DZsj8FhEb2K/"
+    }
+  ],
+  "notes": [
+    "Highest-quality official stills in this pack.",
+    "Home: two Giant Plus tied by a snake beam, T's and wings in front.",
+    "Snake: long SB across midfield with cakes and Mini-W hangers.",
+    "Center: Maya Temple + Giant Brick / Giant Wing stack.",
+    "Dorito tape: Small Doritos near corners, Medium Doritos across far tape.",
+    "Digitize bunkers from 2d_labeled using the printed 10-ft grid. Do not guess."
+  ],
+  "digitized": {
+    "source_view": "2d_labeled",
+    "source_file": "images/nxl_2026_midwest_2d_labeled.jpg",
+    "colour": "Body and detail colour are sampled from the official map inside each bunker's own measured blob, so a neighbour that merely overlaps the bounding box cannot colour the answer. Snake-beam sections carry the blue joint colour detected when the beam was split, which a red-masked section cannot see for itself.",
+    "method": "Printed 10-ft grid detected in the image (16 verticals x 13 horizontals = 15 x 12 cells), giving 31.113 px/ft on x and 31.108 px/ft on y. Each bunker is the centre of its own measured paint footprint in that frame. Snake-beam sections are split at the blue joints printed on the beam.",
+    "field_rect_px": {
+      "x0": 456,
+      "y0": 472,
+      "x1": 5123,
+      "y1": 4205
+    },
+    "px_per_ft": {
+      "x": 31.1133,
+      "y": 31.1083
+    },
+    "mirror_check": "25 mirrored pairs, axis mean 74.84 ft, sd 0.21 ft; the printed centre line measures 75.15 ft. Residual is inside the drawing line weight.",
+    "bunker_count": 58,
+    "unlabeled": "The two sideline cylinders at x 1.4 and 148.7, y 60.1 carry no printed label on the official map. Identified as Br from their footprint, which matches the labeled Br exactly; confirmed by the field owner.",
+    "tool": "tools/digitize_layout.py",
+    "footprints": {
+      "source": "layouts/images/nxl_2026_midwest_2d.jpg",
+      "book": "layouts/bunkers.json",
+      "tool": "tools/bunkerbook.py",
+      "note": "Positions are measured off this event's own official 2D on its printed 10-ft grid. Footprints are not: a bunker type is one inflatable and does not change size between events, so every footprint comes from layouts/bunkers.json, measured once off the unlabeled Midwest Open 2D at 31.1 px/ft, where there is no printed grid, no label and no watermark to read a bunker into. Each bunker keeps what this map drew as drawn_w_ft and drawn_h_ft, and off_ft is how far the two disagree.",
+      "residual_ft": {
+        "mean": 0.5,
+        "median": 0.21,
+        "worst": 3.85,
+        "worst_at": "Wg at 48.5, 105.9 ft"
+      }
+    }
+  }
+}

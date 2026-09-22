@@ -1,0 +1,49 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "mvps_2026_spring_skirmish",
+  "league": "Maximum Velocity Paintball Series",
+  "league_code": "MVPS",
+  "event": "Spring Skirmish",
+  "season": 2026,
+  "dates": "2026-05-15/2026-05-17",
+  "venue": {
+    "name": "Thunder Valley Paintball Park",
+    "city": "Seffner",
+    "state": "FL",
+    "country": "US"
+  },
+  "status": "published",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/mvps_2026_spring.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "site",
+      "url": "https://mvpsevents.com/"
+    },
+    {
+      "type": "gunzup",
+      "url": "https://gunzup.com/league/maximum-velocity-paintball-series/"
+    },
+    {
+      "type": "ig",
+      "url": "https://www.instagram.com/p/DXsKbUMlLeM/"
+    }
+  ],
+  "notes": [
+    "MVPS Spring Skirmish used the NXL Tampa Bay 2026 layout. Cross-reference nxl_2026_tampa_bay_open."
+  ]
+}

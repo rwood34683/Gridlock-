@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gridlock.layout.v1",
+  "title": "Gridlock Coach / Claude Code Paintball Layout",
+  "type": "object",
+  "required": [
+    "id",
+    "league",
+    "event",
+    "season",
+    "field"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "league": {
+      "type": "string"
+    },
+    "league_code": {
+      "type": "string"
+    },
+    "event": {
+      "type": "string"
+    },
+    "season": {
+      "type": "integer"
+    },
+    "dates": {
+      "type": "string"
+    },
+    "venue": {
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "published",
+        "unreleased",
+        "practice_only"
+      ]
+    },
+    "field": {
+      "type": "object",
+      "required": [
+        "width_ft",
+        "length_ft",
+        "grid_ft"
+      ],
+      "properties": {
+        "width_ft": {
+          "type": "number",
+          "default": 150
+        },
+        "length_ft": {
+          "type": "number",
+          "default": 120
+        },
+        "grid_ft": {
+          "type": "number",
+          "default": 10
+        },
+        "surface": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string",
+          "description": "0,0 = home-left (snake-side home corner) looking toward away. +X toward dorito tape. +Y toward midfield / away."
+        }
+      }
+    },
+    "coordinate_status": {
+      "enum": [
+        "official_image_only",
+        "grid_digitized",
+        "unverified",
+        "none"
+      ],
+      "description": "official_image_only means Claude must read bunker positions from the image. Do not invent x,y."
+    },
+    "views": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "file"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "2d_labeled",
+              "2d",
+              "snake_3d",
+              "dorito_3d",
+              "breakout_3d",
+              "ig_drop",
+              "photo"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "bunkers": {
+      "type": "array",
+      "description": "Only include when coordinates were digitized from an official labeled 2D. Empty array = use images.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "side": {
+            "enum": [
+              "home",
+              "away",
+              "snake",
+              "dorito",
+              "center",
+              "tape"
+            ]
+          },
+          "x_ft": {
+            "type": "number"
+          },
+          "y_ft": {
+            "type": "number"
+          },
+          "rotation_deg": {
+            "type": "number"
+          },
+          "mirrored": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

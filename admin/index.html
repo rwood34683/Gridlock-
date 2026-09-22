@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="description" content="Grind X Admin — the season across every coach, for the whole year."/>
+<meta name="theme-color" content="#0b0c0d"/>
+<title>Grind X · Admin</title>
+<style>
+:root{
+  --bg:#0b0c0d; --sunk:#0f1011; --panel:#161818; --panel-2:#1e2121;
+  --line:#26292a; --line-lit:#3a3f40;
+  --accent:#ad1515; --accent-deep:#8f1010; --accent-lit:#e5252a;
+  --ink:#efedeb; --mute:#9b9d9e; --dim:#6d7173;
+  --red:#e5342f; --blue:#3d8bff; --ok:#3ecf8e; --warn:#e0a33a;
+  --t-hero:30px; --t-xl:21px; --t-lg:17px; --t-md:15px; --t-sm:13px; --t-xs:11px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t-md)/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+body{padding:0 max(16px,env(safe-area-inset-left)) 64px max(16px,env(safe-area-inset-right))}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+a{color:var(--accent-lit)}
+.wrap{max-width:1080px;margin:0 auto}
+.hdr{position:sticky;top:0;z-index:5;background:#000;border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 14px) 0 12px;margin:0 calc(-1*max(16px,env(safe-area-inset-left))) var(--s5);
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.hdr .wrap{display:flex;align-items:baseline;gap:var(--s3);flex-wrap:wrap}
+.brand{font-size:var(--t-lg);font-weight:800;letter-spacing:.14em}
+.brand small{display:block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.3em;color:var(--accent-lit)}
+.hdr__note{margin-left:auto;color:var(--dim);font-size:var(--t-xs);letter-spacing:.04em}
+.sec{margin-bottom:var(--s6)}
+.sec__head{display:flex;align-items:baseline;gap:var(--s3);border-bottom:1px solid var(--line);padding-bottom:var(--s2);margin-bottom:var(--s4)}
+.sec__eyebrow{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.sec__note{margin-left:auto;font-size:var(--t-xs);color:var(--dim)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4)}
+.lede{color:var(--mute);font-size:var(--t-sm);line-height:1.5}
+.note{color:var(--dim);font-size:var(--t-xs);line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);min-height:44px;padding:0 var(--s4);
+  border-radius:var(--r-md);background:var(--accent);color:#fff;font-size:var(--t-md);font-weight:700}
+.btn:active{background:var(--accent-deep)}
+.btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line-lit)}
+.btn--quiet{background:transparent;color:var(--mute);border:1px solid var(--line);min-height:40px;font-size:var(--t-sm)}
+.btn--danger{background:transparent;color:var(--red);border:1px solid var(--line);min-height:36px;font-size:var(--t-xs);padding:0 var(--s3)}
+.row{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+
+/* Drop zone */
+.drop{border:1.5px dashed var(--line-lit);border-radius:var(--r-lg);padding:var(--s6) var(--s4);text-align:center;
+  background:var(--sunk);transition:border-color .12s,background .12s}
+.drop.over{border-color:var(--accent-lit);background:rgba(173,21,21,.10)}
+.drop h3{font-size:var(--t-lg);margin-bottom:var(--s2)}
+.drop input[type=file]{display:none}
+
+/* Loaded-season chips */
+.seasons{display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s4)}
+.season{display:flex;align-items:center;gap:var(--s3);background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:var(--s2) var(--s3);min-height:52px}
+.season input{flex:1;min-width:0;background:var(--sunk);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--r-sm);min-height:38px;padding:0 var(--s3);font:inherit;font-size:var(--t-sm)}
+.season__meta{font-size:var(--t-xs);color:var(--dim);white-space:nowrap}
+
+/* KPI tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s3)}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s4)}
+.tile__k{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.tile__v{font-size:var(--t-hero);font-weight:800;line-height:1.05;margin-top:6px;font-variant-numeric:tabular-nums}
+.tile__sub{font-size:var(--t-xs);color:var(--dim);margin-top:4px}
+.tile__v .win{color:var(--ok)} .tile__v .loss{color:var(--red)} .tile__v i{color:var(--dim);font-style:normal;font-weight:600}
+
+/* Bars */
+.bars{display:flex;flex-direction:column;gap:var(--s2)}
+.bar{display:grid;grid-template-columns:130px 1fr 48px;align-items:center;gap:var(--s3);min-height:30px}
+.bar__label{font-size:var(--t-sm);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar__track{background:var(--sunk);border-radius:var(--r-pill);height:14px;position:relative;overflow:hidden}
+.bar__fill{position:absolute;top:0;left:0;height:100%;border-radius:var(--r-pill);background:var(--accent-lit)}
+.bar__val{font-size:var(--t-sm);color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
+.bar:hover .bar__fill{background:#ff3b40}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
+th,td{text-align:left;padding:10px var(--s3);border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+tr:last-child td{border-bottom:0}
+.win{color:var(--ok)} .loss{color:var(--red)}
+
+details.cloud{margin-top:var(--s4);border:1px solid var(--line);border-radius:var(--r-md);padding:0 var(--s3)}
+details.cloud summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-size:var(--t-sm);font-weight:700;color:var(--mute)}
+details.cloud[open] summary{color:var(--ink)}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s3)}
+.fld label{font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.fld input{background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);min-height:42px;padding:0 var(--s3);font:inherit}
+.empty{color:var(--dim);text-align:center;padding:var(--s5);border:1px dashed var(--line);border-radius:var(--r-md)}
+.foot{color:var(--dim);font-size:var(--t-xs);border-top:1px solid var(--line);padding-top:var(--s4);margin-top:var(--s6)}
+</style>
+</head>
+<body>
+<header class="hdr"><div class="wrap">
+  <div class="brand">Grind X<small>ADMIN · SEASON</small></div>
+  <span class="hdr__note">The year, across every coach — from the copies they send you.</span>
+</div></header>
+
+<main class="wrap" id="root"></main>
+
+<script>
+"use strict";
+/* Grind X Admin Portal.
+ *
+ * A standalone dashboard. It reads the season copies the coach app writes
+ * (Nexus > Save a copy: {"format":"gridlock.coach.copy", ... , "data":{...}})
+ * and rolls the whole year up across every coach who sends one in.
+ *
+ * Two sources, one view:
+ *   - Files: drop the copies in. Works today, offline, no backend.
+ *   - Cloud: if you have stood up the collector (docs/ADMIN-PORTAL.md), paste
+ *     the endpoint and key and Load pulls every uploaded season. This page is
+ *     the only place that talks to it — the coach app still makes no network
+ *     call, so a field with no signal is unaffected.
+ */
+const COPY_FORMAT = "gridlock.coach.copy";
+const LS = "grindx.admin.v1";
+const LSCFG = "grindx.admin.cfg";
+const KNOWN_LAYOUTS = { lso:"Lone Star Open", mwo:"Midwest Open", tby:"Tampa Bay Open" };
+const layoutName = k => KNOWN_LAYOUTS[k] || (k ? k.toUpperCase() : "—");
+
+let seasons = load();   // [{id, label, at, app, data}]
+let cfg = loadCfg();    // {url, anon, email, fn} — never the password
+
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || []; }catch(e){ return []; } }
+function persist(){ try{ localStorage.setItem(LS, JSON.stringify(seasons)); }catch(e){} }
+function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LSCFG)) || {}; }catch(e){ return {}; } }
+function saveCfg(c){ cfg = c; try{ localStorage.setItem(LSCFG, JSON.stringify(c)); }catch(e){} }
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/* ---- ingest -------------------------------------------------------------- */
+// A file may be the wrapped copy, or a bare state object. Accept both.
+function parseSeason(text, label){
+  let p; try{ p = JSON.parse(text); }catch(e){ return {error:"Not readable as JSON."}; }
+  const data = (p && p.format === COPY_FORMAT && p.data) ? p.data
+             : (p && (p.matches || p.calls || p.results || p.roster)) ? p
+             : null;
+  if(!data) return {error:"Not a Grind X season copy."};
+  return { id: "s" + Date.now() + Math.random().toString(36).slice(2, 6),
+           label: label || (p.app || "Season"), at: p.at || null,
+           scope: p.scope || "all", data };
+}
+function addSeason(text, label){
+  const s = parseSeason(text, label);
+  if(s.error) return s.error;
+  // De-dupe an identical re-drop: same label + same match ids.
+  const sig = x => (x.label || "") + "|" + ((x.data.matches || []).map(m => m.id).join(","));
+  if(seasons.some(x => sig(x) === sig(s))) return null;
+  seasons.push(s); persist(); render(); return null;
+}
+window.__adminAdd = (text, label) => addSeason(text, label);   // for the suite
+window.__adminSummary = () => summarize(seasons);
+window.__adminReset = () => { seasons = []; persist(); render(); };
+window.__adminCloudLoad = () => cloudLoad();   // for the suite
+
+/* ---- aggregate ----------------------------------------------------------- */
+// A watched game is not one the coach played — it never counts toward a record.
+const watched = (data, mid) => { const m = (data.matches || []).find(x => x.id === mid); return !!(m && m.watch); };
+
+function summarize(list){
+  const out = { coaches:list.length, events:new Set(), matches:0, played:0, wins:0, losses:0,
+                breaks:0, penalties:0, calls:{}, byEvent:{}, byTeam:{}, byCoach:[] };
+  for(const s of list){
+    const d = s.data || {};
+    const cwins = {}, coach = { label:s.label, at:s.at, matches:0, wins:0, losses:0, breaks:0 };
+    (d.matches || []).forEach(m => { if(m.layout) out.events.add(m.layout);
+      const ev = out.byEvent[m.layout] = out.byEvent[m.layout] || {matches:0,wins:0,losses:0,breaks:0,pens:0};
+      if(!m.watch){ out.matches++; coach.matches++; ev.matches++; } });
+    (d.results || []).forEach(r => { if(watched(d, r.m)) return;
+      out.played++; const w = r.won === "us"; if(w) out.wins++; else out.losses++;
+      if(w) coach.wins++; else coach.losses++;
+      const m = (d.matches || []).find(x => x.id === r.m);
+      if(m && m.layout){ const ev = out.byEvent[m.layout]; if(ev){ if(w) ev.wins++; else ev.losses++; } }
+      // Record against the opponent named on the match.
+      const vs = (m && m.vs) || null;
+      if(vs){ const t = out.byTeam[vs] = out.byTeam[vs] || {wins:0,losses:0}; if(w) t.wins++; else t.losses++; } });
+    (d.calls || []).forEach(c => { if(watched(d, c.m)) return;
+      out.breaks++; coach.breaks++;
+      const name = (d.breakCalls && d.breakCalls[c.script]) || CALL_NAMES[c.script] || c.script || "—";
+      out.calls[name] = (out.calls[name] || 0) + 1;
+      const ev = out.byEvent[c.layout]; if(ev) ev.breaks++; });
+    (d.pens || []).forEach(pn => { out.penalties++; const ev = out.byEvent[pn.layout]; if(ev) ev.pens++; });
+    out.byCoach.push(coach);
+  }
+  out.events = out.events.size;
+  return out;
+}
+// Fallback names for the built-in twelve, when a coach never renamed them.
+const CALL_NAMES = { snake:"Snake Stack", blitz:"Blitz", hold:"Hold & Read", conserve:"Conservative",
+  lock:"Lock the Lanes", balance:"Balanced Break", trade:"Clean / Lane Trade", tower:"Tower / Centre",
+  contain:"Contain Both Wires", split:"Wire Split", counter:"Counter Break", dorito:"Dorito Flood" };
+
+/* ---- render -------------------------------------------------------------- */
+function render(){
+  const root = document.getElementById("root");
+  root.innerHTML = sourceSection() + (seasons.length ? dashboard() : emptyState()) + footer();
+  wire();
+}
+function sourceSection(){
+  return `<section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">Source</span>
+      <span class="sec__note">${seasons.length} season${seasons.length===1?"":"s"} loaded</span></div>
+    <div class="drop" id="drop">
+      <h3>Drop the season copies here</h3>
+      <p class="lede">Each coach sends you their file from <b>Nexus &rsaquo; Save a copy</b>. Drop them in, or
+        <label style="color:var(--accent-lit);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept="application/json,.json" multiple></label>.
+        Nothing here is uploaded — the reading happens in your browser.</p>
+    </div>
+    ${seasons.length ? `<div class="seasons">${seasons.map(seasonRow).join("")}</div>
+      <div class="row" style="margin-top:var(--s3)"><button class="btn btn--danger" id="clear">Clear all</button></div>` : ""}
+    <details class="cloud" ${cfg.url ? "open" : ""}><summary>Load from the cloud collector (optional)</summary>
+      <div style="padding:var(--s3) 0">
+        <p class="note" style="margin-bottom:var(--s3)">Once you have stood up the collector in <b>docs/ADMIN-PORTAL.md</b>,
+          sign in with your <b>admin</b> account and this pulls every coach's season through the <code>admin-seasons</code>
+          function. Only your admin sign-in and the anon key are used — the service key never leaves your server. This page
+          talks to your project; the coach app never makes a network call.</p>
+        <div class="fld"><label>Project URL</label><input id="cloudUrl" value="${esc(cfg.url||"")}" placeholder="https://YOUR-PROJECT.supabase.co"></div>
+        <div class="fld"><label>Anon (public) key</label><input id="cloudKey" value="${esc(cfg.anon||"")}" placeholder="anon public key — never the service key"></div>
+        <div class="fld"><label>Admin email</label><input id="cloudEmail" type="email" value="${esc(cfg.email||"")}" placeholder="you@club.com — must be on ADMIN_EMAILS"></div>
+        <div class="fld"><label>Admin password</label><input id="cloudPass" type="password" placeholder="not saved on this device"></div>
+        <div class="fld"><label>Function name</label><input id="cloudFn" value="${esc(cfg.fn||"admin-seasons")}" placeholder="admin-seasons"></div>
+        <div class="row"><button class="btn btn--ghost" id="cloudLoad">Sign in &amp; load</button>
+          <span class="note" id="cloudSaid"></span></div>
+      </div>
+    </details>
+  </section>`;
+}
+function seasonRow(s){
+  return `<div class="season">
+    <input value="${esc(s.label)}" data-id="${s.id}" aria-label="Coach or team label">
+    <span class="season__meta">${s.at ? new Date(s.at).toLocaleDateString() : "no date"} · ${(s.data.matches||[]).length} matches</span>
+    <button class="btn btn--danger" data-drop="${s.id}">Remove</button>
+  </div>`;
+}
+function emptyState(){
+  return `<div class="empty">Nothing loaded yet. Drop one or more season copies above to see the year across every coach —
+    matches, record, the breaks they called, penalties, and a breakdown by event and by team.</div>`;
+}
+function dashboard(){
+  const g = summarize(seasons);
+  const pct = g.played ? Math.round(100 * g.wins / g.played) : 0;
+  const tiles = [
+    ["Coaches", g.coaches, "seasons loaded"],
+    ["Events", g.events, "fields played"],
+    ["Matches", g.matches, "not counting games watched"],
+    ["Record", `<span class="win">${g.wins}</span><i>–</i><span class="loss">${g.losses}</span>`, g.played ? pct + "% of points won" : "no points scored yet"],
+    ["Breaks logged", g.breaks, "calls charted"],
+    ["Penalties", g.penalties, "recorded against a side"],
+  ];
+  const callRows = Object.entries(g.calls).sort((a,b) => b[1]-a[1]);
+  const callMax = callRows.reduce((m,[,n]) => Math.max(m,n), 0) || 1;
+  const eventRows = Object.entries(g.byEvent).sort((a,b) => b[1].matches - a[1].matches);
+  const teamRows = Object.entries(g.byTeam).sort((a,b) => (b[1].wins+b[1].losses) - (a[1].wins+a[1].losses));
+
+  return `
+  <section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">The year</span></div>
+    <div class="tiles">${tiles.map(([k,v,s]) => `<div class="tile"><div class="tile__k">${k}</div>
+      <div class="tile__v">${v}</div><div class="tile__sub">${esc(s)}</div></div>`).join("")}</div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">Breaks called across the year</span>
+      <span class="sec__note">counted from what was logged</span></div>
+    ${callRows.length ? `<div class="bars" role="img" aria-label="Breaks called, by count">
+      ${callRows.map(([name,n]) => `<div class="bar" title="${esc(name)}: ${n} logged">
+        <span class="bar__label">${esc(name)}</span>
+        <span class="bar__track"><span class="bar__fill" style="width:${Math.round(100*n/callMax)}%"></span></span>
+        <span class="bar__val">${n}</span></div>`).join("")}</div>`
+      : `<div class="empty">No calls logged in the loaded seasons.</div>`}
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">By event</span></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Event</th><th class="num">Matches</th><th class="num">Record</th><th class="num">Breaks</th><th class="num">Penalties</th></tr></thead>
+      <tbody>${eventRows.map(([k,e]) => `<tr><td>${esc(layoutName(k))}</td>
+        <td class="num">${e.matches}</td>
+        <td class="num"><span class="win">${e.wins}</span>–<span class="loss">${e.losses}</span></td>
+        <td class="num">${e.breaks}</td><td class="num">${e.pens}</td></tr>`).join("") || `<tr><td colspan="5" class="note">Nothing yet.</td></tr>`}</tbody>
+    </table></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">Record by opponent</span></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Team</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Points</th></tr></thead>
+      <tbody>${teamRows.map(([name,t]) => `<tr><td>${esc(name)}</td>
+        <td class="num win">${t.wins}</td><td class="num loss">${t.losses}</td>
+        <td class="num">${t.wins+t.losses}</td></tr>`).join("") || `<tr><td colspan="4" class="note">No opponents recorded yet.</td></tr>`}</tbody>
+    </table></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec__head"><span class="sec__eyebrow">By coach</span></div>
+    <div class="tblwrap"><table>
+      <thead><tr><th>Coach / team</th><th class="num">Matches</th><th class="num">Record</th><th class="num">Breaks</th></tr></thead>
+      <tbody>${g.byCoach.map(c => `<tr><td>${esc(c.label)}</td><td class="num">${c.matches}</td>
+        <td class="num"><span class="win">${c.wins}</span>–<span class="loss">${c.losses}</span></td>
+        <td class="num">${c.breaks}</td></tr>`).join("")}</tbody>
+    </table></div>
+  </section>`;
+}
+function footer(){
+  return `<p class="foot">Grind X · Admin — the reading happens in this browser. Season copies are the coach's own export;
+    the coach app makes no network call and keeps every season on the phone. Turning on a live cloud collector is a
+    deliberate step — see <b>docs/ADMIN-PORTAL.md</b>, and change the privacy notice to match before you do.</p>`;
+}
+
+/* ---- wiring -------------------------------------------------------------- */
+function readFiles(files){
+  let errs = 0, done = 0, total = files.length;
+  [...files].forEach(f => { const r = new FileReader();
+    r.onload = () => { const e = addSeason(String(r.result), f.name.replace(/\.json$/i, "")); if(e) errs++;
+      if(++done === total && errs) flash(`${errs} file${errs===1?"":"s"} could not be read as a season copy.`); };
+    r.onerror = () => { if(++done === total && errs) {} };
+    r.readAsText(f); });
+}
+function flash(msg){ const el = document.getElementById("cloudSaid"); if(el) el.textContent = msg; }
+async function cloudLoad(){
+  const val = id => (document.getElementById(id).value || "").trim();
+  const url = val("cloudUrl").replace(/\/+$/, "");
+  const anon = val("cloudKey");
+  const email = val("cloudEmail");
+  const pass = document.getElementById("cloudPass").value || "";
+  const fn = val("cloudFn") || "admin-seasons";
+  const said = document.getElementById("cloudSaid");
+  if(!url || !anon){ said.textContent = "Fill in your project URL and anon key."; return; }
+  if(!email || !pass){ said.textContent = "Sign in with your admin email and password."; return; }
+  said.textContent = "Signing in…";
+  try{
+    // 1. Sign the admin in for a short-lived token (the anon key authorises the call).
+    const auth = await fetch(url + "/auth/v1/token?grant_type=password", {
+      method:"POST", headers:{ apikey:anon, "Content-Type":"application/json" },
+      body: JSON.stringify({ email, password: pass }) });
+    if(!auth.ok){ said.textContent = "Sign-in was refused. Check the email and password."; return; }
+    const token = (await auth.json()).access_token;
+    if(!token){ said.textContent = "Sign-in did not return a token."; return; }
+    // 2. Call the admin-only function with that token. It checks the allow-list
+    //    server-side and reads across every coach with the service key.
+    said.textContent = "Loading seasons…";
+    const res = await fetch(url + "/functions/v1/" + encodeURIComponent(fn), {
+      headers: { apikey: anon, Authorization: "Bearer " + token } });
+    if(res.status === 403){ said.textContent = "That account is not on the admin list (ADMIN_EMAILS)."; return; }
+    if(res.status === 404){ said.textContent = `No function named "${fn}". Deploy admin-seasons, or fix the name.`; return; }
+    if(!res.ok){ said.textContent = "The collector answered " + res.status + "."; return; }
+    const rows = await res.json();
+    let n = 0;
+    (Array.isArray(rows) ? rows : []).forEach(row => {
+      const payload = row.payload || row;
+      const e = addSeason(typeof payload === "string" ? payload : JSON.stringify(payload), row.label || "Cloud season");
+      if(!e) n++;
+    });
+    saveCfg({ url, anon, email, fn });   // remembered for next time; the password is not
+    said.textContent = `Loaded ${n} season${n===1?"":"s"} from the cloud.`;
+  }catch(e){ said.textContent = "Could not reach your project. Check the URL and your connection."; }
+}
+function wire(){
+  const drop = document.getElementById("drop"), file = document.getElementById("file");
+  if(file) file.onchange = () => readFiles(file.files);
+  if(drop){
+    ["dragenter","dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave","drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", e => { if(e.dataTransfer && e.dataTransfer.files) readFiles(e.dataTransfer.files); });
+  }
+  document.querySelectorAll(".season input[data-id]").forEach(inp => inp.onchange = () => {
+    const s = seasons.find(x => x.id === inp.dataset.id); if(s){ s.label = inp.value; persist(); render(); }
+  });
+  document.querySelectorAll("[data-drop]").forEach(b => b.onclick = () => {
+    seasons = seasons.filter(x => x.id !== b.dataset.drop); persist(); render();
+  });
+  const clear = document.getElementById("clear");
+  if(clear) clear.onclick = () => { if(confirm("Remove every loaded season from this browser?")){ seasons = []; persist(); render(); } };
+  const cl = document.getElementById("cloudLoad"); if(cl) cl.onclick = cloudLoad;
+}
+render();
+</script>
+</body>
+</html>
