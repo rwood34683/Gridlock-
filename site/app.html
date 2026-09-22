@@ -652,6 +652,21 @@ svg.field [data-pick]{cursor:crosshair}
   .qlog__score .btn{min-height:0}
 }
 
+/* Whiteboard — the field (or a blank board) with an ink layer over it. */
+.wb-wrap{position:relative;border:1px solid var(--line);border-radius:var(--r-md);
+  overflow:hidden;background:#0b0c0d;touch-action:none}
+.wb-bg{pointer-events:none}
+.wb-bg svg{display:block;width:100%;height:auto}
+.wb-ink{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.wb-tools{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+.wb-pen{width:44px;height:44px;border-radius:50%;border:2px solid var(--line-lit);
+  background:var(--panel);display:grid;place-items:center}
+.wb-pen i{width:18px;height:18px;border-radius:50%;background:var(--pen)}
+.wb-pen.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--pen)}
+.wb-tool{width:44px;height:44px;border-radius:var(--r-sm);border:1px solid var(--line-lit);
+  background:var(--panel);color:var(--ink);font-size:18px;display:grid;place-items:center}
+.wb-tool.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
 /* ============================================================
    PROMO
    ============================================================ */
@@ -2403,6 +2418,7 @@ S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false;
+if(S.wb) S.wb = {...S.wb, marks: []};   // the board is a teaching surface, not a record
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -8074,6 +8090,12 @@ const HELP = {
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
          "Dashed means something is in the way, and the blocker is ringed."]},
+  "more/wb": {t:"Whiteboard", w:"Draw the adjustment, then wipe it.",
+    how:["Draw on the field with a finger — red, blue or white.",
+         "X and O drop a mark where you tap, for who covers what.",
+         "Undo takes back the last mark; Wipe clears the board.",
+         "Blank swaps the field for a dark board when you want to draw from scratch."],
+    watch:"Nothing here is saved to a sheet — it is a between-points teaching board, not a record. It clears itself when the app is relaunched."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Add a note against a bunker while you are standing at it.",
          "Notes are kept per field, so they follow the event."]},
@@ -8380,6 +8402,7 @@ const GATE_TITLE = {"scout":"Scout", "playbook/cards":"Cards", "playbook/rep":"R
 
 const MORE_GROUPS=[
   ["The field",[
+    ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
     ["walk","Walk","Field-walk notes against this layout"],
     ["movement","Movement","Bunker to bunker after the break"],
     ["stats","Bunker stats","Visits, shots, holds and elims"]]],
@@ -8427,6 +8450,7 @@ function moreBody(k){
       <span class="assign__who">P ${esc(p.p)} · S ${esc(p.s)}</span></span>
     </div>`).join("")}</div>`;
 
+  if(k==="wb") return whiteboardPage();
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers;
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
@@ -8962,6 +8986,7 @@ function quickLog(){
       <span class="qlog__vs">${esc(pitNamed("right") ? pitOf("right").name : curLayout().name)}</span>
       <span class="grow"></span>
       <span class="qlog__pt">POINT ${pt}</span>
+      <button class="btn btn--quiet" onclick="set({quick:false, tab:'more', more:'wb'})">▚ Board</button>
       <button class="btn btn--quiet" onclick="closeQuick()">✕ Exit</button>
     </div>
     <button class="qlog__call" onclick="set({quickPick:!S.quickPick})">
@@ -9011,6 +9036,92 @@ window.closeQuick = () => {
   }catch(e){}
   set({quick:false, quickPick:false});
 };
+
+/* ============================================================
+   Whiteboard — the coach's clipboard. Draw the adjustment on the real field
+   (or a blank board), in the wire colours, then wipe it. It is a teaching
+   surface, not a record: nothing here is logged, and it clears on relaunch.
+   ============================================================ */
+const WB_DEF = {field:true, color:"#e5342f", tool:"pen", marks:[]};
+const wbState = () => S.wb || WB_DEF;
+const wbMarks = () => (S.wb && S.wb.marks) || [];
+function wbInk(marks){
+  const P = a => a.map(p => `${p[0]*2},${p[1]*2}`).join(" ");
+  const body = (marks || []).map(m => {
+    if(m.t === "pen") return `<polyline points="${P(m.pts)}" fill="none" stroke="${m.c}" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>`;
+    const u = m.pts[0][0]*2, v = m.pts[0][1]*2, r = 9;
+    if(m.t === "x") return `<g stroke="${m.c}" stroke-width="3.4" stroke-linecap="round">
+      <line x1="${u-r}" y1="${v-r}" x2="${u+r}" y2="${v+r}"/><line x1="${u-r}" y1="${v+r}" x2="${u+r}" y2="${v-r}"/></g>`;
+    if(m.t === "o") return `<circle cx="${u}" cy="${v}" r="${r}" fill="none" stroke="${m.c}" stroke-width="3.4"/>`;
+    return "";
+  }).join("");
+  // The capture surface is the top layer, per the field rule: marks draw below
+  // it so a finger always lands on something it can draw on.
+  return body + `<rect data-wb x="0" y="0" width="300" height="240" fill="transparent"/>`;
+}
+function whiteboardPage(){
+  const wb = wbState();
+  const bg = wb.field
+    ? fieldSVG({static:true, noPaths:true})
+    : `<svg class="field wb-blank" viewBox="0 0 300 240"><rect width="300" height="240" fill="#0b0c0d"/></svg>`;
+  const pens = [["#e5342f","Red"],["#3d8bff","Blue"],["#efedeb","White"]];
+  return sec("Whiteboard",
+   `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
+    <div class="wb-wrap">
+      <div class="wb-bg">${bg}</div>
+      <svg class="wb-ink" id="wb-map" viewBox="0 0 300 240" aria-label="Whiteboard">${wbInk(wb.marks || [])}</svg>
+    </div>
+    <div class="wb-tools">
+      ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"
+        onclick="wbColor('${c}')" aria-label="${n} pen"><i></i></button>`).join("")}
+      <button class="wb-tool ${wb.tool==="x"?"on":""}" onclick="wbTool('x')" aria-label="X mark">✕</button>
+      <button class="wb-tool ${wb.tool==="o"?"on":""}" onclick="wbTool('o')" aria-label="O mark">◯</button>
+      <span class="grow"></span>
+      <button class="btn btn--quiet" onclick="wbUndo()"${wbMarks().length?"":" disabled"}>Undo</button>
+      <button class="btn btn--danger" onclick="wbWipe()"${wbMarks().length?"":" disabled"}>Wipe</button>
+    </div>
+    <div class="toggles">
+      <button class="tgl ${wb.field?"on":""}" onclick="wbField(true)"><i></i>Field</button>
+      <button class="tgl ${!wb.field?"on":""}" onclick="wbField(false)"><i></i>Blank</button>
+      <button class="btn btn--quiet" onclick="openQuick()">⤢ Landscape log</button>
+    </div>`, wb.field ? curLayout().name : "Blank board");
+}
+window.wbTool  = t => set({wb: {...wbState(), tool: t}});
+window.wbColor = c => set({wb: {...wbState(), color: c, tool: "pen"}});
+window.wbField = on => set({wb: {...wbState(), field: !!on}});
+window.wbUndo  = () => { const w = {...wbState()}; w.marks = (w.marks || []).slice(0, -1); set({wb: w}); };
+window.wbWipe  = () => { const w = {...wbState()}; w.marks = []; set({wb: w}); };
+// One delegated listener, so it survives every repaint. Only live on the board.
+(function whiteboardDraw(){
+  let draft = null;
+  const ink = () => document.getElementById("wb-map");
+  const paint = extra => { const el = ink(); if(el) el.innerHTML = wbInk(extra ? [...wbMarks(), extra] : wbMarks()); };
+  const commit = mark => { const w = {...wbState()}; w.marks = [...(w.marks || []), mark]; S.wb = w; save(S); render(); };
+  document.addEventListener("pointerdown", ev => {
+    if(!(S.tab === "more" && S.more === "wb")) return;
+    const surf = ev.target.closest("[data-wb]"); if(!surf) return;
+    const svg = surf.closest("svg"); if(!svg) return;
+    ev.preventDefault();
+    const at = fieldFeet(svg, ev), wb = wbState();
+    if(wb.tool === "x" || wb.tool === "o"){ commit({t: wb.tool, c: wb.color, pts: [at]}); return; }
+    draft = {t: "pen", c: wb.color, pts: [at]};
+    try{ if(surf.setPointerCapture) surf.setPointerCapture(ev.pointerId); }catch(e){}
+    paint(draft);
+  });
+  document.addEventListener("pointermove", ev => {
+    if(!draft) return;
+    const svg = ink(); if(!svg) return;
+    const at = fieldFeet(svg, ev), last = draft.pts[draft.pts.length - 1];
+    if(Math.hypot(at[0]-last[0], at[1]-last[1]) >= 1) draft.pts.push(at);
+    paint(draft);
+  });
+  document.addEventListener("pointerup", () => {
+    if(!draft) return;
+    const d = draft; draft = null;
+    commit(d);
+  });
+})();
 // A quick non-blocking message, where the app used to throw a system alert.
 // Auto-clears; tap to dismiss. Validation belongs on screen, not in a modal.
 let _flashT = 0;

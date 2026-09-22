@@ -2751,6 +2751,57 @@ const ROSTER = [
     window.closeQuick();
     return !S.quick && !document.querySelector("#root .qlog");
   }));
+  check("and it carries a way onto the whiteboard", await ev(() => {
+    window.openQuick();
+    const b = [...document.querySelectorAll("#root .qlog .btn")].find(x => /Board/.test(x.textContent));
+    if(!b) return false;
+    b.click();
+    const there = !S.quick && S.tab === "more" && S.more === "wb" && !!document.querySelector("#root #wb-map");
+    window.set({ tab:"tally" });
+    return there;
+  }));
+
+  /* --------------------------------------------------------- the whiteboard */
+  // The coach's clipboard: draw the adjustment on the field, wipe it. A teaching
+  // surface, not a record — nothing here is logged and it clears on relaunch.
+  G("Whiteboard");
+  await seed({ tab: "more", more: "wb", wb: { field:true, color:"#e5342f", tool:"pen", marks:[] } });
+  check("the board opens with an ink layer over the field", await ev(() =>
+    !!document.querySelector("#root .wb-bg svg") && !!document.querySelector("#root #wb-map [data-wb]")));
+  check("a finger stroke leaves a mark on it", await ev(() => {
+    const svg = document.querySelector("#wb-map"), surf = svg.querySelector("[data-wb]");
+    const C = ([x,y]) => new DOMPoint(x*2, y*2).matrixTransform(svg.getScreenCTM());
+    let p = C([40,40]);
+    surf.dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:11}));
+    for(const q of [[55,52],[70,64]]){ p = C(q);
+      document.dispatchEvent(new PointerEvent("pointermove", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:11})); }
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:11}));
+    const m = wbMarks();
+    return m.length === 1 && m[0].t === "pen" && m[0].pts.length >= 2;
+  }));
+  check("X and O drop a mark where you tap", await ev(() => {
+    window.wbTool("x");
+    const svg = document.querySelector("#wb-map"), surf = svg.querySelector("[data-wb]");
+    const p = new DOMPoint(80*2, 70*2).matrixTransform(svg.getScreenCTM());
+    surf.dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:12}));
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:12}));
+    const m = wbMarks();
+    return m.length === 2 && m[1].t === "x";
+  }));
+  check("Undo takes back the last mark, Wipe clears the board", await ev(() => {
+    window.wbUndo(); const one = wbMarks().length === 1;
+    window.wbWipe(); const none = wbMarks().length === 0;
+    return one && none;
+  }));
+  check("Blank swaps the field for a dark board", await ev(() => {
+    window.wbField(false); const blank = !!document.querySelector("#root .wb-blank");
+    window.wbField(true);  const field = !document.querySelector("#root .wb-blank");
+    return blank && field;
+  }));
+  check("the board draws no break runs over the field it teaches on", await ev(() => {
+    const svg = document.querySelector("#root .wb-bg svg");
+    return svg && svg.querySelectorAll("path[stroke='#e5342f']").length === 0;
+  }));
 
   /* ------------------------------------------------------------- the score */
   // The app tallied who went out and never recorded who won the point, so the
@@ -4880,7 +4931,8 @@ const ROSTER = [
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
-                 quick:true, quickPick:true });
+                 quick:true, quickPick:true,
+                 wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
   });
@@ -4905,6 +4957,7 @@ const ROSTER = [
     window.backPoint();
     return r && !r.read;
   }));
+  check("the whiteboard wipes itself on relaunch", await ev(() => !((S.wb && S.wb.marks) || []).length));
 
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
