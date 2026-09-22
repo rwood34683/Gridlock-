@@ -66,6 +66,36 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
     const err = await page.evaluate(() => window.__adminAdd("not json at all", "bad"));
     check("a file that is not a season copy is refused with a message", typeof err === "string" && /json|season/i.test(err), String(err));
 
+    // The live cloud path: sign in for a token, then call the admin-only function.
+    const cloud = await page.evaluate(async () => {
+      window.__adminReset();
+      window.__cloudReqs = [];
+      window.fetch = async (u, o) => { o = o || {};
+        window.__cloudReqs.push({ u: String(u), m: o.method || "GET", h: o.headers || {} });
+        if (/\/auth\/v1\/token\?grant_type=password/.test(u)) return { ok: true, status: 200, json: async () => ({ access_token: "ADMINTOK" }) };
+        if (/\/functions\/v1\/admin-seasons/.test(u)) return { ok: true, status: 200, json: async () => ([
+          { label: "Garland", payload: { format: "gridlock.coach.copy", data: {
+            matches: [{ id: "x", layout: "lso", vs: "Dynasty" }], results: [{ m: "x", pt: 1, won: "us" }] } } },
+        ]) };
+        return { ok: false, status: 404, json: async () => ({}) };
+      };
+      document.getElementById("cloudUrl").value = "https://demo.supabase.co";
+      document.getElementById("cloudKey").value = "anon-1";
+      document.getElementById("cloudEmail").value = "admin@club.com";
+      document.getElementById("cloudPass").value = "pw";
+      document.getElementById("cloudFn").value = "admin-seasons";
+      await window.__adminCloudLoad();
+      const g = window.__adminSummary();
+      const auth = window.__cloudReqs.find(r => /auth\/v1\/token/.test(r.u));
+      const fn = window.__cloudReqs.find(r => /functions\/v1\/admin-seasons/.test(r.u));
+      return { coaches: g.coaches, matches: g.matches,
+        authPost: !!auth && auth.m === "POST", fnAuthHeader: fn && fn.h.Authorization,
+        fnApikey: fn && fn.h.apikey };
+    });
+    check("cloud connect signs in, then reads through the admin function", cloud.coaches === 1 && cloud.matches === 1, JSON.stringify(cloud));
+    check("the token authorises the function call, with the anon apikey alongside",
+      cloud.authPost && cloud.fnAuthHeader === "Bearer ADMINTOK" && cloud.fnApikey === "anon-1", JSON.stringify(cloud));
+
     check("no page errors during the run", errors.length === 0, errors.join(" | "));
     console.log(`\nAdmin portal: ${passed} checks passed.`);
   } finally { await browser.close(); }

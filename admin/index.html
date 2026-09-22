@@ -124,13 +124,17 @@ details.cloud[open] summary{color:var(--ink)}
  */
 const COPY_FORMAT = "gridlock.coach.copy";
 const LS = "grindx.admin.v1";
+const LSCFG = "grindx.admin.cfg";
 const KNOWN_LAYOUTS = { lso:"Lone Star Open", mwo:"Midwest Open", tby:"Tampa Bay Open" };
 const layoutName = k => KNOWN_LAYOUTS[k] || (k ? k.toUpperCase() : "—");
 
 let seasons = load();   // [{id, label, at, app, data}]
+let cfg = loadCfg();    // {url, anon, email, fn} — never the password
 
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || []; }catch(e){ return []; } }
 function persist(){ try{ localStorage.setItem(LS, JSON.stringify(seasons)); }catch(e){} }
+function loadCfg(){ try{ return JSON.parse(localStorage.getItem(LSCFG)) || {}; }catch(e){ return {}; } }
+function saveCfg(c){ cfg = c; try{ localStorage.setItem(LSCFG, JSON.stringify(c)); }catch(e){} }
 
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
@@ -158,6 +162,7 @@ function addSeason(text, label){
 window.__adminAdd = (text, label) => addSeason(text, label);   // for the suite
 window.__adminSummary = () => summarize(seasons);
 window.__adminReset = () => { seasons = []; persist(); render(); };
+window.__adminCloudLoad = () => cloudLoad();   // for the suite
 
 /* ---- aggregate ----------------------------------------------------------- */
 // A watched game is not one the coach played — it never counts toward a record.
@@ -214,13 +219,18 @@ function sourceSection(){
     </div>
     ${seasons.length ? `<div class="seasons">${seasons.map(seasonRow).join("")}</div>
       <div class="row" style="margin-top:var(--s3)"><button class="btn btn--danger" id="clear">Clear all</button></div>` : ""}
-    <details class="cloud"><summary>Load from the cloud collector (optional)</summary>
+    <details class="cloud" ${cfg.url ? "open" : ""}><summary>Load from the cloud collector (optional)</summary>
       <div style="padding:var(--s3) 0">
-        <p class="note" style="margin-bottom:var(--s3)">If you have stood up the collector in <b>docs/ADMIN-PORTAL.md</b>, paste
-          its endpoint and read key. This runs only when you click Load — the coach app itself never makes a network call.</p>
-        <div class="fld"><label>Endpoint URL</label><input id="cloudUrl" placeholder="https://YOUR-PROJECT.supabase.co/rest/v1/seasons?select=label,payload"></div>
-        <div class="fld"><label>Read key (anon)</label><input id="cloudKey" placeholder="anon public key — never the service key"></div>
-        <div class="row"><button class="btn btn--ghost" id="cloudLoad">Load from cloud</button>
+        <p class="note" style="margin-bottom:var(--s3)">Once you have stood up the collector in <b>docs/ADMIN-PORTAL.md</b>,
+          sign in with your <b>admin</b> account and this pulls every coach's season through the <code>admin-seasons</code>
+          function. Only your admin sign-in and the anon key are used — the service key never leaves your server. This page
+          talks to your project; the coach app never makes a network call.</p>
+        <div class="fld"><label>Project URL</label><input id="cloudUrl" value="${esc(cfg.url||"")}" placeholder="https://YOUR-PROJECT.supabase.co"></div>
+        <div class="fld"><label>Anon (public) key</label><input id="cloudKey" value="${esc(cfg.anon||"")}" placeholder="anon public key — never the service key"></div>
+        <div class="fld"><label>Admin email</label><input id="cloudEmail" type="email" value="${esc(cfg.email||"")}" placeholder="you@club.com — must be on ADMIN_EMAILS"></div>
+        <div class="fld"><label>Admin password</label><input id="cloudPass" type="password" placeholder="not saved on this device"></div>
+        <div class="fld"><label>Function name</label><input id="cloudFn" value="${esc(cfg.fn||"admin-seasons")}" placeholder="admin-seasons"></div>
+        <div class="row"><button class="btn btn--ghost" id="cloudLoad">Sign in &amp; load</button>
           <span class="note" id="cloudSaid"></span></div>
       </div>
     </details>
@@ -319,13 +329,31 @@ function readFiles(files){
 }
 function flash(msg){ const el = document.getElementById("cloudSaid"); if(el) el.textContent = msg; }
 async function cloudLoad(){
-  const url = (document.getElementById("cloudUrl").value || "").trim();
-  const key = (document.getElementById("cloudKey").value || "").trim();
+  const val = id => (document.getElementById(id).value || "").trim();
+  const url = val("cloudUrl").replace(/\/+$/, "");
+  const anon = val("cloudKey");
+  const email = val("cloudEmail");
+  const pass = document.getElementById("cloudPass").value || "";
+  const fn = val("cloudFn") || "admin-seasons";
   const said = document.getElementById("cloudSaid");
-  if(!url){ said.textContent = "Paste the endpoint first."; return; }
-  said.textContent = "Loading…";
+  if(!url || !anon){ said.textContent = "Fill in your project URL and anon key."; return; }
+  if(!email || !pass){ said.textContent = "Sign in with your admin email and password."; return; }
+  said.textContent = "Signing in…";
   try{
-    const res = await fetch(url, { headers: key ? { apikey:key, Authorization:"Bearer " + key } : {} });
+    // 1. Sign the admin in for a short-lived token (the anon key authorises the call).
+    const auth = await fetch(url + "/auth/v1/token?grant_type=password", {
+      method:"POST", headers:{ apikey:anon, "Content-Type":"application/json" },
+      body: JSON.stringify({ email, password: pass }) });
+    if(!auth.ok){ said.textContent = "Sign-in was refused. Check the email and password."; return; }
+    const token = (await auth.json()).access_token;
+    if(!token){ said.textContent = "Sign-in did not return a token."; return; }
+    // 2. Call the admin-only function with that token. It checks the allow-list
+    //    server-side and reads across every coach with the service key.
+    said.textContent = "Loading seasons…";
+    const res = await fetch(url + "/functions/v1/" + encodeURIComponent(fn), {
+      headers: { apikey: anon, Authorization: "Bearer " + token } });
+    if(res.status === 403){ said.textContent = "That account is not on the admin list (ADMIN_EMAILS)."; return; }
+    if(res.status === 404){ said.textContent = `No function named "${fn}". Deploy admin-seasons, or fix the name.`; return; }
     if(!res.ok){ said.textContent = "The collector answered " + res.status + "."; return; }
     const rows = await res.json();
     let n = 0;
@@ -334,8 +362,9 @@ async function cloudLoad(){
       const e = addSeason(typeof payload === "string" ? payload : JSON.stringify(payload), row.label || "Cloud season");
       if(!e) n++;
     });
+    saveCfg({ url, anon, email, fn });   // remembered for next time; the password is not
     said.textContent = `Loaded ${n} season${n===1?"":"s"} from the cloud.`;
-  }catch(e){ said.textContent = "Could not reach the collector. Check the URL and your connection."; }
+  }catch(e){ said.textContent = "Could not reach your project. Check the URL and your connection."; }
 }
 function wire(){
   const drop = document.getElementById("drop"), file = document.getElementById("file");

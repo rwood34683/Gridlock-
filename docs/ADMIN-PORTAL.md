@@ -64,13 +64,27 @@ create policy "own delete" on public.seasons
   for delete using (auth.uid() = owner);
 ```
 
-The **admin** reads across everyone. Do that with a Supabase **view or Edge
-Function gated to an admin claim**, not by handing the anon key select rights on
-the whole table (that would let any coach read every other coach's season).
-Simplest safe path: an Edge Function that checks the caller is on your admin
-allow-list and returns `select label, payload from seasons`; point the
-dashboard's **Endpoint URL** at that function. Never expose the service-role key
-in the dashboard — it ships to a browser.
+The **admin** reads across everyone. Do that with an Edge Function gated to an
+admin allow-list — never by handing the anon key select rights on the whole
+table (that would let any coach read every other coach's season). The reference
+function is written for you: **`supabase/functions/admin-seasons/index.ts`**. It
+verifies the caller's token, checks their email against an allow-list, and only
+then reads `select label, payload from seasons` with the service-role key —
+**server-side, never in a browser**.
+
+```bash
+supabase functions deploy admin-seasons
+supabase secrets set ADMIN_EMAILS="you@club.com,partner@club.com"
+# SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by the
+# platform. Keep verify_jwt ON (the default) so only a real user token gets in.
+```
+
+In the dashboard, expand **Load from the cloud collector**, enter your project
+URL, the anon key, your admin email and password, and the function name
+(`admin-seasons`). It signs you in for a short-lived token, calls the function
+with it, and aggregates what comes back beside any files you dropped in. Your
+password is not saved; the URL, anon key, email and function name are, so you do
+not retype them.
 
 ### The upload, from the app
 
