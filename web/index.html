@@ -619,6 +619,39 @@ svg.field [data-pick]{cursor:crosshair}
 .tip button{flex:none;color:var(--accent-lit);font-weight:700;font-size:var(--t-sm);
   min-height:44px;min-width:44px;margin:-11px 0;padding:0 var(--s2)}
 
+/* Landscape quick-log — a full-bleed layer for calling and scoring on the fly.
+   Reads best sideways; still usable upright because the web cannot force a
+   phone to rotate. */
+.qlog{position:fixed;inset:0;z-index:70;background:var(--bg);
+  display:flex;flex-direction:column;gap:var(--s3);
+  padding:calc(var(--s4) + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))
+          calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right,0px)))
+          calc(var(--s4) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom,0px)))
+          calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left,0px)));
+  overflow-y:auto}
+.qlog__top{display:flex;align-items:center;gap:var(--s3)}
+.qlog__vs{font-size:var(--t-sm);font-weight:700;color:var(--mute);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qlog__pt{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;color:var(--dim)}
+.qlog__call{display:flex;align-items:center;gap:var(--s3);width:100%;
+  background:linear-gradient(150deg,#1a1010,#0f1011 60%);
+  border:1px solid var(--line-lit);border-radius:var(--r-lg);padding:var(--s3) var(--s4);min-height:56px}
+.qlog__label{font-size:var(--t-xs);font-weight:700;letter-spacing:.2em;color:var(--accent-lit);flex:none}
+.qlog__name{flex:1;min-width:0;font-size:var(--t-xl);font-weight:800;line-height:1.05;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qlog__caret{flex:none;font-size:var(--t-xs);font-weight:700;color:var(--dim)}
+.qlog__pick{flex:0 0 auto}
+.qlog__score{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);flex:1 1 auto;min-height:0}
+.qlog__score .btn{height:100%;min-height:96px;font-size:var(--t-hero);font-weight:800}
+.qlog__row{display:flex;gap:var(--s2);flex-wrap:wrap}
+.qlog__hint{color:var(--dim);font-size:var(--t-xs);line-height:1.4;margin:0}
+/* Sideways and short: the two score buttons fill the height beside a compact
+   top, so the whole loop is one thumb-reach with nothing to scroll. */
+@media (orientation:landscape) and (max-height:520px){
+  .qlog__hint{display:none}
+  .qlog__score .btn{min-height:0}
+}
+
 /* ============================================================
    PROMO
    ============================================================ */
@@ -1626,6 +1659,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
+S.quick = false; S.quickPick = false;
 
 // Walk notes and code words were single text boxes. Nobody's typing is thrown
 // away: what was in the box becomes the first entry in the new list.
@@ -2775,6 +2809,18 @@ window.resetAllPaths = () => {
     save(S); render();
   });
 })();
+// A finger dragged along a run is sampled into a handful of corners between the
+// two ends the plants fix — every ~6 ft, and never on top of the endpoints, which
+// stay put because a break starts and finishes on its bunkers. drawnRun rounds
+// them, so the drawn line reads like a run rather than a scribble.
+function sampleStroke(pts, from, to){
+  const out = []; let last = from;
+  for(const q of pts){
+    if(Math.hypot(q[0]-last[0], q[1]-last[1]) >= 6){ out.push(q); last = q; }
+  }
+  return out.filter(q => Math.hypot(q[0]-from[0], q[1]-from[1]) > 5 &&
+                         Math.hypot(q[0]-to[0], q[1]-to[1]) > 5).slice(0, 16);
+}
 // One delegated listener on the app, so it survives every repaint.
 (function pathEditing(){
   let drag = null;
@@ -2792,30 +2838,28 @@ window.resetAllPaths = () => {
     } else if(h.hasAttribute("data-h")){
       drag = {kind:"via", id:Number(h.dataset.h), i:Number(h.dataset.i), moved:false, at};
     } else {
-      // Tapping the line itself adds a corner where you tapped, on the nearest leg.
+      // Press the line and hold still → add a corner where you tapped. Press and
+      // drag → draw the run in: the finger's path becomes the player's path. No
+      // pencil to reach for; drawing is just what a drag on the line does.
       const id = Number(h.dataset.leg);   // dataset is text; path ids are numbers
       const p = currentPaths().find(x => x.id === id);
       if(!p) return;
-      const pts = [p.from, ...(p.via || []), p.to];
-      let best = 0, bestD = Infinity;
-      for(let i = 0; i < pts.length - 1; i++){
-        const m = [(pts[i][0]+pts[i+1][0])/2, (pts[i][1]+pts[i+1][1])/2];
-        const d = Math.hypot(m[0]-at[0], m[1]-at[1]);
-        if(d < bestD){ bestD = d; best = i; }
-      }
-      const via = [...(p.via || [])];
-      via.splice(best, 0, at);
-      setVia(id, via);
-      drag = {kind:"via", id, i:best, moved:true, at};
-      paintField();
+      drag = {kind:"draw", id, from:p.from, to:p.to, pts:[at], at, moved:false};
     }
-    if(h.setPointerCapture) h.setPointerCapture(ev.pointerId);
+    try{ if(h.setPointerCapture) h.setPointerCapture(ev.pointerId); }catch(e){}
   });
   document.addEventListener("pointermove", ev => {
     if(!drag) return;
     const svg = document.querySelector(".field-wrap[data-live] svg.field");
     if(!svg) return;
     const at = fieldFeet(svg, ev);
+    if(drag.kind === "draw"){
+      if(Math.hypot(at[0]-drag.at[0], at[1]-drag.at[1]) > 1.4) drag.moved = true;
+      drag.pts.push(at);
+      if(drag.moved) setVia(drag.id, sampleStroke(drag.pts, drag.from, drag.to));
+      paintField();
+      return;
+    }
     if(drag.kind === "via"){
       const p = currentPaths().find(x => x.id === drag.id);
       if(!p) return;
@@ -2837,6 +2881,26 @@ window.resetAllPaths = () => {
   });
   document.addEventListener("pointerup", () => {
     if(!drag) return;
+    // Drawing: a still press on the line adds a corner where you pressed; a drag
+    // has already redrawn the run leg by leg during pointermove.
+    if(drag.kind === "draw"){
+      if(!drag.moved){
+        const p = currentPaths().find(x => x.id === drag.id);
+        if(p){
+          const pts = [p.from, ...(p.via || []), p.to];
+          let best = 0, bestD = Infinity;
+          for(let i = 0; i < pts.length - 1; i++){
+            const m = [(pts[i][0]+pts[i+1][0])/2, (pts[i][1]+pts[i+1][1])/2];
+            const d = Math.hypot(m[0]-drag.at[0], m[1]-drag.at[1]);
+            if(d < bestD){ bestD = d; best = i; }
+          }
+          const via = [...(p.via || [])];
+          via.splice(best, 0, drag.at);
+          setVia(drag.id, via);
+        }
+      }
+      drag = null; render(); return;
+    }
     // A tap on a corner, with no drag, takes that corner out.
     if(drag.kind === "via" && !drag.moved){
       const p = currentPaths().find(x => x.id === drag.id);
@@ -4457,9 +4521,9 @@ function playbook(){
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
     <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
   </div>
-  ${S.editPath?`<p class="note">Drag a corner to move it, tap one to take it out, tap the line to add
-    one. Drag a player to point him. <button class="btn btn--danger" onclick="resetAllPaths()">Reset every
-    path</button></p>`:""}
+  ${S.editPath?`<p class="note"><b>Drag along a run to draw it in.</b> Drag a corner to move it, tap one to
+    take it out, tap the line to add one. Drag a player to point him. <button class="btn btn--danger"
+    onclick="resetAllPaths()">Reset every path</button></p>`:""}
 
   <div class="toggles">
     <button class="btn btn--quiet" onclick="set({pbView:'cards'})">Cards · here is your job</button>
@@ -5312,6 +5376,7 @@ function tally(){
     </div>
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
+    <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Landscape · log on the fly</button>
     <button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`,
     matchLabel(curMatch()))}
 
@@ -8136,8 +8201,73 @@ function shell(){
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
     ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.quick ? quickLog() : ""}
   </div>`;
 }
+/* Landscape quick-log — the point loop with nothing else on screen, laid out
+   wide so a coach can call a break and score it one-handed with the phone
+   turned. It is a layer over the whole app, not a tab, so it reaches from
+   wherever he is; every button is the same handler Tally uses, so there is one
+   match and one score whichever way he logged it. The web cannot force an iPhone
+   to rotate, so it works upright too and simply reads best sideways. */
+function quickLog(){
+  const m = curMatch(), watch = !!(m && m.watch), pt = S.point || 1, sc = matchScore();
+  const us = watch ? sideWord("us") : "We", them = watch ? sideWord("them") : "They";
+  return `<div class="qlog">
+    <div class="qlog__top">
+      <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b></span>
+      <span class="qlog__vs">${esc(pitNamed("right") ? pitOf("right").name : curLayout().name)}</span>
+      <span class="grow"></span>
+      <span class="qlog__pt">POINT ${pt}</span>
+      <button class="btn btn--quiet" onclick="closeQuick()">✕ Exit</button>
+    </div>
+    <button class="qlog__call" onclick="set({quickPick:!S.quickPick})">
+      <span class="qlog__label">THE CALL</span>
+      <span class="qlog__name">${esc(breakName())}</span>
+      <span class="qlog__caret">${S.quickPick?"CLOSE ▴":"CHANGE ▾"}</span>
+    </button>
+    ${S.quickPick ? `<div class="seg seg--wrap qlog__pick">
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+        onclick="set({script:'${k}',t:1,playing:false,quickPick:false})">${esc(callName(k))}</button>`).join("")}
+      <button class="seg__add" onclick="newPlay()">+ Yours</button>
+    </div>` : `<div class="qlog__score">
+      <button class="btn btn--lg" onclick="endPoint('us')">${esc(us)} won it</button>
+      <button class="btn btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${esc(them)} won it</button>
+    </div>
+    <div class="qlog__row">
+      ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
+      <button class="btn btn--quiet grow" onclick="logCall()">✓ Log call</button>
+      <button class="btn btn--quiet grow" onclick="nextPoint()">Next point ›</button>
+    </div>
+    <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
+  </div>`;
+}
+window.openQuick = () => {
+  // Best-effort rotate: honoured on Android and installed builds, a no-op on
+  // iPhone Safari — where the layer still works, just upright. Fullscreen first,
+  // because that is what an orientation lock needs where it is allowed at all.
+  const lockLandscape = () => {
+    try{
+      const r = screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape");
+      if(r && r.catch) r.catch(()=>{});
+    }catch(e){}
+  };
+  try{
+    const el = document.documentElement;
+    const r = el.requestFullscreen && el.requestFullscreen();
+    if(r && r.then) r.then(lockLandscape).catch(()=>{});
+    else lockLandscape();
+  }catch(e){}
+  set({quick:true, quickPick:false});
+};
+window.closeQuick = () => {
+  try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
+  try{
+    const r = document.fullscreenElement && document.exitFullscreen && document.exitFullscreen();
+    if(r && r.catch) r.catch(()=>{});
+  }catch(e){}
+  set({quick:false, quickPick:false});
+};
 // A quick non-blocking message, where the app used to throw a system alert.
 // Auto-clears; tap to dismiss. Validation belongs on screen, not in a modal.
 let _flashT = 0;

@@ -1639,6 +1639,38 @@ const ROSTER = [
     return directOf(1).face === 135;
   }));
 
+  // Draw the run in with a finger — no pencil to switch on. A stroke samples
+  // into spaced corners between the two ends the plants fix.
+  check("a drawn stroke samples into spaced interior corners, ends left alone", await ev(() => {
+    const from = [10, 10], to = [100, 100], pts = [];
+    for(let i = 0; i <= 90; i++) pts.push([10 + i, 10 + i]);       // a straight drag
+    const s = sampleStroke(pts, from, to);
+    const spaced = s.every((q, i) => i === 0 || Math.hypot(q[0]-s[i-1][0], q[1]-s[i-1][1]) >= 5.5);
+    const interior = s.every(q => Math.hypot(q[0]-from[0], q[1]-from[1]) > 5 && Math.hypot(q[0]-to[0], q[1]-to[1]) > 5);
+    return s.length >= 3 && s.length <= 16 && spaced && interior;
+  }));
+  check("dragging along a run draws it in as several corners, ends anchored", await ev(() => {
+    window.set({ editPath: true });
+    const svg = document.querySelector(".field-wrap[data-live] svg.field");
+    const leg = svg.querySelector("[data-leg]"); if(!leg) return false;
+    const id = Number(leg.dataset.leg);
+    const before = currentPaths().find(p => p.id === id);
+    const from = before.from, to = before.to;
+    const C = ([x, y]) => new DOMPoint(x*2, y*2).matrixTransform(svg.getScreenCTM());
+    const seq = [[35, 35], [50, 48], [65, 60], [80, 72], [95, 84]];
+    let p = C(seq[0]);
+    leg.dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:9}));
+    for(const q of seq.slice(1)){ p = C(q);
+      document.dispatchEvent(new PointerEvent("pointermove", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:9})); }
+    document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:9}));
+    const after = currentPaths().find(p2 => p2.id === id), via = after.via || [];
+    return via.length >= 2 && after.edited
+      && after.from[0] === from[0] && after.from[1] === from[1]
+      && after.to[0] === to[0] && after.to[1] === to[1];
+  }));
+  check("the drawing hint tells him he can draw", await ev(() =>
+    /Drag along a run to draw/.test(document.getElementById("root").innerText)));
+
   await ev(() => window.resetAllPaths());
   check("resetting puts every path back on the routed line", await ev(() =>
     Object.keys(S.pathEdits || {}).length === 0 && !currentPaths().some(p => p.edited)));
@@ -2686,6 +2718,38 @@ const ROSTER = [
     window.newMatch();
     return !/logged on this sheet/.test(document.getElementById("root").textContent)
         && (S.calls || []).length === 1;      // the old one is kept, not deleted
+  }));
+
+  /* --------------------------------------------------- landscape quick-log */
+  // The point loop with nothing else on screen, laid out wide so a coach can
+  // call and score with the phone turned. The web cannot force an iPhone to
+  // rotate, so the layer works upright too and simply reads best sideways.
+  G("Landscape quick-log");
+  await seed({ tab: "tally", script: "snake", right: { name: "Rejects" }, left: {},
+               quick: false, quickPick: false });
+  check("the point sheet offers a way into it", await ev(() =>
+    [...document.querySelectorAll("#root .btn")].some(x => /Landscape/.test(x.textContent))));
+  check("it opens as a full layer with the call and both scoring buttons", await ev(() => {
+    window.openQuick();
+    const q = document.querySelector("#root .qlog"); if(!q) return false;
+    const t = q.textContent;
+    return !!S.quick && t.includes(callName(S.script)) && /We won it/.test(t) && /They won it/.test(t);
+  }));
+  check("scoring from the layer counts the point and moves on", await ev(() => {
+    const pt = S.point || 1;
+    [...document.querySelectorAll("#root .qlog .btn")].find(x => /We won it/.test(x.textContent)).click();
+    const r = (S.results || []).find(x => x.m === S.matchId && x.pt === pt);
+    return !!r && r.won === "us" && S.point === pt + 1;
+  }));
+  check("the call changes from the layer, and + Yours is there too", await ev(() => {
+    window.set({ quick: true, quickPick: true });
+    const q = document.querySelector("#root .qlog"); if(!q) return false;
+    const has = [...q.querySelectorAll(".seg button, .seg .seg__add")];
+    return has.some(x => /\+ Yours/.test(x.textContent)) && has.some(x => /Blitz/.test(x.textContent));
+  }));
+  check("Exit closes the layer", await ev(() => {
+    window.closeQuick();
+    return !S.quick && !document.querySelector("#root .qlog");
   }));
 
   /* ------------------------------------------------------------- the score */
@@ -4815,7 +4879,8 @@ const ROSTER = [
   await ev(() => {
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
-                 penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule" });
+                 penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
+                 quick:true, quickPick:true });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
   });
@@ -4828,6 +4893,7 @@ const ROSTER = [
       editPath:S.editPath, pad:S.pad, replayPt:S.replayPt, replayStep:S.replayStep,
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
+      quick:S.quick, quickPick:S.quickPick,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);
