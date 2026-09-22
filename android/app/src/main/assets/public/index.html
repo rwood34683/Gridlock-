@@ -1572,6 +1572,10 @@ function save(s){
     ? "This phone's storage for the app is full."
     : "This phone is not letting the app save."; }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
+  // Opt-in league sync: a best-effort push, throttled and fully guarded. It can
+  // never throw out of save() and never blocks a point — a no-signal push is a
+  // no-op and the phone stays the working copy.
+  try{ maybeSync(); }catch(e){}
 }
 /* Handed the durable copy by native.js once the plugin has answered. Takes it
  * only when this launch found nothing locally — see above. */
@@ -1675,7 +1679,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false;
+S.quick = false; S.quickPick = false; S.syncSaid = "";
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -4188,7 +4192,11 @@ function authForm(){
     ${/* This said "coaching a match needs none", which stopped being true the
            moment the promo required one. It now says what the account actually
            is: a lock on this phone, not a login to anything. */""}
-    <p class="note" style="margin-top:0">${window.gridlockCloud
+    <p class="note" style="margin-top:0">${canSync()
+      ? `Your email and what you have bought are kept on our server, so you can sign in on a new
+         phone and reset a password you have forgotten. Your season stays on this phone <b>unless you
+         switch on League sync</b> yourself — that is off until you turn it on, in Nexus.`
+      : window.gridlockCloud
       ? `Your email and what you have bought are kept on our server, so you can sign in on a new
          phone and reset a password you have forgotten. <b>Your season never leaves this device</b> —
          not your roster, not your scouting, not one tally.`
@@ -4335,6 +4343,13 @@ window.checkVerify = async () => {
        .sendReset(email)      -> {ok, said, offline}
        .signOut()             -> void
        .session()             -> {user} | null        // asked once on launch
+       .pushSeason(label, s)  -> {ok, said, offline}   // opt-in League sync only
+       .deleteSeason()        -> {ok, said, offline}   // removes what he sent
+
+   pushSeason/deleteSeason are present ONLY on a build whose league runs a
+   collector (docs/ADMIN-PORTAL.md). The season goes up nowhere else, and only
+   after the coach turns League sync on in Nexus. canSync() gates the UI and the
+   privacy copy on their presence.
 
    `offline:true` means the network failed, not that he is wrong — the app then
    tries the copy on the phone and says nothing about it. Anything else with
@@ -4445,6 +4460,65 @@ window.doAuth = async () => {
       + "account leaves this phone. Making a new account with the same email replaces the password "
       + "and leaves your season exactly where it is.");
 };
+
+/* ============================================================
+   League sync — the ONE thing that sends a season off the phone, and only
+   because the coach turned it on. It is an adapter the shell fills in
+   (window.gridlockCloud.pushSeason / .deleteSeason), so web/index.html still
+   has no fetch and a field with no signal is unaffected. Offline-first: a push
+   that fails with offline says nothing and the phone stays the working copy.
+   The privacy copy on Nexus and the sign-in panel branch on canSync() so the
+   app never claims the season stays put once this exists. docs/ADMIN-PORTAL.md
+   is the switch-on; a coach can pause it and delete what he sent.
+   ============================================================ */
+const canSync = () => !!(window.gridlockCloud && window.gridlockCloud.pushSeason);
+function syncLabel(){
+  return String(S.syncLabel || pitName("left", "") || S.teamCode || S.email || "Coach").slice(0, 60);
+}
+let _lastAutoSync = 0;
+function maybeSync(){
+  if(!S.syncOn || !canSync()) return;
+  const now = Date.now();
+  if(now - _lastAutoSync < 90000) return;         // at most once a minute and a half
+  _lastAutoSync = now;
+  const payload = copyPayload("all");
+  Promise.resolve().then(() => window.gridlockCloud.pushSeason(syncLabel(), payload))
+    .then(r => { if(r && r.ok) S.syncAt = Date.now(); })   // persists on the next save
+    .catch(() => {});
+}
+window.syncNow = async () => {
+  if(!canSync()) return;
+  const say = m => set({syncSaid: m});
+  say("Sending your season to your league…");
+  _lastAutoSync = Date.now();
+  let r = null;
+  try{ r = await window.gridlockCloud.pushSeason(syncLabel(), copyPayload("all")); }
+  catch(e){ r = {ok:false, offline:true}; }
+  if(r && r.ok) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
+  if(r && r.offline) return set({syncSaid: "No signal — it will go up on its own once you have bars. Your season is safe on the phone."});
+  set({syncSaid: (r && r.said) || "That could not be sent. Nothing has changed."});
+};
+window.toggleSync = () => {
+  if(S.syncOn) return set({syncOn: false,
+    syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
+  // Claim the throttle window so the save() below does not also auto-fire; the
+  // explicit syncNow() is the one push, and it gives him a result to read.
+  _lastAutoSync = Date.now();
+  S.syncOn = true; save(S); render();
+  syncNow();
+};
+window.deleteSynced = async () => {
+  const cloud = window.gridlockCloud;
+  const say = m => set({syncSaid: m});
+  if(cloud && cloud.deleteSeason){
+    say("Removing what you sent…");
+    try{ const r = await cloud.deleteSeason();
+      if(r && r.ok === false && !r.offline) return set({syncSaid: r.said || "That could not be removed. Try again with a signal."});
+    }catch(e){ return set({syncSaid: "Could not reach your league to remove it. Try again with a signal."}); }
+  }
+  set({syncOn: false, syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+};
+window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
 
 /* ============================================================
    Playbook — leads with the call, because that is the job
@@ -7414,8 +7488,9 @@ const HELP = {
   "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
     how:["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
+         "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from."],
-    watch:"Save a copy before every event. It is the only backup there is."},
+    watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
@@ -8105,7 +8180,12 @@ function moreBody(k){
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
-        <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.</span></div>
+        <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
+          canSync() && S.syncOn
+            ? `Your season is being sent to your league — your roster, your tallies and your scouting — because you turned <b>League sync</b> on. Turn it off below to keep it on this phone only. Your password is stored salted and hashed, never in the clear.`
+          : canSync()
+            ? `On this device only. You can send it to your league from <b>League sync</b> below; it is off until you turn it on. Your password is stored salted and hashed, never in the clear.`
+            : `On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.`}</span></div>
         <div class="kv__row"><span class="kv__k">Kept safe</span><span class="kv__v">${
           window.gridlockDurableError ? `The second copy is waiting for a successful save. Use Save a copy below to keep your work.` : window.gridlockDurable
             ? `The installed app keeps a second copy in the phone's own storage. Removing the app can remove both copies. Save a copy below gives you a backup you own.`
@@ -8122,6 +8202,24 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
     <p class="note">Grind X System · powered by UPRA</p>`)
+  + (canSync() ? sec("League sync", `<p class="lede">Send this season to your league's admin, so the whole year across every coach
+      is in one place. This is the one thing that leaves your phone — and only because you turn it on.</p>
+    <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
+      your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
+      password never does. You can pause it, or delete what you sent, at any time.</p>
+    <div class="fld"><label for="syncLabel">Shown to your league as</label>
+      <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
+    <div class="toggles">
+      <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
+        S.syncOn?"Sending to your league":"Send my season to my league"}</button>
+    </div>
+    ${S.syncOn ? `<div class="toggles">
+        <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
+        <button class="btn btn--danger" onclick="deleteSynced()">Stop and delete what I sent</button>
+      </div>
+      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}It also goes up on its own as you log, once you have signal.</p>` : ""}
+    ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
+    S.syncOn ? "On" : "Off") : "")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>

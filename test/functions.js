@@ -316,6 +316,60 @@ const ROSTER = [
   await ev(() => { delete window.gridlockCloud; delete window.__net;
     localStorage.clear(); window.set({ entered: true, role: "staff", mode: null, authSaid: "" }); });
 
+  /* ------------------------------------------- opt-in League sync (the one exception) */
+  // The season only ever leaves the phone because the coach turned it on, and
+  // only through the shell's adapter — the app itself still makes no fetch.
+  G("League sync — opt-in, off by default, offline-first");
+  await ev(() => window.set({ tab: "more", more: "nexus", syncOn: false, syncAt: null, syncSaid: "", syncLabel: "" }));
+  check("with no upload adapter there is no League sync, and the data stays put", await ev(() => {
+    delete window.gridlockCloud;
+    window.set({ tab: "more", more: "nexus" });
+    const t = document.getElementById("root").innerText;
+    return !/League sync/.test(t) && /On this device only/.test(t);
+  }));
+  await ev(() => {
+    window.__pushes = []; window.__deleted = false; window.__syncNet = true;   // true = has signal
+    window.gridlockCloud = {
+      async pushSeason(label, payload){ window.__pushes.push({ label, payload });
+        return window.__syncNet ? { ok: true } : { ok: false, offline: true }; },
+      async deleteSeason(){ if(!window.__syncNet) return { ok:false, offline:true };
+        window.__deleted = true; return { ok: true }; },
+    };
+    window.set({ tab: "more", more: "nexus" });
+  });
+  check("with the adapter, Nexus offers League sync and says it is off until you turn it on", await ev(() => {
+    const t = document.getElementById("root").innerText;
+    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Send my season to my league/.test(t);
+  }));
+  check("turning it on pushes the whole season through the adapter", await ev(async () => {
+    window.toggleSync();
+    await new Promise(r => setTimeout(r, 20));
+    if(window.__pushes.length !== 1) return false;
+    const p = JSON.parse(window.__pushes[0].payload);
+    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Sent to your league/.test(S.syncSaid);
+  }));
+  check("now the data-lives line says the season is going up", await ev(() =>
+    /being sent to your league/i.test(document.getElementById("root").innerText)));
+  check("no signal is silent about the network and does not stamp a send", await ev(async () => {
+    window.__syncNet = false; const wasAt = S.syncAt;
+    await window.syncNow();
+    return /No signal/i.test(S.syncSaid) && S.syncAt === wasAt;
+  }));
+  check("delete removes what was sent and turns sync off", await ev(async () => {
+    window.__syncNet = true;
+    await window.deleteSynced();
+    return window.__deleted === true && S.syncOn === false && /removed from the league/i.test(S.syncSaid);
+  }));
+  check("the sign-in panel tells a new coach the season stays put unless he turns sync on", await ev(() => {
+    window.set({ entered: false, mode: "create", authSaid: "" });
+    const t = document.getElementById("root").innerText;
+    return /switch on League sync/i.test(t);
+  }));
+  check("the sync handlers contain no fetch — uploading is the shell's job", await ev(() =>
+    !/fetch\s*\(/.test(String(window.syncNow) + String(window.deleteSynced) + String(window.toggleSync))));
+  await ev(() => { delete window.gridlockCloud; delete window.__pushes; delete window.__deleted; delete window.__syncNet;
+    window.set({ entered: true, role: "staff", more: null, mode: null, syncOn: false, syncAt: null, syncSaid: "", syncLabel: "" }); });
+
   /* ------------------------------------- a backup restores a season, not a login */
   G("A restored season does not walk past the sign-in");
   check("a durable copy carries the session, because save() writes all of S",

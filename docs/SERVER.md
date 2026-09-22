@@ -21,6 +21,16 @@ customer list, a password he can reset, phone verification, and an account that
 survives a lost phone — without you holding competitive data belonging to teams
 who play each other.
 
+**The one exception is opt-in League sync**, a separate feature with its own
+switch-on in `docs/ADMIN-PORTAL.md`. It *does* send the whole season up — but
+only to a collector the coach's league operates, only after the coach turns it
+on himself in Nexus, and it can be paused and deleted. It is adapter-gated
+(`window.gridlockCloud.pushSeason`), so the app still ships no `fetch`, and the
+Nexus and sign-in copy branch on `canSync()` so the app never tells a coach his
+season stays put once that capability exists. If you turn League sync on for a
+build, you are holding competitive data — get consent, and keep the privacy
+notice true to it.
+
 **The privacy copy must stay true to this table.** The sign-in panel already
 branches: with a server it says the email and purchases are kept and the season
 never leaves the device. Change the table, change the copy, in the same commit.
