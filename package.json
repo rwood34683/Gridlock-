@@ -9,6 +9,7 @@
     "serve": "node scripts/serve.js",
     "serve:site": "node scripts/serve.js --root site",
     "build": "node scripts/build.js",
+    "build:cloud": "node scripts/cloud-build.js",
     "preview": "node scripts/serve.js --root dist",
     "sync": "node scripts/native.js sync",
     "native:setup": "node scripts/native.js setup",

@@ -97,13 +97,24 @@ app has no `fetch`. It fills in the whole `window.gridlockCloud` contract —
 Supabase Auth sign-in plus `pushSeason` / `deleteSeason` against the table above
 — using only the anon key, with offline returns that fall through to the phone.
 
-Ship it only in a cloud-enabled build. The shell injects it and configures the
-project before it loads:
+Ship it only in a cloud-enabled build. **`scripts/cloud-build.js` does the
+wiring** — it copies the app, drops in the adapter and a generated
+`gridlock-config.js`, and loads both before the app boots. The committed `web/`
+is never touched, so the default and offline builds stay fetch-free.
+
+```bash
+GRINDX_SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
+GRINDX_SUPABASE_ANON_KEY=…anon public key… \
+npm run build:cloud
+# → dist/cloud/  — point Capacitor's webDir at it, or serve it as the web build.
+```
+
+The anon key is public by design; the build refuses a service key. Under the
+hood the generated config is just:
 
 ```js
-// In the cloud build only — never added to web/ or inlined into site/app.html.
 window.GRIDLOCK_CLOUD = { url: "https://YOUR-PROJECT.supabase.co", anonKey: "…anon public key…" };
-// then load native/gridlock-cloud.js  (or, after load: window.gridlockCloudConfigure(url, anonKey))
+// then native/gridlock-cloud.js  (or, at runtime: window.gridlockCloudConfigure(url, anonKey))
 ```
 
 With the file absent — every default build — `window.gridlockCloud` is unset,

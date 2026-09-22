@@ -9,7 +9,7 @@ const SUITES = {
   server: "test/server.js", functions: "test/functions.js", devices: "test/devices.js", bunkers: "tools/verify_bunkers.js",
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",
   "voice-parser": "test/voice-parser.js", voice: "test/voice.js", "speech-native": "test/speech-native.js",
-  admin: "test/admin.js", cloud: "test/cloud-adapter.js"
+  admin: "test/admin.js", cloud: "test/cloud-adapter.js", "cloud-build": "test/cloud-build.js"
 };
 async function main() {
   const names = process.argv.slice(2);
