@@ -104,8 +104,12 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     check("Android applicationId moved and namespace stayed", gradle.includes('applicationId "com.upra.grindx.coach"') && gradle.includes('namespace = "com.upra.gridlock.coach"'));
     check("iOS registers grindx:// and names the app Grind X Coach", plist.includes("<array><string>grindx</string></array>") && /<key>CFBundleDisplayName<\/key>\s*<string>Grind X Coach<\/string>/.test(plist));
     check("the shell web build is the variant", brand.markerOf(fs.readFileSync(path.join(ROOT, "ios/App/App/public/index.html"), "utf8")) === "grindx" && fs.readFileSync(path.join(ROOT, "android/app/src/main/assets/public/native.js")).equals(brand.expected("native.js", "grindx", brands)));
-    const nc = node("scripts/native-check.js");
-    check("native-check passes with the shells at Grind X", /checks passed/.test(nc) && /\(grindx\)/.test(nc), nc.split("\n").slice(-3).join(" | "));
+    // native-check reads the config copies that `cap sync` generates into the
+    // shells; a plain checkout (CI) has none, so it can only run on a synced tree.
+    if (fs.existsSync(path.join(ROOT, "ios/App/App/capacitor.config.json"))) {
+      const nc = node("scripts/native-check.js");
+      check("native-check passes with the shells at Grind X", /checks passed/.test(nc) && /\(grindx\)/.test(nc), nc.split("\n").slice(-3).join(" | "));
+    } else console.log("  SKIP  native-check passes with the shells at Grind X  — needs a synced tree (npm run sync); not run on a plain checkout");
     const sc = node("scripts/store-check.js");
     check("store-check reads the shells as in step with Grind X", /iOS shell carries this web build\s+in step \(grindx\)/.test(sc) && /Android shell carries this web build\s+in step \(grindx\)/.test(sc));
     check("checking Grind X now reports the phones hold it", brand.check("grindx").every(r => r.pass));
