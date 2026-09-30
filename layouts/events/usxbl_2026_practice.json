@@ -1,0 +1,41 @@
+{
+  "schema": "gridlock.layout.v1",
+  "field": {
+    "width_ft": 150,
+    "length_ft": 120,
+    "grid_ft": 10,
+    "surface": "turf",
+    "origin": "home-left snake corner, +X dorito, +Y toward away"
+  },
+  "coordinate_status": "official_image_only",
+  "bunkers": [],
+  "id": "usxbl_2026_practice",
+  "league": "US Xball League",
+  "league_code": "USXBL",
+  "event": "2026 Season Practice Layout",
+  "season": 2026,
+  "dates": "2026-01-07",
+  "venue": {
+    "name": "practice / multi-event concept layout",
+    "city": "",
+    "state": "",
+    "country": "US"
+  },
+  "status": "practice_only",
+  "views": [
+    {
+      "id": "ig",
+      "kind": "ig_drop",
+      "file": "images/usxbl_2026_practice.jpg"
+    }
+  ],
+  "sources": [
+    {
+      "type": "fb",
+      "url": "https://www.facebook.com/usxbl/posts/practice-layout-drop-to-warm-up-for-the-new-season/1297372399092680/"
+    }
+  ],
+  "notes": [
+    "Practice concept layout. Event layouts were altered from this. Verify against event-specific posts before using as match map."
+  ]
+}

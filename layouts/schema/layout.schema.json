@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://woodandsons.local/schemas/paintball-layout-2026.json",
+  "title": "PaintballEventLayout",
+  "type": "object",
+  "required": ["id", "league", "event", "year", "status", "field", "sources", "files"],
+  "properties": {
+    "id": { "type": "string" },
+    "league": { "type": "string" },
+    "league_code": { "type": "string" },
+    "event": { "type": "string" },
+    "year": { "type": "integer" },
+    "dates": {
+      "type": "object",
+      "properties": {
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" }
+      }
+    },
+    "venue": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "city": { "type": "string" },
+        "region": { "type": "string" },
+        "country": { "type": "string" }
+      }
+    },
+    "status": { "enum": ["published", "unreleased", "image_only", "used_other_event_layout"] },
+    "coordinates": { "enum": ["grid_read", "image_only", "none"] },
+    "field": {
+      "type": "object",
+      "properties": {
+        "length_ft": { "type": "number" },
+        "width_ft": { "type": "number" },
+        "grid_ft": { "type": "number" },
+        "origin": { "type": "string" }
+      }
+    },
+    "format_notes": { "type": "string" },
+    "same_as": { "type": ["string", "null"] },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "properties": {
+        "images": { "type": "array", "items": { "type": "string" } },
+        "pdfs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "views": { "type": "array", "items": { "type": "string" } },
+    "bunker_legend": { "type": "object" },
+    "bunkers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "side": { "type": "string" },
+          "grid": {
+            "type": "object",
+            "properties": {
+              "x_ft": { "type": "number" },
+              "y_ft": { "type": "number" },
+              "confidence": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

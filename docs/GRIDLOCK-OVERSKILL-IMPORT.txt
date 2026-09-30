@@ -1,0 +1,129 @@
+Build GRIDLOCK — The Gridlock System powered by UPRA. Professional paintball coaching and league-ops app for coaches, players, and league admins. Dark stadium-night look. Navy panels, deep green turf field, gold accents, chalk-white type. Not cartoon. Not a golf course. Works on phone (bottom tabs) and tablet (side rail).
+
+Brand
+Product name GRIDLOCK. Line under the name SYSTEM. Edition COACH EDITION. Tagline Call the break. Direct the five. Own the point. Footer GRIDLOCK System · powered by UPRA. Training-aid disclaimer on Playbook and Scout — officials govern the live call. Heuristic reads are not predictions.
+
+Never use the word GunzUp anywhere in the product, code, or copy. Label that control Shot lanes.
+
+Use OverSkill built-in sign-in (email, Google, Apple), database, email, push notifications, file uploads, and payments. Do not invent a custom auth stack, custom database, or custom SMS gateway.
+
+First screen
+Promo cover of the app name. Do not auto-open the tutorial.
+Buttons
+- Staff — create account
+- Staff — log in
+- Tutorial
+- Continue as guest
+After they enter, each tab may show a small first-use popup that explains what a control does and why. Remember don’t show this tip again per control. Settings can show the tutorial again.
+
+Roles
+- Guest — browse Playbook, Tally, Scout. Join a class with a code. Cannot create classes or send league blasts.
+- Staff / Coach — signed-in coach. Full coaching tools, create classes, QR, roster, bunker names.
+- League Admin — staff who can also manage League groups and send blasts.
+- Participant — fills a class form. No account required.
+Creating a class or sending a league blast requires staff login. Joining a class does not.
+
+Pages
+Phone tabs Playbook, Tally, Scout, Sightlines, More.
+More contains Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Classes, League, Nexus.
+
+1) Playbook
+Live field for the selected event layout. Changing the event changes the layout on every tab.
+Five players. Each player has a unique path for that layout plus that break script. Play path animates each token from the start box to their plant bunker. Face chevron and shot cone travel WITH the player. They do not jump to the plant early.
+Customize mode — drag path end-handle, drag gold aim tip, Erase path, Reset all, optional Smooth curve. Ease-out interpolation. Endpoints exact.
+Direct your players — per player Face on/off, Shot on/off, Primary and Secondary position (P|S), zone. Face opens an 8-way pad (NW N NE / W E / SW S SE). Shot target can be a lane, a zone, or a named bunker.
+Toolbar chips left to right
+- Active set — live break plus aggression read
+- Script — opening script, step first breaks
+- Counter — answer to the opponent likely break
+- Roles — tag each player job
+- Cards — assignment cards per player
+- Opp — they run X we run Y
+- Rep — recognition drill until the call is instant
+- Log break — log what you actually called
+Also on Playbook — Play / Pause path, Smooth, Name bunkers.
+Seed breaks — Hold and Read, Balanced Break, Snake Stack, Dorito Flood, Conservative, Counter Break, Wire Split, Tower / Center, Clean / Lane Trade, Contain Both Wires, Lock the Lanes, Blitz.
+
+2) Tally
+Sideline sheet for who went out. Per point, your five and their five. Out or alive. Shot at bunker. Moved to bunker. Big tap targets. Feeds bunker stats.
+
+3) Scout
+Dual-pit matchup board.
+Left card and right card. Team dropdown. Points. Label OPPONENT LEFT / OPPONENT RIGHT. Tendency chips Snake, Balanced, Dorito. Threat stars 1 to 5. Notes field.
+Field under the cards — same layout. Red paths left team. Blue paths right team. Role numbers. Gunfight rings. X means out. Labels DORITO SIDE on top and SNAKE SIDE on bottom.
+Controls — Roles on/off, Play break, Shot lanes on/off, How to anticipate.
+Sub-tabs — Matchup and Sim, Breakouts, Historical layers, Games and replay.
+Matchup and Sim — win percent bar both colors, plan-read sentence marked as a heuristic not a prediction, wire chips Snake front / Snake / Center-50 / Dorito, refs note, sample point, Who goes where for both teams, Anticipate cards (Likely, Tells at the line, Your counter), Counter-picker with match state Ahead / Even / Must-score and ranked breaks with percent bars. Copy matchup card.
+Division scout board — division picker seeded CIN Semi-Pro X-Ball, search team, columns number, team, REG PAID or PEND, FILM, TENDENCY S / Bal / D, THREAT stars. Tap a row loads the right pit. Long-press loads the left pit.
+Seed teams — Beefy Boys, Blast Camp, Brooklyn Wolfpack, Clutch City Oilers, Distortion Immortals, Hurricanes SP, KC Missouri Allstars, Las Vegas Shock, Legacy Factory, Louisville Asylum, Malicious, Miami Effect, New Jersey Filthy, Rejects.
+
+4) Sightlines
+Pick a bunker. Draw clear shot lines that do not pass through bunker footprints (circle plus polygon blocking).
+
+5) Walk
+Field-walk notes tied to the current layout.
+
+6) Lineups
+Who is on this point. Five slots. Primary and secondary positions.
+
+7) Movement
+Bunker-to-bunker moves after the break. Feeds bunker visit stats.
+
+8) Assess
+Grade a player. Name, score, notes.
+
+9) Codes
+Team code words for the event.
+
+10) Bunker stats
+Visits, shots, holds, elims from tally plus movement plus calls. Heat overlay on the field. Filter by layout.
+
+11) Team
+Roster name, number, primary position, secondary position, notes, optional photo upload, optional public league player id. Team join code. Bunker calls for this team on the current layout. Official name stays on the map. Team call is what the squad yells. Player call is a personal word. Show a mini field while naming.
+
+12) Messages
+Squad notes for the active team.
+
+13) Classes
+Staff creates a class — title, notes, start time. Unique join code like GL-7K2M plus QR plus shareable link. Open or close forms. Share sheet.
+Participants with no account — Join class, enter code or open link, fill full name, phone or email optional, experience New / Rec / Division / Pro-semi, preferred wire Snake / Dorito / Center / Flex / Back, notes, checkbox training sign-in form. Submit.
+Staff sees responses under that class.
+
+14) League (admin only)
+Default groups Ops, Refs, Registration, Vendors. Admin can add a group, delete a group, add a member (name, phone, email, optional role note), delete a member.
+Text and notification blast — pick one or more groups, write the update, send. Recipients are unique members with a phone or email. Use OverSkill email and push. Also offer Open phone Messages with the phone list and body prefilled. Log every blast (body, groups, recipient count, time, staff). One-line note — only message people who agreed to league ops texts.
+
+15) Nexus
+Active layout and event list. Optional event feed URL. Blank means offline seed events. Staff sign out. Show tutorial again. Privacy note.
+Events have league name, logo, dates, venue, layout key. Include major US leagues and regionals including North Georgia XBall League. Selecting an event switches the layout everywhere.
+
+Field rules
+Top-down paintball field. Exact bunker footprints — dorito triangles, cans, temples, wedges, snake, bricks — more shapey, not circles only. Grid turf. Start with Tampa Bay Open / Cincinnati-style 5-man map with official codes MD, MW, GP, T, Br, C, Tr, Wg, Ck, SD, MT, GW, GB. Paths unique per layout and based on major-league paintball breaks.
+
+Data tables
+User (email, role guest or staff or admin, displayName)
+Team (code, name)
+Player (name, number, primaryPosition, secondaryPosition, notes, teamId, photoUrl, publicPlayerId)
+Play / Script log
+Message
+AssessmentEntry
+TallyEntry (point, player, out, shotAtBunker, movedToBunker, layoutKey)
+ScoutEntry (team, layout, breakName, notes)
+ScoutTeamProfile (name, points, region, filmCount, tendency, threat, notes)
+BunkerCall (layoutKey, bunkerId, teamName, playerNames)
+ClassSession (joinCode, title, detail, startsAt, isOpen, staffId)
+ClassResponse (sessionId, name, contact, experience, preferredWire, notes, agreed)
+LeagueGroup (name)
+LeagueMember (groupId, name, phone, email, roleNote)
+LeagueBlast (body, groupNames, recipientCount, staffId)
+PathEdit (layoutKey, scriptId, playerId, from, to, via, aim, faceDeg)
+Event (name, league, layoutKey, date, venue, logoUrl)
+Layout and Bunker (key, x, y, shape, officialName)
+OpponentBreak (theyRun, weRun)
+TipSeen (userId, tipId)
+
+Payments
+Coach plan and League plan using built-in payments. Guest join-class is free. Creating classes and league blasts requires a signed-in staff account.
+
+Tone
+Short labels a paintball coach can read in the pit. Phone-first. Fast. If a network call fails, keep last local data. Do not invent live official scores. Do not scrape copyrighted player photos — use initials until a photo is uploaded.

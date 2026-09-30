@@ -1,0 +1,16 @@
+App/build
+App/Pods
+App/output
+# App/App/public is committed on purpose: the shell carries the web build so a
+# fresh clone opens in Xcode to a working app, and store-check compares it to
+# web/. Capacitor's template ignored it, which silently dropped every web file
+# added after the first force-add — the Voice log scripts shipped missing.
+DerivedData
+xcuserdata
+
+# Cordova plugins for Capacitor
+capacitor-cordova-ios-plugins
+
+# Generated Config files
+App/App/capacitor.config.json
+App/App/config.xml

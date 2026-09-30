@@ -1,0 +1,20 @@
+{
+  "_": "The two builds. `short` is the word a coach reads on screen; `appId` and `scheme` are the store identity. Lowercase `gridlock` tokens in the code (window.gridlock*, storage keys, the copy format, the service-worker cache) are NOT a brand and never change in either build — see docs/BRANDS.md.",
+  "default": "gridlock",
+  "brands": {
+    "gridlock": {
+      "short": "Gridlock",
+      "name": "Gridlock Coach",
+      "appId": "com.upra.gridlock.coach",
+      "scheme": "gridlock",
+      "contact": "site/contact.json"
+    },
+    "grindx": {
+      "short": "Grind X",
+      "name": "Grind X Coach",
+      "appId": "com.upra.grindx.coach",
+      "scheme": "grindx",
+      "contact": "site/contact.grindx.json"
+    }
+  }
+}

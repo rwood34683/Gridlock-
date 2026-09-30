@@ -1,0 +1,31 @@
+{
+  "updatedAt": "2026-08-13T00:39:47Z",
+  "events": [
+    {
+      "id": "nxl-2026-midwest",
+      "name": "NXL Midwest Open",
+      "league": "NXL",
+      "startDate": "2026-06-25",
+      "endDate": "2026-06-28",
+      "city": "Fairfield",
+      "region": "Ohio",
+      "country": "USA",
+      "layoutKey": "cin",
+      "sourceURL": null,
+      "source": "upra-feed"
+    },
+    {
+      "id": "nxl-2026-wc",
+      "name": "NXL World Cup 2026",
+      "league": "NXL",
+      "startDate": "2026-11-11",
+      "endDate": "2026-11-15",
+      "city": "Kissimmee",
+      "region": "Florida",
+      "country": "USA",
+      "layoutKey": null,
+      "sourceURL": null,
+      "source": "upra-feed"
+    }
+  ]
+}

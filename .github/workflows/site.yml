@@ -1,0 +1,64 @@
+name: Publish Gridlock site
+# Deliberately manual: run this workflow to publish. It enables GitHub Pages on
+# the repository itself the first time (the job token carries pages: write), so
+# there is no settings page to visit first. The custom domain is set through
+# the API after deploy: Pages deployed from Actions ignores the CNAME file, and
+# the domain lives in the repository's Pages settings instead. Pointing the
+# domain's DNS at GitHub Pages is the one step this cannot do.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run site:check
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: site/CNAME
+          sparse-checkout-cone-mode: false
+      # The domain in site/CNAME (written by npm run contact -- --domain). A
+      # refusal here is reported, not fatal: the site is already live on the
+      # github.io address, and the domain can still be typed into Settings → Pages.
+      - name: Set the custom domain
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          domain=$(tr -d '[:space:]' < site/CNAME)
+          [ -n "$domain" ] || { echo "No domain in site/CNAME; leaving the github.io address."; exit 0; }
+          code=$(curl -sS -o /tmp/pages.json -w '%{http_code}' -X PUT \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" \
+            -d "{\"cname\":\"$domain\",\"https_enforced\":true}")
+          echo "PUT /pages → $code"; cat /tmp/pages.json; echo
+          case "$code" in 2*) echo "Custom domain set to $domain. Point its DNS at GitHub Pages if not already.";;
+            *) echo "Could not set the domain from here (HTTP $code). Enter $domain under Settings → Pages → Custom domain."; exit 1;; esac
