@@ -1,4 +1,4 @@
-// Grind X — admin read for League sync.
+// Gridlock — admin read for League sync.
 //
 // Returns every coach's latest season to an ALLOW-LISTED admin only. This is the
 // one place the service-role key is used, and it stays server-side inside the

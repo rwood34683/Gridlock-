@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-/* Grind X billing adapter (native/gridlock-billing.js) against a mocked
+/* Gridlock billing adapter (native/gridlock-billing.js) against a mocked
  * RevenueCat plugin. No store: a stubbed Purchases object returns canned
  * offerings and customer info, so the adapter's own mapping — products to
  * packages, entitlements to the {plan, exp, source} the app keeps — is checked. */

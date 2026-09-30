@@ -1,4 +1,4 @@
-/* Grind X cloud adapter — reference implementation.
+/* Gridlock cloud adapter — reference implementation.
  *
  * This is the shim docs/SERVER.md and docs/ADMIN-PORTAL.md describe. It fills in
  * window.gridlockCloud with account sign-in (Supabase Auth) and the opt-in

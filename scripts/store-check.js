@@ -86,17 +86,27 @@ for (const [rel, w, h] of SINGLES) {
 
 // The web app is committed into both native shells so Xcode and Android Studio
 // open to something. A stale copy is worse than none: the app runs, and it is
-// quietly the wrong version.
+// quietly the wrong version. A shell may be pointed at either brand
+// (npm run brand native <brand>), so each is compared against the source
+// transformed to the brand its own marker names, never against web/ raw.
 const SYNCED = [
   ["ios/App/App/public/index.html", "iOS"],
   ["android/app/src/main/assets/public/index.html", "Android"],
 ];
 {
-  const src = fs.readFileSync(path.join(ROOT, "web/index.html"), "utf8");
+  const brand = require("./brand");
   for (const [rel, name] of SYNCED) {
     const abs = path.join(ROOT, rel);
-    const same = fs.existsSync(abs) && fs.readFileSync(abs, "utf8") === src;
-    ok(`${name} shell carries this web build`, same, same ? "in step" : "stale — run npm run sync");
+    if (!fs.existsSync(abs)) { ok(`${name} shell carries this web build`, false, "missing — run npm run sync"); continue; }
+    const shell = fs.readFileSync(abs, "utf8");
+    const key = brand.markerOf(shell);
+    let same = false, detail;
+    try {
+      if (!key) throw new Error("no brand marker");
+      same = brand.expected("index.html", key).toString("utf8") === shell;
+      detail = same ? `in step (${key})` : `stale — run npm run sync, or npm run brand native ${key}`;
+    } catch (e) { detail = `${e.message} — run npm run sync`; }
+    ok(`${name} shell carries this web build`, same, detail);
   }
 }
 
@@ -121,7 +131,7 @@ if (fs.existsSync(contactFile)) {
   }
 }
 
-console.log("Grind X store listing check");
+console.log("Gridlock store listing check");
 console.log("============================\n");
 for (const [pass, name, detail] of rows)
   console.log(`  ${pass ? "PASS" : "FAIL"}  ${name.padEnd(38)}${detail}`);

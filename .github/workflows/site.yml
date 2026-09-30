@@ -1,4 +1,4 @@
-name: Publish Grind X site
+name: Publish Gridlock site
 # Deliberately manual: configure GitHub Pages and run this workflow to publish.
 on:
   workflow_dispatch:

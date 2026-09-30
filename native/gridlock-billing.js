@@ -1,4 +1,4 @@
-/* Grind X billing adapter — reference implementation (RevenueCat).
+/* Gridlock billing adapter — reference implementation (RevenueCat).
  *
  * Fills in window.gridlockBilling with buy() and restore(), returning the
  * {plan, exp, source} shape window.gridlockEntitle expects. In-app purchase is

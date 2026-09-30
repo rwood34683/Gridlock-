@@ -11,7 +11,7 @@ if exist "%GRINDX_NODE%" (
   "%GRINDX_NODE%" scripts\serve.js --open
   goto end
 )
-echo Grind X needs Node.js 22 or newer. Install it from https://nodejs.org and reopen this launcher.
+echo Gridlock needs Node.js 22 or newer. Install it from https://nodejs.org and reopen this launcher.
 pause
 :end
 if errorlevel 1 pause

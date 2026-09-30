@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-/* Grind X Admin Portal — aggregation across coaches' season copies. */
+/* Gridlock Admin Portal — aggregation across coaches' season copies. */
 const path = require("node:path");
 const { chromium } = require("playwright-core");
 const { launchOptions } = require("../scripts/browser.js");
@@ -12,7 +12,7 @@ function check(name, cond, extra) {
 }
 
 // Two coaches' season copies, in the shape Save a copy writes.
-const seasonA = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-03-01T00:00:00Z", app: "Grind X Coach",
+const seasonA = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-03-01T00:00:00Z", app: "Gridlock Coach",
   data: {
     matches: [ { id: "a1", layout: "lso", vs: "Dynasty" }, { id: "a2", layout: "lso", vs: "Impact" },
                { id: "aw", layout: "lso", vs: "Royalty", watch: true, home: "Dynasty", away: "Royalty" } ],
@@ -23,7 +23,7 @@ const seasonA = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
     pens: [ { side: "them", layout: "lso", m: "a1", pt: 2 } ],
     breakCalls: { snake: "Rocket" } } };
 
-const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-04-01T00:00:00Z", app: "Grind X Coach",
+const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-04-01T00:00:00Z", app: "Gridlock Coach",
   data: {
     matches: [ { id: "b1", layout: "mwo", vs: "Dynasty" } ],
     results: [ { m: "b1", pt: 1, won: "them" }, { m: "b1", pt: 2, won: "them" } ],

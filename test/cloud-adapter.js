@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-/* Grind X cloud adapter (native/gridlock-cloud.js) against a mocked Supabase.
+/* Gridlock cloud adapter (native/gridlock-cloud.js) against a mocked Supabase.
  * No live backend: a stubbed fetch records requests and returns canned answers,
  * so the adapter's own logic — sessions, offline fall-through, the upsert
  * payload, delete — is what gets checked. */

@@ -52,6 +52,9 @@ async function run(page) {
     bunkerCalls: {mwo: {"GW#1": "Home", "C#4": "Camp"}},
   })));
   await page.reload({waitUntil: "networkidle"});
+  // Since the Scout declutter, Voice log sits behind the "More ▾" fold with
+  // Anticipate, Layers and the arrival trail; open it the way a coach does.
+  await page.getByRole("button", {name: /^More ▾$/}).click();
   await button("Voice log").click();
   await page.locator("#voice-team").selectOption("Voice Opponent");
   await page.locator("#voice-player").selectOption("auto");

@@ -2,7 +2,7 @@
   "name": "gridlock-coach",
   "version": "1.0.0",
   "private": true,
-  "description": "Grind X System · powered by UPRA · Coach Edition — paintball coaching and league-ops app",
+  "description": "Gridlock System · powered by UPRA · Coach Edition — paintball coaching and league-ops app",
   "scripts": {
     "postinstall": "node scripts/patch-speech-plugin.js",
     "start": "node scripts/serve.js --open",
@@ -36,6 +36,7 @@
     "app:artifact": "node scripts/build-app-artifact.js",
     "icons": "node brand/generate-assets.js",
     "contact": "node scripts/contact.js",
+    "brand": "node scripts/brand.js",
     "test:arrival": "node scripts/run-checks.js arrival",
     "test:arrival-custom": "node scripts/run-checks.js arrival-custom",
     "test:platform": "node scripts/run-checks.js platform",

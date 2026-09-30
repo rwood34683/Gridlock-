@@ -10,6 +10,10 @@ const read = relative => fs.readFileSync(path.join(ROOT, relative), "utf8");
 let count = 0;
 function check(value, message) { assert(value, message); count++; console.log("PASS " + message); }
 function verify() {
+  // The shells hold whichever brand npm run brand native last pointed them at.
+  const brand = require("./brand");
+  const active = brand.byAppId(JSON.parse(read("capacitor.config.json")).appId);
+  check(!!active, "capacitor.config.json names a brand's appId" + (active ? ` (${active.key})` : ""));
   const cliRequire = createRequire(require.resolve("@capacitor/cli/package.json"));
   const plist = cliRequire("plist");
   const xcode = cliRequire("xcode");
@@ -20,7 +24,7 @@ function verify() {
   check(entries("PBXNativeTarget").some(target => target.name === "App"), "Xcode project parses and contains App target");
   const configs = entries("XCBuildConfiguration").map(config => config.buildSettings);
   check(configs.length >= 4 && configs.every(settings => Number.parseFloat(settings.IPHONEOS_DEPLOYMENT_TARGET) >= 15), "all project and target configurations support iOS 15 or newer");
-  check(configs.filter(settings => settings.PRODUCT_BUNDLE_IDENTIFIER).every(settings => settings.PRODUCT_BUNDLE_IDENTIFIER === "com.upra.gridlock.coach"), "bundle identifier is consistent");
+  check(configs.filter(settings => settings.PRODUCT_BUNDLE_IDENTIFIER).every(settings => settings.PRODUCT_BUNDLE_IDENTIFIER === active.appId), `bundle identifier is ${active.appId} throughout`);
   const refs = objects.PBXFileReference;
   const buildFiles = objects.PBXBuildFile;
   function phaseHas(section, filename) {
@@ -38,7 +42,7 @@ function verify() {
   check(read("ios/App/App/AppDelegate.swift").includes("config.delegateClass = SceneDelegate.self"), "AppDelegate creates the scene configuration");
   const sceneSource = read("ios/App/App/SceneDelegate.swift");
   check(sceneSource.includes("CAPBridgeViewController()") && sceneSource.includes("SceneDelegateProxy.shared.scene(scene, willConnectTo:") && sceneSource.includes("openURLContexts:") && sceneSource.includes("continue: userActivity"), "scene creates the Capacitor bridge and forwards cold/warm links");
-  check(info.CFBundleURLTypes.some(type => type.CFBundleURLSchemes.includes("gridlock")), "iOS class URL scheme is registered");
+  check(info.CFBundleURLTypes.some(type => type.CFBundleURLSchemes.includes(active.scheme)), `iOS class URL scheme ${active.scheme}:// is registered`);
   check(info.NSMicrophoneUsageDescription && info.NSSpeechRecognitionUsageDescription, "iOS microphone and speech permission descriptions are present");
   const privacy = plist.parse(read("ios/App/App/PrivacyInfo.xcprivacy"));
   for (const [category, reason] of [["UserDefaults", "CA92.1"], ["FileTimestamp", "C617.1"]]) check(privacy.NSPrivacyAccessedAPITypes.some(api => api.NSPrivacyAccessedAPIType === "NSPrivacyAccessedAPICategory" + category && api.NSPrivacyAccessedAPITypeReasons.includes(reason)), category + " privacy reason is declared");
@@ -63,14 +67,22 @@ function verify() {
   const iosOnly = process.argv.includes("--ios");
   const destinations = ["ios/App/App/public"];
   if (!iosOnly) destinations.push("android/app/src/main/assets/public");
-  function visit(relative = "") {
-    for (const entry of fs.readdirSync(path.join(ROOT, "web", relative), { withFileTypes: true })) {
-      const file = path.join(relative, entry.name);
-      if (entry.isDirectory()) visit(file);
-      else for (const destination of destinations) assert(fs.readFileSync(path.join(ROOT, "web", file)).equals(fs.readFileSync(path.join(ROOT, destination, file))), `Stale native file: ${destination}/${file}. Run npm run sync.`);
-    }
+  // Each shell is compared against the source transformed to the brand the
+  // shell's own marker names, so a shell pointed at the other brand is in step
+  // rather than stale.
+  for (const destination of destinations) {
+    const key = brand.markerOf(read(`${destination}/index.html`));
+    assert(key, `${destination}/index.html carries no brand marker. Run npm run sync.`);
+    assert(key === active.key, `${destination} holds ${key} but capacitor.config.json names ${active.key}. Run npm run brand native ${active.key}.`);
+    (function visit(relative = "") {
+      for (const entry of fs.readdirSync(path.join(ROOT, "web", relative), { withFileTypes: true })) {
+        const file = relative ? `${relative}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) visit(file);
+        else assert(brand.expected(file, key).equals(fs.readFileSync(path.join(ROOT, destination, file))), `Stale native file: ${destination}/${file}. Run npm run sync, or npm run brand native ${key}.`);
+      }
+    })();
   }
-  visit(); check(true, "every bundled web file matches source");
+  check(true, `every bundled web file matches source (${active.key})`);
   const iosConfig = JSON.parse(read("ios/App/App/capacitor.config.json"));
   check(iosConfig.packageClassList.includes("FilesystemPlugin"), "Filesystem is registered in the iOS bridge");
   check(iosConfig.packageClassList.includes("SpeechRecognitionPlugin"), "speech recognizer is registered in the iOS bridge");

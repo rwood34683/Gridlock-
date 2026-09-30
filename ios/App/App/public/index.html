@@ -3,18 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="description" content="Grind X Coach: plan paintball breakouts, scout opponents, track matches and manage your squad on the sideline."/>
+<meta name="description" content="Gridlock Coach: plan paintball breakouts, scout opponents, track matches and manage your squad on the sideline."/>
 <meta name="theme-color" content="#0b0c0d"/>
 <meta name="color-scheme" content="dark"/>
+<meta name="brand" content="gridlock"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Grind X"/>
+<meta name="apple-mobile-web-app-title" content="Gridlock"/>
 <meta name="format-detection" content="telephone=no"/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" href="icon.svg" type="image/svg+xml"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<title>Grind X System · Coach Edition</title>
+<title>Gridlock System · Coach Edition</title>
 <style>
 :root{
   /* ---- surface: five steps, so depth means something ---- */
@@ -2433,7 +2434,7 @@ function copyPayload(scope){
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
-                         at: new Date().toISOString(), app: "Grind X Coach", data}, null, 1);
+                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
@@ -2525,8 +2526,8 @@ function mergeInto(cur, incoming){
 function readCopy(text){
   let p;
   try { p = JSON.parse(String(text || "").trim()); }
-  catch(e){ return {error: "That is not a Grind X copy — it is not readable as JSON."}; }
-  if(!p || p.format !== COPY_FORMAT) return {error: "That file is not a Grind X copy."};
+  catch(e){ return {error: "That is not a Gridlock copy — it is not readable as JSON."}; }
+  if(!p || p.format !== COPY_FORMAT) return {error: "That file is not a Gridlock copy."};
   if(!Number.isInteger(p.v) || p.v < 1) return {error: "That copy has an invalid version number."};
   if(p.v > COPY_VERSION) return {error: `That copy was written by a newer version of the app (v${p.v}).`};
   if(!plainRecord(p.data)) return {error: "That copy has nothing in it."};
@@ -4133,7 +4134,7 @@ function promo(){
            that it came back has to be here or he signs in thinking it is gone. */""}
     ${storeWarning()}
     <div class="promo__mark">
-      <div class="promo__name">Grind X</div>
+      <div class="promo__name">Gridlock</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
     ${S.mode === "create" || S.mode === "login" ? "" : `
@@ -4150,7 +4151,7 @@ function promo(){
            fold on a phone, with six buttons and two ways to do one thing all
            on screen at once. One screen, one job. */""}
     ${S.mode === "create" || S.mode === "login" ? authForm() + `
-      <p class="note">Grind X System · powered by UPRA</p>
+      <p class="note">Gridlock System · powered by UPRA</p>
     </div>` : `
     <div class="stack">
       ${/* No way past this screen but an account, by the owner's decision. The
@@ -4175,7 +4176,7 @@ function promo(){
         S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
     </div>
     ${S.promoTour ? tourPanel() : ""}
-    <p class="note">Grind X System · powered by UPRA</p>`}
+    <p class="note">Gridlock System · powered by UPRA</p>`}
   </div>`;
 }
 // Whether this phone already carries a staff account, so the sign-in line
@@ -4736,10 +4737,10 @@ function cardLines(){
   });
 }
 window.shareCards = () => {
-  const t = `Grind X · ${breakName()} · ${curLayout().name}\n\n`
+  const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
         + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`).join("\n\n");
-  if(window.gridlockShare) window.gridlockShare(t, "Grind X cards"); else prompt("Cards", t);
+  if(window.gridlockShare) window.gridlockShare(t, "Gridlock cards"); else prompt("Cards", t);
 };
 
 /* ============================================================
@@ -6962,8 +6963,8 @@ function scoutCounter(){
     })();
 }
 window.copyMatchup = () => {
-  const t=`Grind X · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
-  if(window.gridlockShare) window.gridlockShare(t,"Grind X matchup"); else prompt("Matchup card", t);
+  const t=`Gridlock · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
+  if(window.gridlockShare) window.gridlockShare(t,"Gridlock matchup"); else prompt("Matchup card", t);
 };
 
 function scoutBoard(){
@@ -7222,7 +7223,7 @@ window.shareClass = code => {
              clean(c.notes||""), c.open ? "" : "Sign-ins are closed.",
              "Sign in on the coach's phone — the session lives there."]
             .filter(Boolean).join("\n");
-  if(window.gridlockShare) window.gridlockShare(t, "Grind X class"); else prompt("Class", t);
+  if(window.gridlockShare) window.gridlockShare(t, "Gridlock class"); else prompt("Class", t);
 };
 window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
@@ -7334,7 +7335,7 @@ window.sendBlast = () => {
   S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body,
              to:picked.map(g=>g.name).join(", ")},...S.blasts];
   save(S);
-  if(rec.length && window.gridlockShare) window.gridlockShare(body+"\n"+rec.join(", "),"Grind X league blast");
+  if(rec.length && window.gridlockShare) window.gridlockShare(body+"\n"+rec.join(", "),"Gridlock league blast");
   else prompt("Copy this blast", body+"\n"+rec.join(", "));
   render();
 };
@@ -8205,7 +8206,7 @@ function moreBody(k){
     ${verifyBlock()}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
-    <p class="note">Grind X System · powered by UPRA</p>`)
+    <p class="note">Gridlock System · powered by UPRA</p>`)
   + (canSync() ? sec("League sync", `<p class="lede">Send this season to your league's admin, so the whole year across every coach
       is in one place. This is the one thing that leaves your phone — and only because you turn it on.</p>
     <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
@@ -8313,7 +8314,7 @@ function shell(){
   return `<div class="app">
     <header class="hdr">
       <div class="hdr__top">
-        <div class="brand">Grind X<small>SYSTEM · COACH</small></div>
+        <div class="brand">Gridlock<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
         ${line}
         <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
@@ -8329,7 +8330,7 @@ function shell(){
       </div>`}
     </header>
     <main class="main">${contextWarning()}${storeWarning()}${tut}${page}
-      <p class="note">Grind X System · powered by UPRA · officials govern the live call</p>
+      <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
     ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}

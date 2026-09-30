@@ -1,5 +1,5 @@
 "use strict";
-/* Idempotent Grind X additions to freshly generated Capacitor projects. */
+/* Idempotent Gridlock additions to freshly generated Capacitor projects. */
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
@@ -23,7 +23,20 @@ function withAndroidDomain(text, domain) {
             <!-- gridlock-app-link:end -->
         </activity>`);
 }
+// The brand the shells are pointed at: the one whose appId capacitor.config.json
+// names, falling back to the default. scripts/brand.js switches it; this only reads.
+function activeBrand() {
+  let brands;
+  try { brands = JSON.parse(fs.readFileSync(path.join(ROOT, "brand/brands.json"), "utf8")); }
+  catch { return { key: "gridlock", short: "Gridlock", name: "Gridlock Coach", appId: "com.upra.gridlock.coach", scheme: "gridlock", contact: "site/contact.json" }; }
+  const config = path.join(ROOT, "capacitor.config.json");
+  const appId = fs.existsSync(config) ? JSON.parse(fs.readFileSync(config, "utf8")).appId : null;
+  const found = Object.entries(brands.brands).find(([, b]) => b.appId === appId);
+  const [key, brand] = found || [brands.default, brands.brands[brands.default]];
+  return { key, ...brand };
+}
 function configure() {
+  const brand = activeBrand();
   // npm ci applies this too; native builds remain safe after --ignore-scripts.
   const speechPackage = path.join(ROOT, "node_modules/@capgo/capacitor-speech-recognition/package.json");
   if (fs.existsSync(speechPackage)) require("./patch-speech-plugin").patch();
@@ -44,17 +57,17 @@ function configure() {
   update("ios/App/Podfile", text => text.replace(/platform :ios, '([0-9.]+)'/, (match, version) => Number.parseFloat(version) < 15 ? "platform :ios, '15.0'" : match));
   update("ios/App/App.xcodeproj/project.pbxproj", text => text.replace(/IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);/g, (match, version) => Number.parseFloat(version) < 15 ? "IPHONEOS_DEPLOYMENT_TARGET = 15.0;" : match));
   update("android/app/src/main/AndroidManifest.xml", text => text.replace(/android:configChanges="([^"]+)"/, (match, values) => values.split("|").includes("density") ? match : `android:configChanges="${values}|density"`));
-  update("android/app/src/main/AndroidManifest.xml", text => text.includes('android:scheme="gridlock"') ? text : text.replace("        </activity>", `            <intent-filter>
+  update("android/app/src/main/AndroidManifest.xml", text => text.includes(`android:scheme="${brand.scheme}"`) ? text : text.replace("        </activity>", `            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="gridlock" />
+                <data android:scheme="${brand.scheme}" />
             </intent-filter>
         </activity>`));
-  const contactFile = path.join(ROOT, "site/contact.json");
+  const contactFile = path.join(ROOT, brand.contact);
   const domain = fs.existsSync(contactFile) ? JSON.parse(fs.readFileSync(contactFile, "utf8")).domain : null;
   update("android/app/src/main/AndroidManifest.xml", text => withAndroidDomain(text, domain));
-  update("android/app/src/main/res/values/strings.xml", text => text.replace(/(<string name="custom_url_scheme">)[^<]*(<\/string>)/, "$1gridlock$2"));
+  update("android/app/src/main/res/values/strings.xml", text => text.replace(/(<string name="custom_url_scheme">)[^<]*(<\/string>)/, `$1${brand.scheme}$2`));
   update("android/app/src/main/res/values/ic_launcher_background.xml", text => text.replace("#FFFFFF", "#0b0c0d"));
   const androidApp = path.join(ROOT, "android/app");
   if (fs.existsSync(androidApp)) {
@@ -96,8 +109,8 @@ gradle.taskGraph.whenReady { graph ->
   }
   update("ios/App/App/Info.plist", text => text.includes("CFBundleURLTypes") ? text : text.replace("\t<key>LSRequiresIPhoneOS</key>", `\t<key>CFBundleURLTypes</key>
 \t<array><dict>
-\t\t<key>CFBundleURLName</key><string>com.upra.gridlock.coach</string>
-\t\t<key>CFBundleURLSchemes</key><array><string>gridlock</string></array>
+\t\t<key>CFBundleURLName</key><string>${brand.appId}</string>
+\t\t<key>CFBundleURLSchemes</key><array><string>${brand.scheme}</string></array>
 \t</dict></array>
 \t<key>LSRequiresIPhoneOS</key>`));
   const iosApp = path.join(ROOT, "ios/App/App");
@@ -130,4 +143,4 @@ gradle.taskGraph.whenReady { graph ->
   }
 }
 if (require.main === module) configure();
-module.exports = { configure, withAndroidDomain };
+module.exports = { configure, withAndroidDomain, activeBrand };

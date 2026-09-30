@@ -1,6 +1,6 @@
-# Grind X Coach — Claude Code instructions
+# Gridlock Coach — Claude Code instructions
 
-You are working on **Grind X System · powered by UPRA · Coach Edition**.
+You are working on **Gridlock System · powered by UPRA · Coach Edition**.
 Paintball sideline app for coaches and league staff.
 
 ## How to use this repo in Claude Code
@@ -15,6 +15,17 @@ Source of truth for *working UI*: `web/index.html` (open in a browser)
 Legacy native snapshot: `ios-native/GRIDLOCK-Coach/` (early SwiftUI, missing later tabs).
 `ios/` and `android/` are the generated Capacitor projects — edit `web/`, then `npm run sync`.
 Do not treat Overskill `.txt` as compiled code. It is the product prompt.
+
+## Two builds, one source
+
+The app ships as **Gridlock** (the default — everything committed reads
+Gridlock) and **Grind X** (a variant built from the same source). Both are
+defined once in `brand/brands.json`; `npm run brand` builds, checks and
+switches them, and `docs/BRANDS.md` is the long version. The rule: the capital
+word **Gridlock**, the deep link `gridlock://` and the store identity change per
+build; every lowercase `gridlock` token — `window.gridlock*`, the storage keys,
+`COPY_FORMAT`, the service-worker cache, `GridlockVoiceParser` — is a namespace
+shared by both and **never changes**. The build refuses if one moves.
 
 ## Hard rules
 
@@ -278,6 +289,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 
 ## Do not
 
+- Rename a lowercase `gridlock` token, or write the brand name into one. The
+  display word is Gridlock and it changes per build; `gridlock.coach.v2`,
+  `gridlock.coach.copy`, `window.gridlockKeep` and the rest are where a coach's
+  season lives, and are identical in every build or the other build cannot read
+  it. `scripts/brand.js` counts them and refuses. Never `Grind X` in `web/` or
+  `site/` either — the variant is generated, and the suite fails on a stray name.
 - Rebuild custom cloud auth in the first pass. (There is still no server. Nexus →
   Save a copy is the offline answer to backup and moving between phones.)
 - Scrape player face photos.
@@ -463,7 +480,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   of the first is a trap.
 - Make a price or account claim on the welcome page. It carried "No account
   needed · nothing ever leaves your phone", which is true — the money runs
-  through the coach's Apple ID, so there is never a Grind X sign-up — but on
+  through the coach's Apple ID, so there is never a Gridlock sign-up — but on
   a first screen it read as *this is free*, and a wall on Scout after it would
   be a bait. The owner's call is that the page sells what the app does and
   nothing else. A welcome screen that promises nothing cannot break a promise.
@@ -508,7 +525,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and the pitch goes with them, because a coach filling in the form has already
   decided. And `.promo` used `justify-content:flex-end`, which pushes the first
   child above the scroll origin the moment the content is taller than the box,
-  where it can never be scrolled back to — that is how Grind X ended up under
+  where it can never be scrolled back to — that is how Gridlock ended up under
   the status bar. `margin-top:auto` on the first child does the same job and
   collapses to nothing when it overflows.
 - Put a way past the welcome page that is not the account. The owner's call is
