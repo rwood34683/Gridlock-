@@ -2098,7 +2098,7 @@ const ROSTER = [
   G("Tampa Bay");
   check("every layout that ships says where it came from", await ev(() =>
     Object.keys(LAYOUTS).length === 3 &&
-    Object.values(LAYOUTS).every(l => /official NXL labeled 2D/.test(l.source))));
+    Object.values(LAYOUTS).every(l => /official NXL field map/.test(l.source))));
   check("the event becomes a picker once there is more than one to pick", await ev(() => {
     window.set({ tab: "playbook" });
     return !!document.querySelector("button.ctx");
@@ -3241,6 +3241,41 @@ const ROSTER = [
   check("a pit can be emptied again", await ev(() => {
     window.setPitTeam("right", "");
     return !pitNamed("right") && curMatch().vs === "Rejects";   // the sheet keeps its own
+  }));
+
+  // The field with nobody to log against. The sheet used to open anyway and
+  // Log stored the break with vs "" — a point charted into a void while the
+  // gate above it said to name the team first.
+  check("tapping the field with no opponent opens no sheet and sends him to the picker", await ev(() => {
+    window.set({ right: { name: "Dynasty" } });
+    S.matches = S.matches.map(m => ({ ...m, vs: "" })); window.set({ tab: "tally", tallySel: null, tallyNudge: false });
+    window.tallyTap({ x: 20, y: 40 });
+    const root = document.getElementById("root");
+    return !S.tallySel && S.tallyNudge === true && /Name them first/.test(root.textContent) && !!root.querySelector("#tally-opp");
+  }));
+  check("the team Scout has in the right pit is one tap away: Play Dynasty starts the match", await ev(() => {
+    const btn = [...document.querySelectorAll("#root button")].find(b => b.textContent.trim() === "Play Dynasty");
+    if (!btn) return false;
+    btn.click();
+    return matchVs() === "Dynasty" && !S.tallyNudge && !/Who are you playing/.test(document.getElementById("root").textContent);
+  }));
+  check("a blank unnamed sheet is replaced by the first real one; one with entries is kept", await ev(() =>
+    !S.matches.some(m => !m.vs && matchSize(m.id) === 0) && S.matches.filter(m => m.vs === "Dynasty").length === 1));
+  check("Log refuses a break against nobody", await ev(() => {
+    S.matches = S.matches.map(m => ({ ...m, vs: "" })); window.set({});
+    window.selectBunker(curLayout().bunkers[0].id);
+    const n = (S.breakouts || []).length;
+    window.logBreakout();
+    return (S.breakouts || []).length === n && S.tallyNudge === true && !S.tallySel;
+  }));
+  // More is a menu of fifteen screens; it opened inside Classes, so the first
+  // thing a coach saw under it was a clinic sign-in form.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "networkidle" });
+  check("More opens on its menu, not inside Classes", await ev(() => {
+    window.set({ entered: true, role: "staff", tab: "more" });
+    const t = document.getElementById("root").textContent;
+    return S.more === null && /Whiteboard/.test(t) && /Nexus/.test(t) && !/Create class/.test(t);
   }));
 
   /* --------------------------------------------------------------- matches */

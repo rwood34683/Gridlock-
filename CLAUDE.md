@@ -582,6 +582,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   needs none", which stopped being true the moment the promo required one. It
   says what the account actually is instead: a lock on this phone, with no
   server to send it to.
+- Open a sheet with nobody to log against. Tally's field opened the breakout
+  sheet whether or not the match had an opponent, and Log stored the row with
+  `vs: ""` — a point charted into a void while the gate above it said to name
+  the team first. `tallyTap()` and `logBreakout()` both go through
+  `needOpponent()` now: no sheet, the picker scrolled under his thumb and lit,
+  and when Scout already has a team in the right pit, **Play ‹team›** is one
+  tap (`playPit()`). The first real sheet replaces the blank unnamed one the
+  app opened with rather than leaving "No opponent" in his list of matches.
+- Land a tab inside one of its screens. `more` defaulted to `"classes"`, so
+  the first thing under More was a clinic sign-in form, not the menu of
+  fifteen. A tab opens on its menu; the section a coach was on is remembered
+  after that.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday
