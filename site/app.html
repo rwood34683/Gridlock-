@@ -4729,6 +4729,19 @@ function editProfile(side, patch){
   S.scout = {...(S.scout || {}), [name]: {...profileOf(name), ...patch}};
   save(S);
 }
+/* A team typed on the point sheet: added to this division if nobody has it,
+ * then into the right pit, the same door the picker uses. Nothing is logged
+ * until he taps a bunker, so a typo here costs one tap on the picker. */
+window.playNamed = () => {
+  const el = document.getElementById("oppName");
+  const name = clean((el && el.value || "").trim());
+  if(!name){ flash("Type the team's name first."); return; }
+  if(!anyTeam(name)){
+    const id = divisionOf().id;
+    S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
+  }
+  setPitTeam("right", name);
+};
 window.setPitTeam = (side, name) => {
   S[side] = {...(S[side] || {}), name: name || ""};
   if(side === "right"){ adoptPitAsOpponent(); if(matchVs()) S.tallyNudge = false; }
@@ -6249,6 +6262,7 @@ function tally(){
   const col=(side,label,colour,names)=>`<div>
     <h4 class="sec__eyebrow" style="color:${colour};margin-bottom:8px">${label} · ${alive(side)} up</h4>
     ${side === "us" ? rotate : ""}
+    ${side === "us" && !mine.length && !(curMatch()||{}).watch ? `<button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3)" onclick="set({tab:'more',more:'team'})">Add your five · Team</button>` : ""}
     <div class="assigns">
       ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${jsq(n)})" style="${isOut(side,n)?"opacity:.4":""}">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
@@ -6305,6 +6319,15 @@ function tally(){
       <option value="" selected>Pick the other team\u2026</option>
       ${teamsHere().map(t=>`<option>${esc(t.name)}</option>`).join("")}
     </select>
+    ${/* Divisions change every season and a sideline is not where a coach
+          hunts for Division › Missing a team. A name typed here is added to
+          this division and put in the right pit in one tap. */""}
+    <div class="who2" style="margin-top:var(--s3)">
+      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Not on the list? Type their name</span>
+        <input id="oppName" placeholder="Team name" autocapitalize="words" onkeydown="if(event.key==='Enter') playNamed()"/></label>
+      <div style="display:flex;flex-direction:column;gap:4px"><span class="note" aria-hidden="true">&nbsp;</span>
+        <button class="btn" onclick="playNamed()">Play them</button></div>
+    </div>
     <p class="note">Or open a game on <b>More \u203a Schedule</b> and tap <b>We play</b>.</p>`,
     "No opponent yet") + `</div>` : ""}
 
@@ -6409,7 +6432,7 @@ function tally(){
        </div>` : ""}
     <div class="who2">
       ${col("us", (curMatch()||{}).watch ? "Your five · not on this field"
-              : mine.length?"Your five":"Your five · add them in Team", "var(--red)",
+              : mine.length?"Your five":"Your five · no names yet", "var(--red)",
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
       ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
     </div>
@@ -9393,9 +9416,12 @@ function shell(){
 function quickLog(){
   const m = curMatch(), watch = !!(m && m.watch), pt = S.point || 1, sc = matchScore();
   const us = watch ? sideWord("us") : "We", them = watch ? sideWord("them") : "They";
+  const over = matchOver(), ot = inOvertime(), mp = matchPoint();
+  const tail = over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : "";
   return `<div class="qlog">
     <div class="qlog__top">
-      <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b></span>
+      ${clockChip()}
+      <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tail ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${tail}</small>` : ""}</span>
       <span class="qlog__vs">${esc(pitNamed("right") ? pitOf("right").name : curLayout().name)}</span>
       <span class="grow"></span>
       <span class="qlog__pt">POINT ${pt}</span>
@@ -9411,7 +9437,15 @@ function quickLog(){
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,quickPick:false})">${esc(callName(k))}</button>`).join("")}
       <button class="seg__add" onclick="newPlay()">+ Yours</button>
-    </div>` : `<div class="qlog__score">
+    </div>` : over ? `<div class="qlog__score">
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">Match over — ${over === "us" ? us + " won" : them + " won"} ${sc.us}–${sc.them} · New match</button>
+    </div>
+    <div class="qlog__row">
+      ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
+      <button class="btn btn--quiet grow" onclick="closeQuick()">Back to the sheet</button>
+    </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
+            : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Match point${mp === "them" ? " against you" : mp === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
+    <div class="qlog__score">
       <button class="btn btn--lg" onclick="endPoint('us')">${esc(us)} won it</button>
       <button class="btn btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${esc(them)} won it</button>
     </div>

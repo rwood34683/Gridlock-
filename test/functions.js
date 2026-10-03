@@ -1888,7 +1888,7 @@ const ROSTER = [
   }));
   check("the tally says where its five come from", await ev(() => {
     window.set({ tab: "tally" });
-    return /add them in Team/.test(document.querySelector(".main").textContent);
+    return /no names yet/.test(document.querySelector(".main").textContent) && /Add your five · Team/.test(document.querySelector(".main").textContent);
   }));
   check("nothing invents a player on a fresh install", await ev(() => (S.roster || []).length === 0));
 
@@ -3500,7 +3500,42 @@ const ROSTER = [
     const t = document.getElementById("root").textContent.replace(/\s+/g, "");
     return matchOver(id) === "us" && /1Won/.test(t);
   }));
+  check("the landscape log reads the format: race, match point, and stands down when over", await ev(() => {
+    window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(2); window.endPoint("us");
+    window.set({ quick: true, quickPick: false });
+    const root = document.getElementById("root");
+    const mp = /to 2/.test(root.textContent) && /Match point/.test(root.textContent);
+    window.endPoint("us");
+    const btns = [...root.querySelectorAll(".btn")].map(b => b.textContent.trim());
+    const over = /final/.test(root.textContent) && !btns.includes("We won it") && btns.some(b => /Match over — We won 2–0/.test(b));
+    window.set({ quick: false });
+    return mp && over;
+  }));
+  check("a team not on the list is typed on the sheet and played in one tap", await ev(() => {
+    window.newMatch(); window.set({ right: { name: "" }, tab: "tally" });
+    S.matches = S.matches.map(m => m.id === S.matchId ? {...m, vs: ""} : m); window.set({});
+    const el = document.getElementById("oppName"); if(!el) return false;
+    el.value = "Garland Grit"; window.playNamed();
+    return pitOf("right").name === "Garland Grit" && !!anyTeam("Garland Grit") && matchVs() === "Garland Grit"
+      && !document.getElementById("oppName");
+  }));
+  check("an empty name is refused on screen, nothing is added", await ev(() => {
+    const before = JSON.stringify(S.teams);
+    window.set({ right: { name: "" } }); S.matches = S.matches.map(m => m.id === S.matchId ? {...m, vs: ""} : m); window.set({});
+    document.getElementById("oppName").value = "  "; window.playNamed();
+    return /name first/.test(S.flash || "") && JSON.stringify(S.teams) === before && !pitNamed("right");
+  }));
+  check("no roster: the sheet offers one tap to Team", await ev(() => {
+    window.set({ right: { name: "Dynasty" } }); window.playPit();
+    const was = S.roster; window.set({ roster: [] });
+    const btn = [...document.querySelectorAll("#root .btn")].find(b => /Add your five · Team/.test(b.textContent));
+    btn && btn.click();
+    const ok = S.tab === "more" && S.more === "team";
+    window.set({ roster: was, tab: "tally" });
+    return !!btn && ok;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
+    window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
     const btns = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
     return matchOver() === "us" && !btns.includes("Next point") && btns.includes("New match");
