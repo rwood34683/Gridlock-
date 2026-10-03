@@ -626,7 +626,9 @@ const ROSTER = [
   await ev(() => { window.markOut("us", "Reyes"); window.markOut("them", "#4"); });
   check("marking out logs an entry", await ev(() => S.tally.length === 2));
   await ev(() => window.markOut("us", "Reyes"));
-  check("the same player cannot go out twice in a point", await ev(() => S.tally.length === 2));
+  check("tapping an out man again puts him back in, never a second out", await ev(() => S.tally.length === 1 && !S.tally.some(o => o.name === "Reyes")));
+  await ev(() => window.markOut("us", "Reyes"));
+  check("and a third tap takes him out again, once", await ev(() => S.tally.length === 2 && S.tally.filter(o => o.name === "Reyes").length === 1));
   check("alive counts drop", await ev(() => document.getElementById("root").textContent.includes("4")));
   await ev(() => { window.setOutBunker(0, "shotAt", "SB#6"); window.setOutBunker(0, "movedTo", "GP#1"); });
   check("shot-at bunker attaches to an out", await ev(() => S.tally[0].shotAt === "SB#6"));
@@ -2454,14 +2456,14 @@ const ROSTER = [
     return away === 0 && selfScout().n === 1;
   }));
   check("it says what share each call is", await ev(() => {
-    for (let i = 0; i < 3; i++) window.logCall();       // four snake now
-    window.set({ script: "hold" }); window.logCall();
+    for (let i = 0; i < 3; i++){ window.nextPoint(); window.logCall(); }   // four snake now, one a point
+    window.nextPoint(); window.set({ script: "hold" }); window.logCall();
     const ss = selfScout();
     return ss.n === 5 && ss.rank[0][0] === "snake" && ss.rank[0][1] === 4;
   }));
   check("it warns you when one call is most of your last ten", await ev(() => {
     window.set({ script: "snake" });
-    for (let i = 0; i < 3; i++) window.logCall();
+    for (let i = 0; i < 3; i++){ window.nextPoint(); window.logCall(); }
     const ss = selfScout();
     return ss.tell >= 0.5 && document.getElementById("root").textContent.includes("Anyone filming you has that too");
   }));
@@ -3579,6 +3581,28 @@ const ROSTER = [
     const h = chip.getBoundingClientRect().height;      // measured before the click rebuilds the screen
     chip.click();
     return S.tab === "tally" && h >= 44;
+  }));
+  check("one point, one call: logging again on the same point replaces, never doubles", await ev(() => {
+    window.set({ tab: "tally" }); window.newMatch(); window.set({ script: "snake" });
+    window.logCall(); window.logCall();
+    const one = loggedCalls().filter(c => c.m === S.matchId && c.pt === 1).length === 1;
+    window.set({ script: "base" }); window.logCall();
+    const mine = loggedCalls().filter(c => c.m === S.matchId && c.pt === 1);
+    return one && mine.length === 1 && mine[0].script === "base";
+  }));
+  check("tap an out man again and he is back in", await ev(() => {
+    window.markOut("us", "Reyes");
+    const out = S.tally.some(o => o.m === S.matchId && o.pt === S.point && o.name === "Reyes");
+    window.markOut("us", "Reyes");
+    return out && !S.tally.some(o => o.m === S.matchId && o.pt === S.point && o.name === "Reyes");
+  }));
+  check("bunkers tapped for their five and not logged do not ride into the next point", await ev(() => {
+    const b = curLayout().bunkers.slice(0, 3).map(x => x.id);
+    window.set({ theirPick: b });
+    window.endPoint("us");
+    const cleared = (S.theirPick || []).length === 0;
+    window.set({ theirPick: b }); window.nextPoint();
+    return cleared && (S.theirPick || []).length === 0;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
@@ -4789,7 +4813,7 @@ const ROSTER = [
   }));
   check("a call logged on it never counts toward your own self-scout", await ev(() => {
     const before = selfScout().n;
-    window.logCall(); window.logCall();
+    window.logCall(); window.nextPoint(); window.logCall();
     return before === 0 && selfScout().n === 0 && (S.calls || []).length === 2;
   }));
   check("the score on it names the two teams, because neither is you", await ev(() => {

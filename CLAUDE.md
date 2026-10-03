@@ -706,3 +706,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   is set by Save a copy and Show it as text; `copyNudge()` speaks up on a
   finished sheet and under the record on Matches, only when something is
   logged and the copy is a week old or missing — never while a point is on.
+- Count a call twice because a thumb tapped twice. One point has one call:
+  `logCall()` replaces what this point already logged, so a double tap and a
+  changed mind both leave one row, and self-scout reads what was actually run.
+- Make a mis-tapped out a trip to the log. Tap a man and he is out; tap him
+  again and he is back in — `markOut()` toggles on the live point. The log's
+  Undo is still there for a point that has been left.
+- Let a half-picked five ride into the next point. Their bunkers tapped on
+  Scout and not yet logged are scratch for *this* point; `endPoint()` and
+  `nextPoint()` clear `theirPick` with the rest of the sheet, or they would be
+  logged under the next point number.
