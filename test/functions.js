@@ -4611,6 +4611,15 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return listed && story && flagged;
   }));
+  check("the header score chip says when the score is a game you are watching, and names the two teams", await ev(() => {
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({}); window.endPoint("us");
+    const chip = document.querySelector("#root .score-chip--watch");
+    const ok = !!chip && /watch/.test(chip.textContent) && chip.getAttribute("aria-label") === "Dynasty 1 – 0 Houston Heat, a game you are watching";
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us");
+    const own = !document.querySelector("#root .score-chip--watch") && document.querySelector("#root .score-chip--go").getAttribute("aria-label") === "Open the point sheet";
+    return ok && own;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

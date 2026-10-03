@@ -603,7 +603,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   reading somebody else's playbook back at him and his score would carry points
   he never played. A watched sheet carries `watch:true`, `home` and `away`;
   `watchedMatch(id)` is the door, `loggedCalls()` filters through it, and
-  `matchLabel()` / `sideWord()` name the two teams rather than "us" and "them",
+  `matchLabel()` / `sideWord()` name the two teams rather than "us" and "them"
+  (and the header's score chip says **watch** in the right pit's blue with the
+  two teams in its label, because 2–1 in red beside the Staff chip reads as
+  his score),
   because there is no "us" on that field. Tally says so on screen and sends him
   to Scout, which is where two other teams are actually charted.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in

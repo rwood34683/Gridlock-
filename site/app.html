@@ -594,6 +594,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .hdr--clock .score-chip{padding:4px 8px;font-size:12px;gap:2px}
   .hdr--clock .hdr__top .who-chip{display:none}
 }
+/* A watched game's score is two other teams' score. The chip says so, and
+   reads in the right pit's blue rather than his own red. */
+.score-chip--watch{border-color:var(--blue);color:var(--blue)}
 .clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
@@ -10532,7 +10535,7 @@ function shell(){
   const sc = matchScore();
   // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
   const line = sc.us + sc.them || raceTo()
-    ? `<button class="score-chip score-chip--go" onclick="set({tab:'tally',more:null})" aria-label="Open the point sheet"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>` : "";
+    ? (w => `<button class="score-chip score-chip--go${w ? " score-chip--watch" : ""}" onclick="set({tab:'tally',more:null})" aria-label="${w ? esc(`${w.home || "Home"} ${sc.us} – ${sc.them} ${w.away || "Away"}, a game you are watching`) : "Open the point sheet"}"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${w ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">watch</small>` : matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>`)((curMatch() || {}).watch ? curMatch() : null) : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
