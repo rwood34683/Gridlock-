@@ -409,8 +409,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     `breakLanes(k)` counts how many of your five would have a lane on one of
     theirs off the break and how many of theirs on you, with your plants
     mirrored when you break from the right end. Shown on the call panel, the
-    point sheet and under every call on the Counter. It never ranks anything:
-    where they actually stand off the buzzer is the coach's read.
+    point sheet and under every call on the Counter, and the **Lanes** chip on
+    the Scout field draws every clear pair white over black, per the lane
+    rule. It never ranks anything: where they actually stand off the buzzer
+    is the coach's read.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

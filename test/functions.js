@@ -4367,6 +4367,30 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return none && counted && sym && onSheet && onPb && onCounter;
   }));
+  check("the Lanes chip draws every clear lane between your five and theirs on the Scout field, and says what it drew", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    window.set({ tab: "scout", scoutTab: "matchup", pitOpen: null, lanesOn: true });
+    const live = () => document.querySelector(".field-wrap[data-live]");
+    const none = !live().querySelector(".break-lane") && /lanes show once their five is known/.test(document.getElementById("root").textContent);
+    const bl = curLayout().bunkers, mine = plantIdsFor(S.script), theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right"); window.set({});
+    const pairs = mine.reduce((n, a) => n + theirs.filter(b => laneClear(a, b)).length, 0);
+    const drawn = live().querySelectorAll(".break-lane").length;
+    const l = breakLanes(S.script);
+    const said = new RegExp(`clear lanes off the break on ${breakName()} · ${l.onThem} of your 5 on them · ${l.onYou} of their 5 on you`).test(document.getElementById("root").textContent);
+    window.set({ lanesOn: false }); const off = !live().querySelector(".break-lane");
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return none && drawn === pairs && said && off;
+  }));
+  check("the red break on the Scout field is labelled yours, not the left pit's, on your own sheet", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", scoutShow: "both", left: { name: "" }, pitOpen: null });
+    const t = document.querySelector(".field-wrap[data-live]").parentElement.textContent;
+    const yours = new RegExp("You · " + breakName()).test(t) && !/Left pit · not set/.test(t);
+    window.set({ scoutShow: "them" });
+    return yours;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

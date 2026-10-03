@@ -4934,6 +4934,23 @@ function fieldSVG(opts={}, runnersOnly){
     }
   }
 
+  // Lanes off the break: a white lane over a black casing, per the lane rule,
+  // from each of your five to each of theirs where the lane is clear. Drawn
+  // only where both fives are known, and only on request.
+  if(opts.lanes){
+    const t5 = theirFiveNow("right"), mine = plantIdsFor(S.script);
+    if(t5 && mine){
+      const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, bl = layout.bunkers;
+      ids.forEach(a => t5.ids.forEach(b => {
+        if(!laneClear(a, b)) return;
+        const A = bl.find(x => x.id === a), B = bl.find(x => x.id === b); if(!A || !B) return;
+        const x1 = (A.x*sx).toFixed(1), y1 = (A.y*sy).toFixed(1), x2 = (B.x*sx).toFixed(1), y2 = (B.y*sy).toFixed(1);
+        their += `<g class="break-lane"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="2.6" opacity=".7"/>`
+               + `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="1.1" opacity=".85"/></g>`;
+      }));
+    }
+  }
+
   if(runnersOnly) return paths;
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
@@ -7819,14 +7836,21 @@ function scout(){
       <button class="tgl ${S.namesOn?"on":""}" onclick="set({namesOn:!S.namesOn})"><i></i>Names</button>
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
+      <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
-    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us"})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", lanes:!!S.lanesOn && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
-      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
+      ${/* The red paths are your five on your call. Only a watched game has
+            a left-pit team on that side of the field. */""}
+      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${(curMatch()||{}).watch && L.named ? esc(L.name) : "You"} · ${esc(breakName())}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
           ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
       ${(S.scoutShow||"them")!=="us"?ghostLegend():""}
+      ${S.lanesOn?(()=>{ const l = pitOnSheet("right") || (curMatch()||{}).watch ? breakLanes(S.script) : null;
+        return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${l
+          ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
+          : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
@@ -9447,7 +9471,7 @@ const HELP_Q = [
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
-  ["Who has the lanes off the break?", "Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see."],
+  ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
