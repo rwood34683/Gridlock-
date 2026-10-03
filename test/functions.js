@@ -3953,6 +3953,22 @@ const ROSTER = [
     const kept = [...document.querySelectorAll("#root .tbl th:not(.col-opt)")].map(th => th.textContent.trim());
     return opt.join() === "Film,Roster,Read from" && kept.join() === "#,Team,Pts,Reg,Tend,Threat" && (narrow ? hidden : !hidden);
   }));
+  check("Log this breakout rides the bottom of the screen while the sheet is open", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" }, tallySel: null, tallyDraft: null });
+    const bl = curLayout().bunkers; window.tallyTap([bl[12].x, bl[12].y]);
+    const main = document.querySelector(".main"), act = document.querySelector("#root .tsheet__act");
+    if (!act) return false;
+    const sticky = getComputedStyle(act).position === "sticky";
+    const mr = main.getBoundingClientRect(), ar = act.getBoundingClientRect(), sr = document.querySelector("#root .tsheet").getBoundingClientRect();
+    // visible now, before any scrolling past the sheet's questions
+    const onScreen = ar.bottom <= mr.bottom + 1 && ar.top >= mr.top;
+    // and still visible when the sheet is scrolled a screen further
+    main.scrollTop += Math.min(500, Math.max(0, sr.height - 200));
+    const ar2 = act.getBoundingClientRect();
+    const stillOn = ar2.bottom <= mr.bottom + 1 && ar2.top >= mr.top;
+    window.set({ tallySel: null, tallyDraft: null });
+    return sticky && onScreen && stillOn;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
