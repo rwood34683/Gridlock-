@@ -4345,6 +4345,28 @@ const ROSTER = [
     window.set({ tab: "more", more: "matches" });
     return noted && /Prelim 2 · Sunday/.test(document.getElementById("root").textContent);
   }));
+  check("lanes off the break are counted bunker to bunker against their five, on the sheet, Playbook and the Counter", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const none = lanesLine() === "";                                   // nothing known about their five yet
+    const bl = curLayout().bunkers, mine = plantIdsFor(S.script), theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right");  // their five, logged on this point
+    const l = breakLanes(S.script), t = theirFiveNow();
+    // the count is the same test Sightlines makes, pair by pair
+    const onThem = mine.filter(a => theirs.some(b => laneClear(a, b))).length, onYou = theirs.filter(b => mine.some(a => laneClear(a, b))).length;
+    const counted = t && t.basis === "logged" && l && l.onThem === onThem && l.onYou === onYou && l.mine === 5 && l.theirs === 5
+      && l.onThem >= 0 && l.onThem <= 5 && l.onYou <= 5;
+    const sym = laneClear(mine[0], theirs[0]) === laneClear(theirs[0], mine[0]);
+    const text = document.getElementById("root").textContent;
+    const onSheet = new RegExp(`Lanes off the break: on ${breakName()} against the five they logged on this point, ${onThem} of your 5 have a clear lane on one of theirs and ${onYou} of their 5 have one on you`).test(text);
+    window.set({ tab: "playbook" }); const onPb = /Lanes off the break/.test(document.getElementById("root").textContent);
+    window.set({ tab: "scout", scoutTab: "counter", pitOpen: null });
+    const ct = document.getElementById("root").textContent;
+    const onCounter = new RegExp(`lanes · ${onThem} on them · ${onYou} on you`).test(ct) && /lanes is counted off/.test(ct);
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return none && counted && sym && onSheet && onPb && onCounter;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

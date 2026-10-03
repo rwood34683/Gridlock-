@@ -573,6 +573,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rank__n{width:18px;color:var(--dim);font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 .rank__name{flex:1;font-size:var(--t-md);font-weight:600}
 .rank__pct{font-size:var(--t-xs);font-weight:700;color:var(--dim);white-space:nowrap}
+.rank__lanes{font-size:var(--t-xs);font-weight:500;color:var(--dim)}
 .clock-chip,.score-chip--go{cursor:pointer;color:var(--ink);font-family:inherit;min-height:44px}
 /* A narrow phone with the clock and the score both up: the brand's second
    line goes, the chips tighten, and the Staff chip steps aside — Nexus says
@@ -4475,7 +4476,8 @@ function bestAnswer(theirCall, side = "right"){
   return written ? {call: written, basis: "written"} : null;
 }
 // The read as one line for the point sheet, the quick log and Playbook.
-function nextReadLine(compact){
+function nextReadLine(compact){ return readLine(compact) + (compact ? "" : lanesLine()); }
+function readLine(compact){
   if(nobodyToPlay() || (curMatch() || {}).watch) return "";
   if(pitNamed("right") && !pitOnSheet("right"))
     return compact ? "" : `<p class="note read-line">This sheet is <b>${esc(matchVs())}</b>; the right pit is ${esc(pitOf("right").name)}, so there is no read for this point.
@@ -4515,6 +4517,57 @@ function ghostLegend(){
   const bits = g.top.map(([id, n]) => { const b = bl.find(x => x.id === id), u = usualMan(team, id);
     return `${esc(b ? callOf(b) : id)} ${n}${u ? ` (usually ${esc(u.who)})` : ""}`; });
   return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px dashed var(--blue)"></i>likely five${g.under ? ` under ${esc(callName(rd.call))}` : ""}, from ${g.n} logged fives: ${bits.join(" · ")}</span>`;
+}
+/* Lanes on the break. Your five plant on five bunkers and theirs on five more,
+ * and whether a lane between two bunkers is clear is a fact of the measured
+ * layout, not a read: the same test Sightlines makes, bunker centre to bunker
+ * centre, anything else in the way blocks it. So for any call you run, against
+ * the five they have logged on this point or the five they usually plant, the
+ * app can count how many of your men would have a lane on one of theirs off
+ * the break and how many of theirs would have one on you. Counts off the
+ * field, never odds; where they will actually stand is the coach's read. */
+function plantIdsFor(k, layoutKey = S.layoutKey){
+  const p = (BREAK_PLANTS[layoutKey] || {})[k] || myPlants(k, layoutKey);
+  return Array.isArray(p) && p.length ? p : null;
+}
+const _laneCache = {};
+// A man shoots from the edge of his bunker, not through the middle of it, so
+// the lane is tried from a foot outside either side of the shooter's bunker
+// (and from its centre) to the centre of the target's. Clear from any of the
+// three is a lane. The same shape is tried back the other way, so a lane is a
+// lane from both ends.
+function laneClear(aId, bId){
+  const key = S.layoutKey + "|" + (aId < bId ? aId + "|" + bId : bId + "|" + aId);
+  if(key in _laneCache) return _laneCache[key];
+  const list = curLayout().bunkers, a = list.find(b => b.id === aId), c = list.find(b => b.id === bId);
+  if(!a || !c || a === c) return (_laneCache[key] = false);
+  const blocked = (x1, y1, x2, y2) => list.some(o => o !== a && o !== c && bunkerBoxes(o).some(k => segHitsBox(x1, y1, x2, y2, k.x, k.y, k.w/2, k.h/2)));
+  const edges = b => [[b.x, b.y], [b.x - b.w/2 - 1, b.y], [b.x + b.w/2 + 1, b.y]];
+  const clear = edges(a).some(([x, y]) => !blocked(x, y, c.x, c.y)) || edges(c).some(([x, y]) => !blocked(x, y, a.x, a.y));
+  return (_laneCache[key] = clear);
+}
+// Their five for this point: the one logged on it, else the one they usually
+// plant under the read call, else nothing.
+function theirFiveNow(side = "right"){
+  if(!pitNamed(side)) return null;
+  const f = theirFiveLogged(side); if(f) return {ids: f.plants, basis: "logged"};
+  const rd = nextRead(side), g = likelyPlants(side, rd && !rd.thin ? rd.call : null);
+  return g.n >= 2 ? {ids: g.top.map(([id]) => id), basis: "likely", n: g.n} : null;
+}
+function breakLanes(k, their = theirFiveNow()){
+  const mine = plantIdsFor(k); if(!mine || !their || !their.ids.length) return null;
+  const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine;
+  const onThem = ids.filter(a => their.ids.some(b => laneClear(a, b))).length;
+  const onYou = their.ids.filter(b => ids.some(a => laneClear(a, b))).length;
+  return {onThem, onYou, mine: ids.length, theirs: their.ids.length, basis: their.basis, n: their.n || 0};
+}
+function lanesWord(l){ return l ? `${l.onThem} of your ${l.mine} have a lane on them · ${l.onYou} of their ${l.theirs} have one on you` : ""; }
+// One line for the call panel and the point sheet.
+function lanesLine(){
+  if(nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
+  const t = theirFiveNow(); const l = breakLanes(S.script, t); if(!l) return "";
+  const five = t.basis === "logged" ? "the five they logged on this point" : `the five they usually plant${t.n ? ` (${t.n} logged fives)` : ""}`;
+  return `<p class="note read-line"><b>Lanes off the break:</b> on ${esc(breakName())} against ${five}, ${l.onThem} of your ${l.mine} have a clear lane on one of theirs and ${l.onYou} of their ${l.theirs} have one on you. Counted off ${esc(curLayout().name)}, leaning out either side of the bunker.</p>`;
 }
 /* Where their five have planted most, as a ghost of the five until the real
  * one is tapped in on Breakouts. Under the call the read expects when that
@@ -8018,6 +8071,7 @@ function scoutCounter(){
   const ranked=counterRank(R.tend, state).map(r => ({...r, rec: callRecord(r.key, R.name)}))
     .sort((a,b) => (b.rec.n ? b.rec.won / b.rec.n : -1) - (a.rec.n ? a.rec.won / a.rec.n : -1) || b.rec.n - a.rec.n || b.pct - a.pct || a.aggr - b.aggr);
   const played = ranked.filter(r => r.rec.n).reduce((n, r) => n + r.rec.n, 0);
+  const theirNow = pitOnSheet("right") || (curMatch()||{}).watch ? theirFiveNow() : null;
   return sec("Counter-picker", `<div class="seg">
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
@@ -8034,12 +8088,12 @@ function scoutCounter(){
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
         <span class="rank__n">${i+1}</span>
-        <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}</span>
+        <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}${(l => l ? `<br><span class="rank__lanes">lanes · ${l.onThem} on them · ${l.onYou} on you</span>` : "")(breakLanes(r.key, theirNow))}</span>
         ${pips(r.aggr,"")}
         <span class="rank__pct">${r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
       </button>`).join("")}
     </div>
-    <p class="note">${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
+    <p class="note">${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}${theirNow ? `<b>lanes</b> is counted off ${esc(curLayout().name)} against ${theirNow.basis === "logged" ? "the five they logged on this point" : `the five they usually plant (${theirNow.n} logged fives)`}: how many of your five would have a clear lane on one of theirs off the break, leaning out either side of the bunker, and how many of theirs on you. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
     <button class="btn btn--ghost btn--block" onclick="copyMatchup()">Copy matchup card</button>`,
     state)
   + (()=>{ const seen = Object.fromEntries(breakFreq("right"));
@@ -8533,7 +8587,8 @@ const HELP = {
          "Every line lands as a draft you review before it counts.",
          "Type instead if the microphone is refused or it is too loud."]},
   "scout/counter": {t:"Counter", w:"They run X, we run Y.",
-    how:["The picker ranks the twelve against their tendency and the score.",
+    how:["The picker ranks the twelve against their tendency and the score; a call you have run against them is ranked by what it won.",
+         "Lanes is counted off the field: against the five they logged on this point, or the five they usually plant, how many of your five would have a clear lane on one of theirs off the break and how many of theirs on you.",
          "Opp is your own answer written down, which beats any ranking.",
          "Whatever you save here shows beside their call on Playbook."]},
   "scout/layers": {t:"Layers", w:"Everything you logged, painted on the field.",
@@ -8649,6 +8704,7 @@ const HELP_Q = [
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
+  ["Who has the lanes off the break?", "Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
