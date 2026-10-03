@@ -372,6 +372,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     Anticipate and Matchup and under your man on Assess; *How they get you*
     names the bunker you lose men at most against that team.
 
+35. ~~The read for the next point.~~ Done — the owner asked for predictive
+    intelligence as strong as it can be made, and the honest ceiling is the
+    data: tens of points a team, not thousands. So the read is the most
+    specific situation the coach is in *right now* that has three or more
+    logged — the score state with who won the last point, then the state, then
+    the last point, then the season — and what they ran in it, with the count:
+    `nextRead()`. `bestAnswer()` is the call of yours that won most on points
+    where they ran that call, from your own record, else the answer you wrote
+    on Counter. `nextReadLine()` prints both on the point sheet, the quick log
+    and Playbook's call panel, with one tap to call it; thin data says it is
+    thin. `likelyPlants()` draws a dashed, counted ghost of where they plant
+    most on the Scout field until the real five is tapped in. Counts with the
+    sample on every line, never a model or odds.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -934,6 +948,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   either did. `squadHas()` folds case and spacing; Team refuses the duplicate
   on add and on rename and says so, and a name is capped at 32 characters so
   it fits a card.
+- Add a code word that is already there. A code is a lookup for the player
+  who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
+  A word typed again updates what it means (`foldName` match) and says so; an
+  empty meaning keeps the old one.
+- Bury the read in Scout. Between points the coach is on the point sheet or
+  the quick log, so that is where the read for the next point stands, under
+  the call, with his best answer and one tap to call it. Scout is where he
+  builds it; the sheet is where he uses it.
+- Gate the logged five behind an overlay. The Their five overlay places the
+  men he named; the five tapped in on Breakouts, and the ghost of where they
+  plant most, are the break itself and show whenever their side of the field
+  is shown (`theirFive`), not only when a layer is on.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
