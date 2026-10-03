@@ -1992,7 +1992,7 @@ const ROSTER = [
     window.loadPit("Miami Effect");
     const txt = document.querySelector(".main").textContent;
     window.loadPit("Rejects");
-    return /No points logged against Miami Effect/.test(txt);
+    return /No points scored or outs logged against Miami Effect/.test(txt);
   }));
   check("Scout opens on five sub-tabs plus More, not nine", await ev(() => {
     window.set({ tab:"scout", scoutTab:"matchup", scoutNavMore:false });
@@ -3624,6 +3624,16 @@ const ROSTER = [
     const firstOnPhone = r && l && (window.innerWidth >= 720 || r.getBoundingClientRect().top < l.getBoundingClientRect().top);
     return /Right pit · who you play/.test(t) && /Left pit · a team you watch/.test(t) && /The team you play\./.test(t) && /A second team/.test(t)
       && !/Opponent · left/.test(t) && firstOnPhone;
+  }));
+  check("a game only scored, never tallied, still shows under Scout › Games with its score and how it ended", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "games" });
+    const t = document.getElementById("root").textContent;
+    return !/No points scored or outs logged/.test(t) && /1–0 · you won/.test(t) && /No outs tallied on this sheet/.test(t);
+  }));
+  check("the kept list under Matches says how each sheet ended", await ev(() => {
+    window.set({ tab: "more", more: "matches" });
+    return /Dynasty · 1–0 · you won/.test(document.getElementById("root").textContent);
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

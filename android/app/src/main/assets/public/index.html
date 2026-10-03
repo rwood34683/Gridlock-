@@ -7231,13 +7231,17 @@ function scoutGames(){
   // point 3 is four different points — merging them into one list of "Point 3"
   // was the whole reason a match had to exist.
   const theirs=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.vs===R.name&&o.pt);
-  const games=[...new Set(theirs.map(o=>o.m))].map(id=>{
+  // A game is a sheet against them — one he tallied outs on, or one he only
+  // scored. A coach who taps who won every point and never an out had games
+  // this screen said did not exist.
+  const scored=(S.matches||[]).filter(m=>m.vs===R.name&&!m.watch&&(S.results||[]).some(r=>r.m===m.id)).map(m=>m.id);
+  const games=[...new Set([...theirs.map(o=>o.m), ...scored])].map(id=>{
     const m=(S.matches||[]).find(x=>x.id===id);
     return {id, at:(m&&m.at)||Math.min(...theirs.filter(o=>o.m===id).map(o=>o.at||0)),
             n:theirs.filter(o=>o.m===id).length};
   }).sort((a,b)=>b.at-a.at);
-  if(!games.length) return sec("Games", `<div class="empty">No points logged against ${esc(R.name)} yet.
-    Tally a point and it shows up here.</div>`, esc(R.name));
+  if(!games.length) return sec("Games", `<div class="empty">No points scored or outs logged against ${esc(R.name)} yet.
+    Score a point on Tally and it shows up here.</div>`, esc(R.name));
   // The one you are on, if it is against them; otherwise the most recent.
   const gid=games.some(g=>g.id===S.replayMatch)?S.replayMatch
            :games.some(g=>g.id===S.matchId)?S.matchId:games[0].id;
@@ -7251,12 +7255,12 @@ function scoutGames(){
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
-        when(g.at)}${g.id===S.matchId?" · on now":""}</button>`).join("")}
+        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
     </div>`:""}
     <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
     </div>
-    <p class="note">${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.</p>`,
+    <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : "No outs tallied on this sheet — only who won each point."}</p>`,
     esc(R.name))
   + sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
       <input type="range" min="0" max="${events.length}" value="${step}"
@@ -8339,6 +8343,7 @@ function moreBody(k){
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
           <span class="assign__body"><span class="assign__job">${esc(m.watch ? `${m.home||"?"} v ${m.away||"?"}` : (m.vs||"No opponent"))}${
             (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${
+            !m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}${
             m.watch?" · watched":""}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
