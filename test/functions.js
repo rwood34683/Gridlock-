@@ -4391,6 +4391,34 @@ const ROSTER = [
     window.set({ scoutShow: "them" });
     return yours;
   }));
+  check("their shooter is named with the man of yours who has a lane on his usual bunker", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const L = S.layoutKey, bl = curLayout().bunkers, mine = plantIdsFor(S.script), five = fiveFor(1);
+    const slot = i => five[i] ? five[i].name : `slot ${i + 1}`;
+    const none = shooterLane("right") === null;
+    // #7 Dill has shot two of your men, on this sheet
+    S.tally = [...(S.tally || []), { pt: 1, side: "us", name: slot(0), at: 1, m: S.matchId, script: S.script, layout: L, vs: "Dynasty", by: "#7 Dill", how: "Laned" },
+                                    { pt: 1, side: "us", name: slot(1), at: 2, m: S.matchId, script: S.script, layout: L, vs: "Dynasty", by: "#7 Dill", how: "Laned" }];
+    // their five, with the bunker that one of your plants has a lane on first
+    const theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).map(b => b.id);
+    const target = theirs.find(id => mine.some(a => laneClear(a, id))) || theirs[0];
+    const pick = [target, ...theirs.filter(id => id !== target).slice(0, 4)];
+    window.set({ theirPick: pick }); window.logTheirFive("right");
+    const keep = S.arrivalSightings;
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "sgx", team: "Dynasty", player: "#7 Dill", layout: L, m: "old-z", pt: 1, bunker: target, seq: 1, at: 1 }];
+    window.set({});
+    const sl = shooterLane("right");
+    const lanes = mine.map((a, i) => laneClear(a, target) ? slot(i) : null).filter(Boolean);
+    const named = sl && sl.tag === "#7 Dill" && sl.hits === 2 && sl.at === target && sl.lanes.map(l => l.who).join() === lanes.join();
+    const text = document.getElementById("root").textContent;
+    const shown = /Their shooter: #7 Dill has shot 2 of your men, usually in/.test(text) && (lanes.length ? new RegExp(lanes[0] + " from .* a lane on him off the break").test(text) : /nobody in your five has a lane on him/.test(text));
+    window.set({ tab: "scout", scoutTab: "anticipate", pitOpen: null });
+    const onAnt = /Their shooter/.test(document.getElementById("root").textContent);
+    S.arrivalSightings = keep; S.tally = (S.tally || []).filter(o => o.by !== "#7 Dill"); editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return none && named && shown && onAnt;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
