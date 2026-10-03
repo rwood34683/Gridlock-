@@ -459,6 +459,13 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .field-wrap{display:flex;justify-content:center}
   svg.field{width:auto;height:auto;max-width:100%;max-height:max(340px, calc(100vh - 400px))}
 }
+/* A tablet on its side is wide and not tall: the call card beside the field,
+   as on a phone turned sideways, so Change the call and Play the break are on
+   the screen with the field rather than a scroll under it. */
+@media (min-width:740px) and (min-height:600px) and (orientation:landscape){
+  .pbtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--s3);align-items:start}
+  .pbtop svg.field{max-height:max(340px, calc(100vh - 330px))}
+}
 @keyframes tsel{from{opacity:.55}to{opacity:1}}
 
 /* the 8-way face pad the spec asks for */

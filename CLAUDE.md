@@ -797,7 +797,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   of the screen tall, and Change the call, Play the break and the Tally sheet
   under it. The rail now comes at 740 px wide **and** 600 px tall — every iPad
   either way up, never a phone on its side — and on those screens the field is
-  fitted to the height there is. The devices suite expects the rail on the same
+  fitted to the height there is; on its side, the call card stands beside the
+  field as it does on a sideways phone, so Change the call and Play the break
+  are on the screen with it. The devices suite expects the rail on the same
   rule.
 - Go two columns off the viewport width. With the rail up, a 744 px iPad has a
   528 px column, and the pits and the Tally sheet both went side by side at a
