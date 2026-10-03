@@ -2462,7 +2462,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -4204,14 +4204,17 @@ function layoutMoves(){
   const here = new Set(curLayout().bunkers.map(b => b.id));
   return (S.moves || []).filter(m => here.has(m.from) && here.has(m.to));
 }
+// The man who moved is tapped, the five on the point first — same as Assess.
+window.movePick = name => { S.moveWho = S.moveWho === name ? null : name; render(); };
 window.logMove = () => {
-  const who = document.getElementById('mvWho').value;
-  const from = document.getElementById('mvFrom').value;
-  const to = document.getElementById('mvTo').value;
-  if(!who || !from || !to) return;
+  const who = S.moveWho;
+  const from = (document.getElementById('mvFrom') || {}).value || S.moveFrom;
+  const to = (document.getElementById('mvTo') || {}).value || S.moveTo;
+  if(!who){ flash('Tap the man who moved.'); return; }
+  if(!from || !to) return;
   if(from === to){ flash('A rotation needs two different bunkers.'); return; }
   S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
-  S.moveFrom = null; S.moveTo = null;
+  S.moveFrom = null; S.moveTo = null; S.moveWho = null;
   save(S); render();
 };
 // Two taps on the field: where he left, where he went. A third starts over.
@@ -8809,7 +8812,7 @@ const HELP = {
     how:["Add a note against a bunker while you are standing at it.",
          "Notes are kept per field, so they follow the event."]},
   "more/movement": {t:"Movement", w:"Bunker to bunker after the break.",
-    how:["Pick the player, where he came from and where he went.",
+    how:["Tap the man — the five on the point come first — then the bunker he left and the bunker he went to.",
          "Log the move. Green arrows on the field are what you logged.",
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
@@ -9473,8 +9476,18 @@ function moreBody(k){
     // match's — point 4 of today and point 4 of March are not the same point.
     const mvHere=rowsHere(mv);
     const opt=(b,sel)=>`<option value="${esc(b.id)}"${sel===b.id?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
-    const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
-                           :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
+    // The man is tapped, the five on the point first and the bench after, the
+    // way Assess does it — a dropdown of nine asked him to find the man he was
+    // looking at.
+    const on=onPoint(S.point||1), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const chip=n=>`<button class="${S.moveWho===n?"on":""}" onclick="movePick(${jsq(n)})">${esc(n)}</button>`;
+    const who=!roster.length
+      ? `<div class="empty">No roster yet. Add your squad, then log who moved.
+          <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`
+      : `<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">${on.length?"Who moved · on the point":"Who moved"}</h4>
+        <div class="seg seg--wrap" aria-label="Who moved">${(on.length?on:bench).map(chip).join("")}</div>
+        ${on.length&&bench.length?`<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">On the bench</h4>
+          <div class="seg seg--wrap" aria-label="On the bench">${bench.map(chip).join("")}</div>`:""}`;
     const nm=id=>{const b=list.find(x=>x.id===id);return b?callOf(b):"";};
     // The field is the picker, as on Tally: two taps, the bunker he left and the
     // bunker he went to. Two 58-row dropdowns are still there underneath for a
@@ -9483,12 +9496,12 @@ function moreBody(k){
       <div class="field-wrap" id="move-map">${fieldSVG({static:true,moves:true,noPaths:true,names:true,pick:true,overlay:moveOverlay()})}</div>
       <p class="note" style="margin:var(--s2) 0 0">${S.moveFrom ? `From <b>${esc(nm(S.moveFrom))}</b>${S.moveTo ? ` to <b>${esc(nm(S.moveTo))}</b>` : " — now tap where he went"}` : "Tap the bunker he left."}${
         S.moveFrom ? ` <button class="btn btn--quiet" style="min-height:36px;padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
-      <div class="fld"><label>Player</label><select id="mvWho">${who}</select></div>
-      <div class="who2">
+      ${who}
+      <div class="who2" style="margin-top:var(--s3)">
         <div class="fld"><label>From</label><select id="mvFrom" onchange="set({moveFrom:this.value})">${list.map(b=>opt(b,S.moveFrom||list[0].id)).join("")}</select></div>
         <div class="fld"><label>To</label><select id="mvTo" onchange="set({moveTo:this.value})">${list.map(b=>opt(b,S.moveTo||list[0].id)).join("")}</select></div>
       </div>
-      <button class="btn btn--block" onclick="logMove()">Log the move</button>
+      <button class="btn btn--block" onclick="logMove()">${S.moveWho?`Log the move · ${esc(S.moveWho)}`:"Log the move"}</button>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
                  :`<p class="note">No rotations logged on this layout yet.</p>`}`, "Point "+(S.point||1))
     + (mvHere.length?sec("Rotations", `<div class="assigns">
