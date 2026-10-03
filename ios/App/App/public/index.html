@@ -8464,16 +8464,23 @@ function sightlines(){
   ${/* Headed "Clear from here" while listing the blocked ones too, which reads
         as a list of clear lanes with wrong rows in it. It is every lane from
         where you are standing; how many are clear is the count beside it. */""}
-  ${sec("Every lane from here", `<div class="tblwrap"><table class="tbl">
+  ${/* Their five first. A coach standing in a bunker wants the lanes onto
+        the five across the tape, not fifty-seven rows in digitiser order: the
+        bunkers of the five logged on this point, or the five they usually
+        plant, lead the table and carry a tag, with their shooter's named. */""}
+  ${(() => { const t5 = pitOnSheet("right") || (curMatch()||{}).watch ? theirFiveNow("right") : null, ids = new Set(t5 ? t5.ids : []);
+      const sh = t5 ? shooterLane("right") : null, lines = [...res.lines].sort((a, b) => (ids.has(b.to.id) ? 1 : 0) - (ids.has(a.to.id) ? 1 : 0));
+      const onThem = t5 ? lines.filter(l => ids.has(l.to.id) && !l.blocked).length : 0;
+      return sec("Every lane from here", `${t5 ? `<p class="note">Their ${t5.basis === "logged" ? "five on this point" : "usual five"} first — <b>${onThem}</b> of ${ids.size} clear from here.</p>` : ""}<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
-      <tbody>${res.lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}"
+      <tbody>${lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}${ids.has(l.to.id)?" their-row":""}"
           onclick="pickSight('to',${jsq(l.to.id)})">
-        <td>${esc(l.to.n)}</td><td class="num">${esc(l.to.id)}</td>
+        <td>${esc(l.to.n)}${ids.has(l.to.id)?` <span class="tag" style="font-size:10px;padding:1px 6px;${sh&&sh.at===l.to.id?"color:var(--warn);border-color:var(--warn)":""}">${sh&&sh.at===l.to.id?esc(sh.tag):"theirs"}</span>`:""}</td><td class="num">${esc(l.to.id)}</td>
         <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked
           ? "blocked by "+esc(name(l.by[0]))
           : "clear · "+l.ft+" ft"}</td>
       </tr>`).join("")}</tbody>
-    </table></div>`, res.clear+" of "+res.lines.length+" clear")}`;
+    </table></div>`, res.clear+" of "+res.lines.length+" clear"); })()}`;
 }
 
 /* ============================================================
@@ -8782,7 +8789,8 @@ const HELP = {
          "Search by name when the list is long."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
-    how:["Under the counts, the bunker you are standing in says what was logged at it: how often their five have planted on it and the men lost there on either side.",
+    how:["Once their five is known, their bunkers lead the lane table with a tag, their shooter's by name, and the count says how many of them are clear from where you stand.",
+         "Under the counts, the bunker you are standing in says what was logged at it: how often their five have planted on it and the men lost there on either side.",
          "Tap where you are standing. Every lane fans out, green for clear, red for blocked.",
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",

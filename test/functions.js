@@ -4577,6 +4577,21 @@ const ROSTER = [
     S.tally = keepT; editProfile("right", { breaks: [] }); window.set({});
     return said && quiet;
   }));
+  check("Sightlines leads its lane table with their five, tagged, and counts how many are clear from here", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const bl = curLayout().bunkers, mine = plantIdsFor(S.script), theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right");
+    window.set({ tab: "sightlines" }); window.pickSight("from", mine[0]);
+    const rows = [...document.querySelectorAll("#root .tbl tbody tr")];
+    const lead = rows.slice(0, 5).every(r => r.classList.contains("their-row")) && rows.slice(5).every(r => !r.classList.contains("their-row")) && rows.slice(0, 5).every(r => /theirs/.test(r.textContent));
+    const clear = theirs.filter(id => laneClear(mine[0], id)).length;   // same geometry, both doors
+    const sl = sightLines(mine[0], 2, 2), tableClear = theirs.filter(id => !(sl.lines.find(l => l.to.id === id) || {}).blocked).length;
+    const said = new RegExp("Their five on this point first — " + tableClear + " of 5 clear from here").test(document.getElementById("root").textContent);
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return lead && said && clear >= tableClear;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

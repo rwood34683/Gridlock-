@@ -839,7 +839,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   it, men lost at it — with one tap to Sightlines standing in it, so the walk
   is checked against the log and not only against the eye. `bunkerBook(id)`
   is the one line both read; Sightlines prints it under its counts for the
-  bunker he is standing in.
+  bunker he is standing in, and its lane table leads with their five —
+  tagged, their shooter by name — with a count of how many are clear from
+  where he stands, because fifty-seven rows in digitiser order is not an
+  answer to "can I see them from here".
 - Grade a man from a dropdown of the whole roster. Assess is "after the
   point", and the app knows who was on it: `onPoint(pt)` leads as tap chips,
   the bench follows, the score is five taps rather than a list, a chip carries
