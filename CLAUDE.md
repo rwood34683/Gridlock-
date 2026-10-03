@@ -615,7 +615,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   carries `read` (where and when) and `covers` (what the read did *not* reach;
   Sunday was off the bottom of the page). A league row is never edited in
   place: one he does not want goes in `S.gamesOff`, and `S.games` holds only
-  what he added, so a re-read replaces the seeded list wholesale.
+  what he added, so a re-read replaces the seeded list wholesale. And a row
+  says what he already has on that game — "watched · 1–0", "you played
+  Houston Heat · 4–3 · you won" — because a schedule half worked through
+  should not make him open every row to find out which.
 - Assume there are twelve calls. A coach runs plays the app has never heard
   of, and a break here is only five bunker ids per field — the paths, the
   buzzer order and the job labels all fall out of those five against the
