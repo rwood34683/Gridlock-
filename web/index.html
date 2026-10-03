@@ -513,7 +513,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rank__n{width:18px;color:var(--dim);font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 .rank__name{flex:1;font-size:var(--t-md);font-weight:600}
 .rank__pct{font-size:var(--t-xs);font-weight:700;color:var(--dim);white-space:nowrap}
-.clock-chip{cursor:pointer;color:var(--ink);font-family:inherit}
+.clock-chip,.score-chip--go{cursor:pointer;color:var(--ink);font-family:inherit;min-height:44px}
 .clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
@@ -7833,6 +7833,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
+  ["My event's field isn't in the app.", "Every field in here is measured off the league's official map — the app never guesses a layout, so a field it has not measured cannot be drawn. The fields in this build are listed under More › Nexus. A new one arrives with an update; until then the break, Tally and Sightlines can only be drawn on a field the app has."],
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, it goes to overtime and the next point wins it; ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
@@ -8665,7 +8666,7 @@ function shell(){
   const sc = matchScore();
   // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
   const line = sc.us + sc.them || raceTo()
-    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</span>` : "";
+    ? `<button class="score-chip score-chip--go" onclick="set({tab:'tally',more:null})" aria-label="Open the point sheet"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>` : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
