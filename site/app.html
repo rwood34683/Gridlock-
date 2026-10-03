@@ -2609,7 +2609,17 @@ function matchVs(){ const m = curMatch(); return (m && m.vs) || ""; }
 // out that he had to start a match before the tally would say who he played.
 function adoptPitAsOpponent(){
   const m = curMatch();
-  if(!m || m.vs || !pitNamed("right") || matchSize(m.id)) return;
+  if(!m || m.vs || !pitNamed("right") || !sheetEmpty(m)) return;
+  S.matches = S.matches.map(x => x.id === m.id ? {...x, vs: S.right.name} : x);
+}
+// A sheet named on New match and never written on is provisional: the first
+// call logged against the team in the pit names the sheet for them, because a
+// call of theirs has to be joined to a sheet about them. A sheet with anything
+// on it keeps its name — Tally says so and offers a new one. Never a watched
+// sheet, which names two teams.
+function adoptPitOnLog(){
+  const m = curMatch();
+  if(!m || m.watch || !pitNamed("right") || m.vs === S.right.name || !sheetEmpty(m)) return;
   S.matches = S.matches.map(x => x.id === m.id ? {...x, vs: S.right.name} : x);
 }
 /* The score.
@@ -2729,6 +2739,7 @@ function matchPoint(mid){
   return u && t ? "both" : u ? "us" : t ? "them" : null;
 }
 function patchMatch(patch){ S.matches = (S.matches || []).map(m => m.id === S.matchId ? {...m, ...patch} : m); }
+window.setMatchNote = v => { patchMatch({note: clean(v).slice(0, 40)}); save(S); render(); };
 window.setRaceTo = n => { patchMatch({raceTo: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
 /* Ends. Your five break from one end of the field and the other team from the
  * other, and which end is yours changes — at the half, or every point,
@@ -5209,6 +5220,9 @@ function bestAnswer(theirCall, side = "right"){
 // The read as one line for the point sheet, the quick log and Playbook.
 function nextReadLine(compact){
   if(nobodyToPlay() || (curMatch() || {}).watch) return "";
+  if(pitNamed("right") && !pitOnSheet("right"))
+    return compact ? "" : `<p class="note read-line">This sheet is <b>${esc(matchVs())}</b>; the right pit is ${esc(pitOf("right").name)}, so there is no read for this point.
+      <button class="btn btn--quiet read-line__go" onclick="setPitTeam('right',${jsq(matchVs())})">Put ${esc(matchVs())} in the pit</button></p>`;
   const r = nextRead("right"); if(!r) return "";
   const them = esc(pitOf("right").name);
   if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Scout › Breakouts and the read builds itself.</p>`;
@@ -5273,10 +5287,32 @@ function callRecord(key, team){
  * five are picked takes them with it; the five can also be logged on their
  * own, and Arrival can put names to them later.
  */
+/* Whether the team in a pit is on the sheet being played. The right pit is
+ * who you play, but a coach reading Dynasty on Division while his sheet is
+ * vs Rejects has Dynasty in the pit and Rejects on the sheet, and a call
+ * logged against Dynasty stamped with Rejects' point would join Dynasty's
+ * breaks to a score Rejects made. On a watched game both pits are on it. */
+function pitOnSheet(side){
+  const m = curMatch(), name = pitOf(side).name; if(!m || !name) return false;
+  if(m.watch) return side === "left" ? m.home === name : m.away === name || m.vs === name;
+  // A sheet with nothing on it follows the right pit, whoever it was named for.
+  return side === "right" && (m.vs === name || sheetEmpty(m));
+}
+// Nothing logged on this sheet: no row of his, no result, and no call of
+// theirs stamped with it from any pit.
+function sheetEmpty(m){
+  return !!m && !matchSize(m.id) && !(S.results || []).some(r => r && r.m === m.id)
+    && !Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b && b.m === m.id));
+}
 window.logTheirBreak = (side, script, plants) => {
   if(sheetOver()) return;
   const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
-  const entry = {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()};
+  // Stamped with the point only when this team is on the sheet; otherwise it
+  // is a season row — counted in what they run, never joined to a score.
+  if(side === "right") adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
+  const entry = pitOnSheet(side)
+    ? {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()}
+    : {script: script || "", layout:S.layoutKey, at:Date.now()};
   if(picked.length) entry.plants = picked;
   editProfile(side, {breaks: [entry, ...theirBreaks(side)]});
   if(picked.length) S.theirPick = [];
@@ -8563,7 +8599,11 @@ function scoutBreakouts(){
     <div class="seg" style="flex-wrap:wrap">
       ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(callName(k))}</button>`).join("")}
     </div>
-    <p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`,
+    ${pitOnSheet("right")
+      ? `<p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`
+      : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${esc(R.name)} is not on it, so what you log here
+          counts for the season on ${esc(curLayout().name)} and never against a point.</p>
+          ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(R.name)}</button>`}</div>`}`,
     esc(R.name))
   + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([id,n])=>`<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${n}</span>
@@ -8584,9 +8624,9 @@ function scoutBreakouts(){
       : `<div class="empty">Nothing logged on ${esc(R.name)} yet. Tap their call above the moment you read it.</div>`,
       total?total+" seen":"")
   + (seen.length?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
-        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt}</span>
+        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt || "·"}</span>
         <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
-        <span class="assign__who">point ${b.pt}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
+        <span class="assign__who">${b.pt ? `point ${b.pt}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
         <button class="btn btn--danger" onclick="unlogTheirBreak('right',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
@@ -8643,7 +8683,11 @@ function scoutGames(){
   const gid=games.some(g=>g.id===S.replayMatch)?S.replayMatch
            :games.some(g=>g.id===S.matchId)?S.matchId:games[0].id;
   const mine=theirs.filter(o=>o.m===gid);
-  const pts=[...new Set(mine.map(o=>o.pt))].sort((a,b)=>b-a);
+  // Every point the sheet knows about — an out, a result, a call either way,
+  // a charted break — so a point that was only scored still has a story.
+  const pts=[...new Set([...mine.map(o=>o.pt), ...(gid ? [...(S.results||[]).filter(r=>r&&r.m===gid).map(r=>r.pt),
+    ...(S.calls||[]).filter(c=>c&&c.m===gid).map(c=>c.pt), ...theirBreaks("right").filter(b=>b.m===gid&&b.pt).map(b=>b.pt),
+    ...(S.breakouts||[]).filter(r=>r&&r.m===gid).map(r=>r.pt)] : [])])].filter(Boolean).sort((a,b)=>b-a);
   const pick=pts.includes(S.replayPt)?S.replayPt:pts[0];
   const events=mine.filter(o=>o.pt===pick).sort((a,b)=>(a.at||0)-(b.at||0));
   const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
@@ -8657,9 +8701,10 @@ function scoutGames(){
     <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
     </div>
-    <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : "No outs tallied on this sheet — only who won each point."}</p>`,
+    <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : pts.length ? "No outs tallied on this point." : "No outs tallied on this sheet — only who won each point."}</p>`,
     esc(R.name))
-  + (!pts.length ? "" : sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
+  + (!pts.length ? "" : pointStory(gid, pick, R.name))
+  + (!events.length ? "" : sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
       <input type="range" min="0" max="${events.length}" value="${step}"
         oninput="set({replayStep:Number(this.value)})"/></div>
     <div class="assigns">${events.slice(0,step).map((o,i)=>{
@@ -8674,6 +8719,35 @@ function scoutGames(){
     ${step<events.length?`<p class="note">${events.length-step} still up.</p>`:""}
     <p class="aid">What you logged, in the order you logged it. Nothing is reconstructed.</p>`,
     "Point "+pick));
+}
+/* One point, as the logs tell it: what you called, what they ran and where
+ * their five planted, who won it and whether the read was right, any penalty
+ * or timeout, and every man charted on the break. Read back, never rebuilt. */
+function pointStory(gid, pt, team){
+  const bl=curLayout().bunkers, named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
+  const m=matchById(gid), res=(S.results||[]).find(r=>r&&r.m===gid&&r.pt===pt);
+  const call=(S.calls||[]).find(c=>c&&c.m===gid&&c.pt===pt);
+  const theirs=theirBreaks("right").find(b=>b.m===gid&&b.pt===pt);
+  const pens=pensFor(gid,pt), tos=(S.timeouts||[]).filter(t=>t&&t.m===gid&&t.pt===pt);
+  const rows=(S.breakouts||[]).filter(r=>r&&r.m===gid&&r.pt===pt).sort((a,b)=>(a.at||0)-(b.at||0));
+  const who=side=>m&&m.watch?(side==="us"?m.home||"home":m.away||"away"):side==="us"?"you":team;
+  const kv=(k,v)=>v?`<div class="kv__row"><span class="kv__k">${k}</span><span class="kv__v">${v}</span></div>`:"";
+  const sc=scoreBefore(gid,pt);
+  const facts=kv("Score before",`${sc.us}–${sc.them}`)
+    +kv("You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+    +kv(`${esc(team)} ran`,theirs?`${theirs.script?`<b>${esc(callName(theirs.script))}</b>`:"unnamed"}${theirs.plants?` · ${theirs.plants.map(id=>esc(named(id))).join(", ")}`:""}`:"")
+    +kv("Won by",res?`<b>${esc(who(res.won))}</b>${res.read?` · ${res.read==="right"?"right read":"wrong read"}`:""}`:"")
+    +kv("Penalty",pens.length?pens.map(p=>`${esc(who(p.side))} −${p.cost}${p.who?` · ${esc(p.who)}`:""}${p.why?` · ${esc(p.why)}`:""}`).join("; "):"")
+    +kv("Timeout",tos.length?tos.map(t=>esc(who(t.side))).join(", "):"");
+  const chart=rows.length?`<div class="assigns" style="margin-top:var(--s3)">${rows.map(r=>`<div class="assign">
+      <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${esc(named(r.bunker)).slice(0,3)}</span>
+      <span class="assign__body"><span class="assign__job">${esc(r.player||(r.side==="us"?"your man":"their man"))} → ${esc(named(r.bunker))}</span>
+      <span class="assign__who">${[r.alive===true?"made it":r.alive===false?`shot on the break${r.shotFrom?` from ${esc(named(r.shotFrom))}`:""}`:"",
+        r.delayed?"delayed":"", r.movedTo?`moved to ${esc(named(r.movedTo))}`:"", r.entry==="battling"?"battling in":r.entry==="free"?"no pressure":""].filter(Boolean).join(" · ")||"charted"}</span></span>
+    </div>`).join("")}</div>`:"";
+  if(!facts&&!chart) return "";
+  return sec("The point", `<div class="kv">${facts}</div>${chart}
+    <p class="aid">Read back from what you logged on this point. Nothing is reconstructed.</p>`, `Point ${pt}`);
 }
 window.toggleLayer = k => {
   const on={...(S.scoutLayers||{theirOuts:true})};
@@ -8802,7 +8876,9 @@ function scoutBoard(){
 // them comes with them, and what you knew about the last team stays with it.
 window.loadPit = (name, side) => {
   if(!anyTeam(name)) return;
-  S[side === "left" ? "left" : "right"] = {name}; save(S); render();
+  S[side === "left" ? "left" : "right"] = {name};
+  if(side !== "left") adoptPitAsOpponent();   // the same door Division's picker goes through
+  save(S); render();
 };
 
 /* Both pits off one board.
@@ -9185,7 +9261,8 @@ const HELP = {
   "scout/breakouts": {t:"Breakouts", w:"Where their five went, without needing names.",
     how:["Tap the field where each of their five ended up, up to five, any order.",
          "Log their five. If you know the call, log that with it.",
-         "Where they plant counts bunkers across every five you have logged."]},
+         "Where they plant counts bunkers across every five you have logged.",
+         "A call is tied to the point only when this team is on the sheet. Off the sheet it counts for the season, and the screen says so with one tap to start the right match."]},
   "scout/anticipate": {t:"Anticipate", w:"How to read a break before it happens.",
     how:["The tells to watch in the set: a body cheating a wire, a gun already up.",
          "This is teaching, not a prediction about tonight."]},
@@ -9206,9 +9283,10 @@ const HELP = {
     how:["Toggle outs, rotations, their five and the rest on and off.",
          "Each count tells you how much is behind the layer."],
     watch:"Empty until you have logged against this team on this field. Day one it is bare on purpose."},
-  "scout/games": {t:"Games", w:"Replay a point you logged.",
-    how:["Step through the outs in the order you tapped them.",
-         "Useful between matches, not during one."]},
+  "scout/games": {t:"Games", w:"Read a point back from everything you logged on it.",
+    how:["Pick the sheet and the point. The point is read back: what you called, what they ran and where they planted, who won it, any penalty or timeout, and every man charted on the break.",
+         "Step through the outs in the order you tapped them, where there are outs.",
+         "Nothing is reconstructed. Useful between matches, not during one."]},
   "scout/board": {t:"Division", w:"Who is entered, off the league's own page.",
     how:["Tap a row to load that team into the right pit.",
          "Press and hold to put them in the left pit instead.",
@@ -9266,7 +9344,8 @@ const HELP = {
   "more/matches": {t:"Matches", w:"Every sheet you have kept.",
     how:["The one in play is at the top with its score.",
          "Open an old one and you land on its last point, so you can still tally something you missed.",
-         "New match starts a fresh sheet and puts the point back to one. Nothing is deleted."]},
+         "New match starts a fresh sheet and puts the point back to one. Nothing is deleted.",
+         "Name this sheet — Prelim 2, Sunday quarter — and the name shows in the kept list."]},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
     how:["Staff login required to create one.",
          "Joining does not need an account. Scan the code or type it.",
@@ -9766,6 +9845,8 @@ function moreBody(k){
                                  hour:"numeric", minute:"2-digit"}))} ·
           point ${S.point||1}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${matchSize(S.matchId)} logged</p>
       </div>
+      <div class="fld"><label>Name this sheet</label>
+        <input value="${esc((curMatch()||{}).note||"")}" placeholder="Prelim 2 · Sunday quarter" maxlength="40" onchange="setMatchNote(this.value)"/></div>
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
