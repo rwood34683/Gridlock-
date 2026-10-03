@@ -7460,10 +7460,30 @@ function scoutAnticipate(){
       ${(T.notes||"").trim()?`<div class="kv__row"><span class="kv__k">Your film</span><span class="kv__v">${esc(T.notes)}</span></div>`:""}
     </div></div>`;
   };
+  // The read follows the team, never the pit. These three lines used to be
+  // fixed per pit — the right pit always read "snake stack" whatever the
+  // tendency said and whatever had been logged — which is a prediction nobody
+  // made. Now: the tendency he set is the film read, and the calls he has
+  // counted on Breakouts lead when there are any.
+  const READS = {
+    Snake:    ["Snake stack or runner — they overload the bottom.", "A body cheats toward snake. The quiet gun off the break is the runner.", "Take GP first and lane the snake. Deny the crawl."],
+    Dorito:   ["Dorito flood — they overload the top.", "A body cheats toward the doritos. The quiet gun is the runner up the D-wire.", "Take the D-side fifty first and lane the dorito wire."],
+    Balanced: ["Balanced wire to wire — they spread and play position.", "Even body weighting. Shooters set to lane the middle.", "Win one wire first. Take the tower to choke the cross."]
+  };
+  const readFor = (side, T) => {
+    const [likely, tells, counter] = READS[T.tend] || READS.Balanced;
+    const seen = breakFreq(side), total = seen.reduce((a, [, n]) => a + n, 0);
+    const counted = total
+      ? `<b>${esc(callName(seen[0][0]))}</b> — ${seen[0][1]} of the ${total} break${total === 1 ? "" : "s"} you logged${seen.length > 1 ? `, then ${esc(callName(seen[1][0]))} ${seen[1][1]}` : ""}. `
+      : "";
+    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter];
+  };
+  const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
-    card(pitOf("left"),"Balanced wire to wire — they spread and play position.","Even body weighting. Shooters set to lane the middle.","Win one wire first. Take the tower to choke the cross.")
-  + card(pitOf("right"),"Snake stack or runner — they overload the bottom.","A body cheats toward snake. The quiet gun off the break is the runner.","Take GP first and lane the snake. Deny the crawl."),
-  "Both pits");
+    named.length
+      ? named.map(side => card(pitOf(side), ...readFor(side, pitOf(side)))).join("")
+      : `<div class="empty">Nothing to anticipate until a team is in a pit. Pick who you play on Division, or open the right pit above.</div>`,
+    named.length === 2 ? "Both pits" : named.length ? esc(pitOf(named[0]).name) : "");
 }
 
 /* ---- Breakouts: what this team has actually run, counted ---------------- */
