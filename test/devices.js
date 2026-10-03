@@ -66,6 +66,12 @@ const measure = () => {
   const tabs = document.querySelector(".tabs");
   const r = tabs && tabs.getBoundingClientRect();
   out.tabsIn = !!r && Math.ceil(r.bottom) <= window.innerHeight + 1 && r.top >= 0;
+  // Every chip in the header's top row inside the screen. The header clips
+  // rather than scrolls, so a chip pushed off the right edge never showed up
+  // as overflow — the Staff chip vanished at 320 px with the score chip up.
+  out.hdrIn = [...document.querySelectorAll(".hdr__top > *")].every(el => {
+    const b = el.getBoundingClientRect(); return !b.width || b.right <= window.innerWidth + 1;
+  });
 
   // Where the five destinations stand, and what shape they are. A rail that
   // lands in the right column but whose buttons still stack icon-over-label and
@@ -129,7 +135,7 @@ const measure = () => {
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(320);
 
-    const worst = { over: 0, tap: null, line: null, tabsIn: true,
+    const worst = { over: 0, tap: null, line: null, tabsIn: true, hdrIn: true,
                     rail: true, btnTall: 0, btnRow: true, clash: false };
     for (const tab of TABS) {
       await page.locator(".tabs button", { hasText: tab }).click();
@@ -137,6 +143,7 @@ const measure = () => {
       const m = await page.evaluate(measure);
       worst.over = Math.max(worst.over, m.over);
       worst.tabsIn = worst.tabsIn && m.tabsIn;
+      worst.hdrIn = worst.hdrIn && m.hdrIn;
       worst.rail = worst.rail && m.rail;
       worst.btnRow = worst.btnRow && m.btnRow;
       worst.clash = worst.clash || m.clash;
@@ -150,6 +157,7 @@ const measure = () => {
     const g = "Devices";
     check(g, `${name} — no sideways scroll`, worst.over <= 0, worst.over > 0 ? `${worst.over}px over` : "");
     check(g, `${name} — tab bar on screen`, worst.tabsIn);
+    check(g, `${name} — header chips on screen`, worst.hdrIn);
     check(g, `${name} — every target ${TAP}px+`, !worst.tap || worst.tap.px >= TAP,
           worst.tap ? `${worst.tap.px}px "${worst.tap.what}" on ${worst.tap.tab}` : "");
     check(g, `${name} — text under ${MEASURE} ch`, !worst.line || worst.line.ch <= MEASURE,

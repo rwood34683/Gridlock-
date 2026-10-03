@@ -785,3 +785,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Rejects … and you are even" with Blast Camp the team he was *watching*.
   Only a watched sheet has two named sides; on his own, the line is "Against
   ‹them›'s likely break, and you are ‹state›".
+- Draw a head-to-head bar between the left pit and the right on his own
+  sheet. Matchup's threat bar read "Blast Camp ★★★★★ · ★★★★ Rejects" with
+  Blast Camp the team he was watching. Two sides only on a watched game;
+  on his own sheet it is "you" against their stars.
+- Trust the overflow check for the header. It clips rather than scrolls, so
+  a chip pushed off the right edge never read as overflow: at 320 px with
+  the clock and the score up, the Staff chip was gone. Below 360 px the
+  brand's second line goes, the chips tighten and the Staff chip steps aside
+  (Nexus says who is signed in); the devices suite now measures that every
+  header chip's right edge is inside the screen.
