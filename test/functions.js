@@ -4454,6 +4454,20 @@ const ROSTER = [
     S.arrivalSightings = keep; editProfile("right", { breaks: [] }); window.set({});
     return counted && onAnt && onArr;
   }));
+  check("the Their rotations layer draws one blue arrow a move, with its count, and counts the moves on its chip", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } });
+    const L = S.layoutKey, bl = curLayout().bunkers, A = bl[3].id, B = bl[9].id, C = bl[14].id, keep = S.arrivalSightings;
+    const sg = (id, who, m, pt, bunker, seq) => ({ id, team: "Dynasty", player: who, layout: L, m, pt, bunker, seq, at: seq });
+    S.arrivalSightings = [sg("l1", "#7", "m1", 1, A, 1), sg("l2", "#7", "m1", 1, B, 2), sg("l3", "#7", "m2", 1, A, 1), sg("l4", "#7", "m2", 1, B, 2), sg("l5", "#4", "m2", 1, A, 1), sg("l6", "#4", "m2", 1, C, 2)];
+    window.set({ tab: "scout", scoutTab: "layers", pitOpen: null, scoutLayers: { theirMoves: true } });
+    const arrows = document.querySelectorAll("#root svg.field .their-move");
+    const two = arrows.length === 2 && [...arrows].map(g => g.querySelector("text").textContent).sort().join() === "1,2";
+    const chip = /Their rotations · 3/.test(document.getElementById("root").textContent);
+    window.set({ scoutLayers: { theirOuts: true } });
+    const off = document.querySelectorAll("#root svg.field .their-move").length === 0;
+    S.arrivalSightings = keep; window.set({});
+    return two && chip && off;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
