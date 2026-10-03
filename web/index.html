@@ -3451,10 +3451,13 @@ window.openPad = (kind, id) => {
 
 // The eight the spec asks for. Degrees are screen space: 0 points downfield,
 // -90 toward the dorito tape, +90 toward the snake.
+// The third column is what a screen reader says for the glyph: an arrow is a
+// picture, and eight pictures with no name are eight buttons that all read
+// "button".
 const FACE_PAD = [
-  ["\u2196", -135], ["\u2191", -90], ["\u2197", -45],
-  ["\u2190",  180], ["off",   null], ["\u2192",   0],
-  ["\u2199",  135], ["\u2193",  90], ["\u2198",  45]
+  ["\u2196", -135, "up and left"], ["\u2191", -90, "up"], ["\u2197", -45, "up and right"],
+  ["\u2190",  180, "left"], ["off",   null, "off — no lane"], ["\u2192",   0, "right"],
+  ["\u2199",  135, "down and left"], ["\u2193",  90, "down"], ["\u2198",  45, "down and right"]
 ];
 const FACE_GLYPH = Object.fromEntries(FACE_PAD.filter(f => f[1] !== null).map(f => [f[1], f[0]]));
 // What each of the eight is called on a field, so the picker reads like a
@@ -5101,7 +5104,7 @@ function playbook(){
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
-            ${FACE_PAD.map(([g,deg])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}"
+            ${FACE_PAD.map(([g,deg,say])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}" aria-label="Face ${say}"
               onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${g}</button>`).join("")}
           </div>`:""}
           ${openJob?`<div style="flex-basis:100%">
@@ -5743,8 +5746,8 @@ function breakoutSheet(){
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
     ${q("Shooting which way?")}
-    <div class="pad">${FACE_PAD.map(([g, deg]) =>
-      `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}"
+    <div class="pad">${FACE_PAD.map(([g, deg, say]) =>
+      `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}" aria-label="Shooting ${say}"
         onclick="setDraft({dir:${deg === null ? "null" : deg}})">${g}</button>`).join("")}</div>
     ${/* The field fills these two with a tap, the way it picked the bunker he
           broke to. Arm one, tap the bunker, done; the dropdown stays for a
@@ -7243,7 +7246,7 @@ function pit(side,T,label){
       <div class="pit__pts">${!T.named ? "nobody in this pit yet"
         : T.pts === undefined ? "US — · not scored yet" : "US "+T.pts+" pts"}</div>
     </div>
-    <select onchange="setPitTeam('${side}',this.value)">
+    <select onchange="setPitTeam('${side}',this.value)" aria-label="${side === "right" ? "The team you are playing" : "A team you watch"}">
       <option value=""${T.named?"":" selected"}>${T.named?"— clear this pit —":"Pick a team"}</option>
       ${/* The team in the pit is not always in the list under it: switch division
             and it is somebody else's league; delete a team you added and it is
@@ -8121,7 +8124,7 @@ const HELP = {
          "Blank swaps the field for a dark board when you want to draw from scratch."],
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
-    how:["Add a note against a bunker while you are standing at it.",
+    how:["Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Notes are kept per field, so they follow the event."]},
   "more/movement": {t:"Movement", w:"Bunker to bunker after the break.",
     how:["Tap the man — the five on the point come first — then the bunker he left and the bunker he went to.",
@@ -9326,6 +9329,16 @@ function render(){
   const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
   document.getElementById("root").innerHTML = S.entered ? shell() : promo();
+  // A field here is a <label> followed by its control, and the label carries
+  // no `for`, so a screen reader read every select as "pop-up button" and
+  // nothing else. One pass ties each one to the label above it.
+  document.querySelectorAll("#root .fld > label:not([for])").forEach((l, i) => {
+    const c = l.nextElementSibling;
+    if(c && /^(SELECT|INPUT|TEXTAREA)$/.test(c.tagName) && !c.hasAttribute("aria-label") && !c.hasAttribute("aria-labelledby")){
+      if(!l.id) l.id = "fl-" + i;
+      c.setAttribute("aria-labelledby", l.id);
+    }
+  });
   const next = document.querySelector(".main");
   if(next && screen === _where) next.scrollTop = at;
   _where = screen;
