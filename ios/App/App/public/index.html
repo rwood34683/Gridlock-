@@ -1506,9 +1506,15 @@ function divisionTeams(id){
 // The teams on the board and in the pit dropdowns: this division's.
 function teamsHere(){ return divisionTeams(divisionOf().id); }
 // Any team, from any division, because a profile outlives the picker.
+// "houston heat", "Houston  Heat" and "HOUSTON HEAT" are one team, and the
+// one already on the list keeps its spelling: a typed name that differed by
+// case made a second team, and everything keyed on the name — the scouting,
+// the calls logged against them, the record — split between the two.
+const foldName = n => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
 function anyTeam(name){
+  const want = foldName(name); if(!want) return null;
   for(const d of DIVISIONS){
-    const hit = divisionTeams(d.id).find(t => t.name === name);
+    const hit = divisionTeams(d.id).find(t => foldName(t.name) === want);
     if(hit) return hit;
   }
   return null;
@@ -1517,7 +1523,9 @@ window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) s
 window.addTeam = () => {
   const el = document.getElementById("newTeam");
   const name = clean((el && el.value || "").trim());
-  if(!name || anyTeam(name)) return;
+  if(!name) return;
+  const hit = anyTeam(name);
+  if(hit){ flash(`Already on the list as ${hit.name}.`); return; }
   const id = divisionOf().id;
   S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
   save(S); render();
@@ -4265,11 +4273,12 @@ window.playNamed = () => {
   const el = document.getElementById("oppName");
   const name = clean((el && el.value || "").trim());
   if(!name){ flash("Type the team's name first."); return; }
-  if(!anyTeam(name)){
+  const hit = anyTeam(name);
+  if(!hit){
     const id = divisionOf().id;
     S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
   }
-  setPitTeam("right", name);
+  setPitTeam("right", hit ? hit.name : name);
 };
 window.setPitTeam = (side, name) => {
   S[side] = {...(S[side] || {}), name: name || ""};
@@ -4514,6 +4523,9 @@ window.addPublished = side => {
 // coach copies it there and drops it in here. What arrives is loose and messy,
 // so it is parsed, shown back, and only added once he has looked at it.
 const ROSTER_JUNK = /^(#|no\.?|num(ber)?|player(s)?|name|roster|pos(ition)?|team(s)?|division|class|event|rank(ing)?|pts|points|paid|owed|reg(istration)?|status|home|menu|share|follow|back)$/i;
+// A line with no number that names a role or a heading is the page, not a
+// man: "Houston Heat Roster", "Coach Bob Smith", "Team Captain".
+const ROSTER_ROLE = /^(roster|coach(es)?|captain|staff|manager|owner|lineup|squad|team|division|pro|semi|semi-pro|sponsor(s)?|schedule|results?)$/i;
 const ROSTER_WIRE = [[/\bsnake\b/i,"Snake"],[/\bdorito\b/i,"Dorito"],[/\bcent(er|re)\b/i,"Centre"],[/\bback\b/i,"Back"]];
 // The class column travels with the name on a phone screenshot: "18 Ryan
 // Greenspan Pro". Jr and Sr are part of a man's name and are never stripped.
@@ -4529,6 +4541,11 @@ function looksLikeName(s){
          // way. Prose does not: "days before the event" used to read as a
          // player because every word in it is a word.
          words.every((w, i) => /^[A-Z]/.test(w) || (i > 0 && NAME_PARTICLE.test(w)));
+}
+// "Houston Heat Roster" starts with a team's name: a heading, not a man.
+function teamPrefix(rest){
+  const r = foldName(rest);
+  return DIVISIONS.some(d => divisionTeams(d.id).some(t => { const n = foldName(t.name); return n && r !== n && r.startsWith(n + " "); }));
 }
 function parseRoster(text, team){
   const found = [], skipped = [];
@@ -4555,6 +4572,7 @@ function parseRoster(text, team){
     rest = words.join(" ");
     if(!rest && !num){ skipped.push(line); return; }
     if(rest && known(rest)) return;                        // the team's own name, not a man
+    if(rest && !num && (words.some(w => ROSTER_ROLE.test(w)) || teamPrefix(rest))){ skipped.push(line); return; }   // a heading or staff, not a man
     if(rest && !looksLikeName(rest)){ skipped.push(line); return; }   // prose, not a player
     found.push({num, name: clean(rest), wire: wire || "Flex", note: "", threat: 3});
   });

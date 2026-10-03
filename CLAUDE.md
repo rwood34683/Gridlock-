@@ -917,6 +917,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   anything under three logged and every line carries its count. The Counter's
   "won x of y" is your record against that team on this field, never a model's
   estimate, and the heuristic word only ranks the calls you have never run.
+- Match a team's name by its exact spelling. "houston heat" typed on the
+  Tally gate made a second team beside Houston Heat, and Division's Missing a
+  team took "HOUSTON HEAT" as a third — and everything keyed on the name, the
+  scouting, the calls logged against them, the record, split between them.
+  `anyTeam()` folds case and spacing (`foldName`), `playNamed()` puts the team
+  already on the list in the pit under its own spelling, and `addTeam()` says
+  which name it is already there under.
+- Read a heading as a man. The roster paste took "Houston Heat Roster" and
+  "Coach Bob Smith" as players because each is capitalised words. A line with
+  no number that carries a role or heading word (`ROSTER_ROLE`) or starts
+  with a team's name (`teamPrefix`) is skipped and listed as skipped, so the
+  coach sees it was read and left out rather than finding a coach on the five.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
