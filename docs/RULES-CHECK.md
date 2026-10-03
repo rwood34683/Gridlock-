@@ -17,7 +17,7 @@ division he is in.
 | 8.1, 8.2 | A match is a series of points on a game clock, with a **point-differential mercy rule**; game time and mercy margin vary by division. | **Mercy rule** on the point sheet (Off · 3 · 4 · 5) ends the match at that lead and calls match point one short of it; **Time's up** records the clock running out. **Race to** stays for formats that race to a score. The clock itself is the official's. | Done |
 | 9.3.9, 9.3.11 | First point from the pit side; teams **switch ends after every point scored**; a no-point does not switch them; overtime starts on the pit side. | **Swap every point** switches on scored points, read off the results — "Next point, no result" is a no-point and nobody moves. Overtime points start from the pit-side end. **Switch ends** still overrides this point. | Done |
 | 9.3.12, 8.3 | A break period follows every point: standard minimum two minutes; split deck one minute (D2–D5) or 45 seconds (semi-pro). | **Clock between points**: Off · 0:45 · 1:00 · 1:30 · 2:00, started by the hang. | Done |
-| 9.7 | One **timeout** of one minute per team per match, called by the designated coach, not in the last ten seconds before a point, usable before overtime. | Not tracked yet. | Open |
+| 9.7 | One **timeout** of one minute per team per match, called by the designated coach, not in the last ten seconds before a point, usable before overtime. | **Our timeout / Their timeout** on the point sheet: one a side a match, recorded with the point it went on, one tap gives it back. The minute is the official's clock. | Done |
 | 9.10 | A coach may **concede** a point; it goes to the other side. | They won it, as any point. The app does not need to know why. | Done |
 | 9.11 | In the last 60 seconds a Major or Gross Major penalty is an automatic point to the other team. | The coach records the point as the official awards it; penalties are recorded as what they cost. | Done |
 | 9.12, 15.5 | Level at the end of regulation: **overtime** only in playoffs (and semi-pro), 5-minute sudden death, then 1v1s; otherwise the match **stands tied**. | Level at Time's up the sheet asks: **it's a tie** or **overtime**; overtime is sudden death — next point wins. 1v1 shoot-outs are scored as a single deciding point. | Done |
@@ -32,9 +32,8 @@ division he is in.
 ## Where this leaves the app
 
 Nothing in the app contradicts the rulebook, because nothing in the app decides
-a rule: the official calls it, the coach records it. The one thing the rulebook
-describes that the app did not yet carry is the **timeout** (9.7). Everything
-else in the table was either already there or went in with this read.
+a rule: the official calls it, the coach records it. Everything in the table was
+either already there or went in with this read, the timeout included.
 
 ## When the league publishes a new edition
 
