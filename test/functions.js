@@ -3986,6 +3986,23 @@ const ROSTER = [
     const aidAfterMap = !before(order("#root .sec .aid"));
     return teamBeforeMap && destAfterMap && sideFolded && aidAfterMap;
   }));
+  check("every button and field on the point sheet and Scout has a name a screen reader can say", await ev(() => {
+    const nameOf = el => (el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") && (document.getElementById(el.getAttribute("aria-labelledby")) || {}).textContent) || (el.id && (document.querySelector(`label[for="${el.id}"]`) || {}).textContent) || (el.closest("label") || {}).textContent || el.getAttribute("placeholder") || el.textContent || "").trim();
+    const bad = [];
+    const sweep = where => {
+      document.querySelectorAll("#root button").forEach(b => { const n = nameOf(b); if (!n || /^[^\w]{1,2}$/.test(n)) bad.push(where + " button " + b.className); });
+      document.querySelectorAll("#root select, #root input:not([type=hidden]), #root textarea").forEach(f => { if (!nameOf(f)) bad.push(where + " " + f.tagName + "#" + f.id); });
+    };
+    window.set({ tab: "tally", right: { name: "Dynasty" } });
+    const bl = curLayout().bunkers; window.tallyTap([bl[12].x, bl[12].y]); sweep("tally");
+    window.set({ tallySel: null, tallyDraft: null, tab: "scout", scoutTab: "matchup", pitOpen: null }); sweep("matchup");
+    window.set({ scoutTab: "counter" }); sweep("counter");
+    window.set({ tab: "more", more: "walk" }); sweep("walk");
+    window.set({ more: "movement" }); sweep("movement");
+    window.set({ more: "team" }); sweep("team");
+    if (bad.length) console.log("unnamed:", bad.join(" | "));
+    return bad.length === 0;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

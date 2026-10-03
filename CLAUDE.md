@@ -835,6 +835,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   above the field, which began 1050 px down a phone. The man leads, the field
   follows, the destination list is the fallback under it, and the pit, match,
   point and end are folded with the summary reading their current values.
+- Ship a button whose only name is a picture. The eight lane arrows read as
+  eight nameless buttons to VoiceOver; `FACE_PAD` carries the words now and
+  both pads say them. A `.fld` is a label followed by its control with no
+  `for`, so `render()` ties each control to the label above it in one pass,
+  and the suite sweeps the point sheet, Scout, Walk, Movement and Team for
+  anything a screen reader could not say.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
