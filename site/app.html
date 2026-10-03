@@ -129,8 +129,10 @@ h1,h2,h3,p{margin:0}
   color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
 }
 .ctx__line{
-  min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  min-width:0;flex:1;display:flex;align-items:baseline;gap:.35em;white-space:nowrap;
 }
+.ctx__ev{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
 .ctx__caret{color:var(--dim);font-size:10px}
@@ -580,6 +582,10 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tbl td{padding:var(--s3);border-top:1px solid var(--line);white-space:nowrap}
 .tbl tbody tr{background:var(--panel)}
 .tbl tbody tr:active{background:var(--panel-2)}
+/* Nine columns are 670 px, and on a phone 280 of them sat past the edge of a
+   sideways scroll nobody finds. Film, Roster and Read from are the three the
+   pit card already says, so in a narrow column they fold away. */
+@container main (max-width:620px){.tbl .col-opt{display:none}}
 .tbl .num{font-variant-numeric:tabular-nums;color:var(--dim)}
 .tag{
   font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:var(--r-pill);
@@ -8376,7 +8382,7 @@ function scoutBoard(){
       <input id="boardFind" placeholder="Type a few letters" autocapitalize="none"
              oninput="findTeam(this.value)"/></div>
     <div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th>Film</th><th>Roster</th><th>Tend</th><th>Threat</th><th>Read from</th></tr></thead>
+      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th class="col-opt">Film</th><th class="col-opt">Roster</th><th>Tend</th><th>Threat</th><th class="col-opt">Read from</th></tr></thead>
       <tbody id="boardRows">${list.map((t,i)=>{
         const pr=profileOf(t.name);
         return `<tr class="tap" oncontextmenu="return false"
@@ -8386,8 +8392,8 @@ function scoutBoard(){
         <td>${esc(t.name)}</td>
         <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
         <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span>`:`<span class="note">—</span>`}</td>
-        <td class="num">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
-        <td class="num">${(() => {
+        <td class="num col-opt">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
+        <td class="num col-opt">${(() => {
           const mine = (profileOf(t.name).players || []).length;
           const pub = published(t.name);
           return mine ? `<span class="tag tag--paid">${mine}</span>`
@@ -8396,7 +8402,7 @@ function scoutBoard(){
         })()}</td>
         <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
         <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
-        <td>${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
+        <td class="col-opt">${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
              :t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
              :t.src==="event"?`<span class="tag tag--pend">EVENT</span>`
              :`<span class="note">—</span>`}</td>
@@ -9781,7 +9787,11 @@ function shell(){
     </div>
   </div>`:"";
 
-  const crumb = S.tab==="more" && S.more ? ` <span class="ctx__sep">·</span> <b>${MORE_TITLES[S.more]||""}</b>` : "";
+  // On a More section the line ended with the section name, where the ellipsis
+  // ate it on a phone: "… · SNAKE …" said nothing about where he was standing.
+  // The section is its own span that never shrinks; the event and the call
+  // are what give way.
+  const crumb = S.tab==="more" && S.more ? `<span class="ctx__sec"><span class="ctx__sep">·</span> <b>${esc(MORE_TITLES[S.more]||"")}</b></span>` : "";
   /* The score rides in the header once a point has been won, so it is never a
    * tab away from wherever the coach is standing. It sits in the top row beside
    * the Staff chip and not on the context line underneath: that line carries the
@@ -9804,7 +9814,7 @@ function shell(){
       </div>
       ${Object.keys(LAYOUTS).length>1
         ? `<button class="ctx" onclick="cycleEvent()">
-        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}${crumb}</span>
+        <span class="ctx__line"><span class="ctx__ev"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}</span>${crumb}</span>
         <span class="ctx__caret">CHANGE ▾</span>
       </button>`
         : `<div class="ctx">

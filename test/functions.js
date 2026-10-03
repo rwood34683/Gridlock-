@@ -3936,6 +3936,23 @@ const ROSTER = [
     window.set({ right: { name: "Dynasty" } });
     return folded && opened && rightOpen && matchupFull;
   }));
+  check("on a More section the header line keeps the section on screen; the event and call give way", await ev(() => {
+    window.set({ tab: "more", more: "lineups" });
+    const line = document.querySelector(".ctx__line"), sec = line.querySelector(".ctx__sec"), ev = line.querySelector(".ctx__ev");
+    const lr = line.getBoundingClientRect(), sr = sec.getBoundingClientRect();
+    const onScreen = sr.right <= lr.right + 1 && sr.width > 20;
+    const all = /Lineups/.test(sec.textContent) && ev.textContent.includes(curLayout().name) && ev.textContent.includes(breakName());
+    window.set({ tab: "playbook", more: null });
+    return onScreen && all && !document.querySelector(".ctx__sec");
+  }));
+  check("the Division table folds Film, Roster and Read from away in a narrow column", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "board", more: null });
+    const opt = [...document.querySelectorAll("#root .tbl th.col-opt")].map(th => th.textContent.trim());
+    const narrow = document.querySelector(".main").clientWidth <= 620;
+    const hidden = [...document.querySelectorAll("#root .tbl th.col-opt")].every(th => getComputedStyle(th).display === "none");
+    const kept = [...document.querySelectorAll("#root .tbl th:not(.col-opt)")].map(th => th.textContent.trim());
+    return opt.join() === "Film,Roster,Read from" && kept.join() === "#,Team,Pts,Reg,Tend,Threat" && (narrow ? hidden : !hidden);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

@@ -807,6 +807,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and a wire picker measured 38 px. `.main` is a container now and those
   layouts read `@container main`: pits two-up from 700 px of column, the sheet
   beside the field from 760 px, because a field at 240 px is a dot a bunker.
+- Put the section name last on a line that ellipsizes. The header crumb read
+  "event · call · section" and on a phone the ellipsis ate the section, so
+  More › Lineups was headed "… · SNAKE …". The section is its own span that
+  never shrinks (`.ctx__sec`); the event and the call are what give way. The
+  call stays on the line everywhere, because what we are calling is read from
+  any tab.
+- Hide a table's columns behind a sideways scroll. Division was nine columns
+  and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
+  Film, Roster and Read from are `col-opt` and fold away under 620 px of
+  column; the pit card says all three anyway.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
