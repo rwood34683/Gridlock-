@@ -4597,11 +4597,12 @@ const ROSTER = [
     S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
     window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
     const bl = curLayout().bunkers, ids = [3, 9, 14].map(i => bl[i].id);
-    window.set({ theirPick: ids }); window.logTheirBreak("right", "blitz", ids); window.endPoint("us");
+    window.set({ theirPick: ids }); window.logTheirBreak("right", "blitz", ids); window.logTheirBreak("left", "flood", []); window.endPoint("us");
     window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
     const t = document.getElementById("root").textContent.replace(/\s+/g, " ");
     const listed = !/No points scored or outs logged/.test(t);
-    const story = /Won by\s*Dynasty/.test(t) && new RegExp("Houston Heat ran\\s*" + callName("blitz")).test(t) && !/You called/.test(t);
+    const story = /Won by\s*Dynasty/.test(t) && new RegExp("Houston Heat ran\\s*" + callName("blitz")).test(t) && !/You called/.test(t)
+      && new RegExp("Dynasty ran\\s*" + callName("flood")).test(t) && /Score before\s*Dynasty 0 – 0 Houston Heat/.test(t);
     // a second sheet against them, his own, so the game chips show — the watched one flagged
     window.set({ tab: "tally", right: { name: "Houston Heat" } }); window.newMatch(); window.endPoint("them");
     window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });

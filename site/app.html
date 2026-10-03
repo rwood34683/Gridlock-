@@ -8967,13 +8967,17 @@ function pointStory(gid, pt, team){
   const m=matchById(gid), res=(S.results||[]).find(r=>r&&r.m===gid&&r.pt===pt);
   const call=(S.calls||[]).find(c=>c&&c.m===gid&&c.pt===pt);
   const theirs=theirBreaks("right").find(b=>b.m===gid&&b.pt===pt);
+  // On a watched sheet the left pit is the home side and its call was logged
+  // too; on his own sheet the left pit is somebody he watches, not a side.
+  const homes=m&&m.watch&&pitNamed("left")&&pitOf("left").name===m.home?theirBreaks("left").find(b=>b.m===gid&&b.pt===pt):null;
   const pens=pensFor(gid,pt), tos=(S.timeouts||[]).filter(t=>t&&t.m===gid&&t.pt===pt);
   const rows=(S.breakouts||[]).filter(r=>r&&r.m===gid&&r.pt===pt).sort((a,b)=>(a.at||0)-(b.at||0));
   const who=side=>m&&m.watch?(side==="us"?m.home||"home":m.away||"away"):side==="us"?"you":team;
   const kv=(k,v)=>v?`<div class="kv__row"><span class="kv__k">${k}</span><span class="kv__v">${v}</span></div>`:"";
   const sc=scoreBefore(gid,pt);
-  const facts=kv("Score before",`${sc.us}–${sc.them}`)
+  const facts=kv("Score before",m&&m.watch?`${esc(m.home||"Home")} ${sc.us} – ${sc.them} ${esc(m.away||"Away")}`:`${sc.us}–${sc.them}`)
     +kv(m&&m.watch?`${esc(m.home||"Home")} called`:"You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+    +(homes?kv(`${esc(m.home)} ran`,`${homes.script?`<b>${esc(callName(homes.script))}</b>`:"unnamed"}${homes.plants?` · ${homes.plants.map(id=>esc(named(id))).join(", ")}`:""}`):"")
     +kv(`${esc(team)} ran`,theirs?`${theirs.script?`<b>${esc(callName(theirs.script))}</b>`:"unnamed"}${theirs.plants?` · ${theirs.plants.map(id=>esc(named(id))).join(", ")}`:""}`:"")
     +kv("Won by",res?`<b>${esc(who(res.won))}</b>${res.read?` · ${res.read==="right"?"right read":"wrong read"}`:""}`:"")
     +kv("Penalty",pens.length?pens.map(p=>`${esc(who(p.side))} −${p.cost}${p.who?` · ${esc(p.who)}`:""}${p.why?` · ${esc(p.why)}`:""}`).join("; "):"")
