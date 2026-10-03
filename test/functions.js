@@ -4154,6 +4154,27 @@ const ROSTER = [
     window.newMatch();
     return one && says && both && copyOk && back && timeoutsFor().length === 0;
   }));
+  check("a man is read off the breakout rows — breaks charted, made, shot on the break and from where, where he breaks to", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, tallySel: null, tallyDraft: null }); window.newMatch();
+    const bl = curLayout().bunkers, log = (side, player, bunker, alive, shotFrom) => {
+      window.set({ tallySel: bunker, tallyDraft: { side, sideSet: true, player, alive, shotFrom } }); window.logBreakout();
+    };
+    log("them", "#7", bl[12].id, true); log("them", "#7", bl[12].id, false, bl[3].id); log("them", "#7", bl[14].id, true);
+    log("us", "Reyes", bl[20].id, false, bl[9].id); log("us", "Reyes", bl[20].id, true);
+    const theirs = manRead("them", "#7", "Dynasty"), mine = manRead("us", "Reyes");
+    const counted = theirs.n === 3 && theirs.made === 2 && theirs.shot === 1 && theirs.bunker[0] === bl[12].id && theirs.shotFrom[0] === bl[3].id && mine.n === 2 && mine.shot === 1;
+    editProfile("right", { players: [{ num: "7", name: "Smith", wire: "snake" }] });
+    window.set({ tab: "scout", scoutTab: "anticipate", pitOpen: null });
+    const a = document.querySelector(".main").textContent;
+    const onAnticipate = /3 breaks charted · made it 2 · shot on the break 1 \(from/.test(a) && /You lose men at/.test(a);
+    window.set({ scoutTab: "matchup" });
+    const onMatchup = /3 breaks charted/.test(document.querySelector(".main").textContent);
+    window.set({ tab: "more", more: "assess", asWho: "Reyes" });
+    const onAssess = /Reyes on .*: 2 breaks charted · made it 1 · shot on the break 1/.test(document.querySelector(".main").textContent);
+    window.set({ asWho: null }); editProfile("right", { players: [] });
+    return counted && onAnticipate && onMatchup && onAssess;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
