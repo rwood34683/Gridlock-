@@ -5502,10 +5502,11 @@ function tally(){
       return n ? `<p class="note">${n} call${n===1?"":"s"} logged on this sheet. Playbook counts how
         predictable you have been on this field.</p>` : "";
     })()}
-    <div class="btnrow" style="align-items:center;margin-top:var(--s3)">
-      <span class="note grow" style="margin:0">Race to</span>
-      <div class="seg">${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)" aria-label="No race target">\u2014</button></div>
-    </div>
+    ${/* The format: first to N. A standalone segment like the call picker above,
+          because a segment squeezed into a button row came out 32 px tall and
+          every target on a sideline is 44. */""}
+    <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
+    <div class="seg seg--wrap" aria-label="Race to">${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">Race to ${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)">No race</button></div>
     <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out. Anyone you logged as shot on the break above is already marked.</p>
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
