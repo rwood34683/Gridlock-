@@ -829,6 +829,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   skipping the shared break section; their drawn call is still on Matchup,
   Counter and Layers. The training-aid line reads *under* every sub-tab, not
   over it: above, it was one more block between the fold and the field.
+- Put eight controls between a coach and the field he came to tap. How did
+  they get there had the pit, the team, the man, his number, the match, the
+  point, the starting end, the start bunker and the destination list all
+  above the field, which began 1050 px down a phone. The man leads, the field
+  follows, the destination list is the fallback under it, and the pit, match,
+  point and end are folded with the summary reading their current values.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

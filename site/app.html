@@ -7910,18 +7910,17 @@ function scoutArrival(){
   const bunkerOptions = selected => curLayout().bunkers.map(b=>`<option value="${esc(b.id)}"${selected===b.id?' selected':''}>${esc(label(b.id))}</option>`).join("");
   const pick = a.pick === "sighting" ? "sighting" : "destination";
   return sec("How did they get there?",`<p class="lede">Choose an opponent and the bunker they reached. Add the places you actually saw them, in order, to narrow the possible routes.</p>
-    <p class="aid"><b>Possible routes are a training aid, not a prediction.</b> Green numbers are where you saw him. Dashed lines are the app filling in between.</p>
     <div class="arrival-grid">
-      <div class="fld"><label for="arrival-side">Which pit</label><select id="arrival-side" onchange="setArrival({side:this.value})">
-        <option value="left"${c.side==='left'?' selected':''}>Left pit</option><option value="right"${c.side==='right'?' selected':''}>Right pit</option></select></div>
       <div class="fld"><label for="arrival-team">Opponent team</label><select id="arrival-team" onchange="setArrival({team:this.value})">${teams.map(t=>`<option${t===c.team?' selected':''}>${esc(t)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('team')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='team')}">Add team</button></div>
       ${arrivalCustomForm("team")}
       <div class="fld"><label for="arrival-player">Opponent player</label><select id="arrival-player" onchange="setArrival({player:this.value})">${[...players].map(([key,name])=>`<option value="${esc(key)}"${key===c.player?' selected':''}>${esc(name)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('player')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='player')}">Add player</button></div>
       <div class="fld"><label for="arrival-number">Or enter their number</label><input id="arrival-number" inputmode="numeric" maxlength="30" value="${esc(c.player.startsWith('number:')?c.player.slice(7):'')}" placeholder="Number is enough" onchange="setArrivalNumber(this.value)"/></div>
       ${arrivalCustomForm("player")}
     </div>
-    <details class="arrival-context"${a.details?' open':''} ontoggle="arrivalDetailsToggle(this)"><summary>Match &amp; starting end · Point ${c.pt} · ${options.startEnd==='right'?'Right → left':'Left → right'}</summary>
+    <details class="arrival-context"${a.details?' open':''} ontoggle="arrivalDetailsToggle(this)"><summary>Pit, match &amp; starting end · Point ${c.pt} · ${options.startEnd==='right'?'Right → left':'Left → right'}</summary>
     <div class="arrival-grid">
+      <div class="fld"><label for="arrival-side">Which pit</label><select id="arrival-side" onchange="setArrival({side:this.value})">
+        <option value="left"${c.side==='left'?' selected':''}>Left pit</option><option value="right"${c.side==='right'?' selected':''}>Right pit</option></select></div>
       <div class="fld"><label for="arrival-match">Match</label><select id="arrival-match" onchange="setArrival({matchId:this.value,point:null})">
         <option value=""${!a.matchId?' selected':''}>Current match · ${esc(matchLabel(curMatch()))}</option>
         ${(S.matches || []).map(m=>`<option value="${esc(m.id)}"${a.matchId===m.id?' selected':''}>${esc(matchLabel(m))}</option>`).join("")}</select></div>
@@ -7932,15 +7931,16 @@ function scoutArrival(){
         <option value="left"${options.startEnd==='left'?' selected':''}>Left end → moving right</option><option value="right"${options.startEnd==='right'?' selected':''}>Right end → moving left</option></select></div>
       <div class="fld"><label for="arrival-start">Start from</label><select id="arrival-start" onchange="setArrival({startBunker:this.value})"><option value="">Start station</option>${bunkerOptions(options.startBunker)}</select></div>
     </div>
-    </details>
     <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player))} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
-    <div class="fld"><label for="arrival-destination">Where he ended up</label><select id="arrival-destination" onchange="setArrival({destination:this.value})"><option value="">Pick the bunker</option>${bunkerOptions(options.destination)}</select></div>
+    </details>
     <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Pick destination</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Pick earlier sighting</button></div>
     <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,names:true,overlay:arrivalOverlay(model)})}</div>
+    <p class="aid"><b>Possible routes are a training aid, not a prediction.</b> Green numbers are where you saw him. Dashed lines are the app filling in between.</p>
     ${route ? `<div class="seg seg--wrap">${result.routes.map(r=>`<button class="${route.id===r.id?'on':''}" onclick="setArrival({route:'${r.id}'})">${esc(r.label)} · ~${Math.round(r.length)} ft</button>`).join("")}</div>
       <div class="arrival-playback"><button class="btn btn--quiet" onclick="stepArrival(-1)">Previous stop</button><button class="btn" onclick="playArrival()">${_arrivalPlayback.running?'Pause route':'Play route'}</button><button class="btn btn--quiet" onclick="stepArrival(1)">Next stop</button></div>
       <p id="arrival-progress" class="note" aria-live="off">${Math.round(_arrivalPlayback.t*100)}% of possible route</p>` : ""}
-    <p class="note">Tap the field to select the nearest bunker for ${pick==='sighting'?'an earlier sighting':'the destination'}, or use the list below. Selecting a bunker does not record a sighting.</p>
+    <p class="note">Tap the field to select the nearest bunker for ${pick==='sighting'?'an earlier sighting':'the destination'}, or use the list under it. Selecting a bunker does not record a sighting.</p>
+    <div class="fld"><label for="arrival-destination">Where he ended up</label><select id="arrival-destination" onchange="setArrival({destination:this.value})"><option value="">Pick the bunker</option>${bunkerOptions(options.destination)}</select></div>
       <div class="fld"><label for="arrival-sighting">Where you saw him on the way</label><select id="arrival-sighting" onchange="setArrival({sightingBunker:this.value})"><option value="">${options.destination?'Same as where he ended up':'Pick the bunker'}</option>${bunkerOptions(options.sightingBunker)}</select></div>
     <div class="btnrow"><button class="btn" onclick="logArrivalSighting()"${!options.sightingBunker&&!options.destination?' disabled':''}>Record sighting</button>
       <button class="btn btn--quiet" onclick="undoArrivalSighting()"${sightings.length?'':' disabled'}>Undo last sighting</button>
