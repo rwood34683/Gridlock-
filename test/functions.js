@@ -3737,6 +3737,16 @@ const ROSTER = [
     window.moveTap([c.x, c.y]); window.moveTap([bl[0].x, bl[0].y]);
     return refused && S.moveFrom === bl[0].id && !S.moveTo;
   }));
+  check("Bunker stats reads the break chart: a break to a bunker is a visit, shot there is an out", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const bl = curLayout().bunkers, a = bl[7], mv = bl[8];
+    S.breakouts = [{ id: "bs1", m: S.matchId, pt: 1, side: "us", bunker: a.id, layout: S.layoutKey, alive: false, movedTo: mv.id, at: Date.now() },
+                   { id: "bs2", m: S.matchId, pt: 1, side: "us", bunker: a.id, layout: S.layoutKey, alive: true, at: Date.now() }, ...(S.breakouts || [])];
+    window.set({ tab: "more", more: "stats" });
+    const t = bunkerTraffic();
+    const text = document.getElementById("root").textContent;
+    return t[a.id] && t[a.id].visits >= 2 && t[a.id].outs >= 1 && t[mv.id] && t[mv.id].visits >= 1 && !/Nothing logged yet/.test(text);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

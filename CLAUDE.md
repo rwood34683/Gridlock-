@@ -761,3 +761,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the picker, as on Tally: tap where he left, tap where he went (`moveTap`,
   `S.moveFrom` / `S.moveTo` scratch, ringed on the field); the dropdowns stay
   underneath and follow the taps.
+- Leave Bunker stats reading only the old out fields. The break chart is the
+  busiest log on the phone and the screen never read it, so a coach who
+  charted every point saw "Nothing logged yet". `bunkerTraffic()` counts a
+  break to a bunker as a visit, a man shot there on the break as an out there,
+  and where he moved to as a visit — watched games out, like everywhere else.
