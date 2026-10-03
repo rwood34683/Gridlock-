@@ -6409,7 +6409,7 @@ const ROSTER = [
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
-                 quick:true, quickPick:true,
+                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards",
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -6424,6 +6424,7 @@ const ROSTER = [
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
       quick:S.quick, quickPick:S.quickPick,
+      copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);

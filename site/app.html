@@ -2543,6 +2543,10 @@ S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
+// The season copy shown as text is the whole season again, saved inside the
+// season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
+// was standing. None of them is a record, so none of them rides a relaunch.
+S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
