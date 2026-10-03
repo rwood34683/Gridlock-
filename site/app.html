@@ -2438,7 +2438,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -2582,19 +2582,22 @@ window.timeUp = () => {
  * scratch — a relaunch never resumes yesterday's countdown. */
 function breakClock(m){ m = m === undefined ? curMatch() : m; return m && m.breakClock > 0 ? m.breakClock : 0; }
 window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({breakClock: n || null}); if(!n) S.clockEnd = 0; save(S); render(); };
-window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; render(); } };
+window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; _buzzed = false; render(); } };
 window.stopBreakClock = () => { S.clockEnd = 0; render(); };
 const clockLeft = () => Math.max(0, Math.ceil(((S.clockEnd || 0) - Date.now()) / 1000));
 const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
 /* One timer, ticking the text of every clock on screen without a render — a
  * render every second would rebuild the sheet under the coach's thumb. It
  * runs only while a clock is set and stops itself when none is. */
-let _clockT = null;
+let _clockT = null, _buzzed = false;
 function tickClock(){
   if(_clockT) return;
   _clockT = setInterval(() => {
     if(!S.clockEnd){ clearInterval(_clockT); _clockT = null; return; }
     const left = clockLeft();
+    // One buzz at zero where the phone can do it; iOS cannot, and the chip
+    // going red is the same signal everywhere.
+    if(left === 0 && !_buzzed){ _buzzed = true; try{ navigator.vibrate && navigator.vibrate([200, 100, 200]); }catch(e){} }
     document.querySelectorAll("[data-clock]").forEach(el => {
       el.textContent = mmss(left);
       el.classList.toggle("clock--out", left === 0);
@@ -3886,13 +3889,49 @@ function lineupPoints(){
     .filter(n => n > 0)
     .sort((a, b) => b - a);
 }
+/* The five on this point: the lineup written for it, else the last one written
+ * before it on this sheet. It used to fall back to roster order the moment a
+ * point had no lineup of its own, so a coach rotating nine men wrote his five
+ * on point 1 and point 2 opened on roster slots 1–5 — the wrong five, on
+ * Tally, Playbook and the cards, until he went back under More and tapped
+ * "Same as point 1" again. A five stands until he changes it. */
+function lineupAt(pt, mid){
+  mid = mid || S.matchId;
+  const own = lineupFor(pt, mid); if(own.length) return own;
+  const prev = Object.keys(S.lineups || {})
+    .filter(k => k.startsWith(mid + "|")).map(k => Number(k.split("|")[1]))
+    .filter(n => n > 0 && n < pt).sort((a, b) => b - a)[0];
+  return prev ? lineupFor(prev, mid) : [];
+}
 function fiveFor(pt){
-  const line = lineupFor(pt), roster = S.roster || [];
+  const line = lineupAt(pt), roster = S.roster || [];
   return [0,1,2,3,4].map(i => (line[i] && playerNamed(line[i])) || (line.length ? null : roster[i]) || null);
 }
+// Who is on the point, as names, whether the five came from a lineup or the roster.
+const onPoint = pt => fiveFor(pt).filter(Boolean).map(p => p.name);
+/* Rotation, where the point is scored. Tap a man who is on and he comes off;
+ * tap a man on the bench and he takes the first empty slot. Written as this
+ * point's lineup, starting from whatever five was standing, so the other four
+ * keep their slots and their jobs. */
+window.swapOn = name => {
+  const pt = S.point || 1;
+  const line = [...lineupAt(pt)];
+  while(line.length < 5) line.push("");
+  if(!line.some(Boolean)) onPoint(pt).forEach((n, i) => { line[i] = n; });
+  const at = line.indexOf(name);
+  if(at >= 0) line[at] = "";
+  else {
+    const free = line.indexOf("");
+    if(free < 0){ flash("Five are on. Take a man off first."); return; }
+    line[free] = name;
+  }
+  S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line.slice(0, 5)};
+  save(S); render();
+};
 window.setSlot = (i, name) => {
   const pt = S.point || 1;
-  const line = [...(lineupFor(pt).length ? lineupFor(pt) : ["","","","",""])];
+  // Start from the five that is standing, so one swap keeps the other four.
+  const line = [...(lineupAt(pt).length ? lineupAt(pt) : ["","","","",""])];
   line[i] = name;
   S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line};
   save(S); render();
@@ -6197,8 +6236,19 @@ function tally(){
   const reads = (S.results || []).filter(r => r && r.m === S.matchId && r.read);
   const right = reads.filter(r => r.read === "right").length;
 
+  const roster = S.roster || [], bench = roster.filter(r => !mine.some(p => p.name === r.name));
+  // Rotation lives on the point sheet when there is anyone to rotate. Nine men
+  // and a sheet that could only name the first five is how a coach ends up
+  // tallying an out against a man who was in the pit.
+  const rotate = roster.length > 5 && !(curMatch()||{}).watch ? `
+    <button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3)" onclick="set({whoOn:!S.whoOn})">${
+      S.whoOn ? "Done" : `Who's on · ${bench.length} on the bench`}</button>
+    ${S.whoOn ? `<p class="note">Tap a man to take him off or put him on. The five stands until you change it.</p>
+      <div class="seg seg--wrap" aria-label="Who is on this point">${roster.map(r =>
+        `<button class="${mine.some(p => p.name === r.name) ? "on" : ""}" onclick="swapOn(${jsq(r.name)})">${esc("#" + r.num + " " + r.name)}</button>`).join("")}</div>` : ""}` : "";
   const col=(side,label,colour,names)=>`<div>
     <h4 class="sec__eyebrow" style="color:${colour};margin-bottom:8px">${label} · ${alive(side)} up</h4>
+    ${side === "us" ? rotate : ""}
     <div class="assigns">
       ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${jsq(n)})" style="${isOut(side,n)?"opacity:.4":""}">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
@@ -6595,6 +6645,7 @@ window.endPoint = won => {
   // over there is no next point, so the clock stops rather than counting down
   // to a buzzer that is not coming.
   S.clockEnd = breakClock() && !matchOver() ? Date.now() + breakClock() * 1000 : 0;
+  _buzzed = false;
   save(S); render();
 };
 // Back a point, because Next point is one tap and a sideline is a sideline.
@@ -6920,7 +6971,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
-    <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
+    ${matchOver() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
   </div>`;
 }
@@ -8348,6 +8399,7 @@ const HELP = {
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
          "Race to is your format — first to 2, 4, 5 or 7, or One point for 5-man. The sheet calls match point and match over for you.",
+         "Who's on, above your five, is where you rotate: tap a man off, tap a man on. The five stands until you change it, point after point.",
          "Clock between points is the one clock you run. Set it to what your event gives you and it starts itself when a point is scored; it rides in the header on every tab.",
          "Time's up is for when the official's match clock runs out: ahead, the match ends at this score; level, it goes to overtime and the next point wins.",
          "Your five break from one end. Switch ends when you change, or Swap every point if your format does. Tally reads yours and theirs off it.",
@@ -8468,6 +8520,8 @@ const HELP = {
 const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
+  ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
+  ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, it goes to overtime and the next point wins it; ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
@@ -8807,13 +8861,16 @@ function moreBody(k){
           <span class="assign__who">${pl?esc("#"+pl.num+" · P "+(pl.p||"—")+" · S "+(pl.s||"—")):"no one on this slot"}</span>
         </span>
       </div>`).join("")}</div>`;
+    const carried = !line.length && lineupAt(pt).length ? mine.filter(n=>n<pt)[0] : 0;
     return sec("Lineups", `<p class="lede">Who is on this point. Slot 1 to 5 are the five jobs on Playbook,
       in the same order — set a lineup here and the break is directed at these players.</p>
+      ${carried ? `<p class="note">Still the five from point ${carried}. Change a slot and it is this point's own.</p>`
+        : !line.length && roster.length > 5 ? `<p class="note">No five written yet — roster order until you set one. Tally has a quicker swap under <b>Who's on</b>.</p>` : ""}
       ${slots}
       <div class="toggles">
         <button class="btn btn--quiet" onclick="fillLineup('roster')">Fill from roster</button>
         ${prev?`<button class="btn btn--quiet" onclick="fillLineup(${prev})">Same as point ${prev}</button>`:""}
-        ${line.length?`<button class="btn btn--danger" onclick="clearLineup()">Clear</button>`:""}
+        ${line.length?`<button class="btn btn--danger" onclick="clearLineup()">${prev?`Back to point ${prev}'s five`:"Clear"}</button>`:""}
       </div>`, "Point "+pt)
     + (mine.length?sec("Earlier points",
         `<div class="assigns">${mine.map(n=>`<div class="assign">
@@ -8897,6 +8954,18 @@ function moreBody(k){
   }
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
+    // The record at this event: finished sheets on this field, his own games
+    // only. A sheet with no race set is never finished and is not guessed at;
+    // it is counted as open.
+    const here = all.filter(m => m.layout === S.layoutKey && !m.watch && m.vs);
+    const won = here.filter(m => matchOver(m.id) === "us").length;
+    const lost = here.filter(m => matchOver(m.id) === "them").length;
+    const open = here.length - won - lost;
+    const record = here.length ? `<div class="facts" style="margin-bottom:var(--s3)">
+        <span class="fact"><b>${won}</b><span>Won</span></span>
+        <span class="fact"><b>${lost}</b><span>Lost</span></span>
+        <span class="fact"><b>${open}</b><span>${open === 1 ? "Open sheet" : "Open sheets"}</span></span>
+      </div><p class="note">${esc(layoutName)}. A sheet counts once it is over — a race reached, or Time's up.${open ? " An open sheet has no race set or is still being played." : ""}</p>` : "";
     return sec("This match", `<div class="panel">
         <h3 class="panel__title"${matchVs()?"":` style="color:var(--dim)"`}>${
           esc(matchVs()||"No opponent yet")}</h3>
@@ -8911,6 +8980,7 @@ function moreBody(k){
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>`, matchLabel(curMatch()))
+    + sec("This event", record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`, won + lost ? `${won}–${lost}` : "")
     + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">

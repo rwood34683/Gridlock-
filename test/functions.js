@@ -1071,9 +1071,16 @@ const ROSTER = [
     window.setSlot(1, "");
     return fiveFor(4)[1] === null;
   }));
-  check("clearing a lineup falls back to the roster", await ev(() => {
+  // The five stands until it is changed, so clearing point 4's own lineup
+  // goes back to the five that was standing — point 3's — never roster order.
+  check("clearing a lineup goes back to the five that was standing", await ev(() => {
     window.clearLineup();
-    return lineupFor(4).length === 0 && fiveFor(4)[0].name === "Reyes";
+    return lineupFor(4).length === 0 && fiveFor(4)[0].name === "Cole" && lineupAt(4)[0] === "Cole";
+  }));
+  check("with no earlier five on the sheet, roster order is the five", await ev(() => {
+    const was = S.lineups; window.set({ lineups: {} });
+    const ok = fiveFor(4)[0].name === "Reyes";
+    window.set({ lineups: was }); return ok;
   }));
   check("with no roster Lineups says where to start", await ev(() => {
     window.set({ roster: [], lineups: {} });
@@ -3413,6 +3420,90 @@ const ROSTER = [
     window.set({ tab: "scout", scoutTab: "counter" });
     const rows = [...document.querySelectorAll("#root .rank__pct")].map(e => e.textContent);
     return rows.length > 3 && rows.every(t => !/%/.test(t) && /Best fit|Close|Weaker|Yours/.test(t)) && rows[0] === "Best fit" && new Set(rows).size > 1;
+  }));
+
+  // The five on the point. X-Ball rotates nine men through five slots between
+  // points, and the five has to stand until the coach changes it — on the
+  // point sheet, not under More.
+  G("The five on the point");
+  await seed({ tab: "tally", right: { name: "Dynasty" }, lineups: {}, roster: [
+    { name: "Reyes", num: 7, p: "", s: "" }, { name: "Okafor", num: 3, p: "", s: "" }, { name: "Diaz", num: 11, p: "", s: "" },
+    { name: "Park", num: 5, p: "", s: "" }, { name: "Nguyen", num: 9, p: "", s: "" }, { name: "Walsh", num: 22, p: "", s: "" },
+    { name: "Baptiste", num: 14, p: "", s: "" }, { name: "Cole", num: 2, p: "", s: "" }, { name: "Ito", num: 8, p: "", s: "" }] });
+  await ev(() => { window.confirm = () => true; window.newMatch(); });
+  check("nine men: the sheet offers Who's on, with four on the bench", await ev(() => {
+    const t = document.getElementById("root").textContent;
+    return /Who's on · 4 on the bench/.test(t) && onPoint(1).join() === "Reyes,Okafor,Diaz,Park,Nguyen";
+  }));
+  check("tap a man off and a bench man on, and the sheet names the new five", await ev(() => {
+    window.set({ whoOn: true });
+    window.swapOn("Diaz"); window.swapOn("Walsh");
+    const col = [...document.querySelectorAll("#root .assign .assign__job")].map(e => e.textContent);
+    return onPoint(1).join() === "Reyes,Okafor,Walsh,Park,Nguyen" && col.includes("Walsh") && !col.includes("Diaz")
+      && lineupFor(1)[2] === "Walsh";
+  }));
+  check("a sixth man is refused until one comes off", await ev(() => {
+    window.swapOn("Cole");
+    return onPoint(1).length === 5 && !onPoint(1).includes("Cole") && /Take a man off first/.test(S.flash || "");
+  }));
+  check("the five stands on the next point, and the one after, without a lineup of its own", await ev(() => {
+    window.endPoint("us");
+    const p2 = onPoint(2).join();
+    window.nextPoint();
+    return p2 === "Reyes,Okafor,Walsh,Park,Nguyen" && onPoint(3).join() === p2 && lineupFor(2).length === 0 && lineupFor(3).length === 0;
+  }));
+  check("a change on point 3 keeps the other four and is point 3's own; point 2 is untouched", await ev(() => {
+    window.swapOn("Reyes"); window.swapOn("Ito");
+    return onPoint(3).join() === "Ito,Okafor,Walsh,Park,Nguyen" && onPoint(2).join() === "Reyes,Okafor,Walsh,Park,Nguyen" && lineupFor(3).length === 5;
+  }));
+  check("Playbook and the cards name the five that is standing", await ev(() => {
+    window.set({ tab: "playbook" });
+    return cardLines().map(c => c.who && c.who.name).join() === "Ito,Okafor,Walsh,Park,Nguyen"
+      && /Ito/.test(document.getElementById("root").textContent);
+  }));
+  check("Lineups under More says the five was carried, and one slot change keeps the rest", await ev(() => {
+    window.set({ tab: "more", more: "lineups" }); window.nextPoint();
+    const said = /Still the five from point 3/.test(document.getElementById("root").textContent);
+    window.setSlot(1, "Cole");
+    return said && onPoint(4).join() === "Ito,Cole,Walsh,Park,Nguyen";
+  }));
+  check("Who's on is scratch: a relaunch closes the fold", await (async () => {
+    await ev(() => window.set({ tab: "tally", whoOn: true }));
+    await page.reload({ waitUntil: "networkidle" });
+    return await ev(() => { window.set({ entered: true, role: "staff", tab: "tally" }); return S.whoOn === false && /Who's on ·/.test(document.getElementById("root").textContent); });
+  })());
+  check("a watched game offers no rotation — there is no 'us' on that field", await ev(() => {
+    window.set({ tab: "tally", whoOn: false });
+    const id = newMatchId();
+    S.matches = [{ id, at: Date.now(), vs: "Dynasty", layout: S.layoutKey, watch: true, home: "Dynasty", away: "Impact" }, ...S.matches];
+    S.matchId = id; S.point = 1; window.set({});
+    const none = !/Who's on/.test(document.getElementById("root").textContent);
+    window.openMatch(S.matches[1].id);
+    return none;
+  }));
+
+  // The record at the event, counted from finished sheets only.
+  check("Matches shows the record at this event from finished sheets, open ones counted as open", await ev(() => {
+    window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(2);
+    window.endPoint("us"); window.endPoint("us");                    // won 2–0
+    window.newMatch(); window.endPoint("them"); window.endPoint("them"); // lost 0–2
+    window.newMatch(); window.endPoint("us");                        // open, 1–0 in a race to 2
+    window.set({ tab: "more", more: "matches" });
+    const t = document.getElementById("root").textContent;
+    const z = t.replace(/\s+/g, "");
+    return /1Won/.test(z) && /1Lost/.test(z) && /\dOpensheet/.test(z);
+  }));
+  check("a watched game is not in the record", await ev(() => {
+    const id = newMatchId();
+    S.matches = [{ id, at: Date.now(), vs: "Dynasty", layout: S.layoutKey, watch: true, home: "Dynasty", away: "Impact", raceTo: 1 }, ...S.matches];
+    S.matchId = id; S.point = 1; window.endPoint("us");
+    const t = document.getElementById("root").textContent.replace(/\s+/g, "");
+    return matchOver(id) === "us" && /1Won/.test(t);
+  }));
+  check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
+    window.set({ tab: "scout" });
+    const btns = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
+    return matchOver() === "us" && !btns.includes("Next point") && btns.includes("New match");
   }));
 
   /* --------------------------------------------------------------- matches */

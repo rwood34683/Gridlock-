@@ -323,6 +323,21 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     stands its result buttons down — New match leads, Back a point stays — so
     the mis-tap after the hang is not a sixth point on a race to five.
 
+32. ~~The five on the point, and the record.~~ Done — X-Ball rotates nine men
+    through five slots between points, and `fiveFor(pt)` fell back to roster
+    order the moment a point had no lineup of its own, so a coach who wrote his
+    five on point 1 had roster slots 1–5 on point 2 on Tally, Playbook and the
+    cards until he went back under More. `lineupAt(pt)` is the door: the five
+    written for this point, else the last one written before it on this sheet
+    — a five stands until he changes it. **Who's on**, above his five on the
+    point sheet whenever the roster is bigger than five: tap a man off, tap a
+    man on (`swapOn`), written as this point's own lineup from the five that
+    was standing so the other four keep their slots. More › Lineups still sets
+    slot order and says when the five was carried. More › Matches opens on the
+    record at this event — won, lost, open — counted from `matchOver()` on his
+    own finished sheets at this layout, watched games out, open sheets counted
+    as open and never guessed at.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -663,3 +678,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Leave the result buttons up on a sheet that is over. The tap after the hang
   is reflex, and on a finished race it scored a point nobody played.
   `matchOver()` swaps them for New match and keeps Back a point.
+- Fall back to roster order for the five. A lineup set on one point is the
+  five until the coach changes it: `lineupAt(pt)` carries the last one written
+  forward, and anything that names the five — Tally's column, Playbook's jobs,
+  the cards — reads `fiveFor()`, never `S.roster.slice(0, 5)`.
+- Make a coach leave the point sheet to rotate. Nine men and a sheet that can
+  only name the first five is how an out gets tallied against a man in the
+  pit. Rotation is on the sheet (**Who's on**); slot order is under More.
