@@ -4592,6 +4592,24 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return lead && said && clear >= tableClear;
   }));
+  check("a watched game lists under Scout › Games, flagged watched, and its point reads back with the two teams named", await ev(() => {
+    window.confirm = () => true;
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
+    const bl = curLayout().bunkers, ids = [3, 9, 14].map(i => bl[i].id);
+    window.set({ theirPick: ids }); window.logTheirBreak("right", "blitz", ids); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
+    const t = document.getElementById("root").textContent.replace(/\s+/g, " ");
+    const listed = !/No points scored or outs logged/.test(t);
+    const story = /Won by\s*Dynasty/.test(t) && new RegExp("Houston Heat ran\\s*" + callName("blitz")).test(t) && !/You called/.test(t);
+    // a second sheet against them, his own, so the game chips show — the watched one flagged
+    window.set({ tab: "tally", right: { name: "Houston Heat" } }); window.newMatch(); window.endPoint("them");
+    window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
+    const chips = [...document.querySelectorAll("#root .seg button")].map(b => b.textContent.replace(/\s+/g, " ").trim());
+    const flagged = chips.some(c => /1–0 · watched/.test(c)) && chips.some(c => /0–1/.test(c) && !/watched/.test(c));
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return listed && story && flagged;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

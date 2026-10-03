@@ -8906,7 +8906,11 @@ function scoutGames(){
   // A game is a sheet against them — one he tallied outs on, or one he only
   // scored. A coach who taps who won every point and never an out had games
   // this screen said did not exist.
-  const scored=(S.matches||[]).filter(m=>m.vs===R.name&&!m.watch&&(S.results||[]).some(r=>r.m===m.id)).map(m=>m.id);
+  // A watched game is their film: both of its sides are named, so the sheet
+  // lists under whichever of them is in the right pit, flagged watched, and
+  // the point reads back with the two teams' names rather than you and them.
+  const scored=(S.matches||[]).filter(m=>(m.watch ? (m.home===R.name||m.away===R.name) : m.vs===R.name)
+    &&((S.results||[]).some(r=>r.m===m.id)||(S.calls||[]).some(c=>c&&c.m===m.id)||theirBreaks("right").some(b=>b.m===m.id&&b.pt))).map(m=>m.id);
   const games=[...new Set([...theirs.map(o=>o.m), ...scored])].map(id=>{
     const m=(S.matches||[]).find(x=>x.id===id);
     return {id, at:(m&&m.at)||Math.min(...theirs.filter(o=>o.m===id).map(o=>o.at||0)),
@@ -8931,7 +8935,7 @@ function scoutGames(){
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
-        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
+        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
     </div>`:""}
     <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
@@ -8969,7 +8973,7 @@ function pointStory(gid, pt, team){
   const kv=(k,v)=>v?`<div class="kv__row"><span class="kv__k">${k}</span><span class="kv__v">${v}</span></div>`:"";
   const sc=scoreBefore(gid,pt);
   const facts=kv("Score before",`${sc.us}–${sc.them}`)
-    +kv("You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+    +kv(m&&m.watch?`${esc(m.home||"Home")} called`:"You called",call?`<b>${esc(callName(call.script))}</b>`:"")
     +kv(`${esc(team)} ran`,theirs?`${theirs.script?`<b>${esc(callName(theirs.script))}</b>`:"unnamed"}${theirs.plants?` · ${theirs.plants.map(id=>esc(named(id))).join(", ")}`:""}`:"")
     +kv("Won by",res?`<b>${esc(who(res.won))}</b>${res.read?` · ${res.read==="right"?"right read":"wrong read"}`:""}`:"")
     +kv("Penalty",pens.length?pens.map(p=>`${esc(who(p.side))} −${p.cost}${p.who?` · ${esc(p.who)}`:""}${p.why?` · ${esc(p.why)}`:""}`).join("; "):"")
@@ -9536,6 +9540,7 @@ const HELP = {
     watch:"Empty until you have logged against this team on this field. Day one it is bare on purpose."},
   "scout/games": {t:"Games", w:"Read a point back from everything you logged on it.",
     how:["Pick the sheet and the point. The point is read back: what you called, what they ran and where they planted, who won it, any penalty or timeout, and every man charted on the break.",
+         "A game you watched lists here too, flagged watched, with the two teams named instead of you and them.",
          "Step through the outs in the order you tapped them, where there are outs.",
          "Nothing is reconstructed. Useful between matches, not during one."]},
   "scout/board": {t:"Division", w:"Who is entered, off the league's own page.",

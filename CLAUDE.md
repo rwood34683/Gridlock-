@@ -1040,6 +1040,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and whether the read was right, penalty, timeout, and every man charted on
   the break — and the point list is the union of every log, not the tally
   alone. Nothing is reconstructed; the replay stands only where there are outs.
+  And a watched game lists there too: it is their film, both sides are named,
+  so it sits under whichever of them is in the right pit, flagged watched,
+  with the point read back as "Dynasty called" and "Won by Dynasty" rather
+  than you and them.
 - Show a sheet a name it can never be given. The kept list printed `note`
   and nothing set it; Matches › This match has **Name this sheet** now
   (`setMatchNote`, forty characters), so Sunday's quarter is not "vs Dynasty ·
