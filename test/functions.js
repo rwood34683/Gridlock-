@@ -3617,6 +3617,14 @@ const ROSTER = [
     window.set({ theirPick: b }); window.nextPoint();
     return cleared && (S.theirPick || []).length === 0;
   }));
+  check("the pits say which is the team you play and which is a team you watch", await ev(() => {
+    window.set({ tab: "scout", right: { name: "" }, left: { name: "" } });
+    const t = document.getElementById("root").textContent;
+    const r = document.querySelector("#root .pit--r"), l = document.querySelector("#root .pit--l");
+    const firstOnPhone = r && l && (window.innerWidth >= 720 || r.getBoundingClientRect().top < l.getBoundingClientRect().top);
+    return /Right pit · who you play/.test(t) && /Left pit · a team you watch/.test(t) && /The team you play\./.test(t) && /A second team/.test(t)
+      && !/Opponent · left/.test(t) && firstOnPhone;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

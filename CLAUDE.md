@@ -721,3 +721,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   level the sheet asks — **it's a tie** (`timeUp` + `tie`, `matchOver()`
   reads "tie") or **overtime** — and the record counts tied beside won and
   lost. `overWord()` is how a finished sheet is read out everywhere.
+- Label both pits "Opponent". A coach asked which one he was playing. The
+  right pit is **who you play** — Tally, Counter and the sheet all read it —
+  and the left is **a team you watch**: the other side of a game off the
+  fence, or someone to read beside them. The empty-pit note says so for each.

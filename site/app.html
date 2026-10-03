@@ -472,6 +472,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
    on an otherwise identical card.
    ============================================================ */
 .pits{display:grid;gap:var(--s3)}
+/* One column on a phone, and the team he plays comes first: it is the pit
+   every other screen reads, and it sat under a card about somebody else. */
+@media(max-width:719px){.pit--r{order:-1}}
 @media(min-width:720px){.pits{grid-template-columns:1fr 1fr}}
 .pit{
   background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
@@ -7094,7 +7097,11 @@ function scout(){
   ${navigation}
   ${matchStrip()}
 
-  <div class="pits">${pit("left",L,"Opponent · left")}${pit("right",R,"Opponent · right")}</div>
+  ${/* Two pits read as two opponents, and a coach asked which one he was
+        playing. The right pit is the team he plays — Tally, Counter and the
+        sheet all read it; the left is a second team: the other side of a game
+        he is watching, or someone he wants beside them. */""}
+  <div class="pits">${pit("left",L,"Left pit · a team you watch")}${pit("right",R,"Right pit · who you play")}</div>
 
   ${/* Games and Division are tables. A break drawn over a list of twenty teams
        is a call nobody made on that screen, so those two get the pits and the
@@ -7703,9 +7710,9 @@ function pit(side,T,label){
     ${T.named && !teamsHere().some(t=>t.name===T.name)
       ? `<p class="note">Not in ${esc(divisionOf().name)} — they are still in the pit and everything
          you have on them is kept.</p>` : ""}
-    ${!T.named?`<p class="note">Pick who is in this pit and everything you learn about them —
-      tendency, threat, their five, the calls you see them run — is kept against that team, so it
-      follows them into the next event. Division has the season list.</p>`:`
+    ${!T.named?`<p class="note">${side === "right"
+        ? "The team you play. Tally logs the sheet against them and Counter reads them; everything you learn — tendency, threat, their five, the calls you see them run — is kept against their name and follows them into the next event."
+        : "A second team: the other side of a game you watch from the fence, or someone to read beside the team you play. Watch this game on More › Schedule fills both pits."} Division has the season list.</p>`:`
     <div class="fld"><label>Tendency · your film read</label>
       <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
     </div>
@@ -8489,7 +8496,8 @@ const HELP = {
          "Even points only leaves short-handed points out of the bunker numbers."],
     watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
   scout: {t:"Scout", w:"What you know about the other team.",
-    how:["Put them in the right pit first. Nothing else works until you do.",
+    how:["The right pit is who you play — put them there first. Nothing else works until you do.",
+         "The left pit is a second team: the other side of a game you watch, or someone to read beside them.",
          "The sub-tabs above are the different reads.",
          "The match strip under the pits is the same match and point Tally is on.",
          "Names writes the bunker codes on the field when you need to find one."]},
