@@ -731,3 +731,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   them with a result *or* an out on it, each chip carries the score and how
   it ended, and the kept list under Matches says won / lost / tie the same
   way, through `overWord()`.
+- Gate the breakout sheet and leave the result buttons live. With nobody
+  across the tape, We won it, Log it and a tapped out all wrote to the "No
+  opponent" sheet while the sheet above refused. `nobodyToPlay()` is the one
+  test and `needOpponent()` the one door — `endPoint`, `markOut`, `logCall`
+  and the landscape log all go through it; a watched game, with two named
+  teams and no "us", never does.
+- Count a watched game's breakouts as yours. On a watched sheet "us" is the
+  home side, not his five, so *Where the points come from* and the uneven
+  count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

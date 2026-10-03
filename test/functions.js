@@ -3635,6 +3635,47 @@ const ROSTER = [
     window.set({ tab: "more", more: "matches" });
     return /Dynasty · 1–0 · you won/.test(document.getElementById("root").textContent);
   }));
+  check("with nobody to play, We won it, Log it and a tapped out all refuse and light the picker", await ev(() => {
+    window.set({ tab: "tally", right: { name: "" }, tallyNudge: false });
+    const id = newMatchId();                                   // a fresh, unnamed sheet
+    S.matches = [{ id, at: Date.now(), vs: "", layout: S.layoutKey }, ...S.matches]; S.matchId = id; S.point = 1; window.set({});
+    const before = [(S.results || []).length, (S.tally || []).length, (S.calls || []).length].join();
+    window.endPoint("us"); const n1 = S.tallyNudge; window.set({ tallyNudge: false });
+    window.markOut("us", "Reyes"); const n2 = S.tallyNudge; window.set({ tallyNudge: false });
+    window.logCall(); const n3 = S.tallyNudge;
+    const after = [(S.results || []).length, (S.tally || []).length, (S.calls || []).length].join();
+    return before === after && n1 && n2 && n3 && matchScore().us === 0;
+  }));
+  check("the landscape log says to pick the team rather than offering two live buttons", await ev(() => {
+    window.set({ quick: true, quickPick: false });
+    const root = document.getElementById("root");
+    const q = root.querySelector(".qlog");
+    const btns = q ? [...q.querySelectorAll(".btn")].map(b => b.textContent.trim()) : [];
+    const said = q && /Pick the other team first/.test(q.textContent) && !btns.includes("We won it");
+    window.needOpponent();
+    return said && S.quick === false;
+  }));
+  check("a watched game is never caught by that gate — it has two named teams", await ev(() => {
+    const id = newMatchId();
+    S.matches = [{ id, at: Date.now(), vs: "Dynasty", layout: S.layoutKey, watch: true, home: "Dynasty", away: "Impact" }, ...S.matches];
+    S.matchId = id; S.point = 1; window.set({ tallyNudge: false });
+    window.endPoint("us");
+    const ok = matchScore().us === 1 && !S.tallyNudge;
+    window.openMatch(S.matches[1].id); window.set({ right: { name: "Dynasty" } }); window.playPit();
+    return ok;
+  }));
+  check("Where the points come from never counts a game you only watched", await ev(() => {
+    const id = newMatchId();
+    S.matches = [{ id, at: Date.now(), vs: "Dynasty", layout: S.layoutKey, watch: true, home: "Dynasty", away: "Impact" }, ...S.matches];
+    const b = curLayout().bunkers[0].id;
+    S.breakouts = [{ id: "w1", m: id, pt: 1, side: "us", bunker: b, layout: S.layoutKey, alive: true }, ...(S.breakouts || [])];
+    S.results = [{ m: id, pt: 1, won: "us", at: Date.now() }, ...(S.results || [])];
+    window.set({});
+    const rows = bunkerValue("us", false);
+    const mine = rows.find(r => r.id === b);
+    const counted = !!(S.breakouts || []).some(r => r.m === id);
+    return counted && (!mine || !(S.breakouts || []).filter(r => r.bunker === b && r.side === "us" && !watchedMatch(r.m)).length < mine.att);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
