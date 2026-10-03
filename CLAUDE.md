@@ -841,6 +841,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `for`, so `render()` ties each control to the label above it in one pass,
   and the suite sweeps the point sheet, Scout, Walk, Movement and Team for
   anything a screen reader could not say.
+- Keep an empty sheet. New match replaced the unnamed blank the app opened
+  with, but a sheet that had a name and nothing on it — a second tap, or the
+  wrong team picked and picked again — was kept, and sat in Matches and in
+  every game picker with "0". A sheet with no out, no rotation and no result
+  is replaced whoever it was named for. And Games printed "Point undefined ·
+  0 of 0" for a sheet with results and no outs; with nothing to step through
+  there is no Replay section.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

@@ -4003,6 +4003,22 @@ const ROSTER = [
     if (bad.length) console.log("unnamed:", bad.join(" | "));
     return bad.length === 0;
   }));
+  check("Games with results and no outs shows no replay, and never 'Point undefined'", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us"); window.endPoint("them");
+    window.set({ tab: "scout", scoutTab: "games", replayMatch: null, replayPt: null, replayStep: null, pitOpen: null });
+    const t = document.getElementById("root").textContent;
+    return !/undefined/.test(t) && !/Step through it/.test(t) && /No outs tallied on this sheet/.test(t);
+  }));
+  check("New match on an empty sheet replaces it rather than keeping a blank one", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } });
+    window.newMatch();                    // closes the 1–1 sheet above (it has results, so it is kept)
+    const before = S.matches.length, emptyId = S.matchId;
+    window.newMatch();                    // nothing on it yet → replaced, not added
+    const same = S.matches.length === before && !S.matches.some(m => m.id === emptyId);
+    window.endPoint("us");
+    window.newMatch();                    // a result on it → kept
+    return same && S.matches.length === before + 1;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
@@ -4023,6 +4039,7 @@ const ROSTER = [
     window.confirm = () => true;
     window.nextPoint(); window.nextPoint();
     const was = S.point;
+    window.markOut("them", "#1");         // something on the sheet, so it is kept rather than replaced
     window.newMatch();
     return was === 3 && S.point === 1 && S.matches.length >= 2;
   }));
@@ -5340,6 +5357,7 @@ const ROSTER = [
   }));
   check("an older sheet asks him to upgrade rather than opening", await ev(() => {
     const first = S.matchId, kept = (S.matches || []).length;
+    window.endPoint("us");                // a result on it, so the sheet is kept when the next one opens
     window.set({ right: { name: "Other" } }); window.newMatch();
     window.openMatch(first);
     return S.more === "plan" && S.matchId !== first && (S.matches || []).length === kept + 1;
