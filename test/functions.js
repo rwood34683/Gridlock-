@@ -3758,6 +3758,14 @@ const ROSTER = [
     window.newMatch();
     return noSheet && before === after && said;
   }));
+  check("Matchup names the five standing beside their jobs, and their men by number and name", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", right: { name: "Dynasty" }, pitOpen: null });
+    editProfile("right", { players: [{ num: "7", name: "Smith", wire: "snake" }] }); window.set({});
+    const t = document.getElementById("root").textContent;
+    const mine = onPoint(S.point || 1);
+    const ok = /7Smith·snake/.test(t.replace(/\s+/g, "")) && (!mine.length || new RegExp(mine[0]).test(t));
+    editProfile("right", { players: [] }); return ok;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
