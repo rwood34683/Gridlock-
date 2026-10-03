@@ -418,7 +418,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     sighted in, and `shooterLane()` names which of your five has a lane on
     that bunker off the break — on the sheet, Playbook and Anticipate, and
     with the Lanes chip on, his usual bunker is ringed and named on the
-    Scout field so the lanes drawn on it read as his.
+    Scout field so the lanes drawn on it read as his. Each man's **card**
+    carries his own share of it — the bunkers of their five he has a clear
+    lane on off the break, and whether one is their shooter's — in the
+    share text too, because the card is what he is handed.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
