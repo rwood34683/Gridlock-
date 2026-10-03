@@ -1585,6 +1585,7 @@ const defaultState = () => ({
   authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
   plays:[], building:null,
   pens:[],                 // penalties, as the official called them and the coach recorded them
+  timeouts:[],             // the one timeout a team gets a match, and the point it was taken on
   penOpen:false,           // scratch: the penalty panel on the point sheet
   evenOnly:false,          // count bunker value on even points only
   games:[], gamesOff:[],   // games he added, and rows off the league list he took out
@@ -1838,7 +1839,7 @@ function matchLabel(m){
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens)
+  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens) + n(S.timeouts)
        + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
 }
 /* Who the match is against.
@@ -2703,7 +2704,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","matchState"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
@@ -2903,6 +2904,8 @@ function copyDataError(data){
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
     offPlays:list(str), gamesOff:list(str),
     // A penalty is what the official took, recorded: which side, how many men.
+    timeouts:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
+      && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
     pens:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
       && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0
       && Number.isInteger(v.cost) && v.cost > 0 && v.cost < 5
@@ -4285,6 +4288,39 @@ function theirBreaks(side){ return pitOf(side).breaks || []; }
 function breakFreq(side){
   const seen = theirBreaks(side).filter(b => b.script).reduce((m,b) => ({...m, [b.script]:(m[b.script]||0)+1}), {});
   return Object.entries(seen).sort((a,b) => b[1]-a[1]);
+}
+/* Situational reads. Every named call logged against a team carries the match
+ * and the point, and every point carries who won it, so the same rows say what
+ * they ran when behind, when ahead, level, after losing a point and after
+ * winning one — and what they have run lately against what they ran all
+ * season. Counts, never a model: "Blitz, 3 of the 4 times they were behind". */
+function scoreBefore(mid, pt){
+  const rows = (S.results || []).filter(r => r && r.m === mid && r.pt < pt);
+  return {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
+}
+function theirReads(side){
+  // On a watched sheet the left pit is the home side, which results call "us".
+  const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
+  const rows = theirBreaks(side).filter(b => b.script && b.m);
+  const tally = list => Object.entries(list.reduce((m, b) => ({...m, [b.script]: (m[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
+  const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, tally: t}; };
+  const lead = r => { const sc = scoreBefore(r.m, r.pt); return sc[theirs] - sc[mine]; };
+  const last = (r, who) => (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt - 1 && x.won === who);
+  const all = bucket("overall", () => true);
+  const recentRows = [...rows].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 5);
+  const recent = tally(recentRows);
+  const shift = !!(all.top && recent[0] && recent[0][0] !== all.top[0] && recent[0][1] >= 3);
+  return {n: rows.length, all, recent, recentN: recentRows.length, shift,
+          when: [bucket("when behind", r => lead(r) < 0), bucket("when ahead", r => lead(r) > 0), bucket("level", r => lead(r) === 0),
+                 bucket("after losing a point", r => last(r, mine)), bucket("after winning a point", r => last(r, theirs))]};
+}
+/* Your record with a call against a team on this field: the calls you logged,
+ * joined with who won the point. The Counter ranks on this first and falls
+ * back to the heuristic only where you have no history. */
+function callRecord(key, team){
+  const rows = (S.calls || []).filter(c => c && c.script === key && c.vs === team && c.layout === S.layoutKey && !watchedMatch(c.m));
+  const res = rows.map(c => ((S.results || []).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won).filter(Boolean);
+  return {n: res.length, won: res.filter(w => w === "us").length};
 }
 /* Where their five went, without knowing who they were.
  *
@@ -6041,6 +6077,16 @@ function tally(){
           then the point is won or lost short-handed. The app never decides what
           a penalty is — it records how many men came off. */""}
     ${(() => {
+      // One timeout a team a match. Spent, the chip says which point it went
+      // on and gives it back with one tap; the clock itself is the official's.
+      const word = sd => (curMatch()||{}).watch ? sideWord(sd) : (sd === "us" ? "Our" : esc(matchVs() || "Their"));
+      return `<div class="btnrow" aria-label="Timeouts">${["us","them"].map(sd => {
+        const t = timeoutsFor().find(x => x.side === sd);
+        return t ? `<button class="btn btn--quiet grow" onclick="dropTimeout(${jsq(t.id)})" title="Undo">⏱ ${word(sd)} timeout · used, point ${t.pt} · undo</button>`
+                 : `<button class="btn btn--quiet grow" onclick="addTimeout('${sd}')">⏱ ${word(sd)} timeout</button>`;
+      }).join("")}</div>`;
+    })()}
+    ${(() => {
       const here = pensFor(S.matchId, pt);
       const word = sd => (curMatch()||{}).watch ? sideWord(sd) : (sd === "us" ? "Us" : esc(matchVs() || "Them"));
       return `<div class="btnrow">
@@ -6216,6 +6262,17 @@ function startUp(side, mid, pt){
 // fairly judged on, which is what the Even-only switch is for.
 function evenPoint(mid, pt){ return !pensFor(mid, pt).length; }
 window.togglePen = () => set({penOpen: !S.penOpen});
+/* The timeout. Each team gets one a match and the designated coach calls it,
+ * so the sheet records which point it was spent on. One a side: a second tap
+ * does nothing, and Undo gives it back. The clock is the official's. */
+const timeoutsFor = mid => (S.timeouts || []).filter(t => t && t.m === (mid || S.matchId));
+window.addTimeout = side => {
+  if(nobodyToPlay()) return needOpponent();
+  if(timeoutsFor().some(t => t.side === side)) return;
+  S.timeouts = [{id: penId(), m: S.matchId, pt: S.point || 1, side, at: Date.now()}, ...(S.timeouts || [])];
+  save(S); render();
+};
+window.dropTimeout = id => { S.timeouts = (S.timeouts || []).filter(t => t.id !== id); save(S); render(); };
 window.addPen = (side, cost) => {
   S.pens = [{id: penId(), m: S.matchId, pt: S.point || 1, side, cost: +cost || 1,
              who: "", why: "", at: Date.now()}, ...(S.pens || [])];
@@ -7470,7 +7527,7 @@ function scoutMatchup(){
 function scoutAnticipate(){
   // The generic reads are a starting point. What a coach actually wants before
   // the horn is the two or three players he logged himself, hardest first.
-  const card=(T,likely,tells,counter)=>{
+  const card=(T,likely,tells,counter,extra)=>{
     const men=[...(T.players||[])].sort((a,b)=>(b.threat||0)-(a.threat||0)).slice(0,3);
     return `<div class="panel">
     <h3 class="panel__title">${esc(T.name)}</h3>
@@ -7478,6 +7535,7 @@ function scoutAnticipate(){
       <div class="kv__row"><span class="kv__k">Likely</span><span class="kv__v">${likely}</span></div>
       <div class="kv__row"><span class="kv__k">Tells at the line</span><span class="kv__v">${tells}</span></div>
       <div class="kv__row"><span class="kv__k">Your counter</span><span class="kv__v">${counter}</span></div>
+      ${extra || ""}
       ${men.map(m=>`<div class="kv__row"><span class="kv__k">${esc(m.num?"#"+m.num:"Watch")}${m.name?" "+esc(m.name):""}</span>
         <span class="kv__v">${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}
         <span style="color:var(--accent-lit)">${"★".repeat(m.threat||0)}</span></span></div>`).join("")}
@@ -7506,7 +7564,17 @@ function scoutAnticipate(){
     const counted = total
       ? `<b>${esc(callName(seen[0][0]))}</b> — ${seen[0][1]} of the ${total} break${total === 1 ? "" : "s"} you logged${seen.length > 1 ? `, then ${esc(callName(seen[1][0]))} ${seen[1][1]}` : ""}. `
       : "";
-    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter];
+    // What they ran by situation, and lately. Each line is a count with the
+    // size of the sample on it; a bucket under three logged says nothing.
+    const rd = theirReads(side);
+    const rows = rd.when.filter(b => b.n >= 3 && b.top).map(b =>
+      `<div class="kv__row"><span class="kv__k">${esc(b.label[0].toUpperCase() + b.label.slice(1))}</span><span class="kv__v"><b>${esc(callName(b.top[0]))}</b> — ${b.top[1]} of ${b.n}${rd.all.top && b.top[0] !== rd.all.top[0] ? ` <span style="color:var(--warn)">· not their usual</span>` : ""}</span></div>`).join("");
+    const lately = rd.recentN >= 3 && rd.recent[0]
+      ? `<div class="kv__row"><span class="kv__k">Lately</span><span class="kv__v">${rd.shift
+          ? `<b style="color:var(--warn)">${esc(callName(rd.recent[0][0]))} ${rd.recent[0][1]} of their last ${rd.recentN}</b> — the season says ${esc(callName(rd.all.top[0]))}${READS[T.tend] && T.tend !== "Balanced" ? `, your read says ${esc(T.tend)}` : ""}. They may have changed.`
+          : `<b>${esc(callName(rd.recent[0][0]))}</b> ${rd.recent[0][1]} of their last ${rd.recentN} — same as the season.`}</span></div>`
+      : "";
+    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
@@ -7658,7 +7726,11 @@ window.toggleLayer = k => {
 
 function scoutCounter(){
   const R=pitOf("right"), state=S.matchState||"Even";
-  const ranked=counterRank(R.tend, state);
+  // Counted first: a call you have run against them on this field is ranked by
+  // what it won, and the heuristic only orders the ones you have never run.
+  const ranked=counterRank(R.tend, state).map(r => ({...r, rec: callRecord(r.key, R.name)}))
+    .sort((a,b) => (b.rec.n ? b.rec.won / b.rec.n : -1) - (a.rec.n ? a.rec.won / a.rec.n : -1) || b.rec.n - a.rec.n || b.pct - a.pct || a.aggr - b.aggr);
+  const played = ranked.filter(r => r.rec.n).reduce((n, r) => n + r.rec.n, 0);
   return sec("Counter-picker", `<div class="seg">
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
@@ -7677,10 +7749,10 @@ function scoutCounter(){
         <span class="rank__n">${i+1}</span>
         <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}</span>
         ${pips(r.aggr,"")}
-        <span class="rank__pct">${fitWord(r, ranked[0].pct)}</span>
+        <span class="rank__pct">${r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
       </button>`).join("")}
     </div>
-    <p class="note">Tap a break to make it the call.</p>
+    <p class="note">${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
     <button class="btn btn--ghost btn--block" onclick="copyMatchup()">Copy matchup card</button>`,
     state)
   + (()=>{ const seen = Object.fromEntries(breakFreq("right"));
@@ -8284,6 +8356,7 @@ const HELP_Q = [
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
+  ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
 ];

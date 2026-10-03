@@ -353,6 +353,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     is set on the sheet. Open: the one-minute **timeout**, one per team per
     match (9.7).
 
+34. ~~Counted intelligence.~~ Done — the owner asked for adaptive intelligence,
+    tendency prediction and player judgement. The answer stays inside the house
+    rule: everything is a count of what was logged, and the sample size is on
+    every line. `theirReads(side)` joins their named calls with the score
+    before the point and the point before, so Anticipate reads what they ran
+    **when behind, when ahead, level, after losing a point, after winning one**
+    — a bucket under three logged says nothing — and **Lately** compares their
+    last five with the season and says "they may have changed" when the two
+    disagree. `callRecord(key, team)` joins your logged calls with who won the
+    point, so **Counter** ranks a call you have actually run against them by
+    what it won ("won 3 of 4") and leaves the heuristic for the ones you never
+    have. No model, no odds, no prediction. And the **timeout** from the
+    rulebook (9.7): one a team a match, on the sheet, with the point it went on.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -893,6 +907,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   a no-point moves nobody, and overtime starts on the pit side. `ourEnd()`
   reads the results through `scoredBefore()`, so "Next point, no result" keeps
   the end and `endSwapped()` is the one place that decides.
+- Print a read without the sample on it. "Blitz when behind" means nothing
+  without "3 of 4", and a bucket of two is a coincidence: `theirReads()` hides
+  anything under three logged and every line carries its count. The Counter's
+  "won x of y" is your record against that team on this field, never a model's
+  estimate, and the heuristic word only ranks the calls you have never run.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

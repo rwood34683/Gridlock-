@@ -4102,6 +4102,58 @@ const ROSTER = [
     window.set({ penOpen: false });
     return forty && four && /one-for-one is two men off/.test(t);
   }));
+  check("Anticipate counts what they ran by situation and says when the last five disagree with the season", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", breaks: [] });
+    // they fall behind and run Blitz three times; level they run Snake Stack
+    window.logTheirBreak("right", "snake", []); window.endPoint("us");          // level before: snake
+    window.logTheirBreak("right", "blitz", []); window.endPoint("us");          // behind: blitz
+    window.logTheirBreak("right", "blitz", []); window.endPoint("them");        // behind: blitz
+    window.logTheirBreak("right", "blitz", []); window.endPoint("us");          // behind: blitz
+    const rd = theirReads("right");
+    const behind = rd.when.find(b => b.label === "when behind");
+    const after = rd.when.find(b => b.label === "after losing a point");
+    const counted = behind.n === 3 && behind.top[0] === "blitz" && behind.top[1] === 3 && after.n === 2 && after.top[0] === "blitz";
+    const shift = rd.shift === false && rd.all.top[0] === "blitz";                // blitz is also the season's most-seen, so no shift yet
+    window.set({ tab: "scout", scoutTab: "anticipate", pitOpen: null });
+    const text = document.querySelector(".main").textContent;
+    const shown = /When behind/.test(text) && new RegExp(callName("blitz") + " — 3 of 3").test(text) && /Lately/.test(text) && /same as the season/.test(text);
+    // the season says snake, the last five say blitz → a shift
+    editProfile("right", { breaks: [...theirBreaks("right"), ...[1,2,3,4,5].map(i => ({ script: "snake", pt: 10 + i, m: "old-match", layout: S.layoutKey, at: 1000 + i }))] }); window.set({});
+    const rd2 = theirReads("right");
+    const shifted = rd2.shift === true && rd2.all.top[0] === "snake" && /They may have changed/.test(document.querySelector(".main").textContent);
+    editProfile("right", { breaks: [] });
+    return counted && shift && shown && shifted;
+  }));
+  check("Counter ranks a call you have run against them by what it won, and says so", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    const was = callRecord("blitz", "Dynasty"), was2 = callRecord("snake", "Dynasty");   // earlier checks may have logged calls against them
+    window.set({ script: "blitz" }); window.logCall(); window.endPoint("us");
+    window.set({ script: "blitz" }); window.logCall(); window.endPoint("us");
+    window.set({ script: "snake" }); window.logCall(); window.endPoint("them");
+    const rec = callRecord("blitz", "Dynasty"), rec2 = callRecord("snake", "Dynasty");
+    window.set({ tab: "scout", scoutTab: "counter", pitOpen: null });
+    const rows = [...document.querySelectorAll("#root .rank__row")].map(r => r.textContent.replace(/\s+/g, " "));
+    const blitzRow = rows.find(r => r.includes(callName("blitz"))), snakeRow = rows.find(r => r.includes(callName("snake")));
+    const text = document.querySelector(".main").textContent;
+    return rec.n === was.n + 2 && rec.won === was.won + 2 && rec2.n === was2.n + 1 && rec2.won === was2.won
+      && blitzRow.includes(`won ${rec.won} of ${rec.n}`) && snakeRow.includes(`won ${rec2.won} of ${rec2.n}`) && /counted from the points you logged/.test(text)
+      && rows.findIndex(r => r.includes(callName("blitz"))) < rows.findIndex(r => r.includes(callName("snake")));
+  }));
+  check("one timeout a team a match, on the sheet, with the point it went on, and in a copy", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us");
+    window.addTimeout("us"); window.addTimeout("us");
+    const one = timeoutsFor().length === 1 && timeoutsFor()[0].pt === 2 && timeoutsFor()[0].m === S.matchId;
+    const says = /Our timeout · used, point 2/.test(document.getElementById("root").textContent) && /Dynasty timeout/.test(document.getElementById("root").textContent);
+    window.addTimeout("them");
+    const both = timeoutsFor().length === 2;
+    const copyOk = !copyDataError({ timeouts: S.timeouts });
+    window.dropTimeout(timeoutsFor()[0].id);
+    const back = timeoutsFor().length === 1;
+    window.newMatch();
+    return one && says && both && copyOk && back && timeoutsFor().length === 0;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
