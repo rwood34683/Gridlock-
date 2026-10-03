@@ -4656,6 +4656,12 @@ const ROSTER = [
     window.switchEnds(); const right = sightDefault(); window.switchEnds();
     return left === first && right === mirrorBunkerId(first) && right !== left;
   }));
+  check("a call key this build does not have is repaired on the next render, not the next relaunch", await ev(() => {
+    window.set({ tab: "playbook", script: "my:none" });
+    const fixed = allPlays()[S.script] && S.script !== "my:none";
+    const header = document.querySelector("#root .ctx__ev") || document.querySelector("#root .ctx");
+    return !!fixed && header && !/my:none/.test(header.textContent) && new RegExp(breakName()).test(header.textContent);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
