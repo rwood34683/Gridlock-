@@ -2460,7 +2460,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -4001,6 +4001,23 @@ window.clearLineup = () => {
   S.lineups = all; save(S); render();
 };
 
+// Team's bunker-calls field: tap a bunker and it is the one being named.
+window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; render(); const el = document.getElementById("bcName"); if(el) el.focus(); } };
+(function callTapping(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "more" || S.more !== "team") return;
+    const surface = ev.target.closest("#calls-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    callTap(fieldFeet(svg, ev));
+  });
+})();
+function callPickOverlay(){
+  const b = S.callPick && curLayout().bunkers.find(x => x.id === S.callPick); if(!b) return "";
+  const s2 = bunkerSize(b, 2, 2);
+  return `<rect x="${(b.x*2-s2.h-3).toFixed(1)}" y="${(b.y*2-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffffff" stroke-width="1.8"/>`;
+}
 window.setCall = () => {
   const id = document.getElementById('bcId').value;
   const nm = clean(document.getElementById('bcName').value.trim());
@@ -9299,8 +9316,8 @@ function moreBody(k){
       official code on every field in the app. Set it for one player instead and it is his word alone —
       it shows on his card, and never on the field, where five people read the same picture.</p>
       <div class="who2">
-        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker</span>
-          <select id="bcId">${list.map(b=>`<option value="${esc(b.id)}">${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker${S.callPick ? " · tapped on the field below" : " · or tap it on the field below"}</span>
+          <select id="bcId" onchange="set({callPick:this.value})">${list.map(b=>`<option value="${esc(b.id)}"${(S.callPick||list[0].id)===b.id?" selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
           <input id="bcName" placeholder="Home"/></label>
       </div>
@@ -9324,7 +9341,7 @@ function moreBody(k){
             <span class="assign__who">${esc(who)} · ${b?esc(b.n+" · "+b.id):esc(id)}</span></span>
             <button class="btn btn--danger" onclick="clearPlayerCall(${jsq(who)},${jsq(id)})">Clear</button></div>`;
         }).join("")}</div>`:""}
-      <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>`,
+      <div class="field-wrap" id="calls-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:callPickOverlay()})}</div>`,
       named.length+pcRows.length?(named.length+pcRows.length)+" named":layoutName)
     + (() => {
       const mine = S.breakCalls || {};

@@ -795,3 +795,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   brand's second line goes, the chips tighten and the Staff chip steps aside
   (Nexus says who is signed in); the devices suite now measures that every
   header chip's right edge is inside the screen.
+- Draw the field under a 58-row bunker dropdown and let it only decorate.
+  Team's bunker calls drew the whole field beneath the picker and the picker
+  was the only way in. Wherever a field is on screen and a bunker is being
+  chosen — Tally, Movement, Team — a tap on the field chooses it, the
+  dropdown follows, and the chosen bunker is ringed.
