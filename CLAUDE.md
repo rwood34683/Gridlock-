@@ -776,3 +776,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   other team's men as "4 snake" with Dill's name a tap away on the pit card,
   and your five as jobs with nobody's name beside them. Names where the app
   has them, everywhere they are listed.
+- Ask for a bunker from a 57-row dropdown while the field is on screen. The
+  breakout sheet's Shooting at and Moved to take a field tap: arm one
+  (`S.tallyPickFor`, scratch), tap the bunker, and `tallyTap` fills the draft
+  instead of opening another man's sheet; the two targets are ringed on the
+  field while the sheet is open. The dropdowns stay and follow the tap.

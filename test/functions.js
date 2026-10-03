@@ -3766,6 +3766,20 @@ const ROSTER = [
     const ok = /7Smith·snake/.test(t.replace(/\s+/g, "")) && (!mine.length || new RegExp(mine[0]).test(t));
     editProfile("right", { players: [] }); return ok;
   }));
+  check("on an open breakout sheet, arm Shooting at and a field tap fills it instead of opening another man's sheet", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" }, tallyPickFor: null }); window.playPit(); window.newMatch();
+    const bl = curLayout().bunkers, a = bl[6], b = bl[13], c = bl[20];
+    window.tallyTap([a.x, a.y]);
+    const open = S.tallySel === a.id;
+    window.set({ tallyPickFor: "shootAt" }); window.tallyTap([b.x, b.y]);
+    const shot = S.tallySel === a.id && draft().shootAt === b.id && S.tallyPickFor === null && document.querySelectorAll("#tally-map rect[stroke='#ffffff']").length === 1;
+    window.set({ tallyPickFor: "movedTo" }); window.tallyTap([a.x, a.y]);
+    const refused = draft().movedTo === undefined && /Tap another/.test(S.flash || "") && S.tallyPickFor === "movedTo";
+    window.tallyTap([c.x, c.y]);
+    const moved = draft().movedTo === c.id && S.tallySel === a.id;
+    window.tallyDone();
+    return open && shot && refused && moved && !S.tallyPickFor;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
