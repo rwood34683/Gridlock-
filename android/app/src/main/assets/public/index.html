@@ -1781,6 +1781,83 @@ function scoreOf(mid){
           them: rows.filter(r => r.won === "them").length};
 }
 function matchScore(){ return scoreOf(S.matchId); }
+/* The format. X-Ball and 5-man are both a race: first to N points. The app
+ * never knew N, so the score was 1–1 forever and nothing was ever match point
+ * or over. The coach sets N on the sheet — it is his format, not a rule the
+ * app carries — and the sheet counts to it. No N means no race: the score is
+ * just the score. */
+function raceTo(m){ m = m === undefined ? curMatch() : m; return m && m.raceTo > 0 ? m.raceTo : 0; }
+function matchById(mid){ return (S.matches || []).find(x => x.id === (mid || S.matchId)) || null; }
+function matchOver(mid){
+  const m = matchById(mid), r = raceTo(m); if(!r) return null;
+  const sc = scoreOf(m.id); return sc.us >= r ? "us" : sc.them >= r ? "them" : null;
+}
+function matchPoint(mid){
+  const m = matchById(mid), r = raceTo(m); if(!r || matchOver(m.id)) return null;
+  const sc = scoreOf(m.id), u = sc.us === r - 1, t = sc.them === r - 1;
+  return u && t ? "both" : u ? "us" : t ? "them" : null;
+}
+function patchMatch(patch){ S.matches = (S.matches || []).map(m => m.id === S.matchId ? {...m, ...patch} : m); }
+window.setRaceTo = n => { patchMatch({raceTo: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
+/* Ends. Your five break from one end of the field and the other team from the
+ * other, and which end is yours changes — at the half, or every point,
+ * depending on the format. The app drew every break from the left end and
+ * called every bunker in the left half "yours", so a point broken from the far
+ * end was tallied back to front. The end is the match's; the sheet says which
+ * it is this point, Switch ends flips it, and Swap every point alternates it. */
+function ourEnd(pt, m){
+  pt = pt || S.point || 1; m = m === undefined ? curMatch() : m;
+  const base = m && m.end === "right" ? "right" : "left";
+  return (m && m.swapEnds && pt % 2 === 0) ? (base === "left" ? "right" : "left") : base;
+}
+window.switchEnds = () => {
+  const m = curMatch(); if(!m) return;
+  const want = ourEnd() === "left" ? "right" : "left";
+  // The base end is point one's; flipping this point means flipping the base
+  // unless the swap rule already flipped it here.
+  const base = (m.swapEnds && (S.point || 1) % 2 === 0) ? (want === "left" ? "right" : "left") : want;
+  patchMatch({end: base}); save(S); render();
+};
+window.setSwapEnds = on => {
+  const m = curMatch(); if(!m) return;
+  const cur = ourEnd(), swap = !!on;
+  // Changing the rule must not move the end he is on right now.
+  const base = (swap && (S.point || 1) % 2 === 0) ? (cur === "left" ? "right" : "left") : cur;
+  patchMatch({swapEnds: swap, end: base}); save(S); render();
+};
+const mirrorFt = q => [150 - q[0], q[1]];
+function mirrorBunkerId(id){
+  const bl = curLayout().bunkers, b = bl.find(x => x.id === id); if(!b) return id;
+  let best = null, bd = Infinity;
+  for(const o of bl){ const d = Math.hypot(o.x - (150 - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
+  return best ? best.id : id;
+}
+// Face and shot are kept in the left-end frame he set them in; drawn from the
+// right end they turn with the field — a lane flips, a bunker becomes its twin.
+function mirrorDirect(d){
+  if(!d) return d;
+  const out = {...d};
+  if(d.face != null) out.face = ((180 - d.face) % 360 + 360) % 360;
+  if(d.shot){ const lane = shotLane(d.shot); out.shot = lane !== null ? "@" + (((180 - lane) % 360 + 360) % 360) : mirrorBunkerId(d.shot); }
+  return out;
+}
+// The break as drawn: the routed paths, turned round when your five break from
+// the right end. Plants, edits, faces and shots all stay in the frame they were
+// set in; only the picture turns.
+function displayPaths(){
+  const ps = currentPaths();
+  if(ourEnd() !== "right") return ps;
+  return ps.map(p => ({...p, from: mirrorFt(p.from), to: mirrorFt(p.to), via: (p.via || []).map(mirrorFt), mirrored: true}));
+}
+const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
+function endsChip(){
+  const e = ourEnd(), m = curMatch(), swap = !!(m && m.swapEnds);
+  return `<div class="btnrow" style="align-items:center;margin-top:var(--s2)">
+    <span class="note grow" style="margin:0">Breaking from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}</span>
+    <button class="btn btn--quiet" onclick="switchEnds()">Switch ends</button>
+    <button class="tgl ${swap ? "on" : ""}" onclick="setSwapEnds(${!swap})" aria-pressed="${swap}"><i></i>Swap every point</button>
+  </div>`;
+}
 /* What each side of the sheet is called. On your own match it is you and them;
    on a game you are watching there is no "us" on the field, so the score has to
    name the two teams that are actually playing or it means nothing a week later. */
@@ -1791,6 +1868,9 @@ function sideWord(which){
 }
 function derivedState(){
   const s = matchScore();
+  // At their match point the next point decides it whatever the margin.
+  const mp = matchPoint();
+  if(mp === "them" || mp === "both") return "Must-score";
   return s.us > s.them ? "Ahead" : s.us < s.them ? "Must-score" : "Even";
 }
 /* The last point this match got to.
@@ -2859,7 +2939,7 @@ function sampleStroke(pts, from, to){
     const svg = svgOf(h);
     if(!svg) return;
     ev.preventDefault();
-    const at = fieldFeet(svg, ev);
+    const at = ownFeet(fieldFeet(svg, ev));
     if(h.hasAttribute("data-aim")){
       drag = {kind:"aim", id:Number(h.dataset.aim), moved:false};
     } else if(h.hasAttribute("data-h")){
@@ -2879,7 +2959,7 @@ function sampleStroke(pts, from, to){
     if(!drag) return;
     const svg = document.querySelector(".field-wrap[data-live] svg.field");
     if(!svg) return;
-    const at = fieldFeet(svg, ev);
+    const at = ownFeet(fieldFeet(svg, ev));
     if(drag.kind === "draw"){
       if(Math.hypot(at[0]-drag.at[0], at[1]-drag.at[1]) > 1.4) drag.moved = true;
       drag.pts.push(at);
@@ -3409,7 +3489,7 @@ function fieldSVG(opts={}, runnersOnly){
   const W=300,H=240,sx=W/150,sy=H/120;
   const M=18;                                  // margin for the side labels
   const br = curBreak();
-  const brPaths = currentPaths();
+  const brPaths = displayPaths();
   const t = opts.static?1:S.t;
 
   // Break paths. A dark casing under each line keeps it readable where it
@@ -3429,7 +3509,7 @@ function fieldSVG(opts={}, runnersOnly){
     let travel = Math.atan2(a1[1]-a0[1], a1[0]-a0[0]);
     if(!isFinite(travel) || (a0[0]===a1[0] && a0[1]===a1[1]))
       travel = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
-    const d = offset===0 ? directOf(p.id) : {};
+    const d = offset===0 ? (p.mirrored ? mirrorDirect(directOf(p.id)) : directOf(p.id)) : {};
 
     if(S.shotOn){
       let ang = travel, len = 26, mark = "";
@@ -3503,7 +3583,8 @@ function fieldSVG(opts={}, runnersOnly){
     // tells him to scout them instead.
     const ts = theirScript();
     if(ts){
-      const flip=q=>[150-q[0],q[1]];
+      // They break from the end you do not: mirrored when you are on the left.
+      const flip = ourEnd() === "right" ? (q => q) : mirrorFt;
       const theirs = routedFor(ts);
       paths += runner(theirs.map(p=>({...p,from:flip(p.from),to:flip(p.to),via:(p.via||[]).map(flip)})), "#3d8bff", 5);
     }
@@ -3725,6 +3806,8 @@ function fieldSVG(opts={}, runnersOnly){
           break runner both want to be. */""}
     ${their}
     ${opts.overlay || ""}
+    ${/* Your end, in your colour: a bar down the end line your five break from. */""}
+    ${opts.noEnds ? "" : `<rect data-end="${ourEnd()}" x="${ourEnd() === "left" ? 0 : (W - 2.5).toFixed(1)}" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>`}
     ${pick}
     ${aimHandle}
 
@@ -4599,6 +4682,9 @@ function playbook(){
   </div>
 
   <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
+  ${/* Which end the five break from. Below Play the break, not above it: a row
+        over Play pushed it off the first screen on first run. */""}
+  ${endsChip()}
   <button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>
 
   ${/* A one-time nudge to the play maker. It sits BELOW Play the break so it
@@ -4955,7 +5041,7 @@ function nearestBunker(at){
 }
 // Which pit a man breaking to this bunker came from: yours run from the left,
 // and a bunker past the fifty is somebody else's plant. One tap says otherwise.
-const sideOfBunker = b => b.x < 75 ? "us" : "them";
+const sideOfBunker = b => ((ourEnd() === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
 window.setDraft = patch => set({tallyDraft: {...draft(), ...patch}});
 window.selectBunker = id => {
   const b = curLayout().bunkers.find(x => x.id === id); if(!b) return;
@@ -4997,10 +5083,13 @@ function autoRoute(row){
      guess, and on a field whose back-centre sits off the middle it can start
      him walled in — at which point routeClear gives up and the run is drawn
      straight through whatever is in the way. */
-  const mine = row.side === "them"
+  // Which goal line he left from: yours is the end you broke from on that
+  // point, theirs the other — not always left and right.
+  const fromRight = (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left");
+  const mine = fromRight
     ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
   const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  const start = row.side === "them" ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+  const start = fromRight ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
   const out = [];
   const leg = (from, to, id, hold) => {
     // Take the first clearance that actually yields a run that clears. A leg
@@ -5226,7 +5315,7 @@ function breakoutSheet(){
     ? (mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
     : ["1","2","3","4","5"].map(n => "#" + n);
   const others = bl.filter(o => o.id !== b.id);
-  const far = others.filter(o => side === "us" ? o.x > 75 : o.x < 75);
+  const far = others.filter(o => ((side === "us") === (ourEnd() === "left")) ? o.x > 75 : o.x < 75);
   const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
     `<option value="${esc(o.id)}" ${val === o.id ? "selected" : ""}>${esc(callOf(o))} · ${esc(o.id)}</option>`).join("");
   const seg = items => `<div class="seg seg--wrap">${items.map(([on, label, click]) =>
@@ -5356,14 +5445,17 @@ function tally(){
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc(matchVs()||"Them")} · point ${pt}</span></span>
+        <span>${esc(matchVs()||"Them")} · point ${pt}${raceTo() ? ` · race to ${raceTo()}` : ""}</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
+    ${matchOver() ? `<p class="warn"><b>Match over — ${matchOver() === "us" ? "you won" : "they won"} ${sc.us}–${sc.them}.</b> New match starts the next sheet.</p>`
+      : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
     <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
       amber costs you. The number is how often your five have broken to it.</p>
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
+    ${endsChip()}
     ${sel ? breakoutSheet()
           : last ? `<div class="btnrow" style="align-items:center">
               <span class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>. Tap the next man's bunker.</span>
@@ -5410,6 +5502,10 @@ function tally(){
       return n ? `<p class="note">${n} call${n===1?"":"s"} logged on this sheet. Playbook counts how
         predictable you have been on this field.</p>` : "";
     })()}
+    <div class="btnrow" style="align-items:center;margin-top:var(--s3)">
+      <span class="note grow" style="margin:0">Race to</span>
+      <div class="seg">${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)" aria-label="No race target">\u2014</button></div>
+    </div>
     <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out. Anyone you logged as shot on the break above is already marked.</p>
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
@@ -5694,7 +5790,11 @@ window.newMatch = () => {
   // it is the one the app opened with. Keeping it put "No opponent" in his
   // list of matches every time he started his first real one.
   const blank = cur && !cur.vs && !n ? cur.id : null;
-  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey},
+  // The format is the event's, not the sheet's: the race, the end you start
+  // from and whether it swaps carry over, and one tap changes any of them.
+  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey,
+                raceTo: cur && cur.raceTo > 0 ? cur.raceTo : null,
+                end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds)},
                ...(S.matches || []).filter(x => x.id !== blank)];
   S.matchId = id; S.point = 1; S.tallyNudge = false;
   // A fresh sheet is level. Ahead / Must-score is read off the score, so it has
@@ -5974,7 +6074,7 @@ function matchStrip(){
     : `<span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
     ${pick}
-    <span class="note" style="margin:0;white-space:nowrap">point ${pt}</span>
+    <span class="note" style="margin:0;white-space:nowrap">point ${pt}${raceTo() ? ` · to ${raceTo()}` : ""}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
     <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
     <button class="btn" onclick="newMatch()">New match</button>
@@ -7403,6 +7503,8 @@ const HELP = {
          "Log this breakout, then tap the next man's bunker.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
+         "Race to is your format — first to 2, 4, 5 or 7. The sheet calls match point and match over for you.",
+         "Your five break from one end. Switch ends when you change, or Swap every point if your format does. Tally reads yours and theirs off it.",
          "Even points only leaves short-handed points out of the bunker numbers."],
     watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
   scout: {t:"Scout", w:"What you know about the other team.",
@@ -7519,6 +7621,8 @@ const HELP = {
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
+  ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. If your format swaps every point, turn on Swap every point once and the sheet alternates it for you."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Undo on that row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
   ["The field looks wrong for this event.", "Change at the top of any screen switches the event, and every tab follows it. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
@@ -7951,7 +8055,7 @@ function moreBody(k){
             ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
-          point ${S.point||1} · ${matchSize(S.matchId)} logged</p>
+          point ${S.point||1}${raceTo() ? ` · race to ${raceTo()}` : ""} · ${matchSize(S.matchId)} logged</p>
       </div>
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
@@ -8329,8 +8433,9 @@ function shell(){
    * the Staff chip and not on the context line underneath: that line carries the
    * event and the call, ellipsizes on a phone, and swallowed the score whole. */
   const sc = matchScore();
-  const line = sc.us + sc.them
-    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b></span>` : "";
+  // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
+  const line = sc.us + sc.them || raceTo()
+    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</span>` : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 

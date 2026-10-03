@@ -3278,6 +3278,73 @@ const ROSTER = [
     return S.more === null && /Whiteboard/.test(t) && /Nexus/.test(t) && !/Create class/.test(t);
   }));
 
+  /* ------------------------------------------------------- format and ends */
+  // X-Ball and 5-man are a race to N points, and the two teams break from
+  // opposite ends. The app knew neither: the score was never match point or
+  // over, and every bunker in the left half was "yours" on every point.
+  G("Format and ends");
+  await seed({ tab: "tally", right: { name: "Dynasty" } });
+  await ev(() => { window.confirm = () => true; window.newMatch(); });
+  check("a sheet has no race target until the coach sets one", await ev(() =>
+    raceTo() === 0 && !matchPoint() && !matchOver() && !/to \d/.test(document.querySelector("#root .hdr").textContent)));
+  check("Race to 4 shows on the header and the sheet", await ev(() => {
+    window.setRaceTo(4);
+    const root = document.getElementById("root");
+    return raceTo() === 4 && /to 4/.test(root.querySelector(".hdr").textContent) && /race to 4/.test(root.textContent);
+  }));
+  check("3–3 in a race to 4 is match point both ways, and the read is Must-score", await ev(() => {
+    for (let i = 0; i < 3; i++) { window.endPoint("us"); window.nextPoint(); window.endPoint("them"); window.nextPoint(); }
+    return matchScore().us === 3 && matchScore().them === 3 && matchPoint() === "both" && derivedState() === "Must-score"
+      && S.matchState === "Must-score" && /Match point/.test(document.getElementById("root").textContent);
+  }));
+  check("the fourth point ends it, and the sheet says who won", await ev(() => {
+    window.endPoint("us");
+    const t = document.getElementById("root").textContent;
+    return matchOver() === "us" && /Match over/.test(t) && /you won 4–3/.test(t);
+  }));
+  check("the format carries into the next sheet", await ev(() => { window.newMatch(); return raceTo() === 4 && matchScore().us === 0 && !matchOver(); }));
+  check("your five break from the left end until you say otherwise; a near bunker is yours", await ev(() => {
+    const near = curLayout().bunkers.find(b => b.x < 60);
+    return ourEnd() === "left" && sideOfBunker(near) === "us" && displayPaths().every(p => p.from[0] < 75 && !p.mirrored);
+  }));
+  check("Switch ends: that bunker is theirs now and the break is drawn from the right end", await ev(() => {
+    window.switchEnds();
+    const near = curLayout().bunkers.find(b => b.x < 60);
+    return ourEnd() === "right" && sideOfBunker(near) === "them" && displayPaths().every(p => p.from[0] > 75 && p.mirrored);
+  }));
+  check("the mirrored break still lands on a bunker — the twin of the plant", await ev(() => {
+    const bl = curLayout().bunkers;
+    return displayPaths().every(p => bl.some(b => Math.hypot(b.x - p.to[0], b.y - p.to[1]) < 6));
+  }));
+  check("a shot target mirrors to the twin bunker and a pointed lane flips", await ev(() => {
+    const b = curLayout().bunkers.find(x => x.x < 60);
+    const mb = curLayout().bunkers.find(x => x.id === mirrorBunkerId(b.id));
+    return Math.abs(mb.x - (150 - b.x)) < 6 && mirrorDirect({face: 0, shot: "@30"}).face === 180 && mirrorDirect({shot: "@30"}).shot === "@150";
+  }));
+  check("Swap every point alternates the end with the point, and Back undoes it", await ev(() => {
+    window.setSwapEnds(true);                        // this point stays where it is
+    const here = ourEnd(); window.nextPoint(); const next = ourEnd(); window.backPoint(); const back = ourEnd();
+    return here === "right" && next === "left" && back === "right";
+  }));
+  check("the field marks your end on Playbook", await ev(() => {
+    window.set({ tab: "playbook" });
+    return !!document.querySelector('#root svg.field rect[data-end="right"]');
+  }));
+  check("a route is worked out from the end you broke from, so switching ends changes it", await ev(() => {
+    window.set({ tab: "tally" });
+    const b = curLayout().bunkers.find(x => x.x < 25);        // deep in the far half from the right end
+    const row = { m: S.matchId, pt: S.point, side: "us", bunker: b.id, layout: S.layoutKey };
+    const fromRight = JSON.stringify(autoRoute(row));
+    window.switchEnds();
+    const fromLeft = JSON.stringify(autoRoute(row));
+    window.switchEnds();
+    return fromRight !== fromLeft && ourEnd() === "right";
+  }));
+  check("a season copy carries the format and the ends", await ev(() => {
+    const m = curMatch();
+    return !copyDataError({ matches: [m] }) && m.raceTo === 4 && m.end === "right" && m.swapEnds === true;
+  }));
+
   /* --------------------------------------------------------------- matches */
   // A point number only means something inside a match. These check the two
   // halves of that: that the boundary works, and that a season logged before
