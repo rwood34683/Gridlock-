@@ -5632,7 +5632,16 @@ function cardLines(){
     // His card is the app speaking to him, so it uses his word for the bunker
     // where he has one. The field keeps the team's.
     const mine = who && who.name;
+    // Off the break, the bunkers of their five he has a clear lane on — the
+    // five logged on this point or the five they usually plant — and whether
+    // one of them is where their shooter usually sets up. Geometry off the
+    // measured field; nothing on the card says where they will actually stand.
+    const t5 = theirFiveNow("right"), plant = ourEnd() === "right" ? mirrorBunkerId(p.bunker) : p.bunker;
+    const clear = t5 ? t5.ids.filter(id => laneClear(plant, id)).map(id => callOf(curLayout().bunkers.find(b => b.id === id) || {n: id}, mine)) : null;
+    const sh = t5 ? shooterLane("right") : null;
+    const onHim = sh && sh.at && laneClear(plant, sh.at) ? sh.tag : "";
     return {n: p.id, who, job: jobName(S.script, p.id, p.label), wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
+            clear, onHim, theirBasis: t5 ? t5.basis : "",
             bunker: callOf(curLayout().bunkers.find(b => b.id === p.bunker) || {n: "—"}, mine),
             role: d.role === "S" ? "Secondary" : "Primary",
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
@@ -5642,7 +5651,8 @@ function cardLines(){
 window.shareCards = () => {
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
-        + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`).join("\n\n");
+        + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`
+        + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   if(window.gridlockShare) window.gridlockShare(t, "Gridlock cards"); else prompt("Cards", t);
 };
 
@@ -5738,9 +5748,12 @@ function cardsView(){
           <span class="tag">${esc(c.role)}</span>
           <span class="tag">faces ${esc(c.face)}</span>
           <span class="tag">lanes ${esc(c.shot)}</span>
+          ${c.clear ? `<span class="tag" style="${c.clear.length ? "color:var(--ink)" : "color:var(--dim)"}">${c.clear.length ? `clear on ${esc(c.clear.join(", "))}` : "no clear lane on their five"}</span>` : ""}
+          ${c.onHim ? `<span class="tag" style="color:var(--warn);border-color:var(--warn)">lane on ${esc(c.onHim)}</span>` : ""}
         </span>
       </div>`).join("")}
     </div>
+    ${(c => c && c.clear ? `<p class="note"><b>clear on</b> is counted off ${esc(curLayout().name)}, bunker to bunker, against ${c.theirBasis === "logged" ? "the five they logged on this point" : "the five they usually plant"}. Where they actually stand off the buzzer is yours to see.</p>` : "")(cards[0])}
     <button class="btn btn--block" onclick="shareCards()">Share the five</button>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`,
     esc(breakName()))}`;

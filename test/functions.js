@@ -4535,6 +4535,23 @@ const ROSTER = [
     const threat = [...document.querySelectorAll("#root .tbl tbody tr")].some(tr => /\d★|—/.test(tr.lastElementChild.previousElementSibling.textContent));
     return fits && threat;
   }));
+  check("each man's card says which of their five he has a clear lane on, and the share text carries it", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    window.set({ tab: "playbook", pbView: "cards" });
+    const none = cardLines().every(c => c.clear === null) && !/clear on/.test(document.getElementById("root").textContent);
+    const bl = curLayout().bunkers, mine = plantIdsFor(S.script), theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right"); window.set({});
+    const cards = cardLines(), paths = currentPaths();
+    const right = cards.every((c, i) => Array.isArray(c.clear) && c.clear.length === theirs.filter(id => laneClear(paths[i].bunker, id)).length);
+    const t = document.getElementById("root").textContent;
+    const shown = cards.every(c => c.clear.length ? t.includes("clear on " + c.clear.join(", ")) : /no clear lane on their five/.test(t)) && /clear on is counted off/.test(t);
+    let shared = ""; const keep = window.gridlockShare; window.gridlockShare = txt => { shared = txt; }; window.shareCards(); window.gridlockShare = keep;
+    const inText = cards.every(c => c.clear.length ? shared.includes("clear on " + c.clear.join(", ")) : shared.includes("no clear lane on their five"));
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [], pbView: null });
+    return none && right && shown && inText;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
