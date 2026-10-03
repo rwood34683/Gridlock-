@@ -3345,6 +3345,76 @@ const ROSTER = [
     return !copyDataError({ matches: [m] }) && m.raceTo === 4 && m.end === "right" && m.swapEnds === true;
   }));
 
+  // The clock, the horn and 5-man. The match clock is the official's: the
+  // coach says when it ran out and the sheet does the format arithmetic.
+  check("5-man is one point a game: the first result ends the sheet", await ev(() => {
+    window.newMatch(); window.setRaceTo(1);
+    const root = document.getElementById("root");
+    const offered = /One point · 5-man/.test(root.textContent);
+    window.endPoint("them");
+    return offered && raceTo() === 1 && matchOver() === "them" && /Match over — they won 0–1/.test(root.textContent);
+  }));
+  check("over means the result buttons stand down and New match leads", await ev(() => {
+    const root = document.getElementById("root");
+    const btns = [...root.querySelectorAll(".btn")].map(b => b.textContent.trim());
+    window.set({ tab: "scout" }); const strip = /match over/.test(root.textContent); window.set({ tab: "tally" });
+    return !btns.includes("We won it") && !btns.includes("They won it") && btns.includes("New match") && strip;
+  }));
+  check("Time's up ahead ends the match at this score, and Undo takes it back", await ev(() => {
+    window.newMatch(); window.setRaceTo(4);
+    window.endPoint("us"); window.endPoint("us"); window.endPoint("them");
+    const root = document.getElementById("root");
+    const offered = /Time's up — match ends at this score/.test(root.textContent);
+    window.timeUp();
+    const over = matchOver() === "us" && /you won 2–1 on the clock/.test(root.textContent);
+    window.timeUp();
+    return offered && over && !matchOver() && raceTo() === 4 && /Undo/.test(root.textContent) === false;
+  }));
+  check("Time's up level goes to overtime: next point wins, and the race is restored after", await ev(() => {
+    window.endPoint("them");                               // 2–2
+    const root = document.getElementById("root");
+    const offered = /go to overtime/.test(root.textContent);
+    window.timeUp();
+    window.set({ tab: "scout" }); const strip = /· overtime/.test(root.textContent); window.set({ tab: "tally" });
+    const ot = inOvertime() && raceTo() === 3 && matchPoint() === "both" && S.matchState === "Must-score"
+      && /Overtime — next point wins it/.test(root.textContent) && strip;
+    window.endPoint("us");
+    const won = matchOver() === "us" && !inOvertime();
+    window.newMatch();
+    return offered && ot && won && raceTo() === 4 && !curMatch().ot;
+  }));
+  check("the clock between points is off until the coach sets it, and never carries a number of its own", await ev(() =>
+    breakClock() === 0 && !S.clockEnd && !document.querySelector("#root .hdr [data-clock]")
+      && !/\b(1:00|1:30|2:00)\b/.test(document.querySelector("#root .hdr").textContent)));
+  check("set to 1:30 it starts itself when a point is scored and rides in the header", await ev(() => {
+    window.setBreakClock(90);
+    window.endPoint("us");
+    const hdr = document.querySelector("#root .hdr [data-clock]");
+    return breakClock() === 90 && S.clockEnd > Date.now() + 80000 && hdr && /1:(2|3)\d/.test(hdr.textContent);
+  }));
+  check("a tap on the chip stops it, Start runs it again, and it ticks down without a render", await (async () => {
+    const stopped = await ev(() => { window.stopBreakClock(); return !S.clockEnd && !document.querySelector("#root .hdr [data-clock]"); });
+    const started = await ev(() => { window.startBreakClock(); return !!S.clockEnd; });
+    await ev(() => { S.clockEnd = Date.now() + 3000; });
+    const before = await ev(() => document.querySelector("#root .hdr [data-clock]").textContent);
+    await page.waitForTimeout(1300);
+    const after = await ev(() => document.querySelector("#root .hdr [data-clock]").textContent);
+    return stopped && started && before !== after;
+  })());
+  check("the clock is scratch: a relaunch does not resume it, the length does", await (async () => {
+    await page.reload({ waitUntil: "networkidle" });
+    return await ev(() => { window.set({ entered: true, role: "staff", tab: "tally" }); return !S.clockEnd && breakClock() === 90; });
+  })());
+  check("the format carries the clock into the next sheet, and the copy schema takes it", await ev(() => {
+    window.newMatch();
+    return breakClock() === 90 && !copyDataError({ matches: [curMatch()] });
+  }));
+  check("Counter ranks in words, never a percentage nobody counted", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter" });
+    const rows = [...document.querySelectorAll("#root .rank__pct")].map(e => e.textContent);
+    return rows.length > 3 && rows.every(t => !/%/.test(t) && /Best fit|Close|Weaker|Yours/.test(t)) && rows[0] === "Best fit" && new Set(rows).size > 1;
+  }));
+
   /* --------------------------------------------------------------- matches */
   // A point number only means something inside a match. These check the two
   // halves of that: that the boundary works, and that a season logged before

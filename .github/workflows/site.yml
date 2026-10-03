@@ -26,6 +26,20 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run site:check
+      # Pages has to exist before anything can be deployed to it. The job token
+      # has not been allowed to create it on this repository, so when it is
+      # missing the run stops here with the one sentence that fixes it, instead
+      # of a stack of action errors three steps further down.
+      - name: Is GitHub Pages enabled?
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=$(curl -sS -o /tmp/pages.json -w '%{http_code}'             -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/${{ github.repository }}/pages")
+          if [ "$code" = "200" ]; then echo "Pages is enabled."; exit 0; fi
+          msg="GitHub Pages is not enabled on this repository. Once, by the owner: Settings → Pages → Build and deployment → Source: GitHub Actions. Then re-run this workflow."
+          echo "::error title=Enable GitHub Pages first::$msg"
+          { echo "## Site not published"; echo; echo "$msg"; } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
       - uses: actions/configure-pages@v5
         with:
           enablement: true
