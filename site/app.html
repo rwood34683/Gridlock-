@@ -3639,6 +3639,9 @@ window.loadCopy = mode => {
   S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + copySummary(d)
     + (clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.`
              : "");
+  // What just loaded is a copy, so the season has one as of now — the nudge
+  // must not open on a restored phone saying none was ever made.
+  S.copiedAt = Date.now();
   // Replace swaps the data, not the session: you stay signed in, on this screen,
   // looking at the message that says what just happened.
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
@@ -6450,7 +6453,7 @@ function tally(){
           ran out. Ahead: over at this score. Level: overtime, next point. */""}
     ${(curMatch()||{}).timeUp || (curMatch()||{}).ot
       ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">Undo time's up</button>`
-      : sc.us + sc.them && !matchOver()
+      : !matchOver() && !nobodyToPlay()
         ? (sc.us === sc.them
           ? `<p class="note" style="margin-top:var(--s3)">Clock ran out level — your format says which:</p>
              <div class="btnrow">
@@ -8196,9 +8199,18 @@ window.pickSight = (which, id) => which === "from"
   ? set({sightFrom:id, sightTo:null, sightAim:null, sightPick:"to"})
   : set({sightTo: id === S.sightTo ? null : id, sightAim:null, sightPick:"to"});
 
+// Where to stand by default: the bunker your first man plants on in the call
+// you are on, because that is the question a coach walks over with. The first
+// bunker in the map's list is wherever the digitiser started.
+function sightDefault(){
+  const list = curLayout().bunkers;
+  const plants = (BREAK_PLANTS[S.layoutKey] || {})[S.script] || myPlants(S.script, S.layoutKey) || [];
+  const mine = plants.find(id => list.some(b => b.id === id));
+  return mine || list[0].id;
+}
 function sightlines(){
   const list=curLayout().bunkers;
-  const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
+  const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
   const res=sightLines(from,300/150,240/120);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
   const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim) : null;

@@ -3668,13 +3668,37 @@ const ROSTER = [
     const id = newMatchId();
     S.matches = [{ id, at: Date.now(), vs: "Dynasty", layout: S.layoutKey, watch: true, home: "Dynasty", away: "Impact" }, ...S.matches];
     const b = curLayout().bunkers[0].id;
-    S.breakouts = [{ id: "w1", m: id, pt: 1, side: "us", bunker: b, layout: S.layoutKey, alive: true }, ...(S.breakouts || [])];
+    S.breakouts = [{ id: "w1", m: id, pt: 1, side: "us", bunker: b, layout: S.layoutKey, alive: true, at: Date.now() }, ...(S.breakouts || [])];
     S.results = [{ m: id, pt: 1, won: "us", at: Date.now() }, ...(S.results || [])];
     window.set({});
     const rows = bunkerValue("us", false);
     const mine = rows.find(r => r.id === b);
     const counted = !!(S.breakouts || []).some(r => r.m === id);
     return counted && (!mine || !(S.breakouts || []).filter(r => r.bunker === b && r.side === "us" && !watchedMatch(r.m)).length < mine.att);
+  }));
+  check("Time's up is on the sheet at 0–0 — the horn does not wait for a point", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.setRaceTo(4);
+    const t = document.getElementById("root").textContent;
+    const offered = /Time's up — it's a tie/.test(t) && /Time's up — overtime/.test(t);
+    window.timeUp("tie");
+    const tie = matchOver() === "tie";
+    window.timeUp(); window.newMatch();
+    return offered && tie;
+  }));
+  check("a season loaded from a copy counts as saved — the nudge does not open on a restored phone", await ev(() => {
+    window.set({ copiedAt: null });
+    const text = copyPayload("all");
+    const el = document.getElementById("copyIn") || Object.assign(document.body.appendChild(document.createElement("textarea")), { id: "copyIn" });
+    el.value = text; window.loadCopy("merge");
+    const ok = !!S.copiedAt && Date.now() - S.copiedAt < 5000;
+    if(el.parentNode === document.body) el.remove();
+    return ok || "status: " + S.copyStatus;
+  }) === true, await ev(() => S.copyStatus));
+  check("Sightlines opens standing in your first man's plant for the call you are on", await ev(() => {
+    window.set({ tab: "sightlines", sightFrom: null, script: "snake" });
+    const plants = (BREAK_PLANTS[S.layoutKey] || {}).snake || [];
+    const t = document.getElementById("root").textContent;
+    return plants.length > 0 && sightDefault() === plants[0] && new RegExp("Standing in · " + callOf(curLayout().bunkers.find(b => b.id === plants[0])).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(t);
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
