@@ -6029,7 +6029,14 @@ window.tallyTap = at => {
   const b = nearestBunker(at); if(b) selectBunker(b.id);
 };
 // Send him to the picker: highlight it and scroll it under his thumb.
+/* Nobody across the tape means nothing to log against. The breakout sheet
+ * refused; the result buttons, Log it and a tapped out did not, so a point
+ * could still be scored onto the "No opponent" sheet. One door for all of
+ * them: the picker, scrolled under his thumb and lit. A watched game has
+ * two named teams and no "us", so it is never caught here. */
+const nobodyToPlay = () => !matchVs() && !(curMatch() || {}).watch;
 window.needOpponent = () => {
+  S.quick = false; S.quickPick = false;
   S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render();
   requestAnimationFrame(() => { const el = document.getElementById("tally-opp"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
 };
@@ -6094,7 +6101,9 @@ function bunkerValue(side, evenOnly){
   const won = new Map((S.results || []).filter(r => r && r.m).map(r => [r.m + "|" + r.pt, r.won]));
   const by = {};
   let skipped = 0;
-  (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side).forEach(r => {
+  // A game he watched has two other teams on the field: its "us" is the home
+  // side, not his five, so it never counts toward where his points come from.
+  (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side && !watchedMatch(r.m)).forEach(r => {
     if(evenOnly && !evenPoint(r.m, r.pt)){ skipped++; return; }
     const t = by[r.bunker] = by[r.bunker] || {att:0, made:0, dead:0, won:0, lost:0};
     t.att++;
@@ -6110,7 +6119,7 @@ function bunkerValue(side, evenOnly){
 // How many charted breaks on this field were played short-handed, either side.
 function unevenBreaks(side){
   return (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side
-    && !evenPoint(r.m, r.pt)).length;
+    && !watchedMatch(r.m) && !evenPoint(r.m, r.pt)).length;
 }
 function describeBreakout(r){
   const bl = curLayout().bunkers;
@@ -6699,6 +6708,7 @@ function outRow(side, name, extra = {}){
 /* Tap a man and he is out; tap him again and he is back in. The second tap
  * used to do nothing, so a mis-tap meant finding the row in the log below. */
 window.markOut = (side,name) => {
+  if(nobodyToPlay()) return needOpponent();
   const pt = S.point || 1;
   const i = (S.tally || []).findIndex(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === name);
   if(i >= 0){ S.tally = S.tally.filter((_, k) => k !== i); save(S); render(); return; }
@@ -6710,6 +6720,7 @@ window.nextPoint = () => { S.point=(S.point||1)+1; S.theirPick = []; S.tallySel 
  * point of a long day. Recording it again on the same point replaces the old
  * answer rather than scoring it twice. */
 window.endPoint = won => {
+  if(nobodyToPlay()) return needOpponent();
   const pt = S.point || 1;
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
@@ -7008,6 +7019,7 @@ function selfScout(){
  * logged — a coach who changes the call and taps Log it again meant that,
  * and a double tap used to count one call twice in his own self-scout. */
 window.logCall = () => {
+  if(nobodyToPlay()) return needOpponent();
   const pt = S.point || 1;
   S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now()},
              ...(S.calls || []).filter(c => !(c.m === S.matchId && c.pt === pt))];
@@ -9514,6 +9526,8 @@ function quickLog(){
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,quickPick:false})">${esc(callName(k))}</button>`).join("")}
       <button class="seg__add" onclick="newPlay()">+ Yours</button>
+    </div>` : nobodyToPlay() ? `<div class="qlog__score">
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="needOpponent()">Pick the other team first · back to the sheet</button>
     </div>` : over ? `<div class="qlog__score">
       <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match</button>
     </div>
