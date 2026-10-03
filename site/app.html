@@ -601,6 +601,18 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
    sideways scroll nobody finds. Film, Roster and Read from are the three the
    pit card already says, so in a narrow column they fold away. */
 @container main (max-width:620px){.tbl .col-opt{display:none}}
+/* A table never hides a column behind a sideways scroll. On a narrow column
+ * the rank goes, the cells tighten, the team name may wrap and the stars read
+ * as a number — the Division board was 433 px in a 356 px wrap on every
+ * phone, with Threat behind an edge nobody swipes. */
+.tbl td.team{white-space:normal;min-width:7em}
+.tbl .th-num{display:none}
+@container main (max-width:620px){
+  .tbl{min-width:0}
+  .tbl th,.tbl td{padding:8px 6px}
+  .tbl .col-rank{display:none}
+  .tbl .th-stars{display:none} .tbl .th-num{display:inline}
+}
 .tbl .num{font-variant-numeric:tabular-nums;color:var(--dim)}
 .tag{
   font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:var(--r-pill);
@@ -9016,17 +9028,22 @@ function scoutBoard(){
       <input id="boardFind" placeholder="Type a few letters" autocapitalize="none"
              oninput="findTeam(this.value)"/></div>
     <div class="tblwrap"><table class="tbl">
-      <thead><tr><th>#</th><th>Team</th><th>Pts</th><th>Reg</th><th class="col-opt">Film</th><th class="col-opt">Roster</th><th>Tend</th><th>Threat</th><th class="col-opt">Read from</th></tr></thead>
+      <thead><tr><th class="col-rank">#</th><th>Team</th><th>Pts</th><th>Reg</th><th class="col-opt">Film</th><th class="col-opt">Roster</th><th>Tend</th><th>Threat</th><th class="col-opt">Read from</th></tr></thead>
       <tbody id="boardRows">${list.map((t,i)=>{
         const pr=profileOf(t.name);
         return `<tr class="tap" oncontextmenu="return false"
           onpointerdown="pressTeam(${jsq(t.name)})" onpointerup="releaseTeam(${jsq(t.name)})"
           onpointerleave="cancelTeam()" onpointercancel="cancelTeam()">
-        <td class="num">${i+1}</td>
-        <td>${esc(t.name)}</td>
+        <td class="num col-rank">${i+1}</td>
+        <td class="team">${esc(t.name)}${(() => {
+          // Three or more logged calls and the count goes under the name: "Blitz
+          // 3 of 4 logged" is what they ran; Tend stays what you thought of them.
+          const seen = (pr.breaks || []).filter(b => b.script), tally = {}; seen.forEach(b => { tally[b.script] = (tally[b.script] || 0) + 1; });
+          const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+          return seen.length >= 3 && top ? `<br><span class="note">${esc(callName(top[0]))} ${top[1]} of ${seen.length} logged</span>` : ""; })()}</td>
         <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
         <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span>`:`<span class="note">—</span>`}</td>
-        <td class="num col-opt">${scouted(t.name)?`<span class="tag tag--paid">FILM</span>`:`<span class="note">—</span>`}</td>
+        <td class="num col-opt">${(n => scouted(t.name) || n ? `${scouted(t.name) ? `<span class="tag tag--paid">FILM</span>` : ""}${n ? `<span class="note" style="margin-left:4px">${n} call${n === 1 ? "" : "s"}</span>` : ""}` : `<span class="note">—</span>`)((pr.breaks || []).filter(b => b.script).length)}</td>
         <td class="num col-opt">${(() => {
           const mine = (profileOf(t.name).players || []).length;
           const pub = published(t.name);
@@ -9035,7 +9052,7 @@ function scoutBoard(){
                : `<span class="note">—</span>`;
         })()}</td>
         <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
-        <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:"★".repeat(pr.threat)}</td>
+        <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:`<span class="th-stars">${"★".repeat(pr.threat)}</span><span class="th-num">${pr.threat}★</span>`}</td>
         <td class="col-opt">${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
              :t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
              :t.src==="event"?`<span class="tag tag--pend">EVENT</span>`
@@ -9480,6 +9497,7 @@ const HELP = {
   "scout/board": {t:"Division", w:"Who is entered, off the league's own page.",
     how:["Tap a row to load that team into the right pit.",
          "Press and hold to put them in the left pit instead.",
+         "Film says how many of their calls you have logged; once there are three, the call they ran most sits under the team's name with the count. Tend is still the film word you gave them.",
          "Search by name when the list is long."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",

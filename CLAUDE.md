@@ -1042,6 +1042,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   with the results, so each call reads "40% of 10 logged here · won 3 of 4"
   and each recent call says won or lost. The record against one team stays
   on the Counter (`callRecord`); this is the field-wide one.
+- Show the film word on the board when the count is in. Division said FILM
+  for a team with notes and printed the tendency word you picked for it, and
+  nothing about the calls you had logged against it. Film carries the count
+  of their calls you have logged; once there are three, the call they ran
+  most sits under the team's name with the count ("Blitz 3 of 4 logged"),
+  where there is room to wrap — in the Tend column it pushed Threat off a
+  phone. Tend stays the film word, and an unscored team still reads as a
+  dash on Tend and Threat: a count of what they ran is not a score of how
+  good they are. And the board itself was 433 px in a 356 px wrap on every
+  phone — the `col-opt` fold from before left six columns that still did not
+  fit, `.tbl` carried a 340 px minimum, and Threat sat behind the edge the
+  house rule forbids. Under 620 px of column the rank goes (`col-rank`),
+  the cells tighten, the team name may wrap (`td.team`) and the stars read
+  as `4★` (`.th-num`). The devices suite now measures every `.tblwrap`
+  against its table, because `.main` never overflowed and so never said.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never
