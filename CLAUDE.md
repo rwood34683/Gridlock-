@@ -412,7 +412,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     point sheet and under every call on the Counter, and the **Lanes** chip on
     the Scout field draws every clear pair white over black, per the lane
     rule. It never ranks anything: where they actually stand off the buzzer
-    is the coach's read.
+    is the coach's read. **Their shooter** joins three counts and the
+    geometry: `opponentRead().who` is the man of theirs who has shot yours
+    most (two or more), `usualMan()` the bunker in their five he is usually
+    sighted in, and `shooterLane()` names which of your five has a lane on
+    that bunker off the break — on the sheet, Playbook and Anticipate.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

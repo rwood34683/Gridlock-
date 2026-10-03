@@ -4578,13 +4578,41 @@ function breakLanes(k, their = theirFiveNow()){
   const onYou = their.ids.filter(b => ids.some(a => laneClear(a, b))).length;
   return {onThem, onYou, mine: ids.length, theirs: their.ids.length, basis: their.basis, n: their.n || 0};
 }
+/* Their shooter, and who of yours has a lane on him. opponentRead() counts
+ * which of their men has shot yours most (the "by" on an out), usualMan()
+ * says which bunker he is usually sighted in on this field, and laneClear()
+ * says which of your five would have a lane on that bunker off the break.
+ * Three counts and a line on the field — never a guess about where he is. */
+function shooterLane(side = "right"){
+  const team = pitOf(side).name; if(!team) return null;
+  const r = opponentRead(team); if(!r.who.length || r.who[0][1] < 2) return null;
+  const [tag, hits] = r.who[0], num = String(tag).trim().split(" ")[0];
+  const t5 = theirFiveNow(side); if(!t5) return null;
+  // The bunker in their five he is usually sighted in, matched by number.
+  const at = t5.ids.map(id => ({id, u: usualMan(team, id)})).find(x => x.u && x.u.who.split(" ")[0] === num);
+  if(!at) return {tag, hits, at: null};
+  const mine = plantIdsFor(S.script); if(!mine) return {tag, hits, at: at.id};
+  const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, five = fiveFor(S.point || 1);
+  const lanes = ids.map((a, i) => laneClear(a, at.id) ? {who: five[i] ? five[i].name : `slot ${i + 1}`, from: a} : null).filter(Boolean);
+  return {tag, hits, at: at.id, lanes, seen: at.u.n};
+}
+function shooterLine(side = "right"){
+  const sl = shooterLane(side); if(!sl) return "";
+  const bl = curLayout().bunkers, name = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id; };
+  const who = `<b>${esc(sl.tag)}</b> has shot ${sl.hits} of your men`;
+  if(!sl.at) return `${who} — nobody has sighted him in their five on this field yet.`;
+  const where = `usually in <b>${esc(name(sl.at))}</b> (${sl.seen} sighting${sl.seen === 1 ? "" : "s"})`;
+  return sl.lanes.length
+    ? `${who}, ${where}: ${sl.lanes.map(l => `<b>${esc(l.who)}</b> from ${esc(name(l.from))}`).join(" and ")} ${sl.lanes.length === 1 ? "has" : "have"} a lane on him off the break.`
+    : `${who}, ${where}: nobody in your five has a lane on him off the break on ${esc(breakName())}.`;
+}
 function lanesWord(l){ return l ? `${l.onThem} of your ${l.mine} have a lane on them · ${l.onYou} of their ${l.theirs} have one on you` : ""; }
 // One line for the call panel and the point sheet.
 function lanesLine(){
   if(nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
   const t = theirFiveNow(); const l = breakLanes(S.script, t); if(!l) return "";
   const five = t.basis === "logged" ? "the five they logged on this point" : `the five they usually plant${t.n ? ` (${t.n} logged fives)` : ""}`;
-  return `<p class="note read-line"><b>Lanes off the break:</b> on ${esc(breakName())} against ${five}, ${l.onThem} of your ${l.mine} have a clear lane on one of theirs and ${l.onYou} of their ${l.theirs} have one on you. Counted off ${esc(curLayout().name)}, leaning out either side of the bunker.</p>`;
+  return `<p class="note read-line"><b>Lanes off the break:</b> on ${esc(breakName())} against ${five}, ${l.onThem} of your ${l.mine} have a clear lane on one of theirs and ${l.onYou} of their ${l.theirs} have one on you. Counted off ${esc(curLayout().name)}, leaning out either side of the bunker.</p>${(sh => sh ? `<p class="note read-line"><b>Their shooter:</b> ${sh}</p>` : "")(shooterLine())}`;
 }
 /* Where their five have planted most, as a ghost of the five until the real
  * one is tapped in on Breakouts. Under the call the read expects when that
@@ -7852,7 +7880,7 @@ function scoutMatchup(){
 function scoutAnticipate(){
   // The generic reads are a starting point. What a coach actually wants before
   // the horn is the two or three players he logged himself, hardest first.
-  const card=(T,likely,tells,counter,extra)=>{
+  const card=(T,likely,tells,counter,extra,shooter)=>{
     const men=[...(T.players||[])].sort((a,b)=>(b.threat||0)-(a.threat||0)).slice(0,3);
     return `<div class="panel">
     <h3 class="panel__title">${esc(T.name)}</h3>
@@ -7871,6 +7899,7 @@ function scoutAnticipate(){
         return `<div class="kv__row"><span class="kv__k">How they get you</span><span class="kv__v">
           ${r.n} of your outs over ${r.points} point${r.points===1?"":"s"}${how?` · ${how}`:""}${who?`<br>${who}`:""}${at?`<br>You lose men at <b>${at}</b> most`:""}
           </span></div>`;})()}
+      ${shooter || ""}
       ${(T.notes||"").trim()?`<div class="kv__row"><span class="kv__k">Your film</span><span class="kv__v">${esc(T.notes)}</span></div>`:""}
     </div></div>`;
   };
@@ -7900,7 +7929,8 @@ function scoutAnticipate(){
           ? `<b style="color:var(--warn)">${esc(callName(rd.recent[0][0]))} ${rd.recent[0][1]} of their last ${rd.recentN}</b> — the season says ${esc(callName(rd.all.top[0]))}${READS[T.tend] && T.tend !== "Balanced" ? `, your read says ${esc(T.tend)}` : ""}. They may have changed.`
           : `<b>${esc(callName(rd.recent[0][0]))}</b> ${rd.recent[0][1]} of their last ${rd.recentN} — same as the season.`}</span></div>`
       : "";
-    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately];
+    const shooter = (sh => sh && pitOnSheet(side) ? `<div class="kv__row"><span class="kv__k">Their shooter</span><span class="kv__v">${sh}</span></div>` : "")(shooterLine(side));
+    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
@@ -8728,7 +8758,7 @@ const HELP_Q = [
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
-  ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see."],
+  ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
