@@ -740,3 +740,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
+- Hide Time's up until a point has been scored. The horn does not wait for
+  one: a long first point can run the match clock out at 0–0, and level is
+  still a tie or overtime. The buttons stand whenever a sheet has an opponent
+  and is not over.
+- Tell a restored phone no copy was ever saved. What just loaded *is* a copy,
+  so `loadCopy()` stamps `copiedAt`; the nudge is for a season that has
+  never left the phone, not one that just arrived on it.
+- Open Sightlines on whichever bunker the digitiser listed first. The
+  question a coach walks over with is what his own man can see, so
+  `sightDefault()` stands him in his first plant for the call he is on and
+  falls back to the list only on a field with no plants.
