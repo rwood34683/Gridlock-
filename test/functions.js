@@ -4648,6 +4648,14 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return watched && played;
   }));
+  check("Sightlines opens on the bunker your first man actually stands in from the right end", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const first = plantIdsFor(S.script)[0];
+    window.set({ sightFrom: null }); const left = sightDefault();
+    window.switchEnds(); const right = sightDefault(); window.switchEnds();
+    return left === first && right === mirrorBunkerId(first) && right !== left;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

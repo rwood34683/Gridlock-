@@ -8440,7 +8440,9 @@ window.pickSight = (which, id) => which === "from"
 function sightDefault(){
   const list = curLayout().bunkers;
   const plants = (BREAK_PLANTS[S.layoutKey] || {})[S.script] || myPlants(S.script, S.layoutKey) || [];
-  const mine = plants.find(id => list.some(b => b.id === id));
+  // Plants are kept in the left-end frame; breaking from the right end his
+  // first man stands in the twin bunker, and that is the one he walks over to.
+  const mine = plants.map(id => ourEnd() === "right" ? mirrorBunkerId(id) : id).find(id => list.some(b => b.id === id));
   return mine || list[0].id;
 }
 function sightlines(){
