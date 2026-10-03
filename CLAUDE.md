@@ -765,6 +765,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Make a coach leave the point sheet to rotate. Nine men and a sheet that can
   only name the first five is how an out gets tallied against a man in the
   pit. Rotation is on the sheet (**Who's on**); slot order is under More.
+  And the rotation is made on what was charted: under the chips, one line a
+  man from `manLine("us", name, matchVs())` — breaks charted, made it, shot
+  on the break and from where, the bunker he breaks to most — bench men
+  marked, a man with nothing charted given no line. A count, never a grade;
+  the grade is the coach's, on Assess.
 - Teach one screen the format and not the other. The landscape log is the
   point sheet turned sideways — the same `endPoint`, the same call — so it
   reads `raceTo()`, `matchPoint()`, `inOvertime()`, `matchOver()` and the

@@ -4419,6 +4419,21 @@ const ROSTER = [
     S.arrivalSightings = keep; S.tally = (S.tally || []).filter(o => o.by !== "#7 Dill"); editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return none && named && shown && onAnt;
   }));
+  check("Who's on carries each man's charted read against this team, and nothing for a man with nothing charted", await ev(() => {
+    window.confirm = () => true;
+    const keepRoster = S.roster;
+    S.roster = ["Reyes", "Okafor", "Vance", "Marsh", "Bright", "Cole", "Ortiz"].map((n, i) => ({ name: n, num: i + 1, p: "", s: "" }));
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const L = S.layoutKey, bl = curLayout().bunkers, keepB = S.breakouts;
+    S.breakouts = [{ id: "wb1", m: S.matchId, pt: 1, layout: L, at: 1, side: "us", bunker: bl[3].id, player: "Cole", alive: true, shotFrom: "", entry: "", dir: null, shootAt: "", delayed: false, movedTo: "", movedDelayed: false, routeType: "", route: [], vs: "Dynasty", script: S.script },
+                   { id: "wb2", m: S.matchId, pt: 1, layout: L, at: 2, side: "us", bunker: bl[3].id, player: "Cole", alive: false, shotFrom: bl[9].id, entry: "", dir: null, shootAt: "", delayed: false, movedTo: "", movedDelayed: false, routeType: "", route: [], vs: "Dynasty", script: S.script }];
+    window.set({ whoOn: true });
+    const t = document.getElementById("root").textContent;
+    const cole = new RegExp("Cole · bench\\s*2 breaks charted · made it 1 · shot on the break 1 \\(from " + callOf(bl[9]) + " 1\\) · breaks to " + callOf(bl[3]) + " 2 of 2").test(t);
+    const ortiz = !/Ortiz · bench\s*\d/.test(t) && !/Ortiz · bench\s*(\d|breaks)/.test(t);
+    S.breakouts = keepB; S.roster = keepRoster; window.set({ whoOn: false });
+    return cole && ortiz;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
