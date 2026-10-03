@@ -848,6 +848,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   is replaced whoever it was named for. And Games printed "Point undefined ·
   0 of 0" for a sheet with results and no outs; with nothing to step through
   there is no Replay section.
+- Hide the quick log at the foot of the point sheet. It was built for a phone
+  on its side, and on that shape the tab it lives under is a header, a hint
+  and a tab bar with a strip of field between. `.turn-bar` is the first thing
+  on Tally and shows only in that one media state; everywhere else the offer
+  stays where it was.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

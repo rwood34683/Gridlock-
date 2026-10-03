@@ -4019,6 +4019,14 @@ const ROSTER = [
     window.newMatch();                    // a result on it → kept
     return same && S.matches.length === before + 1;
   }));
+  check("Tally offers the quick log at the top only on a phone turned sideways", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } });
+    const bar = document.querySelector("#root .turn-bar");
+    const sideways = matchMedia("(orientation:landscape) and (max-height:520px)").matches;
+    const shown = bar && getComputedStyle(bar).display !== "none";
+    const first = bar && document.querySelector(".main").firstElementChild === bar;
+    return !!bar && shown === sideways && first && /log on the fly/.test(bar.textContent);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
