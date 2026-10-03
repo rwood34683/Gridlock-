@@ -44,9 +44,23 @@ function supportBlock(config, short) {
     : `<p>A support contact has not been configured for this distribution. Contact the person who supplied your copy of ${esc(short)}.</p>`;
 }
 function stampSupport(text, config, short) {
-  return text.replace(/<!-- support-contact:start -->[\s\S]*?<!-- support-contact:end -->/g, `<!-- support-contact:start -->${supportBlock(config, short)}<!-- support-contact:end -->`);
+  return stampSocial(text.replace(/<!-- support-contact:start -->[\s\S]*?<!-- support-contact:end -->/g, `<!-- support-contact:start -->${supportBlock(config, short)}<!-- support-contact:end -->`), config);
+}
+// Social preview tags need an absolute image URL, so they exist only once a
+// domain is configured. The image itself carries no words, so it is the same
+// file in every brand. The page's own og:title and description sit outside the
+// marker and are brand-transformed like any other text.
+function socialBlock(config, page) {
+  if (!config.domain) return '';
+  const base = `https://${esc(config.domain)}/`;
+  return `<meta property="og:url" content="${base}${page}"><meta property="og:image" content="${base}img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">`;
+}
+function stampSocial(text, config) {
+  const page = /<title>Support/.test(text) ? 'support.html' : /<title>Privacy/.test(text) ? 'privacy.html' : '';
+  return text.replace(/<!-- social:start -->[\s\S]*?<!-- social:end -->/, `<!-- social:start -->${socialBlock(config, page)}<!-- social:end -->`);
 }
 function stampIndex(text, config) {
+  text = stampSocial(text, config);
   const stores = [];
   if (config.appstore) stores.push(`<a href="https://apps.apple.com/app/id${config.appstore}">View on the App Store</a>`);
   if (config.play) stores.push(`<a href="${esc(config.play)}">View on Google Play</a>`);
@@ -88,4 +102,4 @@ function main() {
   console.log('Regenerate artifacts and run npm run site:check -- --release before publishing.');
 }
 if (require.main === module) { try { main(); } catch (err) { console.error(err.message); process.exitCode = 1; } }
-module.exports = { KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, assetLinks };
+module.exports = { KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, stampSocial, assetLinks };

@@ -28,7 +28,7 @@
     "verify:bunkers": "node scripts/run-checks.js bunkers",
     "loadtest": "node scripts/run-checks.js load",
     "check": "node scripts/run-checks.js",
-    "shots": "node scripts/capture-shots.js && node scripts/optimise-shots.js",
+    "shots": "node scripts/capture-shots.js && node scripts/optimise-shots.js && node scripts/og-image.js",
     "store": "node scripts/store-assets.js",
     "store:check": "node scripts/store-check.js",
     "site:check": "node scripts/site-check.js",
