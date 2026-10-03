@@ -2450,7 +2450,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -4110,8 +4110,39 @@ window.logMove = () => {
   if(!who || !from || !to) return;
   if(from === to){ flash('A rotation needs two different bunkers.'); return; }
   S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
+  S.moveFrom = null; S.moveTo = null;
   save(S); render();
 };
+// Two taps on the field: where he left, where he went. A third starts over.
+window.moveTap = at => {
+  const b = nearestBunker(at); if(!b) return;
+  if(!S.moveFrom || S.moveTo){ S.moveFrom = b.id; S.moveTo = null; }
+  else if(b.id === S.moveFrom){ flash("A rotation needs two different bunkers."); return; }
+  else S.moveTo = b.id;
+  render();
+};
+(function moveTapping(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "more" || S.more !== "movement") return;
+    const surface = ev.target.closest("#move-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    moveTap(fieldFeet(svg, ev));
+  });
+})();
+// The two bunkers picked for a rotation, ringed on the field while they are being picked.
+function moveOverlay(){
+  const sx = 2, sy = 2, byId = Object.fromEntries(curLayout().bunkers.map(b => [b.id, b]));
+  let out = "";
+  [[S.moveFrom, "#8d9092", "from"], [S.moveTo, "#3ecf8e", "to"]].forEach(([id, col, tag]) => {
+    const b = id && byId[id]; if(!b) return;
+    const s2 = bunkerSize(b, sx, sy);
+    out += `<rect x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${col}" stroke-width="1.8"/>`
+         + `<text x="${(b.x*sx+s2.h+2).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" font-size="7" font-weight="800" fill="${col}">${tag}</text>`;
+  });
+  return out;
+}
 window.undoMove = i => { S.moves = (S.moves||[]).filter((_,k)=>k!==i); save(S); render(); };
 
 // ---- grades ----
@@ -9258,19 +9289,25 @@ function moreBody(k){
     // The list prints a point number against each rotation, so it has to be one
     // match's — point 4 of today and point 4 of March are not the same point.
     const mvHere=rowsHere(mv);
-    const opt=b=>`<option value="${esc(b.id)}">${esc(callOf(b))} · ${esc(b.id)}</option>`;
+    const opt=(b,sel)=>`<option value="${esc(b.id)}"${sel===b.id?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
     const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
                            :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
-    return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Every rotation counts as a move into the new bunker on Bunker stats.</p>
+    const nm=id=>{const b=list.find(x=>x.id===id);return b?callOf(b):"";};
+    // The field is the picker, as on Tally: two taps, the bunker he left and the
+    // bunker he went to. Two 58-row dropdowns are still there underneath for a
+    // thumb that prefers them, and they follow the taps.
+    return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Tap the bunker he left, then the bunker he went to. Every rotation counts as a move into the new bunker on Bunker stats.</p>
+      <div class="field-wrap" id="move-map">${fieldSVG({static:true,moves:true,noPaths:true,names:true,pick:true,overlay:moveOverlay()})}</div>
+      <p class="note" style="margin:var(--s2) 0 0">${S.moveFrom ? `From <b>${esc(nm(S.moveFrom))}</b>${S.moveTo ? ` to <b>${esc(nm(S.moveTo))}</b>` : " — now tap where he went"}` : "Tap the bunker he left."}${
+        S.moveFrom ? ` <button class="btn btn--quiet" style="min-height:36px;padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
       <div class="fld"><label>Player</label><select id="mvWho">${who}</select></div>
       <div class="who2">
-        <div class="fld"><label>From</label><select id="mvFrom">${list.map(opt).join("")}</select></div>
-        <div class="fld"><label>To</label><select id="mvTo">${list.map(opt).join("")}</select></div>
+        <div class="fld"><label>From</label><select id="mvFrom" onchange="set({moveFrom:this.value})">${list.map(b=>opt(b,S.moveFrom||list[0].id)).join("")}</select></div>
+        <div class="fld"><label>To</label><select id="mvTo" onchange="set({moveTo:this.value})">${list.map(b=>opt(b,S.moveTo||list[0].id)).join("")}</select></div>
       </div>
-      <button class="btn btn--block" onclick="logMove()">Log the move</button>`, "Point "+(S.point||1))
-    + sec("On the field", `<div class="field-wrap">${fieldSVG({static:true,moves:true,noPaths:true,names:true})}</div>
+      <button class="btn btn--block" onclick="logMove()">Log the move</button>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
-                 :`<div class="empty">No rotations logged on this layout yet.</div>`}`, layoutName)
+                 :`<p class="note">No rotations logged on this layout yet.</p>`}`, "Point "+(S.point||1))
     + (mvHere.length?sec("Rotations", `<div class="assigns">
         ${mvHere.slice(0,30).map(m=>{
           const a=list.find(b=>b.id===m.from), b2=list.find(b=>b.id===m.to);
