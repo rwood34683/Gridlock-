@@ -5396,6 +5396,13 @@ function likelyPlants(side = "right", call){
 /* Your record with a call against a team on this field: the calls you logged,
  * joined with who won the point. The Counter ranks on this first and falls
  * back to the heuristic only where you have no history. */
+// The same record on this field against everyone: the calls you logged here,
+// joined with who won the point. What self-scout prints beside each call.
+function callRecordHere(key){
+  const rows = loggedCalls().filter(c => c.script === key);
+  const res = rows.map(c => ((S.results || []).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won).filter(Boolean);
+  return {n: res.length, won: res.filter(w => w === "us").length};
+}
 function callRecord(key, team){
   const rows = (S.calls || []).filter(c => c && c.script === key && c.vs === team && c.layout === S.layoutKey && !watchedMatch(c.m));
   const res = rows.map(c => ((S.results || []).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won).filter(Boolean);
@@ -6316,15 +6323,15 @@ function playbook(){
     return sec("What you have called", ss.n
       ? `${ss.tell >= 0.5 ? `<p class="warn">${Math.round(ss.tell*100)}% of your last ${ss.recent.length}
           calls have been <b>${esc(callName(ss.top[0]))}</b>. Anyone filming you has that too.</p>`
-        : `<p class="lede">Counted from the calls you logged on this field. Nothing here is a prediction —
-          it is the same arithmetic a team watching your film would do.</p>`}
+        : `<p class="lede">The calls you logged on this field, and what each won. Not a prediction — the
+          same arithmetic a team watching your film would do.</p>`}
         <div class="assigns">
           ${ss.rank.map(([k,n])=>{
             const pct = Math.round(n/ss.n*100);
             return `<div class="assign" style="flex-wrap:wrap">
               <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${n}</span>
               <span class="assign__body"><span class="assign__job">${esc(callName(k))}</span>
-              <span class="assign__who">${pct}% of ${ss.n} logged here</span></span>
+              <span class="assign__who">${pct}% of ${ss.n} logged here${(r => r.n ? ` · won ${r.won} of ${r.n}` : "")(callRecordHere(k))}</span></span>
               <span class="bar" style="flex:1 0 100%;margin-top:6px"><i style="width:${pct}%;background:${
                 ss.top && k===ss.top[0] && ss.tell>=0.5 ? "var(--warn)" : "var(--accent)"}"></i></span>
             </div>`;}).join("")}
@@ -6333,7 +6340,7 @@ function playbook(){
           ${ss.recent.map((c,i)=>`<div class="assign">
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${c.pt}</span>
             <span class="assign__body"><span class="assign__job">${esc(callName(c.script))}</span>
-            <span class="assign__who">point ${c.pt}${c.vs?" · vs "+esc(c.vs):""}</span></span>
+            <span class="assign__who">point ${c.pt}${c.vs?" · vs "+esc(c.vs):""}${(w => w ? ` · ${w === "us" ? "won" : "lost"}` : "")(((S.results||[]).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won)}</span></span>
             <button class="btn btn--danger" onclick="unlogCall(${i})">Undo</button>
           </div>`).join("")}
         </div>`
