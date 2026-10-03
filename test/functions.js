@@ -3891,6 +3891,17 @@ const ROSTER = [
     const b = [...document.querySelectorAll("#root input.rost__num")];
     return a.length > 0 && b.length > 0 && [...a, ...b].every(i => i.getAttribute("inputmode") === "numeric");
   }));
+  check("a saved screen this build does not have lands on Playbook, not a white page", await (async () => {
+    await ev(() => { const s = JSON.parse(localStorage.getItem("gridlock.coach.v2")); Object.assign(s, { tab: "nope", more: "gone", scoutTab: "xyz" }); localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)); });
+    await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(150);
+    return ev(() => S.tab === "playbook" && S.more === null && S.scoutTab === "matchup" && document.getElementById("root").textContent.length > 500);
+  })());
+  check("a bad Scout sub-tab set at runtime renders Matchup rather than throwing", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "nothing", more: "nowhere" });
+    return S.scoutTab === "matchup" && S.more === null && document.getElementById("root").textContent.length > 500;
+  }));
+  check("every row on the More menu is a section fixScreen() keeps", await ev(() =>
+    MORE_GROUPS.every(([, rows]) => rows.every(r => { window.set({ tab: "more", more: r[0] }); return S.more === r[0]; }))));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
