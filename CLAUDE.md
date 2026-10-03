@@ -823,6 +823,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   men a point. `.tsheet__act` is sticky to the bottom of the screen while the
   sheet is open, so Log is never a scroll away from whichever question he is
   on. The suite checks it is on screen before and after scrolling the sheet.
+- Draw two fields on one sub-tab. Breakouts has its own field — the one he
+  taps where their five ended up — and the shared break field above it put
+  that job two screens down on a phone. Breakouts joins Games and Division in
+  skipping the shared break section; their drawn call is still on Matchup,
+  Counter and Layers. The training-aid line reads *under* every sub-tab, not
+  over it: above, it was one more block between the fold and the field.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

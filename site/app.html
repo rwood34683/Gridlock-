@@ -7383,8 +7383,10 @@ function scout(){
 
   ${/* Games and Division are tables. A break drawn over a list of twenty teams
        is a call nobody made on that screen, so those two get the pits and the
-       match strip and nothing else. */""}
-  ${["games","board"].includes(view) ? "" : sec("The break", `<div class="seg">
+       match strip and nothing else. Breakouts draws its own field — the one he
+       taps where their five ended up — and a second field above it put that
+       job two screens down on a phone. */""}
+  ${["games","board","breakouts"].includes(view) ? "" : sec("The break", `<div class="seg">
       <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">Theirs</button>
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
@@ -7420,13 +7422,14 @@ function scout(){
       and set <b>Shot at</b> on it, and the field marks where the point was decided.</div>`:""}
 `)}
 
+  ${body}
+
   ${/* The house rule outranks the layout: this line is on Scout whichever
        sub-tab is open, so it stays outside the break section that Games and
-       Division do without. */""}
-  <p class="aid"><b>A training aid, not a prediction.</b> Everything on the sub-tabs below is
-    counted from what you logged or scored yourself. Officials govern the live call.</p>
-
-  ${body}`;
+       Division do without. It reads under the sub-tab, not over it — above,
+       it was one more block between the fold and the field he came to tap. */""}
+  <p class="aid"><b>A training aid, not a prediction.</b> Everything on this tab is counted
+    from what you logged or scored yourself. Officials govern the live call.</p>`;
 }
 
 /* How did they get there?

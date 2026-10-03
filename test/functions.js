@@ -3969,6 +3969,14 @@ const ROSTER = [
     window.set({ tallySel: null, tallyDraft: null });
     return sticky && onScreen && stillOn;
   }));
+  check("Breakouts draws one field — the one he taps — not the shared break above it", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, pitOpen: null });
+    const fields = document.querySelectorAll("#root svg.field").length;
+    const picker = /Where did they go\?/.test(document.getElementById("root").textContent);
+    window.set({ scoutTab: "counter" });
+    const counterHas = /The break/.test(document.getElementById("root").textContent) && document.querySelectorAll("#root svg.field").length >= 1;
+    return fields === 1 && picker && counterHas;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
