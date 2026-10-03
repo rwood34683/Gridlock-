@@ -4552,6 +4552,18 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [], pbView: null });
     return none && right && shown && inText;
   }));
+  check("Walk says what the book knows about the bunker you are standing on, and opens Sightlines from it", await ev(() => {
+    window.set({ tab: "more", more: "walk", right: { name: "Dynasty" } });
+    const bl = curLayout().bunkers, b = bl[5];
+    editProfile("right", { breaks: [{ script: "", pt: 1, m: "old-w", layout: S.layoutKey, plants: [b.id, bl[6].id], at: 1 }, { script: "", pt: 2, m: "old-w", layout: S.layoutKey, plants: [b.id], at: 2 }] });
+    window.walkSelect(walkWhereOf(b));
+    const sl = sightLines(b.id, 2, 2), t = document.getElementById("root").textContent;
+    const said = new RegExp(callOf(b) + " — " + sl.clear + " of " + sl.lines.length + " lanes clear from here · Dynasty planted here 2 times").test(t);
+    const go = [...document.querySelectorAll("#root .read-line__go")].find(x => /Lanes from here/.test(x.textContent)); if (go) go.click();
+    const opened = S.tab === "sightlines" && S.sightFrom === b.id;
+    editProfile("right", { breaks: [] }); window.set({ tab: "more", more: "walk", walkPick: null });
+    return said && opened;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

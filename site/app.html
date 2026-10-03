@@ -9525,7 +9525,8 @@ const HELP = {
          "Blank swaps the field for a dark board when you want to draw from scratch."],
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
-    how:["Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
+    how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
+         "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Notes are kept per field, so they follow the event."]},
   "more/movement": {t:"Movement", w:"Bunker to bunker after the break.",
     how:["Tap the man — the five on the point come first — then the bunker he left and the bunker he went to.",
@@ -9911,6 +9912,17 @@ function moreBody(k){
       noticed it on. Notes stay with this field.</p>
       <div class="field-wrap" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}</div>
       <p class="note">Tap the bunker the note is about${notes.length?" — a dot marks one that already has a note":""}, or pick a wire below.</p>
+      ${/* Standing on a bunker, what the field already knows about it: the
+            lanes from here off the measured layout, where their five have
+            planted on it and where you have lost men at it — so the walk is
+            checked against the book, not only against the eye. */""}
+      ${(() => { const id = String(where).includes(" · ") ? String(where).split(" · ").pop() : null, b = id && bl.find(x => x.id === id); if(!b) return "";
+        const sl = sightLines(b.id, 2, 2), theirs = (plantCounts("right").find(([k]) => k === b.id) || [0, 0])[1];
+        const lost = loggedOuts(o => o.side === "us" && o.shotAt === b.id).length, got = loggedOuts(o => o.side === "them" && o.shotAt === b.id).length;
+        const bits = [`<b>${sl.clear}</b> of ${sl.lines.length} lanes clear from here`,
+                      theirs ? `${pitNamed("right") ? esc(pitOf("right").name) : "they"} planted here ${theirs} time${theirs === 1 ? "" : "s"}` : "",
+                      lost ? `you lost ${lost} m${lost === 1 ? "an" : "en"} here` : "", got ? `they lost ${got} here` : ""].filter(Boolean);
+        return `<p class="note"><b>${esc(callOf(b))}</b> — ${bits.join(" · ")}. <button class="btn btn--quiet read-line__go" onclick="set({tab:'sightlines',sightFrom:${jsq(b.id)},sightTo:null,sightAim:null})">Lanes from here</button></p>`; })()}
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
