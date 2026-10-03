@@ -853,6 +853,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and a tab bar with a strip of field between. `.turn-bar` is the first thing
   on Tally and shows only in that one media state; everywhere else the offer
   stays where it was.
+- Cap a picture that has a layer the size of its box. The whiteboard is a
+  field with an ink layer that fills the wrap, so capping the field's height
+  on a tablet letterboxed 525 px of field inside an 858 px wrap. The wrap is
+  sized from the same cap (the board is 300 by 240) and the picture fills it;
+  the suite checks the ink layer and the picture are the same box and a stroke
+  lands.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
