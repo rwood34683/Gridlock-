@@ -3389,10 +3389,12 @@ const ROSTER = [
     const mb = curLayout().bunkers.find(x => x.id === mirrorBunkerId(b.id));
     return Math.abs(mb.x - (150 - b.x)) < 6 && mirrorDirect({face: 0, shot: "@30"}).face === 180 && mirrorDirect({shot: "@30"}).shot === "@150";
   }));
-  check("Swap every point alternates the end with the point, and Back undoes it", await ev(() => {
+  check("Swap every point switches after a point somebody won, not after a no-point, and Back undoes it", await ev(() => {
     window.setSwapEnds(true);                        // this point stays where it is
-    const here = ourEnd(); window.nextPoint(); const next = ourEnd(); window.backPoint(); const back = ourEnd();
-    return here === "right" && next === "left" && back === "right";
+    const here = ourEnd();
+    window.nextPoint(); const noPoint = ourEnd(); window.backPoint();   // nothing scored: nobody moves
+    window.endPoint("us"); const next = ourEnd(); window.backPoint(); const back = ourEnd();
+    return here === "right" && noPoint === "right" && next === "left" && back === "right";
   }));
   check("the field marks your end on Playbook", await ev(() => {
     window.set({ tab: "playbook" });
@@ -4064,6 +4066,41 @@ const ROSTER = [
     const gated = /Who are you playing\?/.test(document.querySelector(".main").textContent) && !document.querySelector("#root .panel");
     window.set({ right: { name: "Dynasty" } });
     return dorito && snake && counted && gated;
+  }));
+  check("the mercy rule ends the match at the lead, calls match point one short, and a new sheet carries it", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(3);
+    window.endPoint("us"); window.endPoint("us");
+    const mp = matchPoint() === "us" && /Match point/.test(document.getElementById("root").textContent) && /3-point lead ends it/.test(document.getElementById("root").textContent);
+    const chip = /mercy at 3/.test(document.getElementById("root").textContent);
+    window.endPoint("us");
+    const over = matchOver() === "us" && scoreOf(S.matchId).us === 3;
+    window.endPoint("them");                               // refused on a finished sheet
+    const held = scoreOf(S.matchId).them === 0;
+    window.newMatch();
+    const carried = mercy() === 3 && !matchOver() && !matchPoint();
+    window.endPoint("them"); window.endPoint("them");
+    const must = matchPoint() === "them" && derivedState() === "Must-score";
+    window.setMercy(0);
+    return mp && chip && over && held && carried && must;
+  }));
+  check("overtime starts on the pit side whatever the score adds up to", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setSwapEnds(true); window.setRaceTo(7);
+    window.endPoint("us"); window.endPoint("them"); window.endPoint("us");   // 2–1: three scored, far end
+    const far = ourEnd() !== (curMatch().end || "left");
+    window.endPoint("them");                                                // 2–2 level, four scored, pit side
+    window.timeUp("ot");
+    const pit = ourEnd() === (curMatch().end || "left") && inOvertime();
+    window.setSwapEnds(false); window.timeUp("ot");                          // leave overtime, clear the rule
+    return far && pit;
+  }));
+  check("the clock between points offers 45 seconds and a penalty can take four men", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" }, penOpen: true });
+    const t = document.getElementById("root").textContent;
+    const forty = [...document.querySelectorAll("#root .seg button")].some(b => b.textContent.trim() === "0:45");
+    const four = [...document.querySelectorAll("#root .assign__ctl button")].filter(b => b.textContent.trim() === "4").length === 2;
+    window.set({ penOpen: false });
+    return forty && four && /one-for-one is two men off/.test(t);
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
