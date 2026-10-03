@@ -6925,6 +6925,11 @@ window.nextPoint = () => { S.point=(S.point||1)+1; S.theirPick = []; S.tallySel 
  * answer rather than scoring it twice. */
 window.endPoint = won => {
   if(nobodyToPlay()) return needOpponent();
+  // The sheet stands its result buttons down once the race is won, but the
+  // handler is also reached from the landscape log, the Scout strip and
+  // anything a later build wires to it. A finished match takes no more
+  // results; Back a point is how a result is changed.
+  if(matchOver()) return;
   const pt = S.point || 1;
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),

@@ -3912,6 +3912,18 @@ const ROSTER = [
   }));
   check("every row on the More menu is a section fixScreen() keeps", await ev(() =>
     MORE_GROUPS.every(([, rows]) => rows.every(r => { window.set({ tab: "more", more: r[0] }); return S.more === r[0]; }))));
+  check("endPoint itself refuses a result on a finished race, whatever called it", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } });
+    window.newMatch(); window.setRaceTo(2);
+    window.endPoint("us"); window.endPoint("us");
+    const over = matchOver() === "us", pt = S.point;
+    window.endPoint("them"); window.endPoint("us");
+    const held = scoreOf(S.matchId).us === 2 && scoreOf(S.matchId).them === 0 && S.point === pt;
+    window.backPoint();
+    window.endPoint("them");
+    const reopened = scoreOf(S.matchId).them === 1 && scoreOf(S.matchId).us === 1;
+    return over && held && reopened;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
