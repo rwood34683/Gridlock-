@@ -478,7 +478,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   places reading it was the header, which is on every screen. The app went
   white, and the bad key was already in `localStorage`, so relaunching did it
   again. `layoutKey` had been guarded at every door since the fabricated layouts
-  were pulled; `script` never was. `fixBreak()` guards the same doors now.
+  were pulled; `script` never was. `fixBreak()` guards the same doors now —
+  and runs at the top of `render()` beside `fixScreen()`, because a key set
+  live rather than loaded was repaired only at the next relaunch, and the
+  header printed the raw key until then.
 - Work out where a match got to from the tally alone. A coach who taps who won
   every point without tallying an out — most of a blowout — has a sheet with
   results and no outs, and reopening it put him back on point 1, where his next

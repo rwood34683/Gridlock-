@@ -10810,6 +10810,11 @@ window.setAwake = on => {
 let _where = "";
 function render(){
   fixScreen();
+  // The call key is guarded at the same door: a key this build does not have
+  // was only repaired at launch and in a loaded copy, so set live — a merge, a
+  // turned-off play, anything a later build wires — the header printed the raw
+  // key until the next relaunch.
+  fixBreak();
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
