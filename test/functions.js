@@ -3924,6 +3924,18 @@ const ROSTER = [
     const reopened = scoreOf(S.matchId).them === 1 && scoreOf(S.matchId).us === 1;
     return over && held && reopened;
   }));
+  check("an empty left pit folds to one line off Matchup; the empty right pit stays open", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter", left: { name: "" }, right: { name: "Dynasty" }, pitOpen: null });
+    const folded = !document.querySelector("#root .pit--l") && /Nobody yet/.test((document.querySelector("#root .pitline--l") || {}).textContent || "");
+    document.querySelector("#root .pitline--l").click();
+    const opened = !!document.querySelector("#root .pit--l select");
+    window.set({ right: { name: "" }, left: { name: "" }, pitOpen: null });
+    const rightOpen = !!document.querySelector("#root .pit--r select");
+    window.set({ scoutTab: "matchup" });
+    const matchupFull = !!document.querySelector("#root .pit--l select");
+    window.set({ right: { name: "Dynasty" } });
+    return folded && opened && rightOpen && matchupFull;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

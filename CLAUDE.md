@@ -784,6 +784,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   guarded one of those doors. A scripted match that kept calling it scored a
   race to four 6–0. The handler refuses on `matchOver()` now, and Back a point
   is the one way a finished sheet takes another result.
+- Open an empty left pit on every Scout sub-tab. The left pit is optional, and
+  unnamed it rendered as a full card with a twenty-row picker above the counter,
+  the games and the layers. Off Matchup an empty left pit folds to one line
+  reading "Nobody yet · optional"; the empty **right** pit stays open, because
+  nothing below works until he says who he is playing.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
