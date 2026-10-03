@@ -750,6 +750,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the grade this point already gave him, and Save says what is still missing
   ("Tap the man first", "Tap a score") instead of refusing in silence. An empty
   roster offers one tap to Team.
+- Set a slot from a dropdown of the squad, or let one change empty the other
+  four. Lineups is tap the slot, tap the man: each row names the job that slot
+  plays on the current call, the squad appears under the slot that is open,
+  and a man already on another slot swaps rather than doubling up.
+  `setSlot()` starts from the five that is standing, written or roster order,
+  because a five that was only roster order used to come back as one man and
+  four empty slots the moment one was set.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

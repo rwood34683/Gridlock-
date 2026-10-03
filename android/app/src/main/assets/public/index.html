@@ -239,6 +239,7 @@ h1,h2,h3,p{margin:0}
   display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
 }
 .seg button.on{background:var(--accent);color:#fff;font-weight:700}
+.assign.assign--on{outline:2px solid var(--accent-lit);outline-offset:-2px}
 /* Writing a play sits with the calls, because that is where a coach is looking
    when he picks one — but it makes something rather than choosing something,
    so it is outlined rather than filled. */
@@ -1718,7 +1719,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -3280,10 +3281,18 @@ window.swapOn = name => {
 };
 window.setSlot = (i, name) => {
   const pt = S.point || 1;
-  // Start from the five that is standing, so one swap keeps the other four.
-  const line = [...(lineupAt(pt).length ? lineupAt(pt) : ["","","","",""])];
+  // Start from the five that is standing — written, or roster order when none
+  // was — so one change keeps the other four. A five that was only roster order
+  // used to come back as one man and four empty slots.
+  const line = [...(lineupAt(pt).length ? lineupAt(pt) : fiveFor(pt).map(p => p ? p.name : ""))];
+  while(line.length < 5) line.push("");
+  // Putting a man who is already on another slot here swaps the two, because
+  // "Cole to 1" never means "and nobody on 3".
+  const j = name ? line.indexOf(name) : -1;
+  if(j >= 0 && j !== i) line[j] = line[i] || "";
   line[i] = name;
   S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line};
+  S.slotPick = null;
   save(S); render();
 };
 window.fillLineup = from => {
@@ -8053,7 +8062,8 @@ const HELP = {
          "The ring on a bunker gets heavier the more traffic it has seen."],
     watch:"Nothing shows until you have charted a break on Tally or logged a rotation."},
   "more/lineups": {t:"Lineups", w:"Who is on this point.",
-    how:["Set the five for the point you are on.",
+    how:["Tap the slot, then tap the man. Each slot names the job it plays on the call you are on.",
+         "A man already on another slot swaps with this one — nobody doubles up.",
          "Kept per match and per point, so point three of two games is two different fives."]},
   "more/team": {t:"Team", w:"Your roster, and what you call each bunker.",
     how:["Add players with their numbers and positions.",
@@ -8440,16 +8450,24 @@ function moreBody(k){
       `<div class="empty">No roster yet. Add your squad, then set who is on the point.
         <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`,
       "Point "+pt);
-    const slots=`<div class="assigns">${five.map((pl,i)=>`<div class="assign">
+    // Tap the slot, tap the man. The job each slot plays on the current call is
+    // named on the row, because slot 3 means nothing and "GP · snake" does.
+    const jobs=currentPaths();
+    const slotOf=n=>five.findIndex(p=>p&&p.name===n);
+    const slots=`<div class="assigns">${five.map((pl,i)=>{
+      const job=jobs[i]?jobName(S.script, jobs[i].id, jobs[i].label):"";
+      const open=S.slotPick===i;
+      return `<button class="assign${open?" assign--on":""}" onclick="set({slotPick:${open?"null":i}})" aria-expanded="${open}">
         <span class="assign__n">${i+1}</span>
         <span class="assign__body">
-          <select onchange="setSlot(${i},this.value)">
-            <option value=""${pl?"":" selected"}>— empty —</option>
-            ${roster.map(r=>`<option${pl&&pl.name===r.name?" selected":""}>${esc(r.name)}</option>`).join("")}
-          </select>
-          <span class="assign__who">${pl?esc("#"+pl.num+" · P "+(pl.p||"—")+" · S "+(pl.s||"—")):"no one on this slot"}</span>
+          <span class="assign__job">${pl?esc(pl.name):"— empty —"}${job?` <span style="color:var(--dim);font-weight:400">· ${esc(job)}</span>`:""}</span>
+          <span class="assign__who">${pl?esc("#"+pl.num+" · P "+(pl.p||"—")+" · S "+(pl.s||"—")):open?"tap the man below":"tap to pick a man"}</span>
         </span>
-      </div>`).join("")}</div>`;
+      </button>${open?`<div class="seg seg--wrap" aria-label="Who plays slot ${i+1}">
+        ${roster.map(r=>{ const at=slotOf(r.name); return `<button class="${at===i?"on":""}" onclick="setSlot(${i},${jsq(r.name)})">${esc(r.name)}${at>=0&&at!==i?` <span style="opacity:.6">· ${at+1}</span>`:""}</button>`; }).join("")}
+        <button onclick="setSlot(${i},'')">— empty —</button>
+      </div>`:""}`;
+    }).join("")}</div>`;
     const carried = !line.length && lineupAt(pt).length ? mine.filter(n=>n<pt)[0] : 0;
     return sec("Lineups", `<p class="lede">Who is on this point. Slot 1 to 5 are the five jobs on Playbook,
       in the same order — set a lineup here and the break is directed at these players.</p>

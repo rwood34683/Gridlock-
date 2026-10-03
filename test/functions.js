@@ -1109,6 +1109,29 @@ const ROSTER = [
     const ok = fiveFor(4)[0].name === "Reyes";
     window.set({ lineups: was }); return ok;
   }));
+  check("Lineups: tap a slot and the squad appears under it; tap a man and he is on it", await ev(s2 => {
+    window.set({ roster: s2, lineups: {}, point: 3, slotPick: null });
+    const rows = () => document.querySelectorAll("#root button.assign");
+    const noChips = document.querySelectorAll("#root .assigns .seg").length === 0;
+    rows()[2].click();
+    const armed = S.slotPick === 2 && document.querySelectorAll("#root .assigns .seg").length === 1
+      && document.querySelector("#root .assign--on .assign__n").textContent === "3";
+    const chip = [...document.querySelectorAll("#root .assigns .seg button")].find(b => /^Cole/.test(b.textContent));
+    chip.click();
+    return noChips && armed && S.slotPick === null && lineupFor(3)[2] === "Cole" && document.querySelectorAll("#root .assigns .seg").length === 0;
+  }, SQUAD));
+  check("one change to a roster-order five keeps the other four", await ev(() =>
+    onPoint(3).join() === "Reyes,Okafor,Cole,Marsh,Bright"));
+  check("putting a man who is on another slot here swaps the two", await ev(() => {
+    window.setSlot(0, "Cole");
+    return onPoint(3).join() === "Cole,Okafor,Reyes,Marsh,Bright";
+  }));
+  check("each slot names the job it plays on the current call", await ev(() => {
+    const t = document.querySelector("#root .assigns").textContent;
+    return currentPaths().every(p => t.includes(jobName(S.script, p.id, p.label)));
+  }));
+  check("the slot pick is scratch and never a dropdown", await ev(() =>
+    document.querySelectorAll("#root .assigns select").length === 0 && !("slotPick" in defaultState() && defaultState().slotPick)));
   check("with no roster Lineups says where to start", await ev(() => {
     window.set({ roster: [], lineups: {} });
     return /Add your squad/.test(document.querySelector(".main").textContent) && /Add your squad · Team/.test(document.querySelector(".main").textContent);
