@@ -809,11 +809,20 @@ const ROSTER = [
   /* -------------------------------------------------------------- movement */
   G("Movement");
   await seed({ tab: "more", more: "movement" });
-  await ev(() => { document.getElementById("mvWho").value = "Reyes"; document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "GP#1"; window.logMove(); });
+  check("Movement: the man is tapped, the five on the point first, and Log waits for him", await ev(() => {
+    const before = (S.moves || []).length;
+    document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "GP#1"; window.logMove();
+    const refused = (S.moves || []).length === before && /Tap the man who moved/.test(document.getElementById("root").textContent);
+    const t = document.querySelector(".main").textContent;
+    const five = /Who moved · on the point/.test(t) && [...document.querySelectorAll("#root .seg button")].some(b => b.textContent === "Reyes");
+    window.movePick("Reyes");
+    return refused && five && S.moveWho === "Reyes" && /Log the move · Reyes/.test(document.querySelector(".main").textContent);
+  }));
+  await ev(() => { document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "GP#1"; window.logMove(); });
   await page.waitForTimeout(80);
-  check("a rotation is logged", await ev(() => S.moves.length === 1));
+  check("a rotation is logged", await ev(() => S.moves.length === 1 && S.moves[0].who === "Reyes" && S.moveWho === null));
   check("the rotation draws on the field", await ev(() => fieldSVG({ static: true, moves: true }).includes("#3ecf8e")));
-  await ev(() => { document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "SB#4"; window.logMove(); });
+  await ev(() => { window.movePick("Reyes"); document.getElementById("mvFrom").value = "SB#4"; document.getElementById("mvTo").value = "SB#4"; window.logMove(); });
   await page.waitForTimeout(80);
   check("a move to the same bunker is refused", await ev(() => S.moves.length === 1));
   await ev(() => window.undoMove(0));
@@ -3770,6 +3779,7 @@ const ROSTER = [
   check("Movement: tap the bunker he left, tap where he went, and the pickers follow", await ev(() => {
     window.set({ tab: "more", more: "movement", moveFrom: null, moveTo: null });
     const bl = curLayout().bunkers, a = bl[3], b = bl[9];
+    window.movePick(onPoint(S.point || 1)[0] || (S.roster[0] || {}).name);
     window.moveTap([a.x, a.y]);
     const first = S.moveFrom === a.id && !S.moveTo && document.getElementById("mvFrom").value === a.id && /now tap where he went/.test(document.getElementById("root").textContent);
     window.moveTap([b.x, b.y]);

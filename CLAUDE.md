@@ -772,6 +772,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `render()`: an unknown tab is Playbook, an unknown sub-tab is Matchup, an
   unknown section is the More menu. The suite writes bad keys into storage and
   reloads.
+- Pick the man from a list on any screen that is about this point. Movement
+  logs who rotated, and the dropdown of nine asked a coach to find the man he
+  was looking at. The five on the point lead as chips, the bench follows, Log
+  names the man it will log, and with nobody tapped it says "Tap the man who
+  moved" rather than returning in silence. Assess, Movement and the point sheet
+  all read `onPoint(pt)` for the same reason.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
