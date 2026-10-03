@@ -716,3 +716,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Scout and not yet logged are scratch for *this* point; `endPoint()` and
   `nextPoint()` clear `theirPick` with the rest of the sheet, or they would be
   logged under the next point number.
+- Decide what a level horn means. Some formats let a prelim end tied and
+  some play on; the app has neither rulebook, so when the clock runs out
+  level the sheet asks — **it's a tie** (`timeUp` + `tie`, `matchOver()`
+  reads "tie") or **overtime** — and the record counts tied beside won and
+  lost. `overWord()` is how a finished sheet is read out everywhere.

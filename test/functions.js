@@ -3382,8 +3382,8 @@ const ROSTER = [
   check("Time's up level goes to overtime: next point wins, and the race is restored after", await ev(() => {
     window.endPoint("them");                               // 2–2
     const root = document.getElementById("root");
-    const offered = /go to overtime/.test(root.textContent);
-    window.timeUp();
+    const offered = /Time's up — overtime/.test(root.textContent) && /Time's up — it's a tie/.test(root.textContent);
+    window.timeUp("ot");
     window.set({ tab: "scout" }); const strip = /· overtime/.test(root.textContent); window.set({ tab: "tally" });
     const ot = inOvertime() && raceTo() === 3 && matchPoint() === "both" && S.matchState === "Must-score"
       && /Overtime — next point wins it/.test(root.textContent) && strip;
@@ -3391,6 +3391,19 @@ const ROSTER = [
     const won = matchOver() === "us" && !inOvertime();
     window.newMatch();
     return offered && ot && won && raceTo() === 4 && !curMatch().ot;
+  }));
+  check("level at the horn can stand as a tie, and the record counts it", await ev(() => {
+    window.setRaceTo(4); window.endPoint("us"); window.endPoint("them");    // 1–1 on a new sheet
+    window.timeUp("tie");
+    const root = document.getElementById("root");
+    const tie = matchOver() === "tie" && /Match over — a tie 1–1 on the clock/.test(root.textContent)
+      && ![...root.querySelectorAll(".btn")].some(b => /won it$/.test(b.textContent.trim()));
+    window.set({ tab: "more", more: "matches" });
+    const rec = /1Tied/.test(root.textContent.replace(/\s+/g, ""));
+    window.set({ tab: "tally" }); window.timeUp();
+    const undone = !matchOver() && !curMatch().tie;
+    window.newMatch();
+    return tie && rec && undone;
   }));
   check("the clock between points is off until the coach sets it, and never carries a number of its own", await ev(() =>
     breakClock() === 0 && !S.clockEnd && !document.querySelector("#root .hdr [data-clock]")
