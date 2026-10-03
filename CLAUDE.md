@@ -685,3 +685,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Make a coach leave the point sheet to rotate. Nine men and a sheet that can
   only name the first five is how an out gets tallied against a man in the
   pit. Rotation is on the sheet (**Who's on**); slot order is under More.
+- Teach one screen the format and not the other. The landscape log is the
+  point sheet turned sideways — the same `endPoint`, the same call — so it
+  reads `raceTo()`, `matchPoint()`, `inOvertime()`, `matchOver()` and the
+  break clock exactly as the sheet does, and stands its result buttons down
+  when the match is over. A screen that scores points has to know when the
+  match has ended.
+- Send a coach to Division › Missing a team from the sideline. The opponent
+  gate on Tally takes a typed name: `playNamed()` adds it to the division
+  when nobody has it and puts it in the right pit through `setPitTeam`, the
+  same door the picker uses. An empty roster offers one tap to Team the same
+  way, because "add them in Team" with nothing to tap is a scavenger hunt.
