@@ -4175,6 +4175,23 @@ const ROSTER = [
     window.set({ asWho: null }); editProfile("right", { players: [] });
     return counted && onAnticipate && onMatchup && onAssess;
   }));
+  check("a team typed in another case or spacing is the team already on the list, under its own spelling", await ev(() => {
+    window.set({ tab: "tally", right: { name: "" } });
+    const before = teamsHere().length;
+    // the gate's box is only on screen when the sheet has nobody to play; stand one in for it
+    let inp = document.getElementById("oppName");
+    if (!inp) { inp = document.createElement("input"); inp.id = "oppName"; document.getElementById("root").appendChild(inp); }
+    inp.value = "  houston   heat "; window.playNamed();
+    const gate = pitOf("right").name === "Houston Heat" && teamsHere().length === before;
+    window.set({ tab: "scout", scoutTab: "board" });
+    const nt = document.getElementById("newTeam"); nt.value = "HOUSTON HEAT"; window.addTeam();
+    const board = teamsHere().length === before && teamsHere().filter(x => /heat/i.test(x.name)).length === 1;
+    return gate && board && !!anyTeam("houston heat") && anyTeam("houston heat").name === "Houston Heat";
+  }));
+  check("the roster paste skips a heading or a staff line and keeps the men", await ev(() => {
+    const r = parseRoster("Houston Heat Roster\nCoach Bob Smith\n12 Ryan Greenspan\n#4 Alex Goldman snake\nTeam Captain\nMarcello Margott\n", "Houston Heat");
+    return r.found.map(f => f.name).join("|") === "Ryan Greenspan|Alex Goldman|Marcello Margott" && r.skipped.length === 3;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
