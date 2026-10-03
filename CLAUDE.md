@@ -385,6 +385,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     thin. `likelyPlants()` draws a dashed, counted ghost of where they plant
     most on the Scout field until the real five is tapped in. Counts with the
     sample on every line, never a model or odds.
+36. ~~The read, sharper.~~ Done — three moments a coach knows are their own
+    were missing from the buckets: the **first point** of a sheet (a scripted
+    opener), the point **after a timeout** (`timeoutOn`), and **match point**
+    either way (`mpBefore`, read off each sheet's own race and mercy the way
+    `matchPoint()` reads the live one). They lead in `nextRead()` when they
+    apply and sit in `theirReads()` for Anticipate. The read line also says
+    when their **last five** disagree with the bucket, and names **your own
+    tell** — `myTell()`, the call you have run half the time or more against
+    this team in the same score state, because they chart you too. The ghost
+    five is named under the Scout field (`ghostLegend`) with the man usually
+    sighted in each bunker (`usualMan`, off How did they get there). Nothing
+    under three logged is said anywhere.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -960,6 +972,17 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   men he named; the five tapped in on Breakouts, and the ghost of where they
   plant most, are the break itself and show whenever their side of the field
   is shown (`theirFive`), not only when a layer is on.
+- Read them and forget that they read you. A coach charts the other bench
+  the way it charts him, so a read that says what they run when ahead and
+  not what *he* has run when ahead is half a read. `myTell()` counts his own
+  logged calls against this team in the same score state and the read line
+  says it when one call is half of them. And a bucket beats the season only
+  when it is the moment he is in: a timeout just spent, match point, the
+  first point — `nextRead()` tries those first and only when they apply.
+- Draw a ghost nobody can name. The dashed five says where they plant; the
+  legend under the field says which bunkers, how many logged fives, and the
+  man usually sighted in each — a name only when sightings carry one, never
+  the roster order.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
