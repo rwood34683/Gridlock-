@@ -1718,7 +1718,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -3158,12 +3158,53 @@ window.addWalk = () => {
   const note = clean(rosterVal("wkNote").trim());
   if(!note) return;
   S.walk = {...(S.walk || {}), [S.layoutKey]: [{where, note, at:Date.now()}, ...walkNotes()]};
+  S.walkPick = null;
   save(S); render();
 };
 window.delWalk = i => {
   const list = [...walkNotes()]; list.splice(i, 1);
   S.walk = {...(S.walk || {}), [S.layoutKey]: list}; save(S); render();
 };
+// The Walk field: tap the bunker the note is about and the Where box follows.
+// A note's `where` ends in the bunker id, so the field can show which bunkers
+// already carry one.
+function walkWhereOf(b){ return callOf(b)+" · "+b.id; }
+function walkNotedIds(){
+  const ids = new Set(curLayout().bunkers.map(b => b.id));
+  return new Set(walkNotes().map(n => String(n.where || "").split(" · ").pop()).filter(id => ids.has(id)));
+}
+// `walkPick` is the Where value itself — a wire name or "call · id" — so the
+// dropdown and the field are two hands on one setting.
+function walkPickedBunker(){ const id = String(S.walkPick || "").split(" · ").pop(); return curLayout().bunkers.find(b => b.id === id) || null; }
+// A re-render would wipe a note he had started typing, so it is carried over.
+function walkRender(focus){
+  const typed = (document.getElementById("wkNote") || {}).value || "";
+  render();
+  const el = document.getElementById("wkNote");
+  if(el){ el.value = typed; if(focus) el.focus(); }
+}
+window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); walkRender(true); } };
+window.walkSelect = v => { S.walkPick = v; walkRender(false); };
+(function walkTapping(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "more" || S.more !== "walk") return;
+    const surface = ev.target.closest("#walk-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    walkTap(fieldFeet(svg, ev));
+  });
+})();
+function walkOverlay(){
+  const noted = walkNotedIds(), bl = curLayout().bunkers;
+  let out = bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
+  const b = walkPickedBunker();
+  if(b){
+    const s2 = bunkerSize(b, 2, 2);
+    out += `<rect x="${(b.x*2-s2.h-3).toFixed(1)}" y="${(b.y*2-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffffff" stroke-width="1.8"/>`;
+  }
+  return out;
+}
 
 // ---- code words: the word, and what it means, because a list of words is
 // no use to the player who joined last week ----
@@ -8357,13 +8398,15 @@ function moreBody(k){
 
   if(k==="wb") return whiteboardPage();
   if(k==="walk"){
-    const notes=walkNotes(), bl=curLayout().bunkers;
+    const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
       noticed it on. Notes stay with this field.</p>
+      <div class="field-wrap" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}</div>
+      <p class="note">Tap the bunker the note is about${notes.length?" — a dot marks one that already has a note":""}, or pick a wire below.</p>
       <div class="fld"><label>Where</label>
-        <select id="wkWhere">
-          ${WIRES.map(w=>`<option>${esc(w)}</option>`).join("")}
-          ${bl.map(b=>`<option value="${esc(callOf(b)+" · "+b.id)}">${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+        <select id="wkWhere" onchange="walkSelect(this.value)">
+          ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
+          ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
         <textarea id="wkNote" placeholder="Snake mouth is hot. GP first off the tape."></textarea></div>

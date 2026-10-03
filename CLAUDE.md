@@ -737,6 +737,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   test and `needOpponent()` the one door — `endPoint`, `markOut`, `logCall`
   and the landscape log all go through it; a watched game, with two named
   teams and no "us", never does.
+- Offer a bunker as a word in a list when the field is right there. Walk's
+  Where box was six wires and fifty-eight bunker codes in a dropdown, with no
+  field to tap, on a screen whose whole subject is standing on the field. The
+  field is the picker now, like Team's bunker calls and Movement: `S.walkPick`
+  is the Where value itself, a wire or `call · id`, so the box and the field
+  are two hands on one setting, a dot marks a bunker that already carries a
+  note, and a note half-typed when he taps survives the re-render.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

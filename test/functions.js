@@ -3809,6 +3809,27 @@ const ROSTER = [
     const ok = S.tab === "scout" && S.scoutTab === "matchup";
     window.set({ right: { name: "Dynasty" } }); return !!btn && h >= 44 && ok;
   }));
+  check("Walk: tap the bunker on the field and the Where box follows, with the note kept", await ev(() => {
+    window.set({ tab: "more", more: "walk", walkPick: null, walk: {} });
+    document.getElementById("wkNote").value = "Half typed";
+    const b = curLayout().bunkers[7];
+    window.walkTap([b.x, b.y]);
+    const sel = document.getElementById("wkWhere").value;
+    const ring = document.querySelectorAll("#walk-map rect[stroke='#ffffff']").length === 1;
+    const kept = document.getElementById("wkNote").value === "Half typed";
+    window.addWalk();
+    const n = walkNotes()[0];
+    const dot = document.querySelectorAll("#walk-map circle[fill='#efedeb']").length === 1;
+    const cleared = S.walkPick === null && document.getElementById("wkWhere").value === "The field";
+    window.set({ walk: {} });
+    return sel.endsWith(" · " + b.id) && ring && kept && n && n.where.endsWith(" · " + b.id) && n.note === "Half typed" && dot && cleared;
+  }));
+  check("Walk: picking a wire in the box rings nothing and survives the re-render", await ev(() => {
+    window.set({ tab: "more", more: "walk", walkPick: null });
+    window.walkSelect("Snake wire");
+    const ok = document.getElementById("wkWhere").value === "Snake wire" && document.querySelectorAll("#walk-map rect[stroke='#ffffff']").length === 0;
+    window.set({ walkPick: null }); return ok;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
