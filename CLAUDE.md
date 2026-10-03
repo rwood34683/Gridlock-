@@ -416,7 +416,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     geometry: `opponentRead().who` is the man of theirs who has shot yours
     most (two or more), `usualMan()` the bunker in their five he is usually
     sighted in, and `shooterLane()` names which of your five has a lane on
-    that bunker off the break — on the sheet, Playbook and Anticipate.
+    that bunker off the break — on the sheet, Playbook and Anticipate, and
+    with the Lanes chip on, his usual bunker is ringed and named on the
+    Scout field so the lanes drawn on it read as his.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
