@@ -3977,6 +3977,15 @@ const ROSTER = [
     const counterHas = /The break/.test(document.getElementById("root").textContent) && document.querySelectorAll("#root svg.field").length >= 1;
     return fields === 1 && picker && counterHas;
   }));
+  check("How did they get there leads with the man and the field; pit, match and end are folded", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" }, pitOpen: null });
+    const order = sel => { const el = document.querySelector(sel); return el ? el.compareDocumentPosition(document.querySelector("#arrival-map")) : 0; };
+    const before = n => !!(n & Node.DOCUMENT_POSITION_FOLLOWING);   // the map follows the element
+    const teamBeforeMap = before(order("#arrival-team")), destAfterMap = !before(order("#arrival-destination"));
+    const sideFolded = !!document.querySelector("details.arrival-context #arrival-side");
+    const aidAfterMap = !before(order("#root .sec .aid"));
+    return teamBeforeMap && destAfterMap && sideFolded && aidAfterMap;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
