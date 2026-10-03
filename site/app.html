@@ -2623,6 +2623,11 @@ function matchScore(){ return scoreOf(S.matchId); }
  * app carries — and the sheet counts to it. No N means no race: the score is
  * just the score. */
 function raceTo(m){ m = m === undefined ? curMatch() : m; return m && m.raceTo > 0 ? m.raceTo : 0; }
+// The mercy rule: divisional X-Ball is a timed match that also ends the moment
+// one side leads by a set margin. How big is the division's rule, so it is
+// set on the sheet like the race and never shipped as a number.
+function mercy(m){ m = m === undefined ? curMatch() : m; return m && m.mercy > 0 ? m.mercy : 0; }
+window.setMercy = n => { patchMatch({mercy: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
 function matchById(mid){ return (S.matches || []).find(x => x.id === (mid || S.matchId)) || null; }
 function matchOver(mid){
   const m = matchById(mid); if(!m) return null;
@@ -2632,6 +2637,9 @@ function matchOver(mid){
   // Level at the horn and the coach said it stands: a tie. Prelims in some
   // formats end that way; the app does not know which, so he says.
   if(m.timeUp) return sc.us > sc.them ? "us" : sc.them > sc.us ? "them" : (m.tie ? "tie" : null);
+  // The mercy rule ends it at a lead, whatever the clock says.
+  const mc = mercy(m);
+  if(mc && Math.abs(sc.us - sc.them) >= mc) return sc.us > sc.them ? "us" : "them";
   const r = raceTo(m); if(!r) return null;
   return sc.us >= r ? "us" : sc.them >= r ? "them" : null;
 }
@@ -2647,11 +2655,11 @@ function inOvertime(mid){ const m = matchById(mid); return !!(m && m.ot) && !mat
 window.timeUp = how => {
   const m = curMatch(); if(!m) return;
   const sc = scoreOf(m.id);
-  if(m.timeUp || m.ot){ patchMatch({timeUp: false, ot: false, tie: false, raceTo: m.ot ? (m.raceWas > 0 ? m.raceWas : null) : m.raceTo, raceWas: null}); }
+  if(m.timeUp || m.ot){ patchMatch({timeUp: false, ot: false, tie: false, raceTo: m.ot ? (m.raceWas > 0 ? m.raceWas : null) : m.raceTo, raceWas: null, otFrom: null}); }
   else if(sc.us === sc.them){
     // Level: his format says whether that stands as a tie or goes to overtime.
     if(how === "tie") patchMatch({timeUp: true, tie: true});
-    else patchMatch({ot: true, raceWas: m.raceTo || 0, raceTo: sc.us + 1});
+    else patchMatch({ot: true, raceWas: m.raceTo || 0, raceTo: sc.us + 1, otFrom: S.point || 1});
   }
   else patchMatch({timeUp: true});
   S.matchState = derivedState(); save(S); render();
@@ -2701,8 +2709,10 @@ function clockChip(){
   return `<button class="score-chip clock-chip ${left === 0 ? "clock--out" : left <= 15 ? "clock--late" : ""}" data-clock onclick="stopBreakClock()" aria-label="Break clock, tap to stop">${mmss(left)}</button>`;
 }
 function matchPoint(mid){
-  const m = matchById(mid), r = raceTo(m); if(!r || matchOver(m.id)) return null;
-  const sc = scoreOf(m.id), u = sc.us === r - 1, t = sc.them === r - 1;
+  const m = matchById(mid), r = raceTo(m), mc = mercy(m); if((!r && !mc) || matchOver(m.id)) return null;
+  const sc = scoreOf(m.id), d = sc.us - sc.them;
+  // One from the race, or one from the mercy lead: the next point decides it.
+  const u = (r && sc.us === r - 1) || (mc && d === mc - 1), t = (r && sc.them === r - 1) || (mc && -d === mc - 1);
   return u && t ? "both" : u ? "us" : t ? "them" : null;
 }
 function patchMatch(patch){ S.matches = (S.matches || []).map(m => m.id === S.matchId ? {...m, ...patch} : m); }
@@ -2713,24 +2723,37 @@ window.setRaceTo = n => { patchMatch({raceTo: Number(n) > 0 ? Number(n) : null})
  * called every bunker in the left half "yours", so a point broken from the far
  * end was tallied back to front. The end is the match's; the sheet says which
  * it is this point, Switch ends flips it, and Swap every point alternates it. */
+// How many points were *scored* before this one. Teams switch ends after a
+// point somebody won; a point that ended with no result — a no-point — does
+// not move them. So the switch follows the score, not the point number.
+function scoredBefore(pt, m){
+  m = m || curMatch(); if(!m) return 0;
+  return (S.results || []).filter(r => r.m === m.id && r.pt < pt).length;
+}
+function endSwapped(pt, m){
+  if(!(m && m.swapEnds)) return false;
+  // Overtime starts on the pit side, whatever the score adds up to.
+  if(m.ot && m.otFrom && pt >= m.otFrom) return false;
+  return scoredBefore(pt, m) % 2 === 1;
+}
 function ourEnd(pt, m){
   pt = pt || S.point || 1; m = m === undefined ? curMatch() : m;
   const base = m && m.end === "right" ? "right" : "left";
-  return (m && m.swapEnds && pt % 2 === 0) ? (base === "left" ? "right" : "left") : base;
+  return endSwapped(pt, m) ? (base === "left" ? "right" : "left") : base;
 }
 window.switchEnds = () => {
   const m = curMatch(); if(!m) return;
   const want = ourEnd() === "left" ? "right" : "left";
   // The base end is point one's; flipping this point means flipping the base
   // unless the swap rule already flipped it here.
-  const base = (m.swapEnds && (S.point || 1) % 2 === 0) ? (want === "left" ? "right" : "left") : want;
+  const base = endSwapped(S.point || 1, m) ? (want === "left" ? "right" : "left") : want;
   patchMatch({end: base}); save(S); render();
 };
 window.setSwapEnds = on => {
   const m = curMatch(); if(!m) return;
   const cur = ourEnd(), swap = !!on;
   // Changing the rule must not move the end he is on right now.
-  const base = (swap && (S.point || 1) % 2 === 0) ? (cur === "left" ? "right" : "left") : cur;
+  const base = endSwapped(S.point || 1, {...m, swapEnds: swap}) ? (cur === "left" ? "right" : "left") : cur;
   patchMatch({swapEnds: swap, end: base}); save(S); render();
 };
 const mirrorFt = q => [150 - q[0], q[1]];
@@ -6636,14 +6659,14 @@ function tally(){
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc(matchVs()||"Them")} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : ""}`}</span></span>
+        <span>${esc(matchVs()||"Them")} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
     ${matchOver() ? `<p class="warn"><b>Match over — ${overWord()} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
-      : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
+      : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
     <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
       amber costs you. The number is how often your five have broken to it.</p>
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
@@ -6699,10 +6722,15 @@ function tally(){
           every target on a sideline is 44. */""}
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
     <div class="seg seg--wrap" aria-label="Race to"><button class="${raceTo() === 1 ? "on" : ""}" onclick="setRaceTo(1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">Race to ${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)">No race</button></div>
+    ${/* The mercy rule: divisional X-Ball ends the match at a set lead as
+          well as on the clock. The lead is the division's rule — set it,
+          never shipped. */""}
+    <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
+    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mercy() ? "" : "on"}" onclick="setMercy(0)">Off</button>${[3,4,5].map(n => `<button class="${mercy() === n ? "on" : ""}" onclick="setMercy(${n})">${n} points</button>`).join("")}</div>
     ${/* The clock between points is the one clock the coach runs. The length
           is the event's rule — set it, never shipped. */""}
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
-    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${breakClock() ? "" : "on"}" onclick="setBreakClock(0)">Off</button>${[60,90,120].map(n => `<button class="${breakClock() === n ? "on" : ""}" onclick="setBreakClock(${n})">${mmss(n)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${breakClock() ? "" : "on"}" onclick="setBreakClock(0)">Off</button>${[45,60,90,120].map(n => `<button class="${breakClock() === n ? "on" : ""}" onclick="setBreakClock(${n})">${mmss(n)}</button>`).join("")}</div>
     ${breakClock() ? `<div class="btnrow" style="align-items:center">
         ${S.clockEnd ? `<span class="score-chip clock-chip grow ${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock style="justify-content:center;font-size:var(--t-lg)">${mmss(clockLeft())}</span>
                        <button class="btn btn--quiet" onclick="stopBreakClock()">Stop</button>`
@@ -6763,14 +6791,15 @@ function tally(){
           S.penOpen ? "Close" : here.length ? `Penalty · ${here.length} on this point` : "⚑ Penalty"}</button>
       </div>
       ${S.penOpen ? `<p class="note" style="max-width:56ch">Whatever the official called it, say who it came
-          off and how many men. The app never decides a penalty — it records what it cost you, so a point
-          played short is not counted as an even one.</p>
+          off and how many men. A one-for-one is two men off — the man and a teammate — a two-for-one
+          three, a three-for-one four. The app never decides a penalty — it records what it cost you, so
+          a point played short is not counted as an even one.</p>
         <div class="assigns">
           ${["us","them"].map(sd => `<div class="assign" style="flex-wrap:wrap">
             <span class="assign__body"><span class="assign__job">${word(sd)}</span>
             <span class="assign__who">men off for point ${pt}</span></span>
             <span class="assign__ctl">
-              ${[1,2,3].map(c => `<button class="btn btn--quiet" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
+              ${[1,2,3,4].map(c => `<button class="btn btn--quiet" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
             </span>
           </div>`).join("")}
         </div>` : ""}
@@ -7069,6 +7098,7 @@ function openSheet(fields){
   S.matches = [{id, at: Date.now(), layout: S.layoutKey,
                 raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
                 breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
+                mercy: cur && cur.mercy > 0 ? cur.mercy : null,
                 end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds),
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
@@ -8996,6 +9026,8 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, under the twelve, tap A play of your own: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
+  ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
+  ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
 ];
 
@@ -9445,7 +9477,7 @@ function moreBody(k){
             ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
-          point ${S.point||1}${raceTo() ? ` · race to ${raceTo()}` : ""} · ${matchSize(S.matchId)} logged</p>
+          point ${S.point||1}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${matchSize(S.matchId)} logged</p>
       </div>
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
@@ -9898,7 +9930,7 @@ function quickLog(){
   const m = curMatch(), watch = !!(m && m.watch), pt = S.point || 1, sc = matchScore();
   const us = watch ? sideWord("us") : "We", them = watch ? sideWord("them") : "They";
   const over = matchOver(), ot = inOvertime(), mp = matchPoint();
-  const tail = over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : "";
+  const tail = over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
   return `<div class="qlog">
     <div class="qlog__top">
       ${clockChip()}

@@ -341,6 +341,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     own finished sheets at this layout, watched games out, open sheets counted
     as open and never guessed at.
 
+33. ~~The rulebook, read.~~ Done — the owner handed over the NXL Divisional
+    X-Ball Rules 2026 and `docs/RULES-CHECK.md` walks its structure against the
+    app by section. Four things changed: a **mercy rule** on the point sheet
+    (`mercy` on the match, set like the race; `matchOver()` ends it at the
+    lead and `matchPoint()` calls it one short), ends that switch on **points
+    scored** rather than the point number (a no-point moves nobody; overtime
+    starts on the pit side, `otFrom`), a **0:45** break, and a penalty that can
+    take **four** men with the one-for-one / two-for-one / three-for-one bodies
+    explained. Still none of the league's text is in the app, and every number
+    is set on the sheet. Open: the one-minute **timeout**, one per team per
+    match (9.7).
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -871,6 +883,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   read follows the team — the tendency he set is the film read, and the calls
   he has counted on Breakouts lead when there are any ("Blitz — 2 of the 3
   breaks you logged") — and an empty pit gets no card.
+- Model a timed match as a race. Divisional X-Ball is a game clock plus a
+  mercy lead, and the app only knew first-to-N: the score was never match
+  point and the match never ended at a 5-point lead. `mercy` rides on the
+  match beside `raceTo`; both are the division's rule and both are set on
+  the sheet. `docs/RULES-CHECK.md` is where a rule's structure is checked
+  against the rulebook — never its text.
+- Switch ends on the point number. Teams switch after a point somebody won;
+  a no-point moves nobody, and overtime starts on the pit side. `ourEnd()`
+  reads the results through `scoredBefore()`, so "Next point, no result" keeps
+  the end and `endSwapped()` is the one place that decides.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
