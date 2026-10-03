@@ -744,6 +744,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   is the Where value itself, a wire or `call · id`, so the box and the field
   are two hands on one setting, a dot marks a bunker that already carries a
   note, and a note half-typed when he taps survives the re-render.
+- Grade a man from a dropdown of the whole roster. Assess is "after the
+  point", and the app knows who was on it: `onPoint(pt)` leads as tap chips,
+  the bench follows, the score is five taps rather than a list, a chip carries
+  the grade this point already gave him, and Save says what is still missing
+  ("Tap the man first", "Tap a score") instead of refusing in silence. An empty
+  roster offers one tap to Team.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

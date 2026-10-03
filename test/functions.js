@@ -822,11 +822,36 @@ const ROSTER = [
   /* ---------------------------------------------------------------- assess */
   G("Assess");
   await seed({ tab: "more", more: "assess" });
-  await ev(() => { document.getElementById("asWho").value = "Reyes"; document.getElementById("asScore").value = "4"; document.getElementById("asNote").value = "Held the corner."; window.saveAssess(); });
+  check("Save grade waits until a man and a score are tapped, and says which is missing", await ev(() => {
+    const btn = () => [...document.querySelectorAll("#root .btn")].find(b => /Tap the man|Tap a score|Save grade/.test(b.textContent));
+    const a = btn().disabled && /Tap the man/.test(btn().textContent);
+    window.assessPick("Reyes");
+    const b = btn().disabled && /Tap a score/.test(btn().textContent);
+    window.assessScore(4);
+    const c = !btn().disabled && /Save grade · Reyes · 4/.test(btn().textContent);
+    return a && b && c;
+  }));
+  check("the five on the point lead the men to grade, the bench follows", await ev(() => {
+    const five = document.querySelector(".main").textContent;
+    const noBench = five.includes("On the point") && !five.includes("On the bench");
+    window.set({ roster: [...S.roster, { name: "Sixth", num: 9, p: "", s: "" }] });
+    const t = document.querySelector(".main").textContent;
+    const order = t.indexOf("On the point") >= 0 && t.indexOf("On the point") < t.indexOf("On the bench") && t.indexOf("On the bench") < t.indexOf("Sixth");
+    window.set({ roster: S.roster.filter(p => p.name !== "Sixth") });
+    return noBench && order;
+  }));
+  await ev(() => { document.getElementById("asNote").value = "Held the corner."; window.saveAssess(); });
   await page.waitForTimeout(80);
-  check("a grade is saved", await ev(() => S.assessments.length === 1 && S.assessments[0].score === 4));
+  check("a grade is saved", await ev(() => S.assessments.length === 1 && S.assessments[0].score === 4 && S.assessments[0].m === S.matchId));
   check("the note stays with the grade", await ev(() => S.assessments[0].note.includes("corner")));
-  await ev(() => { document.getElementById("asWho").value = "Reyes"; document.getElementById("asScore").value = "2"; window.saveAssess(); });
+  check("the man's chip carries this point's grade and the form is cleared for the next man", await ev(() =>
+    S.asWho === null && S.asScore === 0 && [...document.querySelectorAll("#root .seg button")].some(b => b.textContent === "Reyes · 4")));
+  check("a half-typed note survives tapping the man and the score", await ev(() => {
+    document.getElementById("asNote").value = "Half typed";
+    window.assessPick("Reyes"); window.assessScore(2);
+    return document.getElementById("asNote").value === "Half typed";
+  }));
+  await ev(() => { window.saveAssess(); });
   await page.waitForTimeout(80);
   check("an average is shown", await page.locator("text=3.0").count() > 0);
   await ev(() => window.undoAssess(0));
