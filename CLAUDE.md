@@ -278,6 +278,31 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     drop, because silently rewriting numbers he has read all day is worse than
     the distortion it fixes.
 
+28. ~~The format.~~ Done — X-Ball and 5-man are both a race to N points, and the
+    app never knew N: the score was 1–1 forever, nothing was ever match point
+    and nothing ever ended. `raceTo` is on the match, set on the point sheet
+    (2 · 4 · 5 · 7 · —) because it is the coach's format and not a rule the
+    app carries. The header chip reads `3–3 to 4`, the sheet calls **Match
+    point** (yours, theirs, or both ways) and **Match over — you won 4–3**, and
+    `derivedState()` reads Must-score at their match point whatever the
+    margin. `matchOver()` / `matchPoint()` are the doors. A new sheet carries
+    the format over, because it is the event's, not the sheet's. No N means no
+    race: the score is just the score.
+29. ~~Ends.~~ Done — the two teams break from opposite ends and which end is
+    yours changes, at the half or every point; the app drew every break from
+    the left end and `sideOfBunker` called every bunker in the left half yours,
+    so a point broken from the far end was tallied back to front and its route
+    drawn from the wrong goal line. `ourEnd(pt, m)` is the door: `end` is the
+    match's point-one end, `swapEnds` alternates it, **Switch ends** flips this
+    point and **Swap every point** sets the rule without moving the end he is
+    on. Tally's yours/theirs, the breakout sheet's far half, `autoRoute()`'s
+    start line and the Scout mirror all read it; `displayPaths()` turns the
+    routed break round for the right end with faces and shots mirrored
+    (`mirrorDirect`, a lane flips, a bunker becomes its twin), and path edits
+    made on the turned field go back through `ownFeet()` so plants, edits and
+    directions all stay in the frame they were set in. The field marks your
+    end with a bar in your colour.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -594,6 +619,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the first thing under More was a clinic sign-in form, not the menu of
   fifteen. A tab opens on its menu; the section a coach was on is remembered
   after that.
+- Assume your five break from the left end. They break from whichever end the
+  format put them at this point, and theirs from the other. Anything that
+  decides yours-from-theirs by `x < 75`, starts a route at `x = 3`, or draws a
+  break from the left asks `ourEnd()` first; the test is a point broken from
+  the right end tallying, routing and drawing the right way round.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday
