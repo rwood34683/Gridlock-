@@ -2450,7 +2450,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -6080,8 +6080,19 @@ window.tallyTap = at => {
   // gate above said to name the team first. The tap goes to the gate instead.
   if(!matchVs()) return needOpponent();
   if(sheetOver()) return;
+  const b = nearestBunker(at); if(!b) return;
+  // With a sheet open and a picker armed, the tap fills that picker — the
+  // bunker he was shooting at, or the one he moved to — and never re-opens
+  // the sheet on a different man.
+  if(S.tallySel && S.tallyPickFor){
+    const field = S.tallyPickFor;
+    if(b.id === S.tallySel){ flash("That is the bunker he broke to. Tap another."); return; }
+    S.tallyPickFor = null;
+    setDraft({[field]: b.id});
+    return;
+  }
   // One job: the bunker a man broke to. The run is worked out, not traced.
-  const b = nearestBunker(at); if(b) selectBunker(b.id);
+  selectBunker(b.id);
 };
 // Send him to the picker: highlight it and scroll it under his thumb.
 /* Nobody across the tape means nothing to log against. The breakout sheet
@@ -6112,7 +6123,7 @@ window.playPit = () => {
   if(!matchVs()) return newMatch();
   S.tallyNudge = false; save(S); render();
 };
-window.tallyDone = () => set({tallySel:null, tallyDraft:null});
+window.tallyDone = () => set({tallySel:null, tallyDraft:null, tallyPickFor:null});
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
@@ -6208,6 +6219,16 @@ function tallyOverlay(){
   const sx = 2, sy = 2, pt = S.point || 1;
   const byId = Object.fromEntries(curLayout().bunkers.map(b => [b.id, b]));
   let out = "";
+  // The open sheet's two targets, ringed while he is filling it in.
+  if(S.tallySel){
+    const d = draft();
+    [[d.shootAt, "#ffffff", "at"], [d.movedTo, "#3ecf8e", "to"]].forEach(([id, col, tag]) => {
+      const b = id && byId[id]; if(!b) return;
+      const s2 = bunkerSize(b, sx, sy);
+      out += `<rect x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${col}" stroke-width="1.6" stroke-dasharray="${tag === "at" ? "3 3" : "none"}"/>`
+           + `<text x="${(b.x*sx+s2.h+2).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" font-size="7" font-weight="800" fill="${col}">${tag}</text>`;
+    });
+  }
   bunkerValue("us").forEach(r => {
     const b = byId[r.id]; if(!b) return;
     const s2 = bunkerSize(b, sx, sy);
@@ -6318,13 +6339,22 @@ function breakoutSheet(){
     <div class="pad">${FACE_PAD.map(([g, deg]) =>
       `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}"
         onclick="setDraft({dir:${deg === null ? "null" : deg}})">${g}</button>`).join("")}</div>
+    ${/* The field fills these two with a tap, the way it picked the bunker he
+          broke to. Arm one, tap the bunker, done; the dropdown stays for a
+          thumb that prefers it and follows the tap. */""}
     <div class="fld"><label>Shooting at</label>
-      <select onchange="setDraft({shootAt:this.value})">${opts(others, d.shootAt)}</select></div>
+      <div class="btnrow" style="align-items:center">
+        <select style="flex:1 1 auto" onchange="setDraft({shootAt:this.value})">${opts(others, d.shootAt)}</select>
+        <button class="btn btn--quiet ${S.tallyPickFor === "shootAt" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "shootAt" ? "null" : "'shootAt'"}})">${S.tallyPickFor === "shootAt" ? "Tap the bunker…" : "Tap the field"}</button>
+      </div></div>
     ${q("Timing")}
     ${seg([[!!d.delayed, d.delayed ? "✓ Delayed break" : "Delayed break", `setDraft({delayed:${!d.delayed}})`]])}
     ${q("Moved to")}
     <div class="fld"><label>Second bunker</label>
-      <select onchange="setDraft({movedTo:this.value})">${opts(others, d.movedTo)}</select></div>
+      <div class="btnrow" style="align-items:center">
+        <select style="flex:1 1 auto" onchange="setDraft({movedTo:this.value})">${opts(others, d.movedTo)}</select>
+        <button class="btn btn--quiet ${S.tallyPickFor === "movedTo" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "movedTo" ? "null" : "'movedTo'"}})">${S.tallyPickFor === "movedTo" ? "Tap the bunker…" : "Tap the field"}</button>
+      </div></div>
     ${d.movedTo ? seg([[!!d.movedDelayed, d.movedDelayed ? "✓ Delayed move" : "Delayed move", `setDraft({movedDelayed:${!d.movedDelayed}})`]]) : ""}
     ${q("Route")}
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
