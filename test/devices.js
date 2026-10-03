@@ -63,6 +63,9 @@ const measure = () => {
   const main = document.querySelector(".main");
   out.over = Math.max(doc.scrollWidth - window.innerWidth,
                       main ? main.scrollWidth - main.clientWidth : 0);
+  // A table wider than its wrap scrolls sideways and hides its last columns;
+  // the page itself never overflows, so this is measured on its own.
+  out.tbl = Math.max(0, ...[...document.querySelectorAll(".tblwrap")].map(w => { const t = w.querySelector("table"); return t ? t.scrollWidth - w.clientWidth : 0; }));
 
   const tabs = document.querySelector(".tabs");
   const r = tabs && tabs.getBoundingClientRect();
@@ -137,12 +140,13 @@ const measure = () => {
     await page.waitForTimeout(320);
 
     const worst = { over: 0, tap: null, line: null, tabsIn: true, hdrIn: true,
-                    rail: true, btnTall: 0, btnRow: true, clash: false };
+                    rail: true, btnTall: 0, btnRow: true, clash: false, tbl: 0 };
     for (const tab of TABS) {
       await page.locator(".tabs button", { hasText: tab }).click();
       await page.waitForTimeout(260);
       const m = await page.evaluate(measure);
       worst.over = Math.max(worst.over, m.over);
+      worst.tbl = Math.max(worst.tbl, m.tbl || 0);
       worst.tabsIn = worst.tabsIn && m.tabsIn;
       worst.hdrIn = worst.hdrIn && m.hdrIn;
       worst.rail = worst.rail && m.rail;
@@ -157,6 +161,7 @@ const measure = () => {
 
     const g = "Devices";
     check(g, `${name} — no sideways scroll`, worst.over <= 0, worst.over > 0 ? `${worst.over}px over` : "");
+    check(g, `${name} — no table behind a sideways scroll`, worst.tbl <= 1, worst.tbl > 1 ? `${worst.tbl}px of table past its wrap` : "");
     check(g, `${name} — tab bar on screen`, worst.tabsIn);
     check(g, `${name} — header chips on screen`, worst.hdrIn);
     check(g, `${name} — every target ${TAP}px+`, !worst.tap || worst.tap.px >= TAP,

@@ -4513,6 +4513,28 @@ const ROSTER = [
     S.calls = keep; window.set({});
     return row && recent;
   }));
+  check("the Division board counts the calls logged on a team and names the one they ran most once there are three", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "board", pitOpen: null });
+    const name = teamsHere()[0].name, keepRight = S.right;             // a team that is actually on this board
+    window.set({ right: { name } });
+    const row = () => [...document.querySelectorAll("#root .tbl tbody tr")].find(tr => tr.children[1] && tr.children[1].textContent.trim().startsWith(name));
+    const keepProfile = (S.scout || {})[name];
+    editProfile("right", { tend: "Snake", breaks: [{ script: "blitz", at: 1 }, { script: "blitz", at: 2 }] }); window.set({});
+    // Two logged is a count on Film and nothing on Tend: an unscored team still reads as a dash there.
+    const two = row() && /2 calls/.test(row().textContent) && !/of 2 logged/.test(row().textContent);
+    editProfile("right", { breaks: [{ script: "blitz", at: 1 }, { script: "blitz", at: 2 }, { script: "snake", at: 3 }] }); window.set({});
+    const three = row() && /3 calls/.test(row().textContent) && new RegExp(callName("blitz") + " 2 of 3 logged").test(row().textContent);
+    if(keepProfile) S.scout[name] = keepProfile; else delete S.scout[name];
+    window.set({ right: keepRight });
+    return !!(two && three);
+  }));
+  check("the Division board fits its wrap on a phone with no column behind a sideways scroll", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "board", pitOpen: null });
+    const wrap = document.querySelector("#root .tblwrap"), tbl = wrap && wrap.querySelector("table");
+    const fits = !!tbl && tbl.scrollWidth <= wrap.clientWidth + 1;
+    const threat = [...document.querySelectorAll("#root .tbl tbody tr")].some(tr => /\d★|—/.test(tr.lastElementChild.previousElementSibling.textContent));
+    return fits && threat;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
