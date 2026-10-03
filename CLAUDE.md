@@ -725,3 +725,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   right pit is **who you play** — Tally, Counter and the sheet all read it —
   and the left is **a team you watch**: the other side of a game off the
   fence, or someone to read beside them. The empty-pit note says so for each.
+- Call a game that was only scored "no game". Scout › Games built its list
+  from tallied outs, so a coach who tapped who won every point and never an
+  out had games the screen said did not exist. A game is a sheet against
+  them with a result *or* an out on it, each chip carries the score and how
+  it ended, and the kept list under Matches says won / lost / tie the same
+  way, through `overWord()`.
