@@ -4592,6 +4592,34 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return lead && said && clear >= tableClear;
   }));
+  check("a watched game lists under Scout › Games, flagged watched, and its point reads back with the two teams named", await ev(() => {
+    window.confirm = () => true;
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
+    const bl = curLayout().bunkers, ids = [3, 9, 14].map(i => bl[i].id);
+    window.set({ theirPick: ids }); window.logTheirBreak("right", "blitz", ids); window.logTheirBreak("left", "flood", []); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
+    const t = document.getElementById("root").textContent.replace(/\s+/g, " ");
+    const listed = !/No points scored or outs logged/.test(t);
+    const story = /Won by\s*Dynasty/.test(t) && new RegExp("Houston Heat ran\\s*" + callName("blitz")).test(t) && !/You called/.test(t)
+      && new RegExp("Dynasty ran\\s*" + callName("flood")).test(t) && /Score before\s*Dynasty 0 – 0 Houston Heat/.test(t);
+    // a second sheet against them, his own, so the game chips show — the watched one flagged
+    window.set({ tab: "tally", right: { name: "Houston Heat" } }); window.newMatch(); window.endPoint("them");
+    window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
+    const chips = [...document.querySelectorAll("#root .seg button")].map(b => b.textContent.replace(/\s+/g, " ").trim());
+    const flagged = chips.some(c => /1–0 · watched/.test(c)) && chips.some(c => /0–1/.test(c) && !/watched/.test(c));
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return listed && story && flagged;
+  }));
+  check("the header score chip says when the score is a game you are watching, and names the two teams", await ev(() => {
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({}); window.endPoint("us");
+    const chip = document.querySelector("#root .score-chip--watch");
+    const ok = !!chip && /watch/.test(chip.textContent) && chip.getAttribute("aria-label") === "Dynasty 1 – 0 Houston Heat, a game you are watching";
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us");
+    const own = !document.querySelector("#root .score-chip--watch") && document.querySelector("#root .score-chip--go").getAttribute("aria-label") === "Open the point sheet";
+    return ok && own;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

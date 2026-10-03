@@ -594,6 +594,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .hdr--clock .score-chip{padding:4px 8px;font-size:12px;gap:2px}
   .hdr--clock .hdr__top .who-chip{display:none}
 }
+/* A watched game's score is two other teams' score. The chip says so, and
+   reads in the right pit's blue rather than his own red. */
+.score-chip--watch{border-color:var(--blue);color:var(--blue)}
 .clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
@@ -8906,7 +8909,11 @@ function scoutGames(){
   // A game is a sheet against them — one he tallied outs on, or one he only
   // scored. A coach who taps who won every point and never an out had games
   // this screen said did not exist.
-  const scored=(S.matches||[]).filter(m=>m.vs===R.name&&!m.watch&&(S.results||[]).some(r=>r.m===m.id)).map(m=>m.id);
+  // A watched game is their film: both of its sides are named, so the sheet
+  // lists under whichever of them is in the right pit, flagged watched, and
+  // the point reads back with the two teams' names rather than you and them.
+  const scored=(S.matches||[]).filter(m=>(m.watch ? (m.home===R.name||m.away===R.name) : m.vs===R.name)
+    &&((S.results||[]).some(r=>r.m===m.id)||(S.calls||[]).some(c=>c&&c.m===m.id)||theirBreaks("right").some(b=>b.m===m.id&&b.pt))).map(m=>m.id);
   const games=[...new Set([...theirs.map(o=>o.m), ...scored])].map(id=>{
     const m=(S.matches||[]).find(x=>x.id===id);
     return {id, at:(m&&m.at)||Math.min(...theirs.filter(o=>o.m===id).map(o=>o.at||0)),
@@ -8931,7 +8938,7 @@ function scoutGames(){
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
-        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
+        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
     </div>`:""}
     <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
@@ -8963,13 +8970,17 @@ function pointStory(gid, pt, team){
   const m=matchById(gid), res=(S.results||[]).find(r=>r&&r.m===gid&&r.pt===pt);
   const call=(S.calls||[]).find(c=>c&&c.m===gid&&c.pt===pt);
   const theirs=theirBreaks("right").find(b=>b.m===gid&&b.pt===pt);
+  // On a watched sheet the left pit is the home side and its call was logged
+  // too; on his own sheet the left pit is somebody he watches, not a side.
+  const homes=m&&m.watch&&pitNamed("left")&&pitOf("left").name===m.home?theirBreaks("left").find(b=>b.m===gid&&b.pt===pt):null;
   const pens=pensFor(gid,pt), tos=(S.timeouts||[]).filter(t=>t&&t.m===gid&&t.pt===pt);
   const rows=(S.breakouts||[]).filter(r=>r&&r.m===gid&&r.pt===pt).sort((a,b)=>(a.at||0)-(b.at||0));
   const who=side=>m&&m.watch?(side==="us"?m.home||"home":m.away||"away"):side==="us"?"you":team;
   const kv=(k,v)=>v?`<div class="kv__row"><span class="kv__k">${k}</span><span class="kv__v">${v}</span></div>`:"";
   const sc=scoreBefore(gid,pt);
-  const facts=kv("Score before",`${sc.us}–${sc.them}`)
-    +kv("You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+  const facts=kv("Score before",m&&m.watch?`${esc(m.home||"Home")} ${sc.us} – ${sc.them} ${esc(m.away||"Away")}`:`${sc.us}–${sc.them}`)
+    +kv(m&&m.watch?`${esc(m.home||"Home")} called`:"You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+    +(homes?kv(`${esc(m.home)} ran`,`${homes.script?`<b>${esc(callName(homes.script))}</b>`:"unnamed"}${homes.plants?` · ${homes.plants.map(id=>esc(named(id))).join(", ")}`:""}`):"")
     +kv(`${esc(team)} ran`,theirs?`${theirs.script?`<b>${esc(callName(theirs.script))}</b>`:"unnamed"}${theirs.plants?` · ${theirs.plants.map(id=>esc(named(id))).join(", ")}`:""}`:"")
     +kv("Won by",res?`<b>${esc(who(res.won))}</b>${res.read?` · ${res.read==="right"?"right read":"wrong read"}`:""}`:"")
     +kv("Penalty",pens.length?pens.map(p=>`${esc(who(p.side))} −${p.cost}${p.who?` · ${esc(p.who)}`:""}${p.why?` · ${esc(p.why)}`:""}`).join("; "):"")
@@ -9536,6 +9547,7 @@ const HELP = {
     watch:"Empty until you have logged against this team on this field. Day one it is bare on purpose."},
   "scout/games": {t:"Games", w:"Read a point back from everything you logged on it.",
     how:["Pick the sheet and the point. The point is read back: what you called, what they ran and where they planted, who won it, any penalty or timeout, and every man charted on the break.",
+         "A game you watched lists here too, flagged watched, with the two teams named instead of you and them.",
          "Step through the outs in the order you tapped them, where there are outs.",
          "Nothing is reconstructed. Useful between matches, not during one."]},
   "scout/board": {t:"Division", w:"Who is entered, off the league's own page.",
@@ -10523,7 +10535,7 @@ function shell(){
   const sc = matchScore();
   // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
   const line = sc.us + sc.them || raceTo()
-    ? `<button class="score-chip score-chip--go" onclick="set({tab:'tally',more:null})" aria-label="Open the point sheet"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>` : "";
+    ? (w => `<button class="score-chip score-chip--go${w ? " score-chip--watch" : ""}" onclick="set({tab:'tally',more:null})" aria-label="${w ? esc(`${w.home || "Home"} ${sc.us} – ${sc.them} ${w.away || "Away"}, a game you are watching`) : "Open the point sheet"}"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${w ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">watch</small>` : matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>`)((curMatch() || {}).watch ? curMatch() : null) : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
