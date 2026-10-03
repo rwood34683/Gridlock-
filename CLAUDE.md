@@ -800,3 +800,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was the only way in. Wherever a field is on screen and a bunker is being
   chosen — Tally, Movement, Team — a tap on the field chooses it, the
   dropdown follows, and the chosen bunker is ringed.
+- Tell a coach where to go in a sentence with nothing to tap. Playbook's
+  call panel said "Put the other team in the right pit on Scout" as text;
+  on first run that is the first thing he has to do. Anything that names a
+  screen he should go to is a button that goes there.

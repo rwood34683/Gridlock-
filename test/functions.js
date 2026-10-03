@@ -1086,7 +1086,7 @@ const ROSTER = [
   }));
   check("with no roster Lineups says where to start", await ev(() => {
     window.set({ roster: [], lineups: {} });
-    return /Add your squad under Team/.test(document.querySelector(".main").textContent);
+    return /Add your squad/.test(document.querySelector(".main").textContent) && /Add your squad · Team/.test(document.querySelector(".main").textContent);
   }));
   await ev(s2 => window.set({ roster: s2, point: 1 }), SQUAD);
 
@@ -3210,7 +3210,7 @@ const ROSTER = [
   check("Playbook asks instead of reading a team you did not pick", await ev(() => {
     window.set({ tab: "playbook" });
     const t = document.getElementById("root").textContent;
-    return /right pit on Scout/.test(t) && !/Rejects/.test(t);
+    return /Pick them on Scout/.test(t) && !/Rejects/.test(t);
   }));
   check("the point sheet says Them", await ev(() => {
     window.set({ tab: "tally" });
@@ -3800,6 +3800,14 @@ const ROSTER = [
     const picked = S.callPick === b.id && document.getElementById("bcId").value === b.id && document.querySelectorAll("#calls-map rect[stroke='#ffffff']").length === 1;
     document.getElementById("bcName").value = "Home"; window.setCall();
     return picked && bunkerCalls()[b.id] === "Home";
+  }));
+  check("Playbook with no opponent offers one tap to Scout instead of a sentence", await ev(() => {
+    window.set({ tab: "playbook", right: { name: "" } });
+    const btn = document.querySelector("#root .vs--go");
+    const h = btn && btn.getBoundingClientRect().height;
+    btn && btn.click();
+    const ok = S.tab === "scout" && S.scoutTab === "matchup";
+    window.set({ right: { name: "Dynasty" } }); return !!btn && h >= 44 && ok;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

@@ -213,6 +213,7 @@ h1,h2,h3,p{margin:0}
 .aggr__label{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 
 .vs{font-size:var(--t-xs);color:var(--dim);letter-spacing:.06em}
+.vs--go{background:none;border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:10px 12px;min-height:44px;color:var(--ink);font-family:inherit;font-weight:700;cursor:pointer;text-align:left}
 .vs b{color:var(--ink)}
 
 /* ============================================================
@@ -4868,7 +4869,7 @@ function playbook(){
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
       ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
-        :`<span class="vs">Put the other team in the right pit on Scout and the read shows here.</span>`}
+        :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
 
@@ -8380,7 +8381,8 @@ function moreBody(k){
     const mine=lineupPoints();
     const prev=mine.filter(n=>n<pt)[0];
     if(!roster.length) return sec("Lineups",
-      `<div class="empty">No roster yet. Add your squad under Team, then set who is on the point.</div>`,
+      `<div class="empty">No roster yet. Add your squad, then set who is on the point.
+        <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`,
       "Point "+pt);
     const slots=`<div class="assigns">${five.map((pl,i)=>`<div class="assign">
         <span class="assign__n">${i+1}</span>
