@@ -6299,29 +6299,40 @@ window.newMatch = () => {
   const n = cur ? matchSize(cur.id) : 0;
   if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
                  + `${n===1?"entry":"entries"} — the point goes back to 1 for the new one.`)) return;
-  const id = newMatchId();
-  // A sheet with nothing on it and nobody named is not a match a coach kept —
-  // it is the one the app opened with. Keeping it put "No opponent" in his
-  // list of matches every time he started his first real one.
-  // And a sheet with nothing on it at all — no out, no rotation, no result —
-  // is not one he kept either, whoever it was named for: a second tap on New
-  // match, or the wrong team picked and picked again, left an empty sheet in
-  // his list of matches and in every game picker.
-  const blank = cur && !n && !(S.results || []).some(r => r.m === cur.id) ? cur.id : null;
-  // The format is the event's, not the sheet's: the race, the end you start
-  // from and whether it swaps carry over, and one tap changes any of them.
-  S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey,
-                raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
-                breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
-                end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds)},
-               ...(S.matches || []).filter(x => x.id !== blank)];
-  S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
-  // A fresh sheet is level. Ahead / Must-score is read off the score, so it has
-  // to be recomputed here or the counter-picker ranks the new match on the last
-  // one's result.
-  S.matchState = derivedState();
+  openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
 };
+/* The one door every new sheet opens through — New match, Watch this game and
+ * We play on the Schedule. Three things happen here and used to happen in one
+ * place out of three:
+ *
+ * A sheet with nothing on it at all — no out, no rotation, no result — is not
+ * a match a coach kept, whoever it was named for: the one the app opened
+ * with, a second tap on New match, or the wrong team picked and picked again.
+ * It is replaced, or it sat in his list of matches and in every game picker.
+ *
+ * The format is the event's, not the sheet's: the race, the clock between
+ * points, the end he starts from and whether it swaps carry over, and one tap
+ * changes any of them. A game opened off the Schedule used to open with none.
+ *
+ * And a fresh sheet is level: Ahead / Must-score is read off the score, so it
+ * is recomputed here or the counter-picker ranks the new match on the last
+ * one's result. */
+function openSheet(fields){
+  const cur = curMatch();
+  const n = cur ? matchSize(cur.id) : 0;
+  const blank = cur && !n && !(S.results || []).some(r => r.m === cur.id) ? cur.id : null;
+  const id = newMatchId();
+  S.matches = [{id, at: Date.now(), layout: S.layoutKey,
+                raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
+                breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
+                end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds),
+                ...fields},
+               ...(S.matches || []).filter(x => x.id !== blank)];
+  S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
+  S.matchState = derivedState();
+  return id;
+}
 /* Opening a game off the schedule.
  *
  * Two different things a coach does with a row on that list, and they must not
@@ -6345,21 +6356,15 @@ window.watchGame = id => {
   const g = gameById(id); if(!g || !gameGuard()) return;
   S.left  = {...(S.left  || {}), name: g.h};
   S.right = {...(S.right || {}), name: g.a};
-  const mid = newMatchId();
-  S.matches = [{id: mid, at: Date.now(), vs: g.a, layout: S.layoutKey,
-                watch: true, home: g.h, away: g.a,
-                when: `${dayName(g.d)} · ${clockName(g.t)}`, bracket: g.g || ""},
-               ...(S.matches || [])];
-  S.matchId = mid; S.point = 1; S.matchState = derivedState();
+  openSheet({vs: g.a, watch: true, home: g.h, away: g.a,
+             when: `${dayName(g.d)} · ${clockName(g.t)}`, bracket: g.g || ""});
   set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
 };
 window.playGame = (id, which) => {
   const g = gameById(id); if(!g || !gameGuard()) return;
   const them = which === "home" ? g.h : g.a;
   S.right = {...(S.right || {}), name: them};
-  const mid = newMatchId();
-  S.matches = [{id: mid, at: Date.now(), vs: them, layout: S.layoutKey}, ...(S.matches || [])];
-  S.matchId = mid; S.point = 1; S.matchState = derivedState();
+  openSheet({vs: them});
   set({tab:"tally", more:null, gameOpen:null});
 };
 /* Taking a row off. The league's own rows are never edited in place — they are

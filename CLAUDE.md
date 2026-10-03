@@ -859,6 +859,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   sized from the same cap (the board is 300 by 240) and the picture fills it;
   the suite checks the ink layer and the picture are the same box and a stroke
   lands.
+- Open a sheet through more than one door. New match carried the format and
+  replaced an empty sheet; Watch this game and We play on the Schedule did
+  neither, so a game opened off the schedule had no race, no clock and left
+  the blank sheet behind in every picker. `openSheet(fields)` is the one door:
+  it carries the race, the clock, the end and the swap, recomputes the state
+  and replaces an empty current sheet whoever it was named for.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
