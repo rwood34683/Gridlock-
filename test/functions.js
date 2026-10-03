@@ -3878,6 +3878,19 @@ const ROSTER = [
     const ok = document.getElementById("wkWhere").value === "Snake wire" && document.querySelectorAll("#walk-map rect[stroke='#ffffff']").length === 0;
     window.set({ walkPick: null }); return ok;
   }));
+  check("Messages says nothing is sent, and no button claims to send", await ev(() => {
+    window.set({ tab: "more", more: "messages" });
+    const t = document.querySelector(".main").textContent;
+    return /nothing is sent anywhere/.test(t) && ![...document.querySelectorAll("#root .btn")].some(b => b.textContent.trim() === "Send");
+  }));
+  check("every jersey-number box asks the phone for the number keyboard", await ev(() => {
+    window.set({ tab: "more", more: "team" });
+    const a = [...document.querySelectorAll("#root input.rost__num")];
+    window.set({ tab: "scout", scoutTab: "matchup", more: null, right: { name: "Dynasty" }, pitOpen: "right",
+                 scout: { ...(S.scout || {}), Dynasty: { ...((S.scout || {}).Dynasty || {}), players: [{ num: "7", name: "Smith", wire: "snake" }] } } });
+    const b = [...document.querySelectorAll("#root input.rost__num")];
+    return a.length > 0 && b.length > 0 && [...a, ...b].every(i => i.getAttribute("inputmode") === "numeric");
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
