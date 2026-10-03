@@ -3219,6 +3219,9 @@ function playerCalls(who){ return (((S.playerCalls || {})[S.layoutKey] || {})[wh
  * player may have his own name for a bunker he lives behind. His word is only
  * ever used when the app is speaking to him — his card — and never on the
  * field, where five people are reading the same picture. */
+// A bunker by the team's word for it, else its code — the one lookup every
+// screen that names a bunker from its id reads through.
+function bunkerLabel(id){ const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; }
 function callOf(b, who){
   return (who && playerCalls(who)[b.id]) || bunkerCalls()[b.id] || b.n;
 }
@@ -5227,7 +5230,7 @@ function manRead(side, who, team){
 // The read as one line, or nothing when there is nothing counted.
 function manLine(side, who, team){
   const r = manRead(side, who, team); if(!r.n) return "";
-  const name = id => { const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; };
+  const name = bunkerLabel;
   const bits = [`${r.n} break${r.n === 1 ? "" : "s"} charted`,
                 r.made ? `made it ${r.made}` : "", r.shot ? `shot on the break ${r.shot}${r.shotFrom ? ` (from ${esc(name(r.shotFrom[0]))} ${r.shotFrom[1]})` : ""}` : "",
                 r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : ""].filter(Boolean);
@@ -5408,7 +5411,7 @@ function shooterLane(side = "right"){
 }
 function shooterLine(side = "right"){
   const sl = shooterLane(side); if(!sl) return "";
-  const bl = curLayout().bunkers, name = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id; };
+  const name = bunkerLabel;
   const who = `<b>${esc(sl.tag)}</b> has shot ${sl.hits} of your men`;
   if(!sl.at) return `${who} — nobody has sighted him in their five on this field yet.`;
   const where = `usually in <b>${esc(name(sl.at))}</b> (${sl.seen} sighting${sl.seen === 1 ? "" : "s"})`;
@@ -8163,10 +8166,9 @@ function theirMoves(team, layout = S.layoutKey){
       return {from, to, n: c.n, who: w ? w[0] : "", whoN: w ? w[1] : 0}; })
     .sort((a, b) => b.n - a.n || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
 }
-function bunkerLabel(id){ const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; }
 function movesLine(team, max = 3){
   const mv = theirMoves(team); if(!mv.length) return "";
-  const bl = curLayout().bunkers, name = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id; };
+  const name = bunkerLabel;
   const total = mv.reduce((n, m) => n + m.n, 0);
   return mv.slice(0, max).map(m => `<b>${esc(name(m.from))} → ${esc(name(m.to))}</b> ${m.n}${m.who ? ` (${esc(m.who)} ${m.whoN})` : ""}`).join(" · ") + ` — ${total} rotation${total === 1 ? "" : "s"} seen`;
 }
@@ -8392,7 +8394,7 @@ window.logArrivalShot = () => {
   S.arrivalShots = [...(S.arrivalShots || []),{id:"h"+at.toString(36)+Math.random().toString(36).slice(2,9),
     team:context.team,player:context.player,layout:context.layout,m:context.m,pt:context.pt,from,to,at}];
   stopArrivalPlayback(true);
-  const name = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? callOf(b) : id; };
+  const name = bunkerLabel;
   S.arrival = {...a,layout:S.layoutKey,scope:arrivalScope(context),sightingBunker:from,destination:a.destination || from,shotAt:"",
     notice:`Shot recorded: from ${name(from)} at ${name(to)}.${placed ? ` That puts him at ${name(from)} — sighting ${rows.length+1}.` : ""}`};
   save(S); render();
@@ -8936,7 +8938,7 @@ function scoutGames(){
   const events=mine.filter(o=>o.pt===pick).sort((a,b)=>(a.at||0)-(b.at||0));
   const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
   const bl=curLayout().bunkers;
-  const named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
+  const named=bunkerLabel;
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
@@ -8968,7 +8970,7 @@ function scoutGames(){
  * their five planted, who won it and whether the read was right, any penalty
  * or timeout, and every man charted on the break. Read back, never rebuilt. */
 function pointStory(gid, pt, team){
-  const bl=curLayout().bunkers, named=id=>{const b=bl.find(x=>x.id===id);return b?callOf(b):id;};
+  const named=bunkerLabel;
   const m=matchById(gid), res=(S.results||[]).find(r=>r&&r.m===gid&&r.pt===pt);
   const call=(S.calls||[]).find(c=>c&&c.m===gid&&c.pt===pt);
   const theirs=theirBreaks("right").find(b=>b.m===gid&&b.pt===pt);

@@ -1089,6 +1089,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   inline in a note, and the devices suite never saw them because they render
   only with data. Every `.read-line__go` is a 44 px target on its own line
   under the sentence, and the suite builds the data and measures all three.
+- Write the bunker-name lookup again on every screen. Six functions each
+  carried their own four-line "find the bunker, print its call, else its
+  code"; `bunkerLabel(id)` beside `callOf()` is the one door, and a screen
+  that needs the coach's own word for a man's card still passes `callOf(b,
+  name)` itself.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never
