@@ -718,7 +718,11 @@ svg.field [data-pick]{cursor:crosshair}
 .qlog__hint{color:var(--dim);font-size:var(--t-xs);line-height:1.4;margin:0}
 /* Sideways and short: the two score buttons fill the height beside a compact
    top, so the whole loop is one thumb-reach with nothing to scroll. */
+/* Shown only on a phone turned sideways; everywhere else the quick log is
+   offered where it was, at the foot of the point sheet. */
+.turn-bar{display:none}
 @media (orientation:landscape) and (max-height:520px){
+  .turn-bar{display:flex}
   .qlog__hint{display:none}
   .qlog__score .btn{min-height:0}
 }
@@ -5875,6 +5879,10 @@ function tally(){
     <p class="note">Or open a game on <b>More \u203a Schedule</b> and tap <b>We play</b>.</p>`,
     "No opponent yet") + `</div>` : ""}
 
+  ${/* A phone on its side is the shape the quick log was built for, and the
+        only way into it was a button at the foot of the point sheet. On that
+        one shape the offer is the first thing on the tab. */""}
+  ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Phone's on its side — log on the fly</button>`}
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
