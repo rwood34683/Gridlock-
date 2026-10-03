@@ -4036,6 +4036,18 @@ const ROSTER = [
     const fills = surf.width > ink.width * 0.9;
     return same && fills;
   }));
+  check("a game opened off the Schedule carries the event's format and replaces an empty sheet", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(5); window.setBreakClock(90); window.endPoint("us");
+    window.newMatch();                                   // an empty sheet, race 5 carried
+    const empty = S.matchId, kept = S.matches.length;
+    const g = allGames()[0]; window.playGame(g.id, "home");
+    const played = raceTo() === 5 && breakClock() === 90 && !S.matches.some(m => m.id === empty) && S.matches.length === kept && (curMatch() || {}).vs === g.h;
+    window.newMatch(); const empty2 = S.matchId;        // empty again
+    window.watchGame(g.id);
+    const watched = !!(curMatch() || {}).watch && raceTo() === 5 && !S.matches.some(m => m.id === empty2) && S.point === 1;
+    return played && watched;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
