@@ -7423,7 +7423,10 @@ function scoutCounter(){
     ${(sc => sc.us+sc.them ? `<p class="note">Set from the score — <b>${sc.us}–${sc.them}</b> on this
       sheet. Tap another if the clock says different.</p>` : `<p class="note">Score a point on Tally and
       this sets itself.</p>`)(matchScore())}
-    <p class="lede">${pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and you are <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    ${/* The left pit is a team he watches, not him — it read "Blast Camp
+          against Rejects" as if Blast Camp were his five. Only a watched game
+          has two named sides here. */""}
+    <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
     ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
       return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
         <b>${esc(callName(f[0][0]))}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
@@ -7463,7 +7466,9 @@ function scoutCounter(){
     })();
 }
 window.copyMatchup = () => {
-  const t=`Gridlock · ${pitOf("left").name} vs ${pitOf("right").name}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
+  // The left pit is a team he watches; it is a side of this card only on a watched sheet.
+  const who = (curMatch()||{}).watch && pitNamed("left") ? `${pitOf("left").name} vs ${pitOf("right").name}` : `vs ${pitOf("right").name}`;
+  const t=`Gridlock · ${who}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
   if(window.gridlockShare) window.gridlockShare(t,"Gridlock matchup"); else prompt("Matchup card", t);
 };
 
