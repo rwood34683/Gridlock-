@@ -156,6 +156,18 @@ const measure = () => {
       if (m.tap && (!worst.tap || m.tap.px < worst.tap.px)) worst.tap = { ...m.tap, tab };
       if (m.line && (!worst.line || m.line.ch > worst.line.ch)) worst.line = { ...m.line, tab };
     }
+    // The header at its fullest: the break clock running, a long race score
+    // and the Staff chip. Four chips at 375 px ran the Staff chip off the edge.
+    const stressed = await page.evaluate(() => {
+      try{
+        if(!matchVs()){ S.right = {name: "Houston Heat"}; S.matches = S.matches.map(m => m.id === S.matchId ? {...m, vs: "Houston Heat"} : m); }
+        S.matches = S.matches.map(m => m.id === S.matchId ? {...m, raceTo: 7} : m);
+        S.results = [...(S.results || []).filter(r => r.m !== S.matchId), ...Array.from({length: 11}, (_, i) => ({m: S.matchId, pt: i + 1, won: i % 2 ? "us" : "them", at: 1}))];
+        S.point = 12; S.clockEnd = Date.now() + 90000; render();
+        return [...document.querySelectorAll(".hdr__top > *")].every(el => { const b = el.getBoundingClientRect(); return !b.width || b.right <= window.innerWidth + 1; });
+      }catch(e){ return "threw " + e.message; }
+    });
+    check("Devices", `${name} — header chips on screen with the clock and score up`, stressed === true, stressed === true ? "" : String(stressed));
     rows.push([name, `${w}x${h}`, worst]);
     await ctx.close();
 
