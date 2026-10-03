@@ -7943,7 +7943,7 @@ function pit(side,T,label){
     <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
         men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
-          <input class="rost__num" value="${esc(m.num)}" placeholder="#"
+          <input class="rost__num" value="${esc(m.num)}" placeholder="#" inputmode="numeric"
             onchange="editScoutPlayer('${side}',${i},'num',this.value)"/>
           <input value="${esc(m.name)}" placeholder="name, if you know it"
             onchange="editScoutPlayer('${side}',${i},'name',this.value)"/>
@@ -9353,7 +9353,7 @@ function moreBody(k){
   if(k==="team"){
     const list=curLayout().bunkers, calls=bunkerCalls();
     const named=Object.keys(calls);
-    const field=(i,f,ph,val,cls)=>`<input class="${cls||""}" value="${esc(val)}" placeholder="${esc(ph)}"
+    const field=(i,f,ph,val,cls)=>`<input class="${cls||""}" value="${esc(val)}" placeholder="${esc(ph)}"${f==="num"?' inputmode="numeric"':""}
         onchange="editPlayer(${i},'${f}',this.value)"/>`;
     const editor=`<p class="lede">Your squad. Playbook names the five off this list, Tally logs outs against
       it, and Movement and Assess pick players from it — so it is worth getting right once.</p>
@@ -9582,13 +9582,17 @@ function moreBody(k){
   if(k==="messages") return sec("Messages",
     // Every other list here can be undone — a walk note, a code word, a grade,
     // a rotation, a player. A squad note could only be added, so a typo stayed
-    // on the phone for the season.
+    // on the phone for the season. And the button said Send, in an app that
+    // cannot send: a note is kept here and travels in a squad copy, nothing
+    // goes to anyone's phone.
+    `<p class="lede">Notes for the squad. They stay on this phone and travel in a squad copy from Nexus —
+      nothing is sent anywhere, because nothing in this app reaches a network.</p>` +
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map((m,i)=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
-    + `<div class="btnrow"><input id="md" placeholder="Message the squad" class="grow"/>
-       <button class="btn" onclick="sendMsg()">Send</button></div>`, (S.messages||[]).length+" notes");
+    + `<div class="btnrow"><input id="md" placeholder="Note for the squad" class="grow"/>
+       <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
   if(k==="plan") return planPage();

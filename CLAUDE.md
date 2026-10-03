@@ -757,6 +757,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `setSlot()` starts from the five that is standing, written or roster order,
   because a five that was only roster order used to come back as one man and
   four empty slots the moment one was set.
+- Put a Send button in an app that cannot send. Messages said "Message the
+  squad · Send", and a coach reads that as nine phones buzzing. A note is
+  **kept**: it stays on this phone and travels in a squad copy, and the screen
+  says so before the box, not only in Help.
+- Ask for a jersey number without the number keyboard. Every `rost__num` box
+  carries `inputmode="numeric"` — the Team roster rows, the add row, and both
+  pits on Scout — and the suite reads the attribute off every one it can find.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
