@@ -4635,6 +4635,19 @@ const ROSTER = [
     window.set({ walkPick: null }); editProfile("right", { breaks: [] });
     return seen.length >= 3 && short.length === 0;
   }));
+  check("a schedule row says what you already have on that game: watched with the score, or you played with the result", await ev(() => {
+    window.confirm = () => true;
+    const g = allGames()[0]; if (!g) return false;
+    window.watchGame(g.id); window.logTheirBreak("right", "blitz", []); window.endPoint("us");
+    window.set({ tab: "more", more: "schedule", gameOpen: null });
+    const rowOf = () => [...document.querySelectorAll("#root .assign")].map(e => e.textContent.replace(/\s+/g, " ").trim()).find(x => x.includes(g.h + " v " + g.a)) || "";
+    const watched = /watched · 1–0/.test(rowOf());
+    window.playGame(g.id, "away"); window.setRaceTo(1); window.endPoint("us");
+    window.set({ tab: "more", more: "schedule", gameOpen: null });
+    const played = new RegExp("you played " + g.a + " · 1–0 · you won").test(rowOf()) && /watched · 1–0/.test(rowOf());
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return watched && played;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

@@ -4673,7 +4673,6 @@ function shooterLine(side = "right"){
     ? `${who}, ${where}: ${sl.lanes.map(l => `<b>${esc(l.who)}</b> from ${esc(name(l.from))}`).join(" and ")} ${sl.lanes.length === 1 ? "has" : "have"} a lane on him off the break.`
     : `${who}, ${where}: nobody in your five has a lane on him off the break on ${esc(breakName())}.`;
 }
-function lanesWord(l){ return l ? `${l.onThem} of your ${l.mine} have a lane on them · ${l.onYou} of their ${l.theirs} have one on you` : ""; }
 // One line for the call panel and the point sheet.
 function lanesLine(){
   if(nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
@@ -8854,7 +8853,8 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["Every game at this event, by day, read off the league's page.",
+    how:["A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended.",
+         "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
@@ -9289,8 +9289,16 @@ function moreBody(k){
     const mine = new Set((S.games || []).map(g => g.id));
     const open = S.gameOpen;
     const n = S.gameNew;
+    // What he already has on this game: a watched sheet with these two teams,
+    // or his own sheet against either of them. A schedule he has half worked
+    // through should say so on the row, not make him open each one to find out.
+    const had = g => (S.matches || []).filter(m => m.watch ? (m.home === g.h && m.away === g.a) : (m.vs === g.h || m.vs === g.a))
+      .filter(m => matchSize(m.id) || (S.results || []).some(r => r.m === m.id) || Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b.m === m.id)))
+      .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
+        return m.watch ? `watched${score}` : `you played ${esc(m.vs)}${score}${matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}`; });
     const row = g => {
       const isOpen = open === g.id;
+      const have = had(g);
       // The clock leads the row. A schedule is read by time first — a coach is
       // working out what he can get to before his own game — so it sits in its
       // own column rather than under the names where it has to be hunted for.
@@ -9300,7 +9308,7 @@ function moreBody(k){
         <span class="assign__body">
           <span class="assign__job">${esc(g.h)} <span style="color:var(--dim)">v</span> ${esc(g.a)}</span>
           <span class="assign__who">${esc(g.g ? g.g + " Prelims" : "")}${
-            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}</span></span>
+            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join(" · ")}</span>` : ""}</span></span>
         <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
           isOpen ? "Close" : "Open"}</button>
         ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
@@ -9793,9 +9801,14 @@ function shell(){
    * the Staff chip and not on the context line underneath: that line carries the
    * event and the call, ellipsizes on a phone, and swallowed the score whole. */
   const sc = matchScore();
+  // A watched game's score is two other teams' score: the chip says "watch",
+  // reads in the right pit's blue and names both teams in its label.
+  const watched = (curMatch() || {}).watch ? curMatch() : null;
+  const tag = watched ? "watch" : matchOver() ? "final" : inOvertime() ? "OT" : raceTo() ? `to ${raceTo()}` : "";
+  const chipLabel = watched ? `${watched.home || "Home"} ${sc.us} – ${sc.them} ${watched.away || "Away"}, a game you are watching` : "Open the point sheet";
   // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
   const line = sc.us + sc.them || raceTo()
-    ? (w => `<button class="score-chip score-chip--go${w ? " score-chip--watch" : ""}" onclick="set({tab:'tally',more:null})" aria-label="${w ? esc(`${w.home || "Home"} ${sc.us} – ${sc.them} ${w.away || "Away"}, a game you are watching`) : "Open the point sheet"}"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${w ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">watch</small>` : matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</button>`)((curMatch() || {}).watch ? curMatch() : null) : "";
+    ? `<button class="score-chip score-chip--go${watched ? " score-chip--watch" : ""}" onclick="set({tab:'tally',more:null})" aria-label="${esc(chipLabel)}"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tag ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${esc(tag)}</small>` : ""}</button>` : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
