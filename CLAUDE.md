@@ -583,6 +583,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   limited to what he runs. Turning one off is never a delete: the count behind it
   is untouched and one tap puts it back, the last one standing cannot be turned
   off, and turning off the call he is standing on moves him to one he runs.
+  Nor does the read line's Call button set one: a best answer that is a play
+  he has turned off is still named, with a word that it is off, and never
+  offered as the call — `pickPlays()` decides what can be called, everywhere.
 - Let the app decide what a penalty is. It does not have the rulebook and must
   never behave as if it does: an official calls it, the coach records what it
   cost, exactly as he records who won the point. A penalty row is side + how
