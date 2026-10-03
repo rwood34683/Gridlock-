@@ -8052,6 +8052,34 @@ function teamLanes(team, layout = S.layoutKey){
   return [...count].map(([k,n]) => { const [from,to] = k.split("→"); return {from,to,n}; })
     .sort((a,b) => b.n - a.n || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
 }
+/* Where they go after the break. A sighting says where a man was and the
+ * next sighting of the same man on the same point says where he went, so the
+ * pairs, counted across every match on this field, are the team's rotations:
+ * "MD → T, 4 times (#7 Dill 3)". A count of what was seen, never a model. */
+function theirMoves(team, layout = S.layoutKey){
+  const by = new Map();
+  (S.arrivalSightings || []).filter(o => o && o.team === team && o.layout === layout && o.bunker)
+    .forEach(o => { const k = [o.player, o.m, o.pt].join("|"); if(!by.has(k)) by.set(k, []); by.get(k).push(o); });
+  const count = new Map();
+  by.forEach(rows => {
+    rows.sort((a, b) => (a.seq || 0) - (b.seq || 0) || (a.at || 0) - (b.at || 0));
+    for(let i = 1; i < rows.length; i++){
+      if(rows[i].bunker === rows[i-1].bunker) continue;
+      const k = rows[i-1].bunker + "→" + rows[i].bunker, c = count.get(k) || {n: 0, who: {}};
+      c.n++; if(rows[i].player) c.who[rows[i].player] = (c.who[rows[i].player] || 0) + 1; count.set(k, c);
+    }
+  });
+  return [...count].map(([k, c]) => { const [from, to] = k.split("→"); const w = Object.entries(c.who).sort((a, b) => b[1] - a[1])[0];
+      return {from, to, n: c.n, who: w ? w[0] : "", whoN: w ? w[1] : 0}; })
+    .sort((a, b) => b.n - a.n || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+}
+function bunkerLabel(id){ const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; }
+function movesLine(team, max = 3){
+  const mv = theirMoves(team); if(!mv.length) return "";
+  const bl = curLayout().bunkers, name = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id; };
+  const total = mv.reduce((n, m) => n + m.n, 0);
+  return mv.slice(0, max).map(m => `<b>${esc(name(m.from))} → ${esc(name(m.to))}</b> ${m.n}${m.who ? ` (${esc(m.who)} ${m.whoN})` : ""}`).join(" · ") + ` — ${total} rotation${total === 1 ? "" : "s"} seen`;
+}
 function arrivalScope(context = arrivalContext()){
   return JSON.stringify([context.team,context.player,context.layout,context.m,context.pt]);
 }
@@ -8426,6 +8454,13 @@ function scoutArrival(){
       <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
     : `<div class="empty">${esc(result.warning)}</div>`}`)
   + sec(`Shots seen · ${shots.length}`,shots.length ? `<ol class="arrival-narrative">${shots.map((o,i)=>`<li><b>${i+1}. From ${esc(label(o.from))} at ${esc(label(o.to))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · white line on the field</span></li>`).join("")}</ol>` : `<div class="empty">No shots recorded for this player on this point. Pick the bunker he was at, then the one he was shooting at.</div>`)
+  + (mv => sec(`Their rotations · ${esc(curLayout().name)}`, mv.length ? `<p class="lede">Where <b>${esc(c.team)}</b> have been seen to move after the break on this field, all matches, all points — the next sighting of the same man on the same point, counted.</p>
+      <div class="assigns">${mv.slice(0, 8).map(m => `<div class="assign">
+        <span class="assign__n" style="background:var(--blue)">${m.n}</span>
+        <span class="assign__body"><span class="assign__job">${esc(bunkerLabel(m.from))} → ${esc(bunkerLabel(m.to))}</span>
+        <span class="assign__who">${m.who ? `${esc(m.who)} ${m.whoN} of ${m.n}` : `${m.n} seen`}</span></span>
+      </div>`).join("")}</div>
+      <p class="aid"><b>A count, not a prediction.</b> It says where they have moved when you were watching.</p>` : `<div class="empty">No rotations seen yet for ${esc(c.team)} on this field. Two sightings of the same man on a point make one.</div>`))(theirMoves(c.team, c.layout))
   + (lanes => sec(`Their lanes · ${esc(curLayout().name)}`,lanes.length ? `<p class="lede">Every lane <b>${esc(c.team)}</b> has been seen to shoot on this field, all matches, all points — counted from what you logged.</p>
       <ol class="arrival-narrative">${lanes.slice(0,8).map(l=>`<li><b>${esc(label(l.from))} → ${esc(label(l.to))}</b> <span class="tag">${l.n}×</span></li>`).join("")}</ol>${lanes.length>8?`<p class="note">Showing the eight most seen of ${lanes.length}.</p>`:""}
       <p class="aid"><b>A count, not a prediction.</b> It says where they have shot from and at when you were watching. Officials govern the live call.</p>` : `<div class="empty">Nothing logged yet for ${esc(c.team)} on this field. Shots you record above build this up through the match.</div>`))(teamLanes(c.team,c.layout))
@@ -8677,7 +8712,8 @@ function scoutAnticipate(){
           ? `<b style="color:var(--warn)">${esc(callName(rd.recent[0][0]))} ${rd.recent[0][1]} of their last ${rd.recentN}</b> — the season says ${esc(callName(rd.all.top[0]))}${READS[T.tend] && T.tend !== "Balanced" ? `, your read says ${esc(T.tend)}` : ""}. They may have changed.`
           : `<b>${esc(callName(rd.recent[0][0]))}</b> ${rd.recent[0][1]} of their last ${rd.recentN} — same as the season.`}</span></div>`
       : "";
-    const shooter = (sh => sh && pitOnSheet(side) ? `<div class="kv__row"><span class="kv__k">Their shooter</span><span class="kv__v">${sh}</span></div>` : "")(shooterLine(side));
+    const shooter = (sh => sh && pitOnSheet(side) ? `<div class="kv__row"><span class="kv__k">Their shooter</span><span class="kv__v">${sh}</span></div>` : "")(shooterLine(side))
+      + (mv => mv ? `<div class="kv__row"><span class="kv__k">After the break</span><span class="kv__v">${mv}</span></div>` : "")(movesLine(T.name));
     return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
@@ -9507,6 +9543,7 @@ const HELP_Q = [
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
   ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
+  ["Where do they go after the break?", "Every sighting on How did they get there is where a man was, and the next sighting of the same man on the same point is where he went. Their rotations, under the field there, counts those moves across every match on this field — MD → T 4 times, #7 Dill 3 of them — and Anticipate carries the top three as After the break. A count of what was seen, never a model."],
   ["Who should I put on?", "Who's on, above your five on the point sheet, lists the squad with a line under each man counted from the breaks you have charted against this team on this field: breaks charted, made it, shot on the break and from where, the bunker he breaks to most. A man with nothing charted has no line. It is a count, not a grade — the grade is yours, on Assess."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
