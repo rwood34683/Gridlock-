@@ -696,3 +696,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   when nobody has it and puts it in the right pit through `setPitTeam`, the
   same door the picker uses. An empty roster offers one tap to Team the same
   way, because "add them in Team" with nothing to tap is a scavenger hunt.
+- List their five as "#1" to "#5" when Scout has their names. The right pit
+  keeps the men a coach has logged — number, name, wire — and Tally asked him
+  to forget them between points. `theirNames()` is the door: what is logged,
+  numbers filling to five, numbers alone on a watched sheet because those are
+  not his men to name.
+- Let a season go unsaved in silence. There is no server, so the copy is the
+  only thing protecting it, and nothing said how long it had been. `copiedAt`
+  is set by Save a copy and Show it as text; `copyNudge()` speaks up on a
+  finished sheet and under the record on Matches, only when something is
+  logged and the copy is a week old or missing — never while a point is on.

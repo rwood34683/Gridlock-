@@ -3559,6 +3559,7 @@ window.saveCopy = async scope => {
       const result = await window.gridlockExportFile(text, name);
       if(result && result.status === "shared"){
         S.copyStatus = `Backup file sent to the share sheet · ${copySummary(JSON.parse(text).data)}. Keep ${name} in Files or your chosen destination.`;
+        S.copiedAt = Date.now();
       } else if(result && result.status === "cancelled"){
         S.copyStatus = "Share cancelled. Tap Save a copy to try again, or use Show it as text.";
       } else {
@@ -3590,10 +3591,24 @@ window.saveCopy = async scope => {
   S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}. `
     + (saved ? `Look for ${name} in your downloads or the share sheet — if neither arrived, use Show it as text.`
              : `Use Show it as text below and keep it somewhere safe.`);
+  if(saved) S.copiedAt = Date.now();
   save(S);
   render();
 };
-window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
+window.showCopy = scope => { S.copyText = copyPayload(scope); S.copiedAt = Date.now(); save(S); render(); };
+/* The one thing protecting a season is the copy, and nothing ever said how
+ * long it had been. Said where he has a minute — a finished sheet, and the
+ * record under Matches — only when there is something to lose and the last
+ * copy is a week old or was never made. Never while a point is on. */
+function copyNudge(){
+  const logged = (S.results || []).length + (S.tally || []).length + (S.breakouts || []).length;
+  if(!logged) return "";
+  const days = S.copiedAt ? Math.floor((Date.now() - S.copiedAt) / 86400000) : null;
+  if(days !== null && days < 7) return "";
+  const when = days === null ? "No copy of this season has been saved yet." : `Last copy saved ${days} days ago.`;
+  return `<div class="fld" style="margin-top:var(--s3)"><p class="note" style="margin:0 0 var(--s2)">${when} It is the only thing that protects it.</p>
+    <button class="btn btn--quiet btn--block" onclick="set({tab:'more',more:'nexus'})">Save a copy · Nexus</button></div>`;
+}
 window.loadCopy = mode => {
   const el = document.getElementById("copyIn");
   copyDraft = el ? el.value : copyDraft;
@@ -6181,7 +6196,7 @@ function breakoutSheet(){
   const mine = fiveFor(pt).filter(Boolean).map(p => p.name);
   const names = side === "us"
     ? (mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
-    : ["1","2","3","4","5"].map(n => "#" + n);
+    : theirNames();
   const others = bl.filter(o => o.id !== b.id);
   const far = others.filter(o => ((side === "us") === (ourEnd() === "left")) ? o.x > 75 : o.x < 75);
   const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
@@ -6339,7 +6354,7 @@ function tally(){
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
-    ${matchOver() ? `<p class="warn"><b>Match over — ${matchOver() === "us" ? "you won" : "they won"} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>`
+    ${matchOver() ? `<p class="warn"><b>Match over — ${matchOver() === "us" ? "you won" : "they won"} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
     <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
@@ -6434,7 +6449,7 @@ function tally(){
       ${col("us", (curMatch()||{}).watch ? "Your five · not on this field"
               : mine.length?"Your five":"Your five · no names yet", "var(--red)",
             mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
-      ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",["1","2","3","4","5"].map(n=>"#"+n))}
+      ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",theirNames())}
     </div>
     <p class="note" style="max-width:56ch">Right read or wrong read, then who won it. That is the whole score, and it
       sets Ahead / Even / Must-score for you.</p>
@@ -6634,6 +6649,21 @@ window.dropPen = id => { S.pens = (S.pens || []).filter(p => p.id !== id); save(
 
 // One out row, whichever way it was logged: a tap on the man in the columns,
 // or a man logged dead on the break chart. Refuses the same man twice a point.
+/* Their men on the sheet. Scout keeps the five you have logged on the right
+ * pit — number, name, wire — and Tally listed "#1" to "#5" regardless, so a
+ * coach who had written their roster down was asked to forget it between
+ * points. Whatever is logged is the list; fewer than five logged and the
+ * numbers fill the rest; nothing logged and it is the five numbers it was. */
+function theirNames(){
+  const m = curMatch();
+  if(m && m.watch) return ["1","2","3","4","5"].map(n => "#" + n);
+  const men = (pitNamed("right") && matchVs() === pitOf("right").name ? pitOf("right").players : []) || [];
+  const named = men.map(p => (p.num ? "#" + p.num : "") + (p.num && p.name ? " " : "") + (p.name || "")).filter(Boolean);
+  const used = new Set(named);
+  let n = 1;
+  while(named.length < 5){ const tag = "#" + n++; if(!used.has(tag)) named.push(tag); }
+  return named;
+}
 function outRow(side, name, extra = {}){
   const pt=S.point||1;
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.m===S.matchId && o.pt===pt
@@ -8544,6 +8574,7 @@ const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
+  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, it goes to overtime and the next point wins it; ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
@@ -9003,7 +9034,7 @@ function moreBody(k){
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>`, matchLabel(curMatch()))
-    + sec("This event", record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`, won + lost ? `${won}–${lost}` : "")
+    + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`) + copyNudge(), won + lost ? `${won}–${lost}` : "")
     + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">
