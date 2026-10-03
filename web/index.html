@@ -3352,6 +3352,16 @@ function bunkerTraffic(keep){
     bump(o.movedTo, 'visits');
   });
   (S.moves || []).forEach(m => { if(ok(m)) bump(m.to, 'visits'); });
+  // The break chart is the busiest log on the phone and this screen never
+  // read it: a coach who charted every point saw "Nothing logged yet". A break
+  // to a bunker is a visit, a man shot there on the break is an out there, and
+  // where he moved to is a visit too. A watched game's traffic is not his.
+  (S.breakouts || []).forEach(r => {
+    if(!r || typeof r !== 'object' || watchedMatch(r.m) || !ok(r)) return;
+    bump(r.bunker, 'visits');
+    if(r.alive === false) bump(r.bunker, 'outs');
+    bump(r.movedTo, 'visits');
+  });
   return t;
 }
 
@@ -7900,9 +7910,10 @@ const HELP = {
          "Log the move. Green arrows on the field are what you logged.",
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
-    how:["Counted from the outs and rotations you logged on this field.",
+    how:["Counted from the breaks you charted, the outs and the rotations you logged on this field.",
+         "A break to a bunker is a visit; a man shot there on the break is an out there.",
          "The ring on a bunker gets heavier the more traffic it has seen."],
-    watch:"Nothing shows until you set Shot at or Moved to on an out, or log a rotation."},
+    watch:"Nothing shows until you have charted a break on Tally or logged a rotation."},
   "more/lineups": {t:"Lineups", w:"Who is on this point.",
     how:["Set the five for the point you are on.",
          "Kept per match and per point, so point three of two games is two different fives."]},
@@ -8594,7 +8605,7 @@ function moreBody(k){
         </table></div>`
       : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
          <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>
-         <div class="empty">Nothing logged yet. Set <b>shot at</b> or <b>moved to</b> on an out in Tally, or log a rotation in Movement, and it lands here.</div>`,
+         <div class="empty">Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here.</div>`,
       layoutName);
   }
   if(k==="assess"){
