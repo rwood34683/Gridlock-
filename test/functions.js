@@ -4468,6 +4468,36 @@ const ROSTER = [
     S.arrivalSightings = keep; window.set({});
     return two && chip && off;
   }));
+  check("with Lanes on, their shooter's usual bunker is ringed and named on the Scout field", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const L = S.layoutKey, bl = curLayout().bunkers, mine = plantIdsFor(S.script), five = fiveFor(1), slot = i => five[i] ? five[i].name : `slot ${i + 1}`;
+    const keepT = S.tally, keepS = S.arrivalSightings;
+    S.tally = [...(S.tally || []), { pt: 1, side: "us", name: slot(0), at: 1, m: S.matchId, script: S.script, layout: L, vs: "Dynasty", by: "#7 Dill", how: "Laned" }, { pt: 1, side: "us", name: slot(1), at: 2, m: S.matchId, script: S.script, layout: L, vs: "Dynasty", by: "#7 Dill", how: "Laned" }];
+    const theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right");
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "sgr", team: "Dynasty", player: "#7 Dill", layout: L, m: "old-z", pt: 1, bunker: theirs[0], seq: 1, at: 1 }];
+    window.set({ tab: "scout", scoutTab: "matchup", pitOpen: null, lanesOn: true });
+    const live = document.querySelector(".field-wrap[data-live]");
+    const ring = live.querySelectorAll(".shooter-ring").length === 1 && live.querySelector(".shooter-ring text").textContent === "#7 Dill";
+    const said = /#7 Dill usually sets up here — he has shot 2 of your men/.test(document.getElementById("root").textContent);
+    window.set({ lanesOn: false }); const off = !document.querySelector(".field-wrap[data-live] .shooter-ring");
+    S.tally = keepT; S.arrivalSightings = keepS; editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return ring && said && off;
+  }));
+  check("on the point sheet the read sits above Change the call and the lanes sit below it", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const bl = curLayout().bunkers, mine = plantIdsFor(S.script), theirs = bl.filter(b => !mine.includes(b.id) && b.x > 75).slice(0, 5).map(b => b.id);
+    window.set({ theirPick: theirs }); window.logTheirFive("right");
+    const lines = [...document.querySelectorAll("#root .read-line")], change = [...document.querySelectorAll("#root .btn")].find(b => /Change the call/.test(b.textContent));
+    const read = lines.find(l => /Read:|not enough to read yet|no calls logged yet/.test(l.textContent)), lanes = lines.find(l => /Lanes off the break/.test(l.textContent));
+    const order = read && lanes && change && (read.compareDocumentPosition(change) & Node.DOCUMENT_POSITION_FOLLOWING) && (change.compareDocumentPosition(lanes) & Node.DOCUMENT_POSITION_FOLLOWING);
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return !!order;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

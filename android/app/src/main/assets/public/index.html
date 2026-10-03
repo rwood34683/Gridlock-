@@ -4226,6 +4226,14 @@ function fieldSVG(opts={}, runnersOnly){
     }
   }
 
+  // Their shooter's usual bunker, ringed, so the lanes drawn on him read as his.
+  if(opts.lanes){
+    const sh = shooterLane("right");
+    if(sh && sh.at){ const b = layout.bunkers.find(x => x.id === sh.at); if(b){ const s2 = bunkerSize(b, sx, sy);
+      their += `<g class="shooter-ring"><rect x="${(b.x*sx-s2.h-4).toFixed(1)}" y="${(b.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="4" fill="none" stroke="#e0a33a" stroke-width="1.8"/>`
+             + `<text x="${(b.x*sx).toFixed(1)}" y="${(b.y*sy-s2.v-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#e0a33a" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${esc(sh.tag)}</text></g>`; } }
+  }
+
   if(runnersOnly) return paths;
 
   return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
@@ -6356,12 +6364,16 @@ function tally(){
       <div class="call__name" style="font-size:var(--t-xl)">${esc(breakName())}</div>
       <div class="call__read">${esc(breakMeta(S.script).read)}</div>
     </div>
-    ${nextReadLine(false)}
+    ${/* The read and its Call button stay above Change the call and Log it;
+          the lanes and their shooter are context and go under the buttons, so
+          Log it stays a thumb from the call between points. */""}
+    ${readLine(false)}
     <div class="btnrow">
       <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
         S.tallyPick?"Close":"Change the call"}</button>
       <button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>
     </div>
+    ${lanesLine()}
     ${S.tallyPick?`<div class="seg seg--wrap">
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
@@ -7156,7 +7168,7 @@ function scout(){
           ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
       ${(S.scoutShow||"them")!=="us"?ghostLegend():""}
       ${S.lanesOn?(()=>{ const l = pitOnSheet("right") || (curMatch()||{}).watch ? breakLanes(S.script) : null;
-        return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${l
+        return `${(sh => sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : "")(shooterLane("right"))}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${l
           ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
           : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
