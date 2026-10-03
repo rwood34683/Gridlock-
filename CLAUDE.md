@@ -865,6 +865,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the blank sheet behind in every picker. `openSheet(fields)` is the one door:
   it carries the race, the clock, the end and the swap, recomputes the state
   and replaces an empty current sheet whoever it was named for.
+- Print a read that nobody made. Anticipate's Likely, Tells and Your counter
+  were fixed strings per pit: the right pit always read "snake stack or
+  runner" whatever tendency the coach had set and whatever he had logged. The
+  read follows the team — the tendency he set is the film read, and the calls
+  he has counted on Breakouts lead when there are any ("Blitz — 2 of the 3
+  breaks you logged") — and an empty pit gets no card.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

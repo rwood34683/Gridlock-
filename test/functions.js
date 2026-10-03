@@ -4048,6 +4048,23 @@ const ROSTER = [
     const watched = !!(curMatch() || {}).watch && raceTo() === 5 && !S.matches.some(m => m.id === empty2) && S.point === 1;
     return played && watched;
   }));
+  check("Anticipate reads the team's tendency and the calls you counted, never a fixed line per pit", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "anticipate", left: { name: "" }, right: { name: "Dynasty" }, pitOpen: null });
+    editProfile("right", { tend: "Dorito", breaks: [] }); window.set({});
+    const t1 = document.querySelector("#root .sec .panel") ? document.querySelector(".main").textContent : "";
+    const dorito = /Dorito flood/.test(t1) && !/Snake stack or runner/.test(t1) && document.querySelectorAll("#root .panel").length === 1;
+    editProfile("right", { tend: "Snake" }); window.set({});
+    const snake = /Snake stack or runner/.test(document.querySelector(".main").textContent);
+    window.logTheirBreak("right", "blitz", []); window.logTheirBreak("right", "blitz", []); window.logTheirBreak("right", "snake", []);
+    const t2 = document.querySelector(".main").textContent;
+    const counted = new RegExp(callName("blitz") + " — 2 of the 3 breaks you logged").test(t2) && /Your film read/.test(t2);
+    editProfile("right", { breaks: [], tend: "Balanced" });
+    // With nobody in the right pit the Scout gate ("Who are you playing?") stands in for every sub-tab, Anticipate included.
+    window.set({ right: { name: "" } });
+    const gated = /Who are you playing\?/.test(document.querySelector(".main").textContent) && !document.querySelector("#root .panel");
+    window.set({ right: { name: "Dynasty" } });
+    return dorito && snake && counted && gated;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
