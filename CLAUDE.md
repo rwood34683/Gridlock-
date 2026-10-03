@@ -1081,6 +1081,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the cells tighten, the team name may wrap (`td.team`) and the stars read
   as `4★` (`.th-num`). The devices suite now measures every `.tblwrap`
   against its table, because `.main` never overflowed and so never said.
+- Put a 36 px button inside a sentence. The Call button on the read line, Put
+  ‹team› in the pit and Lanes from here were all 36 px tall because they sat
+  inline in a note, and the devices suite never saw them because they render
+  only with data. Every `.read-line__go` is a 44 px target on its own line
+  under the sentence, and the suite builds the data and measures all three.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never

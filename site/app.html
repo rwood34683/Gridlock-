@@ -755,7 +755,10 @@ svg.field [data-pick]{cursor:crosshair}
 .read-line{margin:var(--s2) 0 0;max-width:70ch}
 .read-line--warn{color:var(--warn);margin-top:4px} .read-line--warn b{color:var(--warn)}
 .read-line b{color:var(--ink)}
-.read-line__go{min-height:36px;padding:6px 10px;margin-left:6px;vertical-align:middle}
+/* A button inside a note is still a button a gloved thumb has to hit: 44 px,
+   the same as every other target, and it stands on its own line under the
+   sentence rather than hanging off the end of it. */
+.read-line__go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;margin:6px 0 0;vertical-align:middle}
 .turn-bar{display:none}
 @media (orientation:landscape) and (max-height:520px){
   .turn-bar{display:flex}
