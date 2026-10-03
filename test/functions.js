@@ -3572,6 +3572,14 @@ const ROSTER = [
     window.set({ tab: "more", more: "matches" });
     return quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
   }));
+  check("the score chip in the header is a tap to the point sheet from any tab", await ev(() => {
+    window.set({ tab: "playbook" });
+    const chip = document.querySelector("#root .hdr .score-chip--go");
+    if(!chip) return false;
+    const h = chip.getBoundingClientRect().height;      // measured before the click rebuilds the screen
+    chip.click();
+    return S.tab === "tally" && h >= 44;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
