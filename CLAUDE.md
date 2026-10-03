@@ -766,3 +766,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   charted every point saw "Nothing logged yet". `bunkerTraffic()` counts a
   break to a bunker as a visit, a man shot there on the break as an out there,
   and where he moved to as a visit — watched games out, like everywhere else.
+- Stand the result buttons down and leave every other door open. On a
+  finished sheet the field still opened a breakout sheet, a tapped man still
+  went out, Log it still logged a call and Scout still logged their five, all
+  under a point past the end. `sheetOver()` is the one door: it says "Match
+  over — New match starts the next sheet" and refuses; `tallyTap`,
+  `logBreakout`, `markOut`, `logCall` and `logTheirBreak` all go through it.

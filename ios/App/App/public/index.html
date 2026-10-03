@@ -4110,6 +4110,7 @@ function breakFreq(side){
  * own, and Arrival can put names to them later.
  */
 window.logTheirBreak = (side, script, plants) => {
+  if(sheetOver()) return;
   const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
   const entry = {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()};
   if(picked.length) entry.plants = picked;
@@ -5335,6 +5336,7 @@ window.tallyTap = at => {
   // Log stored the break with vs "" — a point charted into a void while the
   // gate above said to name the team first. The tap goes to the gate instead.
   if(!matchVs()) return needOpponent();
+  if(sheetOver()) return;
   // One job: the bunker a man broke to. The run is worked out, not traced.
   const b = nearestBunker(at); if(b) selectBunker(b.id);
 };
@@ -5345,6 +5347,16 @@ window.tallyTap = at => {
  * them: the picker, scrolled under his thumb and lit. A watched game has
  * two named teams and no "us", so it is never caught here. */
 const nobodyToPlay = () => !matchVs() && !(curMatch() || {}).watch;
+/* A finished sheet takes nothing more. The result buttons stood down when the
+ * race was reached, but the field still opened a breakout sheet, a tapped man
+ * still went out and Log it still logged a call — all under a point number
+ * past the end of a match that was over. One door says so and sends him to
+ * New match. */
+const sheetOver = () => {
+  if(!matchOver()) return false;
+  flash("Match over — New match starts the next sheet.");
+  return true;
+};
 window.needOpponent = () => {
   S.quick = false; S.quickPick = false;
   S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render();
@@ -5361,6 +5373,7 @@ window.tallyDone = () => set({tallySel:null, tallyDraft:null});
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
+  if(sheetOver()) return;
   const d = draft(), pt = S.point || 1, at = Date.now();
   const side = d.side || sideOfBunker(b);
   const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
@@ -6019,6 +6032,7 @@ function outRow(side, name, extra = {}){
  * used to do nothing, so a mis-tap meant finding the row in the log below. */
 window.markOut = (side,name) => {
   if(nobodyToPlay()) return needOpponent();
+  if(sheetOver()) return;
   const pt = S.point || 1;
   const i = (S.tally || []).findIndex(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === name);
   if(i >= 0){ S.tally = S.tally.filter((_, k) => k !== i); save(S); render(); return; }
@@ -6330,6 +6344,7 @@ function selfScout(){
  * and a double tap used to count one call twice in his own self-scout. */
 window.logCall = () => {
   if(nobodyToPlay()) return needOpponent();
+  if(sheetOver()) return;
   const pt = S.point || 1;
   S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now()},
              ...(S.calls || []).filter(c => !(c.m === S.matchId && c.pt === pt))];

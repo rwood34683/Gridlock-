@@ -3747,6 +3747,17 @@ const ROSTER = [
     const text = document.getElementById("root").textContent;
     return t[a.id] && t[a.id].visits >= 2 && t[a.id].outs >= 1 && t[mv.id] && t[mv.id].visits >= 1 && !/Nothing logged yet/.test(text);
   }));
+  check("a finished sheet takes nothing more: the field, a tapped man, Log it and their five all refuse and say so", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
+    const before = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
+    const b = curLayout().bunkers[4];
+    window.tallyTap([b.x, b.y]); const noSheet = !S.tallySel;
+    window.markOut("us", "Reyes"); window.logCall(); window.logTheirBreak("right", "snake");
+    const after = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
+    const said = /Match over — New match starts the next sheet/.test(S.flash || "");
+    window.newMatch();
+    return noSheet && before === after && said;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
