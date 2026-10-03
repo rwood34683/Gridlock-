@@ -6288,7 +6288,11 @@ window.newMatch = () => {
   // A sheet with nothing on it and nobody named is not a match a coach kept —
   // it is the one the app opened with. Keeping it put "No opponent" in his
   // list of matches every time he started his first real one.
-  const blank = cur && !cur.vs && !n ? cur.id : null;
+  // And a sheet with nothing on it at all — no out, no rotation, no result —
+  // is not one he kept either, whoever it was named for: a second tap on New
+  // match, or the wrong team picked and picked again, left an empty sheet in
+  // his list of matches and in every game picker.
+  const blank = cur && !n && !(S.results || []).some(r => r.m === cur.id) ? cur.id : null;
   // The format is the event's, not the sheet's: the race, the end you start
   // from and whether it swaps carry over, and one tap changes any of them.
   S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey,
@@ -7561,7 +7565,7 @@ function scoutGames(){
     </div>
     <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : "No outs tallied on this sheet — only who won each point."}</p>`,
     esc(R.name))
-  + sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
+  + (!pts.length ? "" : sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
       <input type="range" min="0" max="${events.length}" value="${step}"
         oninput="set({replayStep:Number(this.value)})"/></div>
     <div class="assigns">${events.slice(0,step).map((o,i)=>{
@@ -7575,7 +7579,7 @@ function scoutGames(){
       </div>`;}).join("")}</div>
     ${step<events.length?`<p class="note">${events.length-step} still up.</p>`:""}
     <p class="aid">What you logged, in the order you logged it. Nothing is reconstructed.</p>`,
-    "Point "+pick);
+    "Point "+pick));
 }
 window.toggleLayer = k => {
   const on={...(S.scoutLayers||{theirOuts:true})};
