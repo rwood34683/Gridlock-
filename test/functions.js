@@ -4564,6 +4564,19 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ tab: "more", more: "walk", walkPick: null });
     return said && opened;
   }));
+  check("Sightlines says what was logged at the bunker you are standing in", await ev(() => {
+    window.set({ tab: "sightlines", right: { name: "Dynasty" } });
+    const bl = curLayout().bunkers, b = bl[7], L = S.layoutKey, keepT = S.tally;
+    editProfile("right", { breaks: [{ script: "", pt: 1, m: "old-s", layout: L, plants: [b.id], at: 1 }] });
+    S.tally = [...(S.tally || []), { pt: 1, side: "them", name: "#4", at: 1, m: "old-s", script: "snake", layout: L, vs: "Dynasty", shotAt: b.id }];
+    window.pickSight("from", b.id);
+    const t = document.getElementById("root").textContent;
+    const said = t.includes("Standing in " + (bunkerCalls()[b.id] || b.id) + ": ") && /Dynasty planted here 1 time · they lost 1 here/.test(t);   // Sightlines names a bunker by the coach's call, else its code
+    const blank = bl.find(x => x.id !== b.id && !bunkerBook(x.id, false));            // a bunker nothing was logged at says nothing
+    const quiet = !blank || (() => { window.pickSight("from", blank.id); return !/Standing in [^\n]*: /.test(document.getElementById("root").textContent); })();
+    S.tally = keepT; editProfile("right", { breaks: [] }); window.set({});
+    return said && quiet;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

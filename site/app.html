@@ -4048,6 +4048,16 @@ window.delWalk = i => {
 // A note's `where` ends in the bunker id, so the field can show which bunkers
 // already carry one.
 function walkWhereOf(b){ return callOf(b)+" · "+b.id; }
+/* What the book knows about one bunker, in a line: lanes clear from it off the
+ * measured layout, how often the right pit's five have planted on it, and men
+ * lost at it on either side. Walk and Sightlines both read it. */
+function bunkerBook(id, withLanes){
+  const sl = withLanes ? sightLines(id, 2, 2) : null, theirs = (plantCounts("right").find(([k]) => k === id) || [0, 0])[1];
+  const lost = loggedOuts(o => o.side === "us" && o.shotAt === id).length, got = loggedOuts(o => o.side === "them" && o.shotAt === id).length;
+  return [sl ? `<b>${sl.clear}</b> of ${sl.lines.length} lanes clear from here` : "",
+          theirs ? `${pitNamed("right") ? esc(pitOf("right").name) : "they"} planted here ${theirs} time${theirs === 1 ? "" : "s"}` : "",
+          lost ? `you lost ${lost} m${lost === 1 ? "an" : "en"} here` : "", got ? `they lost ${got} here` : ""].filter(Boolean).join(" · ");
+}
 function walkNotedIds(){
   const ids = new Set(curLayout().bunkers.map(b => b.id));
   return new Set(walkNotes().map(n => String(n.where || "").split(" · ").pop()).filter(id => ids.has(id)));
@@ -9190,6 +9200,7 @@ function sightlines(){
       <span class="fact"><b>${res.lines.length-res.clear}</b><span>Blocked</span></span>
       <span class="fact"><b>${res.lines.length}</b><span>Bunkers</span></span>
     </div>
+    ${(book => book ? `<p class="note">Standing in <b>${esc(name(from))}</b>: ${book}.</p>` : "")(bunkerBook(from, false))}
     <p class="aid">Geometry only. It does not know where bodies are — <b>walk it before you trust it.</b></p>`,
     curLayout().name)}
 
@@ -9514,7 +9525,8 @@ const HELP = {
          "Search by name when the list is long."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
-    how:["Tap where you are standing. Every lane fans out, green for clear, red for blocked.",
+    how:["Under the counts, the bunker you are standing in says what was logged at it: how often their five have planted on it and the men lost there on either side.",
+         "Tap where you are standing. Every lane fans out, green for clear, red for blocked.",
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
          "Dashed means something is in the way, and the blocker is ringed."]},
@@ -9917,12 +9929,7 @@ function moreBody(k){
             planted on it and where you have lost men at it — so the walk is
             checked against the book, not only against the eye. */""}
       ${(() => { const id = String(where).includes(" · ") ? String(where).split(" · ").pop() : null, b = id && bl.find(x => x.id === id); if(!b) return "";
-        const sl = sightLines(b.id, 2, 2), theirs = (plantCounts("right").find(([k]) => k === b.id) || [0, 0])[1];
-        const lost = loggedOuts(o => o.side === "us" && o.shotAt === b.id).length, got = loggedOuts(o => o.side === "them" && o.shotAt === b.id).length;
-        const bits = [`<b>${sl.clear}</b> of ${sl.lines.length} lanes clear from here`,
-                      theirs ? `${pitNamed("right") ? esc(pitOf("right").name) : "they"} planted here ${theirs} time${theirs === 1 ? "" : "s"}` : "",
-                      lost ? `you lost ${lost} m${lost === 1 ? "an" : "en"} here` : "", got ? `they lost ${got} here` : ""].filter(Boolean);
-        return `<p class="note"><b>${esc(callOf(b))}</b> — ${bits.join(" · ")}. <button class="btn btn--quiet read-line__go" onclick="set({tab:'sightlines',sightFrom:${jsq(b.id)},sightTo:null,sightAim:null})">Lanes from here</button></p>`; })()}
+        return `<p class="note"><b>${esc(callOf(b))}</b> — ${bunkerBook(b.id, true)}. <button class="btn btn--quiet read-line__go" onclick="set({tab:'sightlines',sightFrom:${jsq(b.id)},sightTo:null,sightAim:null})">Lanes from here</button></p>`; })()}
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
