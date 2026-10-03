@@ -764,6 +764,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Ask for a jersey number without the number keyboard. Every `rost__num` box
   carries `inputmode="numeric"` — the Team roster rows, the add row, and both
   pits on Scout — and the suite reads the attribute off every one it can find.
+- Look a screen key up in a table and call it unguarded. `S.tab`, `S.scoutTab`
+  and `S.more` are each dispatched that way, and a saved state naming one this
+  build does not have — an older copy, a renamed key, a hand-edited file — threw
+  on every render, so the app went white and relaunching did it again, exactly
+  the `fixBreak()` bug with three more keys. `fixScreen()` runs at the top of
+  `render()`: an unknown tab is Playbook, an unknown sub-tab is Matchup, an
+  unknown section is the More menu. The suite writes bad keys into storage and
+  reloads.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

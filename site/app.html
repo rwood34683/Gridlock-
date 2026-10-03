@@ -2995,6 +2995,19 @@ window.setJobCall = id => {
   S.jobCalls = all; S.pad = null; save(S); render();
 };
 function fixBreak(){ if(!allPlays()[S.script]) S.script = defaultState().script; }
+// The screen he is standing on is three keys, and every one of them is looked
+// up in a table and called. A saved state naming a tab, a Scout sub-tab or a
+// More section this build does not have — an older copy, a key renamed later,
+// a hand-edited file — threw on every render, and render is every screen, so
+// the app went white and relaunching did it again. Same guard as fixBreak(),
+// run at the top of render() so every door is covered.
+const TABS = ["playbook","tally","scout","sightlines","more"];
+const SCOUT_VIEWS = ["matchup","breakouts","anticipate","counter","layers","games","board","arrival","voice"];
+function fixScreen(){
+  if(!TABS.includes(S.tab)) S.tab = "playbook";
+  if(!SCOUT_VIEWS.includes(S.scoutTab || "matchup")) S.scoutTab = "matchup";
+  if(S.more && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
+}
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 const params = new URLSearchParams(location.search);
 if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
@@ -9977,6 +9990,7 @@ window.setAwake = on => {
 // at the top.
 let _where = "";
 function render(){
+  fixScreen();
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
