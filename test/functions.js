@@ -4192,6 +4192,16 @@ const ROSTER = [
     const r = parseRoster("Houston Heat Roster\nCoach Bob Smith\n12 Ryan Greenspan\n#4 Alex Goldman snake\nTeam Captain\nMarcello Margott\n", "Houston Heat");
     return r.found.map(f => f.name).join("|") === "Ryan Greenspan|Alex Goldman|Marcello Margott" && r.skipped.length === 3;
   }));
+  check("the squad holds one man under one name, and a name is capped so it fits a card", await ev(() => {
+    window.set({ tab: "more", more: "team", roster: [] });
+    const add = (num, name) => { document.getElementById("rNum").value = num; document.getElementById("rName").value = name; window.addPlayer(); };
+    add("7", "Reyes"); add("7", "reyes"); add("8", " Reyes "); add("", "Okafor"); add("99", "A man with a very long name that goes on and on and on");
+    const one = S.roster.filter(p => /reyes/i.test(p.name)).length === 1;
+    const capped = S.roster.every(p => p.name.length <= 32) && document.getElementById("rName").getAttribute("maxlength") === "32";
+    window.editPlayer(1, "name", "REYES");
+    const kept = S.roster[1].name === "Okafor" && /already on the squad/.test(document.getElementById("root").textContent);
+    return one && capped && kept;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

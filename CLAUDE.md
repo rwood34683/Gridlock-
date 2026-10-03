@@ -929,6 +929,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   no number that carries a role or heading word (`ROSTER_ROLE`) or starts
   with a team's name (`teamPrefix`) is skipped and listed as skipped, so the
   coach sees it was read and left out rather than finding a coach on the five.
+- Let two men share a name. A name is the key an out, a lineup slot and a
+  grade are written against, so the second Reyes made both rows go out when
+  either did. `squadHas()` folds case and spacing; Team refuses the duplicate
+  on add and on rename and says so, and a name is capped at 32 characters so
+  it fits a card.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

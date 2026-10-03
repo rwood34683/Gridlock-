@@ -2436,9 +2436,14 @@ function callOf(b, who){
 // against it, Movement and Assess pick players from it. It shipped read-only,
 // with two placeholders called "Snake" and "Center" and no way to change them.
 const rosterVal = id => (document.getElementById(id) || {}).value || "";
+// A name is the key an out, a lineup slot and a grade are written against, so
+// two men with one name is one man the app cannot tell apart: the second
+// Reyes made both rows go out when either did. The squad holds one of each.
+const squadHas = (name, except) => (S.roster || []).some((p, i) => i !== except && foldName(p.name) === foldName(name));
 window.addPlayer = () => {
-  const name = clean(rosterVal("rName").trim());
+  const name = clean(rosterVal("rName").trim()).slice(0, 32);
   if(!name) return;                       // a player with no name is not a player
+  if(squadHas(name)){ flash(`${name} is already on the squad.`); return; }
   const num = parseInt(rosterVal("rNum"), 10);
   S.roster = [...(S.roster || []), {
     name, num: isFinite(num) ? num : (S.roster || []).length + 1,
@@ -2457,8 +2462,9 @@ window.editPlayer = (i, field, value) => {
     const n = parseInt(value, 10);
     if(isFinite(n)) list[i].num = n;
   } else {
-    const v = clean(String(value).trim());
+    const v = clean(String(value).trim()).slice(0, 32);
     if(field === "name" && !v) return;     // never let a name be emptied by accident
+    if(field === "name" && squadHas(v, i)){ flash(`${v} is already on the squad.`); render(); return; }
     list[i][field] = v;
   }
   save(S);
@@ -8898,7 +8904,7 @@ function moreBody(k){
           Tally, Movement and Assess.</div>`}
       <div class="rost__add">
         <input id="rNum" class="rost__num" placeholder="#" inputmode="numeric"/>
-        <input id="rName" placeholder="Name"/>
+        <input id="rName" placeholder="Name" maxlength="32"/>
         <div class="rost__ps">
           <label><span class="note">Primary</span><input id="rP" placeholder="snake MW"/></label>
           <label><span class="note">Secondary</span><input id="rS" placeholder="GP"/></label>
