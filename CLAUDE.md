@@ -397,6 +397,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     five is named under the Scout field (`ghostLegend`) with the man usually
     sighted in each bunker (`usualMan`, off How did they get there). Nothing
     under three logged is said anywhere.
+37. ~~Lanes off the break.~~ Done — the one thing the app can say about a
+    call before it is run that is neither a count nor a guess is geometry:
+    your five plant on five bunkers, theirs on five more, and whether the lane
+    between two bunkers is clear is a fact of the measured layout, the same
+    test Sightlines makes. `theirFiveNow()` is the five they logged on this
+    point, else the five they usually plant under the read call; `laneClear()`
+    is tried from a foot outside either side of the shooter's bunker and from
+    its centre to the centre of the target's, either way round, because a man
+    shoots from the edge of his bunker and not through the middle of it;
+    `breakLanes(k)` counts how many of your five would have a lane on one of
+    theirs off the break and how many of theirs on you, with your plants
+    mirrored when you break from the right end. Shown on the call panel, the
+    point sheet and under every call on the Counter. It never ranks anything:
+    where they actually stand off the buzzer is the coach's read.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
