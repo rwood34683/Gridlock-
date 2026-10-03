@@ -467,6 +467,13 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
      Fit it to the height that is actually there and centre it. */
   .field-wrap{display:flex;justify-content:center}
   svg.field{width:auto;height:auto;max-width:100%;max-height:max(340px, calc(100vh - 400px))}
+  /* The whiteboard is a picture with an ink layer the exact size of the
+     picture. Capping the picture alone letterboxed it inside a full-width
+     box — 525 px of field in an 858 px wrap on an iPad on its side — so the
+     wrap itself is sized from the same cap (the board is 300 by 240) and the
+     picture fills it. */
+  .wb-wrap{width:min(100%, calc(max(340px, 100vh - 400px) * 1.25));margin:0 auto}
+  .wb-bg svg.field{max-height:none}
 }
 /* A tablet on its side is wide and not tall: the call card beside the field,
    as on a phone turned sideways, so Change the call and Play the break are on

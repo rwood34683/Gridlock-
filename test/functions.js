@@ -4027,6 +4027,15 @@ const ROSTER = [
     const first = bar && document.querySelector(".main").firstElementChild === bar;
     return !!bar && shown === sideways && first && /log on the fly/.test(bar.textContent);
   }));
+  check("the whiteboard's ink layer is the exact size of its picture, and a stroke lands", await ev(() => {
+    window.set({ tab: "more", more: "wb", wb: null });
+    const bg = document.querySelector(".wb-bg svg").getBoundingClientRect(), ink = document.getElementById("wb-map").getBoundingClientRect();
+    const same = Math.abs(bg.width - ink.width) < 2 && Math.abs(bg.height - ink.height) < 2 && Math.abs(bg.left - ink.left) < 2;
+    const surf = document.querySelector("#wb-map [data-wb]").getBoundingClientRect();
+    // the tappable surface fills the picture's width — no black bars either side
+    const fills = surf.width > ink.width * 0.9;
+    return same && fills;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
