@@ -7197,12 +7197,15 @@ function scoutMatchup(){
       <span class="fact"><b>${(L.players||[]).length + (R.players||[]).length}</b><span>Players logged</span></span>
     </div>
     <div class="who2">
+      ${/* Names where the app has them. The five standing on this point beside
+            each job, and the other team's men by number and name — a list of
+            numbers and wires asked a coach to forget the names he had logged. */""}
       <div><h4>Your five · ${esc(breakName())}</h4><ol>
-        ${five.map((p,i)=>`<li><b>${i+1}</b>${esc(jobName(S.script, p.id, p.label))}</li>`).join("")}
+        ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b>${who ? `${esc(who.name)} · ` : ""}${esc(jobName(S.script, p.id, p.label))}</li>`; }).join("")}
       </ol></div>
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
-          ? R.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}</li>`).join("")
+          ? R.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}</li>`).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the pit card above.</li>`}
       </ol></div>
     </div>

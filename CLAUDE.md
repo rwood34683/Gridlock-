@@ -772,3 +772,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   under a point past the end. `sheetOver()` is the one door: it says "Match
   over — New match starts the next sheet" and refuses; `tallyTap`,
   `logBreakout`, `markOut`, `logCall` and `logTheirBreak` all go through it.
+- List a man by number and wire when his name is logged. Matchup printed the
+  other team's men as "4 snake" with Dill's name a tap away on the pit card,
+  and your five as jobs with nobody's name beside them. Names where the app
+  has them, everywhere they are listed.
