@@ -751,7 +751,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   half-filled breakout sheet came back open on yesterday's bunker, one tap from
   being logged under today's point number. A launch is a fresh start on every
   screen; only what was logged survives it. The block that clears `paste` clears
-  all of them now, and the suite reloads the page to check it.
+  all of them now, and the suite reloads the page to check it. Three more
+  were found riding it later: `copyText` — the season shown as text, which is
+  the whole season again saved inside the season — the Sightlines tap mode and
+  Playbook's Cards / Rep view. Anything new that is a place he is standing or
+  a thing half done goes in that block, and the relaunch check names it.
 - Keep a clock the official keeps. The point clock and the match clock are
   theirs; the app records what the coach says happened to them — Time's up —
   the same way it records who won the point. The one clock the app runs is
