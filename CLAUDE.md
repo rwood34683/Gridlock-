@@ -778,6 +778,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   names the man it will log, and with nobody tapped it says "Tap the man who
   moved" rather than returning in silence. Assess, Movement and the point sheet
   all read `onPoint(pt)` for the same reason.
+- Stand the result buttons down and leave the handler live. `endPoint()` is
+  reached from the point sheet, the landscape log, the Scout strip and whatever
+  a later build wires to it; the sheet hiding its buttons on a finished race
+  guarded one of those doors. A scripted match that kept calling it scored a
+  race to four 6–0. The handler refuses on `matchOver()` now, and Back a point
+  is the one way a finished sheet takes another result.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.
