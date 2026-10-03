@@ -3690,7 +3690,7 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout", scoutTab: "games" });
     const t = document.getElementById("root").textContent;
-    return !/No points scored or outs logged/.test(t) && /1–0 · you won/.test(t) && /No outs tallied on this sheet/.test(t);
+    return !/No points scored or outs logged/.test(t) && /1–0 · you won/.test(t) && /No outs tallied on this (sheet|point)/.test(t);
   }));
   check("the kept list under Matches says how each sheet ended", await ev(() => {
     window.set({ tab: "more", more: "matches" });
@@ -4009,7 +4009,7 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us"); window.endPoint("them");
     window.set({ tab: "scout", scoutTab: "games", replayMatch: null, replayPt: null, replayStep: null, pitOpen: null });
     const t = document.getElementById("root").textContent;
-    return !/undefined/.test(t) && !/Step through it/.test(t) && /No outs tallied on this sheet/.test(t);
+    return !/undefined/.test(t) && !/Step through it/.test(t) && /No outs tallied on this (sheet|point)/.test(t);
   }));
   check("New match on an empty sheet replaces it rather than keeping a blank one", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } });
@@ -4300,6 +4300,50 @@ const ROSTER = [
     const named = new RegExp("likely five under " + callName("blitz") + ", from 2 logged fives: " + callOf(bl[3]) + " 2 \\(usually #7 Dill\\)").test(text);
     S.arrivalSightings = keep; editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return named;
+  }));
+  check("a call logged against a pit that is not on the sheet is a season row, and both screens say so", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.endPoint("us");                                     // the sheet vs Rejects has something on it
+    editProfile("right", { breaks: [] });
+    window.setPitTeam("right", "Dynasty"); editProfile("right", { breaks: [] });
+    const off = !pitOnSheet("right") && matchVs() === "Rejects";
+    window.logTheirBreak("right", "blitz", []);
+    const row = theirBreaks("right")[0];
+    const season = row && row.script === "blitz" && !row.m && !row.pt;
+    const sheet = document.getElementById("root").textContent;
+    const line = /This sheet is Rejects; the right pit is Dynasty, so there is no read for this point/.test(sheet) && /Put Rejects in the pit/.test(sheet);
+    window.set({ tab: "scout", scoutTab: "breakouts", pitOpen: null });
+    const warned = /Dynasty is not on it, so what you log here\s+counts for the season/.test(document.getElementById("root").textContent) && /Start a match vs Dynasty/.test(document.getElementById("root").textContent);
+    document.querySelector("#root .read-line__go, #root .warn + button");
+    window.set({ tab: "tally" }); document.querySelector("#root .read-line__go").click();
+    const back = pitOf("right").name === "Rejects" && pitOnSheet("right");
+    editProfile("right", { breaks: [] }); window.setPitTeam("right", "Dynasty"); editProfile("right", { breaks: [] });
+    return off && season && line && warned && back;
+  }));
+  check("Games tells the story of a point that was only scored, read back from every log", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { breaks: [] });
+    const bl = curLayout().bunkers, ids = [3, 9, 14].map(i => bl[i].id);
+    window.set({ script: "snake" }); window.logCall(); window.logTheirBreak("right", "blitz", ids);
+    window.addPen("them", 2); window.addTimeout("us"); window.setRead("right"); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "games", pitOpen: null, replayMatch: null, replayPt: null });
+    const t = document.getElementById("root").textContent;
+    const story = /Point 1/.test(t) && /Score before\s*0–0/.test(t) && new RegExp("You called\\s*" + callName("snake")).test(t)
+      && new RegExp("Dynasty ran\\s*" + callName("blitz") + " · " + callOf(bl[3])).test(t) && /Won by\s*you · right read/.test(t)
+      && /Penalty\s*Dynasty −2/.test(t) && /Timeout\s*you/.test(t) && /No outs tallied on this point/.test(t);
+    editProfile("right", { breaks: [] });
+    return story;
+  }));
+  check("a sheet can be named, and the name shows in the kept list", await ev(() => {
+    window.set({ tab: "more", more: "matches" });
+    const inp = [...document.querySelectorAll("#root input")].find(i => i.placeholder.startsWith("Prelim")); if (!inp) return false;
+    inp.value = "Prelim 2 · Sunday"; inp.onchange();
+    const noted = (curMatch() || {}).note === "Prelim 2 · Sunday";
+    window.newMatch();
+    window.set({ tab: "more", more: "matches" });
+    return noted && /Prelim 2 · Sunday/.test(document.getElementById("root").textContent);
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

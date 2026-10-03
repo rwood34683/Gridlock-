@@ -979,6 +979,28 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   says it when one call is half of them. And a bucket beats the season only
   when it is the moment he is in: a timeout just spent, match point, the
   first point — `nextRead()` tries those first and only when they apply.
+- Stamp a call of theirs with a sheet about somebody else. The right pit is
+  who you play, but a coach reading Dynasty on Division while his sheet is vs
+  Rejects has Dynasty in the pit and Rejects on the sheet, and a call logged
+  against Dynasty with Rejects' point joined Dynasty's breaks to a score
+  Rejects made. `pitOnSheet(side)` is the door: off the sheet, the row is a
+  **season** row with no match and no point — counted in what they run, never
+  joined to a score — and Breakouts, the read line and Tally all say so with
+  one tap to start the right sheet or put the right team back. A sheet named
+  on New match and never written on is provisional: the first call logged
+  against the pit names it for them (`adoptPitOnLog`), while picking a team
+  renames only an unnamed sheet. A sheet with anything on it keeps its name.
+- Replay the outs and call it the point. Games stepped through tally rows and
+  nothing else, so a point that was scored, called, charted and penalised read
+  as "no outs". `pointStory()` reads every log back for the point — score
+  before, what you called, what they ran and where they planted, who won it
+  and whether the read was right, penalty, timeout, and every man charted on
+  the break — and the point list is the union of every log, not the tally
+  alone. Nothing is reconstructed; the replay stands only where there are outs.
+- Show a sheet a name it can never be given. The kept list printed `note`
+  and nothing set it; Matches › This match has **Name this sheet** now
+  (`setMatchNote`, forty characters), so Sunday's quarter is not "vs Dynasty ·
+  Oct 3" three times over.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never
