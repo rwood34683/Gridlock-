@@ -7331,7 +7331,11 @@ function scout(){
         because picking a team is the first thing to do. */""}
   <div class="pits">${["left","right"].map(side => {
       const T = side === "left" ? L : R, label = side === "left" ? "Left pit · a team you watch" : "Right pit · who you play";
-      return view === "matchup" || !T.named || S.pitOpen === side ? pit(side, T, label) : pitLine(side, T, label);
+      // Off Matchup a pit folds to one line. An empty right pit stays open,
+      // because nothing below works until he says who he is playing; an
+      // empty left pit is optional and used to put a twenty-row picker above
+      // the counter on every sub-tab.
+      return view === "matchup" || (!T.named && side === "right") || S.pitOpen === side ? pit(side, T, label) : pitLine(side, T, label);
     }).join("")}</div>
 
   ${/* Games and Division are tables. A break drawn over a list of twenty teams
@@ -7922,8 +7926,8 @@ const SCOUT_WIRES = ["Snake","Dorito","Centre","Back","Flex"];
 function pitLine(side, T, label){
   return `<button class="pitline pitline--${side === "left" ? "l" : "r"}" onclick="set({pitOpen:${jsq(side)}})" aria-expanded="false">
     <span class="pitline__side">${label}</span>
-    <span class="pitline__name">${esc(T.name)}</span>
-    <span class="pitline__read">${esc(T.tend || "—")}${T.threat ? " · " + "★".repeat(Math.max(0, Math.min(5, T.threat))) : ""}</span>
+    <span class="pitline__name">${T.named ? esc(T.name) : "Nobody yet"}</span>
+    <span class="pitline__read">${T.named ? esc(T.tend || "—") + (T.threat ? " · " + "★".repeat(Math.max(0, Math.min(5, T.threat))) : "") : "optional"}</span>
     <span class="pitline__go">Open ▾</span>
   </button>`;
 }
