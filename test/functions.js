@@ -3793,6 +3793,14 @@ const ROSTER = [
     const i = t.indexOf("Threat, as you scored them");
     return i >= 0 && !/Impact ★/.test(t.slice(i, i + 200)) && /you/.test(t.slice(i, i + 200));
   }));
+  check("Team's bunker calls: tap the bunker on the field and it is the one being named", await ev(() => {
+    window.set({ tab: "more", more: "team", callPick: null });
+    const b = curLayout().bunkers[9];
+    window.callTap([b.x, b.y]);
+    const picked = S.callPick === b.id && document.getElementById("bcId").value === b.id && document.querySelectorAll("#calls-map rect[stroke='#ffffff']").length === 1;
+    document.getElementById("bcName").value = "Home"; window.setCall();
+    return picked && bunkerCalls()[b.id] === "Home";
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
