@@ -512,7 +512,10 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rank__row + .rank__row{border-top:1px solid var(--line)}
 .rank__n{width:18px;color:var(--dim);font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;flex:none}
 .rank__name{flex:1;font-size:var(--t-md);font-weight:600}
-.rank__pct{font-size:var(--t-md);font-weight:800;font-variant-numeric:tabular-nums}
+.rank__pct{font-size:var(--t-xs);font-weight:700;color:var(--dim);white-space:nowrap}
+.clock-chip{cursor:pointer;color:var(--ink);font-family:inherit}
+.clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
+.clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
 .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
 .tbl{width:100%;border-collapse:collapse;font-size:var(--t-sm);min-width:340px}
@@ -1801,6 +1804,18 @@ function smoothD(pts, sx, sy){
 // other pit reads as, and whether you can afford to be patient. Safer calls
 // rise when you are ahead; aggressive ones rise when you have to score.
 const STATE_BIAS = {Ahead:-1, Even:0, "Must-score":1};
+/* The rank is the app's opinion and says so in words. It used to print the
+ * score behind it as "52%", which a coach reads as odds of winning the point,
+ * and nobody ever counted that. Nothing on Scout is modelled: the order is a
+ * training aid and the label is how strongly the heuristic leans, no more. */
+function fitWord(r, best){
+  if(isMine(r.key)) return "Yours";
+  // Relative to the top of this list, because against this tendency in this
+  // state the heuristic's spread is a few points wide and an absolute word
+  // called nine of twelve "strong".
+  const f = r.pct - (best === undefined ? r.pct : best);
+  return f >= -1 ? "Best fit" : f >= -5 ? "Close" : "Weaker";
+}
 function counterRank(theirTendency, matchState){
   const bias = STATE_BIAS[matchState] || 0;
   return Object.entries(pickPlays()).map(([k,v])=>{
@@ -2423,7 +2438,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -2532,8 +2547,66 @@ function matchScore(){ return scoreOf(S.matchId); }
 function raceTo(m){ m = m === undefined ? curMatch() : m; return m && m.raceTo > 0 ? m.raceTo : 0; }
 function matchById(mid){ return (S.matches || []).find(x => x.id === (mid || S.matchId)) || null; }
 function matchOver(mid){
-  const m = matchById(mid), r = raceTo(m); if(!r) return null;
-  const sc = scoreOf(m.id); return sc.us >= r ? "us" : sc.them >= r ? "them" : null;
+  const m = matchById(mid); if(!m) return null;
+  const sc = scoreOf(m.id);
+  // The clock ran out: whoever leads has it. Tied is not over — Time's up on a
+  // tie goes to overtime instead, so a tie here means a result was backed out.
+  if(m.timeUp) return sc.us > sc.them ? "us" : sc.them > sc.us ? "them" : null;
+  const r = raceTo(m); if(!r) return null;
+  return sc.us >= r ? "us" : sc.them >= r ? "them" : null;
+}
+// Overtime: the clock ran out level, so the next point wins it. The race is
+// moved to one past the tie and the sheet says "overtime" rather than
+// "match point, both ways", because that is what the coach calls it.
+function inOvertime(mid){ const m = matchById(mid); return !!(m && m.ot) && !matchOver(mid); }
+/* The clock ran out — the match clock, not the point clock. The app never
+ * keeps that clock: an official does, and the coach says when it ran out,
+ * the same way he says who won the point. Ahead at the horn: over, at this
+ * score. Level at the horn: overtime, next point wins. Tap again to take it
+ * back, because a sideline is a sideline. */
+window.timeUp = () => {
+  const m = curMatch(); if(!m) return;
+  const sc = scoreOf(m.id);
+  if(m.timeUp || m.ot){ patchMatch({timeUp: false, ot: false, raceTo: m.ot ? (m.raceWas > 0 ? m.raceWas : null) : m.raceTo, raceWas: null}); }
+  else if(sc.us === sc.them){ patchMatch({ot: true, raceWas: m.raceTo || 0, raceTo: sc.us + 1}); }
+  else patchMatch({timeUp: true});
+  S.matchState = derivedState(); save(S); render();
+};
+/* The clock between points. X-Ball gives a coach a set time from the hang to
+ * the next buzzer to call the break and set his five, and it is the only
+ * clock in the app a coach runs himself — the point clock and the match
+ * clock belong to the official. How long is the event's rule, so it is set
+ * here, not shipped: 1:00, 1:30 or 2:00, kept on the match like the race.
+ * It starts itself the moment a point is scored, because that is when it
+ * starts on the field, and one tap stops or restarts it. `clockEnd` is
+ * scratch — a relaunch never resumes yesterday's countdown. */
+function breakClock(m){ m = m === undefined ? curMatch() : m; return m && m.breakClock > 0 ? m.breakClock : 0; }
+window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({breakClock: n || null}); if(!n) S.clockEnd = 0; save(S); render(); };
+window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; render(); } };
+window.stopBreakClock = () => { S.clockEnd = 0; render(); };
+const clockLeft = () => Math.max(0, Math.ceil(((S.clockEnd || 0) - Date.now()) / 1000));
+const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+/* One timer, ticking the text of every clock on screen without a render — a
+ * render every second would rebuild the sheet under the coach's thumb. It
+ * runs only while a clock is set and stops itself when none is. */
+let _clockT = null;
+function tickClock(){
+  if(_clockT) return;
+  _clockT = setInterval(() => {
+    if(!S.clockEnd){ clearInterval(_clockT); _clockT = null; return; }
+    const left = clockLeft();
+    document.querySelectorAll("[data-clock]").forEach(el => {
+      el.textContent = mmss(left);
+      el.classList.toggle("clock--out", left === 0);
+      el.classList.toggle("clock--late", left > 0 && left <= 15);
+    });
+  }, 250);
+}
+function clockChip(){
+  if(!S.clockEnd) return "";
+  const left = clockLeft();
+  tickClock();
+  return `<button class="score-chip clock-chip ${left === 0 ? "clock--out" : left <= 15 ? "clock--late" : ""}" data-clock onclick="stopBreakClock()" aria-label="Break clock, tap to stop">${mmss(left)}</button>`;
 }
 function matchPoint(mid){
   const m = matchById(mid), r = raceTo(m); if(!r || matchOver(m.id)) return null;
@@ -6188,12 +6261,13 @@ function tally(){
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc(matchVs()||"Them")} · point ${pt}${raceTo() ? ` · race to ${raceTo()}` : ""}</span></span>
+        <span>${esc(matchVs()||"Them")} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : ""}`}</span></span>
       <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
-    ${matchOver() ? `<p class="warn"><b>Match over — ${matchOver() === "us" ? "you won" : "they won"} ${sc.us}–${sc.them}.</b> New match starts the next sheet.</p>`
+    ${matchOver() ? `<p class="warn"><b>Match over — ${matchOver() === "us" ? "you won" : "they won"} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>`
+      : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
     <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
       amber costs you. The number is how often your five have broken to it.</p>
@@ -6249,7 +6323,22 @@ function tally(){
           because a segment squeezed into a button row came out 32 px tall and
           every target on a sideline is 44. */""}
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
-    <div class="seg seg--wrap" aria-label="Race to">${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">Race to ${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)">No race</button></div>
+    <div class="seg seg--wrap" aria-label="Race to"><button class="${raceTo() === 1 ? "on" : ""}" onclick="setRaceTo(1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">Race to ${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)">No race</button></div>
+    ${/* The clock between points is the one clock the coach runs. The length
+          is the event's rule — set it, never shipped. */""}
+    <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${breakClock() ? "" : "on"}" onclick="setBreakClock(0)">Off</button>${[60,90,120].map(n => `<button class="${breakClock() === n ? "on" : ""}" onclick="setBreakClock(${n})">${mmss(n)}</button>`).join("")}</div>
+    ${breakClock() ? `<div class="btnrow" style="align-items:center">
+        ${S.clockEnd ? `<span class="score-chip clock-chip grow ${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock style="justify-content:center;font-size:var(--t-lg)">${mmss(clockLeft())}</span>
+                       <button class="btn btn--quiet" onclick="stopBreakClock()">Stop</button>`
+                    : `<button class="btn btn--quiet grow" onclick="startBreakClock()">Start the ${mmss(breakClock())} clock</button>`}
+      </div>` : ""}
+    ${/* The match clock belongs to the official; the coach only says when it
+          ran out. Ahead: over at this score. Level: overtime, next point. */""}
+    ${(sc.us + sc.them && !matchOver()) || (curMatch()||{}).timeUp || (curMatch()||{}).ot
+      ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">${
+          (curMatch()||{}).timeUp || (curMatch()||{}).ot ? "Undo time's up" : sc.us === sc.them ? "Time's up — level, go to overtime" : "Time's up — match ends at this score"}</button>`
+      : ""}
     <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out. Anyone you logged as shot on the break above is already marked.</p>
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
@@ -6321,7 +6410,13 @@ function tally(){
           startUp("them",S.matchId,pt)}</b>, not 5 v 5. It is kept out of the bunker numbers when
           <b>Even points only</b> is on.</p>` : ""}`;
     })()}
-    <div class="btnrow">
+    ${matchOver() ? `<div class="btnrow">
+      ${/* The match is over: scoring another point on this sheet is a mis-tap,
+            so the result buttons stand down and New match leads. Back a point
+            is still there, because the last tap may have been the mis-tap. */""}
+      <button class="btn grow btn--lg" onclick="newMatch()">New match</button>
+      ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+    </div>` : `<div class="btnrow">
       <button class="btn grow btn--lg" onclick="endPoint('us')">${
         (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
       <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${
@@ -6330,11 +6425,11 @@ function tally(){
     <div class="btnrow">
       ${pt > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
-    </div>
+    </div>`}
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
     <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Landscape · log on the fly</button>
-    <button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`,
+    ${matchOver() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
   ${sec("Where the points come from", valueSeg + (value.length ? valueTable : valueEmpty), curLayout().name)}
@@ -6496,6 +6591,10 @@ window.endPoint = won => {
   // waiting to be told.
   S.matchState = derivedState();
   S.point = pt + 1;
+  // The hang is when the clock between points starts — and when the match is
+  // over there is no next point, so the clock stops rather than counting down
+  // to a buzzer that is not coming.
+  S.clockEnd = breakClock() && !matchOver() ? Date.now() + breakClock() * 1000 : 0;
   save(S); render();
 };
 // Back a point, because Next point is one tap and a sideline is a sideline.
@@ -6537,10 +6636,11 @@ window.newMatch = () => {
   // The format is the event's, not the sheet's: the race, the end you start
   // from and whether it swaps carry over, and one tap changes any of them.
   S.matches = [{id, at: Date.now(), vs: (S.right||{}).name || "", layout: S.layoutKey,
-                raceTo: cur && cur.raceTo > 0 ? cur.raceTo : null,
+                raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
+                breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
                 end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds)},
                ...(S.matches || []).filter(x => x.id !== blank)];
-  S.matchId = id; S.point = 1; S.tallyNudge = false;
+  S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
   // A fresh sheet is level. Ahead / Must-score is read off the score, so it has
   // to be recomputed here or the counter-picker ranks the new match on the last
   // one's result.
@@ -6818,7 +6918,7 @@ function matchStrip(){
     : `<span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
     ${pick}
-    <span class="note" style="margin:0;white-space:nowrap">point ${pt}${raceTo() ? ` · to ${raceTo()}` : ""}</span>
+    <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
     <button class="btn btn--quiet" onclick="nextPoint()">Next point</button>
     <button class="btn" onclick="newMatch()">New match</button>
@@ -6856,7 +6956,7 @@ function scout(){
         <button class="btn btn--block" onclick="set({scoutTab:'board'})">Open Division</button>`)
     : {matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
-  return `${tip("scout","Left pit and right pit. Tendency is your film read — the percentages are a training aid, not a prediction.")}
+  return `${tip("scout","Left pit and right pit. Tendency is your film read — the Counter ranking is a training aid, not a prediction.")}
   ${navigation}
   ${matchStrip()}
 
@@ -7799,7 +7899,7 @@ function scoutCounter(){
         <span class="rank__n">${i+1}</span>
         <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}</span>
         ${pips(r.aggr,"")}
-        <span class="rank__pct">${r.pct}%</span>
+        <span class="rank__pct">${fitWord(r, ranked[0].pct)}</span>
       </button>`).join("")}
     </div>
     <p class="note">Tap a break to make it the call.</p>
@@ -8247,7 +8347,9 @@ const HELP = {
          "Log this breakout, then tap the next man's bunker.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
-         "Race to is your format — first to 2, 4, 5 or 7. The sheet calls match point and match over for you.",
+         "Race to is your format — first to 2, 4, 5 or 7, or One point for 5-man. The sheet calls match point and match over for you.",
+         "Clock between points is the one clock you run. Set it to what your event gives you and it starts itself when a point is scored; it rides in the header on every tab.",
+         "Time's up is for when the official's match clock runs out: ahead, the match ends at this score; level, it goes to overtime and the next point wins.",
          "Your five break from one end. Switch ends when you change, or Swap every point if your format does. Tally reads yours and theirs off it.",
          "Even points only leaves short-handed points out of the bunker numbers."],
     watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
@@ -8366,6 +8468,9 @@ const HELP = {
 const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
+  ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
+  ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, it goes to overtime and the next point wins it; ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
+  ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. If your format swaps every point, turn on Swap every point once and the sheet alternates it for you."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Undo on that row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
@@ -9179,7 +9284,7 @@ function shell(){
   const sc = matchScore();
   // Shown once a point has a winner — or once a race is set, so 0–0 to 4 reads.
   const line = sc.us + sc.them || raceTo()
-    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</span>` : "";
+    ? `<span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${matchOver() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">final</small>` : inOvertime() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">OT</small>` : raceTo() ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">to ${raceTo()}</small>` : ""}</span>` : "";
   // The drill is over the moment the header names the break it is showing.
   const drilling = S.pbView === "rep" && repState().running;
 
@@ -9188,7 +9293,7 @@ function shell(){
       <div class="hdr__top">
         <div class="brand">Gridlock<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
-        ${line}
+        ${clockChip()}${line}
         <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
         <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
       </div>

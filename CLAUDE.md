@@ -303,6 +303,26 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     directions all stay in the frame they were set in. The field marks your
     end with a bar in your colour.
 
+30. ~~The clock between points.~~ Done — X-Ball gives a coach a set time from
+    the hang to the next buzzer to call the break and set his five, and it is
+    the only clock in the app he runs himself: the point clock and the match
+    clock belong to the official. How long is the event's rule, so it is set
+    on the point sheet (Off · 1:00 · 1:30 · 2:00) and never shipped as a
+    number. `breakClock` rides on the match like `raceTo`; `S.clockEnd` is
+    scratch and never survives a relaunch. `endPoint()` starts it, because the
+    hang is when it starts on the field; the chip in the header counts down on
+    every tab and a tap stops it. One `setInterval` writes the text of every
+    `[data-clock]` element — never a render a second under his thumb.
+31. ~~The horn, overtime and 5-man.~~ Done — the match clock ran out and the
+    app had no word for it. **Time's up** on the point sheet: ahead, the match
+    ends at this score (`timeUp`); level, overtime — the race moves to one past
+    the tie, `ot` is set and `raceWas` keeps the real race so the next sheet
+    starts from it. `inOvertime()` is the door and the sheet says "Overtime —
+    next point wins it" rather than "match point, both ways". **One point ·
+    5-man** is `raceTo: 1`: every sheet is one game. And a sheet that is over
+    stands its result buttons down — New match leads, Back a point stays — so
+    the mis-tap after the hang is not a sixth point on a race to five.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -632,3 +652,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   being logged under today's point number. A launch is a fresh start on every
   screen; only what was logged survives it. The block that clears `paste` clears
   all of them now, and the suite reloads the page to check it.
+- Keep a clock the official keeps. The point clock and the match clock are
+  theirs; the app records what the coach says happened to them — Time's up —
+  the same way it records who won the point. The one clock the app runs is
+  the one between points, and its length is set on the sheet, never shipped.
+- Print a percentage nobody counted. Counter ranked the twelve against their
+  tendency and printed the heuristic's score as "52%", which a coach reads as
+  odds of winning the point. `fitWord()` says it in words — Strong fit, Good
+  fit, Fair, Weak fit, Yours — and the order is the whole claim.
+- Leave the result buttons up on a sheet that is over. The tap after the hang
+  is reflex, and on a finished race it scored a point nobody played.
+  `matchOver()` swaps them for New match and keeps Back a point.
