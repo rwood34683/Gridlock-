@@ -366,6 +366,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     what it won ("won 3 of 4") and leaves the heuristic for the ones you never
     have. No model, no odds, no prediction. And the **timeout** from the
     rulebook (9.7): one a team a match, on the sheet, with the point it went on.
+    A man is read the same way: `manRead(side, who, team)` counts his breakout
+    rows — breaks charted, made it, shot on the break and from where, the
+    bunker he breaks to most — and `manLine()` prints it beside their men on
+    Anticipate and Matchup and under your man on Assess; *How they get you*
+    names the bunker you lose men at most against that team.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

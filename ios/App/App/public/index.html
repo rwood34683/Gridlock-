@@ -4314,6 +4314,30 @@ function theirReads(side){
           when: [bucket("when behind", r => lead(r) < 0), bucket("when ahead", r => lead(r) > 0), bucket("level", r => lead(r) === 0),
                  bucket("after losing a point", r => last(r, mine)), bucket("after winning a point", r => last(r, theirs))]};
 }
+/* One man, read off the breakout rows: how many breaks he was charted on,
+ * how many he made, how many times he was shot on the break and from where,
+ * and the bunker he breaks to most. Your man is matched by name; theirs by
+ * the "#7" or "#7 Smith" the sheet names him with. Counts, with the sample
+ * on them — never a rating. */
+function manRead(side, who, team){
+  const tag = String(who || "").trim();
+  const hit = r => r && r.side === side && r.player && (r.player === tag || r.player.split(" ")[0] === tag.split(" ")[0] && tag.startsWith("#"))
+                 && (!team || r.vs === team) && !watchedMatch(r.m);
+  const rows = (S.breakouts || []).filter(hit);
+  const top = key => { const m = {}; rows.forEach(r => { if(r[key]) m[r[key]] = (m[r[key]] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
+  return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
+          delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battling").length,
+          bunker: top("bunker"), shotFrom: top("shotFrom")};
+}
+// The read as one line, or nothing when there is nothing counted.
+function manLine(side, who, team){
+  const r = manRead(side, who, team); if(!r.n) return "";
+  const name = id => { const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; };
+  const bits = [`${r.n} break${r.n === 1 ? "" : "s"} charted`,
+                r.made ? `made it ${r.made}` : "", r.shot ? `shot on the break ${r.shot}${r.shotFrom ? ` (from ${esc(name(r.shotFrom[0]))} ${r.shotFrom[1]})` : ""}` : "",
+                r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : ""].filter(Boolean);
+  return bits.join(" · ");
+}
 /* Your record with a call against a team on this field: the calls you logged,
  * joined with who won the point. The Counter ranks on this first and falls
  * back to the heuristic only where you have no history. */
@@ -6603,8 +6627,11 @@ function opponentRead(team){
   const rows = loggedOuts(o => o.side === "us" && o.vs === team);
   const tally = (key) => rows.reduce((m, o) => (o[key] ? {...m, [o[key]]:(m[o[key]] || 0) + 1} : m), {});
   const rank = m => Object.entries(m).sort((a, b) => b[1] - a[1]);
+  // Where: the bunker your man was shot at, named the way the team names it.
+  const where = {};
+  rows.forEach(o => { if(o.shotAt){ const b = curLayout().bunkers.find(x => x.id === o.shotAt); const k = b ? callOf(b) : o.shotAt; where[k] = (where[k] || 0) + 1; } });
   return {n: rows.length, points: new Set(rows.map(o => o.pt)).size,
-          how: rank(tally("how")), who: rank(tally("by"))};
+          how: rank(tally("how")), who: rank(tally("by")), where: rank(where)};
 }
 
 /* ============================================================
@@ -7514,7 +7541,7 @@ function scoutMatchup(){
       </ol></div>
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
-          ? R.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}</li>`).join("")
+          ? R.players.map(m=>{ const line = manLine("them", m.num ? "#" + m.num : m.name, R.name); return `<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}${line ? `<br><span class="note">${line}</span>` : ""}</li>`; }).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the pit card above.</li>`}
       </ol></div>
     </div>
@@ -7536,14 +7563,15 @@ function scoutAnticipate(){
       <div class="kv__row"><span class="kv__k">Tells at the line</span><span class="kv__v">${tells}</span></div>
       <div class="kv__row"><span class="kv__k">Your counter</span><span class="kv__v">${counter}</span></div>
       ${extra || ""}
-      ${men.map(m=>`<div class="kv__row"><span class="kv__k">${esc(m.num?"#"+m.num:"Watch")}${m.name?" "+esc(m.name):""}</span>
+      ${men.map(m=>{ const line = manLine("them", m.num ? "#" + m.num : m.name, T.name); return `<div class="kv__row"><span class="kv__k">${esc(m.num?"#"+m.num:"Watch")}${m.name?" "+esc(m.name):""}</span>
         <span class="kv__v">${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}
-        <span style="color:var(--accent-lit)">${"★".repeat(m.threat||0)}</span></span></div>`).join("")}
+        <span style="color:var(--accent-lit)">${"★".repeat(m.threat||0)}</span>${line ? `<br><span style="color:var(--dim)">${line}</span>` : ""}</span></div>`; }).join("")}
       ${(()=>{const r=opponentRead(T.name); if(!r.n) return "";
         const how=r.how.slice(0,3).map(([k,n])=>`${esc(k.toLowerCase())} ${n}`).join(", ");
         const who=r.who.slice(0,3).map(([k,n])=>`${esc(k)} ${n}`).join(", ");
+        const at=r.where[0] ? `${esc(r.where[0][0])} ${r.where[0][1]} of ${r.n}` : "";
         return `<div class="kv__row"><span class="kv__k">How they get you</span><span class="kv__v">
-          ${r.n} of your outs over ${r.points} point${r.points===1?"":"s"}${how?` · ${how}`:""}${who?`<br>${who}`:""}
+          ${r.n} of your outs over ${r.points} point${r.points===1?"":"s"}${how?` · ${how}`:""}${who?`<br>${who}`:""}${at?`<br>You lose men at <b>${at}</b> most`:""}
           </span></div>`;})()}
       ${(T.notes||"").trim()?`<div class="kv__row"><span class="kv__k">Your film</span><span class="kv__v">${esc(T.notes)}</span></div>`:""}
     </div></div>`;
@@ -9017,6 +9045,7 @@ function moreBody(k){
         <div class="seg seg--wrap" aria-label="Who to grade">${(on.length?on:bench).map(chip).join("")}</div>
         ${on.length&&bench.length?`<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">On the bench</h4>
           <div class="seg seg--wrap" aria-label="On the bench">${bench.map(chip).join("")}</div>`:""}
+        ${S.asWho ? (l => l ? `<p class="note" style="margin:var(--s2) 0 0">${esc(S.asWho)} on ${esc(layoutName)}: ${l}</p>` : "")(manLine("us", S.asWho)) : ""}
         <h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">Score</h4>
         <div class="seg seg--wrap" aria-label="Score">${[5,4,3,2,1].map(n=>`<button class="${S.asScore===n?"on":""}" onclick="assessScore(${n})">${n} · ${SCORE_WORDS[n]}</button>`).join("")}</div>
         <div class="fld" style="margin-top:var(--s3)"><label>Note</label><textarea id="asNote" placeholder="Read the snake early, held the corner."></textarea></div>
