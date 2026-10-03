@@ -3786,6 +3786,13 @@ const ROSTER = [
     const t = document.getElementById("root").textContent;
     return /Against Dynasty's likely/.test(t) && !/Impact against/.test(t) && /you are/.test(t);
   }));
+  check("Matchup's threat bar does not stand the watched team in for you", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", left: { name: "Impact" }, right: { name: "Dynasty" }, pitOpen: null });
+    editProfile("left", { threat: 5 }); window.set({});
+    const t = document.getElementById("root").textContent;
+    const i = t.indexOf("Threat, as you scored them");
+    return i >= 0 && !/Impact ★/.test(t.slice(i, i + 200)) && /you/.test(t.slice(i, i + 200));
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

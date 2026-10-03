@@ -526,6 +526,16 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rank__name{flex:1;font-size:var(--t-md);font-weight:600}
 .rank__pct{font-size:var(--t-xs);font-weight:700;color:var(--dim);white-space:nowrap}
 .clock-chip,.score-chip--go{cursor:pointer;color:var(--ink);font-family:inherit;min-height:44px}
+/* A narrow phone with the clock and the score both up: the brand's second
+   line goes, the chips tighten, and the Staff chip steps aside — Nexus says
+   who is signed in. Every chip stays inside the screen. */
+@media(max-width:360px){
+  .hdr__top{gap:6px}
+  .brand{font-size:15px;letter-spacing:.1em}
+  .brand small{display:none}
+  .score-chip{padding:4px 8px;font-size:12px;gap:2px}
+  .hdr__top .who-chip{display:none}
+}
 .clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
@@ -7960,7 +7970,10 @@ function scoutMatchup(){
     <div class="fld"><label>Threat, as you scored them</label>
       <div class="bar"><i style="width:${lPct}%;background:var(--red)"></i><i style="width:${100-lPct}%;background:var(--blue)"></i></div>
       <div class="barends" style="margin-top:8px">
-        <span style="color:var(--red)">${esc(L.name)} ${"★".repeat(L.threat||0)}</span>
+        ${/* A head-to-head bar only when there are two sides on the field — a
+              watched game. On his own sheet the left pit is a team he watches,
+              and it has no business standing in for his five. */""}
+        ${(curMatch()||{}).watch && L.named ? `<span style="color:var(--red)">${esc(L.name)} ${"★".repeat(L.threat||0)}</span>` : `<span style="color:var(--dim)">you</span>`}
         <span style="color:var(--blue)">${"★".repeat(R.threat||0)} ${esc(R.name)}</span>
       </div>
     </div>
