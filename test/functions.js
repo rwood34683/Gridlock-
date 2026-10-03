@@ -4620,6 +4620,21 @@ const ROSTER = [
     const own = !document.querySelector("#root .score-chip--watch") && document.querySelector("#root .score-chip--go").getAttribute("aria-label") === "Open the point sheet";
     return ok && own;
   }));
+  check("every button inside a read line is a 44 px target", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    window.logTheirBreak("right", "snake", []); window.set({ script: "snake" }); window.logCall(); window.endPoint("us");
+    for (let i = 0; i < 3; i++) { window.logTheirBreak("right", "blitz", []); window.set({ script: "split" }); window.logCall(); window.endPoint("us"); }
+    const seen = []; const short = [];
+    const sweep = () => [...document.querySelectorAll("#root .read-line__go")].forEach(b => { const r = b.getBoundingClientRect(); seen.push(b.textContent.trim()); if (r.height < 43.5) short.push(`${b.textContent.trim()} ${Math.round(r.height)}px`); });
+    window.set({ script: "snake" }); sweep();                                // the Call button on the sheet (the answer is Wire Split, so it shows)
+    window.setPitTeam("right", "Royalty"); window.set({}); sweep();          // Put <team> in the pit
+    window.setPitTeam("right", "Dynasty");
+    window.set({ tab: "more", more: "walk" }); window.walkSelect(walkWhereOf(curLayout().bunkers[5])); sweep();   // Lanes from here
+    window.set({ walkPick: null }); editProfile("right", { breaks: [] });
+    return seen.length >= 3 && short.length === 0;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
