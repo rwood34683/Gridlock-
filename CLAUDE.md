@@ -1036,6 +1036,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Anticipate. A repeat sighting is not a move; one sighting is not a move.
   Layers draws them too — **Their rotations**, a blue arrow a move with the
   count on it, beside the green arrows of your own.
+- Count how often you called a play and not what it won. Self-scout on
+  Playbook ranked the calls by how often they were logged on this field and
+  said nothing about the points; `callRecordHere(key)` joins the same rows
+  with the results, so each call reads "40% of 10 logged here · won 3 of 4"
+  and each recent call says won or lost. The record against one team stays
+  on the Counter (`callRecord`); this is the field-wide one.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never

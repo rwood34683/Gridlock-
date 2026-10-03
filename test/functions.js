@@ -4498,6 +4498,21 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return !!order;
   }));
+  check("self-scout on Playbook says what each call won on this field, and how each logged point went", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const keep = S.calls; S.calls = [];
+    window.set({ script: "tower" }); window.logCall(); window.endPoint("us");
+    window.set({ script: "tower" }); window.logCall(); window.endPoint("them");
+    window.set({ script: "tower" }); window.logCall();                         // no result yet
+    const r = callRecordHere("tower");
+    window.set({ tab: "playbook" });
+    const t = document.getElementById("root").textContent;
+    const row = r.n === 2 && r.won === 1 && new RegExp(callName("tower") + "\\s*100% of 3 logged here · won 1 of 2").test(t);
+    const recent = /point 1 · vs Dynasty · won/.test(t) && /point 2 · vs Dynasty · lost/.test(t) && /point 3 · vs Dynasty\s*Undo/.test(t);
+    S.calls = keep; window.set({});
+    return row && recent;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
