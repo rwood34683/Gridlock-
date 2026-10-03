@@ -1782,7 +1782,9 @@ const ROSTER = [
     return p.threat === 5 && p.tend === "Dorito";
   }));
   check("the pit dropdown follows the division", await ev(() => {
+    window.set({ pitOpen: "right" });                        // folded off Matchup; open the card to read its picker
     const opts = [...document.querySelectorAll(".pit select option")].map(o => o.textContent);
+    window.set({ pitOpen: null });
     return opts.includes("Houston Heat") && !opts.includes("Rejects");
   }));
   check("a profile survives switching divisions", await ev(() => {
@@ -3699,6 +3701,23 @@ const ROSTER = [
     const plants = (BREAK_PLANTS[S.layoutKey] || {}).snake || [];
     const t = document.getElementById("root").textContent;
     return plants.length > 0 && sightDefault() === plants[0] && new RegExp("Standing in · " + callOf(curLayout().bunkers.find(b => b.id === plants[0])).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(t);
+  }));
+  check("named pits fold to one line on every Scout sub-tab but Matchup, and open on a tap", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "anticipate", left: { name: "Impact" }, right: { name: "Dynasty" }, pitOpen: null });
+    const root = document.getElementById("root");
+    const folded = root.querySelectorAll(".pitline").length === 2 && !/TENDENCY · YOUR FILM READ/i.test(root.textContent) && !/Tendency · your film read/.test(root.textContent);
+    const h = root.querySelector(".pitline").getBoundingClientRect().height;
+    window.set({ pitOpen: "right" });
+    const opened = root.querySelectorAll(".pitline").length === 1 && /Tendency · your film read/.test(root.textContent) && /Fold/.test(root.textContent);
+    window.set({ scoutTab: "matchup", pitOpen: null });
+    const full = root.querySelectorAll(".pitline").length === 0 && root.querySelectorAll(".pit").length === 2;
+    return folded && h >= 44 && opened && full;
+  }));
+  check("an empty pit never folds — picking a team comes first", await ev(() => {
+    window.set({ scoutTab: "layers", right: { name: "" } });
+    const root = document.getElementById("root");
+    const ok = root.querySelectorAll(".pitline").length === 1 && root.querySelectorAll(".pit").length === 1;
+    window.set({ right: { name: "Dynasty" } }); return ok;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

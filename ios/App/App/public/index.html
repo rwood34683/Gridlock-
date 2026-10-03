@@ -483,6 +483,13 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
   border-top:3px solid var(--wire);
 }
+.pitline{display:grid;grid-template-columns:auto 1fr auto auto;gap:var(--s3);align-items:center;width:100%;min-height:52px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--wire);border-radius:var(--r-md);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.pitline--l{--wire:var(--red)}.pitline--r{--wire:var(--blue)}
+.pitline__side{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--wire)}
+.pitline__name{font-weight:800;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitline__read{font-size:var(--t-xs);color:var(--dim);white-space:nowrap}
+.pitline__go{font-size:var(--t-xs);color:var(--mute);font-weight:700;white-space:nowrap}
+@media(max-width:519px){.pitline{grid-template-columns:1fr auto}.pitline__side{grid-column:1/-1}}
 .pit--l{--wire:var(--red)}
 .pit--r{--wire:var(--blue)}
 .pit__side{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--wire)}
@@ -1700,7 +1707,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -6375,7 +6382,16 @@ function scout(){
         playing. The right pit is the team he plays — Tally, Counter and the
         sheet all read it; the left is a second team: the other side of a game
         he is watching, or someone he wants beside them. */""}
-  <div class="pits">${pit("left",L,"Left pit · a team you watch")}${pit("right",R,"Right pit · who you play")}</div>
+  ${/* Matchup is where the two pits are read and edited, so it gets the full
+        cards. Every other sub-tab is about something else — their five, the
+        counter, a replay — and two full cards above it put that something two
+        screens down on a phone. A named pit folds to one line there; tap it
+        to open the card, tap again to fold it. An empty pit stays open,
+        because picking a team is the first thing to do. */""}
+  <div class="pits">${["left","right"].map(side => {
+      const T = side === "left" ? L : R, label = side === "left" ? "Left pit · a team you watch" : "Right pit · who you play";
+      return view === "matchup" || !T.named || S.pitOpen === side ? pit(side, T, label) : pitLine(side, T, label);
+    }).join("")}</div>
 
   ${/* Games and Division are tables. A break drawn over a list of twenty teams
        is a call nobody made on that screen, so those two get the pits and the
@@ -6961,10 +6977,19 @@ document.addEventListener("click",ev=>{
 });
 
 const SCOUT_WIRES = ["Snake","Dorito","Centre","Back","Flex"];
+// The folded pit: who is in it and the read, one tap from the whole card.
+function pitLine(side, T, label){
+  return `<button class="pitline pitline--${side === "left" ? "l" : "r"}" onclick="set({pitOpen:${jsq(side)}})" aria-expanded="false">
+    <span class="pitline__side">${label}</span>
+    <span class="pitline__name">${esc(T.name)}</span>
+    <span class="pitline__read">${esc(T.tend || "—")}${T.threat ? " · " + "★".repeat(Math.max(0, Math.min(5, T.threat))) : ""}</span>
+    <span class="pitline__go">Open ▾</span>
+  </button>`;
+}
 function pit(side,T,label){
   const men = T.players || [];
   return `<div class="pit pit--${side==="left"?"l":"r"}">
-    <div class="pit__side">${label}</div>
+    <div class="pit__side">${label}${S.pitOpen === side ? ` <button class="btn btn--quiet" style="float:right;min-height:36px;padding:6px 10px" onclick="set({pitOpen:null})">Fold ▴</button>` : ""}</div>
     <div>
       <div class="pit__name"${T.named?"":` style="color:var(--dim)"`}>${T.named?esc(T.name):"Pick a team"}</div>
       <div class="pit__pts">${!T.named ? "nobody in this pit yet"
@@ -7784,6 +7809,7 @@ const HELP = {
     watch:"A named man logged shot on the break is also an out on the sheet. You do not log him twice. You do not need the bunker codes to tap one — the sheet names it when it opens."},
   scout: {t:"Scout", w:"What you know about the other team.",
     how:["The right pit is who you play — put them there first. Nothing else works until you do.",
+         "On every sub-tab but Matchup a named pit folds to one line so the screen you came for is at the top. Tap the line to open the card.",
          "The left pit is a second team: the other side of a game you watch, or someone to read beside them.",
          "The sub-tabs above are the different reads.",
          "The match strip under the pits is the same match and point Tally is on.",

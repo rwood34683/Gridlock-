@@ -751,3 +751,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   question a coach walks over with is what his own man can see, so
   `sightDefault()` stands him in his first plant for the call he is on and
   falls back to the list only on a field with no plants.
+- Draw both full pit cards above every Scout sub-tab. Matchup is where the
+  two pits are read and edited; on Anticipate, Layers, Games or Counter two
+  full cards put the screen he came for two screens down on a phone. A named
+  pit folds to one line there (`pitLine`, `S.pitOpen` scratch opens it), an
+  empty pit never folds because picking a team comes first.
