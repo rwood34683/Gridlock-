@@ -781,3 +781,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   (`S.tallyPickFor`, scratch), tap the bunker, and `tallyTap` fills the draft
   instead of opening another man's sheet; the two targets are ringed on the
   field while the sheet is open. The dropdowns stay and follow the tap.
+- Put the left pit in the coach's place. Counter read "Blast Camp against
+  Rejects … and you are even" with Blast Camp the team he was *watching*.
+  Only a watched sheet has two named sides; on his own, the line is "Against
+  ‹them›'s likely break, and you are ‹state›".

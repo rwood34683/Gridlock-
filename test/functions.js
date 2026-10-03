@@ -3780,6 +3780,12 @@ const ROSTER = [
     window.tallyDone();
     return open && shot && refused && moved && !S.tallyPickFor;
   }));
+  check("Counter never puts the team you watch in your place", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter", left: { name: "Impact" }, right: { name: "Dynasty" }, pitOpen: null });
+    window.playPit(); window.newMatch();
+    const t = document.getElementById("root").textContent;
+    return /Against Dynasty's likely/.test(t) && !/Impact against/.test(t) && /you are/.test(t);
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
