@@ -727,6 +727,9 @@ svg.field [data-pick]{cursor:crosshair}
    top, so the whole loop is one thumb-reach with nothing to scroll. */
 /* Shown only on a phone turned sideways; everywhere else the quick log is
    offered where it was, at the foot of the point sheet. */
+.read-line{margin:var(--s2) 0 0;max-width:70ch}
+.read-line b{color:var(--ink)}
+.read-line__go{min-height:36px;padding:6px 10px;margin-left:6px;vertical-align:middle}
 .turn-bar{display:none}
 @media (orientation:landscape) and (max-height:520px){
   .turn-bar{display:flex}
@@ -4060,9 +4063,18 @@ function walkOverlay(){
 // ---- code words: the word, and what it means, because a list of words is
 // no use to the player who joined last week ----
 window.addCode = () => {
-  const word = clean(rosterVal("cdWord").trim());
+  const word = clean(rosterVal("cdWord").trim()).slice(0, 32);
   if(!word) return;
-  S.codes = [...(S.codes || []), {word, means: clean(rosterVal("cdMeans").trim())}];
+  const means = clean(rosterVal("cdMeans").trim());
+  // A word typed again is the same word: a code is a lookup for the player who
+  // joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
+  // Retyping it updates what it means rather than adding a second one.
+  const i = (S.codes || []).findIndex(c => foldName(c.word) === foldName(word));
+  if(i >= 0){
+    const list = [...S.codes]; list[i] = {...list[i], means: means || list[i].means};
+    S.codes = list; flash(`${list[i].word} updated.`); save(S); render(); return;
+  }
+  S.codes = [...(S.codes || []), {word, means}];
   save(S); render();
 };
 window.editCode = (i, field, value) => {
@@ -4890,9 +4902,23 @@ function fieldSVG(opts={}, runnersOnly){
           + `font-size="7" fill="#fff" font-weight="800">${esc(tag)}</text></g>`;
       }).join("");
     }).join("");
-    // The five logged for this point on Breakouts, nameless, numbered as tapped.
+  }
+  // The five logged for this point on Breakouts, nameless, numbered as tapped —
+  // and until it is, a ghost of where they have planted most. These are the
+  // break, not a layer: they show whenever their side of the field is shown,
+  // not only behind the Their five overlay, which places the men he named.
+  if(opts.their || opts.theirFive){
     const five = theirFiveLogged("right");
     if(five) their += fiveSquares(five.plants, sx, sy, "#3d8bff");
+    else if(pitNamed("right")){
+      const rd = nextRead("right"), g = likelyPlants("right", rd && !rd.thin ? rd.call : null);
+      if(g.n >= 2) their += g.top.map(([id, n]) => {
+        const b = layout.bunkers.find(x => x.id === id); if(!b) return "";
+        const x = b.x * sx, y = b.y * sy, r = 6.2;
+        return `<g class="ghost-plant" opacity=".7"><rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" height="${(r*2).toFixed(1)}" rx="2" fill="none" stroke="#3d8bff" stroke-width="1.3" stroke-dasharray="2.2 1.6"/>`
+             + `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" text-anchor="middle" font-size="7" fill="#3d8bff" font-weight="800">${n}</text></g>`;
+      }).join("");
+    }
   }
 
   if(runnersOnly) return paths;
@@ -5095,6 +5121,72 @@ function manLine(side, who, team){
                 r.made ? `made it ${r.made}` : "", r.shot ? `shot on the break ${r.shot}${r.shotFrom ? ` (from ${esc(name(r.shotFrom[0]))} ${r.shotFrom[1]})` : ""}` : "",
                 r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : ""].filter(Boolean);
   return bits.join(" · ");
+}
+/* The read for the next point. The most specific situation the coach is in
+ * right now that has three or more logged — the score state together with
+ * who won the last point, then the score state alone, then the last point,
+ * then the season — and what they ran in it. Never a model: the bucket, the
+ * call, and "3 of 4". A side with fewer than three logged calls is "thin"
+ * and says so rather than guessing. */
+function nextRead(side = "right"){
+  const m = curMatch(); if(!m || !pitNamed(side)) return null;
+  const pt = S.point || 1;
+  const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
+  const sc = scoreBefore(m.id, pt), lead = Math.sign(sc[theirs] - sc[mine]);
+  const lastWon = ((S.results || []).find(r => r && r.m === m.id && r.pt === pt - 1) || {}).won;
+  const state = lead < 0 ? "behind" : lead > 0 ? "ahead" : "level";
+  const last = lastWon === undefined ? "" : lastWon === mine ? "after losing a point" : "after winning a point";
+  const rows = theirBreaks(side).filter(b => b.script && b.m);
+  const tally = list => Object.entries(list.reduce((a, b) => ({...a, [b.script]: (a[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
+  const leadOf = r => { const x = scoreBefore(r.m, r.pt); return Math.sign(x[theirs] - x[mine]); };
+  const lastOf = r => { const w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === mine ? "after losing a point" : "after winning a point"; };
+  const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, alt: t[1] || null}; };
+  const order = [
+    last ? bucket(`${state}, ${last}`, r => leadOf(r) === lead && lastOf(r) === last) : null,
+    bucket(state, r => leadOf(r) === lead),
+    last ? bucket(last, r => lastOf(r) === last) : null,
+    bucket("this season", () => true)];
+  const pick = order.find(b => b && b.n >= 3 && b.top);
+  if(!pick) return {thin: true, n: rows.length};
+  return {call: pick.top[0], n: pick.top[1], of: pick.n, basis: pick.label, alt: pick.alt, thin: false};
+}
+/* Your best answer to a call of theirs: the call of yours that won most on
+ * points where they ran it, from your own record on this field; failing that,
+ * the answer you wrote down on Counter; failing that, nothing. */
+function bestAnswer(theirCall, side = "right"){
+  const team = pitOf(side).name; if(!team || !theirCall) return null;
+  const key = r => r.m + "|" + r.pt;
+  const pts = new Set(theirBreaks(side).filter(b => b.script === theirCall && b.m).map(key));
+  const tally = {};
+  (S.calls || []).filter(c => c && c.vs === team && c.layout === S.layoutKey && pts.has(key(c)) && !watchedMatch(c.m)).forEach(c => {
+    const w = ((S.results || []).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won; if(!w) return;
+    const t = tally[c.script] = tally[c.script] || {n: 0, won: 0}; t.n++; if(w === "us") t.won++;
+  });
+  const ranked = Object.entries(tally).sort((a, b) => (b[1].won / b[1].n) - (a[1].won / a[1].n) || b[1].n - a[1].n);
+  if(ranked.length) return {call: ranked[0][0], won: ranked[0][1].won, n: ranked[0][1].n, basis: "record"};
+  const written = answersFor(side)[theirCall];
+  return written ? {call: written, basis: "written"} : null;
+}
+// The read as one line for the point sheet, the quick log and Playbook.
+function nextReadLine(compact){
+  if(nobodyToPlay() || (curMatch() || {}).watch) return "";
+  const r = nextRead("right"); if(!r) return "";
+  const them = esc(pitOf("right").name);
+  if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Scout › Breakouts and the read builds itself.</p>`;
+  const a = bestAnswer(r.call);
+  const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
+  const btn = a && a.call !== S.script && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : "";
+  return `<p class="note read-line"><b>Read:</b> ${them} ${r.basis === "this season" ? "run" : r.basis.startsWith("after") || r.basis.includes(",") ? "" : "when "}${r.basis === "this season" ? "" : esc(r.basis) + " run "}<b>${esc(callName(r.call))}</b> — ${r.n} of ${r.of}${r.alt ? `, then ${esc(callName(r.alt[0]))} ${r.alt[1]}` : ""}.${answer}${compact ? "" : btn}</p>`;
+}
+/* Where their five have planted most, as a ghost of the five until the real
+ * one is tapped in on Breakouts. Under the call the read expects when that
+ * call has plants logged; across every logged five otherwise. */
+function likelyPlants(side = "right", call){
+  const rows = theirBreaks(side).filter(b => Array.isArray(b.plants) && b.plants.length && (!b.layout || b.layout === S.layoutKey));
+  const under = call ? rows.filter(b => b.script === call) : [];
+  const use = under.length >= 2 ? under : rows;
+  const c = new Map(); use.forEach(b => b.plants.forEach(id => c.set(id, (c.get(id) || 0) + 1)));
+  return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)};
 }
 /* Your record with a call against a team on this field: the calls you logged,
  * joined with who won the point. The Counter ranks on this first and falls
@@ -5854,7 +5946,7 @@ function playbook(){
           onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
-      ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
+      ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>${nextReadLine(false)}`
         :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
@@ -6783,6 +6875,7 @@ function tally(){
       <div class="call__name" style="font-size:var(--t-xl)">${esc(breakName())}</div>
       <div class="call__read">${esc(breakMeta(S.script).read)}</div>
     </div>
+    ${nextReadLine(false)}
     <div class="btnrow">
       <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
         S.tallyPick?"Close":"Change the call"}</button>
@@ -7571,7 +7664,7 @@ function scout(){
       <button class="tgl ${S.outsOn?"on":""}" onclick="set({outsOn:!S.outsOn})"><i></i>Outs</button>
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
     </div>`}
-    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us"})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${esc(L.named?L.name:"Left pit · not set")} · ${esc(breakName())}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
@@ -9151,6 +9244,7 @@ const HELP_Q = [
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
+  ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
@@ -10072,6 +10166,7 @@ function quickLog(){
       <span class="qlog__name">${esc(breakName())}</span>
       <span class="qlog__caret">${S.quickPick?"CLOSE ▴":"CHANGE ▾"}</span>
     </button>
+    ${nextReadLine(true)}
     ${S.quickPick ? `<div class="seg seg--wrap qlog__pick">
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,quickPick:false})">${esc(callName(k))}</button>`).join("")}

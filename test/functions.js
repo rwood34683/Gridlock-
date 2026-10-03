@@ -4202,6 +4202,47 @@ const ROSTER = [
     const kept = S.roster[1].name === "Okafor" && /already on the squad/.test(document.getElementById("root").textContent);
     return one && capped && kept;
   }));
+  check("a code word typed again updates its meaning rather than adding a second row", await ev(() => {
+    window.set({ tab: "more", more: "codes", codes: [] });
+    const add = (w, m) => { document.getElementById("cdWord").value = w; document.getElementById("cdMeans").value = m; window.addCode(); };
+    add("Rocket", "snake stack"); add("rocket", "snake stack, runner on the buzzer"); add(" Rocket ", "");
+    const codes = S.codes || [];
+    return codes.length === 1 && codes[0].word === "Rocket" && codes[0].means === "snake stack, runner on the buzzer" && /Rocket updated/.test(document.getElementById("root").textContent);
+  }));
+  check("the next point is read from the spot you are in, with your best answer, on the sheet, the quick log and Playbook", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", breaks: [], answers: {} });
+    const thin = nextRead("right");
+    const saysThin = thin.thin && /not enough to read yet|no calls logged yet/.test(document.getElementById("root").textContent);
+    // they lose point 1 and, behind after losing, run Blitz three times; we answer Wire Split twice and win both
+    window.logTheirBreak("right", "snake", []); window.set({ script: "snake" }); window.logCall(); window.endPoint("us");
+    window.logTheirBreak("right", "blitz", []); window.set({ script: "split" }); window.logCall(); window.endPoint("us");
+    window.logTheirBreak("right", "blitz", []); window.set({ script: "split" }); window.logCall(); window.endPoint("us");
+    window.logTheirBreak("right", "blitz", []); window.set({ script: "snake" }); window.logCall(); window.endPoint("them");
+    window.endPoint("us");                                   // they are behind after losing a point again
+    const r = nextRead("right"), a = bestAnswer("blitz");
+    const read = r && !r.thin && r.call === "blitz" && r.n === 3 && r.of === 3 && /behind, after losing a point/.test(r.basis);
+    const answer = a && a.call === "split" && a.won === 2 && a.n === 2;
+    const sheet = document.getElementById("root").textContent;
+    const shown = new RegExp("Read: Dynasty behind, after losing a point run " + callName("blitz") + " — 3 of 3").test(sheet) && new RegExp("Your answer: " + callName("split") + " — won 2 of 2").test(sheet);
+    const go = document.querySelector("#root .read-line__go"); const before = S.script; if (go) go.click();
+    const called = S.script === "split" && before !== "split";
+    window.set({ tab: "playbook" }); const onPb = /Read: Dynasty/.test(document.getElementById("root").textContent);
+    window.set({ tab: "tally", quick: true }); const onQuick = /Read: Dynasty/.test(document.querySelector(".qlog").textContent); window.closeQuick();
+    editProfile("right", { breaks: [] });
+    return saysThin && read && answer && shown && called && onPb && onQuick;
+  }));
+  check("a ghost of where they plant most stands on the Scout field until the real five is tapped in", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter", right: { name: "Dynasty" }, pitOpen: null, theirPick: [] });
+    const bl = curLayout().bunkers, ids = [3, 9, 14, 20, 30].map(i => bl[i].id);
+    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: S.layoutKey, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: S.layoutKey, plants: ids, at: 2 }] }); window.set({});
+    const ghosts = document.querySelectorAll("#root svg.field .ghost-plant").length;
+    window.logTheirBreak("right", "", ids.slice(0, 3)); window.set({});
+    const gone = document.querySelectorAll("#root svg.field .ghost-plant").length === 0 && !!theirFiveLogged("right");
+    editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return ghosts === 5 && gone;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
