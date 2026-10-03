@@ -58,7 +58,10 @@ Guest · Staff/Coach · League Admin · Participant (form only)
 ## Tabs
 
 Phone: Playbook, Tally, Scout, Sightlines, More — a bar along the bottom.
-Tablet, and any screen past 900 px: the same five in a rail down the left.
+Tablet — any screen at least 740 px wide **and** 600 px tall, which is every iPad
+in either orientation and never a phone on its side: the same five in a rail
+down the left. On the same screens the field is fitted to the height there is
+and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Classes, League, Nexus.
 
@@ -789,6 +792,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the games and the layers. Off Matchup an empty left pit folds to one line
   reading "Nobody yet · optional"; the empty **right** pit stays open, because
   nothing below works until he says who he is playing.
+- Call 900 px a tablet. Every iPad in portrait is narrower than that, so a
+  coach holding one got the phone layout stretched: a bottom bar, a field most
+  of the screen tall, and Change the call, Play the break and the Tally sheet
+  under it. The rail now comes at 740 px wide **and** 600 px tall — every iPad
+  either way up, never a phone on its side — and on those screens the field is
+  fitted to the height there is; on its side, the call card stands beside the
+  field as it does on a sideways phone, so Change the call and Play the break
+  are on the screen with it. The devices suite expects the rail on the same
+  rule.
+- Go two columns off the viewport width. With the rail up, a 744 px iPad has a
+  528 px column, and the pits and the Tally sheet both went side by side at a
+  720 px *viewport*, squeezing each pit to 250 px: the stars ran off the card
+  and a wire picker measured 38 px. `.main` is a container now and those
+  layouts read `@container main`: pits two-up from 700 px of column, the sheet
+  beside the field from 760 px, because a field at 240 px is a dot a bunker.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

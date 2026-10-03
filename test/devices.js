@@ -28,7 +28,8 @@ const URL = process.env.APP_URL || "http://localhost:5173/";
 
 const TAP = 44;        // px, short axis
 const MEASURE = 80;    // characters a line
-const RAIL = 900;      // px wide, the width the bottom bar becomes a left rail
+const RAIL = 740;      // px wide, the width the bottom bar becomes a left rail —
+const RAIL_TALL = 600; // — on a screen at least this tall (every iPad; never a phone on its side)
 const RAIL_ROW = 96;   // px, the tallest a rail row may be before it is a slab
 
 // Logical CSS px, portrait. Every one of these is a device still taking iOS 17+.
@@ -165,7 +166,7 @@ const measure = () => {
 
     // The five destinations. Wide enough and they stand in a rail down the
     // left, each one a row you can read; narrow and the bottom bar is right.
-    if (w >= RAIL) {
+    if (w >= RAIL && h >= RAIL_TALL) {
       check(g, `${name} — five in a rail down the left`, worst.rail && !worst.clash,
             worst.rail ? (worst.clash ? "rail sits over the page" : "") : "still the bottom bar");
       check(g, `${name} — rail rows read as rows`, worst.btnRow && worst.btnTall <= RAIL_ROW,

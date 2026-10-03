@@ -195,7 +195,7 @@ on Bunker stats, rotation arrows on Movement, bunker calls on Team, the class
 join code and sign-in form, the four default league groups, the blast log with
 its one-line consent note, and sign-out plus show-the-tutorial-again on Nexus.
 
-**On a tablet.** Past 900 px the five destinations leave the bottom of the
+**On a tablet.** From 740 px wide on a screen at least 600 px tall — every iPad, either way up — the five destinations leave the bottom of the
 screen and stand in a rail down the left, each one a row you can read, with the
 header beside them and the field given the room. Below that the bottom bar is
 right and stays. A phone turned sideways is wide and very short, so it gets the

@@ -71,6 +71,10 @@ h1,h2,h3,p{margin:0}
 #root{height:100%;overflow:hidden}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
 .main{
+  /* Layouts inside the column size off the column, not the screen: with the
+     rail up, a 744 px iPad has a 528 px column, and anything that went two
+     columns at a 720 px *viewport* was squeezed to half of that. */
+  container-type:inline-size;container-name:main;
   flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:var(--s4) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))) var(--s6) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)));
   display:flex;flex-direction:column;gap:var(--s5);
@@ -148,7 +152,10 @@ h1,h2,h3,p{margin:0}
    black. On a wide screen the same five stand in a rail down the left, the
    header sits beside them, and the field gets the room. Below 900 the bottom
    bar is right and stays. */
-@media (min-width:900px){
+/* The rail. "Tablet" means every iPad in either orientation — the smallest
+   is 744 px wide in portrait — and never a phone on its side, which is wider
+   than that and 390 px tall. So: wide enough, and tall enough. */
+@media (min-width:740px) and (min-height:600px){
   .app{display:grid;grid-template-columns:216px minmax(0,1fr);
        grid-template-rows:auto minmax(0,1fr);grid-template-areas:"rail hdr" "rail main"}
   .hdr{grid-area:hdr}
@@ -433,8 +440,31 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
 /* On a tablet the field is most of the screen, so the sheet under it was off
    it. Past 900 px the questions stand beside the field instead. */
-@media (min-width:900px){
+/* The sheet beside the field needs a column wide enough for both: the field
+   is tapped, and at 240 px a bunker is a dot. Narrower than this the sheet
+   goes under the field and the field scrolls to the top when a bunker is
+   tapped, as on a phone. */
+@container main (min-width:760px){
   .tally-chart:has(.tsheet){display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,36%);align-items:start;gap:var(--s4)}
+  /* The sheet stands beside the field. Auto-placement put the ends strip in
+     the second column and the sheet under the field, which on an iPad in
+     landscape is under the fold — the one place the rule says it must not be. */
+  .tally-chart:has(.tsheet) > *{grid-column:1}
+  .tally-chart:has(.tsheet) > .tsheet{grid-column:2;grid-row:1 / span 12}
+}
+@media (min-width:740px) and (min-height:600px){
+  /* A field at the full width of a tablet is taller than the screen leaves
+     room for, and Change the call, Play the break and the sheet sit under it.
+     Fit it to the height that is actually there and centre it. */
+  .field-wrap{display:flex;justify-content:center}
+  svg.field{width:auto;height:auto;max-width:100%;max-height:max(340px, calc(100vh - 400px))}
+}
+/* A tablet on its side is wide and not tall: the call card beside the field,
+   as on a phone turned sideways, so Change the call and Play the break are on
+   the screen with the field rather than a scroll under it. */
+@media (min-width:740px) and (min-height:600px) and (orientation:landscape){
+  .pbtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--s3);align-items:start}
+  .pbtop svg.field{max-height:max(340px, calc(100vh - 330px))}
 }
 @keyframes tsel{from{opacity:.55}to{opacity:1}}
 
@@ -478,8 +508,8 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .pits{display:grid;gap:var(--s3)}
 /* One column on a phone, and the team he plays comes first: it is the pit
    every other screen reads, and it sat under a card about somebody else. */
-@media(max-width:719px){.pit--r{order:-1}}
-@media(min-width:720px){.pits{grid-template-columns:1fr 1fr}}
+@container main (max-width:699px){.pit--r{order:-1}}
+@container main (min-width:700px){.pits{grid-template-columns:1fr 1fr}}
 .pit{
   background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
   padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
