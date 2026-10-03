@@ -5317,7 +5317,10 @@ function readLine(compact){
   if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Scout › Breakouts and the read builds itself.</p>`;
   const a = bestAnswer(r.call);
   const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
-  const btn = a && a.call !== S.script && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : "";
+  // One tap calls it only if it is a play he runs: a turned-off built-in is
+  // still named, with a word that it is off, but never set as the call.
+  const off = a && !pickPlays()[a.call];
+  const btn = a && a.call !== S.script && !off && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : (off ? ` <span class="note" style="display:inline">(a play you have turned off)</span>` : "");
   const plain = /^(after|at|on|facing)\b/.test(r.basis) || r.basis.includes(",");
   const basis = r.basis === "this season" ? "run" : `${plain ? "" : "when "}${esc(r.basis)} run`;
   const tell = compact ? null : myTell("right");
@@ -7964,7 +7967,7 @@ function scout(){
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
-    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", lanes:!!S.lanesOn && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
             a left-pit team on that side of the field. */""}

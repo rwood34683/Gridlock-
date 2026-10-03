@@ -4380,9 +4380,10 @@ const ROSTER = [
     const drawn = live().querySelectorAll(".break-lane").length;
     const l = breakLanes(S.script);
     const said = new RegExp(`clear lanes off the break on ${breakName()} · ${l.onThem} of your 5 on them · ${l.onYou} of their 5 on you`).test(document.getElementById("root").textContent);
-    window.set({ lanesOn: false }); const off = !live().querySelector(".break-lane");
+    window.set({ scoutShow: "us" }); const yoursOnly = !live().querySelector(".break-lane");   // no lanes to a five that is not drawn
+    window.set({ scoutShow: "them", lanesOn: false }); const off = !live().querySelector(".break-lane");
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
-    return none && drawn === pairs && said && off;
+    return none && drawn === pairs && said && yoursOnly && off;
   }));
   check("the red break on the Scout field is labelled yours, not the left pit's, on your own sheet", await ev(() => {
     window.set({ tab: "scout", scoutTab: "matchup", scoutShow: "both", left: { name: "" }, pitOpen: null });
@@ -4661,6 +4662,19 @@ const ROSTER = [
     const fixed = allPlays()[S.script] && S.script !== "my:none";
     const header = document.querySelector("#root .ctx__ev") || document.querySelector("#root .ctx");
     return !!fixed && header && !/my:none/.test(header.textContent) && new RegExp(breakName()).test(header.textContent);
+  }));
+  check("the read line never offers to call a play he has turned off", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: { blitz: "split" }, breaks: [] });
+    for (let i = 0; i < 3; i++) { window.logTheirBreak("right", "blitz", []); window.endPoint("us"); }
+    const keepOff = S.offPlays; S.offPlays = ["split"]; window.set({ script: "snake" });
+    const t = document.getElementById("root").textContent;
+    const named = new RegExp("Your answer: " + callName("split")).test(t), noBtn = ![...document.querySelectorAll("#root .read-line__go")].some(b => b.textContent.includes(callName("split"))), said = /a play you have turned off/.test(t);
+    S.offPlays = keepOff; window.set({});
+    const btnBack = [...document.querySelectorAll("#root .read-line__go")].some(b => b.textContent.includes(callName("split")));
+    editProfile("right", { breaks: [], answers: {} });
+    return named && noBtn && said && btnBack;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
