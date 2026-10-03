@@ -4243,6 +4243,64 @@ const ROSTER = [
     editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return ghosts === 5 && gone;
   }));
+  check("the read leads with the moment: the first point, a timeout just spent, their match point", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const L = S.layoutKey, mk = (m, pt, script) => ({ script, pt, m, layout: L, at: 1 });
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [
+      mk("old-a", 1, "flood"), mk("old-b", 1, "flood"), mk("old-c", 1, "flood"),
+      mk("old-d", 2, "lock"), mk("old-e", 2, "lock"), mk("old-f", 2, "lock"),
+      mk("old-g", 2, "tower"), mk("old-h", 2, "tower"), mk("old-i", 2, "tower")] });
+    const keep = { matches: S.matches, results: S.results, timeouts: S.timeouts };
+    S.timeouts = [...["old-d", "old-e", "old-f"].map((m, i) => ({ id: "t" + i, m, pt: 2, side: "them", at: 1 })), ...(S.timeouts || [])];
+    S.matches = [...S.matches, ...["old-g", "old-h", "old-i"].map(id => ({ id, at: 1, vs: "Dynasty", layout: L, raceTo: 2 }))];
+    S.results = [...(S.results || []), ...["old-g", "old-h", "old-i"].map(m => ({ m, pt: 1, won: "them" }))];
+    window.set({});
+    const first = nextRead("right");
+    const onFirst = first && first.call === "flood" && first.basis === "on the first point" && first.n === 3
+      && new RegExp("Read: Dynasty on the first point run " + callName("flood") + " — 3 of 3").test(document.getElementById("root").textContent);
+    window.addTimeout("us");
+    const to = nextRead("right");
+    const afterTO = to && to.call === "lock" && to.basis === "after a timeout";
+    window.dropTimeout(S.timeouts.find(t => t.m === S.matchId).id);
+    window.setRaceTo(2); window.endPoint("them");             // 0–1 in a race to 2: their match point
+    const mp = nextRead("right");
+    const atMP = matchPoint() === "them" && mp && mp.call === "tower" && mp.basis === "at their match point";
+    S.matches = keep.matches.concat(S.matches.filter(m => m.id === S.matchId && !keep.matches.some(k => k.id === m.id)));
+    S.results = (S.results || []).filter(r => !/^old-/.test(r.m)); S.timeouts = (S.timeouts || []).filter(t => !/^old-/.test(t.m));
+    editProfile("right", { breaks: [] }); window.set({});
+    return onFirst && afterTO && atMP;
+  }));
+  check("the read says when lately disagrees with the season, and names your own tell", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const L = S.layoutKey;
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [
+      ...[1, 2, 3, 4, 5, 6, 7].map(i => ({ script: "snake", pt: 2, m: "old-" + i, layout: L, at: i })),
+      ...[100, 101, 102].map(i => ({ script: "blitz", pt: 2, m: "old-" + i, layout: L, at: i }))] });
+    const keepCalls = S.calls;
+    S.calls = [1, 2, 3].map(i => ({ script: "split", layout: L, pt: 1, m: "old-" + i, vs: "Dynasty", at: i }));   // only these, so the count is exact
+    window.set({});
+    const r = nextRead("right"), t = myTell("right"), text = document.getElementById("root").textContent;
+    const read = r && r.call === "snake" && r.lately && r.lately.call === "blitz" && r.lately.n === 3 && r.lately.of === 5;
+    const lately = new RegExp("Lately " + callName("blitz") + " — 3 of their last 5\\. They may have changed").test(text);
+    const tell = t && t.call === "split" && t.n === 3 && t.of === 3 && t.state === "level"
+      && new RegExp("Your tell: you have called " + callName("split") + " 3 of 3 times level against them — they have seen it").test(text);
+    S.calls = keepCalls; editProfile("right", { breaks: [] }); window.set({});
+    return read && lately && tell;
+  }));
+  check("the ghost five is named under the Scout field, with the man usually seen in each bunker", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "counter", right: { name: "Dynasty" }, pitOpen: null, theirPick: [] });
+    const bl = curLayout().bunkers, ids = [3, 9, 14, 20, 30].map(i => bl[i].id), L = S.layoutKey;
+    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: L, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: L, plants: ids, at: 2 }, { script: "blitz", pt: 3, m: "old-a", layout: L, at: 3 }] });
+    const keep = S.arrivalSightings;
+    S.arrivalSightings = [...(S.arrivalSightings || []), ...[1, 2].map(i => ({ id: "sg" + i, team: "Dynasty", player: "#7 Dill", layout: L, m: "old-a", pt: i, bunker: ids[0], seq: 1, at: i }))];
+    window.set({});
+    const text = document.getElementById("root").textContent;
+    const named = new RegExp("likely five under " + callName("blitz") + ", from 2 logged fives: " + callOf(bl[3]) + " 2 \\(usually #7 Dill\\)").test(text);
+    S.arrivalSightings = keep; editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
+    return named;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
