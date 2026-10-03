@@ -2461,7 +2461,7 @@ S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
 S.theirPick = []; S.sightAim = null;
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null;
+S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -4225,12 +4225,25 @@ function moveOverlay(){
 window.undoMove = i => { S.moves = (S.moves||[]).filter((_,k)=>k!==i); save(S); render(); };
 
 // ---- grades ----
+// Assess: the man and the score are tapped, not picked from a list — the
+// five on the point lead, because they are who he is grading, and the bench
+// follows. A note half-typed when he taps is carried over the re-render.
+const SCORE_WORDS = ["", "poor", "below", "solid", "strong", "outstanding"];
+function assessRender(){
+  const typed = (document.getElementById("asNote") || {}).value || "";
+  render();
+  const el = document.getElementById("asNote"); if(el) el.value = typed;
+}
+window.assessPick = name => { S.asWho = S.asWho === name ? null : name; assessRender(); };
+window.assessScore = n => { S.asScore = S.asScore === n ? 0 : n; assessRender(); };
+// This point's grade for a man, if he already has one, so the chip can say so.
+function gradeOn(name, pt){ return (S.assessments||[]).find(a => a.who === name && a.pt === (pt||S.point||1) && a.m === S.matchId) || null; }
 window.saveAssess = () => {
-  const who = document.getElementById('asWho').value;
-  const score = Number(document.getElementById('asScore').value);
-  const note = clean(document.getElementById('asNote').value.trim());
-  if(!who) return;
+  const who = S.asWho, score = Number(S.asScore);
+  const note = clean(((document.getElementById('asNote') || {}).value || "").trim());
+  if(!who || !score) return;
   S.assessments = [{who, score, note, pt:S.point||1, m:S.matchId, at:Date.now()}, ...(S.assessments||[])];
+  S.asWho = null; S.asScore = 0;
   save(S); render();
 };
 window.undoAssess = i => { S.assessments = (S.assessments||[]).filter((_,k)=>k!==i); save(S); render(); };
@@ -8798,7 +8811,7 @@ const HELP = {
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
-    how:["Pick the player, score him, write the reason.",
+    how:["Tap the man — the five on the point come first — tap a score, write the reason.",
          "After the point, never during it.",
          "Averages are his season; the list under them is this match."]},
   "more/codes": {t:"Codes", w:"Your code words for this event.",
@@ -9482,16 +9495,23 @@ function moreBody(k){
   if(k==="assess"){
     const all=S.assessments||[];
     const here=rowsHere(all);
-    const who=roster.length?roster.map(p=>`<option>${esc(p.name)}</option>`).join("")
-                           :["1","2","3","4","5"].map(n=>`<option>Player ${n}</option>`).join("");
+    const pt=S.point||1, on=onPoint(pt), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${g.score}`:""}</button>`; };
     const names=[...new Set(all.map(a=>a.who))];
     const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
-    return sec("Grade a player", `<p class="lede">After the point, not during it. The grade stays with the roster.</p>
-      <div class="fld"><label>Player</label><select id="asWho">${who}</select></div>
-      <div class="fld"><label>Score</label>
-        <select id="asScore">${[5,4,3,2,1].map(n=>`<option value="${n}">${n} — ${["","poor","below","solid","strong","outstanding"][n]}</option>`).join("")}</select></div>
-      <div class="fld"><label>Note</label><textarea id="asNote" placeholder="Read the snake early, held the corner."></textarea></div>
-      <button class="btn btn--block" onclick="saveAssess()">Save grade</button>`, "Point "+(S.point||1))
+    const ready=!!(S.asWho&&S.asScore);
+    const form=!roster.length
+      ? `<div class="empty">No roster yet. Add your squad, then grade a man after the point.
+          <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`
+      : `<h4 class="sec__eyebrow" style="margin-bottom:8px">${on.length?"On the point":"Your squad"}</h4>
+        <div class="seg seg--wrap" aria-label="Who to grade">${(on.length?on:bench).map(chip).join("")}</div>
+        ${on.length&&bench.length?`<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">On the bench</h4>
+          <div class="seg seg--wrap" aria-label="On the bench">${bench.map(chip).join("")}</div>`:""}
+        <h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">Score</h4>
+        <div class="seg seg--wrap" aria-label="Score">${[5,4,3,2,1].map(n=>`<button class="${S.asScore===n?"on":""}" onclick="assessScore(${n})">${n} · ${SCORE_WORDS[n]}</button>`).join("")}</div>
+        <div class="fld" style="margin-top:var(--s3)"><label>Note</label><textarea id="asNote" placeholder="Read the snake early, held the corner."></textarea></div>
+        <button class="btn btn--block" onclick="saveAssess()" ${ready?"":"disabled"}>${!S.asWho?"Tap the man first":!S.asScore?"Tap a score":"Save grade · "+esc(S.asWho)+" · "+S.asScore}</button>`;
+    return sec("Grade a player", `<p class="lede">After the point, not during it. The grade stays with the roster.</p>${form}`, "Point "+pt)
     + (names.length?sec("Averages", `<div class="facts">
         ${names.map(n=>`<span class="fact"><b>${avg(n)}</b><span>${esc(n)}</span></span>`).join("")}
       </div>`, names.length+" graded"):"")
