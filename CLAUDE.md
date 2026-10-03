@@ -817,6 +817,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of
   column; the pit card says all three anyway.
+- Put the one button a sheet exists for at the bottom of a long sheet. Log
+  this breakout sat 1300 px below the top of the sheet on a phone — who, made
+  it, how, the lane, at what, timing, moved to, route — and a coach logs five
+  men a point. `.tsheet__act` is sticky to the bottom of the screen while the
+  sheet is open, so Log is never a scroll away from whichever question he is
+  on. The suite checks it is on screen before and after scrolling the sheet.
 - Count a watched game's breakouts as yours. On a watched sheet "us" is the
   home side, not his five, so *Where the points come from* and the uneven
   count both skip `watchedMatch(r.m)` the way `loggedCalls()` already did.

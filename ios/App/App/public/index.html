@@ -437,6 +437,13 @@ svg.field{width:100%;height:auto;display:block}
 .tsheet{border:1px solid var(--accent);border-radius:var(--r-md);padding:var(--s3);background:var(--panel);
   display:flex;flex-direction:column;gap:var(--s2)}
 .tsheet .pad{margin-top:0}
+/* Log is 1300 px below the top of the sheet on a phone — who, made it, how,
+   the lane, at what, timing, moved to, route — and a coach logs five men a
+   point. It rides the bottom of the screen while the sheet is open instead,
+   so it is never a scroll away from whichever question he is on. */
+.tsheet__act{position:sticky;bottom:calc(-1 * var(--s3));margin:var(--s2) calc(-1 * var(--s3)) calc(-1 * var(--s3));
+  padding:var(--s2) var(--s3) var(--s3);background:var(--panel);border-top:1px solid var(--line);
+  border-radius:0 0 var(--r-md) var(--r-md)}
 .tsheet .fld{margin-top:var(--s1)}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
@@ -5760,7 +5767,7 @@ function breakoutSheet(){
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
     ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
-    <button class="btn btn--lg btn--block" style="margin-top:var(--s3)" onclick="logBreakout()">✓&nbsp; Log this breakout</button>
+    <div class="tsheet__act"><button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; Log this breakout</button></div>
   </div>`;
 }
 
