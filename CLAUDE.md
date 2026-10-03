@@ -1032,6 +1032,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   counts them across every match on this field — "MD → T 4 (#7 Dill 3)" —
   as **Their rotations** under the arrival field and **After the break** on
   Anticipate. A repeat sighting is not a move; one sighting is not a move.
+  Layers draws them too — **Their rotations**, a blue arrow a move with the
+  count on it, beside the green arrows of your own.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never

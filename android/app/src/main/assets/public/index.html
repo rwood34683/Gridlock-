@@ -4076,6 +4076,24 @@ function fieldSVG(opts={}, runnersOnly){
     }).join("");
   }
 
+  // Their rotations, the same arrow in their blue, thicker the more often the
+  // move was seen. Drawn only on the Layers tab, on request.
+  if(opts.theirMoves && pitNamed("right")){
+    const byId = Object.fromEntries(layout.bunkers.map(b=>[b.id,b]));
+    moveArrows += theirMoves(pitOf("right").name).slice(0,40).map(m=>{
+      const a=byId[m.from], b=byId[m.to]; if(!a||!b) return "";
+      const x1=a.x*sx, y1=a.y*sy, x2=b.x*sx, y2=b.y*sy;
+      const ang=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
+      if(L<6) return "";
+      const tx=x2-Math.cos(ang)*5, ty=y2-Math.sin(ang)*5, w=Math.min(4, 1.2+m.n*0.5);
+      const head=(o)=>`${(tx-Math.cos(ang-o)*5).toFixed(1)},${(ty-Math.sin(ang-o)*5).toFixed(1)}`;
+      return `<g class="their-move"><line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#000" stroke-width="${(w+1.8).toFixed(1)}" opacity=".5" stroke-linecap="round"/>`
+           + `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke="#3d8bff" stroke-width="${w.toFixed(1)}" opacity=".95" stroke-linecap="round"/>`
+           + `<polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${head(0.5)} ${head(-0.5)}" fill="#3d8bff"/>`
+           + `<text x="${((x1+tx)/2).toFixed(1)}" y="${((y1+ty)/2-2).toFixed(1)}" text-anchor="middle" font-size="6" fill="#fff" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${m.n}</text></g>`;
+    }).join("");
+  }
+
   // Bunker stats tint each footprint by how much traffic the tally recorded.
   let heat = "";
   if(opts.heat){
@@ -8039,7 +8057,8 @@ function scoutBreakouts(){
 /* ---- Layers: where it has actually happened, on the measured field ------ */
 const LAYERS=[["theirOuts","Their outs","Where their players went out"],
               ["yourOuts","Your outs","Where you lost players"],
-              ["rotations","Your rotations","Bunker to bunker after the break"]];
+              ["rotations","Your rotations","Bunker to bunker after the break"],
+              ["theirMoves","Their rotations","Where they moved after the break, from sightings"]];
 function scoutLayers(){
   const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true};
   const vs=o=>o.vs===R.name;
@@ -8047,19 +8066,20 @@ function scoutLayers(){
     theirOuts:(S.tally||[]).filter(o=>o&&o.side==="them"&&vs(o)&&o.shotAt).length,
     yourOuts:(S.tally||[]).filter(o=>o&&o.side==="us"&&vs(o)&&o.shotAt).length,
     rotations:layoutMoves().length,
+    theirMoves:theirMoves(R.name).reduce((n,m)=>n+m.n,0),
   };
   const live=LAYERS.filter(([k])=>on[k]);
-  const heat=live.some(([k])=>k!=="rotations")
+  const heat=live.some(([k])=>k!=="rotations"&&k!=="theirMoves")
     ? (o => (on.theirOuts && o.side==="them" && vs(o)) || (on.yourOuts && o.side==="us" && vs(o)))
     : false;
   const any=live.reduce((n,[k])=>n+counts[k],0);
   return sec("Layers", `<p class="lede">Everything you have logged against ${esc(R.name)} on
-      ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations.</p>
+      ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations — green yours, blue theirs, the number on a blue one how often it was seen.</p>
     <div class="toggles">
       ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
         onclick="toggleLayer('${k}')"><i></i>${n} · ${counts[k]}</button>`).join("")}
     </div>
-    <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?(()=>true):false})}</div>
+    <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?(()=>true):false, theirMoves:!!on.theirMoves})}</div>
     ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${n.toLowerCase()}`).join(" · ")}.</p>`
         :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
           the Tally tab, on the point you are on.</div>`}`,
@@ -8688,6 +8708,7 @@ const HELP = {
          "Whatever you save here shows beside their call on Playbook."]},
   "scout/layers": {t:"Layers", w:"Everything you logged, painted on the field.",
     how:["Toggle outs, rotations, their five and the rest on and off.",
+         "Their rotations are the moves seen on How did they get there, blue arrows with the count on each.",
          "Each count tells you how much is behind the layer."],
     watch:"Empty until you have logged against this team on this field. Day one it is bare on purpose."},
   "scout/games": {t:"Games", w:"Read a point back from everything you logged on it.",
