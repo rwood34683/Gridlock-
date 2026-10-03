@@ -1026,6 +1026,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and nothing set it; Matches › This match has **Name this sheet** now
   (`setMatchNote`, forty characters), so Sunday's quarter is not "vs Dynasty ·
   Oct 3" three times over.
+- Log where their man was and never ask where he went. Every sighting on
+  How did they get there is a place, and the next sighting of the same man
+  on the same point is a move; the pairs were never counted. `theirMoves()`
+  counts them across every match on this field — "MD → T 4 (#7 Dill 3)" —
+  as **Their rotations** under the arrival field and **After the break** on
+  Anticipate. A repeat sighting is not a move; one sighting is not a move.
 - Draw a ghost nobody can name. The dashed five says where they plant; the
   legend under the field says which bunkers, how many logged fives, and the
   man usually sighted in each — a name only when sightings carry one, never

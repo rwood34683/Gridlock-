@@ -4434,6 +4434,26 @@ const ROSTER = [
     S.breakouts = keepB; S.roster = keepRoster; window.set({ whoOn: false });
     return cole && ortiz;
   }));
+  check("their rotations are counted from consecutive sightings of the same man on a point, on Anticipate and under the arrival field", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    editProfile("right", { tend: "Balanced", answers: {}, breaks: [] });
+    const L = S.layoutKey, bl = curLayout().bunkers, A = bl[3].id, B = bl[9].id, C = bl[14].id, keep = S.arrivalSightings;
+    const sg = (id, who, m, pt, bunker, seq) => ({ id, team: "Dynasty", player: who, layout: L, m, pt, bunker, seq, at: seq });
+    S.arrivalSightings = [sg("r1", "#7 Dill", "m1", 1, A, 1), sg("r2", "#7 Dill", "m1", 1, B, 2), sg("r3", "#7 Dill", "m1", 1, B, 3),   // a repeat is not a move
+                          sg("r4", "#7 Dill", "m2", 1, A, 1), sg("r5", "#7 Dill", "m2", 1, B, 2),
+                          sg("r6", "#4", "m2", 1, A, 1), sg("r7", "#4", "m2", 1, C, 2),
+                          sg("r8", "#4", "m2", 2, A, 1)];                                                                              // one sighting, no move
+    const mv = theirMoves("Dynasty");
+    const counted = mv.length === 2 && mv[0].from === A && mv[0].to === B && mv[0].n === 2 && mv[0].who === "#7 Dill" && mv[0].whoN === 2 && mv[1].to === C && mv[1].n === 1;
+    window.set({ tab: "scout", scoutTab: "anticipate", pitOpen: null });
+    const t = document.getElementById("root").textContent;
+    const onAnt = new RegExp("After the break\\s*" + callOf(bl[3]) + " → " + callOf(bl[9]) + " 2 \\(#7 Dill 2\\) · " + callOf(bl[3]) + " → " + callOf(bl[14]) + " 1 \\(#4 1\\) — 3 rotations seen").test(t);
+    window.set({ tab: "scout", scoutTab: "arrival", pitOpen: null });
+    const onArr = /Their rotations/.test(document.getElementById("root").textContent);
+    S.arrivalSightings = keep; editProfile("right", { breaks: [] }); window.set({});
+    return counted && onAnt && onArr;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
