@@ -756,3 +756,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   full cards put the screen he came for two screens down on a phone. A named
   pit folds to one line there (`pitLine`, `S.pitOpen` scratch opens it), an
   empty pit never folds because picking a team comes first.
+- Make a rotation two 58-row dropdowns. Movement asked for the bunker he left
+  and the bunker he went to from lists the length of the field. The field is
+  the picker, as on Tally: tap where he left, tap where he went (`moveTap`,
+  `S.moveFrom` / `S.moveTo` scratch, ringed on the field); the dropdowns stay
+  underneath and follow the taps.

@@ -3719,6 +3719,24 @@ const ROSTER = [
     const ok = root.querySelectorAll(".pitline").length === 1 && root.querySelectorAll(".pit").length === 1;
     window.set({ right: { name: "Dynasty" } }); return ok;
   }));
+  check("Movement: tap the bunker he left, tap where he went, and the pickers follow", await ev(() => {
+    window.set({ tab: "more", more: "movement", moveFrom: null, moveTo: null });
+    const bl = curLayout().bunkers, a = bl[3], b = bl[9];
+    window.moveTap([a.x, a.y]);
+    const first = S.moveFrom === a.id && !S.moveTo && document.getElementById("mvFrom").value === a.id && /now tap where he went/.test(document.getElementById("root").textContent);
+    window.moveTap([b.x, b.y]);
+    const second = S.moveTo === b.id && document.getElementById("mvTo").value === b.id && document.querySelectorAll("#move-map rect[stroke='#3ecf8e']").length === 1;
+    const before = (S.moves || []).length;
+    window.logMove();
+    return first && second && (S.moves || []).length === before + 1 && S.moves[0].from === a.id && S.moves[0].to === b.id && !S.moveFrom && !S.moveTo;
+  }));
+  check("the same bunker twice is refused and a third tap starts over", await ev(() => {
+    const bl = curLayout().bunkers, a = bl[5], c = bl[11];
+    window.moveTap([a.x, a.y]); window.moveTap([a.x, a.y]);
+    const refused = S.moveFrom === a.id && !S.moveTo && /two different bunkers/.test(S.flash || "");
+    window.moveTap([c.x, c.y]); window.moveTap([bl[0].x, bl[0].y]);
+    return refused && S.moveFrom === bl[0].id && !S.moveTo;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
