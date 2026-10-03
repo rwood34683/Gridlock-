@@ -87,7 +87,9 @@ h1,h2,h3,p{margin:0}
 @media (min-width:680px){
   .main{align-items:center}
   .main > *{width:100%;max-width:860px}
-  .main .note{max-width:74ch}          /* a caption, not a wall of text */
+  /* A caption, not a wall of text. 62ch of "0"s is about 80 proportional
+     characters a line, which is where the devices suite draws the line. */
+  .main .note,.main p{max-width:62ch}
 }
 
 .hdr{
