@@ -1134,7 +1134,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the clock and the score up, the Staff chip was gone. Below 360 px the
   brand's second line goes, the chips tighten and the Staff chip steps aside
   (Nexus says who is signed in); the devices suite now measures that every
-  header chip's right edge is inside the screen.
+  header chip's right edge is inside the screen. And measures it with the
+  clock running: with the break clock up as well — four chips and a 5–6 to 7
+  score — a 375 px phone ran the Staff chip 10 px past the edge while the
+  suite, which never started the clock, stayed green. `hdr--clock` on the
+  header takes the 360 step under 400 px.
 - Draw the field under a 58-row bunker dropdown and let it only decorate.
   Team's bunker calls drew the whole field beneath the picker and the picker
   was the only way in. Wherever a field is on screen and a bunker is being

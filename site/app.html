@@ -585,6 +585,15 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .score-chip{padding:4px 8px;font-size:12px;gap:2px}
   .hdr__top .who-chip{display:none}
 }
+/* With the break clock up as well — four chips and a 5–6 to 7 score — a
+   375 px phone ran the Staff chip 10 px past the edge. The clock carries a
+   class on the header, and under 400 px it takes the same step the 360 rule
+   does. The devices suite measures the header with the clock and score up. */
+@media(max-width:399px){
+  .hdr--clock .hdr__top{gap:6px}
+  .hdr--clock .score-chip{padding:4px 8px;font-size:12px;gap:2px}
+  .hdr--clock .hdr__top .who-chip{display:none}
+}
 .clock-chip.clock--late{border-color:var(--warn);color:var(--warn)}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
@@ -10519,7 +10528,7 @@ function shell(){
   const drilling = S.pbView === "rep" && repState().running;
 
   return `<div class="app">
-    <header class="hdr">
+    <header class="hdr${S.clockEnd ? " hdr--clock" : ""}">
       <div class="hdr__top">
         <div class="brand">Gridlock<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
