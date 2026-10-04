@@ -190,7 +190,8 @@
      Classes with the code prefilled. */
   function openJoinCode(code) {
     if (!code || typeof window.set !== "function") return;
-    window.set({ joinCode: code, entered: true, tab: "more", more: "classes" });
+    if (typeof window.openJoin === "function") { window.openJoin(code); window.set({}); }
+    else window.set({ joinCode: code, tab: "more", more: "classes" });
   }
 
   function codeFromUrl(url) {
