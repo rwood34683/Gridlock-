@@ -1191,6 +1191,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   already on the list merges into it under its own spelling, the scout book
   included (breaks and men add up; a word set on both keeps the one already
   there). Only teams he added can be renamed; the league's are the league's.
+- Make Return do nothing in a box with a button beside it. The phone
+  keyboard's blue key is how a one-line box is submitted, and only the Tally
+  gate's honoured it: a coach typed the team's name on the board, hit it, and
+  read the box still full. `onEnter(call)` is the one attribute every such
+  box carries — the team, the pit's add row, the group, the roster add row,
+  the code word, the message, the play's name — and the suite presses it in
+  each. A textarea is multi-line and keeps its Return.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
