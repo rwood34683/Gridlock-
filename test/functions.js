@@ -946,6 +946,19 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ") + " · " + JSON.stringify(S.responses[0] || null).slice(0, 160);
   });
   check("the class card shows what a sign-in filled in and lets the coach take one off the sheet", cardRow === true, cardRow);
+  check("a class can be deleted, and asks first when anyone has signed in", await ev(() => {
+    const keep = { classes: S.classes, responses: S.responses };
+    S.classes = [{ id: "GL-DEL1", code: "GL-DEL1", title: "Twice", open: true, when: "", notes: "" }, { id: "GL-DEL2", code: "GL-DEL2", title: "Signed", open: true, when: "", notes: "" }];
+    S.responses = [{ code: "GL-DEL2", name: "Kid", contact: "", exp: "Rec", wire: "Snake", notes: "" }];
+    window.set({ tab: "more", more: "classes" });
+    let asked = 0; window.confirm = () => { asked++; return false; };
+    window.delClass("GL-DEL1"); const emptyGone = S.classes.length === 1 && asked === 0;        // nobody signed: no question
+    window.delClass("GL-DEL2"); const refused = S.classes.length === 1 && asked === 1 && S.responses.length === 1;   // asked, said no: kept
+    window.confirm = () => true;
+    window.delClass("GL-DEL2"); const signedGone = S.classes.length === 0 && S.responses.length === 0;
+    Object.assign(S, keep); render();
+    return emptyGone && refused && signedGone;
+  }));
 
   /* --------------------------------------------------------------- league */
   G("League");

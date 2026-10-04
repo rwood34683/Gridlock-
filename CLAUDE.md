@@ -1163,7 +1163,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the thank-you says it was an update. The card shows what he filled in —
   level, wire, contact, notes — and every row has Remove (`dropResponse`),
   because a kid who signed the wrong clinic or a name that is not a kid at
-  all has to be able to come off the sheet.
+  all has to be able to come off the sheet. And a class started twice was a
+  card for good — Close sign-ins hid nothing — so Delete (`delClass`) takes
+  the class and its sign-ins, asking first only when anyone has signed.
 - Write their #7 down twice. Their men are read by number — "#7" is the key
   every sighting, shot and breakout of theirs is counted under — so a second
   #7 in the pit split one man's read in two. `pitDup()` finds the man an
