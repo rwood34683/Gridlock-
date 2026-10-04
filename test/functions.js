@@ -2498,7 +2498,7 @@ const ROSTER = [
     return kept && gone && answersFor("right").snake === "flood";
   }));
   check("Playbook shows the answer for the call they run most", await ev(() => {
-    window.logTheirBreak("right", "snake");
+    window.logTheirBreak("right", "snake"); window.nextPoint();   // one break of theirs a point
     window.logTheirBreak("right", "snake");
     const a = oppAnswer("right");
     window.set({ tab: "playbook", script: "hold" });
@@ -5283,6 +5283,23 @@ const ROSTER = [
     window.set({ flash: "" }); window.newMatch();
     return first && second && unnamed;
   }));
+  check("one point has one break of theirs: their five and the call named after it are one row, and a call tapped twice is one row", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const keep = profileOf("Dynasty").breaks; editProfile("right", { breaks: [] });
+    const bl = curLayout().bunkers, five = bl.filter(b => b.x > 75).slice(0, 5).map(b => b.id), pt = S.point || 1, m = S.matchId;
+    const here = () => theirBreaks("right").filter(b => b.m === m && b.pt === pt);
+    window.set({ theirPick: five }); window.logTheirFive("right");
+    const plants = here().length === 1 && !here()[0].script && here()[0].plants.length === 5;
+    window.logTheirBreak("right", "blitz", []);
+    const named = here().length === 1 && here()[0].script === "blitz" && here()[0].plants.length === 5;
+    window.logTheirBreak("right", "blitz", []);
+    const once = here().length === 1 && breakFreq("right").find(([k]) => k === "blitz")[1] === 1;
+    window.logTheirBreak("right", "split", []);
+    const changed = here().length === 1 && here()[0].script === "split" && here()[0].plants.length === 5;
+    editProfile("right", { breaks: keep }); window.set({ theirPick: [] }); window.newMatch();
+    return plants && named && once && changed;
+  }));
   const groupFix = await ev(() => {
     window.confirm = () => true;
     const keep = S.groups;
@@ -6067,7 +6084,7 @@ const ROSTER = [
   check("their side is the call logged most against them, and the legend says so", await ev(() => {
     window.set({ scoutShow:"them", script:"snake" });
     const other = Object.keys(BREAKS).find(k => k !== "snake");
-    editProfile("right", {breaks:[]}); window.logTheirBreak("right", other, []); window.logTheirBreak("right", other, []);
+    editProfile("right", {breaks:[]}); window.logTheirBreak("right", other, []); window.nextPoint(); window.logTheirBreak("right", other, []);
     const t = document.getElementById("root").textContent;
     const ok = theirScript() === other && t.includes(BREAKS[other].name + ", logged 2 times");
     editProfile("right", {breaks:[]}); render();
@@ -6125,6 +6142,7 @@ const ROSTER = [
     window.backPoint(); return n === 0;
   }));
   check("a named call logged with five picked takes them with it", await ev(() => {
+    window.nextPoint();   // one break of theirs a point: this one is the next point's
     window.set({ scoutTab:"breakouts", theirPick: curLayout().bunkers.slice(5,8).map(b=>b.id) });
     window.logTheirBreak("right", "snake");
     const b = theirBreaks("right")[0];
