@@ -4927,6 +4927,36 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("with no share sheet, a blast or a card is handed over on screen in a box he can copy from — never a system prompt", handed === true, handed);
+  const noUndefined = await ev(() => {
+    // A man with no number — an older copy, a paste — and every screen read.
+    window.confirm = () => true;
+    const was = S.roster; S.roster = [...S.roster, { name: "No Number Nate", p: "", s: "" }];
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.swapOn("No Number Nate");
+    const bad = [];
+    const scan = where => { const t = document.getElementById("root").innerText; const m = t.match(/undefined|NaN|\[object |#undefined|\bnull\b/g); if(m) bad.push(where + ": " + [...new Set(m)].join(",")); };
+    for(const t of ["playbook","tally","scout","sight","more"]){ window.set({ tab: t, more: null }); scan("tab " + t); }
+    for(const [k] of SCOUT_TABS){ window.set({ tab: "scout", scoutTab: k }); scan("scout " + k); }
+    for(const k of ["lineups","movement","assess","codes","bunkerstats","team","messages","classes","league","nexus","walk","matches","schedule","plan"]){ window.set({ tab: "more", more: k }); scan("more " + k); }
+    window.set({ tab: "playbook", pbView: "cards" }); scan("cards"); window.set({ pbView: null });
+    window.set({ quick: true }); scan("quick log"); window.set({ quick: false });
+    const nate = manTag({ name: "No Number Nate" }) === "No Number Nate" && manTag({ num: 7, name: "Reyes" }) === "#7 Reyes" && manTag({ num: 0, name: "Zero" }) === "#0 Zero";
+    S.roster = was; window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return (!bad.length && nate) || "failed: " + (nate ? "" : "manTag ") + bad.join(" | ");
+  });
+  check("no screen prints undefined, NaN or an object — a man with no number is named without a hash", noUndefined === true, noUndefined);
+  check("their man cannot be emptied of both his number and his name", await ev(() => {
+    const was = pitOf("right").players || [];
+    editProfile("right", { players: [...was, { num: "88", name: "", wire: "" }, { num: "", name: "Name Only", wire: "" }] });
+    const i = () => (pitOf("right").players || []).findIndex(p => p.num === "88"), j = () => (pitOf("right").players || []).findIndex(p => p.name === "Name Only");
+    window.editScoutPlayer("right", i(), "num", "");
+    const keptNum = i() >= 0 && /needs his number or his name — kept the number/.test(S.flash || "");
+    window.editScoutPlayer("right", j(), "name", "  ");
+    const keptName = j() >= 0 && /kept the name/.test(S.flash || "");
+    window.editScoutPlayer("right", i(), "name", "Now Named"); window.editScoutPlayer("right", i(), "num", "");
+    const freed = (pitOf("right").players || []).some(p => p.name === "Now Named" && !p.num);
+    editProfile("right", { players: was }); window.set({ flash: "" });
+    return keptNum && keptName && freed;
+  }));
   check("Time's up with nobody to play opens the gate and marks nothing", await ev(() => {
     window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
     const m = S.matchId; window.timeUp(); window.timeUp("tie");

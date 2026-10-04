@@ -1324,6 +1324,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   rule anyway. `handOff(title, text)` is the one door: the share sheet where
   the phone has one, else a box at the top of the screen with the text, Copy
   and Close. `S.handText` is scratch and the relaunch check names it.
+- Print `"#"+p.num` and trust the number to be there. A roster row from an
+  older copy or a paste can have no number, and "#undefined Reyes" read on
+  Playbook, Sightlines, the cards, Lineups and the quick log. `manTag(p)` is
+  the one door for his man the way `pitManTag` is for theirs — the hash only
+  when there is a number — and the suite walks every tab, sub-tab and section
+  with a numberless man on the point looking for undefined, NaN or an object.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
