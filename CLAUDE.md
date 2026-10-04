@@ -1404,6 +1404,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   counting down to a buzzer for a point that was no longer next. So do a
   new sheet (`openSheet`) and a reopened one (`openMatchNow`): a read ticked
   on one sheet must not land on another's point.
+- Remember a league row by its place in the list. The rows he took off the
+  schedule were kept by index (`sch3`), so a re-read that added a game above
+  them hid the wrong games. A seeded row's id is the game itself — day,
+  clock and both teams folded — and survives any order the league's list
+  comes back in.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -5048,6 +5048,15 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a league row is remembered by the game, not by its place in the list", await ev(() => {
+    const g = allGames().find(x => x.seed); if(!g) return "no seeded row";
+    const byContent = g.id === "sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a) && !/^sch\d+$/.test(g.id);
+    // Taken off, it stays off whatever order the league's list comes back in.
+    const offWere = S.gamesOff; window.confirm = () => true; window.dropGame(g.id);
+    const gone = !allGames().some(x => x.id === g.id) && (S.gamesOff || []).includes(g.id);
+    S.gamesOff = offWere; window.set({});
+    return byContent && gone;
+  }));
   check("a new sheet and a reopened sheet both start with nothing half-done carried from the last one", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
