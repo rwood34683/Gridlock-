@@ -6346,7 +6346,7 @@ function breakoutSheet(){
           thumb that prefers it and follows the tap. */""}
     <div class="fld"><label>Shooting at</label>
       <div class="btnrow" style="align-items:center">
-        <select style="flex:1 1 auto" onchange="setDraft({shootAt:this.value})">${opts(others, d.shootAt)}</select>
+        <select style="flex:1 1 auto" onchange="setDraft({shootAt:this.value})" aria-label="Shooting at which bunker">${opts(others, d.shootAt)}</select>
         <button class="btn btn--quiet ${S.tallyPickFor === "shootAt" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "shootAt" ? "null" : "'shootAt'"}})">${S.tallyPickFor === "shootAt" ? "Tap the bunker…" : "Tap the field"}</button>
       </div></div>
     ${q("Timing")}
@@ -6354,7 +6354,7 @@ function breakoutSheet(){
     ${q("Moved to")}
     <div class="fld"><label>Second bunker</label>
       <div class="btnrow" style="align-items:center">
-        <select style="flex:1 1 auto" onchange="setDraft({movedTo:this.value})">${opts(others, d.movedTo)}</select>
+        <select style="flex:1 1 auto" onchange="setDraft({movedTo:this.value})" aria-label="Moved to which bunker">${opts(others, d.movedTo)}</select>
         <button class="btn btn--quiet ${S.tallyPickFor === "movedTo" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "movedTo" ? "null" : "'movedTo'"}})">${S.tallyPickFor === "movedTo" ? "Tap the bunker…" : "Tap the field"}</button>
       </div></div>
     ${d.movedTo ? seg([[!!d.movedDelayed, d.movedDelayed ? "✓ Delayed move" : "Delayed move", `setDraft({movedDelayed:${!d.movedDelayed}})`]]) : ""}
@@ -8471,7 +8471,7 @@ function scoutCounter(){
             <span class="assign__body"><span class="assign__job">${esc(callName(k))}</span>
             <span class="assign__who">${seen[k]?`seen ${seen[k]} time${seen[k]===1?"":"s"}`:"not seen yet"}</span></span>
             <span class="assign__ctl" style="flex-basis:100%">
-              <select onchange="setAnswer('right','${k}',this.value)">
+              <select onchange="setAnswer('right','${k}',this.value)" aria-label="We call, when they run ${esc(callName(k))}">
                 <option value="">— no answer written down —</option>
                 ${Object.entries(pickPlays()).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
               </select>
@@ -9113,6 +9113,9 @@ const HELP_Q = [
   ["Who should I put on?", "Who's on, above your five on the point sheet, lists the squad with a line under each man counted from the breaks you have charted against this team on this field: breaks charted, made it, shot on the break and from where, the bunker he breaks to most. A man with nothing charted has no line. It is a count, not a grade — the grade is yours, on Assess."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
   ["Can I use this in the pit?", "For reading and logging, yes — that is what it is for. The league bars anyone in the pit from communicating with the field during a point, by voice, signal or device, so nothing here is for talking to your five while a point is on. Cards, Messages and the whiteboard are for between points."],
+  ["I changed the event and the sheet locked.", "A sheet belongs to the field it was started on, so when the event on screen is not that field, nothing logs to it — an out tapped on Tampa would land under a Lone Star point. The notice at the top of Tally offers Back to that field, which puts you straight back on the sheet, or New match here, which starts a sheet on the field you are looking at. Opening a sheet from More › Matches brings its field with it."],
+  ["How do I scout a game I'm not in?", "More › Schedule › Watch this game puts the home team in the left pit and the away team in the right and opens a sheet that counts against them and never against you. On Scout › Breakouts a switch says whose five you are charting, the break toggle names the two teams, and the score buttons name them too. Your own screens — Lineups, Movement, Assess, Log it — stand down on it, because none of your five is on that field."],
+  ["A player opened the class link on his own phone.", "The link opens the sign-in sheet and nothing else — no account is needed to sign a clinic sheet, and nothing past it. The session itself lives on the phone that created it, so his own phone says there is no open session with that code: hand him yours, or have him sign in on the one you pass around."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
 ];
 

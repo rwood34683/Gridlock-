@@ -4003,12 +4003,12 @@ const ROSTER = [
     const aidAfterMap = !before(order("#root .sec .aid"));
     return teamBeforeMap && destAfterMap && sideFolded && aidAfterMap;
   }));
-  check("every button and field on the point sheet and Scout has a name a screen reader can say", await ev(() => {
-    const nameOf = el => (el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") && (document.getElementById(el.getAttribute("aria-labelledby")) || {}).textContent) || (el.id && (document.querySelector(`label[for="${el.id}"]`) || {}).textContent) || (el.closest("label") || {}).textContent || el.getAttribute("placeholder") || el.textContent || "").trim();
+  const unnamed = await ev(() => {
+    const nameOf = el => (el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") && (document.getElementById(el.getAttribute("aria-labelledby")) || {}).textContent) || (el.id && (document.querySelector(`label[for="${el.id}"]`) || {}).textContent) || (el.closest("label") || {}).textContent || el.getAttribute("placeholder") || (el.tagName === "BUTTON" ? el.textContent : "") || "").trim();   // a select's options are not its name
     const bad = [];
     const sweep = where => {
       document.querySelectorAll("#root button").forEach(b => { const n = nameOf(b); if (!n || /^[^\w]{1,2}$/.test(n)) bad.push(where + " button " + b.className); });
-      document.querySelectorAll("#root select, #root input:not([type=hidden]), #root textarea").forEach(f => { if (!nameOf(f)) bad.push(where + " " + f.tagName + "#" + f.id); });
+      document.querySelectorAll("#root select, #root input:not([type=hidden]), #root textarea").forEach(f => { if (!nameOf(f)) bad.push(where + " " + f.outerHTML.slice(0, 90).replace(/\s+/g, " ")); });
     };
     window.set({ tab: "tally", right: { name: "Dynasty" } });
     const bl = curLayout().bunkers; window.tallyTap([bl[12].x, bl[12].y]); sweep("tally");
@@ -4017,9 +4017,18 @@ const ROSTER = [
     window.set({ tab: "more", more: "walk" }); sweep("walk");
     window.set({ more: "movement" }); sweep("movement");
     window.set({ more: "team" }); sweep("team");
-    if (bad.length) console.log("unnamed:", bad.join(" | "));
-    return bad.length === 0;
-  }));
+    window.set({ more: "lineups" }); sweep("lineups");
+    window.set({ more: "assess" }); sweep("assess");
+    window.set({ more: "classes" }); sweep("classes");
+    window.set({ more: "nexus" }); sweep("nexus");
+    window.set({ more: "schedule" }); sweep("schedule");
+    window.set({ tab: "scout", scoutTab: "breakouts" }); sweep("breakouts");
+    window.set({ scoutTab: "arrival" }); sweep("arrival");
+    window.set({ scoutTab: "board" }); sweep("board");
+    return bad;
+  });
+  if (unnamed.length) console.log("    unnamed:", unnamed.join(" | "));
+  check("every button and field on the point sheet and Scout has a name a screen reader can say", unnamed.length === 0);
   check("Games with results and no outs shows no replay, and never 'Point undefined'", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us"); window.endPoint("them");
     window.set({ tab: "scout", scoutTab: "games", replayMatch: null, replayPt: null, replayStep: null, pitOpen: null });
