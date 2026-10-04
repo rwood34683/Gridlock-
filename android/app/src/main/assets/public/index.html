@@ -7245,7 +7245,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
-    ${matchOver() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
   </div>`;
 }
@@ -10033,8 +10033,10 @@ function shell(){
 function quickLog(){
   const m = curMatch(), watch = !!(m && m.watch), pt = S.point || 1, sc = matchScore();
   const us = watch ? sideWord("us") : "We", them = watch ? sideWord("them") : "They";
-  const over = matchOver(), ot = inOvertime(), mp = matchPoint();
-  const tail = over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
+  // A sheet on another field takes no result either: the quick log stands
+  // its buttons down the way it does on a finished race and names the field.
+  const off = sheetField(), over = matchOver() || !!off, ot = inOvertime(), mp = matchPoint();
+  const tail = off ? "other field" : over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
   return `<div class="qlog">
     <div class="qlog__top">
       ${clockChip()}
@@ -10058,7 +10060,7 @@ function quickLog(){
     </div>` : nobodyToPlay() ? `<div class="qlog__score">
       <button class="btn btn--lg" style="grid-column:1 / -1" onclick="needOpponent()">Pick the other team first · back to the sheet</button>
     </div>` : over ? `<div class="qlog__score">
-      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match</button>
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match`}</button>
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}

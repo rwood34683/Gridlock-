@@ -4800,8 +4800,13 @@ const ROSTER = [
     const refused = (S.results || []).length === results && (S.tally || []).length === outs && (S.calls || []).length === calls && S.matchId === mid;
     [...document.querySelectorAll("#root button")].find(b => /Back to NXL Lone Star Open/.test(b.textContent)).click();
     const back = S.layoutKey === "lso" && /We won it/.test(document.getElementById("root").innerText);
-    window.set({ layoutKey: "tby" }); window.newMatch();
-    const fresh = S.matchId !== mid && curMatch().layout === "tby" && /We won it/.test(document.getElementById("root").innerText);
+    window.set({ layoutKey: "tby", quick: true });
+    const q = document.querySelector(".qlog"), qt = q ? q.innerText : "";
+    const quick = /This sheet is on NXL Lone Star Open/.test(qt) && !/We won it/.test(qt);
+    window.set({ quick: false, tab: "scout", scoutTab: "matchup" });
+    const strip = ![...document.querySelectorAll("#root button")].some(b => /^Next point$/.test(b.textContent.trim()));
+    window.set({ tab: "tally" }); window.newMatch();
+    const fresh = quick && strip && S.matchId !== mid && curMatch().layout === "tby" && /We won it/.test(document.getElementById("root").innerText);
     window.set({ layoutKey: "lso" }); window.newMatch();
     return said && refused && back && fresh;
   }));
