@@ -4807,8 +4807,11 @@ const ROSTER = [
     const strip = ![...document.querySelectorAll("#root button")].some(b => /^Next point$/.test(b.textContent.trim()));
     window.set({ tab: "tally" }); window.newMatch();
     const fresh = quick && strip && S.matchId !== mid && curMatch().layout === "tby" && /We won it/.test(document.getElementById("root").innerText);
+    // opening the Lone Star sheet from Matches while standing on Tampa brings its field with it
+    openMatchNow(mid);
+    const brought = S.matchId === mid && S.layoutKey === "lso" && !sheetField();
     window.set({ layoutKey: "lso" }); window.newMatch();
-    return said && refused && back && fresh;
+    return said && refused && back && fresh && brought;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

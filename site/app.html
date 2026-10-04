@@ -7853,6 +7853,9 @@ const openMatchNow = id => {
   // outs but no winner is one he was still playing, so land on it.
   const last = lastPoint(id);
   S.point = resultFor(last) ? last + 1 : last;
+  // A sheet brings its field with it: opened from Matches while standing on
+  // another event, it used to open under the off-field notice on Tally.
+  const m = curMatch(); if(m && m.layout && LAYOUTS[m.layout]) S.layoutKey = m.layout;
   S.matchState = derivedState();
   save(S); render();
 };
