@@ -1487,6 +1487,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   from the league's roster. `keepRoster` fills in a name for a number, a number
   for a name and a wire where there was none, re-keys his sightings through
   `rekeyTheirMan`, and the note counts added, filled in and already logged.
+- Log a blast to nobody. A pick with no number or email in it logged a send
+  with a count of zero and handed over an empty list; and a coach in two
+  groups was on the list twice. `sendBlast` says who has no contact and
+  refuses, counts one phone once across every group picked, and caps the
+  update at 600 characters.
+- Leave Next point live on a sheet that takes nothing. The point sheet and
+  the Scout strip hid it on a finished race and on a sheet from another field;
+  the quick log did not, and none of the three is the door. `nextPoint()`
+  refuses through `needOpponent()` and `sheetOver()` the way `endPoint()`
+  does, or a race to four walked on to point 7 with nothing said.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

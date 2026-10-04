@@ -8133,7 +8133,14 @@ window.undoOut = i => { releaseOut((S.tally||[])[i]); save(S); render(); };
 // it, exactly as it does when a result ends the point: a Right read ticked
 // and never used was riding onto the next point and recorded against its
 // result, and a half-filled breakout sheet reopened on the wrong point.
+// Next point is reached from the point sheet, the quick log and the Scout
+// strip. The sheet hides it on a finished race and on a sheet from another
+// field; the strip did too; the quick log did not, and none of the three is
+// the door. The handler refuses, the way endPoint does, or a race to four
+// walked on to point 7 with nothing said.
 window.nextPoint = () => {
+  if(nobodyToPlay()) return needOpponent();
+  if(sheetOver()) return;
   S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
 };
 function clearPointScratch(){
@@ -10386,7 +10393,7 @@ window.delGroup = id => {
 };
 window.addMem = id => {
   const name=document.getElementById("mn-"+id).value.trim();
-  const phone=document.getElementById("mp-"+id).value.trim();
+  const phone=clean(document.getElementById("mp-"+id).value.trim()).slice(0, 80);
   if(!name){ flash("Type the member's name first."); return; }
   // The same person added twice is one person: a blast reaches a phone once.
   // Typed again, the second entry updates the number; a blank keeps the first.
@@ -10432,12 +10439,16 @@ function handOffBox(){
   </div>`;
 }
 window.sendBlast = () => {
-  const body=clean(S.blastBody||"");
+  const body=clean(S.blastBody||"").trim().slice(0, 600);
   if(!body){flash("Write the update first.");return}
   const picked=S.groups.filter(g=>blastPicked(g.id));
   if(!picked.length){flash("Pick at least one group.");return}
-  const rec=[];
-  picked.forEach(g=>reachable(g).forEach(m=>rec.push(m.phone||m.email)));
+  // One phone, once, across every group picked: a coach who is in Ops and
+  // Vendors is one coach. And a pick with nobody reachable in it is not a
+  // blast — it logged a send to nobody and handed over an empty list.
+  const rec=[], seen=new Set();
+  picked.forEach(g=>reachable(g).forEach(m=>{ const k=contactKey(m.phone||m.email||""); if(seen.has(k)) return; seen.add(k); rec.push(m.phone||m.email); }));
+  if(!rec.length){flash(`Nobody in ${picked.map(g=>g.name).join(", ")} has a number or an email yet. Add one on the group card first.`);return}
   S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body,
              to:picked.map(g=>g.name).join(", ")},...S.blasts];
   save(S);
