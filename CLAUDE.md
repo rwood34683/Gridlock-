@@ -1248,6 +1248,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   team the board does not have: typed, it joins the division the way the
   Tally gate adds one, and a spelling of a team already there is that team
   (`anyTeam`). A watched game has no "vs" and gets no picker.
+- Take a team's name off a schedule row as it was pasted. "dynasty vs impact"
+  pasted off a page started a sheet against "dynasty" — a second team split
+  from Dynasty on the board, with none of the scouting, the calls or the
+  record, and never listed under Division. `boardTeam(name)` is the one door
+  a typed or pasted name goes through: a spelling of a team already there is
+  that team under its own spelling, and one the board has never heard of
+  joins the division. The Tally gate, Played against, We play and Watch this
+  game all read it, and the schedule row pairs sheets to games by `foldName`
+  so a game played under either spelling still says what he has on it.
+- Reopen a sheet and leave the pit on somebody else. Opening a kept sheet
+  from Matches brought its field and its point and not its opponent, so the
+  point sheet read "This sheet is Rejects; the right pit is Dynasty" and
+  asked him to put his own opponent back. Opening a sheet is picking the
+  team: `openMatchNow` puts its opponent in the right pit, and a watched
+  game's home side left and away side right.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -2316,6 +2316,18 @@ function anyTeam(name){
   }
   return null;
 }
+// A name as the board knows it. A spelling of a team already there is that
+// team under its own spelling, and one the board has never heard of joins the
+// division: the Tally gate, Played against and a schedule row all take a team
+// through this one door, so the scouting, the calls logged and the record
+// never split between "Dynasty" and "dynasty".
+function boardTeam(name){
+  const typed = clean(String(name || "").trim()); if(!typed) return "";
+  const hit = anyTeam(typed); if(hit) return hit.name;
+  const id = divisionOf().id;
+  S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name: typed}]};
+  return typed;
+}
 window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) set({division:id}); };
 window.addTeam = () => {
   const el = document.getElementById("newTeam");
@@ -2862,11 +2874,8 @@ window.setMatchVs = name => {
   const m = curMatch(), typed = clean(String(name || "").trim());
   if(!m || m.watch) return;
   if(!typed){ flash("Type the team you played."); return; }
-  // A name already on the board is that team under its own spelling; one the
-  // board has never heard of joins the division, the way the Tally gate adds it.
-  const hit = anyTeam(typed), to = hit ? hit.name : typed;
+  const to = boardTeam(typed);
   if(to === m.vs){ flash(`This sheet is already against ${to}.`); return; }
-  if(!hit){ const did = divisionOf().id; S.teams = {...(S.teams || {}), [did]: [...addedTeams(did), {name: to}]}; }
   const from = m.vs, id = m.id;
   const team = (rows, key) => (rows || []).map(r => r && r.m === id && r[key] === from ? {...r, [key]: to} : r);
   S.tally = team(S.tally, "vs"); S.breakouts = team(S.breakouts, "vs"); S.calls = team(S.calls, "vs");
@@ -5368,12 +5377,7 @@ window.playNamed = () => {
   const el = document.getElementById("oppName");
   const name = clean((el && el.value || "").trim());
   if(!name){ flash("Type the team's name first."); return; }
-  const hit = anyTeam(name);
-  if(!hit){
-    const id = divisionOf().id;
-    S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
-  }
-  setPitTeam("right", hit ? hit.name : name);
+  setPitTeam("right", boardTeam(name));
 };
 window.setPitTeam = (side, name) => {
   S[side] = {...(S[side] || {}), name: name || ""};
@@ -8003,15 +8007,17 @@ function gameGuard(){
 }
 window.watchGame = id => {
   const g = gameById(id); if(!g || !gameGuard()) return;
-  S.left  = {...(S.left  || {}), name: g.h};
-  S.right = {...(S.right || {}), name: g.a};
-  openSheet({vs: g.a, watch: true, home: g.h, away: g.a,
+  // The schedule's spelling of a team is the board's team.
+  const h = boardTeam(g.h), a = boardTeam(g.a);
+  S.left  = {...(S.left  || {}), name: h};
+  S.right = {...(S.right || {}), name: a};
+  openSheet({vs: a, watch: true, home: h, away: a,
              when: `${dayName(g.d)} · ${clockName(g.t)}`, bracket: g.g || ""});
   set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
 };
 window.playGame = (id, which) => {
   const g = gameById(id); if(!g || !gameGuard()) return;
-  const them = which === "home" ? g.h : g.a;
+  const them = boardTeam(which === "home" ? g.h : g.a);
   S.right = {...(S.right || {}), name: them};
   openSheet({vs: them});
   set({tab:"tally", more:null, gameOpen:null});
@@ -8146,6 +8152,11 @@ const openMatchNow = id => {
   // A sheet brings its field with it: opened from Matches while standing on
   // another event, it used to open under the off-field notice on Tally.
   const m = curMatch(); if(m && m.layout && LAYOUTS[m.layout]) S.layoutKey = m.layout;
+  // And its opponent: opening a sheet is picking the team, so the pit follows
+  // it — a watched game puts the home side left and the away side right —
+  // rather than the point sheet asking him to put his own opponent back.
+  if(m && m.watch){ S.left = {...(S.left || {}), name: m.home || ""}; S.right = {...(S.right || {}), name: m.away || m.vs || ""}; }
+  else if(m && m.vs) S.right = {...(S.right || {}), name: m.vs};
   S.matchState = derivedState();
   save(S); render();
 };
@@ -10586,7 +10597,8 @@ function moreBody(k){
     // What he already has on this game: a watched sheet with these two teams,
     // or his own sheet against either of them. A schedule he has half worked
     // through should say so on the row, not make him open each one to find out.
-    const had = g => (S.matches || []).filter(m => m.watch ? (m.home === g.h && m.away === g.a) : (m.vs === g.h || m.vs === g.a))
+    const same = (a, b) => foldName(a) === foldName(b);
+    const had = g => (S.matches || []).filter(m => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a)))
       .filter(m => matchSize(m.id) || (S.results || []).some(r => r.m === m.id) || Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b.m === m.id)))
       .sort((a, b) => a.at - b.at)
       .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
