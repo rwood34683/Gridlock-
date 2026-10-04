@@ -1160,7 +1160,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   clinic gets the same kid twice — "Sam", "sam " — and the sheet counted two.
   `submitForm()` folds the name per class code like `squadHas()`: a second
   sign-in updates what he filled in, a box left blank keeps the first, and
-  the thank-you says it was an update.
+  the thank-you says it was an update. The card shows what he filled in —
+  level, wire, contact, notes — and every row has Remove (`dropResponse`),
+  because a kid who signed the wrong clinic or a name that is not a kid at
+  all has to be able to come off the sheet.
 - Write their #7 down twice. Their men are read by number — "#7" is the key
   every sighting, shot and breakout of theirs is counted under — so a second
   #7 in the pit split one man's read in two. `pitDup()` finds the man an
@@ -1211,7 +1214,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   "Refss" was delete the list and type its members again. The name is a box
   (`renameGroup`), empty keeps the old one, and `groupHas()` folds case and
   spacing so two groups cannot share a name on add or rename — one blast
-  sent twice was the other half of that.
+  sent twice was the other half of that. The same member added twice is
+  one member with the number updated, and `reachable()` sends to one
+  phone once however many rows carry it: two kids who share a parent's
+  number are one message to that parent.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -935,6 +935,17 @@ const ROSTER = [
   check("signing the same name onto the sheet twice is one row, updated, and says so", await ev(() =>
     S.responses.length === 1 && S.responses[0].name === "Sam Ortiz" && S.responses[0].contact === "555-0100" && S.responses[0].notes === "left-handed"
     && /already signed in — updated/.test(S.joinSaid || "") && /already signed in/.test(document.getElementById("root").innerText)));
+  const cardRow = await ev(() => {
+    window.set({ tab: "more", more: "classes", joinCode: "" });
+    const root = document.getElementById("root").innerText;
+    const flags = { name: /Sam Ortiz/.test(root), contact: /555-0100/.test(root), notes: /left-handed/.test(root) };
+    const btn = [...document.querySelectorAll("#root button")].find(b => b.getAttribute("aria-label") === "Take Sam Ortiz off the sheet");
+    const n = S.responses.length; if (btn) btn.click();
+    // the join sheet's thank-you still names him; the row is what has to be gone
+    flags.gone = !!btn && S.responses.length === n - 1 && ![...document.querySelectorAll("#root button")].some(b => b.getAttribute("aria-label") === "Take Sam Ortiz off the sheet");
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ") + " · " + JSON.stringify(S.responses[0] || null).slice(0, 160);
+  });
+  check("the class card shows what a sign-in filled in and lets the coach take one off the sheet", cardRow === true, cardRow);
 
   /* --------------------------------------------------------------- league */
   G("League");
@@ -5239,11 +5250,17 @@ const ROSTER = [
     window.renameGroup("g-b", "  "); const kept = S.groups[1].name === "Vendors" && /needs a name/.test(S.flash || "");
     const box = [...document.querySelectorAll("#root input")].find(x => x.value === "Referees");
     const g = document.getElementById("ng"); if (g) g.value = "VENDORS"; window.addGroup(); const addDup = S.groups.length === 2 && /already a group/.test(S.flash || "");
+    // the same member twice is one, with the number updated; two rows with one number reach it once
+    S.groups = [{ id: "g-m", name: "Ops", members: [{ name: "Ann Lee", phone: "" }, { name: "Bob", phone: "555-1" }, { name: "Cy", phone: "555-1" }] }]; render();
+    const mn = document.getElementById("mn-g-m"), mp = document.getElementById("mp-g-m");
+    if (mn && mp) { mn.value = " ann LEE "; mp.value = "555-9"; window.addMem("g-m"); }
+    const member = S.groups[0].members.length === 3 && S.groups[0].members[0].name === "Ann Lee" && S.groups[0].members[0].phone === "555-9" && /already in Ops/.test(S.flash || "");
+    const once = reachable(S.groups[0]).length === 2;
     S.groups = keep; window.set({ flash: "" });
-    const flags = { renamed, dup, kept, box: !!box, addDup };
+    const flags = { renamed, dup, kept, box: !!box, addDup, member, once };
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
-  check("a league group's name is fixed in place, keeps its members, and two groups cannot share a name", groupFix === true, groupFix);
+  check("a league group's name is fixed in place, two groups cannot share a name, the same member twice is one, and one number is reached once", groupFix === true, groupFix);
   const enterAdds = await ev(() => {
     window.confirm = () => true;
     const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, players: pitOf("right").players };
