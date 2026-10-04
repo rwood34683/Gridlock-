@@ -5695,7 +5695,8 @@ const ROSTER_JUNK = /^(#|no\.?|num(ber)?|player(s)?|name|roster|pos(ition)?|team
 // A line with no number that names a role or a heading is the page, not a
 // man: "Houston Heat Roster", "Coach Bob Smith", "Team Captain".
 const ROSTER_ROLE = /^(roster|coach(es)?|captain|staff|manager|owner|lineup|squad|team|division|pro|semi|semi-pro|sponsor(s)?|schedule|results?)$/i;
-const ROSTER_WIRE = [[/\bsnake\b/i,"Snake"],[/\bdorito\b/i,"Dorito"],[/\bcent(er|re)\b/i,"Centre"],[/\bback\b/i,"Back"]];
+// "D-side", "S side" and "snake wire" are how a roster write-up names a wire.
+const ROSTER_WIRE = [[/\b(?:snake|s)[\s-]?(?:side|wire)\b|\bsnake\b/i,"Snake"],[/\b(?:dorito|d)[\s-]?(?:side|wire)\b|\bdorito\b/i,"Dorito"],[/\bcent(er|re)\b/i,"Centre"],[/\bback\b/i,"Back"]];
 // The class column travels with the name on a phone screenshot: "18 Ryan
 // Greenspan Pro". Jr and Sr are part of a man's name and are never stripped.
 const ROSTER_CLASS = /^(pro|semi|semi-pro|semipro|am|amateur|novice|rookie|d[1-5]|div|division|open|race|champs|champions|ladies|women'?s|mens|youth|xball|x-ball)$/i;
@@ -5727,13 +5728,20 @@ function parseRoster(text, team){
     // one heading, or a whole header row of them: "Player  No.", "# Name Team"
     if(line.split(" ").every(w => ROSTER_JUNK.test(w))) return;
     let rest = line, num = "";
+    // A jersey number is one to three digits standing on their own: the tail
+    // match used to take "026" off "Roster 2026" and make the heading a man.
+    // A number in brackets after the name — "Fedorov (#21)" — is his too.
     const lead = rest.match(/^#?\s*(\d{1,3})\b\s*/);
-    const tail = rest.match(/\s*#?\s*(\d{1,3})$/);
+    const tail = rest.match(/(?:^|\s)#?(\d{1,3})$/);
+    const mid  = rest.match(/\s*\(\s*#?\s*(\d{1,3})\s*\)\s*/);
     if(lead){ num = lead[1]; rest = rest.slice(lead[0].length); }
     else if(tail){ num = tail[1]; rest = rest.slice(0, tail.index); }
+    else if(mid){ num = mid[1]; rest = rest.replace(mid[0], " "); }
     let wire = "";
+    // Every wire word comes off, the first names the wire: "back center" is
+    // Centre, and the "back" left behind used to fail the name test.
     ROSTER_WIRE.forEach(([re, w]) => {
-      if(!wire && re.test(rest)){ wire = w; rest = rest.replace(re, " "); }
+      if(re.test(rest)){ if(!wire) wire = w; rest = rest.replace(re, " "); }
     });
     rest = rest.replace(/[^A-Za-z'’.\- ]/g, " ").replace(/\s+/g, " ").trim();
     let words = rest.split(" ").filter(Boolean);           // shed the class column
@@ -5743,7 +5751,13 @@ function parseRoster(text, team){
     if(rest && known(rest)) return;                        // the team's own name, not a man
     if(rest && !num && (words.some(w => ROSTER_ROLE.test(w)) || teamPrefix(rest))){ skipped.push(line); return; }   // a heading or staff, not a man
     if(rest && !looksLikeName(rest)){ skipped.push(line); return; }   // prose, not a player
-    found.push({num, name: clean(rest), wire: wire || "Flex", note: "", threat: 3});
+    // The same man pasted twice — once off the roster, once off the write-up —
+    // is one row: the first keeps its place and takes a number or a wire the
+    // later line had and it did not.
+    const name = clean(rest);
+    const same = found.find(f => (name && foldName(f.name) === foldName(name)) || (!name && num && f.num === num && !f.name));
+    if(same){ if(!same.num && num) same.num = num; if(same.wire === "Flex" && wire) same.wire = wire; if(!same.name && name) same.name = name; return; }
+    found.push({num, name, wire: wire || "Flex", note: "", threat: 3});
   });
   return {found: found.slice(0, 40), skipped};
 }
@@ -5763,7 +5777,7 @@ window.keepRoster = () => {
   if(!side || !(found || []).length) return;
   const have = pitOf(side).players;
   const dupe = p => have.some(h => (p.num && h.num === p.num) ||
-                                  (p.name && (h.name || "").toLowerCase() === p.name.toLowerCase()));
+                                  (p.name && foldName(h.name || "") === foldName(p.name)));
   const add = found.filter(p => !dupe(p));
   editProfile(side, {players: [...have, ...add]});
   const already = found.length - add.length;

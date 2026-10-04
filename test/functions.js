@@ -1585,7 +1585,7 @@ const ROSTER = [
     "Registration closes on the fourteenth of June").then(r =>
     r.found.length === 0 && r.skipped.length === 1));
   check("a paste is capped so one bad screenshot cannot flood the sheet", await parse(
-    Array.from({ length: 60 }, (_, i) => (i + 1) + " Player" + i).join("\n")).then(r =>
+    Array.from({ length: 60 }, (_, i) => (i + 1) + " Man " + String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(97 + i % 26)).join("\n")).then(r =>
     r.found.length === 40));
   check("threat starts unscored at three, the same as a typed player", await parse("12 Greenspan").then(r =>
     r.found[0].threat === 3));
@@ -4204,6 +4204,17 @@ const ROSTER = [
   check("the roster paste skips a heading or a staff line and keeps the men", await ev(() => {
     const r = parseRoster("Houston Heat Roster\nCoach Bob Smith\n12 Ryan Greenspan\n#4 Alex Goldman snake\nTeam Captain\nMarcello Margott\n", "Houston Heat");
     return r.found.map(f => f.name).join("|") === "Ryan Greenspan|Alex Goldman|Marcello Margott" && r.skipped.length === 3;
+  }));
+  check("a year is not a jersey number, a bracketed number is, D-side is a wire, and one man pasted three ways is one row", await ev(() => {
+    const r = parseRoster("Houston Heat Roster 2026\n#7 Ryan Greenspan – Snake\n12 Marcello Margott, Dorito\nCoach: Mike Hinman\nKonstantin Fedorov (#21) back center\nChad Busiere   D-side\nCarl Markowski\n#7 Ryan Greenspan\nRyan Greenspan 7 snake\nPit crew: Joe Smith\n", "Houston Heat");
+    const by = Object.fromEntries(r.found.map(f => [f.name, f]));
+    return r.found.length === 5
+      && !r.found.some(f => /Roster/.test(f.name) || f.num === "026")
+      && by["Ryan Greenspan"] && by["Ryan Greenspan"].num === "7" && by["Ryan Greenspan"].wire === "Snake"
+      && by["Konstantin Fedorov"] && by["Konstantin Fedorov"].num === "21"
+      && by["Chad Busiere"] && by["Chad Busiere"].wire === "Dorito"
+      && by["Carl Markowski"] && by["Marcello Margott"].wire === "Dorito"
+      && r.skipped.length === 3;
   }));
   check("the squad holds one man under one name, and a name is capped so it fits a card", await ev(() => {
     window.set({ tab: "more", more: "team", roster: [] });
