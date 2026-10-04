@@ -4246,8 +4246,9 @@ const ROSTER = [
   check("a man is read off the breakout rows — breaks charted, made, shot on the break and from where, where he breaks to", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Dynasty" }, tallySel: null, tallyDraft: null }); window.newMatch();
+    // one row a man a point, so each charting is its own point
     const bl = curLayout().bunkers, log = (side, player, bunker, alive, shotFrom) => {
-      window.set({ tallySel: bunker, tallyDraft: { side, sideSet: true, player, alive, shotFrom } }); window.logBreakout();
+      window.set({ tallySel: bunker, tallyDraft: { side, sideSet: true, player, alive, shotFrom } }); window.logBreakout(); window.nextPoint();
     };
     log("them", "#7", bl[12].id, true); log("them", "#7", bl[12].id, false, bl[3].id); log("them", "#7", bl[14].id, true);
     log("us", "Reyes", bl[20].id, false, bl[9].id); log("us", "Reyes", bl[20].id, true);
@@ -5264,6 +5265,23 @@ const ROSTER = [
     window.set({ asWho: null, asScore: 0, flash: "" }); window.saveAssess(); const said = /Tap the man first/.test(S.flash || "") && (S.assessments || []).length === 1;
     S.assessments = keep; window.set({ flash: "" });
     return one && said;
+  }));
+  check("one row a man a point on the break chart: charting him again on the same point replaces his row, and takes back the out it wrote", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, a = bl[0], c = bl[3], pt = S.point || 1, m = S.matchId;
+    const mine = () => (S.breakouts || []).filter(r => r.m === m && r.pt === pt && r.player === "Reyes");
+    const outs = () => (S.tally || []).filter(o => typeof o === "object" && o.m === m && o.pt === pt && o.name === "Reyes");
+    window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: false }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    const first = mine().length === 1 && mine()[0].bunker === a.id && outs().length === 1;
+    window.tallyTap([c.x, c.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    const second = mine().length === 1 && mine()[0].bunker === c.id && mine()[0].alive === true && outs().length === 0 && /charted again/.test(S.flash || "");
+    // two unnamed men on one point are two rows, as before
+    window.tallyTap([a.x, a.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    window.tallyTap([c.x, c.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    const unnamed = (S.breakouts || []).filter(r => r.m === m && r.pt === pt && r.side === "them" && !r.player).length === 2;
+    window.set({ flash: "" }); window.newMatch();
+    return first && second && unnamed;
   }));
   const groupFix = await ev(() => {
     window.confirm = () => true;
