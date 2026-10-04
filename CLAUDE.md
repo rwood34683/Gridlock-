@@ -1388,6 +1388,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `gameOnList`), and a page pasted twice, or one that overlaps the last,
   adds only the rows the list does not have and says how many it already
   had — the league's own rows included.
+- Hand two classes one code. A class code is what a kid types to find the
+  sheet; four random characters collide rarely, and when they did the second
+  class could never be signed in to. `freeClassCode()` draws until the code
+  is one no class has, and falls back to a counted one.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

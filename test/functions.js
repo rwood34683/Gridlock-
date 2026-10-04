@@ -5036,6 +5036,16 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("two classes never share a code, even when the dice land the same way twice", await ev(() => {
+    const was = S.classes, rnd = Math.random;
+    Math.random = () => 0.123456789;   // the same four characters every time
+    const a = freeClassCode(); S.classes = [{ id: a, code: a, title: "First", open: true, when: "", notes: "" }, ...(S.classes || [])];
+    const b = freeClassCode();
+    Math.random = rnd;
+    const distinct = a !== b && /^GL-[A-Z0-9]{4}$/.test(a) && /^GL-[A-Z0-9]{4}$/.test(b) && !(S.classes || []).some(c => c.code === b);
+    S.classes = was;
+    return distinct;
+  }));
   check("the same game twice is one row: typed again it is refused and said, pasted again it is counted and left", await ev(() => {
     const gamesWere = S.games, d = SCHEDULE.games[0].d;
     S.games = (S.games || []).filter(g => !/Dup Probe/.test(g.h + g.a));
