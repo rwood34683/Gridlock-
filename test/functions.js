@@ -5034,6 +5034,34 @@ const ROSTER = [
     S.plays = customPlays().filter(p => had.includes(p.k)); S.breakCalls = calls; window.set({ script: was, flash: "", tab: "playbook", more: null });
     return refused && rocket !== hammer && kept && third && free;
   }));
+  check("from the right end his card names the twin bunker he actually runs to, and a shot picked off the turned field is kept in the frame", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0); window.set({ script: "snake" });
+    const p = currentPaths()[0], bl = curLayout().bunkers, b = bl.find(x => x.id === p.bunker), twin = bl.find(x => x.id === mirrorBunkerId(p.bunker));
+    if (!b || !twin || twin.id === b.id) return false;
+    const was = (S.direct || {})[directKey(p.id)];
+    // Twins share a code, so the two bunkers are told apart by his word for each.
+    const who = fiveFor(1)[0]; if (!who) return false;
+    window.setPlayerCall(who.name, b.id, "Doghouse"); window.setPlayerCall(who.name, twin.id, "Kennel");
+    const left = cardLines()[0].bunker === "Doghouse";
+    window.setSwapEnds(true); window.endPoint("us");                       // point 2 breaks from the right end
+    if (ourEnd() !== "right") return false;
+    const right = cardLines()[0].bunker === "Kennel";
+    // The lane's name is the field's and does not turn: "up-field, snake side" is the same from either end.
+    window.setDirect(p.id, "shot", "@45"); const laneWord = cardLines()[0].shot === LANE_NAME[45];
+    // A fixed target picked on the turned field: he picks the bunker he sees, it is kept as its twin, and the card and the row name what he picked.
+    const target = bl.find(x => x.id !== b.id && x.id !== twin.id && mirrorBunkerId(x.id) !== x.id);
+    window.setDirect(p.id, "shot", ownShot(target.id));
+    const kept = directOf(p.id).shot === mirrorBunkerId(target.id);
+    const card = cardLines()[0].shot === callOf(target);
+    window.set({ tab: "playbook", pbView: null, pad: "shot:" + p.id });
+    const sel = [...document.querySelectorAll("#root .assign select")].find(x => x.querySelector("option[value='" + target.id + "']"));
+    const row = !!sel && sel.value === target.id;
+    window.setDirect(p.id, "shot", ""); if (was) S.direct[directKey(p.id)] = was;
+    window.setPlayerCall(who.name, b.id, ""); window.setPlayerCall(who.name, twin.id, "");
+    window.set({ tab: "tally", right: { name: "Dynasty" }, pad: null }); window.newMatch();
+    return left && right && laneWord && kept && card && row;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
