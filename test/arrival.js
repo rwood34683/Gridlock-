@@ -230,10 +230,12 @@ async function integrationChecks(page) {
   await page.evaluate(() => set({layoutKey: "tby"}));
   assert.equal(await page.evaluate(() => arrivalSightings().length), 0, "Another field has a separate history");
   assert.equal(await page.locator("#arrival-sighting").inputValue(), "", "Unrecorded sighting selection does not leak into another field");
-  assert(await page.getByRole("button", {name: "Record sighting", exact: true}).isDisabled(), "Changing field requires a new bunker selection before recording");
+  // Record is never greyed out: tapping it with no bunker chosen says so in a sentence and records nothing.
+  assert(await page.getByRole("button", {name: "Record sighting", exact: true}).isEnabled(), "Record stays live after a field change so it can say what is missing");
   const countBefore = await page.evaluate(() => S.arrivalSightings.length);
-  await page.evaluate(() => logArrivalSighting());
-  assert.equal(await page.evaluate(() => S.arrivalSightings.length), countBefore, "Direct record handler also refuses the stale layout selection");
+  await page.getByRole("button", {name: "Record sighting", exact: true}).click();
+  assert.equal(await page.evaluate(() => S.arrivalSightings.length), countBefore, "Recording with no bunker chosen after a field change records nothing");
+  assert(/Choose a bunker (again )?before recording/.test(await page.evaluate(() => document.getElementById("root").innerText)), "and says to choose a bunker");
   await page.evaluate(() => set({layoutKey: "mwo"}));
   assert.equal(await page.evaluate(() => arrivalSightings().length), 2, "Original field history remains intact");
   const staleContexts = await page.evaluate(() => {
