@@ -1322,7 +1322,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   record again rather than a second "Rocket" beside the first on self-scout.
   Renaming a play onto that name does the same (`renamePlay` re-keys the
   calls and the job words), and naming one of the twelve with it is refused
-  and says why — a built-in's five are not the deleted play's.
+  and says why — a built-in's five are not the deleted play's. The read line
+  says which of the two it is when it will not offer a call (`offWord`):
+  "turned off" sent him looking for a switch a deleted play does not have.
 - Hand text over through `prompt()`. Cards, a matchup card, a class link and
   a league blast all fell back to a system dialog when there was no share
   sheet — the browser build on a laptop, or an insecure address — with the
@@ -1348,6 +1350,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `jobWordTaken()` fold case and spacing like the rest and say which bunker
   or slot already answers to the word; a man's own word for a bunker is his
   alone and is not checked.
+- Log a rotation to nowhere. On the breakout sheet Moved to is where he went
+  next and Shot from is where the paint came from; either one tapped onto the
+  bunker he broke to is a mis-tap, and logged it was a visit counted twice on
+  Bunker stats or a man shot from his own bunker. `logBreakout` refuses both
+  and says which box it is, the way Movement refuses two taps on one bunker.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

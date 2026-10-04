@@ -4958,6 +4958,31 @@ const ROSTER = [
     S.bunkerCalls = callsWere; S.jobCalls = jobsWere; window.set({ flash: "" });
     return first && refused && same && jobRefused;
   }));
+  check("a breakout row cannot move a man to the bunker he broke to, or shoot him from his own bunker", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, b = bl[3], man = (S.roster[0] || {}).name || "";
+    const n0 = (S.breakouts || []).length;
+    window.selectBunker(b.id); window.setDraft({ side: "us", player: man, alive: true, movedTo: b.id }); window.logBreakout();
+    const moved = (S.breakouts || []).length === n0 && /is the bunker he broke to/.test(S.flash || "");
+    window.set({ flash: "" }); window.selectBunker(b.id); window.setDraft({ side: "us", player: man, alive: false, shotFrom: b.id, movedTo: "" }); window.logBreakout();
+    const shot = (S.breakouts || []).length === n0 && /is his own bunker/.test(S.flash || "");
+    window.set({ flash: "" }); window.selectBunker(b.id); window.setDraft({ side: "us", player: man, alive: true, movedTo: bl[4].id, shotFrom: "" }); window.logBreakout();
+    const fine = (S.breakouts || []).length === n0 + 1;
+    S.breakouts = (S.breakouts || []).slice(0, n0 === 0 ? 0 : undefined).filter(r => !(r.m === S.matchId && r.player === man));
+    window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return moved && shot && fine;
+  }));
+  check("the read line says why a favoured call is not offered: turned off, deleted, or not in this build", await ev(() => {
+    const goneWere = S.playGone; S.playGone = {...(S.playGone || {}), "my:ghost": "Ghost Play"};
+    const live = offWord(S.script) === "";
+    const gone = /a play you deleted/.test(offWord("my:ghost")) && /build it again/.test(offWord("my:ghost"));
+    const unknown = /this build does not have/.test(offWord("my:never"));
+    const k = Object.keys(BREAKS).find(x => x !== S.script); const offWere = S.offPlays; S.offPlays = [...new Set([...(S.offPlays || []), k])];
+    const off = /turned off/.test(offWord(k));
+    S.offPlays = offWere; S.playGone = goneWere;
+    return live && gone && unknown && off;
+  }));
   check("a play built again under a deleted play's name takes its key back, so the calls logged under it are its record again", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
