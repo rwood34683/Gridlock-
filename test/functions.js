@@ -4750,6 +4750,49 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return watched && played;
   }));
+  const schedName = await ev(() => {
+    window.confirm = () => true;
+    const board = teamsHere()[0].name, lower = board.toLowerCase();
+    const before = teamsHere().length, did = divisionOf().id;
+    const g1 = { id: "g-fold-1", d: SCHEDULE.games[0].d, t: "09:00", h: lower, a: "Fresh Eleven Sched", g: "" };
+    const g2 = { id: "g-fold-2", d: SCHEDULE.games[0].d, t: "10:00", h: "  " + lower + " ", a: "Fresh Eleven Sched", g: "" };
+    S.games = [...(S.games || []), g1, g2];
+    window.playGame("g-fold-1", "home"); window.setRaceTo(1); window.endPoint("us");
+    const played = matchVs() === board && pitOf("right").name === board && teamsHere().length === before;
+    window.playGame("g-fold-1", "away");
+    const added = matchVs() === "Fresh Eleven Sched" && teamsHere().length === before + 1 && !!anyTeam("fresh eleven sched");
+    window.watchGame("g-fold-2");
+    const m = curMatch();
+    const watched = m.watch && m.home === board && m.away === "Fresh Eleven Sched" && pitOf("left").name === board && teamsHere().length === before + 1;
+    window.set({ tab: "more", more: "schedule", gameOpen: null });
+    const row = [...document.querySelectorAll("#root .assign")].map(e => e.textContent.replace(/\s+/g, " ").trim()).find(x => x.includes(lower + " v Fresh Eleven Sched")) || "";
+    const said = new RegExp("you played " + board.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "( · game \\d+)? · 1–0 · you won").test(row);
+    const flags = { played, added, watched, said };
+    S.games = (S.games || []).filter(x => !/^g-fold-/.test(x.id));
+    S.teams = {...(S.teams || {}), [did]: addedTeams(did).filter(t => t.name !== "Fresh Eleven Sched")};
+    const bk = {...(S.scout || {})}; delete bk["Fresh Eleven Sched"]; S.scout = bk;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a schedule row's team is the team on the board: We play and Watch fold the spelling onto the board's, add a team it never had, and the row still pairs the sheet", schedName === true, schedName);
+  const reopenPit = await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const a = S.matchId; window.markOut("them", "#3"); window.endPoint("us");
+    const g = allGames()[0];
+    window.watchGame(g.id); const w = S.matchId; window.logTheirBreak("right", "blitz", []); window.endPoint("us");
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.markOut("them", "#4"); window.endPoint("them");
+    window.openMatch(a);
+    const own = matchVs() === "Rejects" && pitOf("right").name === "Rejects" && pitOnSheet("right")
+      && !/Put Rejects in the pit/.test(document.getElementById("root").innerText);
+    window.set({ left: { name: "" }, right: { name: "Dynasty" } });
+    window.openMatch(w);
+    const watched = pitOf("left").name === g.h && pitOf("right").name === g.a && pitOnSheet("left") && pitOnSheet("right");
+    const flags = { own, watched };
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("opening a kept sheet brings its opponent into the pit — the home and away sides for a watched game", reopenPit === true, reopenPit);
   check("Sightlines opens on the bunker your first man actually stands in from the right end", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
