@@ -9335,8 +9335,13 @@ function sightlines(){
    Classes
    ============================================================ */
 // The sign-in sheet for a session: on Classes, and alone behind a deep link.
+// A code the way a kid types it off a card: "gl7k2m", "GL 7K2M", "gl-7k2m."
+// are all GL-7K2M. Letters and digits are the code; the rest is how it was
+// written down.
+const foldCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const classByCode = code => (S.classes || []).find(c => c && foldCode(c.code) === foldCode(code) && foldCode(code));
 function joinSection(){
-  const join=(S.classes||[]).find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
+  const join=classByCode(S.joinCode);
   return sec("Sign in to a session", `${S.joinSaid ? `<p class="aid"><b>${esc(S.joinSaid)}</b></p>` : ""}<div class="fld"><label>Code</label>
       <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;S.joinSaid='';save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
     ${join&&join.open?formBox(join)
@@ -9413,8 +9418,8 @@ function classesPage(){
 function formBox(c){
   return `<div class="panel">
     <h3 class="panel__title">Joining ${esc(c.title)}</h3>
-    <div class="fld"><label>Name</label><input id="fn"/></div>
-    <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional"/></div>
+    <div class="fld"><label>Name</label><input id="fn" maxlength="40" ${onEnter(`submitForm('${c.code}')`)}/></div>
+    <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional" maxlength="80" ${onEnter(`submitForm('${c.code}')`)}/></div>
     <div class="fld"><label>Experience</label>
       <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select></div>
     <div class="fld"><label>Preferred wire</label>
@@ -9487,12 +9492,12 @@ window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
   if(!name){flash("Name is required.");return}
   if(!document.getElementById("fa").checked){flash("Tick the sign-in box to submit.");return}
-  const row={code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
-    wire:document.getElementById("fw").value,notes:document.getElementById("ft").value};
+  const row={code,name:clean(name).slice(0, 40),contact:clean(document.getElementById("fc").value.trim()).slice(0, 80),exp:document.getElementById("fe").value,
+    wire:document.getElementById("fw").value,notes:clean(document.getElementById("ft").value.trim()).slice(0, 280)};
   // The same name on the same sheet twice is one participant who signed in
   // again — a phone handed round a clinic gets that — not two. The second
   // sign-in updates what he filled in; a box he left blank keeps the first.
-  const i=(S.responses||[]).findIndex(r=>r&&r.code===code&&foldName(r.name)===foldName(name));
+  const i=(S.responses||[]).findIndex(r=>r&&r.code===code&&foldName(r.name)===foldName(row.name));
   if(i>=0){
     const was=S.responses[i], merged={...was};
     for(const k of ["contact","exp","wire","notes"]) if(String(row[k]||"").trim()) merged[k]=row[k];
@@ -9500,7 +9505,7 @@ window.submitForm = code => {
     S.joinCode=""; S.joinSaid=`${was.name} was already signed in — updated. Hand the phone back to the coach.`; save(S); render(); return;
   }
   S.responses=[row,...(S.responses||[])];
-  S.joinCode=""; S.joinSaid=`Signed in as ${name}. Hand the phone back to the coach.`; save(S); render();
+  S.joinCode=""; S.joinSaid=`Signed in as ${row.name}. Hand the phone back to the coach.`; save(S); render();
 };
 
 /* ============================================================
