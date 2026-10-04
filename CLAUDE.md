@@ -921,6 +921,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   tagged, their shooter by name — with a count of how many are clear from
   where he stands, because fifty-seven rows in digitiser order is not an
   answer to "can I see them from here".
+- Tap Add with the box empty and have nothing happen. Seven Add and Keep
+  buttons returned in silence on an empty box — team, pit man, group, player,
+  code word, squad note, walk note — and a coach whose thumb missed the box
+  read a screen that had not moved. Every one says what is missing in one
+  sentence (`flash`), the way Assess's Save already did.
 - Grade a man from a dropdown of the whole roster. Assess is "after the
   point", and the app knows who was on it: `onPoint(pt)` leads as tap chips,
   the bench follows, the score is five taps rather than a list, a chip carries

@@ -5170,6 +5170,36 @@ const ROSTER = [
     S.roster = keep; window.set({ flash: "" });
     return taken && free && said;
   }));
+  const emptyAdds = await ev(() => {
+    window.confirm = () => true;
+    const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, walk: S.walk, players: pitOf("right").players };
+    const clear = ids => ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    const said = re => re.test(S.flash || "");
+    const flags = {};
+    window.set({ tab: "scout", scoutTab: "board", right: { name: "Dynasty" }, flash: "" });
+    const nT = teamsHere().length; clear(["newTeam"]); window.addTeam(); flags.team = teamsHere().length === nT && said(/team's name first/);
+    window.set({ scoutTab: "matchup", flash: "" });
+    const nP = pitOf("right").players.length; clear(["sp-num-right", "sp-name-right", "sp-note-right"]); window.addScoutPlayer("right"); flags.pit = pitOf("right").players.length === nP && said(/number or his name first/);
+    window.set({ tab: "more", more: "league", flash: "" });
+    const nG = (S.groups || []).length; clear(["ng"]); window.addGroup(); flags.group = (S.groups || []).length === nG && said(/group's name first/);
+    window.set({ more: "team", flash: "" });
+    const nR = (S.roster || []).length; clear(["rName", "rNum"]); window.addPlayer(); flags.roster = (S.roster || []).length === nR && said(/his name first/);
+    window.set({ more: "codes", flash: "" });
+    const nC = (S.codes || []).length; clear(["cdWord", "cdMeans"]); window.addCode(); flags.code = (S.codes || []).length === nC && said(/code word first/);
+    window.set({ more: "messages", flash: "" });
+    const nM = (S.messages || []).length; clear(["md"]); window.sendMsg(); flags.message = (S.messages || []).length === nM && said(/note first/);
+    window.set({ more: "walk", flash: "" });
+    const nW = walkNotes().length; clear(["wkNote"]); window.addWalk(); flags.walk = walkNotes().length === nW && said(/note first/);
+    // and emptying a man's name is refused out loud, with his name back in the box
+    window.set({ more: "team", flash: "" });
+    S.roster = [{ name: "Reyes", num: 7, p: "", s: "" }]; render();
+    window.editPlayer(0, "name", "   ");
+    const box = [...document.querySelectorAll("#root input")].find(x => x.value === "Reyes");
+    flags.kept = S.roster[0].name === "Reyes" && said(/needs a name/) && !!box;
+    editProfile("right", { players: keep.players }); Object.assign(S, { teams: keep.teams, groups: keep.groups, roster: keep.roster, codes: keep.codes, messages: keep.messages, walk: keep.walk }); window.set({ flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Add with the box empty says what is missing instead of refusing in silence: team, pit man, group, player, code word, note, walk note", emptyAdds === true, emptyAdds);
   const enterAdds = await ev(() => {
     window.confirm = () => true;
     const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, players: pitOf("right").players };

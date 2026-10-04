@@ -1577,7 +1577,7 @@ window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) s
 window.addTeam = () => {
   const el = document.getElementById("newTeam");
   const name = clean((el && el.value || "").trim());
-  if(!name) return;
+  if(!name){ flash("Type the team's name first."); return; }
   const hit = anyTeam(name);
   if(hit){ flash(`Already on the list as ${hit.name}.`); return; }
   const id = divisionOf().id;
@@ -2619,7 +2619,7 @@ const rosterVal = id => (document.getElementById(id) || {}).value || "";
 const squadHas = (name, except) => (S.roster || []).some((p, i) => i !== except && foldName(p.name) === foldName(name));
 window.addPlayer = () => {
   const name = clean(rosterVal("rName").trim()).slice(0, 32);
-  if(!name) return;                       // a player with no name is not a player
+  if(!name){ flash("Type his name first."); return; }   // a player with no name is not a player
   if(squadHas(name)){ flash(`${name} is already on the squad.`); return; }
   const typed = parseInt(rosterVal("rNum"), 10);
   // Two men can wear one number — a kid borrowing a jersey — so it is taken,
@@ -2645,7 +2645,7 @@ window.editPlayer = (i, field, value) => {
     if(isFinite(n)){ list[i].num = n; const other = numWorn(n, i); if(other){ save(S); flash(`#${n} is also ${other.name}'s number.`); return; } }
   } else {
     const v = clean(String(value).trim()).slice(0, 32);
-    if(field === "name" && !v) return;     // never let a name be emptied by accident
+    if(field === "name" && !v){ flash("A man needs a name — kept the old one."); render(); return; }   // never let a name be emptied by accident, and never leave an empty box over a kept name
     if(field === "name" && squadHas(v, i)){ flash(`${v} is already on the squad.`); render(); return; }
     if(field === "name" && v !== list[i].name) renamePlayer(list[i].name, v);
     list[i][field] = v;
@@ -3477,7 +3477,7 @@ const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side",
 window.addWalk = () => {
   const where = rosterVal("wkWhere");
   const note = clean(rosterVal("wkNote").trim());
-  if(!note) return;
+  if(!note){ flash("Type the note first."); return; }
   S.walk = {...(S.walk || {}), [S.layoutKey]: [{where, note, at:Date.now()}, ...walkNotes()]};
   S.walkPick = null;
   save(S); render();
@@ -3542,7 +3542,7 @@ function walkOverlay(){
 // no use to the player who joined last week ----
 window.addCode = () => {
   const word = clean(rosterVal("cdWord").trim()).slice(0, 32);
-  if(!word) return;
+  if(!word){ flash("Type the code word first."); return; }
   const means = clean(rosterVal("cdMeans").trim());
   // A word typed again is the same word: a code is a lookup for the player who
   // joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
@@ -5054,7 +5054,7 @@ function oppAnswer(side){
 window.addScoutPlayer = side => {
   const g = id => (document.getElementById(id) || {}).value || "";
   const num = g("sp-num-" + side).trim(), name = clean(g("sp-name-" + side).trim());
-  if(!num && !name) return;                       // a number alone is a real entry
+  if(!num && !name){ flash("Type his number or his name first."); return; }   // a number alone is a real entry
   const row = {num, name, wire: g("sp-wire-" + side), note: clean(g("sp-note-" + side).trim()), threat: 3};
   // Their men are read by number — "#7" is the key every sighting, shot and
   // breakout of theirs is counted under — so a second #7 is the same man
@@ -9124,7 +9124,7 @@ window.toggleBlastGroup = id => {
   save(S); render();
 };
 window.addGroup = () => {
-  const n=document.getElementById("ng").value.trim(); if(!n) return;
+  const n=document.getElementById("ng").value.trim(); if(!n){ flash("Type the group's name first."); return; }
   const id="g"+Date.now();
   S.blastTo=[...blastTo(), id];
   S.groups=[...S.groups,{id,name:n,members:[]}]; save(S); render();
@@ -10245,7 +10245,7 @@ function moreBody(k){
 window.delMsg = i => { S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render(); };
 window.sendMsg = () => {
   const el=document.getElementById("md"); const v=(el.value||"").trim();
-  if(!v) return;
+  if(!v){ flash("Type the note first."); return; }
   S.messages=[...(S.messages||[]),clean(v)]; save(S); render();
 };
 
