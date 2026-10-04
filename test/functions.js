@@ -5242,6 +5242,32 @@ const ROSTER = [
     window.set({ joinCode: "", joinSaid: "", newClassTitle: "", tab: "tally" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("a pasted roster fills in the men already on the card and carries their sightings", await ev(() => {
+    const keepS = S.arrivalSightings, keepR = S.right, keepP = (S.scout || {})["Paste Probe"];
+    window.set({ tab: "scout", scoutTab: "matchup", right: { name: "Paste Probe" } });
+    editProfile("right", { players: [{ num: "7", name: "", wire: "Flex", note: "", threat: 3 }, { num: "", name: "Alex Goldman", wire: "Flex", note: "", threat: 3 }, { num: "9", name: "Kept Man", wire: "Snake", note: "", threat: 3 }] });
+    const L = S.layoutKey, bl = curLayout().bunkers;
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "pp1", team: "Paste Probe", player: "name:alex goldman", layout: L, m: "pp-m", pt: 1, bunker: bl[2].id, seq: 1, at: 1 }];
+    S.paste = { side: "right", text: "", found: [
+      { num: "7", name: "Chad Busiere", wire: "Snake", note: "", threat: 3 },
+      { num: "4", name: "Alex Goldman", wire: "Flex", note: "", threat: 3 },
+      { num: "9", name: "Kept Man", wire: "Flex", note: "", threat: 3 },
+      { num: "12", name: "New Guy", wire: "Dorito", note: "", threat: 3 }], skipped: [] };
+    window.keepRoster();
+    const men = pitOf("right").players, by = n => men.find(p => String(p.num) === n) || {};
+    const four = men.length === 4;
+    const chad = by("7").name === "Chad Busiere" && by("7").wire === "Snake";
+    const alex = by("4").name === "Alex Goldman" && !men.some(p => p.name === "Alex Goldman" && !p.num);
+    const kept = by("9").wire === "Snake";
+    const added = by("12").name === "New Guy";
+    const moved = (S.arrivalSightings || []).some(o => o.id === "pp1" && o.player === "number:4");
+    const said = /Added 1\./.test(S.pasteNote || "") && /2 already on the card were filled in/.test(S.pasteNote || "") && /1 was already logged/.test(S.pasteNote || "");
+    const flags = { four, chad, alex, kept, added, moved, said };
+    S.arrivalSightings = keepS;
+    if(keepP) S.scout["Paste Probe"] = keepP; else { const b = {...(S.scout || {})}; delete b["Paste Probe"]; S.scout = b; }
+    window.set({ right: keepR, pasteNote: "", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

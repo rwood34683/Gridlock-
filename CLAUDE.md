@@ -1481,6 +1481,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   session on this phone. `foldCode()` keeps the letters and digits and
   `classByCode()` is the one lookup; what he fills in is trimmed and capped
   like every other typed box, and Return in the name or contact box submits.
+- Skip a pasted man because his number is already on the card. The add row
+  has filled in what the first entry lacked since PR 113; the paste still
+  dropped him, so a card with "#7" and nothing else never learned his name
+  from the league's roster. `keepRoster` fills in a name for a number, a number
+  for a name and a wire where there was none, re-keys his sightings through
+  `rekeyTheirMan`, and the note counts added, filled in and already logged.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
