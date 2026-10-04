@@ -1439,6 +1439,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   read at all. Back a point puts the taken result's read back as ticked, and
   `endPoint()` carries an earlier result's read when none is ticked; the
   winner is what changed, not the read.
+- Let the tally and the chart disagree about one man. A man charted shot
+  on the break is the out the columns record, and tapping him back in took
+  the out off and left the chart saying shot. `markOut()` reads the chart
+  row that put him out: back in means alive on it too, with where the paint
+  came from cleared, and the sheet says so.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

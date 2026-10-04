@@ -5048,6 +5048,20 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a man tapped back in after his break chart said shot is alive on the chart too", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "A";
+    window.selectBunker(bl[2].id); window.setDraft({ side: "us", player: man, alive: false, shotFrom: bl[20] ? bl[20].id : bl[1].id, movedTo: "" }); window.logBreakout();
+    const out = (S.tally || []).some(o => o && o.m === S.matchId && o.pt === 1 && o.name === man);
+    const row = () => (S.breakouts || []).find(r => r.m === S.matchId && r.pt === 1 && r.player === man);
+    const shot = out && row() && row().alive === false && !!row().shotFrom;
+    window.markOut("us", man);
+    const back = !(S.tally || []).some(o => o && o.m === S.matchId && o.pt === 1 && o.name === man) && row().alive === true && !row().shotFrom && /back in — his break chart reads made it/.test(S.flash || "");
+    S.breakouts = (S.breakouts || []).filter(r => !(r.m === S.matchId && r.player === man));
+    window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return shot && back;
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
