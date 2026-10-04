@@ -1064,8 +1064,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   live); *Where the points come from* and `manRead()` count in it, the table
   says so once ends have moved on this field, and `shownBunker()` maps a row
   back to the bunker under his thumb on the end he breaks from now, so the
-  rings travel with the end. Bunker stats stays physical: it is a heat map of
-  where on the field things happened.
+  rings travel with the end. Their side turns with his — one point, one
+  frame — so `frameId(id, m, pt)` serves both: their fives tapped in from
+  either end are one five (`plantCounts`, `likelyPlants`, the ghost, Where
+  they plant, `usualMan`, their rotations and their lanes all count in it and
+  draw or name through `shownBunker()`), and a five logged on *this* point
+  stays physical because it is already on the end they break from now.
+  Bunker stats stays physical: it is a heat map of where on the field things
+  happened.
 - Switch ends on the point number. Teams switch after a point somebody won;
   a no-point moves nobody, and overtime starts on the pit side. `ourEnd()`
   reads the results through `scoredBefore()`, so "Next point, no result" keeps

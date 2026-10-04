@@ -4902,6 +4902,27 @@ const ROSTER = [
     window.setSwapEnds(false); window.newMatch();
     return twin && onRight && one && kept && ringRight.includes(rightB.id) && !ringRight.includes(leftB.id) && ringLeft.includes(leftB.id) && read;
   }));
+  check("their five tapped in from either end are one five: the ghost, where they plant and the usual man all read in one frame", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "scout", scoutTab: "breakouts", right: { name: "Rejects" }, left: { name: "" }, scoutSide: "right" });
+    window.newMatch(); window.setSwapEnds(true);
+    const bl = curLayout().bunkers, five = bl.filter(x => x.x > 90).slice(0, 5).map(x => x.id), twins = five.map(mirrorBunkerId);
+    const distinct = twins.every((t, i) => t !== five[i]);
+    // point 1: we break left, they plant on the right five; point 2: ends swap, the same five is its twins on the left
+    window.set({ theirPick: five }); window.logTheirBreak("right", "blitz", five); window.endPoint("us");
+    const swapped = ourEnd() === "right";
+    window.set({ theirPick: twins }); window.logTheirBreak("right", "blitz", twins);
+    const counts = plantCounts("right"), oneFive = counts.length === 5 && counts.every(([, n]) => n === 2);
+    const g = likelyPlants("right", "blitz"), ghostOne = g.n === 2 && g.top.length === 5 && g.top.every(([, n]) => n === 2);
+    // on the right end the ghost is drawn on the twins (the end they break from now), and the legend names them there
+    window.set({ theirPick: [] });
+    const t5 = theirFiveNow("right"), drawnOnTwins = t5 && t5.basis === "logged";   // point 2 has a logged five, so the real five leads
+    window.endPoint("them");   // point 3: ends switch on a point scored, so we are back on the left; nothing logged on it, the ghost draws on the right-end five
+    const t3 = theirFiveNow("right"), ghostRight = t3 && t3.basis === "likely" && t3.ids.slice().sort().join() === five.slice().sort().join();
+    const bb = bunkerBook(five[0]), book = /planted here 2 times/.test(bb);
+    window.setSwapEnds(false); window.set({ tab: "tally" }); window.newMatch();
+    return distinct && swapped && oneFive && ghostOne && drawnOnTwins && ghostRight && book;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
