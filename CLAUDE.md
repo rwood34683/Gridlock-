@@ -1423,6 +1423,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the pits, the calls he has turned off, the league rows he took off and the
   groups picked for a blast are his place in the day, not records: `HERE`
   keeps them as his on a merge, the way it keeps the sheet and the point.
+- Clear the scratch at launch and not on a restore. The durable copy is the
+  whole of `S`, half-done keys included, and `gridlockRestore` brought them
+  all back onto a phone that had lost its storage — the read ticked before
+  the phone wiped came back ticked. The launch block is one function,
+  `clearScratch()`, and the restore runs it too.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
