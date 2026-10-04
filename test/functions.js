@@ -5048,6 +5048,19 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a new sheet and a reopened sheet both start with nothing half-done carried from the last one", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const a = S.matchId; window.markOut("them", "#3"); window.endPoint("us");
+    window.setRead("right"); window.selectBunker(curLayout().bunkers[1].id); window.setDraft({ side: "us", alive: true }); window.set({ theirPick: [curLayout().bunkers[0].id] });
+    window.set({ right: { name: "Dynasty" } }); window.newMatch();
+    const fresh = S.matchId !== a && !S.tallyRead && !S.tallyDraft && !S.tallySel && !(S.theirPick || []).length;
+    window.setRead("wrong"); window.set({ theirPick: [curLayout().bunkers[2].id] });
+    window.openMatch(a);
+    const reopened = S.matchId === a && !S.tallyRead && !(S.theirPick || []).length && S.clockEnd === 0;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return fresh && reopened;
+  }));
   check("Back a point takes the half-done scratch and the break clock with it", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0); window.setBreakClock(60);
