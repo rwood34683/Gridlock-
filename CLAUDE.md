@@ -925,7 +925,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   buttons returned in silence on an empty box — team, pit man, group, player,
   code word, squad note, walk note — and a coach whose thumb missed the box
   read a screen that had not moved. Every one says what is missing in one
-  sentence (`flash`), the way Assess's Save already did.
+  sentence (`flash`), the way Assess's Save already did. A greyed-out button
+  is the same silence: How did they get there's Record buttons were disabled
+  until a bunker was tapped, so the handler's own sentence never showed.
+  Leave the button live and let the handler speak.
 - Grade a man from a dropdown of the whole roster. Assess is "after the
   point", and the app knows who was on it: `onPoint(pt)` leads as tap chips,
   the bench follows, the score is five taps rather than a list, a chip carries
