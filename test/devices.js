@@ -168,6 +168,23 @@ const measure = () => {
       }catch(e){ return "threw " + e.message; }
     });
     check("Devices", `${name} — header chips on screen with the clock and score up`, stressed === true, stressed === true ? "" : String(stressed));
+    // Two long team names on a watched game: the Scout break toggle and the
+    // whose-five switch wrap rather than pushing the third option off the edge.
+    const longNames = await page.evaluate(() => {
+      try{
+        window.set({ left: { name: "Edmonton Impact Paintball Club" }, right: { name: "San Antonio X-Factor Elite Squad" }, tab: "scout", scoutTab: "matchup" });
+        window.openSheet({ vs: "San Antonio X-Factor Elite Squad", watch: true, home: "Edmonton Impact Paintball Club", away: "San Antonio X-Factor Elite Squad" });
+        window.set({ scoutTab: "breakouts" }); window.set({ scoutTab: "matchup" });
+        const past = [...document.querySelectorAll(".seg--wrap button")].filter(b => { const r = b.getBoundingClientRect(); return r.width && r.right > window.innerWidth + 1; }).length;
+        const segs = document.querySelectorAll(".seg--wrap").length;
+        // and the two columns on the point sheet, with a long opponent and a long man
+        S.roster = [{name: "Bartholomew Fitzgerald-Montgomery", num: 1, p: "", s: ""}, ...S.roster.slice(1)];
+        window.set({ tab: "tally", whoOn: true });
+        const main = document.querySelector(".main"), tallyOver = Math.max(document.documentElement.scrollWidth - window.innerWidth, main ? main.scrollWidth - main.clientWidth : 0);
+        return segs >= 1 && past === 0 && tallyOver <= 1 ? true : `${segs} segments, ${past} options past the edge, Tally ${tallyOver}px over`;
+      }catch(e){ return "threw " + e.message; }
+    });
+    check("Devices", `${name} — long team and player names stay on screen on Scout and Tally`, longNames === true, longNames === true ? "" : String(longNames));
     rows.push([name, `${w}x${h}`, worst]);
     await ctx.close();
 

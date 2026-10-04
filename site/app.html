@@ -248,6 +248,10 @@ h1,h2,h3,p{margin:0}
   display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s;
 }
 .seg button.on{background:var(--accent);color:#fff;font-weight:700}
+/* A segment that names teams wraps and ellipsizes rather than scrolling: two
+   long names and Both pushed the third option past the edge of a phone. */
+.seg--wrap{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
+.seg--wrap button{flex:1 1 auto;min-width:0;max-width:100%;display:block;line-height:44px;overflow:hidden;text-overflow:ellipsis}
 .assign.assign--on{outline:2px solid var(--accent-lit);outline-offset:-2px}
 /* Writing a play sits with the calls, because that is where a coach is looking
    when he picks one — but it makes something rather than choosing something,
@@ -672,6 +676,11 @@ svg.field [data-pick]{cursor:crosshair}
 .paste{margin-top:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--r-md)}
 
 .who2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+/* A grid column is as wide as its longest word unless told otherwise: "San
+   Antonio X-Factor Elite Squad · 5 up" on a 320 px phone pushed the two
+   columns 70 px past the edge. The columns shrink and long names break. */
+.who2>div{min-width:0}
+.who2 h4,.who2 .assign__job{overflow-wrap:anywhere}
 .who2 h4{margin:0 0 var(--s2);font-size:var(--t-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
 .who2 ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
 .who2 li{font-size:var(--t-sm);color:var(--ink);display:flex;gap:var(--s2)}
@@ -8074,7 +8083,7 @@ function scout(){
        match strip and nothing else. Breakouts draws its own field — the one he
        taps where their five ended up — and a second field above it put that
        job two screens down on a phone. */""}
-  ${["games","board","breakouts"].includes(view) ? "" : sec("The break", `<div class="seg">
+  ${["games","board","breakouts"].includes(view) ? "" : sec("The break", `<div class="seg seg--wrap">
       <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">${(curMatch()||{}).watch ? esc(R.named ? R.name : "Away") : "Theirs"}</button>
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">${(curMatch()||{}).watch ? esc(L.named ? L.name : "Home") : "Yours"}</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
@@ -8971,7 +8980,7 @@ function scoutBreakouts(){
   const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=S.point||1;
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
   const plants=plantCounts(side);
-  const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg" aria-label="Whose five">
+  const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
       ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[]})">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
   return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order.
