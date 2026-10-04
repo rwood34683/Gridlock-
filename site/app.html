@@ -8235,6 +8235,10 @@ window.dropGame = id => {
   else S.games = (S.games || []).filter(x => x.id !== id);
   set({gameOpen: S.gameOpen === id ? null : S.gameOpen});
 };
+// A league row taken off by mistake had no way back. The league's rows are
+// never deleted — only remembered as taken off — so putting them back is
+// forgetting that.
+window.restoreGames = () => { const n = (S.gamesOff || []).length; S.gamesOff = []; save(S); flash(n ? `${n} ${n === 1 ? "row is" : "rows are"} back on the list.` : ""); };
 window.newGame = () => set({gameNew: {d: SCHEDULE.games[0].d, t: "09:00", h: "", a: "", g: ""}});
 window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(v)}; save(S); };
 // The same game twice — one day, one clock, the same two teams — is one row
@@ -10938,6 +10942,8 @@ function moreBody(k){
            <button class="btn btn--quiet" onclick="set({gameNew:null})">Cancel</button>
          </div>`
       : `<button class="btn btn--quiet btn--block" onclick="newGame()">+ A game the list does not have</button>`)
+    + ((S.gamesOff || []).length ? `<p class="note" style="margin-top:var(--s3)">${(S.gamesOff || []).length} ${(S.gamesOff || []).length === 1 ? "league row" : "league rows"} taken off the list. Nothing is deleted — the league's rows are the league's.
+        <button class="btn btn--quiet read-line__go" onclick="restoreGames()">Put them back</button></p>` : "")
     + sec("Paste a schedule", `<p class="lede">Copy the schedule off the league's page and drop it in.
         One game a line, with a clock and both teams — <i>9:00 AM Dynasty vs Impact</i>. A line that is
         only a date sets the day for the games under it.</p>
