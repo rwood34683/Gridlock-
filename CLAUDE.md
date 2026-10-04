@@ -628,7 +628,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   which end. On Scout the pits are *the home side* and *the away side*, the
   break toggle names the two teams instead of Theirs / Yours, and Breakouts
   carries a switch for whose five is being charted (`S.scoutSide`, scratch),
-  because both teams on a watched field are teams he is scouting.
+  because both teams on a watched field are teams he is scouting; Layers
+  names the home and away outs. The match strip's label shares the game
+  picker's flex basis, so two team names and a date take a line of their own
+  above the buttons instead of a five-line column beside them.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in
   it and that is the whole reason it works in Garland. `SCHEDULE` is read off
   the league the way the pro board is — a screenshot from the coach — and it

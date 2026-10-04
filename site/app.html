@@ -7924,7 +7924,10 @@ function matchStrip(){
         ${games.map(g => { const sc = scoreOf(g.id);
           return `<option value="${esc(g.id)}" ${g.id === S.matchId ? "selected" : ""}>${esc(matchLabel(g))}${sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : ""}</option>`; }).join("")}
       </select>`
-    : `<span class="note grow" style="margin:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
+    : `<span class="note" style="margin:0;flex:1 1 160px;min-width:0"><b style="color:var(--ink)">${esc(m ? matchLabel(m) : "No match yet")}</b></span>`;
+  // The label shares the basis the game picker has, so a long one — two team
+  // names and a date on a watched game — takes a line of its own above the
+  // buttons rather than wrapping into a five-line column beside them.
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
@@ -8950,7 +8953,9 @@ const LAYERS=[["theirOuts","Their outs","Where their players went out"],
               ["rotations","Your rotations","Bunker to bunker after the break"],
               ["theirMoves","Their rotations","Where they moved after the break, from sightings"]];
 function scoutLayers(){
-  const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true};
+  const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true}, w=!!(curMatch()||{}).watch;
+  // On a watched game "your outs" are the home side's — there is no you on that field.
+  const name=(k,n)=> w && k==="theirOuts" ? `${sideWord("them")} outs` : w && k==="yourOuts" ? `${sideWord("us")} outs` : n;
   const vs=o=>o.vs===R.name;
   const counts={
     theirOuts:(S.tally||[]).filter(o=>o&&o.side==="them"&&vs(o)&&o.shotAt).length,
@@ -8967,10 +8972,10 @@ function scoutLayers(){
       ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations — green yours, blue theirs, the number on a blue one how often it was seen.</p>
     <div class="toggles">
       ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
-        onclick="toggleLayer('${k}')"><i></i>${n} · ${counts[k]}</button>`).join("")}
+        onclick="toggleLayer('${k}')"><i></i>${esc(name(k,n))} · ${counts[k]}</button>`).join("")}
     </div>
     <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?(()=>true):false, theirMoves:!!on.theirMoves})}</div>
-    ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${n.toLowerCase()}`).join(" · ")}.</p>`
+    ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${esc(w && (k==="theirOuts"||k==="yourOuts") ? name(k,n) : n.toLowerCase())}`).join(" · ")}.</p>`
         :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
           the Tally tab, on the point you are on.</div>`}`,
     esc(R.name));
