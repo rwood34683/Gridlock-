@@ -5172,7 +5172,7 @@ const ROSTER = [
   }));
   const emptyAdds = await ev(() => {
     window.confirm = () => true;
-    const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, walk: S.walk, players: pitOf("right").players };
+    const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, walk: S.walk, moves: S.moves, players: pitOf("right").players };
     const clear = ids => ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
     const said = re => re.test(S.flash || "");
     const flags = {};
@@ -5190,13 +5190,30 @@ const ROSTER = [
     const nM = (S.messages || []).length; clear(["md"]); window.sendMsg(); flags.message = (S.messages || []).length === nM && said(/note first/);
     window.set({ more: "walk", flash: "" });
     const nW = walkNotes().length; clear(["wkNote"]); window.addWalk(); flags.walk = walkNotes().length === nW && said(/note first/);
+    // the four quieter doors: a code word emptied, a bunker word with no bunker tapped, a rotation with no bunkers, a group member with no name
+    window.set({ more: "codes", flash: "" }); S.codes = [{ word: "Rocket", means: "go" }]; render();
+    window.editCode(0, "word", "  "); flags.codeKept = S.codes[0].word === "Rocket" && said(/needs its word/);
+    window.set({ more: "team", flash: "" }); const bc = document.getElementById("bcId"); if (bc) bc.value = ""; window.setCall(); flags.bunkerWord = said(/Tap the bunker first/);
+    window.set({ more: "movement", moveWho: "Reyes", moveFrom: null, moveTo: null, flash: "" });
+    ["mvFrom", "mvTo"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    const nMv = (S.moves || []).length; window.logMove(); flags.move = (S.moves || []).length === nMv && said(/Tap the bunker he left/);
+    window.set({ more: "league", flash: "" }); const gid = (S.groups || [])[0] && S.groups[0].id;
+    if (gid) { const mn = document.getElementById("mn-" + gid); if (mn) mn.value = ""; const nMem = S.groups[0].members.length; window.addMem(gid); flags.member = S.groups[0].members.length === nMem && said(/member's name first/); }
+    // How did they get there: Record with nothing tapped is not greyed out, it says what to tap
+    window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" }, flash: "" });
+    S.arrival = { ...(S.arrival || {}), destination: "", sightingBunker: "", shotAt: "", notice: "" };
+    const rec = [...document.querySelectorAll("#root button")].find(b => /^Record sighting$/.test(b.textContent.trim()));
+    flags.arrival = !!rec && !rec.disabled && (rec.click(), /Choose a bunker before recording/.test(document.getElementById("root").innerText));
+    const shot = [...document.querySelectorAll("#root button")].find(b => /^Record shot$/.test(b.textContent.trim()));
+    flags.shot = !!shot && !shot.disabled && (shot.click(), /Choose the bunker they were shooting from/.test(document.getElementById("root").innerText));
+    window.set({ tab: "more" });
     // and emptying a man's name is refused out loud, with his name back in the box
     window.set({ more: "team", flash: "" });
     S.roster = [{ name: "Reyes", num: 7, p: "", s: "" }]; render();
     window.editPlayer(0, "name", "   ");
     const box = [...document.querySelectorAll("#root input")].find(x => x.value === "Reyes");
     flags.kept = S.roster[0].name === "Reyes" && said(/needs a name/) && !!box;
-    editProfile("right", { players: keep.players }); Object.assign(S, { teams: keep.teams, groups: keep.groups, roster: keep.roster, codes: keep.codes, messages: keep.messages, walk: keep.walk }); window.set({ flash: "" });
+    editProfile("right", { players: keep.players }); Object.assign(S, { teams: keep.teams, groups: keep.groups, roster: keep.roster, codes: keep.codes, messages: keep.messages, walk: keep.walk, moves: keep.moves }); window.set({ flash: "", moveWho: null });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("Add with the box empty says what is missing instead of refusing in silence: team, pit man, group, player, code word, note, walk note", emptyAdds === true, emptyAdds);
