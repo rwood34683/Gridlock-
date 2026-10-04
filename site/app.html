@@ -2460,7 +2460,7 @@ const defaultState = () => ({
   messages:[],
   tally:[],
   breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
-  tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", tallyValue:"us",
+  tallySel:null, tallyDraft:null, tallyStep:"place", tallyEdit:null, tallyPlace:"", tallyLast:"", tallyRead:"", tallyValue:"us",
   calls:[],                       // what you actually called, for self-scout
   pbView:null,                    // null | "cards" | "rep" — Playbook's chips
   rep:{running:false, ask:null, at:0, log:[]},   // the recognition drill
@@ -2669,7 +2669,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(){
-  S.tallySel = null; S.tallyDraft = null;
+  S.tallySel = null; S.tallyDraft = null; S.tallyStep = "place"; S.tallyEdit = null; S.tallyPlace = "";
   S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
   S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
   S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
@@ -7421,8 +7421,80 @@ window.tallyTap = at => {
     setDraft({[field]: b.id});
     return;
   }
-  // One job: the bunker a man broke to. The run is worked out, not traced.
+  // Step one is where each man went, and nothing else: a tap puts a man on
+  // the bunker and the next tap is the next man. What happened to each is
+  // step two, once the five are down.
+  if((S.tallyStep || "place") === "place") return placeAt(b);
+  // Step two: a man placed on this bunker and not yet told opens; anywhere
+  // else is one more man, and his sheet opens on the bunker the way it always
+  // did — two men can break to one bunker. A man already told is reopened
+  // from the list under the field.
+  const r = pointRows().find(x => x.bunker === b.id && x.todo);
+  if(r) return editBreakout(r.id);
   selectBunker(b.id);
+};
+/* Where they went, then what happened.
+ *
+ * Off the buzzer ten men leave at once and the coach has two seconds of
+ * where they went before it is gone. The sheet asked for the whole story of
+ * one man before the next could be placed — made it, how, which way he was
+ * shooting, where he moved — so by the third man the first two had moved and
+ * he was charting from memory. Step one is only the bunkers: tap, tap, tap,
+ * each tap a man, yours or theirs by the half it is on, and a second tap on
+ * the same bunker takes him off again. Step two walks the men he placed one
+ * at a time and asks what happened to each, the same sheet as before, with
+ * Save opening the next. A placed man is an ordinary breakout row from the
+ * moment he is tapped — he did break there — carrying `todo` until his story
+ * is told, so nothing is lost if the point ends before step two. */
+const pointRows = () => breakoutsHere().filter(r => r.pt === (S.point || 1) && r.layout === S.layoutKey)
+  .sort((a, b) => a.at - b.at);
+const placeSideWord = side => { const m = curMatch(); return m && m.watch ? (side === "us" ? m.home : m.away) || (side === "us" ? "Home" : "Away") : side === "us" ? "Yours" : "Theirs"; };
+function placeAt(b){
+  const pt = S.point || 1, side = S.tallyPlace || sideOfBunker(b);
+  const rows = pointRows();
+  // A second tap on a man placed and not yet told is a double tap or the
+  // wrong bunker: it takes him off, and says so.
+  const again = rows.filter(r => r.side === side && r.bunker === b.id && r.todo).pop();
+  if(again){
+    S.breakouts = (S.breakouts || []).filter(r => r !== again);
+    if(S.tallyLast === again.id) S.tallyLast = "";
+    flash(`Taken off ${bunkerLabel(b.id)}.`);
+    return;
+  }
+  const cap = startUp(side, S.matchId, pt), n = rows.filter(r => r.side === side).length;
+  if(n >= cap){ flash(`${placeSideWord(side)}: all ${cap} placed. Tap one again to take him off, or go on to 2 · What happened.`); return; }
+  const at = Date.now();
+  const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
+    m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
+    player:"", alive:null, shotFrom:"", entry:"", dir:null, shootAt:"",
+    delayed:false, movedTo:"", movedDelayed:false, routeType:"", route:[],
+    vs:matchVs(), script:S.script, todo:true};
+  S.breakouts = [row, ...(S.breakouts || [])];
+  S.tallyLast = row.id;
+  save(S); render();
+}
+// Open one placed man's sheet: what was already said about him comes back,
+// and Save writes over his row rather than adding a second one.
+window.editBreakout = id => {
+  const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
+  if(r.layout !== S.layoutKey){ flash(`That man was charted on ${(LAYOUTS[r.layout] || {}).name || "another field"}.`); return; }
+  S.tallyStep = "record"; S.tallyEdit = id; S.tallySel = r.bunker; S.tallyPickFor = null;
+  S.tallyDraft = {side:r.side, sideSet:true, player:r.player || "", alive:r.alive, shotFrom:r.shotFrom || "",
+    entry:r.entry || "", dir:r.dir == null ? null : r.dir, shootAt:r.shootAt || "", delayed:!!r.delayed,
+    movedTo:r.movedTo || "", movedDelayed:!!r.movedDelayed, routeType:r.routeType || "",
+    route:(r.route || []).map(p => ({...p}))};
+  save(S); render();
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+};
+// Step two opens on the first man still to tell, so "what happened" starts
+// the moment he says the five are down.
+window.tallyStepTo = step => {
+  S.tallySel = null; S.tallyDraft = null; S.tallyEdit = null; S.tallyPickFor = null;
+  S.tallyStep = step === "record" ? "record" : "place";
+  const next = S.tallyStep === "record" && pointRows().find(r => r.todo);
+  if(next) return editBreakout(next.id);
+  save(S); render();
 };
 // Send him to the picker: highlight it and scroll it under his thumb.
 /* Nobody across the tape means nothing to log against. The breakout sheet
@@ -7463,20 +7535,23 @@ window.playPit = () => {
   if(!matchVs()) return newMatch();
   S.tallyNudge = false; save(S); render();
 };
-window.tallyDone = () => set({tallySel:null, tallyDraft:null, tallyPickFor:null});
+window.tallyDone = () => set({tallySel:null, tallyDraft:null, tallyPickFor:null, tallyEdit:null});
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
   if(sheetOver()) return;
-  const d = draft(), pt = S.point || 1, at = Date.now();
+  const d = draft(), at = Date.now();
+  // Telling a placed man's story writes over his row: same id, same point.
+  const editing = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
+  const pt = editing ? editing.pt : (S.point || 1);
   const side = d.side || sideOfBunker(b);
   // Moved to is where he went next and Shot from is where the paint came
   // from; either one being the bunker he broke to is a mis-tap, and logged it
   // was a rotation to nowhere or a man shot from his own bunker.
   if(d.movedTo && d.movedTo === b.id){ flash(`${bunkerLabel(b.id)} is the bunker he broke to — Moved to is where he went next.`); return; }
   if(d.alive === false && d.shotFrom && d.shotFrom === b.id){ flash(`${bunkerLabel(b.id)} is his own bunker — Shot from is where the paint came from.`); return; }
-  const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
-    m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
+  const row = {id:editing ? editing.id : "b"+at.toString(36)+Math.random().toString(36).slice(2,9),
+    m:editing ? editing.m : S.matchId, pt, layout:S.layoutKey, at:editing ? editing.at : at, side, bunker:b.id,
     player:d.player || "", alive:d.alive === undefined ? null : d.alive,
     shotFrom:d.alive === false ? (d.shotFrom || "") : "",
     entry:d.entry || "", dir:d.dir == null ? null : d.dir, shootAt:d.shootAt || "",
@@ -7488,6 +7563,11 @@ window.logBreakout = () => {
   // the coach correcting himself, not a second break, so his earlier row goes
   // — and if that row had him shot and this one does not, the out it wrote
   // goes with it. A row with no name is one of five he is working through.
+  if(editing){
+    S.breakouts = (S.breakouts || []).filter(r => r !== editing);
+    if(editing.alive === false && editing.player)
+      S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === editing.m && o.pt === editing.pt && o.side === editing.side && o.name === editing.player));
+  }
   const was = row.player ? (S.breakouts || []).find(r => r && r.m === S.matchId && r.pt === pt && r.side === side && r.player === row.player) : null;
   if(was){
     S.breakouts = (S.breakouts || []).filter(r => r !== was);
@@ -7502,7 +7582,15 @@ window.logBreakout = () => {
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {})});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
-  S.tallySel = null;
+  S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
+  // Step two walks the men he placed: Save opens the next one still to tell.
+  if(editing){
+    const next = pointRows().find(r => r.todo);
+    if(next) return editBreakout(next.id);
+    S.tallyDraft = null; save(S);
+    if(!was) flash(`All ${pointRows().length} on this point recorded.`); else render();
+    return;
+  }
   // The side sticks if the coach set it — he is working through their five —
   // and everything else starts clean for the next man.
   S.tallyDraft = d.sideSet ? {side, sideSet:true} : null;
@@ -7515,6 +7603,7 @@ window.undoBreakout = id => {
     S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === row.m && o.pt === row.pt
                                            && o.side === row.side && o.name === row.player));
   if(S.tallyLast === id) S.tallyLast = "";
+  if(S.tallyEdit === id){ S.tallyEdit = null; S.tallySel = null; S.tallyDraft = null; S.tallyPickFor = null; }
   save(S); render();
 };
 // Right read or wrong read, ticked before the result and kept on it.
@@ -7689,10 +7778,15 @@ function breakoutSheet(){
   const q = t => `<span class="sec__eyebrow" style="display:block;margin-top:var(--s2)">${t}</span>`;
   const route = d.route || [];
   const flip = (field, val, on) => `setDraft({${field}:${on ? "''" : jsq(val)}})`;
+  // Telling a placed man: which one of how many, and Save goes to the next.
+  const rowsPt = S.tallyEdit ? pointRows() : [];
+  const nth = rowsPt.findIndex(r => r.id === S.tallyEdit) + 1;
+  const more = rowsPt.some(r => r.todo && r.id !== S.tallyEdit);
   return `<div class="tsheet" id="tally-sheet">
     <div class="btnrow" style="align-items:center">
       <span class="grow"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
-        <span class="note" style="display:inline"> · ${esc(b.id)} · point ${pt}</span></span>
+        <span class="note" style="display:inline"> · ${esc(b.id)} · point ${pt}${nth ? ` · man ${nth} of ${rowsPt.length}` : ""}</span></span>
+      ${S.tallyEdit ? `<button class="btn btn--quiet" onclick="undoBreakout(${jsq(S.tallyEdit)})">Take him off</button>` : ""}
       <button class="btn btn--quiet" onclick="tallyDone()">Done</button>
     </div>
     ${seg([[side === "us", "Your player", "setDraft({side:'us',sideSet:true,player:''})"],
@@ -7736,7 +7830,7 @@ function breakoutSheet(){
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
     ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
-    <div class="tsheet__act"><button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; Log this breakout</button></div>
+    <div class="tsheet__act"><button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; ${S.tallyEdit ? (more ? "Save · next man" : "Save") : "Log this breakout"}</button></div>
   </div>`;
 }
 
@@ -7819,9 +7913,43 @@ function tally(){
     ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
     ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
     <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.${(S.matches||[]).some(m => m.layout === S.layoutKey && (m.swapEnds || m.end === "right")) ? " A break from the far end is counted on the bunker it is from your own end, so one job is one row whichever end it was run from; the rings on the field and the names in the rows are the end you break from now." : ""}</p>`;
+  /* The two steps of the break chart: where each man went, then what
+     happened to each. The strip says which step he is on and how many men
+     are still to tell; the list under the field is the men on this point. */
+  const step = S.tallyStep === "record" ? "record" : "place";
+  const rowsPt = chartPt.filter(r => r.layout === S.layoutKey).sort((a, b) => a.at - b.at);
+  const todo = rowsPt.filter(r => r.todo).length;
+  const placedBy = side => rowsPt.filter(r => r.side === side).length;
+  const watched = !!(curMatch()||{}).watch;
+  const stepStrip = `<div class="seg seg--wrap" aria-label="Break chart step">
+      <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">1 · Where they went</button>
+      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${todo ? ` · ${todo} to tell` : ""}</button>
+    </div>
+    <p class="note" style="margin:0;max-width:56ch">${step === "place"
+      ? "Off the buzzer, tap the bunker each man broke to — one tap a man. Tap one again to take him off."
+      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>`;
+  // Whose men a tap places: by the half it lands in unless he says otherwise —
+  // a man of theirs who broke deep into your half is still theirs. Under the
+  // field, so the field stays as high on the phone as it was.
+  const placeSide = step === "place" ? `<div class="seg seg--wrap" aria-label="Whose men the taps place">
+        <button class="${!S.tallyPlace ? "on" : ""}" onclick="set({tallyPlace:''})">By half</button>
+        <button class="${S.tallyPlace === "us" ? "on" : ""}" onclick="set({tallyPlace:'us'})">${esc(watched ? placeSideWord("us") : "Your five")}</button>
+        <button class="${S.tallyPlace === "them" ? "on" : ""}" onclick="set({tallyPlace:'them'})">${esc(placeSideWord("them"))}</button>
+      </div>` : "";
+  const placedList = rowsPt.length ? `<div class="kv" aria-label="Men on this point">
+      <div class="kv__row"><span class="kv__k">${esc(placeSideWord("us"))} ${placedBy("us")} of ${startUp("us", S.matchId, pt)} · ${esc(placeSideWord("them"))} ${placedBy("them")} of ${startUp("them", S.matchId, pt)}</span>
+        <span class="kv__v">${todo ? `${todo} to tell` : "all told"}</span></div>
+      ${rowsPt.map(r => `<div class="btnrow" style="align-items:center">
+        <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="editBreakout(${jsq(r.id)})">
+          <span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
+            ? `${esc(bunkerLabel(r.bunker))} · ${esc(placeSideWord(r.side).toLowerCase())} · <span style="color:var(--warn)">what happened?</span>`
+            : esc(describeBreakout(r))}</button>
+        <button class="btn btn--quiet" aria-label="Take this man off" onclick="undoBreakout(${jsq(r.id)})">✕</button></div>`).join("")}
+    </div>`
+    : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`;
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
-  return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
+  return `${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
 
   ${/* A fresh sheet has no opponent, and every out is stamped with who you are
         playing. Tallying against nobody logs a break the app can never attach to
@@ -7869,15 +7997,10 @@ function tally(){
     ${matchOver() ? `<p class="warn"><b>Match over — ${overWord()} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>${matchPointWord()}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
-    <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
-      amber costs you. The number is how often your five have broken to it.</p>
+    ${stepStrip}
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
     ${endsChip()}
-    ${sel ? breakoutSheet()
-          : last ? `<div class="btnrow" style="align-items:center">
-              <span class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>. Tap the next man's bunker.</span>
-              <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>`
-          : ""}</div>`,
+    ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<p class="note" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each →</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
 
   ${sec("Point sheet", `
@@ -8264,6 +8387,8 @@ window.nextPoint = () => {
 };
 function clearPointScratch(){
   S.theirPick = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
+  // A new point starts on placing the five again.
+  S.tallyStep = "place"; S.tallyEdit = null;
 }
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
@@ -10619,9 +10744,9 @@ const HELP = {
          "Name it. The clock holds you to two seconds.",
          "Under two seconds means you are calling it, not reading it."]},
   tally: {t:"Tally", w:"The break chart and the point sheet.",
-    how:["Tap the bunker a man broke to. The sheet opens under it.",
-         "Say what you saw: made it or shot on the break, battling in or clean, which way he was shooting.",
-         "Log this breakout, then tap the next man's bunker.",
+    how:["1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Tap one again to take him off.",
+         "2 · What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
+         "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
          "Race to is your format — first to 2, 4, 5 or 7, or One point for 5-man. The sheet calls match point and match over for you.",
