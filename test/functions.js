@@ -4904,6 +4904,29 @@ const ROSTER = [
   check("Help answers the wrong team at the gate and a deleted play", await ev(() =>
     HELP_Q.some(([q, a]) => /wrong team at the gate/.test(q) && /Played against/.test(a))
     && HELP_Q.some(([q, a]) => /deleted one of my plays/.test(q) && /keep its name/.test(a))));
+  const handed = await ev(() => {
+    const prompts = []; const hadShare = window.gridlockShare; delete window.gridlockShare;
+    const realPrompt = window.prompt; window.prompt = (...a) => { prompts.push(a); return null; };
+    const groupsWere = S.groups, blastsWere = S.blasts;
+    S.groups = [{ id: "g-hand", name: "Gate Crew", members: [{ name: "Ann", phone: "555-0100", ok: true }] }];
+    window.set({ tab: "more", more: "league", blastBody: "Pit gate opens 8:00", blastTo: ["g-hand"] });
+    window.sendBlast();
+    const box = document.getElementById("handoff"), ta = document.getElementById("handoff-text");
+    const shown = !!box && !!ta && /Pit gate opens 8:00/.test(ta.value) && /555-0100/.test(ta.value) && prompts.length === 0
+      && /No share sheet here/.test(box.textContent);
+    window.copyHandText();
+    window.set({ handText: null });
+    const closed = !document.getElementById("handoff");
+    // A card hands off the same way.
+    window.set({ tab: "playbook", pbView: "cards" }); window.shareCards();
+    const cards = !!document.getElementById("handoff") && (S.handText || {}).title === "Gridlock cards" && prompts.length === 0;
+    const flags = { shown, closed, cards };
+    window.set({ handText: null, pbView: null, blastBody: "", blastTo: [] }); S.groups = groupsWere; S.blasts = blastsWere;
+    window.prompt = realPrompt; if(hadShare) window.gridlockShare = hadShare;
+    window.set({ tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("with no share sheet, a blast or a card is handed over on screen in a box he can copy from — never a system prompt", handed === true, handed);
   check("Time's up with nobody to play opens the gate and marks nothing", await ev(() => {
     window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
     const m = S.matchId; window.timeUp(); window.timeUp("tie");
@@ -5959,10 +5982,13 @@ const ROSTER = [
     return open && shut;
   }));
   check("sharing a class carries the code, the time and the notes", await ev(() => {
-    let out = ""; window.prompt = (_, t) => { out = t; return null; };
+    // No share sheet: the text lands in the hand-off box, never in a prompt.
+    let prompted = false; window.prompt = () => { prompted = true; return null; };
     delete window.gridlockShare;
     window.shareClass("GL-AAAA");
-    return out.includes("GL-AAAA") && out.includes("Tuesday clinic")
+    const out = (S.handText || {}).text || "";
+    window.set({ handText: null });
+    return !prompted && out.includes("GL-AAAA") && out.includes("Tuesday clinic")
         && out.includes("Meet at the pit gate") && /Starts/.test(out);
   }));
 
@@ -7619,7 +7645,7 @@ const ROSTER = [
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
-                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards",
+                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"},
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -7634,7 +7660,7 @@ const ROSTER = [
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
       quick:S.quick, quickPick:S.quickPick,
-      copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView,
+      copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);

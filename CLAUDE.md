@@ -1317,6 +1317,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   question stands in front of **Put the app's names back** (all twelve of
   the team's words at once) and **Delete** on a league group with members;
   a play, a list or a group with nothing behind it still goes with one tap.
+- Hand text over through `prompt()`. Cards, a matchup card, a class link and
+  a league blast all fell back to a system dialog when there was no share
+  sheet — the browser build on a laptop, or an insecure address — with the
+  whole card squeezed into a one-line box, and a dialog is against the house
+  rule anyway. `handOff(title, text)` is the one door: the share sheet where
+  the phone has one, else a box at the top of the screen with the text, Copy
+  and Close. `S.handText` is scratch and the relaunch check names it.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
