@@ -429,6 +429,24 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     carries his own share of it — the bunkers of their five he has a clear
     lane on off the break, and whether one is their shooter's — in the
     share text too, because the card is what he is handed.
+38. ~~The playbook is his.~~ Done — the owner asked for a playbook that is
+    truly custom, and three things still belonged to the app. **Make it yours**
+    (`copyPlay`) on any of the twelve opens the builder as that call — the five
+    on every field the app has it on, its read and how hot it runs — and saves
+    it as a play of his: move a man and he keeps his number (`playPick` leaves
+    his slot open rather than sliding the others up), his Face, Shot, P|S, Go
+    and job words on the app's version come across slot for slot, a drawn path
+    only where that man still plants on the same bunker, and the app's version
+    is turned off unless he says keep it; nothing logged under it moves.
+    **Go** on each man's row is when he leaves — Auto (the app's timing: the
+    longest run on the buzzer, the short ones held), **On the buzzer**, or
+    **Delay** (`GO_DELAY`, later than the app ever holds anyone) — kept beside
+    Face and Shot per field per call, drawn by Play the break and printed on
+    his card. **Only my plays** (`onlyMine`) takes the twelve out of every
+    picker in one tap, on the call picker and Team › Break calls, once he has
+    a play of his own; his plays lead every picker (`pickPlays`). A half-built
+    play is dropped on relaunch and on an event change, because its five are
+    one field's bunkers.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

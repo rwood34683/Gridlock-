@@ -5347,6 +5347,87 @@ const ROSTER = [
     const flags = { none, said };
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("Make it yours copies one of the twelve into his own play, moves a man in his own slot, and carries what he set", await ev(() => {
+    window.confirm = () => true;
+    const keep = { plays: S.plays, off: S.offPlays, direct: S.direct, edits: S.pathEdits, jobs: S.jobCalls, script: S.script };
+    const L = S.layoutKey, orig = BREAK_PLANTS[L].snake.slice();
+    S.offPlays = []; S.plays = [];
+    window.set({ tab: "playbook", script: "snake", pbPick: false, building: null, flash: "" });
+    const offered = [...document.querySelectorAll("#root button")].some(b => b.textContent.trim() === "Make it yours");
+    // what he had set on the app's version
+    window.setDirect("1", "face", 90); window.setDirect("3", "role", "S");
+    S.pathEdits = {...(S.pathEdits || {}), [`${L}|snake|2`]: [[20, 30]], [`${L}|snake|3`]: [[25, 40]]};
+    S.jobCalls = {...(S.jobCalls || {}), snake: { "1": "Rocket 1" }};
+    window.copyPlay("snake");
+    const b0 = S.building;
+    const opened = !!b0 && b0.from === "snake" && JSON.stringify(b0.plants) === JSON.stringify(orig)
+      && Object.keys(b0.every).length === Object.keys(BREAK_PLANTS).filter(l => (BREAK_PLANTS[l] || {}).snake).length
+      && /Make it yours/.test(document.getElementById("root").textContent);
+    // move man 3: take him off, tap another bunker — 4 and 5 stay put
+    const spare = curLayout().bunkers.find(x => !orig.includes(x.id)).id;
+    window.playPick(orig[2]); window.playPick(spare);
+    const slotKept = S.building.plants[2] === spare && S.building.plants[3] === orig[3] && S.building.plants[4] === orig[4];
+    // the app's name is refused, his is kept
+    window.setPlayField("name", "Snake Stack"); window.set({ flash: "" }); window.savePlay();
+    const refused = !!S.building && (S.plays || []).length === 0;
+    window.setPlayField("name", "Rocket"); window.savePlay();
+    const mine = (S.plays || [])[0] || {}, k = mine.k;
+    const saved = !!k && S.script === k && mine.plants[L][2] === spare && mine.read === breakMeta("snake").read && mine.aggr === breakMeta("snake").aggr
+      && Object.keys(mine.plants).length === Object.keys(b0.every).length;
+    const carried = (S.direct[`${L}|${k}|1`] || {}).face === 90 && (S.direct[`${L}|${k}|3`] || {}).role === "S"
+      && !!S.pathEdits[`${L}|${k}|2`] && !S.pathEdits[`${L}|${k}|3`] && (S.jobCalls[k] || {})["1"] === "Rocket 1";
+    const retired = !runsPlay("snake") && /Snake Stack is turned off/.test(S.flash || "");
+    const leads = pickKeys()[0] === k;
+    // a draft does not follow him to another event
+    window.copyPlay("base"); const other = Object.keys(LAYOUTS).find(l => l !== L);
+    window.pickEvent(other); const dropped = S.building === null; window.pickEvent(L);
+    const flags = { offered, opened, slotKept, refused, saved, carried, retired, leads, dropped };
+    Object.assign(S, { plays: keep.plays, offPlays: keep.off, direct: keep.direct, pathEdits: keep.edits, jobCalls: keep.jobs });
+    pathsChanged(); window.set({ script: keep.script, flash: "", building: null });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
+  check("Go on a man's row sets when he leaves, the break draws it and his card says it", await ev(() => {
+    const keepD = S.direct;
+    window.set({ tab: "playbook", script: "snake", pbView: null, flash: "" });
+    const auto = currentPaths().map(p => p.lag || 0);
+    const longest = auto.indexOf(Math.min(...auto)) + 1, shortest = auto.indexOf(Math.max(...auto)) + 1;
+    window.setDirect(String(longest), "go", "delay"); window.setDirect(String(shortest), "go", "buzzer");
+    const ps = currentPaths();
+    const drawn = ps[longest - 1].lag === GO_DELAY && ps[shortest - 1].lag === 0 && ps[longest - 1].lag > Math.max(...auto);
+    const chip = [...document.querySelectorAll("#root .tgl")].some(b => b.textContent.trim() === "Delay")
+      && [...document.querySelectorAll("#root .tgl")].some(b => b.textContent.trim() === "Buzzer");
+    const cards = cardLines();
+    const said = cards[longest - 1].go === "delays" && cards[shortest - 1].go === "goes on the buzzer";
+    window.openPad("go", String(longest));
+    const pad = !!document.querySelector('#root [aria-label="When man ' + longest + ' goes"]');
+    window.setDirect(String(longest), "go", "");
+    const back = currentPaths()[longest - 1].lag === auto[longest - 1];
+    const flags = { drawn, chip, said, pad, back };
+    S.direct = keepD; window.set({ pad: null });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
+  check("Only my plays retires the twelve in one tap, needs a play of his first, and comes back in one", await ev(() => {
+    const keep = { plays: S.plays, off: S.offPlays, script: S.script };
+    S.plays = []; S.offPlays = [];
+    window.set({ tab: "playbook", script: "snake", flash: "" });
+    window.onlyMine();
+    const needsOne = (S.offPlays || []).length === 0 && /Write a play of your own first/.test(S.flash || "");
+    const L = S.layoutKey, five = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [{ k: "my:only-probe", name: "Only Probe", read: "", aggr: 3, plants: { [L]: five }, at: 1 }];
+    window.set({ pbPick: true });
+    const offered = [...document.querySelectorAll("#root button")].some(b => b.textContent.trim() === "Only my plays");
+    window.onlyMine();
+    const only = Object.keys(BREAKS).every(k => !runsPlay(k)) && S.script === "my:only-probe"
+      && JSON.stringify(pickKeys()) === JSON.stringify(["my:only-probe"]) && /Only your play/.test(S.flash || "");
+    window.set({ pbPick: true });
+    const backOffered = [...document.querySelectorAll("#root button")].some(b => /Show the app's twelve again/.test(b.textContent));
+    window.runAllPlays();
+    const back = Object.keys(BREAKS).every(runsPlay);
+    const flags = { needsOne, offered, only, backOffered, back };
+    Object.assign(S, { plays: keep.plays, offPlays: keep.off });
+    window.set({ script: keep.script, pbPick: false, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
@@ -8338,7 +8419,7 @@ const ROSTER = [
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
-                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"},
+                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"}, building:{k:"", name:"half a play", plants:["x"], layout:"lso"},
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -8353,7 +8434,7 @@ const ROSTER = [
       theirPick:(S.theirPick||[]).length, sightAim:S.sightAim, playing:S.playing, paste:S.paste,
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
       quick:S.quick, quickPick:S.quickPick,
-      copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText,
+      copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText, building:S.building,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);

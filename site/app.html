@@ -1889,16 +1889,23 @@ function theirScript(){
   return hit ? hit[0] : null;
 }
 function currentPaths(){
-  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${editFingerprint()}`;
+  const k = `${S.layoutKey}|${S.script}|${_pathVersion}|${editFingerprint()}|${[1,2,3,4,5].map(goOf).join(",")}`;
   const hit = _drawCache[k];
   if(hit) return hit;
   const rk = S.layoutKey + "|" + S.script;
   const routed = _routeCache[rk] || (_routeCache[rk] = breakPaths(S.layoutKey, S.script));
   return (_drawCache[k] = routed.map(p => {
-    const e = pathEdit(p.id);
-    return e ? {...p, via:e, edited:true} : p;
+    const e = pathEdit(p.id), go = goOf(p.id);
+    const q = e ? {...p, via:e, edited:true} : p;
+    // When he leaves is the coach's word when he has said it: on the buzzer
+    // waits for nobody, a delay goes after the slowest the app would ever hold.
+    return go === "buzzer" ? {...q, lag: 0, go} : go === "delay" ? {...q, lag: GO_DELAY, go} : q;
   }));
 }
+const GO_DELAY = 0.4;
+const goOf = id => { const g = ((S.direct || {})[`${S.layoutKey}|${S.script}|${id}`] || {}).go; return g === "buzzer" || g === "delay" ? g : ""; };
+// What his card says about when he goes, set or worked out.
+const goWord = p => p.go === "delay" ? "delays" : (p.lag || 0) === 0 ? "goes on the buzzer" : "holds a beat";
 
 // A path is a run, not a set of corners: round every turn so it reads like a
 // player moving. The radius is capped at a third of the shorter leg, which
@@ -2668,6 +2675,9 @@ function clearScratch(){
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
   S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null;
+  // A play half-built is five bunker ids off one field: reopened on another
+  // event, Save stored that field's ids against this one.
+  S.building = null;
 }
 clearScratch();
 // The board used to be one flat list; it is per event now. Fold an old drawing
@@ -3195,7 +3205,11 @@ function pickPlays(){
   const out = {};
   // The call he is standing on is always in the picker, or a season restored
   // with it turned off shows a row of buttons and none of them lit.
-  Object.entries(allPlays()).forEach(([k, v]) => { if(runsPlay(k) || k === S.script) out[k] = v; });
+  // His own lead: they are the calls he runs, and a picker that opened on
+  // the app's twelve and put his after them read as if theirs were the book.
+  const all = Object.entries(allPlays());
+  [...all.filter(([k]) => isMine(k)), ...all.filter(([k]) => !isMine(k))]
+    .forEach(([k, v]) => { if(runsPlay(k) || k === S.script) out[k] = v; });
   return out;
 }
 const pickKeys = () => Object.keys(pickPlays());
@@ -3215,6 +3229,17 @@ window.toggleRun = k => {
   save(S); render();
 };
 window.runAllPlays = () => { S.offPlays = []; save(S); render(); };
+/* His book and nothing else. Turning the twelve off one row at a time was
+   twelve taps on Team; this is one, and Turn all twelve back on is one the
+   other way. Nothing is deleted: a call he ran is still named on every sheet. */
+window.onlyMine = () => {
+  const mine = customPlays().filter(p => p && p.k);
+  if(!mine.length){ flash("Write a play of your own first — + Yours under the field, or Make it yours on one of the app's. The twelve stay until you have one."); return; }
+  S.offPlays = Object.keys(BREAKS);
+  if(!runsPlay(S.script)){ const here = mine.find(p => myPlants(p.k)) || mine[0]; S.script = here.k; S.t = 1; S.playing = false; dropPathCache(); }
+  S.pbPick = false;
+  save(S); flash(`Only your ${mine.length === 1 ? "play" : mine.length + " plays"} in the pickers now. Turn all twelve back on puts the app's in again — nothing logged is touched.`);
+};
 /* The five he plants on this field, or nothing if he has not built it here. */
 function myPlants(k, layoutKey){
   const p = customPlay(k); if(!p) return null;
@@ -3228,22 +3253,41 @@ function myPlants(k, layoutKey){
    distances, and Face, Shot and Job are set afterwards the same way they are
    on any other call. */
 window.newPlay = () => set({tab: "playbook", pbPick: false, tallyPick: false,
-  building: {k: "", name: "", plants: [], read: "", aggr: 3}});
+  building: {k: "", name: "", plants: [], read: "", aggr: 3, layout: S.layoutKey}});
+/* Make it yours. The twelve were frozen: he could rename one or turn it off,
+   and a coach who runs Snake Stack with his third man in the temple had to
+   build it again from nothing. A copy starts as the app's call on every field
+   it is built on — the five, the read, how hot it runs — and becomes a play of
+   his: move any man, rename it, and his Face, Shot, P|S and job words on the
+   original come across. The original is a library call; it is turned off on
+   save unless he says keep it, and nothing logged under it moves. */
+window.copyPlay = k => {
+  if(isMine(k) || !BREAKS[k]) return;
+  const every = {};
+  Object.keys(BREAK_PLANTS).forEach(l => { const five = (BREAK_PLANTS[l] || {})[k]; if(Array.isArray(five) && five.length === 5) every[l] = [...five]; });
+  set({tab: "playbook", pbPick: false, tallyPick: false, script: k, t: 1, playing: false,
+       building: {k: "", from: k, name: "", plants: every[S.layoutKey] ? [...every[S.layoutKey]] : [],
+                  every, read: breakMeta(k).read || "", aggr: breakMeta(k).aggr || 3, retire: true, layout: S.layoutKey}});
+};
 window.buildPlay = k => {                       // build it here, or edit it where it is built
   const p = customPlay(k); if(!p) return;
   set({script: k, building: {k, name: p.name, plants: myPlants(k) || [],
-                             read: p.read || "", aggr: p.aggr || 3}});
+                             read: p.read || "", aggr: p.aggr || 3, layout: S.layoutKey}});
 };
 window.cancelPlay = () => set({building: null});
+// A man keeps his number. Taking him off leaves his slot open and the next
+// bunker tapped fills it, so moving man 3 is two taps and 4 and 5 stay 4 and
+// 5 — they used to slide up and his Face, Shot and job went with the slot.
 window.playPick = id => {
   const b = S.building; if(!b) return;
   const five = [...(b.plants || [])];
+  while(five.length < 5) five.push(null);
   const at = five.indexOf(id);
-  if(at >= 0) five.splice(at, 1);               // tap a picked bunker to take him off
-  else if(five.length < 5) five.push(id);
-  else return;                                  // five is five
+  if(at >= 0) five[at] = null;                  // tap a picked bunker to take him off
+  else { const open = five.indexOf(null); if(open < 0){ flash("All five are placed. Tap one of them to take him off first."); return; } five[open] = id; }
   set({building: {...b, plants: five}});
 };
+const fullFive = five => Array.isArray(five) && five.length === 5 && five.every(Boolean);
 window.setPlayField = (what, value) => {
   const b = S.building; if(!b) return;
   const next = {...b, [what]: what === "aggr" ? Math.min(5, Math.max(1, +value || 3)) : value};
@@ -3255,7 +3299,9 @@ window.setPlayField = (what, value) => {
 window.savePlay = () => {
   const b = S.building; if(!b) return;
   const name = (b.name || "").trim().slice(0, 28);
-  if(!name || (b.plants || []).length !== 5) return;
+  if(b.layout && b.layout !== S.layoutKey){ S.building = null; save(S); flash("That play was being built on another field. Start it again here."); return; }
+  if(!name){ flash("Name it first — what your team shouts."); return; }
+  if(!fullFive(b.plants)){ flash(`Place ${5 - (b.plants || []).filter(Boolean).length} more — tap the bunker each man plants on.`); return; }
   if(callTaken(name, b.k)){ flash(`${name} is already a call. Give this one its own name.`); return; }
   const rest = customPlays().filter(p => p.k !== b.k);
   // A play built again under the name of one he deleted is the same play:
@@ -3267,10 +3313,29 @@ window.savePlay = () => {
   const was = customPlay(b.k) || {};
   S.plays = [...rest, {k, name, read: (b.read || "").trim().slice(0, 140),
                        aggr: Math.min(5, Math.max(1, +b.aggr || 3)),
-                       plants: {...(was.plants || {}), [S.layoutKey]: b.plants},
+                       plants: {...(b.every || {}), ...(was.plants || {}), [S.layoutKey]: [...b.plants]},
                        at: was.at || Date.now()}];
+  // Started from one of the twelve: what he set on it is his too. Face, Shot,
+  // P|S and Go are a man's, so they come across slot for slot; a drawn path
+  // comes across only where that man still plants on the same bunker, because
+  // a path drawn to the old bunker is not a path to the new one.
+  let retired = "";
+  if(b.from && BREAKS[b.from]){
+    const from = b.from, every = {...(b.every || {}), [S.layoutKey]: b.plants}, orig = b.every || {};
+    const carry = (store, onlySame) => { const out = {...(store || {})};
+      Object.keys(store || {}).forEach(key => { const bits = key.split("|"); if(bits.length !== 3 || bits[1] !== from) return;
+        const [l, , id] = bits, i = (+id) - 1;
+        if(onlySame && !(orig[l] && every[l] && orig[l][i] === every[l][i])) return;
+        out[`${l}|${k}|${id}`] = store[key]; });
+      return out; };
+    S.direct = carry(S.direct, false); S.pathEdits = carry(S.pathEdits, true);
+    if((S.jobCalls || {})[from]) S.jobCalls = {...S.jobCalls, [k]: {...S.jobCalls[from], ...((S.jobCalls || {})[k] || {})}};
+    if(b.retire && runsPlay(from)){ S.offPlays = [...new Set([...(Array.isArray(S.offPlays) ? S.offPlays : []), from])]; retired = callName(from); }
+    pathsChanged();
+  }
   S.building = null; S.script = k; S.t = 1; S.playing = false;
-  save(S); render();
+  save(S);
+  if(retired) flash(`${name} is yours. The app's ${retired} is turned off — Team › Break calls puts it back.`); else render();
 };
 // The key of a deleted play that carried this name, if any.
 const goneKeyNamed = name => Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name)) || null;
@@ -3412,6 +3477,9 @@ function set(patch){
   // Same reasoning for the break animation: it repaints, and a repaint on a tab
   // the coach has left costs him whatever he was typing on the one he is on.
   if(S.playing && "tab" in patch && patch.tab !== S.tab) stopPlaying();
+  // A play being built is built on the field it was started on; another
+  // event drops it rather than keep that field's bunkers in the draft.
+  if("layoutKey" in patch && patch.layoutKey !== S.layoutKey && !("building" in patch)) patch = {...patch, building: null};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -6795,7 +6863,8 @@ function playbook(){
       S.pbPick ? "Close" : "Change the call"}</button>
     <button class="btn btn--quiet" onclick="newPlay()">+ Yours</button>
     ${isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit</button>
-      <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete</button>` : ""}
+      <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete</button>`
+      : BREAKS[key] ? `<button class="btn btn--quiet" onclick="copyPlay('${key}')">Make it yours</button>` : ""}
   </div>
   ${S.pbPick ? `<div class="seg seg--wrap">
       ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
@@ -6806,6 +6875,11 @@ function playbook(){
           your playbook: the ones you do not run come out of this list on Team,
           which is the same screen that names the rest your way. One door, not
           two — a picker with two buttons hanging off it is a menu. */""}
+    ${(() => {
+      const mineN = customPlays().filter(p => p && p.k).length, libOn = Object.keys(BREAKS).filter(runsPlay).length;
+      return mineN && libOn ? `<div class="btnrow"><button class="btn btn--quiet grow" onclick="onlyMine()">Only my plays</button></div>`
+        : mineN && !libOn ? `<div class="btnrow"><button class="btn btn--quiet grow" onclick="runAllPlays()">Show the app's twelve again</button></div>` : "";
+    })()}
     ${(() => {
       const off = playKeys().filter(k => !runsPlay(k)).length;
       const named = Object.keys(S.breakCalls || {}).length;
@@ -6867,6 +6941,7 @@ function playbook(){
         const role=d.role||"P";
         const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
         const openJob=S.pad==="job:"+pth.id, myJob=(((S.jobCalls||{})[key]||{})[pth.id]||"").trim();
+        const openGo=S.pad==="go:"+pth.id, go=goOf(pth.id);
         return `<div class="assign" style="flex-wrap:wrap">
           <span class="assign__n">${pth.id}</span>
           <span class="assign__body">
@@ -6881,11 +6956,18 @@ function playbook(){
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?seenGlyph(d.face):"Face"}</button>
             <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
             <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
+            <button class="tgl ${go?"on":""}" onclick="openPad('go','${pth.id}')" aria-label="When he goes: ${go==="buzzer"?"on the buzzer":go==="delay"?"delay":"the app times it"}"><i></i>${go==="buzzer"?"Buzzer":go==="delay"?"Delay":"Go"}</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
             ${FACE_PAD.map(([g,deg,say])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}" aria-label="Face ${deg===null?say:seenSay(deg)}"
               onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${deg===null?g:seenGlyph(deg)}</button>`).join("")}
+          </div>`:""}
+          ${openGo?`<div style="flex-basis:100%"><div class="seg seg--wrap" aria-label="When man ${pth.id} goes">
+              <button class="${!go?"on":""}" onclick="setDirect('${pth.id}','go','')">Auto</button>
+              <button class="${go==="buzzer"?"on":""}" onclick="setDirect('${pth.id}','go','buzzer')">On the buzzer</button>
+              <button class="${go==="delay"?"on":""}" onclick="setDirect('${pth.id}','go','delay')">Delay</button></div>
+            <p class="note">Auto lets the longest run go first and holds the short ones so the five land together. On the buzzer and Delay are yours, and Play the break draws them.</p>
           </div>`:""}
           ${openJob?`<div style="flex-basis:100%">
             <input id="jbc-${pth.id}" value="${esc(myJob)}" maxlength="28"
@@ -6909,7 +6991,8 @@ function playbook(){
       }).join("")}
     </div>
     <p class="note">Face sets which way he points. Shot is the bunker he lanes, or a lane
-      with no bunker named — a gap he holds. Both travel with him down the path.</p>
+      with no bunker named — a gap he holds. Both travel with him down the path. Go is when
+      he leaves: on the buzzer, a delay, or the app's timing.</p>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}
 
   ${(()=>{ const ss = selfScout();
@@ -6971,7 +7054,7 @@ function cardLines(){
     return {n: p.id, who, job: jobName(S.script, p.id, p.label), wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
             clear, onHim, theirBasis: t5 ? t5.basis : "",
             bunker: callOf(curLayout().bunkers.find(b => b.id === plant) || {n: "—"}, mine),
-            role: d.role === "S" ? "Secondary" : "Primary",
+            role: d.role === "S" ? "Secondary" : "Primary", go: goWord(p),
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
             shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running"};
   });
@@ -6979,7 +7062,7 @@ function cardLines(){
 window.shareCards = () => {
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
-        + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`
+        + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}`
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   handOff("Gridlock cards", t);
 };
@@ -7038,11 +7121,18 @@ function playBuilder(){
   const b = S.building, five = b.plants || [], list = curLayout().bunkers;
   const nameOf = id => { const x = list.find(v => v.id === id); return x ? callOf(x) + " · " + x.id : id; };
   const taken = callTaken((b.name || "").trim(), b.k);
-  const ready = (b.name || "").trim() && five.length === 5 && !taken;
-  return sec(b.k ? "Build it on this field" : "A play of your own", `
-    <p class="lede">Tap the bunker each man plants on, in order — one is the
+  const placed = five.filter(Boolean).length;
+  const ready = (b.name || "").trim() && placed === 5 && !taken;
+  const from = b.from && BREAKS[b.from] ? b.from : "";
+  const elsewhere = Object.keys(b.every || {}).filter(l => l !== S.layoutKey && LAYOUTS[l]).map(l => LAYOUTS[l].name);
+  return sec(from ? "Make it yours" : b.k ? "Build it on this field" : "A play of your own", `
+    ${from ? `<p class="lede">Started from the app's <b>${esc(callName(from))}</b>, every man where it
+      puts him. Tap a man's bunker to take him off, then tap where you want him — he keeps his
+      number. Give it the name your team shouts.</p>
+      ${elsewhere.length ? `<p class="note">It comes with the same call's five on ${esc(elsewhere.join(", "))}, so it is built there too. Edit it on that field to move a man there.</p>` : ""}`
+    : `<p class="lede">Tap the bunker each man plants on, in order — one is the
       first name you tap, five is the last. Tap a picked bunker again to take him off.
-      The app draws the runs and works out who leaves on the buzzer.</p>
+      The app draws the runs and works out who leaves on the buzzer; Go on each man's row says otherwise.</p>`}
     <div class="fld"><label for="pl-name">What you call it</label>
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
         onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
@@ -7059,9 +7149,11 @@ function playBuilder(){
     <div class="fld"><label for="pl-aggr">How aggressive · ${b.aggr || 3} of 5</label>
       <input id="pl-aggr" type="range" min="1" max="5" step="1" value="${b.aggr || 3}"
         onchange="setPlayField('aggr', this.value)"/></div>
+    ${from ? `<div class="toggles"><button class="tgl ${b.retire ? "on" : ""}" aria-pressed="${!!b.retire}"
+        onclick="set({building:{...S.building, retire:!S.building.retire}})"><i></i>Turn the app's ${esc(callName(from))} off</button></div>` : ""}
     <div class="btnrow">
       <button class="btn grow" onclick="savePlay()" ${ready ? "" : "disabled"}>${
-        ready ? "Save this play" : taken ? "Already a call — pick another name" : five.length === 5 ? "Name it first" : `Pick ${5 - five.length} more`}</button>
+        ready ? "Save this play" : taken ? "Already a call — pick another name" : placed === 5 ? "Name it first" : `Pick ${5 - placed} more`}</button>
       <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
     </div>
     <p class="note">A play is the five bunkers, and those change from field to field — so this is
@@ -7084,6 +7176,7 @@ function cardsView(){
         </span>
         <span class="assign__ctl" style="flex-basis:100%">
           <span class="tag">${esc(c.role)}</span>
+          <span class="tag">${esc(c.go)}</span>
           <span class="tag">faces ${esc(c.face)}</span>
           <span class="tag">lanes ${esc(c.shot)}</span>
           ${c.clear ? `<span class="tag" style="${c.clear.length ? "color:var(--ink)" : "color:var(--dim)"}">${c.clear.length ? `clear on ${esc(c.clear.join(", "))}` : "no clear lane on their five"}</span>` : ""}
@@ -10674,7 +10767,10 @@ const HELP_Q = [
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["What does it cost?", "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
-  ["We run a play the app doesn't have.", "Write it. On Playbook, under the twelve, tap A play of your own: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
+  ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
+  ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Tap a man's bunker to take him off and tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
+  ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
+  ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
@@ -11299,6 +11395,7 @@ function moreBody(k){
           ${(mine[x] || "").trim() ? `<span class="assign__who">${esc(BREAKS[x].name)}</span>` : ""}</span>
       </div>`).join("")}</div>
       ${off ? `<button class="btn btn--quiet" onclick="runAllPlays()">Turn all twelve back on</button>` : ""}
+      ${yours.length && off < 12 ? `<button class="btn btn--quiet" onclick="onlyMine()">Only my plays</button>` : ""}
       ${n ? `<button class="btn btn--danger" onclick="clearBreakCalls()">Put the app's names back</button>` : ""}
       <p class="note">Turning one off hides it from the pickers and nothing else. Every point you ran
         it on still names it, the count behind it is untouched, and one tap puts it back.</p>
