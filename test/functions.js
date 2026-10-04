@@ -4676,6 +4676,51 @@ const ROSTER = [
     editProfile("right", { breaks: [], answers: {} });
     return named && noBtn && said && btnBack;
   }));
+  check("on a watched game the lanes run between the two logged fives, nothing is ringed, and the Counter counts no lanes of yours", await ev(() => {
+    window.confirm = () => true;
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
+    const bl = curLayout().bunkers, away = [3, 9, 14, 20, 30].map(i => bl[i].id), home = [40, 44, 48, 52, 55].map(i => bl[i % bl.length].id);
+    window.set({ tab: "scout", scoutTab: "matchup", pitOpen: null, lanesOn: true, scoutShow: "them", theirPick: away }); window.logTheirFive("right");
+    const live = () => document.querySelector(".field-wrap[data-live]");
+    const thin = live().querySelectorAll(".break-lane").length === 0 && /lanes show once both fives are logged on this point/.test(document.getElementById("root").textContent) && !/of your 5/.test(document.getElementById("root").textContent);
+    window.set({ theirPick: home }); window.logTheirFive("left"); window.set({});
+    const pairs = home.reduce((n, a) => n + away.filter(b => laneClear(a, b)).length, 0), w = watchLanes();
+    const drawn = live().querySelectorAll(".break-lane").length === pairs && !live().querySelector(".shooter-ring");
+    const t = document.getElementById("root").textContent;
+    const said = new RegExp("clear lanes off the break · " + w.onThem + " of Dynasty's 5 on Houston Heat · " + w.onYou + " of Houston Heat's 5 on Dynasty").test(t) && !/of your/.test(t);
+    window.set({ scoutTab: "counter" }); const noCounter = !/lanes · \d+ on them/.test(document.getElementById("root").textContent);
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return thin && drawn && said && noCounter;
+  }));
+  check("Matchup on a watched game names the two teams and never your call or your five", await ev(() => {
+    window.confirm = () => true;
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({ tab: "scout", scoutTab: "matchup", pitOpen: null });
+    const t = document.getElementById("root").textContent.replace(/\s+/g, " ");
+    const watched = /A game you are watching: Dynasty v Houston Heat\. Your call and your five are not on this field/.test(t) && !/Your call is/.test(t) && !/Your five ·/.test(t) && /Dynasty · logged/.test(t);
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.set({ tab: "scout", scoutTab: "matchup", pitOpen: null });
+    const own = /Your call is/.test(document.getElementById("root").textContent);
+    return watched && own;
+  }));
+  check("Team's Break calls lists your own plays first, renames one in place and opens it on the field", await ev(() => {
+    const keep = S.plays, L = S.layoutKey, bl = curLayout().bunkers;
+    S.plays = [{ k: "my:t1", name: "Hammer", read: "", aggr: 3, plants: { [L]: [0, 1, 2, 3, 4].map(i => bl[i].id) }, at: 1 }];
+    window.set({ tab: "more", more: "team" });
+    const mineBox = document.getElementById("myp-my:t1"), firstTwelve = document.querySelector("#root input[id^='brc-']");
+    const row = mineBox && mineBox.closest(".assign");
+    const leads = !!row && /Yours/.test(row.textContent) && !!(mineBox.compareDocumentPosition(firstTwelve) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && new RegExp("five set on " + curLayout().name).test(row.textContent);
+    const box = document.getElementById("myp-my:t1"); box.value = "Hammer 2"; box.onchange();
+    const renamed = customPlays()[0].name === "Hammer 2" && callName("my:t1") === "Hammer 2";
+    const box2 = document.getElementById("myp-my:t1"); box2.value = "   "; box2.onchange();
+    const kept = customPlays()[0].name === "Hammer 2";
+    const open = [...document.querySelectorAll("#root .assign button")].find(b => b.textContent.trim() === "Open"); open.click();
+    const opened = S.tab === "playbook" && S.script === "my:t1";
+    const count = (() => { window.set({ tab: "more", more: "team" }); return /1 of yours/.test(document.getElementById("root").textContent); })();
+    S.plays = keep; window.set({ script: "snake" });
+    return leads && renamed && kept && opened && count;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
@@ -5693,10 +5738,14 @@ const ROSTER = [
   }));
   // Team renames the app's twelve. A play already carries the name he gave it,
   // and a second name on top of the first is a trap.
-  check("Team's rename list is the twelve, not his own", await ev(() => {
+  // Team renames the app's twelve. A play already carries the name he gave it,
+  // and a second name on top of the first is a trap — so his own play has one
+  // box, its own name, and never a rename box over it.
+  check("Team's rename list is the twelve, and his own play has its own name box, not a rename over it", await ev(() => {
     window.set({ tab: "more", more: "team" });
+    const mine = [...document.querySelectorAll("#root input[id^='myp-']")];
     return document.querySelectorAll("#root input[id^='brc-']").length === 12
-      && /Rename one on Playbook/.test(document.getElementById("root").innerText);
+      && mine.length === customPlays().length && mine.some(i => i.value === "Rocket");
   }));
   check("a play travels in a copy and in a squad copy", await ev(() => {
     const all = JSON.parse(copyPayload("all")).data, squad = JSON.parse(copyPayload("squad")).data;

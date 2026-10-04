@@ -411,8 +411,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     mirrored when you break from the right end. Shown on the call panel, the
     point sheet and under every call on the Counter, and the **Lanes** chip on
     the Scout field draws every clear pair white over black, per the lane
-    rule. It never ranks anything: where they actually stand off the buzzer
-    is the coach's read. **Their shooter** joins three counts and the
+    rule. On a watched game there is no "you": `watchLanes()` runs between the
+    home side's five on the left pit card and the away side's on Breakouts, or
+    says which five is still missing, and the Counter counts no lanes of his.
+    It never ranks anything: where they actually stand off the buzzer is the
+    coach's read. **Their shooter** joins three counts and the
     geometry: `opponentRead().who` is the man of theirs who has shot yours
     most (two or more), `usualMan()` the bunker in their five he is usually
     sighted in, and `shooterLane()` names which of your five has a lane on
@@ -634,7 +637,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Plants are per field and are never guessed: a play written at one event says
   so at the next and offers to be built there. Team renames the app's twelve
   only — a play already carries the name he gave it, and a second name on top
-  of the first is a trap.
+  of the first is a trap — but Team's Break calls **lists his own plays
+  first**, name edited in place (`renamePlay`), with the fields each has a
+  five on and one tap to open it on Playbook. The owner asked for the custom
+  calls to show; a list of the twelve that mentioned his in a sentence under
+  it read as if the app's plays were the real ones.
 - Make a price or account claim on the welcome page. It carried "No account
   needed · nothing ever leaves your phone", which is true — the money runs
   through the coach's Apple ID, so there is never a Gridlock sign-up — but on
@@ -1158,7 +1165,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Draw a head-to-head bar between the left pit and the right on his own
   sheet. Matchup's threat bar read "Blast Camp ★★★★★ · ★★★★ Rejects" with
   Blast Camp the team he was watching. Two sides only on a watched game;
-  on his own sheet it is "you" against their stars.
+  on his own sheet it is "you" against their stars. And on a watched game
+  Matchup's call panel does not say "Your call is Snake Stack, it puts your
+  five here" with his roster under it: it names the two teams, lists the
+  home side's logged men in the left column, and says his call and his five
+  are not on that field.
 - Trust the overflow check for the header. It clips rather than scrolls, so
   a chip pushed off the right edge never read as overflow: at 320 px with
   the clock and the score up, the Staff chip was gone. Below 360 px the
