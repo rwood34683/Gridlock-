@@ -1074,6 +1074,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and a man's shot-from bunker all read `frameId(shotAt, m, pt)`.
   Bunker stats stays physical: it is a heat map of where on the field things
   happened.
+- Let Switch ends rewrite the points already played. It flipped point one's
+  end, so a switch made at the half turned every earlier point round — their
+  outs tallied back to front and their routes drawn from the wrong goal line,
+  silently. A switch made after anything was played is kept at its point
+  (`flips` on the match, `flippedAt(pt, m)`), the chip says *switched at
+  point 4*, and tapping again on that point takes it back; only on point one,
+  or before anything is played, does it correct the end the sheet started
+  from. The copy schema knows the one list a match row carries.
 - Switch ends on the point number. Teams switch after a point somebody won;
   a no-point moves nobody, and overtime starts on the pit side. `ourEnd()`
   reads the results through `scoredBefore()`, so "Next point, no result" keeps

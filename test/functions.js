@@ -4939,6 +4939,26 @@ const ROSTER = [
     window.setSwapEnds(false); window.newMatch();
     return one && book && bookLeft;
   }));
+  check("Switch ends at the half applies from that point on; the points already played keep their end", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" } });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    const m = () => curMatch();
+    // on point one a switch corrects the end the sheet started from
+    window.switchEnds(); const corrected = ourEnd() === "right" && m().end === "right" && !(m().flips || []).length; window.switchEnds();
+    const back = ourEnd() === "left" && m().end === "left";
+    ["us", "them", "us"].forEach(w => window.endPoint(w));   // three points played from the left
+    window.switchEnds();   // the half: from point 4 on we break from the right
+    const mid = ourEnd() === "right" && ourEnd(1) === "left" && ourEnd(3) === "left" && ourEnd(4) === "right" && m().end === "left" && (m().flips || []).join() === "4";
+    const said = /switched at point 4/.test(document.getElementById("root").innerText);
+    window.endPoint("them"); const stays = ourEnd(5) === "right";
+    window.backPoint(); window.switchEnds();   // back on point 4, switching again takes it back
+    const undone = (m().flips || []).length === 0 && ourEnd() === "left";
+    // a copy of the season still passes the schema with a switch recorded
+    window.switchEnds(); const ok = !copyDataError(JSON.parse(copyPayload("all")).data);
+    window.switchEnds(); window.newMatch();
+    return corrected && back && mid && said && stays && undone && ok;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
