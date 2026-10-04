@@ -624,7 +624,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   read "Match over — you won" and "Match point against you" on a game he was
   watching: `overWord()` names the sides on a watched sheet and
   `matchPointWord()` is the one door for match point, read by the sheet and
-  the quick log alike.
+  the quick log alike, and the ends chip says which team is breaking from
+  which end.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in
   it and that is the whole reason it works in Garland. `SCHEDULE` is read off
   the league the way the pro board is — a screenshot from the coach — and it

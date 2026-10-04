@@ -5971,6 +5971,10 @@ const ROSTER = [
     window.set({ quick: false }); window.backPoint(); window.setRaceTo(keep.race || 0);
     return /Match point, both ways/.test(mp) && /San Diego Dynasty won 1–0/.test(over) && !/you won/.test(over) && /San Diego Dynasty won/.test(qOver);
   }));
+  check("the ends chip on it says which team breaks from which end", await ev(() => {
+    window.set({ tab: "tally" });
+    return /San Diego Dynasty breaking from the (left|right) end/.test(document.getElementById("root").innerText);
+  }));
   check("the score on it names the two teams, because neither is you", await ev(() => {
     window.set({ tab: "tally" });
     const t = document.getElementById("root").innerText;

@@ -2850,7 +2850,7 @@ const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
 function endsChip(){
   const e = ourEnd(), m = curMatch(), swap = !!(m && m.swapEnds);
   return `<div class="btnrow" style="align-items:center;margin-top:var(--s2)">
-    <span class="note grow" style="margin:0">Breaking from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}</span>
+    <span class="note grow" style="margin:0">${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}</span>
     <button class="btn btn--quiet" onclick="switchEnds()">Switch ends</button>
     <button class="tgl ${swap ? "on" : ""}" onclick="setSwapEnds(${!swap})" aria-pressed="${swap}"><i></i>Swap every point</button>
   </div>`;
