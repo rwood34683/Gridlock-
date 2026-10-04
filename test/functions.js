@@ -6037,6 +6037,11 @@ const ROSTER = [
     const t = document.getElementById("root").innerText;
     return /San Diego Dynasty outs · \d/.test(t) && /Royal City Seadogs outs · \d/.test(t) && !/Your outs/.test(t);
   }));
+  check("Playbook on it says you are watching, not playing, the team in the pit", await ev(() => {
+    window.set({ tab: "playbook" });
+    const t = document.getElementById("root").innerText;
+    return /watching San Diego Dynasty v Royal City Seadogs/.test(t) && !/vs Royal City Seadogs · reads/.test(t);
+  }));
   check("the ends chip on it says which team breaks from which end", await ev(() => {
     window.set({ tab: "tally" });
     return /San Diego Dynasty breaking from the (left|right) end/.test(document.getElementById("root").innerText);

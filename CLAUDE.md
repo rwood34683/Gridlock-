@@ -633,7 +633,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   break toggle names the two teams instead of Theirs / Yours, and Breakouts
   carries a switch for whose five is being charted (`S.scoutSide`, scratch),
   because both teams on a watched field are teams he is scouting; Layers
-  names the home and away outs. The match strip's label shares the game
+  names the home and away outs; Playbook's call card says he is watching
+  the two teams rather than "vs" the right pit. The match strip's label shares the game
   picker's flex basis, so two team names and a date take a line of their own
   above the buttons instead of a five-line column beside them.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in
