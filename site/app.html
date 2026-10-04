@@ -4356,7 +4356,10 @@ window.addWalk = () => {
   const where = rosterVal("wkWhere");
   const note = clean(rosterVal("wkNote").trim());
   if(!note){ flash("Type the note first."); return; }
-  S.walk = {...(S.walk || {}), [S.layoutKey]: [{where, note, at:Date.now()}, ...walkNotes()]};
+  // The same note on the same spot twice is a thumb that tapped Add twice,
+  // not two things worth knowing about the bunker.
+  if(walkNotes().some(n => n && n.where === where && foldName(n.note) === foldName(note))){ flash("Already noted here."); return; }
+  S.walk = {...(S.walk || {}), [S.layoutKey]: [{where, note: note.slice(0, 240), at:Date.now()}, ...walkNotes()]};
   S.walkPick = null;
   save(S); render();
 };
