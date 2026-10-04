@@ -489,8 +489,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     man on the sheet, the point he is on first, the list under the field says
     *Point 3 · 2 still to tell*, and the out he is told shot on is written to
     his own point (`outRow` takes `pt`), not the point the coach is on now.
-    A finished race does not stop him telling them — the last point's men
-    are told walking off; only a sheet on another field refuses.
+    A finished race does not stop him placing or telling them — the last
+    point's men are charted walking off, after We won it, and land on that
+    point (`sheetPoint()`); only a sheet on another field refuses.
     Their men placed on Tally are their
     five on Scout too (`syncTallyFive`): the point's break row for the team on
     the sheet takes their bunkers, marked `tallied`, so Where they plant, the
@@ -1710,12 +1711,19 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   charted every point saw "Nothing logged yet". `bunkerTraffic()` counts a
   break to a bunker as a visit, a man shot there on the break as an out there,
   and where he moved to as a visit — watched games out, like everywhere else.
-- Stand the result buttons down and leave every other door open. On a
+- Stand the result buttons down and stamp the rest past the end. On a
   finished sheet the field still opened a breakout sheet, a tapped man still
   went out, Log it still logged a call and Scout still logged their five, all
-  under a point past the end. `sheetOver()` is the one door: it says "Match
-  over — New match starts the next sheet" and refuses; `tallyTap`,
-  `logBreakout`, `markOut`, `logCall` and `logTheirBreak` all go through it.
+  under a point past the end — the cursor sits on N+1 once point N is won.
+  Refusing them was the first fix and the wrong one: the last point's men are
+  charted walking off, after We won it. `sheetPoint()` is the door — the point
+  he is on, or on a finished sheet the last one played — and `tallyTap`,
+  `placeAt`, `logBreakout`, `markOut`, `outRow`, `logCall`, `logTheirBreak`
+  and `theirFiveLogged` all stamp through it, as Assess and Movement already
+  did; `ourEnd()` defaults to it too, so the last point is charted from the
+  end it was broken from. Only a sheet on another field refuses them
+  (`sheetField()`); a result, Next point, a penalty and a timeout still
+  refuse on a finished sheet, because there is no next point to put them on.
 - List a man by number and wire when his name is logged. Matchup printed the
   other team's men as "4 snake" with Dill's name a tap away on the pit card,
   and your five as jobs with nobody's name beside them. Names where the app
