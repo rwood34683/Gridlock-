@@ -1331,7 +1331,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   whole card squeezed into a one-line box, and a dialog is against the house
   rule anyway. `handOff(title, text)` is the one door: the share sheet where
   the phone has one, else a box at the top of the screen with the text, Copy
-  and Close. `S.handText` is scratch and the relaunch check names it.
+  and Close. `S.handText` is scratch and the relaunch check names it, and
+  the box leaves when he changes tab or section — it is the text he asked
+  for on the screen he asked for it on, not a banner that follows him.
 - Print `"#"+p.num` and trust the number to be there. A roster row from an
   older copy or a paste can have no number, and "#undefined Reyes" read on
   Playbook, Sightlines, the cards, Lineups and the quick log. `manTag(p)` is

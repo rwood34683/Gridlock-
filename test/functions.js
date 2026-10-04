@@ -5051,6 +5051,17 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("with no share sheet, a blast or a card is handed over on screen in a box he can copy from — never a system prompt", handed === true, handed);
+  check("the hand-off box stays on the screen it was asked for and leaves when he moves on", await ev(() => {
+    const hadShare = window.gridlockShare; delete window.gridlockShare;
+    window.set({ tab: "playbook", pbView: null }); window.handOff("Here", "text");
+    const shown = !!document.getElementById("handoff");
+    window.set({ flash: "" }); const stays = !!document.getElementById("handoff");
+    window.set({ pbView: "cards" }); const staysInTab = !!document.getElementById("handoff");
+    window.set({ tab: "tally" }); const gone = !document.getElementById("handoff") && !S.handText;
+    window.handOff("Here", "text"); window.set({ tab: "more", more: "nexus" }); window.set({ more: "matches" }); const goneSection = !S.handText;
+    window.set({ pbView: null, tab: "tally" }); if(hadShare) window.gridlockShare = hadShare;
+    return shown && stays && staysInTab && gone && goneSection;
+  }));
   const noUndefined = await ev(() => {
     // A man with no number — an older copy, a paste — and every screen read.
     window.confirm = () => true;
