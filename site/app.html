@@ -8180,6 +8180,9 @@ function openSheet(fields){
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
   S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
+  // A new sheet starts clean: a read ticked or a sheet half-filled on the
+  // old one must not land on this one's first point.
+  clearPointScratch();
   S.matchState = derivedState();
   return id;
 }
@@ -8366,6 +8369,8 @@ const openMatchNow = id => {
   // rather than the point sheet asking him to put his own opponent back.
   if(m && m.watch){ S.left = {...(S.left || {}), name: m.home || ""}; S.right = {...(S.right || {}), name: m.away || m.vs || ""}; }
   else if(m && m.vs) S.right = {...(S.right || {}), name: m.vs};
+  // And nothing half-done on the sheet he left comes with him.
+  clearPointScratch(); S.clockEnd = 0;
   S.matchState = derivedState();
   save(S); render();
 };
