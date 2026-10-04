@@ -6294,7 +6294,8 @@ function playbook(){
           onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
       ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
-      ${opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>${nextReadLine(false)}`
+      ${(curMatch()||{}).watch ? `<span class="vs">watching <b>${esc(matchLabel(curMatch()).split(" · ")[0])}</b> · this is your own board</span>`
+        : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>${nextReadLine(false)}`
         :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
@@ -9880,7 +9881,7 @@ function planPage(){
   + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire, it does
       not need a signal, and it does not need an account.</p>
     <div class="kv">
-      ${row("Playbook", "All twelve breaks on every measured field, Face, Shot, Job, and Log it.")}
+      ${row("Playbook", "The twelve breaks and your own plays on every measured field, Face, Shot, Job, and Log it.")}
       ${row("Tally", "The bunker-first break chart, the point sheet, the score, and where your points come from.")}
       ${row("Sightlines", "What any bunker can see, and the dragged lane.")}
       ${row("The field", "Walk notes, Movement, Bunker stats.")}
