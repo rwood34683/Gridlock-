@@ -279,7 +279,10 @@ h1,h2,h3,p{margin:0}
 
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);
-  min-height:44px;padding:0 var(--s4);border-radius:var(--r-md);
+  /* Vertical padding so a label that wraps — Time's up on a 320 px phone,
+     Who's on in a half-width column — has room above and below it rather
+     than two lines pressed against the border. One line still sits at 44. */
+  min-height:44px;padding:6px var(--s4);line-height:1.25;border-radius:var(--r-md);
   background:var(--accent);color:#fff;font-size:var(--t-md);font-weight:700;
   transition:background .12s;
 }
@@ -7192,11 +7195,11 @@ function tally(){
   // and a sheet that could only name the first five is how a coach ends up
   // tallying an out against a man who was in the pit.
   const rotate = roster.length > 5 && !(curMatch()||{}).watch ? `
-    <button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3)" onclick="set({whoOn:!S.whoOn})">${
-      S.whoOn ? "Done" : `Who's on · ${bench.length} on the bench`}</button>
+    <button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3);flex-direction:column;gap:0" onclick="set({whoOn:!S.whoOn})">${
+      S.whoOn ? "Done" : `Who's on <small style="display:block;font-size:11px;opacity:.75">${bench.length} on the bench</small>`}</button>
     ${S.whoOn ? `<p class="note">Tap a man to take him off or put him on. The five stands until you change it.</p>
       <div class="seg seg--wrap" aria-label="Who is on this point">${roster.map(r =>
-        `<button class="${mine.some(p => p.name === r.name) ? "on" : ""}" onclick="swapOn(${jsq(r.name)})">${esc("#" + r.num + " " + r.name)}</button>`).join("")}</div>
+        `<button class="${mine.some(p => p.name === r.name) ? "on" : ""}" onclick="swapOn(${jsq(r.name)})">${esc(manTag(r))}</button>`).join("")}</div>
       ${/* The read on each man, so the rotation is made on what was charted
             against this team on this field, not on a hunch. Counts only;
             a man with nothing charted has no line. */""}

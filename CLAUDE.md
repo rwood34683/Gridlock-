@@ -1677,6 +1677,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the cells tighten, the team name may wrap (`td.team`) and the stars read
   as `4★` (`.th-num`). The devices suite now measures every `.tblwrap`
   against its table, because `.main` never overflowed and so never said.
+- Give a button no room to wrap. `.btn` was `padding:0 16px`, so any label
+  that broke onto two lines — Who's on in the half-width column of a phone,
+  Time's up on a 320 px screen — sat pressed against the top and bottom
+  border. The base rule carries 6 px above and below now, which leaves a
+  one-line button at its 44 px and gives a wrapped one room. Who's on is two
+  lines on purpose: the word, then the count on the bench.
 - Put a 36 px button inside a sentence. The Call button on the read line, Put
   ‹team› in the pit and Lanes from here were all 36 px tall because they sat
   inline in a note, and the devices suite never saw them because they render
