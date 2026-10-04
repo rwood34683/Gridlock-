@@ -1156,7 +1156,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Write their #7 down twice. Their men are read by number — "#7" is the key
   every sighting, shot and breakout of theirs is counted under — so a second
   #7 in the pit split one man's read in two. `pitDup()` finds the man an
-  entry means (the number, or the folded name when neither has one);
+  entry means (the number when one was typed, else the folded name — "Dill"
+  typed again with no number is #7 Dill, as the roster paste already read it);
   `addScoutPlayer` fills the first entry in from the second and says so, and
   `editScoutPlayer` refuses to move a number onto another man's.
 - Hand out a number in silence. Two men on your own squad can wear one

@@ -5144,10 +5144,10 @@ const ROSTER = [
     const add = (num, name, note) => { g("sp-num-right", num); g("sp-name-right", name); g("sp-note-right", note || ""); window.addScoutPlayer("right"); };
     add("7", "", "snake runner"); add("7", "Dill", ""); add(" 7 ".trim(), "", "tall");
     const men = pitOf("right").players, one = men.length === 1 && men[0].num === "7" && men[0].name === "Dill" && men[0].note === "tall" && /already in the pit/.test(S.flash || "");
-    add("12", "Reyes", ""); add("", "reyes", "");          // no number on the second: the name folds onto a man with no number only
-    const two = pitOf("right").players.length === 3;      // #12 Reyes, and a numberless "reyes" is a different entry from a numbered one
+    add("12", "Reyes", ""); add("", "reyes", "fast");       // "reyes" typed again with no number is #12 Reyes, the way the paste reads it
+    const two = pitOf("right").players.length === 2 && pitOf("right").players[1].num === "12" && pitOf("right").players[1].note === "fast";
     add("", "Okafor", ""); add("", " OKAFOR ", "lefty");
-    const three = pitOf("right").players.length === 4 && pitOf("right").players.find(p => p.name === "Okafor").note === "lefty";
+    const three = pitOf("right").players.length === 3 && pitOf("right").players.find(p => p.name === "Okafor").note === "lefty";
     const i12 = pitOf("right").players.findIndex(p => p.num === "12");
     window.editScoutPlayer("right", i12, "num", "7");
     const refused = pitOf("right").players[i12].num === "12" && /#7 is already #7 Dill/.test(S.flash || "");
