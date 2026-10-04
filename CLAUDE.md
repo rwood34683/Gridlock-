@@ -444,7 +444,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     Face and Shot per field per call, drawn by Play the break and printed on
     his card. **Only my plays** (`onlyMine`) takes the twelve out of every
     picker in one tap, on the call picker and Team › Break calls, once he has
-    a play of his own; his plays lead every picker (`pickPlays`). A half-built
+    a play of his own; his plays lead every picker (`pickPlays`); deleting the last play he runs
+    with the twelve off turns the twelve back on and says so, rather than
+    leave a picker with nothing in it. A half-built
     play is dropped on relaunch and on an event change, because its five are
     one field's bunkers. The builder opens under the field and the chips, two
     screens below its button on an iPad mini, so **+ Yours**, **Make it yours**

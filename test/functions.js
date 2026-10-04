@@ -5428,6 +5428,24 @@ const ROSTER = [
     window.set({ script: keep.script, pbPick: false, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
   }));
+  check("deleting his last play after Only my plays puts the twelve back on and names the play, not its key", await ev(() => {
+    const keep = { plays: S.plays, off: S.offPlays, script: S.script, gone: S.playGone, confirm: window.confirm };
+    window.confirm = () => true;
+    const L = S.layoutKey, five = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [{ k: "my:last-probe", name: "Last Probe", read: "", aggr: 3, plants: { [L]: five }, at: 1 }]; S.offPlays = [];
+    window.set({ tab: "playbook", script: "my:last-probe", flash: "" });
+    window.onlyMine();
+    const onlyOne = JSON.stringify(pickKeys()) === JSON.stringify(["my:last-probe"]);
+    window.dropPlay("my:last-probe");
+    const twelve = Object.keys(BREAKS).every(runsPlay) && pickKeys().length === Object.keys(BREAKS).length;
+    const moved = runsPlay(S.script) && S.script !== "my:last-probe";
+    const named = /^Last Probe deleted\./.test(S.flash || "") && /twelve are back on/.test(S.flash || "") && !/my:/.test(S.flash || "");
+    const flags = { onlyOne, twelve, moved, named };
+    window.confirm = keep.confirm;
+    Object.assign(S, { plays: keep.plays, offPlays: keep.off, playGone: keep.gone });
+    window.set({ script: keep.script, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
     const keep = { plays: S.plays, off: S.offPlays, script: S.script };
     const wait = () => new Promise(r => setTimeout(r, 900));

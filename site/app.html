@@ -3375,13 +3375,20 @@ window.dropPlay = k => {
   // it are his record. Delete asks when there is either, and the calls keep
   // the play's name afterwards rather than printing its key.
   if(bits && !confirm(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
-  if(logged) S.playGone = {...(S.playGone || {}), [k]: callName(k)};
+  const name = callName(k);   // read before the play goes, or the flash prints its key
+  if(logged) S.playGone = {...(S.playGone || {}), [k]: name};
   S.plays = customPlays().filter(p => p.k !== k);
+  // His last play gone with the twelve turned off is a picker with nothing in
+  // it — Only my plays and then Delete. The twelve come back on rather than
+  // leave Playbook with no call to draw, and the flash says so.
+  const empty = !playKeys().filter(runsPlay).length;
+  if(empty) S.offPlays = [];
   // Everything logged against it keeps its key and still counts; only the
   // drawing is gone. The header would throw on a key this build no longer
-  // has, so move off it the way a missing layout is handled.
-  if(S.script === k) S.script = defaultState().script;
-  S.building = null; save(S); flash(bits ? `${callName(k)} deleted. ${logged ? "The calls logged under it keep its name." : ""}`.trim() : `${p.name || "The play"} deleted.`);
+  // has, so move off it the way a missing layout is handled — to a call he runs.
+  if(S.script === k) { const d = defaultState().script; S.script = runsPlay(d) ? d : (playKeys().filter(runsPlay)[0] || d); S.t = 1; S.playing = false; }
+  S.building = null; save(S);
+  flash([`${name} deleted.`, logged ? "The calls logged under it keep its name." : "", empty ? "It was the last call you run, so the app's twelve are back on." : ""].filter(Boolean).join(" "));
 };
 
 function curBreak(){ return allPlays()[S.script] || BREAKS[defaultState().script]; }
