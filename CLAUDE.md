@@ -1238,6 +1238,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   one member with the number updated, and `reachable()` sends to one
   phone once however many rows carry it: two kids who share a parent's
   number are one message to that parent.
+- Leave a sheet against the wrong team. The wrong team picked at the gate
+  and three points tallied before anyone noticed had no way back but a new
+  sheet and a tally from memory. **Played against** on Matches › This match
+  (`setMatchVs`) moves the whole sheet — every row carrying its match id:
+  outs, breakouts, calls, sightings, shots, voice events, and their breaks
+  out of the wrong team's scout book into the right one — and puts that
+  team in the right pit. The picker is the board, with a box beside it for a
+  team the board does not have: typed, it joins the division the way the
+  Tally gate adds one, and a spelling of a team already there is that team
+  (`anyTeam`). A watched game has no "vs" and gets no picker.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

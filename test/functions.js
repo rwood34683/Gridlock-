@@ -5300,6 +5300,45 @@ const ROSTER = [
     editProfile("right", { breaks: keep }); window.set({ theirPick: [] }); window.newMatch();
     return plants && named && once && changed;
   }));
+  const sheetVs = await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const m = S.matchId, bl = curLayout().bunkers;
+    window.markOut("them", "#3"); window.logCall(S.script); window.logTheirBreak("right", "blitz", []); window.endPoint("us");
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "s-vs", team: "Rejects", player: "number:3", layout: S.layoutKey, m, pt: 1, bunker: bl[0].id, at: 1 }];
+    // Any other team on the board: an earlier check may have renamed Dynasty.
+    const other = teamsHere().map(t => t.name).find(n => n !== "Rejects");
+    const otherBefore = (profileOf(other).breaks || []).filter(b => b.m === m).length;
+    window.set({ tab: "more", more: "matches" });
+    const sel = document.getElementById("match-vs"), box = document.getElementById("match-vs-new");
+    const teamsBefore = teamsHere().length;
+    window.setMatchVs("");
+    const empty = /Type the team/.test(S.flash || "") && matchVs() === "Rejects";
+    window.setMatchVs(other);
+    const flags = {
+      select: !!sel && !!box && [...sel.options].some(o => o.value === other),
+      empty,
+      sheet: matchById(m).vs === other && matchVs() === other && pitOf("right").name === other,
+      rows: (S.tally || []).some(o => o.m === m && o.vs === other) && !(S.tally || []).some(o => o.m === m && o.vs === "Rejects")
+         && (S.calls || []).some(c => c.m === m && c.vs === other) && (S.arrivalSightings || []).find(x => x.id === "s-vs").team === other,
+      book: (profileOf(other).breaks || []).filter(b => b.m === m).length === otherBefore + 1 && !(profileOf("Rejects").breaks || []).some(b => b.m === m),
+      said: new RegExp("against " + other.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + " now").test(S.flash || ""),
+      score: matchScore().us === 1,
+      same: (window.setMatchVs(other), /already against/.test(S.flash || "")),
+    };
+    // Typed, and not on the board: the team joins the division under the spelling typed,
+    // and a typed spelling of one already there is that team.
+    window.setMatchVs("Fresh Squad Vs");
+    flags.typed = matchVs() === "Fresh Squad Vs" && teamsHere().length === teamsBefore + 1 && (S.tally || []).some(o => o.m === m && o.vs === "Fresh Squad Vs");
+    window.setMatchVs("  rejects ");
+    flags.folded = matchVs() === "Rejects" && teamsHere().length === teamsBefore + 1;
+    const did = divisionOf().id; S.teams = {...(S.teams || {}), [did]: addedTeams(did).filter(t => t.name !== "Fresh Squad Vs")};
+    const bk = {...(S.scout || {})}; delete bk["Fresh Squad Vs"]; S.scout = bk;
+    S.arrivalSightings = (S.arrivalSightings || []).filter(x => x.id !== "s-vs");
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("the wrong team picked at the gate is fixed on This match: Played against moves the sheet, its outs, calls, their breaks and sightings, and the pit; a typed team joins the board", sheetVs === true, sheetVs);
   const groupFix = await ev(() => {
     window.confirm = () => true;
     const keep = S.groups;

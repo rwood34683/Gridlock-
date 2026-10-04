@@ -2852,6 +2852,37 @@ function matchPoint(mid){
 }
 function patchMatch(patch){ S.matches = (S.matches || []).map(m => m.id === S.matchId ? {...m, ...patch} : m); }
 window.setMatchNote = v => { patchMatch({note: clean(v).slice(0, 40)}); save(S); render(); };
+// The wrong team picked at the gate and three points tallied before anyone
+// noticed: the sheet, its outs, its calls, their breaks and their sightings
+// were all keyed on a team he never played, with no way back but a new sheet
+// and a tally from memory. Played against on This match moves the whole
+// sheet to the team he actually played — every row that carries this match
+// id — and puts that team in the right pit. A watched game has no "vs".
+window.setMatchVs = name => {
+  const m = curMatch(), typed = clean(String(name || "").trim());
+  if(!m || m.watch) return;
+  if(!typed){ flash("Type the team you played."); return; }
+  // A name already on the board is that team under its own spelling; one the
+  // board has never heard of joins the division, the way the Tally gate adds it.
+  const hit = anyTeam(typed), to = hit ? hit.name : typed;
+  if(to === m.vs){ flash(`This sheet is already against ${to}.`); return; }
+  if(!hit){ const did = divisionOf().id; S.teams = {...(S.teams || {}), [did]: [...addedTeams(did), {name: to}]}; }
+  const from = m.vs, id = m.id;
+  const team = (rows, key) => (rows || []).map(r => r && r.m === id && r[key] === from ? {...r, [key]: to} : r);
+  S.tally = team(S.tally, "vs"); S.breakouts = team(S.breakouts, "vs"); S.calls = team(S.calls, "vs");
+  S.arrivalSightings = team(S.arrivalSightings, "team"); S.arrivalShots = team(S.arrivalShots, "team"); S.voiceEvents = team(S.voiceEvents, "team");
+  // Their breaks on this sheet live in the old team's scout book; they are the team he played's.
+  const book = {...(S.scout || {})}, was = book[from];
+  if(was && (was.breaks || []).some(b => b.m === id)){
+    const moving = was.breaks.filter(b => b.m === id);
+    book[from] = {...was, breaks: was.breaks.filter(b => b.m !== id)};
+    book[to] = {...profileOf(to), breaks: [...moving, ...(profileOf(to).breaks || [])]};
+    S.scout = book;
+  }
+  patchMatch({vs: to});
+  S.right = {...(S.right || {}), name: to};
+  save(S); flash(`This sheet is against ${to} now — every out, call and read on it moved with it.`);
+};
 window.setRaceTo = n => { patchMatch({raceTo: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
 /* Ends. Your five break from one end of the field and the other team from the
  * other, and which end is yours changes — at the half, or every point,
@@ -10660,6 +10691,11 @@ function moreBody(k){
       </div>
       <div class="fld"><label>Name this sheet</label>
         <input value="${esc((curMatch()||{}).note||"")}" placeholder="Prelim 2 · Sunday quarter" maxlength="40" onchange="setMatchNote(this.value)"/></div>
+      ${matchVs() && !(curMatch()||{}).watch ? `<div class="fld"><label for="match-vs">Played against</label>
+        <select id="match-vs" onchange="setMatchVs(this.value)">${[...new Set([matchVs(), ...teamsHere().map(t => t.name)])].map(n =>
+          `<option value="${esc(n)}"${n === matchVs() ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
+        <input id="match-vs-new" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("setMatchVs(this.value)")}/>
+        <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
