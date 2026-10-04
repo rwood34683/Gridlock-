@@ -3737,6 +3737,7 @@ const ROSTER = [
   }));
   check("bunkers tapped for their five and not logged do not ride into the next point", await ev(() => {
     const b = curLayout().bunkers.slice(0, 3).map(x => x.id);
+    window.setRaceTo(0); window.setMercy(0);   // Next point refuses on a finished race, so keep this one open
     window.set({ theirPick: b });
     window.endPoint("us");
     const cleared = (S.theirPick || []).length === 0;
@@ -5266,6 +5267,46 @@ const ROSTER = [
     S.arrivalSightings = keepS;
     if(keepP) S.scout["Paste Probe"] = keepP; else { const b = {...(S.scout || {})}; delete b["Paste Probe"]; S.scout = b; }
     window.set({ right: keepR, pasteNote: "", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
+  check("a blast to nobody reachable is refused and said, and one phone in two groups is one send", await ev(() => {
+    const keepG = S.groups, keepB = S.blasts, keepTo = S.blastTo, keepBody = S.blastBody;
+    S.groups = [{ id: "g-none", name: "Quiet Crew", members: [{ name: "Ann" }, { name: "Bo", phone: "   " }] },
+                { id: "g-a", name: "Ops", members: [{ name: "Cy", phone: "555-010-0200" }] },
+                { id: "g-b", name: "Gate", members: [{ name: "Cy again", phone: "(555) 010 0200" }, { name: "Di", email: "di@x.com" }] }];
+    S.blasts = [];
+    window.set({ tab: "more", more: "league", blastBody: "Pit gate opens 8:00", blastTo: ["g-none"], flash: "" });
+    window.sendBlast();
+    const refused = S.blasts.length === 0 && /Nobody in Quiet Crew has a number or an email/.test(S.flash || "");
+    window.set({ blastTo: ["g-a", "g-b"], flash: "", handText: null });
+    window.sendBlast();
+    const once = S.blasts.length === 1 && S.blasts[0].n === 2 && S.blasts[0].to === "Ops, Gate";
+    window.set({ blastTo: ["g-a"], blastBody: "x".repeat(700), handText: null });
+    window.sendBlast();
+    const capped = S.blasts.length === 2 && S.blasts[0].body.length === 600;
+    const flags = { refused, once, capped };
+    S.groups = keepG; S.blasts = keepB;
+    window.set({ blastTo: keepTo, blastBody: keepBody || "", handText: null, flash: "", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
+  check("Next point refuses on a finished sheet, a sheet from another field and with nobody to play", await ev(() => {
+    window.confirm = () => true;
+    const keepM = S.matches, keepId = S.matchId, keepR = S.right;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(1); window.setMercy(0);
+    window.endPoint("us");
+    const at = S.point;
+    window.set({ flash: "" }); window.nextPoint();
+    const over = S.point === at && /Match over/.test(S.flash || "");
+    const other = Object.keys(LAYOUTS).find(k => k !== S.layoutKey);
+    S.matches = [...(S.matches || []), { id: "off-np", at: Date.now(), vs: "Rejects", layout: other }];
+    window.set({ matchId: "off-np", point: 2, flash: "" }); window.nextPoint();
+    const off = S.point === 2 && /This sheet is on/.test(S.flash || "");
+    S.matches = keepM;
+    window.set({ matchId: keepId, right: {}, flash: "" }); window.openSheet({ vs: "" });
+    const p0 = S.point; window.nextPoint();
+    const nobody = S.point === p0;
+    const flags = { over, off, nobody };
+    window.set({ tab: "tally", right: keepR && keepR.name ? keepR : { name: "Dynasty" }, flash: "" }); window.newMatch(); window.setRaceTo(0);
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
