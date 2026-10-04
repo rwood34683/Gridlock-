@@ -3252,8 +3252,13 @@ function myPlants(k, layoutKey){
    needed — the router draws the run, the buzzer order falls out of the
    distances, and Face, Shot and Job are set afterwards the same way they are
    on any other call. */
-window.newPlay = () => set({tab: "playbook", pbPick: false, tallyPick: false,
-  building: {k: "", name: "", plants: [], read: "", aggr: 3, layout: S.layoutKey}});
+/* The builder opens under the field, the call row and the chips — two
+   screens below the button on an iPad mini, so the tap read as nothing
+   happening. Every door that opens it brings it into view, the way Tally
+   brings the opponent picker. */
+const showBuilder = () => requestAnimationFrame(() => { const el = document.getElementById("play-builder"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+window.newPlay = () => { set({tab: "playbook", pbPick: false, tallyPick: false,
+  building: {k: "", name: "", plants: [], read: "", aggr: 3, layout: S.layoutKey}}); showBuilder(); };
 /* Make it yours. The twelve were frozen: he could rename one or turn it off,
    and a coach who runs Snake Stack with his third man in the temple had to
    build it again from nothing. A copy starts as the app's call on every field
@@ -3268,11 +3273,13 @@ window.copyPlay = k => {
   set({tab: "playbook", pbPick: false, tallyPick: false, script: k, t: 1, playing: false,
        building: {k: "", from: k, name: "", plants: every[S.layoutKey] ? [...every[S.layoutKey]] : [],
                   every, read: breakMeta(k).read || "", aggr: breakMeta(k).aggr || 3, retire: true, layout: S.layoutKey}});
+  showBuilder();
 };
 window.buildPlay = k => {                       // build it here, or edit it where it is built
   const p = customPlay(k); if(!p) return;
   set({script: k, building: {k, name: p.name, plants: myPlants(k) || [],
                              read: p.read || "", aggr: p.aggr || 3, layout: S.layoutKey}});
+  showBuilder();
 };
 window.cancelPlay = () => set({building: null});
 // A man keeps his number. Taking him off leaves his slot open and the next
@@ -6925,7 +6932,7 @@ function playbook(){
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
-  ${S.building ? playBuilder() : ""}
+  ${S.building ? `<div id="play-builder">${playBuilder()}</div>` : ""}
   ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}

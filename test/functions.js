@@ -5428,6 +5428,24 @@ const ROSTER = [
     window.set({ script: keep.script, pbPick: false, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
   }));
+  check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
+    const keep = { plays: S.plays, off: S.offPlays, script: S.script };
+    const wait = () => new Promise(r => setTimeout(r, 900));
+    const inView = () => { const el = document.getElementById("play-builder"); if(!el) return false; const r = el.getBoundingClientRect(); return r.top >= -2 && r.top < innerHeight * 0.6; };
+    const top = () => { const m = document.querySelector(".main"); if(m) m.scrollTop = 0; window.scrollTo(0, 0); };
+    window.set({ tab: "playbook", script: "snake", building: null, pbView: null }); top();
+    window.newPlay(); await wait(); const fresh = inView();
+    window.set({ building: null }); top();
+    window.copyPlay("snake"); await wait(); const copied = inView();
+    const L = S.layoutKey, five = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [...(S.plays || []), { k: "my:view-probe", name: "View Probe", read: "", aggr: 3, plants: { [L]: five }, at: 1 }];
+    window.set({ building: null, script: "my:view-probe" }); top();
+    window.buildPlay("my:view-probe"); await wait(); const edited = inView();
+    const flags = { fresh, copied, edited };
+    Object.assign(S, { plays: keep.plays, offPlays: keep.off });
+    window.set({ building: null, script: keep.script });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

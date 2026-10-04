@@ -446,7 +446,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     picker in one tap, on the call picker and Team › Break calls, once he has
     a play of his own; his plays lead every picker (`pickPlays`). A half-built
     play is dropped on relaunch and on an event change, because its five are
-    one field's bunkers.
+    one field's bunkers. The builder opens under the field and the chips, two
+    screens below its button on an iPad mini, so **+ Yours**, **Make it yours**
+    and **Edit** all scroll it into view (`showBuilder`).
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
