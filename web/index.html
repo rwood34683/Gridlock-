@@ -5290,7 +5290,7 @@ window.logTheirBreak = (side, script, plants) => {
   const was = entry.pt ? theirBreaks(side).find(b => b && b.m === entry.m && b.pt === entry.pt) : null;
   if(was){
     if(!entry.script && was.script) entry.script = was.script;
-    if(!entry.plants && Array.isArray(was.plants) && was.plants.length) entry.plants = was.plants;
+    if(!entry.plants && Array.isArray(was.plants) && was.plants.length){ entry.plants = was.plants; if(was.tallied) entry.tallied = true; }
   }
   editProfile(side, {breaks: [entry, ...theirBreaks(side).filter(b => b !== was)]});
   if(picked.length) S.theirPick = [];
@@ -5664,7 +5664,7 @@ function staffGate(what){
 function tourRows(){
   return `<div class="kv">
       <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
-      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker a man broke to, say what you saw, log it. Then who won the point.</span></div>
+      <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker each man broke to, then say what happened to each. Then who won the point.</span></div>
       <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — what they run when behind, where their five plant, who has the lanes off the break, and your counter. Counted from what you log, never guessed.</span></div>
       <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
       <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
@@ -5695,7 +5695,7 @@ function promo(){
       <p class="promo__tag">Call the break.<br/>Chart the point.<br/>Know what worked.</p>
       <ul class="promo__does">
         <li>Twelve breaks and your own plays, drawn on the field you are actually playing.</li>
-        <li>Tap the bunker a man broke to. That is the whole chart.</li>
+        <li>Tap the bunker each man broke to — one tap a man, yours and theirs. Then say what happened to each.</li>
         <li>By Sunday it reads what they run when they are behind, which bunkers win you points, and who has the lanes off the break.</li>
       </ul>
     </div>`}
@@ -6695,6 +6695,36 @@ window.tallyTap = at => {
 const pointRows = () => breakoutsHere().filter(r => r.pt === (S.point || 1) && r.layout === S.layoutKey)
   .sort((a, b) => a.at - b.at);
 const placeSideWord = side => { const m = curMatch(); return m && m.watch ? (side === "us" ? m.home : m.away) || (side === "us" ? "Home" : "Away") : side === "us" ? "Yours" : "Theirs"; };
+/* Their five, charted once.
+ *
+ * Their men placed on Tally are the same five Scout's Breakouts asks for, and
+ * every read of where they plant — Where they plant, the ghost five, Lanes
+ * off the break, their shooter — counts the five kept against the team. A
+ * coach who charted their break on Tally had none of it until he tapped the
+ * same five again on Scout. So the bunkers of their men on this point are
+ * written as that point's five for the team on the sheet (on a watched game,
+ * the home side's too), marked `tallied` so the next tap on Tally keeps it in
+ * step. A five he tapped on Scout himself for that point stands: Tally never
+ * writes over it. */
+function syncTallyFive(mid, pt){
+  const m = matchById(mid); if(!m || !m.layout) return;
+  const pairs = m.watch ? [["us", m.home], ["them", m.away]] : [["them", m.vs]];
+  pairs.forEach(([side, team]) => {
+    if(!team) return;
+    const ids = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === pt && r.side === side && r.layout === m.layout)
+      .sort((a, b) => a.at - b.at).map(r => r.bunker).slice(0, 5);
+    const prof = profileOf(team), breaks = prof.breaks || [];
+    const was = breaks.find(b => b && b.m === mid && b.pt === pt);
+    if(was && Array.isArray(was.plants) && was.plants.length && !was.tallied) return;
+    let next;
+    if(ids.length) next = [{...(was || {script: "", m: mid, pt, layout: m.layout, at: Date.now()}), plants: ids, tallied: true}, ...breaks.filter(b => b !== was)];
+    else if(was && was.tallied){
+      const {plants, tallied, ...rest} = was;
+      next = rest.script ? breaks.map(b => b === was ? rest : b) : breaks.filter(b => b !== was);
+    } else return;
+    S.scout = {...(S.scout || {}), [team]: {...prof, breaks: next}};
+  });
+}
 function placeAt(b){
   const pt = S.point || 1, side = S.tallyPlace || sideOfBunker(b);
   const rows = pointRows();
@@ -6704,6 +6734,7 @@ function placeAt(b){
   if(again){
     S.breakouts = (S.breakouts || []).filter(r => r !== again);
     if(S.tallyLast === again.id) S.tallyLast = "";
+    syncTallyFive(again.m, again.pt);
     flash(`Taken off ${bunkerLabel(b.id)}.`);
     return;
   }
@@ -6717,6 +6748,7 @@ function placeAt(b){
     vs:matchVs(), script:S.script, todo:true};
   S.breakouts = [row, ...(S.breakouts || [])];
   S.tallyLast = row.id;
+  syncTallyFive(row.m, row.pt);
   save(S); render();
 }
 // Open one placed man's sheet: what was already said about him comes back,
@@ -6821,6 +6853,7 @@ window.logBreakout = () => {
       S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === row.player));
   }
   S.breakouts = [row, ...(S.breakouts || [])];
+  syncTallyFive(row.m, row.pt);
   // A named man logged shot on the break is an out — the same out the columns
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
@@ -6845,6 +6878,7 @@ window.logBreakout = () => {
 window.undoBreakout = id => {
   const row = (S.breakouts || []).find(r => r && r.id === id); if(!row) return;
   S.breakouts = (S.breakouts || []).filter(r => r !== row);
+  syncTallyFive(row.m, row.pt);
   if(row.alive === false && row.player)
     S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === row.m && o.pt === row.pt
                                            && o.side === row.side && o.name === row.player));
@@ -7012,8 +7046,12 @@ function breakoutSheet(){
   const d = draft(), pt = S.point || 1, bl = curLayout().bunkers;
   const side = d.side || sideOfBunker(b);
   const mine = fiveFor(pt).filter(Boolean).map(p => p.name);
+  // On a watched game "us" is the home side, not his five: neither side is
+  // his to name from his roster, so both are numbers, and the toggle names
+  // the two teams. A home man filed as Reyes would land in Reyes's own read.
+  const wm = (curMatch() || {}).watch ? curMatch() : null;
   const names = side === "us"
-    ? (mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
+    ? (wm ? theirNames() : mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
     : theirNames();
   const others = bl.filter(o => o.id !== b.id);
   const far = others.filter(o => ((side === "us") === (ourEnd() === "left")) ? o.x > 75 : o.x < 75);
@@ -7035,8 +7073,8 @@ function breakoutSheet(){
       ${S.tallyEdit ? `<button class="btn btn--quiet" onclick="undoBreakout(${jsq(S.tallyEdit)})">Take him off</button>` : ""}
       <button class="btn btn--quiet" onclick="tallyDone()">Done</button>
     </div>
-    ${seg([[side === "us", "Your player", "setDraft({side:'us',sideSet:true,player:''})"],
-           [side === "them", "Theirs", "setDraft({side:'them',sideSet:true,player:''})"]])}
+    ${seg([[side === "us", wm ? esc(wm.home || "Home") : "Your player", "setDraft({side:'us',sideSet:true,player:''})"],
+           [side === "them", wm ? esc(wm.away || "Away") : "Theirs", "setDraft({side:'them',sideSet:true,player:''})"]])}
     ${q("Who")}
     ${seg([[!d.player, "No name", "setDraft({player:''})"],
            ...names.map(n => [d.player === n, esc(n), `setDraft({player:${jsq(n)}})`])])}

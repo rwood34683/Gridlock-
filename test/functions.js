@@ -71,7 +71,7 @@ const ROSTER = [
   check("the tour shows what it does without letting him through", await ev(() => {
     [...document.querySelectorAll(".promo .btn")].find(b => /Show me/.test(b.textContent)).click();
     const t = document.getElementById("root").innerText;
-    const shown = /How it works/.test(t) && /Tap the bunker a man broke to/.test(t);
+    const shown = /How it works/.test(t) && /Tap the bunker each man broke to/.test(t);
     const still = !S.entered;
     window.set({ promoTour: false });
     return shown && still;
@@ -117,7 +117,7 @@ const ROSTER = [
   const promoText = () => ev(() => document.getElementById("root").innerText);
   check("it says what the app does before it asks for anything", await (async () => {
     const t = await promoText();
-    return /twelve breaks/i.test(t) && /bunker a man broke to/i.test(t) && /win you points/i.test(t);
+    return /twelve breaks/i.test(t) && /bunker each man broke to/i.test(t) && /win you points/i.test(t);
   })());
   check("the loudest button is the account", await ev(() => {
     const big = document.querySelector("#root .btn--lg");
@@ -137,7 +137,7 @@ const ROSTER = [
   })());
   check("what it does say is still what it does", await (async () => {
     const t = await promoText();
-    return /twelve breaks/i.test(t) && /bunker a man broke to/i.test(t) && /win you points/i.test(t);
+    return /twelve breaks/i.test(t) && /bunker each man broke to/i.test(t) && /win you points/i.test(t);
   })());
   // Nothing leaves the phone is still promised, where a coach goes looking for
   // it rather than on the way past.
@@ -5479,6 +5479,44 @@ const ROSTER = [
     Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
   }));
+  check("their men placed on Tally are their five on Scout, kept in step, and never write over a five tapped on Scout", await ev(() => {
+    const keep = { breakouts: S.breakouts, tally: S.tally, matches: S.matches, matchId: S.matchId, point: S.point, right: S.right, scout: S.scout, results: S.results };
+    const team = teamsHere()[0].name;
+    window.setPitTeam("right", team); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.set({ tab: "tally", tallyStep: "place", tallyPlace: "", flash: "" });
+    const bl = curLayout().bunkers, theirs = bl.filter(b => b.x > 90).slice(0, 3);
+    theirs.forEach(b => window.tallyTap([b.x, b.y]));
+    const f1 = theirFiveLogged("right");
+    const fed = !!f1 && f1.tallied && JSON.stringify(f1.plants) === JSON.stringify(theirs.map(b => b.id))
+      && theirs.every(b => plantCounts("right").some(([id]) => id === frameId(b.id, S.matchId, S.point)));
+    window.tallyTap([theirs[2].x, theirs[2].y]);
+    const inStep = JSON.stringify((theirFiveLogged("right") || {}).plants) === JSON.stringify(theirs.slice(0, 2).map(b => b.id));
+    window.logTheirBreak("right", "blitz");
+    const named = (theirFiveLogged("right") || {}).script === "blitz" && (theirFiveLogged("right") || {}).tallied === true;
+    window.tallyTap([theirs[2].x, theirs[2].y]);
+    const stillInStep = (theirFiveLogged("right") || {}).plants.length === 3 && (theirFiveLogged("right") || {}).script === "blitz";
+    window.tallyTap([theirs[0].x, theirs[0].y]); window.tallyTap([theirs[1].x, theirs[1].y]); window.tallyTap([theirs[2].x, theirs[2].y]);
+    const emptied = !(theirFiveLogged("right") || {}).plants && theirBreaks("right").some(b => b.m === S.matchId && b.pt === S.point && b.script === "blitz");
+    window.nextPoint();
+    S.theirPick = bl.filter(b => b.x > 90).slice(5, 10).map(b => b.id); window.logTheirFive("right");
+    const scoutFive = JSON.stringify(theirFiveLogged("right").plants);
+    window.set({ tallyStep: "place" }); window.tallyTap([theirs[0].x, theirs[0].y]);
+    const stands = JSON.stringify(theirFiveLogged("right").plants) === scoutFive && !theirFiveLogged("right").tallied;
+    const flags = { fed, inStep, named, stillInStep, emptied, stands };
+    Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
+  check("on a watched game the breakout sheet names the two teams and never offers your roster for the home side", await ev(() => {
+    const keep = { breakouts: S.breakouts, tally: S.tally, matches: S.matches, matchId: S.matchId, point: S.point, right: S.right, left: S.left, scout: S.scout, roster: S.roster };
+    S.roster = [{ name: "Rosterman", num: 7 }];
+    const ts = teamsHere(); window.openSheet({ watch: true, home: ts[1].name, away: ts[2].name, vs: ts[2].name });
+    window.set({ tab: "tally", tallyStep: "place", tallyPlace: "" });
+    const l = curLayout().bunkers.find(b => b.x < 60); window.tallyTap([l.x, l.y]); window.tallyStepTo("record");
+    const sheet = (document.getElementById("tally-sheet") || {}).textContent || "";
+    const flags = { home: sheet.includes(ts[1].name), away: sheet.includes(ts[2].name), noYours: !/Your player/.test(sheet), noRoster: !/Rosterman/.test(sheet), numbers: /#1/.test(sheet) };
+    Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
     const keep = { plays: S.plays, off: S.offPlays, script: S.script };
     const wait = () => new Promise(r => setTimeout(r, 900));
@@ -8471,7 +8509,7 @@ const ROSTER = [
   check("the tutorial describes the Tally that actually exists", await ev(() => {
     window.set({ showTutorial:true, tab:"playbook" });
     const t = document.getElementById("root").textContent;
-    const ok = /Tap the bunker a man broke to/.test(t) && !/Tap a player the moment he goes out\.<\/span>/.test(t);
+    const ok = /Tap the bunker each man broke to/.test(t) && !/Tap a player the moment he goes out\.<\/span>/.test(t);
     window.set({ showTutorial:false });
     return ok;
   }));

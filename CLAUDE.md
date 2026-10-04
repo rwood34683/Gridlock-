@@ -10,6 +10,18 @@ npm install
 npm run serve   # http://localhost:5173
 ```
 
+Dependency security handoff (2026-10-04): `sharp` is now `^0.35.5`, the
+lockfile resolves `brace-expansion` to 5.0.12, and `xcode` uses UUID 11.1.1
+through a scoped override. Keep that override until Xcode's upstream
+dependency includes the buffer-bounds fix; UUID 11.1.1 retains its CommonJS API.
+The new `test/dependencies.js` checks UUID buffer bounds, Xcode project parsing
+and IDs, brace expansion, and Sharp image processing. It runs in `npm run check`.
+The brand test also normalizes Windows paths before checking generated files.
+Run `npm run test:dependencies` and `npm audit` after dependency changes.
+Validation before this handoff: clean install, zero audit vulnerabilities,
+build/site checks, and all 18 check suites passed after the Windows test fix;
+the native sync check was skipped and native binary builds remain unverified.
+
 Source of truth for *behavior*: `docs/GRIDLOCK-OVERSKILL-SPEC.md`
 Source of truth for *working UI*: `web/index.html` (open in a browser)
 Legacy native snapshot: `ios-native/GRIDLOCK-Coach/` (early SwiftUI, missing later tabs).
@@ -470,7 +482,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     sheet as before (`editBreakout`); Save writes over his row by id and
     opens the next, and a field tap on any other bunker still charts one more
     man the old way. `tallyStep`, `tallyEdit` and `tallyPlace` are scratch,
-    and a new point starts on step one.
+    and a new point starts on step one. Their men placed on Tally are their
+    five on Scout too (`syncTallyFive`): the point's break row for the team on
+    the sheet takes their bunkers, marked `tallied`, so Where they plant, the
+    ghost, Lanes off the break and their shooter read a five charted once. A
+    five he tapped on Scout's Breakouts for that point stands and is never
+    written over; naming their call afterwards keeps the row in step. On a
+    watched game the sheet names the two teams and offers numbers for both
+    sides — the home side is not his five, and a home man filed under one of
+    his own names would land in that man's read.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
