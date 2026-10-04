@@ -5022,6 +5022,20 @@ const ROSTER = [
     box2.value = ""; window.set({ tab: "tally" });
     return said && gone && kept;
   }));
+  check("the replay slider is not rebuilt under the finger dragging it: the count follows live, the list redraws on release", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.markOut("them", "#3"); window.markOut("them", "#4"); window.markOut("us", (S.roster[0] || {}).name || "A"); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "games", replayPt: 1, replayStep: 0 });
+    window.set({ replayMatch: S.matchId, replayPt: 1, replayStep: 0 });
+    const el = document.getElementById("replay-step"); if(!el) return "no slider";
+    el.value = "2"; el.dispatchEvent(new Event("input", { bubbles: true }));
+    const live = document.getElementById("replay-step") === el && (document.querySelector("[data-replay-step]") || {}).textContent === "2" && S.replayStep === 0;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    const committed = S.replayStep === 2 && document.querySelectorAll("#root .assigns .assign").length >= 2;
+    window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return live && committed;
+  }));
   check("one man cannot use one word for two bunkers on a field", await ev(() => {
     const was = S.playerCalls, bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "Probe Man";
     window.set({ flash: "" });
