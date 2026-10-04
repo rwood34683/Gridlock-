@@ -8296,11 +8296,28 @@ window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(
 // typed twice or one page pasted twice, not two games.
 const sameGame = (a, b) => !!a && !!b && a.d === b.d && a.t === b.t && foldName(a.h) === foldName(b.h) && foldName(a.a) === foldName(b.a);
 const gameOnList = g => allGames().find(x => sameGame(x, g)) || null;
+/* A clock the way a coach types it — "13:45", "1:45 PM", "1:45pm", "9", "9am",
+ * "0900", "1345" — read to the HH:MM the schedule keeps, or "" when it is not a
+ * time at all. The row is sorted and printed off that string, so a "9am" kept
+ * as typed sorted after every real clock and printed as itself. */
+function clockOf(text){
+  const m = /^\s*(\d{1,2})(?::?(\d{2}))?\s*([ap])?\.?\s*m?\.?\s*$/i.exec(String(text || ""));
+  if(!m) return "";
+  let h = +m[1]; const mm = m[2] === undefined ? 0 : +m[2], ap = (m[3] || "").toLowerCase();
+  if(mm > 59) return "";
+  if(ap){ if(h < 1 || h > 12) return ""; h = (h % 12) + (ap === "p" ? 12 : 0); }
+  else if(h > 23) return "";
+  return String(h).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+}
 window.saveGame = () => {
   const n = S.gameNew || {};
   if(!(n.h || "").trim() || !(n.a || "").trim())
     return flash("Both teams, or there is no game to watch.");
-  const row = {id: gameId(), d: n.d || SCHEDULE.games[0].d, t: n.t || "09:00",
+  if(foldName(n.h) === foldName(n.a))
+    return flash(`${n.h.trim()} cannot play itself. Name the other team.`);
+  const t = clockOf(n.t || "09:00");
+  if(!t) return flash(`"${(n.t || "").trim()}" is not a time. Type it like 13:45 or 1:45 PM.`);
+  const row = {id: gameId(), d: n.d || SCHEDULE.games[0].d, t,
                h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()};
   const had = gameOnList(row);
   if(had) return flash(`${had.h} v ${had.a} is already on the list at ${clockName(had.t)}.`);
@@ -8377,7 +8394,7 @@ function parseSchedule(text){
     const bits = clean.split(/\s+[-\u2013\u2014]\s+|\s*(?:\||,|\bvs?\.?(?=\s)|\bv\.?(?=\s)|\t)\s*/i)
       .map(strip)
       .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x));
-    if(bits.length < 2) return;
+    if(bits.length < 2 || foldName(bits[0]) === foldName(bits[1])) return;   // a team against itself is a mis-read line
     const g = (/\b([A-D]) ?Prelims?\b/i.exec(line) || [])[1] || "";
     out.push({id: gameId() + out.length, d: day, t, h: bits[0].slice(0, 40),
               a: bits[1].slice(0, 40), g: g.toUpperCase()});
