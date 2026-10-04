@@ -5517,6 +5517,25 @@ const ROSTER = [
     Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
   }));
+  check("from the right end every one of the eight lanes still has its arrow and its name, mirrored", await ev(() => {
+    const keep = { matches: S.matches, matchId: S.matchId, point: S.point, right: S.right, pad: S.pad, results: S.results };
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
+    const m = curMatch(); S.matches = S.matches.map(x => x.id === m.id ? { ...x, end: "right" } : x);
+    const right = ourEnd() === "right";
+    const lanes = FACE_PAD.filter(f => f[1] !== null);
+    const allGlyphs = lanes.every(([, deg]) => !!seenGlyph(deg) && !!seenSay(deg));
+    const mirrored = seenGlyph(-135) === FACE_GLYPH[-45] && seenGlyph(-45) === FACE_GLYPH[-135] && seenGlyph(-90) === FACE_GLYPH[-90]
+      && seenGlyph(0) === FACE_GLYPH[180] && seenGlyph(45) === FACE_GLYPH[135] && seenGlyph(90) === FACE_GLYPH[90];
+    const id = curBreak().paths[0].id;
+    window.set({ tab: "playbook", pad: "shot:" + id });
+    const shotText = [...document.querySelectorAll("#root select option")].map(o => o.textContent).join(" | ");
+    window.set({ pad: "face:" + id });
+    const faceLabels = [...document.querySelectorAll("#root .pad button")].map(b => (b.getAttribute("aria-label") || "") + b.textContent);
+    const clean = !/undefined/.test(shotText) && faceLabels.length === 9 && faceLabels.every(t => !/undefined/.test(t) && !/Face $/.test(t.split("\n")[0]));
+    const flags = { right, allGlyphs, mirrored, clean };
+    Object.assign(S, keep); window.set({ pad: null });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ") + " :: " + faceLabels.join(",");
+  }));
   check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
     const keep = { plays: S.plays, off: S.offPlays, script: S.script };
     const wait = () => new Promise(r => setTimeout(r, 900));

@@ -866,7 +866,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   buttons, the lane options and Tally's "Shooting which way?" read
   `seenGlyph()` / `seenSay()`, the angle as it reads on the end shown now,
   or the arrow he taps points the opposite way to the chevron it draws. The
-  value kept is still the field's own lane. And a rotation of his own is kept
+  value kept is still the field's own lane — and `seenDeg()` stays in the
+  pad's own range, -135 to 180: it returned 315 for a mirrored -135, three
+  of the eight arrows had no glyph from the right end, and the Shot picker
+  printed "undefined back toward the dorito tape". A fuzzer found it, not
+  the suite. And a rotation of his own is kept
   as the bunkers he tapped on that point, so **Your rotations** on Layers drew
   the same job from two ends as two mirrored arrows: the arrows read
   `shownBunker(frameId(from, m, pt))`, the frame every other count of his is
