@@ -3240,10 +3240,10 @@ const ROSTER = [
     window.setPitTeam("right", "Rejects");
     window.set({ tab: "tally" });
     window.markOut("us", "1");
-    const quiet = !/played on/.test(document.getElementById("root").textContent);
+    const quiet = !/This sheet is on/.test(document.getElementById("root").textContent);
     window.pickEvent(Object.keys(LAYOUTS).find(k => k !== S.layoutKey));
     window.set({ tab: "tally" });
-    return quiet && /This sheet was played on/.test(document.getElementById("root").textContent);
+    return quiet && /This sheet is on/.test(document.getElementById("root").textContent) && /Back to /.test(document.getElementById("root").textContent);
   }));
 
   // The screen sleeping between points is the papercut this fixes.

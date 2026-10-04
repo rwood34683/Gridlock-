@@ -6494,11 +6494,7 @@ function tally(){
           : last ? `<div class="btnrow" style="align-items:center">
               <span class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>. Tap the next man's bunker.</span>
               <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>`
-          : ""}</div>
-    ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
-      ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
-         You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`
-      : ""}`,
+          : ""}</div>`,
     matchLabel(curMatch()))}
 
   ${sec("Point sheet", `
