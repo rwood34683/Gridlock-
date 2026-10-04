@@ -448,7 +448,13 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     play is dropped on relaunch and on an event change, because its five are
     one field's bunkers. The builder opens under the field and the chips, two
     screens below its button on an iPad mini, so **+ Yours**, **Make it yours**
-    and **Edit** all scroll it into view (`showBuilder`).
+    and **Edit** all scroll it into view (`showBuilder`). On a 10.2-inch iPad
+    on its side the call card is a 340 px column, and **Change the call** broke
+    onto two lines inside a button of normal height, which no overflow or
+    height check sees: `.callrow` keeps every label on one line and wraps the
+    row instead, a red Delete keeps its own width, and the devices suite counts
+    each label's lines on twenty devices, the 10.2-inch iPad both ways up and
+    the Air on its side among them.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
