@@ -5320,15 +5320,21 @@ function myTell(side = "right"){
 /* Your best answer to a call of theirs: the call of yours that won most on
  * points where they ran it, from your own record on this field; failing that,
  * the answer you wrote down on Counter; failing that, nothing. */
-function bestAnswer(theirCall, side = "right"){
-  const team = pitOf(side).name; if(!team || !theirCall) return null;
+// Your record, call by call, on the points where they ran one call of theirs:
+// {script: {n, won}} from your own log on this field, watched games out.
+function recordVsCall(theirCall, side = "right"){
+  const team = pitOf(side).name, tally = {}; if(!team || !theirCall) return tally;
   const key = r => r.m + "|" + r.pt;
   const pts = new Set(theirBreaks(side).filter(b => b.script === theirCall && b.m).map(key));
-  const tally = {};
   (S.calls || []).filter(c => c && c.vs === team && c.layout === S.layoutKey && pts.has(key(c)) && !watchedMatch(c.m)).forEach(c => {
     const w = ((S.results || []).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won; if(!w) return;
     const t = tally[c.script] = tally[c.script] || {n: 0, won: 0}; t.n++; if(w === "us") t.won++;
   });
+  return tally;
+}
+function bestAnswer(theirCall, side = "right"){
+  const team = pitOf(side).name; if(!team || !theirCall) return null;
+  const tally = recordVsCall(theirCall, side);
   const ranked = Object.entries(tally).sort((a, b) => (b[1].won / b[1].n) - (a[1].won / a[1].n) || b[1].n - a[1].n);
   if(ranked.length) return {call: ranked[0][0], won: ranked[0][1].won, n: ranked[0][1].n, basis: "record"};
   const written = answersFor(side)[theirCall];
@@ -9118,8 +9124,17 @@ function scoutCounter(){
   const R=pitOf("right"), state=S.matchState||"Even";
   // Counted first: a call you have run against them on this field is ranked by
   // what it won, and the heuristic only orders the ones you have never run.
-  const ranked=counterRank(R.tend, state).map(r => ({...r, rec: callRecord(r.key, R.name)}))
-    .sort((a,b) => (b.rec.n ? b.rec.won / b.rec.n : -1) - (a.rec.n ? a.rec.won / a.rec.n : -1) || b.rec.n - a.rec.n || b.pct - a.pct || a.aggr - b.aggr);
+  // The call to counter is the counted read for the moment he is in — what
+  // they have run in this spot, three or more logged — and the film tendency
+  // only until there is one. Against a read, a call of yours is ranked first
+  // by what it won on the points they ran that call, then by its record
+  // against them, then the heuristic.
+  const rd = (curMatch()||{}).watch ? null : nextRead("right"), read = rd && !rd.thin ? rd : null;
+  const vsCall = read ? recordVsCall(read.call) : {};
+  const rate = t => t && t.n ? t.won / t.n : -1;
+  const ranked=counterRank(R.tend, state).map(r => ({...r, rec: callRecord(r.key, R.name), vs: vsCall[r.key] || null}))
+    .sort((a,b) => rate(b.vs) - rate(a.vs) || (b.vs ? b.vs.n : 0) - (a.vs ? a.vs.n : 0)
+                || rate(b.rec) - rate(a.rec) || b.rec.n - a.rec.n || b.pct - a.pct || a.aggr - b.aggr);
   const played = ranked.filter(r => r.rec.n).reduce((n, r) => n + r.rec.n, 0);
   const theirNow = pitOnSheet("right") && !(curMatch()||{}).watch ? theirFiveNow() : null;   // his five against theirs — no "his" on a watched game
   return sec("Counter-picker", `<div class="seg">
@@ -9131,7 +9146,9 @@ function scoutCounter(){
     ${/* The left pit is a team he watches, not him — it read "Blast Camp
           against Rejects" as if Blast Camp were his five. Only a watched game
           has two named sides here. */""}
-    <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s likely <b style="color:var(--ink)">${esc(R.tend)}</b> break, and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.</p>
+    <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s ${read
+        ? `<b style="color:var(--ink)">${esc(callName(read.call))}</b> — ${read.n} of ${read.of} ${esc(read.basis)}${read.alt ? `, ${esc(callName(read.alt[0]))} ${read.alt[1]}` : ""} —`
+        : `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read ? ` Film read: ${esc(R.tend)}.` : ""}</p>
     ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
       return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
         <b>${esc(callName(f[0][0]))}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
@@ -9140,10 +9157,10 @@ function scoutCounter(){
         <span class="rank__n">${i+1}</span>
         <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}${(l => l ? `<br><span class="rank__lanes">lanes · ${l.onThem} on them · ${l.onYou} on you</span>` : "")(breakLanes(r.key, theirNow))}</span>
         ${pips(r.aggr,"")}
-        <span class="rank__pct">${r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
+        <span class="rank__pct">${r.vs ? `won ${r.vs.won} of ${r.vs.n} vs ${esc(callName(read.call))}` : r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
       </button>`).join("")}
     </div>
-    <p class="note">${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}${theirNow ? `<b>lanes</b> is counted off ${esc(curLayout().name)} against ${theirNow.basis === "logged" ? "the five they logged on this point" : `the five they usually plant (${theirNow.n} logged fives)`}: how many of your five would have a clear lane on one of theirs off the break, leaning out either side of the bunker, and how many of theirs on you. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
+    <p class="note">${read ? `<b>vs ${esc(callName(read.call))}</b> is your record with that call on the points they ran ${esc(callName(read.call))}, counted from your own log on this field. ` : ""}${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}${theirNow ? `<b>lanes</b> is counted off ${esc(curLayout().name)} against ${theirNow.basis === "logged" ? "the five they logged on this point" : `the five they usually plant (${theirNow.n} logged fives)`}: how many of your five would have a clear lane on one of theirs off the break, leaning out either side of the bunker, and how many of theirs on you. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
     <button class="btn btn--ghost btn--block" onclick="copyMatchup()">Copy matchup card</button>`,
     state)
   + (()=>{ const seen = Object.fromEntries(breakFreq("right"));
