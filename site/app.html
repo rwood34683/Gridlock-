@@ -3067,6 +3067,11 @@ window.savePlay = () => {
   S.building = null; S.script = k; S.t = 1; S.playing = false;
   save(S); render();
 };
+window.renamePlay = (k, v) => {
+  const name = String(v || "").trim().slice(0, 28); if(!name) { render(); return; }   // an empty name keeps the old one
+  S.plays = customPlays().map(p => p.k === k ? {...p, name} : p);
+  save(S); render();
+};
 window.dropPlay = k => {
   S.plays = customPlays().filter(p => p.k !== k);
   // Everything logged against it keeps its key and still counts; only the
@@ -5000,10 +5005,10 @@ function fieldSVG(opts={}, runnersOnly){
   // from each of your five to each of theirs where the lane is clear. Drawn
   // only where both fives are known, and only on request.
   if(opts.lanes){
-    const t5 = theirFiveNow("right"), mine = plantIdsFor(S.script);
-    if(t5 && mine){
-      const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, bl = layout.bunkers;
-      ids.forEach(a => t5.ids.forEach(b => {
+    const fl = fieldLanes();
+    if(fl){
+      const ids = fl.ids, bl = layout.bunkers;
+      ids.forEach(a => fl.theirIds.forEach(b => {
         if(!laneClear(a, b)) return;
         const A = bl.find(x => x.id === a), B = bl.find(x => x.id === b); if(!A || !B) return;
         const x1 = (A.x*sx).toFixed(1), y1 = (A.y*sy).toFixed(1), x2 = (B.x*sx).toFixed(1), y2 = (B.y*sy).toFixed(1);
@@ -5014,7 +5019,8 @@ function fieldSVG(opts={}, runnersOnly){
   }
 
   // Their shooter's usual bunker, ringed, so the lanes drawn on him read as his.
-  if(opts.lanes){
+  // "How they get you" has no you on a watched game, so nothing is ringed there.
+  if(opts.lanes && !(curMatch() || {}).watch){
     const sh = shooterLane("right");
     if(sh && sh.at){ const b = layout.bunkers.find(x => x.id === sh.at); if(b){ const s2 = bunkerSize(b, sx, sy);
       their += `<g class="shooter-ring"><rect x="${(b.x*sx-s2.h-4).toFixed(1)}" y="${(b.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="4" fill="none" stroke="#e0a33a" stroke-width="1.8"/>`
@@ -5390,9 +5396,28 @@ function theirFiveNow(side = "right"){
 function breakLanes(k, their = theirFiveNow()){
   const mine = plantIdsFor(k); if(!mine || !their || !their.ids.length) return null;
   const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine;
-  const onThem = ids.filter(a => their.ids.some(b => laneClear(a, b))).length;
-  const onYou = their.ids.filter(b => ids.some(a => laneClear(a, b))).length;
-  return {onThem, onYou, mine: ids.length, theirs: their.ids.length, basis: their.basis, n: their.n || 0};
+  return lanesBetween(ids, their.ids, their);
+}
+function lanesBetween(ids, theirIds, their = {}){
+  const onThem = ids.filter(a => theirIds.some(b => laneClear(a, b))).length;
+  const onYou = theirIds.filter(b => ids.some(a => laneClear(a, b))).length;
+  return {onThem, onYou, mine: ids.length, theirs: theirIds.length, basis: their.basis || "logged", n: their.n || 0, ids, theirIds};
+}
+/* On a watched game there is no "you" on the field: the lanes are between the
+ * home side's five and the away side's five, both as logged on this point on
+ * Breakouts (right pit) and the left pit's own five, or nothing at all. */
+function watchLanes(){
+  const m = curMatch(); if(!m || !m.watch) return null;
+  const home = theirFiveLogged("left"), away = theirFiveLogged("right");
+  if(!home || !away) return {thin: true, home: !!home, away: !!away};
+  return {...lanesBetween(home.plants, away.plants), thin: false, homeName: m.home || "Home", awayName: m.away || "Away"};
+}
+// The lanes to draw on the Scout field, whoever the two sides are.
+function fieldLanes(){
+  const m = curMatch();
+  if(m && m.watch){ const w = watchLanes(); return w && !w.thin ? w : null; }
+  if(!pitOnSheet("right")) return null;
+  return breakLanes(S.script);
 }
 /* Their shooter, and who of yours has a lane on him. opponentRead() counts
  * which of their men has shot yours most (the "by" on an out), usualMan()
@@ -7976,10 +8001,14 @@ function scout(){
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
           ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
       ${(S.scoutShow||"them")!=="us"?ghostLegend():""}
-      ${S.lanesOn?(()=>{ const l = pitOnSheet("right") || (curMatch()||{}).watch ? breakLanes(S.script) : null;
-        return `${(sh => sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : "")(shooterLane("right"))}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${l
-          ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
-          : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`}</span>`; })():""}
+      ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") ? breakLanes(S.script) : null);
+        const sh = w ? null : shooterLane("right");
+        const words = w
+          ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc((curMatch()||{}).home || "the home side")}'s on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc((curMatch()||{}).away || "the away side")}'s on Breakouts`}`
+                   : `clear lanes off the break · ${w.onThem} of ${esc(w.homeName)}'s ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(w.awayName)}'s ${w.theirs} on ${esc(w.homeName)}`)
+          : l ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
+          : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`;
+        return `${sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : ""}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${words}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
@@ -8731,26 +8760,37 @@ function scoutMatchup(){
         <span style="color:var(--blue)">${"★".repeat(R.threat||0)} ${esc(R.name)}</span>
       </div>
     </div>
-    <p class="lede">Your call is <b>${esc(breakName())}</b>. It puts your five here:</p>
+    ${/* On a watched game there is no "you" on the field: the call panel
+          names the two teams and the left column lists the home side's men,
+          not his own five against a call nobody is running. */""}
+    ${(curMatch()||{}).watch
+      ? `<p class="lede">A game you are watching: <b>${esc(L.named ? L.name : (curMatch().home || "Home"))}</b> v <b>${esc(R.name)}</b>. Your call and your five are not on this field.</p>`
+      : `<p class="lede">Your call is <b>${esc(breakName())}</b>. It puts your five here:</p>
     <div class="facts">
       ${Object.entries(split).map(([k,n])=>`<span class="fact"><b>${n}</b><span>${k}</span></span>`).join("")}
       <span class="fact"><b>${(L.players||[]).length + (R.players||[]).length}</b><span>Players logged</span></span>
-    </div>
+    </div>`}
     <div class="who2">
       ${/* Names where the app has them. The five standing on this point beside
             each job, and the other team's men by number and name — a list of
             numbers and wires asked a coach to forget the names he had logged. */""}
-      <div><h4>Your five · ${esc(breakName())}</h4><ol>
+      ${(curMatch()||{}).watch
+        ? `<div><h4>${esc(L.named ? L.name : (curMatch().home || "Home"))} · logged</h4><ol>
+        ${(L.players||[]).length
+          ? L.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}</li>`).join("")
+          : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the left pit card above.</li>`}
+      </ol></div>`
+        : `<div><h4>Your five · ${esc(breakName())}</h4><ol>
         ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b>${who ? `${esc(who.name)} · ` : ""}${esc(jobName(S.script, p.id, p.label))}</li>`; }).join("")}
-      </ol></div>
+      </ol></div>`}
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
           ? R.players.map(m=>{ const line = manLine("them", m.num ? "#" + m.num : m.name, R.name); return `<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}${line ? `<br><span class="note">${line}</span>` : ""}</li>`; }).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the pit card above.</li>`}
       </ol></div>
     </div>
-    <p class="aid"><b>Counted, not predicted.</b> The wire split is where this break actually plants on
-    ${esc(curLayout().name)}. The bar is the threat you scored the two teams, nothing more.
+    <p class="aid"><b>Counted, not predicted.</b> ${(curMatch()||{}).watch ? "Two teams you are reading, neither of them yours." : `The wire split is where this break actually plants on
+    ${esc(curLayout().name)}.`} The bar is the threat you scored the two teams, nothing more.
     Officials govern the live call.</p>`,
     "This call");
 }
@@ -9014,7 +9054,7 @@ function scoutCounter(){
   const ranked=counterRank(R.tend, state).map(r => ({...r, rec: callRecord(r.key, R.name)}))
     .sort((a,b) => (b.rec.n ? b.rec.won / b.rec.n : -1) - (a.rec.n ? a.rec.won / a.rec.n : -1) || b.rec.n - a.rec.n || b.pct - a.pct || a.aggr - b.aggr);
   const played = ranked.filter(r => r.rec.n).reduce((n, r) => n + r.rec.n, 0);
-  const theirNow = pitOnSheet("right") || (curMatch()||{}).watch ? theirFiveNow() : null;
+  const theirNow = pitOnSheet("right") && !(curMatch()||{}).watch ? theirFiveNow() : null;   // his five against theirs — no "his" on a watched game
   return sec("Counter-picker", `<div class="seg">
       ${["Ahead","Even","Must-score"].map(x=>`<button class="${state===x?"on":""}" onclick="set({matchState:'${x}'})">${x}</button>`).join("")}
     </div>
@@ -9596,7 +9636,8 @@ const HELP = {
          "A man already on another slot swaps with this one — nobody doubles up.",
          "Kept per match and per point, so point three of two games is two different fives."]},
   "more/team": {t:"Team", w:"Your roster, and what you call each bunker.",
-    how:["Add players with their numbers and positions.",
+    how:["Break calls lists your own plays first — rename one there or open it on the field — then the twelve the app ships with, each with your word for it and a switch for the ones you run.",
+         "Add players with their numbers and positions.",
          "Rename any bunker to your team's word for it. It shows everywhere.",
          "Break calls names the twelve your way — what you shout, not what the app calls it.",
          "Turn off the ones you don't run. They stop being offered; nothing you logged is lost.",
@@ -10237,10 +10278,25 @@ function moreBody(k){
       const mine = S.breakCalls || {};
       const n = Object.keys(BREAKS).filter(x => (mine[x] || "").trim()).length;
       const off = Object.keys(BREAKS).filter(x => !runsPlay(x)).length;
-      return sec("Break calls", `<p class="lede">The twelve the app ships with, and what your team shouts
-        for each. Turn off the ones you don't run and they stop being offered when you pick a call —
+      const yours = customPlays();
+      return sec("Break calls", `<p class="lede">Every call you can make: the twelve the app ships with, and what your team shouts
+        for each, then your own plays. Turn off the ones you don't run and they stop being offered when you pick a call —
         on Playbook, on the point sheet, in the drill. Your word replaces the app's everywhere a call
         is printed; leave one blank to keep the app's name.</p>
+      ${/* His own plays lead: they are the calls he actually runs, and a list
+            that showed the twelve and mentioned his in a sentence underneath
+            read as if the app's plays were the real ones and his were not.
+            The name is edited in place — it is the play's name, not a label
+            over one — and Open puts the play on the field. */""}
+      ${yours.length ? `<div class="assigns">${yours.map(pl => `<div class="assign">
+        <span class="tag" style="flex:none">Yours</span>
+        <span class="assign__body">
+          <input id="myp-${esc(pl.k)}" value="${esc(pl.name)}" maxlength="28" onchange="renamePlay(${jsq(pl.k)}, this.value)"
+            aria-label="The name of your play ${esc(pl.name)}"/>
+          <span class="assign__who">${(() => { const where = Object.keys(pl.plants || {}).filter(l => LAYOUTS[l]).map(l => LAYOUTS[l].name); return where.length ? `five set on ${esc(where.join(", "))}` : "no five set yet"; })()}</span></span>
+        <button class="btn btn--quiet" onclick="set({script:${jsq(pl.k)},tab:'playbook',more:null,t:1,playing:false})">Open</button>
+      </div>`).join("")}</div>` : `<p class="note">No plays of your own yet — <b>+ Yours</b> under the field on Playbook writes one: name it, tap the bunker each man plants on, done.</p>`}
+      <h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">The twelve</h4>
       <div class="assigns">${Object.keys(BREAKS).map(x => `<div class="assign">
         <button class="tgl ${runsPlay(x) ? "on" : ""}" onclick="toggleRun('${x}')"
           aria-pressed="${runsPlay(x)}"
@@ -10262,9 +10318,8 @@ function moreBody(k){
         as the break itself, so renaming one re-labels your whole season at once and loses nothing.</p>
       <p class="note">The five jobs inside a call are named on Playbook: pick the call, then tap
         <b>Job</b> on the man's row.</p>
-      ${customPlays().length ? `<p class="note">Your own plays already carry the name you gave them —
-        ${esc(customPlays().map(x => x.name).join(", "))}. Rename one on Playbook, where it was written.</p>` : ""}`,
-        off ? `${12 - off} of twelve` : n ? n + " renamed" : "Twelve calls");
+`,
+        `${yours.length ? `${yours.length} of yours · ` : ""}${off ? `${12 - off} of twelve` : n ? n + " renamed" : "twelve"}`);
     })();
   }
   if(k==="movement"){
