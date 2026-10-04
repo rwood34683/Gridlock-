@@ -1116,6 +1116,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   either did. `squadHas()` folds case and spacing; Team refuses the duplicate
   on add and on rename and says so, and a name is capped at 32 characters so
   it fits a card.
+- Let two calls share a name. A play saved as "Snake Stack", a play renamed
+  onto another, or a built-in renamed onto his play is one button twice in
+  every picker and one word shouted for two breaks. `callTaken(name, except)`
+  folds case and spacing like `squadHas()`; `savePlay`, `renamePlay` and
+  `setBreakCall` all refuse through it and say so on screen, and the builder's
+  Save button reads "Already a call" before the tap.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
