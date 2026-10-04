@@ -1153,6 +1153,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `submitForm()` folds the name per class code like `squadHas()`: a second
   sign-in updates what he filled in, a box left blank keeps the first, and
   the thank-you says it was an update.
+- Write their #7 down twice. Their men are read by number — "#7" is the key
+  every sighting, shot and breakout of theirs is counted under — so a second
+  #7 in the pit split one man's read in two. `pitDup()` finds the man an
+  entry means (the number, or the folded name when neither has one);
+  `addScoutPlayer` fills the first entry in from the second and says so, and
+  `editScoutPlayer` refuses to move a number onto another man's.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

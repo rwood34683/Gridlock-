@@ -5736,13 +5736,34 @@ window.addScoutPlayer = side => {
   const g = id => (document.getElementById(id) || {}).value || "";
   const num = g("sp-num-" + side).trim(), name = clean(g("sp-name-" + side).trim());
   if(!num && !name) return;                       // a number alone is a real entry
-  editProfile(side, {players: [...pitOf(side).players, {
-    num, name, wire: g("sp-wire-" + side), note: clean(g("sp-note-" + side).trim()), threat: 3,
-  }]});
+  const row = {num, name, wire: g("sp-wire-" + side), note: clean(g("sp-note-" + side).trim()), threat: 3};
+  // Their men are read by number — "#7" is the key every sighting, shot and
+  // breakout of theirs is counted under — so a second #7 is the same man
+  // written down again, and two rows would split his read. The second entry
+  // fills in what the first lacked; a name typed again replaces the old one.
+  const at = pitDup(side, num, name);
+  if(at >= 0){
+    const was = pitOf(side).players[at], merged = {...was};
+    for(const k of ["wire", "note"]) if(row[k]) merged[k] = row[k];
+    if(row.name && foldName(row.name) !== foldName(merged.name)) merged.name = row.name;   // the same name retyped keeps its first spelling
+    if(!merged.num && num) merged.num = num;
+    editProfile(side, {players: pitOf(side).players.map((p, k) => k === at ? merged : p)});
+    flash(`${pitManTag(was)} was already in the pit — updated.`); return;
+  }
+  editProfile(side, {players: [...pitOf(side).players, row]});
   render();
 };
+// The man already in the pit this entry means: the same number, or, with no
+// number on either, the same name folded on case and spacing.
+function pitDup(side, num, name, except){
+  return pitOf(side).players.findIndex((p, k) => k !== except && (num ? String(p.num || "").trim() === num : !p.num && name && foldName(p.name) === foldName(name)));
+}
+const pitManTag = p => p.num ? `#${p.num}${p.name ? " " + p.name : ""}` : p.name;
 window.editScoutPlayer = (side, i, field, value) => {
-  const players = pitOf(side).players.map((p, k) => k === i ? {...p, [field]: clean(String(value).trim())} : p);
+  const v = clean(String(value).trim());
+  // A number moved onto another man's is refused: two #7s is one read split in two.
+  if(field === "num" && v && pitDup(side, v, "", i) >= 0){ flash(`#${v} is already ${pitManTag(pitOf(side).players[pitDup(side, v, "", i)])}.`); return; }
+  const players = pitOf(side).players.map((p, k) => k === i ? {...p, [field]: v} : p);
   editProfile(side, {players});
 };
 /* Where you have seen one of their men set up.
