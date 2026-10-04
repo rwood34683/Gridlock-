@@ -1428,6 +1428,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   all back onto a phone that had lost its storage — the read ticked before
   the phone wiped came back ticked. The launch block is one function,
   `clearScratch()`, and the restore runs it too.
+- Count a phone number by its spelling. A blast reached one phone once only
+  when two rows typed it the same way; "555-0100", "(555) 0100" and "+1 555
+  0100" were three texts to one parent. `contactKey()` is the one door: a
+  number is its digits with a leading country 1 dropped, an email its
+  lower-case self.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

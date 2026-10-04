@@ -5048,6 +5048,13 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a blast reaches one phone once however the number was typed", await ev(() => {
+    const g = { id: "g-phones", name: "Phones", members: [
+      { name: "A", phone: "555-010-0100" }, { name: "B", phone: "(555) 010 0100" }, { name: "C", phone: "+1 555 010 0100" },
+      { name: "D", phone: "15550100100" }, { name: "E", email: "Mom@Example.com" }, { name: "F", email: " mom@example.com " }, { name: "G", phone: "555-010-0101" }] };
+    const r = reachable(g).map(m => m.name);
+    return JSON.stringify(r) === JSON.stringify(["A", "E", "G"]) && contactKey("+1 (555) 010-0100") === "5550100100" && contactKey("Mom@X.com") === "mom@x.com" && contactKey("") === "";
+  }));
   check("the scratch a relaunch clears is one list, and a durable restore runs it too", await ev(() => {
     window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half" });
     clearScratch();
