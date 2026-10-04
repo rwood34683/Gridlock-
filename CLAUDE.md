@@ -941,6 +941,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   guarded one of those doors. A scripted match that kept calling it scored a
   race to four 6–0. The handler refuses on `matchOver()` now, and Back a point
   is the one way a finished sheet takes another result.
+- Size a folded pit line off the viewport. "RIGHT PIT · WHO YOU PLAY" and the
+  name shared one row by a phone media query, so an iPad in portrait and two
+  pits sharing a wide column both cut the name to "Housto…". `.pitline` is its
+  own container now: under 520 px of its own width the label takes a row,
+  under 360 the read drops under the name, and the name has no basis of its
+  own so it ellipsizes before anything wraps. The probe reads the name's
+  scroll width on five tablet sizes and three phones.
 - Open an empty left pit on every Scout sub-tab. The left pit is optional, and
   unnamed it rendered as a full card with a twenty-row picker above the counter,
   the games and the layers. Off Matchup an empty left pit folds to one line
