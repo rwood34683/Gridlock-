@@ -385,7 +385,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     and Playbook's call panel, with one tap to call it; thin data says it is
     thin. `likelyPlants()` draws a dashed, counted ghost of where they plant
     most on the Scout field until the real five is tapped in. Counts with the
-    sample on every line, never a model or odds.
+    sample on every line, never a model or odds. Counter leads with the same
+    read — "Rejects's Blitz — 4 of 4 when behind" — and ranks your calls by
+    what each won on the points they ran that call (`recordVsCall()`), the
+    film tendency standing in only until three are logged.
 36. ~~The read, sharper.~~ Done — three moments a coach knows are their own
     were missing from the buckets: the **first point** of a sheet (a scripted
     opener), the point **after a timeout** (`timeoutOn`), and **match point**

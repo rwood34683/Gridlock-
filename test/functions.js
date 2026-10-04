@@ -4766,6 +4766,25 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return said && noPb && noSheet && refused && sent;
   }));
+  check("Counter leads with the counted read, not the film tendency, and ranks your calls by what they won on the points they ran it", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects", tend: "Snake" }, left: { name: "" } });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    const bl = curLayout().bunkers, ids = [3, 9, 14, 20, 30].map(i => bl[i].id);
+    // four points: they run Blitz every time; you run Snake Stack twice and win both, Hold twice and lose both
+    [["snake", "us"], ["hold", "them"], ["snake", "us"], ["hold", "them"]].forEach(([mine, won]) => {
+      window.set({ theirPick: ids }); window.logTheirBreak("right", "blitz", ids);
+      window.set({ script: mine }); window.logCall(); window.endPoint(won);
+    });
+    window.set({ tab: "scout", scoutTab: "counter" });
+    const t = document.getElementById("root").innerText;
+    const lede = /Rejects's Blitz — 4 of 4 /.test(t) && !/likely Snake break/.test(t) && /Film read: Snake/.test(t);
+    const rows = [...document.querySelectorAll(".rank__row")].map(r => r.textContent.replace(/\s+/g, " ").trim());
+    const first = /Snake Stack/.test(rows[0]) && /won 2 of 2 vs Blitz/.test(rows[0]);
+    const hold = rows.find(r => /Hold/.test(r)); const holdOk = !!hold && /won 0 of 2 vs Blitz/.test(hold);
+    window.set({ tab: "tally" }); window.newMatch();
+    return lede && first && holdOk;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
