@@ -1366,6 +1366,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   card read "#-5" until it was handed over. `jerseyNum()` is the one door: a
   whole number from 0 to 999, else refused and said, on the add row and in
   place — a blank still takes the first free number.
+- Redraw the screen to take a message down. `flash()` cleared itself with a
+  full `render()` four seconds on, and a coach who tapped Add with the box
+  empty, read the message and started typing had his words wiped, because
+  nothing is committed until `onchange`. The timeout takes the one element
+  off the page and leaves everything else where his thumb left it.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

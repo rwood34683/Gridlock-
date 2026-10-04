@@ -11595,7 +11595,11 @@ window.flash = msg => {
   S.flash = String(msg || "");
   save(S); render();
   clearTimeout(_flashT);
-  _flashT = setTimeout(() => { if(S.flash){ S.flash = ""; render(); } }, 3600);
+  // The message goes away on its own, but not by redrawing the screen: a
+  // coach who tapped Add with the box empty, read "Type the note first." and
+  // started typing had his words wiped four seconds later, because nothing
+  // is committed until onchange. The one element is taken off the page.
+  _flashT = setTimeout(() => { if(S.flash){ S.flash = ""; save(S); document.querySelectorAll(".flash").forEach(el => el.remove()); } }, 3600);
 };
 window.cycleEvent = () => {
   const keys=Object.keys(LAYOUTS);

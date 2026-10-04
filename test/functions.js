@@ -5010,6 +5010,18 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("a jersey number is 0 to 999: a minus or a fourth digit is refused and said, on the add row and in place", jersey === true, jersey);
+  check("a message that goes away on its own does not redraw the screen under a man typing", await ev(async () => {
+    window.set({ tab: "more", more: "messages" });
+    const box = document.getElementById("md"); if(!box) return "no box";
+    window.sendMsg();   // empty: "Type the note first."
+    const said = !!document.querySelector(".flash");
+    const box2 = document.getElementById("md"); box2.value = "Pit gate opens at eight";
+    await new Promise(r => setTimeout(r, 3900));
+    const gone = !document.querySelector(".flash") && !S.flash;
+    const kept = document.getElementById("md") === box2 && box2.value === "Pit gate opens at eight";
+    box2.value = ""; window.set({ tab: "tally" });
+    return said && gone && kept;
+  }));
   check("one man cannot use one word for two bunkers on a field", await ev(() => {
     const was = S.playerCalls, bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "Probe Man";
     window.set({ flash: "" });
