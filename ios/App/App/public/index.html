@@ -5255,6 +5255,10 @@ const esc = v => String(v==null?"":v).replace(/[&<>"]/g, c => ({"&":"&amp;","<":
 // escaping alone turns O'Brien into a broken call, and entities/backslashes can
 // become executable syntax when the browser decodes the attribute.
 const jsq = v => esc(JSON.stringify(String(v == null ? "" : v)));
+// Return in a one-line box beside an Add or Keep button is the tap on that
+// button. The phone keyboard's blue key did nothing on seven of these and a
+// coach typed the team's name, hit it, and read the box still full.
+const onEnter = call => `onkeydown="if(event.key==='Enter'){event.preventDefault();${esc(call)}}"`;
 
 // A section is an eyebrow and a rule. Cards are for things that are
 // actually objects — a pit, a class, a group — not for every block.
@@ -6012,7 +6016,7 @@ function playBuilder(){
       The app draws the runs and works out who leaves on the buzzer.</p>
     <div class="fld"><label for="pl-name">What you call it</label>
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
-        onchange="setPlayField('name', this.value)"/></div>
+        onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
     <div class="field-wrap" id="build-map">${fieldSVG({static:true, pick:true, noPaths:true, names:true,
       overlay: fiveSquares(five, 2, 2, "#e5342f")})}</div>
     <div class="assigns">${[1,2,3,4,5].map(n => `<div class="assign">
@@ -8274,13 +8278,13 @@ function pit(side,T,label){
              or log them one at a time as you see them.</p>`
         : ""}
       <div class="rost__add">
-        <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric"/>
-        <input id="sp-name-${side}" placeholder="Name (optional)"/>
+        <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
+        <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <div class="rost__ps">
           <label><span class="note">Wire</span>
             <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option>${w}</option>`).join("")}</select></label>
           <label><span class="note">Read</span>
-            <input id="sp-note-${side}" placeholder="snake runner"/></label>
+            <input id="sp-note-${side}" placeholder="snake runner" ${onEnter(`addScoutPlayer('${side}')`)}/></label>
         </div>
       </div>
       <div class="toggles">
@@ -8775,7 +8779,7 @@ function scoutBoard(){
       list and they behave like any other team — you can scout them, log their five and their calls.</p>
     <div class="who2">
       <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Team name</span>
-        <input id="newTeam" placeholder="Add to ${esc(div.name)}"/></label>
+        <input id="newTeam" placeholder="Add to ${esc(div.name)}" ${onEnter("addTeam()")}/></label>
       <div style="display:flex;flex-direction:column;gap:4px"><span class="note" aria-hidden="true">&nbsp;</span>
         <button class="btn" onclick="addTeam()">Add team</button></div>
     </div>
@@ -9057,7 +9061,7 @@ function leaguePage(){
   return `${tip("lg","Groups for event ops. Only message people who agreed to league updates.")}
 
   ${sec("Groups", `<div class="btnrow">
-      <input id="ng" placeholder="New group name" class="grow"/>
+      <input id="ng" placeholder="New group name" class="grow" ${onEnter("addGroup()")}/>
       <button class="btn" onclick="addGroup()">Add</button>
     </div>
     ${S.groups.map(g=>`<div class="panel">
@@ -9331,6 +9335,7 @@ const HELP = {
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
@@ -9880,11 +9885,11 @@ function moreBody(k){
         :`<div class="empty">No players yet. Add your five — their names then show up on Playbook,
           Tally, Movement and Assess.</div>`}
       <div class="rost__add">
-        <input id="rNum" class="rost__num" placeholder="#" inputmode="numeric"/>
-        <input id="rName" placeholder="Name" maxlength="32"/>
+        <input id="rNum" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter("addPlayer()")}/>
+        <input id="rName" placeholder="Name" maxlength="32" ${onEnter("addPlayer()")}/>
         <div class="rost__ps">
-          <label><span class="note">Primary</span><input id="rP" placeholder="snake MW"/></label>
-          <label><span class="note">Secondary</span><input id="rS" placeholder="GP"/></label>
+          <label><span class="note">Primary</span><input id="rP" placeholder="snake MW" ${onEnter("addPlayer()")}/></label>
+          <label><span class="note">Secondary</span><input id="rS" placeholder="GP" ${onEnter("addPlayer()")}/></label>
         </div>
       </div>
       <button class="btn btn--block" onclick="addPlayer()">Add player</button>`;
@@ -10101,9 +10106,9 @@ function moreBody(k){
         :`<div class="empty">No code words yet.</div>`}
       <div class="who2">
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Word</span>
-          <input id="cdWord" placeholder="Buzzer"/></label>
+          <input id="cdWord" placeholder="Buzzer" ${onEnter("addCode()")}/></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Means</span>
-          <input id="cdMeans" placeholder="Go on the horn"/></label>
+          <input id="cdMeans" placeholder="Go on the horn" ${onEnter("addCode()")}/></label>
       </div>
       <button class="btn btn--block" onclick="addCode()">Add code word</button>`,
       codes.length?codes.length+(codes.length===1?" word":" words"):layoutName)
@@ -10136,7 +10141,7 @@ function moreBody(k){
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
-    + `<div class="btnrow"><input id="md" placeholder="Note for the squad" class="grow"/>
+    + `<div class="btnrow"><input id="md" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
        <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();

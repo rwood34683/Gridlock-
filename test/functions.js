@@ -5170,6 +5170,28 @@ const ROSTER = [
     S.roster = keep; window.set({ flash: "" });
     return taken && free && said;
   }));
+  const enterAdds = await ev(() => {
+    window.confirm = () => true;
+    const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, players: pitOf("right").players };
+    const enter = id => { const el = document.getElementById(id); if (!el) return false; el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); return true; };
+    const type = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; return !!el; };
+    const flags = {};
+    window.set({ tab: "scout", scoutTab: "board", right: { name: "Dynasty" } });
+    const nTeams = teamsHere().length; type("newTeam", "Return Test Team"); enter("newTeam"); flags.team = teamsHere().length === nTeams + 1;
+    window.set({ scoutTab: "matchup" });   // the pit's add row is on the Matchup card
+    const nMen = pitOf("right").players.length; type("sp-num-right", "77"); type("sp-name-right", "Return Man"); enter("sp-name-right"); flags.pit = pitOf("right").players.length === nMen + 1;
+    window.set({ tab: "more", more: "league" });
+    const nG = (S.groups || []).length; type("ng", "Return Group"); enter("ng"); flags.group = (S.groups || []).length === nG + 1;
+    window.set({ more: "team" });
+    const nR = (S.roster || []).length; type("rName", "Return Player"); type("rNum", "88"); enter("rNum"); flags.roster = (S.roster || []).length === nR + 1;
+    window.set({ more: "codes" });
+    const nC = (S.codes || []).length; type("cdWord", "Returnword"); type("cdMeans", "go"); enter("cdMeans"); flags.code = (S.codes || []).length === nC + 1;
+    window.set({ more: "messages" });
+    const nM = (S.messages || []).length; type("md", "Return note"); enter("md"); flags.message = (S.messages || []).length === nM + 1;
+    editProfile("right", { players: keep.players }); Object.assign(S, { teams: keep.teams, groups: keep.groups, roster: keep.roster, codes: keep.codes, messages: keep.messages }); window.set({ flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Return in a one-line box beside an Add or Keep button is the tap on that button: team, pit man, group, player, code word, message", enterAdds === true, enterAdds);
   const teamFix = await ev(() => {
     window.confirm = () => true;
     const keep = { teams: S.teams, scout: S.scout, matches: S.matches, tally: S.tally, breakouts: S.breakouts, calls: S.calls, sightings: S.arrivalSightings };
