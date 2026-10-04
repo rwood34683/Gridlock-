@@ -36,6 +36,8 @@ const { launchOptions } = require("../scripts/browser.js");
     // Voice log is one of the occasional sub-tabs under "More" now.
     await page.getByRole("button", {name:/^More/,exact:false}).first().click();
     await page.getByRole("button", {name:"Voice log",exact:true}).click();
+    // A voice event belongs to a team: the log refuses with nobody in the pit.
+    await page.evaluate(() => window.set({ right: { name: "Offline Opponent" } }));
     await page.locator("#voice-manual").fill("Number seven is out");
     await page.getByRole("button", {name:"Record text",exact:true}).click();
     assert.equal(await page.locator("[data-voice-id]").count(), 1, "Voice parser and typed fallback work from the cached shell offline");

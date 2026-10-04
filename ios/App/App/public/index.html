@@ -8009,7 +8009,9 @@ window.saveArrivalPlayer = () => {
   const name = field("arrival-custom-name","name"), num = field("arrival-custom-number","number");
   if(!name && !num) return arrivalCustomError("Enter a player name or jersey number.");
   if(name.length > 80 || num.length > 30) return arrivalCustomError("Use up to 80 characters for the name and 30 for the number.");
-  const context = arrivalContext(), profile = profileOf(context.team), players = [...(profile.players || [])];
+  const context = arrivalContext();
+  if(!context.named) return arrivalCustomError("Nobody is in the pit yet. Add the team, or pick them on Matchup, before their man.");
+  const profile = profileOf(context.team), players = [...(profile.players || [])];
   let index = num ? players.findIndex(p=>arrivalCompare(p.num) === arrivalCompare(num))
     : players.findIndex(p=>name && arrivalCompare(p.name) === arrivalCompare(name));
   // Completing a previously unnamed/unnumbered player keeps their sightings.
@@ -8072,9 +8074,30 @@ function arrivalPlayerKey(player){
 }
 function arrivalContext(){
   const a = S.arrival || {}, side = a.side === "left" ? "left" : "right";
-  const pit = pitOf(side), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
-  return {side, team, player:a.player || "number:1", layout:S.layoutKey,
+  const pit = pitOf(side), named = !!(a.team || pit.named), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
+  return {side, team, named, player:a.player || "number:1", layout:S.layoutKey,
           m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : S.point || 1};
+}
+/* A sighting belongs to a team and to a sheet on this field. With nobody in
+ * the pit and no team picked, the row used to be stamped against a team called
+ * "Unidentified opponent" — a name the coach never typed, which then sat in
+ * his team list for good. And the match it is stamped with is the open sheet,
+ * which may be on another field: a man seen on Tampa was written into a Lone
+ * Star match. Both refuse here and say what to do; nothing is disabled. */
+function arrivalRefusal(context = arrivalContext()){
+  if(!context.named) return `Nobody is in the ${context.side} pit yet. A sighting belongs to a team, so name them first.`;
+  const m = (S.matches || []).find(x => x && x.id === context.m);
+  if(m && m.layout && LAYOUTS[m.layout] && m.layout !== S.layoutKey)
+    return `That sheet is on ${LAYOUTS[m.layout].name}, not the field on screen. Pick a match played here under Pit, match & starting end, or change the event back.`;
+  return "";
+}
+function arrivalGate(context){
+  const why = arrivalRefusal(context); if(!why) return "";
+  const m = (S.matches || []).find(x => x && x.id === context.m), off = context.named && m ? m.layout : "";
+  return `<div class="warn"><b>${esc(why)}</b>
+    <div class="btnrow" style="margin-top:var(--s3)">${off
+      ? `<button class="btn grow" onclick="pickEvent(${jsq(off)})">Back to ${esc(LAYOUTS[off].name)}</button><button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>`
+      : `<button class="btn grow" onclick="set({scoutTab:'matchup'})">Pick them on Matchup</button>`}</div></div>`;
 }
 function arrivalSightings(context = arrivalContext()){
   return (S.arrivalSightings || []).filter(o => o.team === context.team && o.player === context.player
@@ -8303,10 +8326,12 @@ window.logArrivalSighting = () => {
       notice:"The field or point context changed. Choose a bunker again before recording a sighting."};
     save(S); render(); return;
   }
+  const context = arrivalContext(), why = arrivalRefusal(context);
+  if(why){ S.arrival = {...a,notice:why}; render(); return; }
   if(!curLayout().bunkers.some(b=>b.id===id)){
     S.arrival = {...a,notice:"Choose a bunker before recording a sighting."}; render(); return;
   }
-  const context = arrivalContext(), rows = arrivalSightings(context), at = Date.now();
+  const rows = arrivalSightings(context), at = Date.now();
   if(rows.length && rows[rows.length-1].bunker === id){
     S.arrival = {...a,notice:"That is already the latest sighting. Choose the next bunker they moved to."}; render(); return;
   }
@@ -8334,11 +8359,13 @@ window.logArrivalShot = () => {
       notice:"The field or point context changed. Choose the bunkers again before recording a shot."};
     save(S); render(); return;
   }
+  const context = arrivalContext(), why = arrivalRefusal(context);
+  if(why){ S.arrival = {...a,notice:why}; render(); return; }
   const has = id => curLayout().bunkers.some(b=>b.id===id);
   if(!has(from)){ S.arrival = {...a,notice:"Choose the bunker they were shooting from first — the sighting above."}; render(); return; }
   if(!has(to)){ S.arrival = {...a,notice:"Choose the bunker they were shooting at."}; render(); return; }
   if(from === to){ S.arrival = {...a,notice:"A man does not shoot the bunker he is in. Choose where the paint was going."}; render(); return; }
-  const context = arrivalContext(), shots = arrivalShots(context), last = shots[shots.length-1], at = Date.now();
+  const shots = arrivalShots(context), last = shots[shots.length-1], at = Date.now();
   if(last && last.from === from && last.to === to){
     S.arrival = {...a,notice:"That lane is already the latest shot recorded. Choose a different one, or move him first."}; render(); return;
   }
@@ -8464,8 +8491,9 @@ function scoutArrival(){
   const bunkerOptions = selected => curLayout().bunkers.map(b=>`<option value="${esc(b.id)}"${selected===b.id?' selected':''}>${esc(label(b.id))}</option>`).join("");
   const pick = a.pick === "sighting" ? "sighting" : "destination";
   return sec("How did they get there?",`<p class="lede">Choose an opponent and the bunker they reached. Add the places you actually saw them, in order, to narrow the possible routes.</p>
+    ${arrivalGate(c)}
     <div class="arrival-grid">
-      <div class="fld"><label for="arrival-team">Opponent team</label><select id="arrival-team" onchange="setArrival({team:this.value})">${teams.map(t=>`<option${t===c.team?' selected':''}>${esc(t)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('team')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='team')}">Add team</button></div>
+      <div class="fld"><label for="arrival-team">Opponent team</label><select id="arrival-team" onchange="setArrival({team:this.value})">${teams.map(t=>`<option value="${esc(t===c.team && !c.named ? "" : t)}"${t===c.team?' selected':''}>${esc(t===c.team && !c.named ? "Nobody in the pit yet" : t)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('team')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='team')}">Add team</button></div>
       ${arrivalCustomForm("team")}
       <div class="fld"><label for="arrival-player">Opponent player</label><select id="arrival-player" onchange="setArrival({player:this.value})">${[...players].map(([key,name])=>`<option value="${esc(key)}"${key===c.player?' selected':''}>${esc(name)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('player')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='player')}">Add player</button></div>
       <div class="fld"><label for="arrival-number">Or enter their number</label><input id="arrival-number" inputmode="numeric" maxlength="30" value="${esc(c.player.startsWith('number:')?c.player.slice(7):'')}" placeholder="Number is enough" onchange="setArrivalNumber(this.value)"/></div>
