@@ -5309,6 +5309,30 @@ const ROSTER = [
     window.set({ tab: "tally", right: keepR && keepR.name ? keepR : { name: "Dynasty" }, flash: "" }); window.newMatch(); window.setRaceTo(0);
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("a sheet with only their five on it, or only a score, is kept and New match asks first", await ev(() => {
+    let asked = 0; window.confirm = () => { asked++; return true; };
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const first = S.matchId, bl = curLayout().bunkers;
+    window.logTheirBreak("right", "", bl.slice(0, 5).map(b => b.id));   // their five, nothing of his
+    const sized = sheetSize(curMatch()) === 1 && !sheetEmpty(curMatch());
+    asked = 0; window.newMatch();
+    const keptFive = asked === 1 && (S.matches || []).some(m => m.id === first) && S.matchId !== first
+      && theirBreaks("right").some(b => b.m === first && Array.isArray(b.plants));
+    const second = S.matchId;
+    window.endPoint("us");                                              // a score and nothing else
+    asked = 0; window.newMatch();
+    const keptScore = asked === 1 && (S.matches || []).some(m => m.id === second) && S.matchId !== second;
+    const third = S.matchId;
+    asked = 0; window.newMatch();                                        // truly blank: replaced, nothing asked
+    const replaced = asked === 0 && !(S.matches || []).some(m => m.id === third);
+    window.endPoint("them");                                             // the Schedule asks the same question
+    const g = allGames()[0]; asked = 0; if(g) window.playGame(g.id, "home");
+    const schedAsks = !g || (asked === 1 && matchVs() === boardTeam(g.h));
+    const flags = { sized, keptFive, keptScore, replaced, schedAsks };
+    editProfile("right", { breaks: theirBreaks("right").filter(b => b.m !== first) });
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

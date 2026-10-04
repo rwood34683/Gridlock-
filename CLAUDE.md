@@ -1497,6 +1497,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the quick log did not, and none of the three is the door. `nextPoint()`
   refuses through `needOpponent()` and `sheetOver()` the way `endPoint()`
   does, or a race to four walked on to point 7 with nothing said.
+- Read a sheet as blank by his rows alone. `openSheet` replaced a sheet with
+  only their five charted on it, so the break rows kept a match id with no
+  sheet behind them, and New match closed a sheet he had only scored without
+  asking. `sheetSize(m)` counts his rows, the results and their breaks, and
+  `sheetEmpty()` is that reading zero; `gameGuard()` is the one question New
+  match, Watch this game and We play all ask through it.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
