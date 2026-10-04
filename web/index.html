@@ -3482,6 +3482,8 @@ window.resetPath = id => {
 };
 window.resetAllPaths = () => {
   const all = {...(S.pathEdits || {})};
+  const edited = currentPaths().filter(p => all[pathKey(p.id)]).length;
+  if(edited && !confirm(`Put ${edited === 1 ? "the one path you drew" : `all ${edited} paths you drew`} back on the routed line?`)) return;
   currentPaths().forEach(p => delete all[pathKey(p.id)]);
   S.pathEdits = all; pathsChanged(); save(S); render();
 };
@@ -3666,7 +3668,9 @@ window.addWalk = () => {
   save(S); render();
 };
 window.delWalk = i => {
-  const list = [...walkNotes()]; list.splice(i, 1);
+  const list = [...walkNotes()], was = list[i];
+  if(was && !confirm(`Take this note off ${was.where || "the field"}? It is not kept anywhere else.`)) return;
+  list.splice(i, 1);
   S.walk = {...(S.walk || {}), [S.layoutKey]: list}; save(S); render();
 };
 // The Walk field: tap the bunker the note is about and the Where box follows.
@@ -3748,7 +3752,9 @@ window.editCode = (i, field, value) => {
   list[i][field] = v; save(S);           // no redraw: see editPlayer
 };
 window.delCode = i => {
-  const list = [...(S.codes || [])]; list.splice(i, 1);
+  const list = [...(S.codes || [])], was = list[i];
+  if(was && !confirm(`Take "${was.word || was.code || "this word"}" out of the codes?`)) return;
+  list.splice(i, 1);
   S.codes = list; save(S); render();
 };
 
@@ -9463,6 +9469,7 @@ window.delClass = code => {
   save(S); render();
 };
 window.dropResponse = (code, name) => {
+  if(!confirm(`Take ${name} off this sheet? What they wrote on signing in goes with them.`)) return;
   S.responses = (S.responses || []).filter(r => !(r && r.code === code && r.name === name));
   save(S); render();
 };
@@ -9618,6 +9625,8 @@ window.addMem = id => {
   S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name:clean(name).slice(0, 40),phone}]}:g); save(S); render();
 };
 window.delMem = (id,i) => {
+  const g = (S.groups || []).find(x => x.id === id), was = g && g.members[i];
+  if(was && !confirm(`Take ${was.name || "this member"} off ${g.name}? Their number is not kept anywhere else.`)) return;
   S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g); save(S); render();
 };
 // Text the app hands over — a card, a class link, a blast. The phone app has
@@ -10763,7 +10772,11 @@ function moreBody(k){
     <p class="note">A copy never carries your staff password. Sign in again on the new phone.</p>`);
   return "";
 }
-window.delMsg = i => { S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render(); };
+window.delMsg = i => {
+  const was = (S.messages || [])[i];
+  if(was !== undefined && !confirm(`Take this note off the squad list? It is not kept anywhere else.`)) return;
+  S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render();
+};
 window.sendMsg = () => {
   const el=document.getElementById("md"); const v=(el.value||"").trim();
   if(!v){ flash("Type the note first."); return; }
@@ -10981,7 +10994,13 @@ window.wbTool  = t => set({wb: {...wbState(), tool: t}});
 window.wbColor = c => set({wb: {...wbState(), color: c, tool: "pen"}});
 window.wbField = on => set({wb: {...wbState(), field: !!on}});
 window.wbUndo  = () => set({wb: withWbMarks(wbMarks().slice(0, -1))});
-window.wbWipe  = () => set({wb: withWbMarks([])});
+// Wipe takes every mark on this field's board, and Undo cannot bring them
+// back, so it asks first the way every other delete in here does.
+window.wbWipe  = () => {
+  const n = wbMarks().length; if(!n) return;
+  if(!confirm(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`)) return;
+  set({wb: withWbMarks([])});
+};
 // One delegated listener, so it survives every repaint. Only live on the board.
 (function whiteboardDraw(){
   let draft = null, erasing = false;

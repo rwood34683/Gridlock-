@@ -1469,6 +1469,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the first row lands (`adoptTeamOnLog`), the way the right pit does. And
   `renameTeam` follows into `S.arrival.team` and `S.voice.team`, because a
   pick left under the old spelling split the season the rename had joined.
+- Take typed content off at a tap. The whiteboard's Wipe took every mark on
+  the field with no Undo behind it; Remove on a walk note, a squad note, a
+  code word, a league member and a class sign-in, and Reset every path, all
+  went the same way. Each asks first and names what goes — the note's spot,
+  the word, the member, the man who signed — because none of it is kept
+  anywhere else. Undo on a tally row or a penalty stays one tap: those are
+  one tap to put back.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
