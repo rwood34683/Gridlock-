@@ -979,7 +979,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   More › Lineups was headed "… · SNAKE …". The section is its own span that
   never shrinks (`.ctx__sec`); the event and the call are what give way. The
   call stays on the line everywhere, because what we are calling is read from
-  any tab.
+  any tab — and it has its own span (`.ctx__call`): with event and call in
+  one span ellipsized at its end, a 28-letter play left "NXL LONE STAR OPEN ·
+  GARLAN…" and no call at all on a 320 px phone. The event gives way first,
+  down to a stub ("NXL…"), because the call is read between points and the
+  event changes twice a season.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of
@@ -1159,7 +1163,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   (`setMatchNote`, forty characters), so Sunday's quarter is not "vs Dynasty ·
   Oct 3" three times over — and `matchLabel()` numbers a second sheet against
   the same team on the same day ("· game 2") on its own, because four
-  one-point 5-man sheets read identically otherwise.
+  one-point 5-man sheets read identically otherwise. `gameNth(m)` is the one
+  door, and it reads the whole match row — the kept list, the Scout game chips
+  and the schedule row's "you played" line all go through it, the chips with
+  `matchById(g.id)` because the game list carries ids and dates, not rows. A
+  check that reads the whole screen for "game 2" proves nothing on Scout:
+  the match strip above the chips carries the same label, so read the chips.
 - Log where their man was and never ask where he went. Every sighting on
   How did they get there is a place, and the next sighting of the same man
   on the same point is a move; the pairs were never counted. `theirMoves()`

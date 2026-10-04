@@ -3958,9 +3958,35 @@ const ROSTER = [
     const line = document.querySelector(".ctx__line"), sec = line.querySelector(".ctx__sec"), ev = line.querySelector(".ctx__ev");
     const lr = line.getBoundingClientRect(), sr = sec.getBoundingClientRect();
     const onScreen = sr.right <= lr.right + 1 && sr.width > 20;
-    const all = /Lineups/.test(sec.textContent) && ev.textContent.includes(curLayout().name) && ev.textContent.includes(breakName());
+    const all = /Lineups/.test(sec.textContent) && ev.textContent.includes(curLayout().name) && line.querySelector(".ctx__call").textContent.includes(breakName());
     window.set({ tab: "playbook", more: null });
     return onScreen && all && !document.querySelector(".ctx__sec");
+  }));
+  check("the header line keeps the call on screen before the event: a 28-letter play reads, the event becomes a stub", await ev(() => {
+    // One span for event and call, ellipsized at its end, lost the whole call
+    // to a long play name on a phone — and the call is what is read between points.
+    window.confirm = () => true;
+    const was = S.script, had = customPlays().map(p => p.k);
+    window.newPlay(); window.setPlayField("name", "Rocket Ship Double Stack Lft");
+    curLayout().bunkers.slice(0, 5).forEach(b => window.playPick(b.id)); window.savePlay();
+    const k = S.script;
+    // Squeeze the header to a 320 px phone's line whatever this window is.
+    const ctx = document.querySelector(".ctx"); ctx.style.width = "288px";
+    const call = document.querySelector(".ctx__call"), ev = document.querySelector(".ctx__ev");
+    const callW = call.getBoundingClientRect().width, evW = ev.getBoundingClientRect().width;
+    const cut = ev.scrollWidth > ev.clientWidth + 1;
+    ctx.style.width = "";
+    // The call takes more of the line than the event does, and the event never
+    // vanishes: a stub with an ellipsis still says what the button changes.
+    const leads = cut && callW > evW * 2 && evW >= 20 && /ROCKET/i.test(call.textContent) && callW >= 140;
+    // And on a wide screen the event never grows: the call sits right after it,
+    // not pushed to the far edge beside CHANGE.
+    ctx.style.width = "900px";
+    const gap = call.getBoundingClientRect().left - ev.getBoundingClientRect().right;
+    ctx.style.width = "";
+    const tight = gap >= 0 && gap < 12;
+    S.plays = customPlays().filter(p => had.includes(p.k)); window.set({ script: was });
+    return leads && tight && S.script === was && !customPlay(k);
   }));
   check("the Division table folds Film, Roster and Read from away in a narrow column", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", more: null });
@@ -4680,7 +4706,7 @@ const ROSTER = [
     const watched = /watched · 1–0/.test(rowOf());
     window.playGame(g.id, "away"); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "more", more: "schedule", gameOpen: null });
-    const played = new RegExp("you played " + g.a + " · 1–0 · you won").test(rowOf()) && /watched · 1–0/.test(rowOf());
+    const played = new RegExp("you played " + g.a + "( · game \\d+)? · 1–0 · you won").test(rowOf()) && /watched( · game \d+)? · 1–0/.test(rowOf());
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return watched && played;
   }));
@@ -4695,7 +4721,7 @@ const ROSTER = [
   check("a call key this build does not have is repaired on the next render, not the next relaunch", await ev(() => {
     window.set({ tab: "playbook", script: "my:none" });
     const fixed = allPlays()[S.script] && S.script !== "my:none";
-    const header = document.querySelector("#root .ctx__ev") || document.querySelector("#root .ctx");
+    const header = document.querySelector("#root .ctx__line") || document.querySelector("#root .ctx");
     return !!fixed && header && !/my:none/.test(header.textContent) && new RegExp(breakName()).test(header.textContent);
   }));
   check("the read line never offers to call a play he has turned off", await ev(() => {
@@ -4971,8 +4997,17 @@ const ROSTER = [
     window.set({ right: { name: "Zeta Test Squad" } }); window.newMatch(); const c = curMatch();
     const alone = /^vs Zeta Test Squad · [^·]+$/.test(matchLabel(c));
     window.set({ tab: "more", more: "matches" }); const listed = new RegExp("game " + nB).test(document.getElementById("root").innerText);
+    // The game chips on Scout, read off the chips themselves: the match strip above them carries the same label, so the whole screen's text proved nothing.
+    window.set({ tab: "scout", scoutTab: "games", right: { name: "Rejects" } });
+    const chips = [...document.querySelectorAll("#root .seg button")].some(x => new RegExp("game " + nB).test(x.textContent));
+    // And the schedule row's "what you already have" line, which lists both sheets.
+    S.games = [...(S.games || []), { id: "t-nth", d: SCHEDULE.games[0].d, t: "09:00", h: "Rejects", a: "Houston Heat", g: "" }];
+    window.set({ tab: "more", more: "schedule" }); const st = document.getElementById("root").innerText;
+    // One sheet a line, "you played Rejects" said once on the first and the later games numbered under it.
+    const sched = /you played Rejects · game \d/.test(st) && new RegExp("\ngame " + nB + " · ").test(st);
+    S.games = (S.games || []).filter(g => g.id !== "t-nth");
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch();
-    return first && second && alone && listed;
+    return first && second && alone && listed && chips && sched;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

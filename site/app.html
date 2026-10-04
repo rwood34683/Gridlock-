@@ -131,7 +131,13 @@ h1,h2,h3,p{margin:0}
 .ctx__line{
   min-width:0;flex:1;display:flex;align-items:baseline;gap:.35em;white-space:nowrap;
 }
-.ctx__ev{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+/* The event gives way first, down to a stub ("NXL…"), the call after it, the
+   section never. One span for event and call ellipsized at its end, which is
+   where the call was: a 28-letter play left "NXL LONE STAR OPEN · GARLAN…" and
+   no call at all on a 320 px phone, and the call is the thing read between
+   points. */
+.ctx__ev{min-width:3.5em;flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__call{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 .ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
@@ -9185,7 +9191,7 @@ function scoutGames(){
   const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
-        when(g.at)}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
+        when(g.at)}${esc(gameNth(matchById(g.id)))}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
     </div>`:""}
     <div class="seg" style="flex-wrap:wrap">
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
@@ -9874,7 +9880,7 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended.",
+    how:["A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
@@ -10320,8 +10326,14 @@ function moreBody(k){
     // through should say so on the row, not make him open each one to find out.
     const had = g => (S.matches || []).filter(m => m.watch ? (m.home === g.h && m.away === g.a) : (m.vs === g.h || m.vs === g.a))
       .filter(m => matchSize(m.id) || (S.results || []).some(r => r.m === m.id) || Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b.m === m.id)))
+      .sort((a, b) => a.at - b.at)
       .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
-        return m.watch ? `watched${score}` : `you played ${esc(m.vs)}${score}${matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}`; });
+        return { lead: m.watch ? "watched" : `you played ${esc(m.vs)}`,
+                 rest: `${esc(gameNth(m))}${score}${!m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}` }; })
+      // One sheet a line, and "you played Houston Heat" said once: four
+      // one-point games on one day joined with dots was a wall of the same
+      // four words.
+      .map((h, i, all) => i && all[i - 1].lead === h.lead ? h.rest.replace(/^ · /, "") : h.lead + h.rest);
     const row = g => {
       const isOpen = open === g.id;
       const have = had(g);
@@ -10334,7 +10346,7 @@ function moreBody(k){
         <span class="assign__body">
           <span class="assign__job">${esc(g.h)} <span style="color:var(--dim)">v</span> ${esc(g.a)}</span>
           <span class="assign__who">${esc(g.g ? g.g + " Prelims" : "")}${
-            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join(" · ")}</span>` : ""}</span></span>
+            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
         <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
           isOpen ? "Close" : "Open"}</button>
         ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
@@ -10872,7 +10884,7 @@ function shell(){
       </div>
       ${Object.keys(LAYOUTS).length>1
         ? `<button class="ctx" onclick="cycleEvent()">
-        <span class="ctx__line"><span class="ctx__ev"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}</span>${crumb}</span>
+        <span class="ctx__line"><span class="ctx__ev"><b>${esc(curLayout().name)}</b></span><span class="ctx__call"><span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}</span>${crumb}</span>
         <span class="ctx__caret">CHANGE ▾</span>
       </button>`
         : `<div class="ctx">
