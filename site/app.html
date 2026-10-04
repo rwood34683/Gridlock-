@@ -3463,17 +3463,21 @@ window.addPlayer = () => {
   const name = clean(rosterVal("rName").trim()).slice(0, 32);
   if(!name){ flash("Type his name first."); return; }   // a player with no name is not a player
   if(squadHas(name)){ flash(`${name} is already on the squad.`); return; }
-  const typed = parseInt(rosterVal("rNum"), 10);
+  const raw = rosterVal("rNum"), typed = jerseyNum(raw);
+  if(String(raw || "").trim() && typed === null){ flash("A jersey number is 0 to 999."); return; }
   // Two men can wear one number — a kid borrowing a jersey — so it is taken,
   // but said: his card reads "#7" and so does the other man's. A blank number
   // takes the first one nobody has, not the roster's length, which collided
   // the moment anyone had been taken off the list.
-  const num = isFinite(typed) ? typed : freeNum();
+  const num = typed !== null ? typed : freeNum();
   S.roster = [...(S.roster || []), {name, num, p: clean(rosterVal("rP").trim()), s: clean(rosterVal("rS").trim())}];
   const other = numWorn(num, S.roster.length - 1);
   save(S); if(other) flash(`${name} added. #${num} is also ${other.name}'s number.`); else render();
 };
 const numWorn = (n, except) => (S.roster || []).find((p, i) => i !== except && Number(p.num) === Number(n)) || null;
+// A jersey number is a whole number from 0 to 999. "-5" and "1234" are typos,
+// and a card reading "#-5" is one nobody notices until it is handed over.
+const jerseyNum = v => { const m = /^\s*(\d{1,3})\s*$/.exec(String(v == null ? "" : v)); return m ? Number(m[1]) : null; };
 function freeNum(){ let n = 1; while(numWorn(n, -1)) n++; return n; }
 // Edits save without re-rendering. onchange fires on blur, and blur happens as
 // you tap the next thing — so redrawing here would destroy the control under
@@ -3483,8 +3487,9 @@ window.editPlayer = (i, field, value) => {
   const list = S.roster || [];
   if(!list[i]) return;
   if(field === "num"){
-    const n = parseInt(value, 10);
-    if(isFinite(n)){ list[i].num = n; const other = numWorn(n, i); if(other){ save(S); flash(`#${n} is also ${other.name}'s number.`); return; } }
+    const n = jerseyNum(value);
+    if(n === null){ if(String(value || "").trim()){ flash("A jersey number is 0 to 999 — kept the old one."); render(); } return; }
+    list[i].num = n; const other = numWorn(n, i); if(other){ save(S); flash(`#${n} is also ${other.name}'s number.`); return; }
   } else {
     const v = clean(String(value).trim()).slice(0, 32);
     if(field === "name" && !v){ flash("A man needs a name — kept the old one."); render(); return; }   // never let a name be emptied by accident, and never leave an empty box over a kept name
