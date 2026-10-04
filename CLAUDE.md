@@ -1069,7 +1069,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   either end are one five (`plantCounts`, `likelyPlants`, the ghost, Where
   they plant, `usualMan`, their rotations and their lanes all count in it and
   draw or name through `shownBunker()`), and a five logged on *this* point
-  stays physical because it is already on the end they break from now.
+  stays physical because it is already on the end they break from now. An
+  out is counted the same way — How they get you, the bunker book's men lost
+  and a man's shot-from bunker all read `frameId(shotAt, m, pt)`.
   Bunker stats stays physical: it is a heat map of where on the field things
   happened.
 - Switch ends on the point number. Teams switch after a point somebody won;
