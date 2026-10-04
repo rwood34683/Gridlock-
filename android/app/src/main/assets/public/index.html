@@ -5033,6 +5033,7 @@ window.addScoutPlayer = side => {
     for(const k of ["wire", "note"]) if(row[k]) merged[k] = row[k];
     if(row.name && foldName(row.name) !== foldName(merged.name)) merged.name = row.name;   // the same name retyped keeps its first spelling
     if(!merged.num && num) merged.num = num;
+    rekeyTheirMan(pitOf(side).name, was, merged);
     editProfile(side, {players: pitOf(side).players.map((p, k) => k === at ? merged : p)});
     flash(`${pitManTag(was)} was already in the pit — updated.`); return;
   }
@@ -5049,8 +5050,9 @@ window.editScoutPlayer = (side, i, field, value) => {
   const v = clean(String(value).trim());
   // A number moved onto another man's is refused: two #7s is one read split in two.
   if(field === "num" && v && pitDup(side, v, "", i) >= 0){ flash(`#${v} is already ${pitManTag(pitOf(side).players[pitDup(side, v, "", i)])}.`); return; }
-  const players = pitOf(side).players.map((p, k) => k === i ? {...p, [field]: v} : p);
-  editProfile(side, {players});
+  const before = pitOf(side).players[i], after = {...before, [field]: v};
+  if(field === "num" || field === "name") rekeyTheirMan(pitOf(side).name, before, after);
+  editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? after : p)});
 };
 /* Where you have seen one of their men set up.
  *
@@ -7009,7 +7011,7 @@ function theirNames(){
   const m = curMatch();
   if(m && m.watch) return ["1","2","3","4","5"].map(n => "#" + n);
   const men = (pitNamed("right") && matchVs() === pitOf("right").name ? pitOf("right").players : []) || [];
-  const named = men.map(p => (p.num ? "#" + p.num : "") + (p.num && p.name ? " " : "") + (p.name || "")).filter(Boolean);
+  const named = men.map(theirTag).filter(Boolean);
   const used = new Set(named);
   let n = 1;
   while(named.length < 5){ const tag = "#" + n++; if(!used.has(tag)) named.push(tag); }
@@ -7649,12 +7651,7 @@ window.saveArrivalPlayer = () => {
   if(existing){
     const before = players[index], oldKey = arrivalPlayerKey(before);
     players[index] = {...before,name:arrivalText(before.name) ? before.name : name,num:arrivalText(before.num) ? before.num : num};
-    const newKey = arrivalPlayerKey(players[index]);
-    if(oldKey !== newKey){
-      S.arrivalSightings = (S.arrivalSightings || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey} : o);
-      S.arrivalShots = (S.arrivalShots || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey} : o);
-      S.voiceEvents = (S.voiceEvents || []).map(o=>o.team === context.team && o.player === oldKey ? {...o,player:newKey,playerName:players[index].name || '#'+players[index].num} : o);
-    }
+    rekeyTheirMan(context.team, before, players[index]);
   } else {
     index = players.length;
     players.push({name,num,wire:"",note:"",threat:3});
@@ -7679,6 +7676,25 @@ function arrivalCustomForm(kind){
     <div class="btnrow"><button class="btn" type="submit">Save ${kind}</button><button class="btn btn--quiet" type="button" onclick="cancelArrivalCustom()">Cancel</button></div>
   </form>`;
 }
+// Their man is the key his sightings, shots, voice events and breakout rows
+// are written under — "number:7" when he has a number, his name when he does
+// not, and "#7 Dill" on the breakout sheet — so completing or correcting him
+// anywhere (the arrival screen, the pit card, the pit's add row) has to carry
+// every row with him, or a man given his number later loses what was seen
+// of him under his name.
+function rekeyTheirMan(team, before, after){
+  const oldKey = arrivalPlayerKey(before), newKey = arrivalPlayerKey(after);
+  if(oldKey !== newKey){
+    S.arrivalSightings = (S.arrivalSightings || []).map(o => o.team === team && o.player === oldKey ? {...o, player: newKey} : o);
+    S.arrivalShots = (S.arrivalShots || []).map(o => o.team === team && o.player === oldKey ? {...o, player: newKey} : o);
+    S.voiceEvents = (S.voiceEvents || []).map(o => o.team === team && o.player === oldKey ? {...o, player: newKey, playerName: after.name || "#" + after.num} : o);
+  }
+  const oldTag = theirTag(before), newTag = theirTag(after);
+  if(oldTag && newTag && oldTag !== newTag)
+    S.breakouts = (S.breakouts || []).map(r => r && r.side === "them" && r.vs === team && r.player === oldTag ? {...r, player: newTag} : r);
+}
+// How their man is written on the breakout sheet: "#7 Dill", "#7", or "Dill".
+const theirTag = p => (p.num ? "#" + p.num : "") + (p.num && p.name ? " " : "") + (p.name || "");
 function arrivalPlayerKey(player){
   return player && String(player.num || "").trim()
     ? "number:" + String(player.num).trim().toLowerCase()
