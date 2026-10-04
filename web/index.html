@@ -1645,6 +1645,7 @@ const defaultState = () => ({
   codes:[],                       // [{word, means}]
   lineups:{},                     // per point: five roster names, "" for an empty slot
   joinCode:"",
+  joinOnly:false, joinSaid:"",   // scratch: a class deep link on a phone with no account shows the join sheet alone
   blastBody:"",
   newClassTitle:"Friday clinic"
 });
@@ -1813,7 +1814,7 @@ S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
-S.theirPick = []; S.sightAim = null; S.scoutSide = "right";
+S.theirPick = []; S.sightAim = null; S.scoutSide = "right"; S.joinOnly = false; S.joinSaid = "";
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
 // The season copy shown as text is the whole season again, saved inside the
@@ -2415,8 +2416,19 @@ function fixScreen(){
   if(S.more && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
 }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
+/* The class deep link is the one door that is not the account, and it opens
+ * the join sheet and nothing else. On a phone that is signed in it is Classes
+ * with the code filled; on any other phone it is the form alone — never
+ * `entered`, which save() would keep, and which used to hand a fifteen-year-old
+ * with a link the whole app with no account from then on. The native shell's
+ * URL handler comes through the same door. */
+window.openJoin = code => {
+  S.joinCode = String(code || "").toUpperCase();
+  if(S.entered){ S.tab = "more"; S.more = "classes"; S.joinOnly = false; }
+  else S.joinOnly = true;
+};
 const params = new URLSearchParams(location.search);
-if(params.get("c")){ S.joinCode = params.get("c"); S.entered = true; S.tab = "more"; S.more = "classes"; }
+if(params.get("c")) window.openJoin(params.get("c"));
 
 function set(patch){
   // The drill puts a call on the field that the coach did not make, and only
@@ -8594,12 +8606,11 @@ function sightlines(){
 /* ============================================================
    Classes
    ============================================================ */
-function classesPage(){
-  const join=S.classes.find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
-  return `${tip("class","A sign-in sheet you pass around. Create the session, then hand the phone over — everything stays on this device.")}
-
-  ${sec("Sign in to a session", `<div class="fld"><label>Code</label>
-      <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
+// The sign-in sheet for a session: on Classes, and alone behind a deep link.
+function joinSection(){
+  const join=(S.classes||[]).find(c=>c.code.toLowerCase()===(S.joinCode||"").trim().toLowerCase());
+  return sec("Sign in to a session", `${S.joinSaid ? `<p class="aid"><b>${esc(S.joinSaid)}</b></p>` : ""}<div class="fld"><label>Code</label>
+      <input value="${esc(S.joinCode)}" onchange="S.joinCode=this.value;S.joinSaid='';save(S);render()" placeholder="GL-7K2M" autocapitalize="characters"/></div>
     ${join&&join.open?formBox(join)
       :(join
         ? `<p class="warn">Sign-ins for <b>${esc(join.title)}</b> are closed. The coach can reopen them
@@ -8608,7 +8619,27 @@ function classesPage(){
         ? `<p class="warn">No open session with that code <b>on this phone</b>. Sessions live on the device
            that created them — sign in on the coach's phone, not your own.</p>`
         : `<p class="note">No account needed. A session lives on this phone — sign in on the one the
-           coach hands you, not your own.</p>`)}`)}
+           coach hands you, not your own.</p>`)}`);
+}
+// A class deep link on a phone with no account: the sheet, and a way back to
+// the welcome page. Nothing here sets `entered`.
+function joinSheet(){
+  return `<div class="promo">
+    <div class="promo__mark">
+      <div class="promo__name">Gridlock</div>
+      <div class="promo__sys">SYSTEM · COACH EDITION</div>
+    </div>
+    <div class="stack" style="width:100%;text-align:left">
+      ${joinSection()}
+      <button class="btn btn--ghost btn--block" onclick="set({joinOnly:false,joinCode:'',joinSaid:''})">Not signing a sheet · back</button>
+      <p class="note">Signing a clinic sheet needs no account. Coaching does — the welcome page is behind Back.</p>
+    </div>
+  </div>`;
+}
+function classesPage(){
+  return `${tip("class","A sign-in sheet you pass around. Create the session, then hand the phone over — everything stays on this device.")}
+
+  ${joinSection()}
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
@@ -8692,7 +8723,7 @@ window.submitForm = code => {
   if(!document.getElementById("fa").checked){flash("Tick the sign-in box to submit.");return}
   S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
     wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
-  S.joinCode=""; save(S); render();
+  S.joinCode=""; S.joinSaid=`Signed in as ${name}. Hand the phone back to the coach.`; save(S); render();
 };
 
 /* ============================================================
@@ -10173,7 +10204,7 @@ function render(){
   const main = document.querySelector(".main");
   const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
-  document.getElementById("root").innerHTML = S.entered ? shell() : promo();
+  document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo();
   // A field here is a <label> followed by its control, and the label carries
   // no `for`, so a screen reader read every select as "pop-up button" and
   // nothing else. One pass ties each one to the label above it.

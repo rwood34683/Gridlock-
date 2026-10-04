@@ -87,10 +87,23 @@ const ROSTER = [
   // The one door that is not the account: a class deep link. That is a
   // participant signing a clinic sheet, not the coach, and the spec has always
   // said joining a class needs no account.
-  check("a class deep link still opens without one", await (async () => {
+  check("a class deep link still opens without one — the join sheet alone, never the app", await (async () => {
+    const at = page.url().split("?")[0];
+    await ev(() => { window.set({ entered: false, role: "" }); });
+    await page.goto(at + "?c=gl-7k2m", { waitUntil: "networkidle" });
+    const got = await ev(() => !S.entered && S.joinOnly && S.joinCode === "GL-7K2M"
+      && !!document.querySelector("#root input[placeholder='GL-7K2M']") && !document.querySelector("#root .tabs")
+      && /No open session with that code/.test(document.getElementById("root").innerText));
+    // A relaunch without the link is the welcome page: the sheet is scratch.
+    await page.goto(at, { waitUntil: "networkidle" });
+    const back = await ev(() => !S.entered && !S.joinOnly && !!document.querySelector("#root .promo") && !document.querySelector("#root input[placeholder='GL-7K2M']"));
+    await ev(() => window.set({ entered: true, role: "staff" }));
+    return got && back;
+  })());
+  check("and on a phone that is signed in, the same link opens Classes with the code filled", await (async () => {
     const at = page.url().split("?")[0];
     await page.goto(at + "?c=GL-7K2M", { waitUntil: "networkidle" });
-    const got = await ev(() => S.entered && S.more === "classes" && S.joinCode === "GL-7K2M");
+    const got = await ev(() => S.entered && !S.joinOnly && S.tab === "more" && S.more === "classes" && S.joinCode === "GL-7K2M");
     await page.goto(at, { waitUntil: "networkidle" });
     await ev(() => window.set({ entered: true, role: "staff" }));
     return got;
