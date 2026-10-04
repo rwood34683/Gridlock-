@@ -1579,7 +1579,7 @@ function anyTeam(name){
 // through this one door, so the scouting, the calls logged and the record
 // never split between "Dynasty" and "dynasty".
 function boardTeam(name){
-  const typed = clean(String(name || "").trim()); if(!typed) return "";
+  const typed = clean(String(name || "").trim()).slice(0, 40); if(!typed) return "";
   const hit = anyTeam(typed); if(hit) return hit.name;
   const id = divisionOf().id;
   S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name: typed}]};
@@ -1588,7 +1588,7 @@ function boardTeam(name){
 window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) set({division:id}); };
 window.addTeam = () => {
   const el = document.getElementById("newTeam");
-  const name = clean((el && el.value || "").trim());
+  const name = clean((el && el.value || "").trim()).slice(0, 40);
   if(!name){ flash("Type the team's name first."); return; }
   const hit = anyTeam(name);
   if(hit){ flash(`Already on the list as ${hit.name}.`); return; }
@@ -4925,6 +4925,10 @@ function bestAnswer(theirCall, side = "right"){
   return written ? {call: written, basis: "written"} : null;
 }
 // The read as one line for the point sheet, the quick log and Playbook.
+// Why a call the record favours is not offered: turned off, or deleted. A
+// deleted play's calls still carry its name (S.playGone), so the word has to
+// say which, or "turned off" sends him looking for a switch that is not there.
+const offWord = k => pickPlays()[k] ? "" : allPlays()[k] ? "(a play you have turned off)" : (S.playGone || {})[k] ? "(a play you deleted — build it again under that name to run it)" : "(a play this build does not have)";
 function nextReadLine(compact){ return readLine(compact) + (compact ? "" : lanesLine()); }
 function readLine(compact){
   if(nobodyToPlay() || (curMatch() || {}).watch) return "";
@@ -4939,7 +4943,7 @@ function readLine(compact){
   // One tap calls it only if it is a play he runs: a turned-off built-in is
   // still named, with a word that it is off, but never set as the call.
   const off = a && !pickPlays()[a.call];
-  const btn = a && a.call !== S.script && !off && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : (off ? ` <span class="note" style="display:inline">(a play you have turned off)</span>` : "");
+  const btn = a && a.call !== S.script && !off && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : (off ? ` <span class="note" style="display:inline">${offWord(a.call)}</span>` : "");
   const plain = /^(after|at|on|facing)\b/.test(r.basis) || r.basis.includes(",");
   const basis = r.basis === "this season" ? "run" : `${plain ? "" : "when "}${esc(r.basis)} run`;
   const tell = compact ? null : myTell("right");
@@ -6521,6 +6525,11 @@ window.logBreakout = () => {
   if(sheetOver()) return;
   const d = draft(), pt = S.point || 1, at = Date.now();
   const side = d.side || sideOfBunker(b);
+  // Moved to is where he went next and Shot from is where the paint came
+  // from; either one being the bunker he broke to is a mis-tap, and logged it
+  // was a rotation to nowhere or a man shot from his own bunker.
+  if(d.movedTo && d.movedTo === b.id){ flash(`${bunkerLabel(b.id)} is the bunker he broke to — Moved to is where he went next.`); return; }
+  if(d.alive === false && d.shotFrom && d.shotFrom === b.id){ flash(`${bunkerLabel(b.id)} is his own bunker — Shot from is where the paint came from.`); return; }
   const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
     m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
     player:d.player || "", alive:d.alive === undefined ? null : d.alive,
