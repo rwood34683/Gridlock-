@@ -1371,6 +1371,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   empty, read the message and started typing had his words wiped, because
   nothing is committed until `onchange`. The timeout takes the one element
   off the page and leaves everything else where his thumb left it.
+- Redraw on every tick of a slider. The replay slider under Scout › Games
+  called `set()` on `input`, so the slider was rebuilt under the finger
+  dragging it and the drag ended after one step. The count follows the thumb
+  live through the DOM alone; the list redraws on `change`, when he lets go.
+  Anything a finger holds — a slider, a drag handle — never renders mid-touch.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

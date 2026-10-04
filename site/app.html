@@ -9593,9 +9593,13 @@ function scoutGames(){
     <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : pts.length ? "No outs tallied on this point." : "No outs tallied on this sheet — only who won each point."}</p>`,
     R.name)
   + (!pts.length ? "" : pointStory(gid, pick, R.name))
-  + (!events.length ? "" : sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
-      <input type="range" min="0" max="${events.length}" value="${step}"
-        oninput="set({replayStep:Number(this.value)})"/></div>
+  + (!events.length ? "" : sec("Replay", `<div class="fld"><label for="replay-step">Step through it · <span data-replay-step>${step}</span> of ${events.length}</label>
+      ${/* A redraw on every tick of the slider rebuilt the slider under the
+            finger dragging it, so the drag ended after one step. The count
+            follows the thumb live; the list redraws when he lets go. */""}
+      <input id="replay-step" type="range" min="0" max="${events.length}" value="${step}"
+        oninput="(this.closest('.fld').querySelector('[data-replay-step]')||{}).textContent=this.value"
+        onchange="set({replayStep:Number(this.value)})"/></div>
     <div class="assigns">${events.slice(0,step).map((o,i)=>{
       const bits=[o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
                   o.shotAt?`at ${esc(named(o.shotAt))}`:"", o.movedTo?`moved to ${esc(named(o.movedTo))}`:""]
