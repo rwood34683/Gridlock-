@@ -4882,6 +4882,26 @@ const ROSTER = [
     window.newMatch();
     return ended && horned && ot && otStands;
   }));
+  check("a break from the far end is counted on the bunker it is from your own end, and the ring follows the end you are on", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" }, tallyValue: "us", evenOnly: false });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    window.setSwapEnds(true);
+    const bl = curLayout().bunkers, leftB = bl.filter(x => x.x < 60).sort((a, b) => a.x - b.x)[2], rightB = bl.find(x => x.id === mirrorBunkerId(leftB.id));
+    const twin = rightB && rightB.id !== leftB.id;
+    // point 1 from the left end to leftB, won; point 2 from the right end to its twin, lost
+    window.tallyTap([leftB.x, leftB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null }); window.endPoint("us");
+    const onRight = ourEnd() === "right";
+    window.tallyTap([rightB.x, rightB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    const rows = bunkerValue("us"), one = rows.length === 1 && rows[0].id === leftB.id && rows[0].att === 2 && rows[0].won === 1;
+    const kept = (S.breakouts || []).slice(0, 2).map(r => r.bunker).sort().join() === [leftB.id, rightB.id].sort().join();   // the rows keep the bunker he stood in
+    // on the right end the ring sits on the twin; back on the left it sits on the bunker itself
+    const ringAt = () => { const t = [...document.querySelectorAll("#tally-map .tally-worth")]; const byId = Object.fromEntries(bl.map(b => [b.id, b])); return t.map(r => { const x = parseFloat(r.getAttribute("x")) + parseFloat(r.getAttribute("width")) / 2; return bl.map(b => [Math.abs(b.x * 2 - x), b.id]).sort((a, b) => a[0] - b[0])[0][1]; }); };
+    const ringRight = ringAt(); window.endPoint("them"); const ringLeft = ringAt();
+    const man = manRead("us", "Reyes", "Rejects"); const read = man.n === 2 && man.bunker && man.bunker[0] === leftB.id && man.bunker[1] === 2;
+    window.setSwapEnds(false); window.newMatch();
+    return twin && onRight && one && kept && ringRight.includes(rightB.id) && !ringRight.includes(leftB.id) && ringLeft.includes(leftB.id) && read;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
