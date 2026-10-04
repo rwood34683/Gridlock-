@@ -4613,8 +4613,11 @@ window.saveAssess = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const who = S.asWho, score = Number(S.asScore);
   const note = clean(((document.getElementById('asNote') || {}).value || "").trim());
-  if(!who || !score) return;
-  S.assessments = [{who, score, note, pt:S.point||1, m:S.matchId, at:Date.now()}, ...(S.assessments||[])];
+  if(!who || !score){ flash(!who ? "Tap the man first." : "Tap a score."); return; }
+  // One man has one grade a point: a changed mind replaces it rather than
+  // standing beside it, the way one point has one call.
+  const pt = S.point||1;
+  S.assessments = [{who, score, note, pt, m:S.matchId, at:Date.now()}, ...(S.assessments||[]).filter(a => !(a && a.who === who && a.pt === pt && a.m === S.matchId))];
   S.asWho = null; S.asScore = 0;
   save(S); render();
 };
