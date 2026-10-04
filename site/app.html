@@ -10015,7 +10015,7 @@ function leaguePage(){
   return `${tip("lg","Groups for event ops. Only message people who agreed to league updates.")}
 
   ${sec("Groups", `<div class="btnrow">
-      <input id="ng" placeholder="New group name" class="grow" ${onEnter("addGroup()")}/>
+      <input id="ng" aria-label="New group name" placeholder="New group name" class="grow" ${onEnter("addGroup()")}/>
       <button class="btn" onclick="addGroup()">Add</button>
     </div>
     ${S.groups.map(g=>`<div class="panel">
@@ -10032,8 +10032,8 @@ function leaguePage(){
         <button class="btn btn--danger" onclick="delMem(${jsq(g.id)},${i})">Remove</button>
       </div>`).join("")}</div>`:`<div class="empty">Nobody in this group yet.</div>`}
       <div class="btnrow">
-        <input id="mn-${esc(g.id)}" placeholder="Name" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
-        <input id="mp-${esc(g.id)}" placeholder="Phone or email" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
+        <input id="mn-${esc(g.id)}" aria-label="New member's name for ${esc(g.name)}" placeholder="Name" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
+        <input id="mp-${esc(g.id)}" aria-label="New member's phone or email for ${esc(g.name)}" placeholder="Phone or email" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
         <button class="btn btn--ghost" onclick="addMem(${jsq(g.id)})">Add member</button>
       </div>
     </div>`).join("")}`, people+" people")}
@@ -10259,7 +10259,8 @@ const HELP = {
     how:["Tap a row to load that team into the right pit.",
          "Press and hold to put them in the left pit instead.",
          "Film says how many of their calls you have logged; once there are three, the call they ran most sits under the team's name with the count. Tend is still the film word you gave them.",
-         "Search by name when the list is long."],
+         "Search by name when the list is long.",
+         "Missing a team adds one; its name is a box you can fix, and Remove says what the board holds against them and asks first."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
     how:["Once their five is known, their bunkers lead the lane table with a tag, their shooter's by name, and the count says how many of them are clear from where you stand.",
@@ -10319,14 +10320,16 @@ const HELP = {
     how:["The one in play is at the top with its score.",
          "Open an old one and you land on its last point, so you can still tally something you missed.",
          "New match starts a fresh sheet and puts the point back to one. Nothing is deleted.",
-         "Name this sheet — Prelim 2, Sunday quarter — and the name shows in the kept list."]},
+         "Name this sheet — Prelim 2, Sunday quarter — and the name shows in the kept list.",
+         "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate."]},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
     how:["Staff login required to create one.",
          "Joining does not need an account. Scan the code or type it.",
          "Everything stays on this phone."]},
   "more/league": {t:"League", w:"Groups and ops blasts.",
     how:["Staff login required to send a blast.",
-         "Pick the group, write it once, and it goes in the log."]},
+         "Pick the group, write it once, and it goes in the log.",
+         "The phone's share sheet carries it; with no share sheet the text sits in a box at the top of the screen to copy from."]},
   "more/plan": {t:"Plan", w:"What is free, what Team adds, and getting a purchase back.",
     how:["Everything you do while a point is on is free and always will be.",
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
@@ -10336,7 +10339,8 @@ const HELP = {
     how:["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
-         "Every field the app carries is listed with where its map came from."],
+         "Every field the app carries is listed with where its map came from.",
+         "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
     watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
@@ -10856,7 +10860,7 @@ function moreBody(k){
       ${matchVs() && !(curMatch()||{}).watch ? `<div class="fld"><label for="match-vs">Played against</label>
         <select id="match-vs" onchange="setMatchVs(this.value)">${[...new Set([matchVs(), ...teamsHere().map(t => t.name)])].map(n =>
           `<option value="${esc(n)}"${n === matchVs() ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
-        <input id="match-vs-new" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("setMatchVs(this.value)")}/>
+        <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("setMatchVs(this.value)")}/>
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
@@ -11158,7 +11162,7 @@ function moreBody(k){
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
-    + `<div class="btnrow"><input id="md" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
+    + `<div class="btnrow"><input id="md" aria-label="Note for the squad" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
        <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
