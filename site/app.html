@@ -5536,12 +5536,15 @@ function sheetEmpty(m){
     && !Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b && b.m === m.id));
 }
 window.logTheirBreak = (side, script, plants) => {
-  if(sheetOver()) return;
+  // On a field the open sheet is not on, what they run is still worth
+  // counting: it lands as a season row on this field, never on that sheet's point.
+  const off = !!sheetField();
+  if(!off && sheetOver()) return;
   const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
   // Stamped with the point only when this team is on the sheet; otherwise it
   // is a season row — counted in what they run, never joined to a score.
-  if(side === "right" && !(curMatch()||{}).watch) adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
-  const entry = pitOnSheet(side)
+  if(side === "right" && !off && !(curMatch()||{}).watch) adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
+  const entry = pitOnSheet(side) && !off
     ? {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()}
     : {script: script || "", layout:S.layoutKey, at:Date.now()};
   if(picked.length) entry.plants = picked;
@@ -6831,7 +6834,17 @@ const nobodyToPlay = () => !matchVs() && !(curMatch() || {}).watch;
  * still went out and Log it still logged a call — all under a point number
  * past the end of a match that was over. One door says so and sends him to
  * New match. */
+/* A sheet belongs to the field it was started on. Changing the event with a
+ * match on left the same sheet open at point 4 on another layout, so an out
+ * tapped there was stamped on Tampa inside a Lone Star match. `sheetField()`
+ * names the field the open sheet is on when it is not the one on screen. */
+const sheetField = () => {
+  const m = curMatch();
+  return m && m.layout && LAYOUTS[m.layout] && m.layout !== S.layoutKey ? m.layout : "";
+};
 const sheetOver = () => {
+  const off = sheetField();
+  if(off){ flash(`This sheet is on ${LAYOUTS[off].name}. Change the event back, or New match starts a sheet here.`); return true; }
   if(!matchOver()) return false;
   flash("Match over — New match starts the next sheet.");
   return true;
@@ -7207,6 +7220,12 @@ function tally(){
       <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
+    ${sheetField() ? `<div class="warn"><b>This sheet is on ${esc(LAYOUTS[sheetField()].name)}</b>, not the event on screen.
+        Nothing logs here until you are back on that field, or you start a sheet on this one.
+        <div class="btnrow" style="margin-top:var(--s3)">
+          <button class="btn grow" onclick="pickEvent(${jsq(sheetField())})">Back to ${esc(LAYOUTS[sheetField()].name)}</button>
+          <button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>
+        </div></div>` : ""}
     ${matchOver() ? `<p class="warn"><b>Match over — ${overWord()} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>${matchPointWord()}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
@@ -7218,11 +7237,7 @@ function tally(){
           : last ? `<div class="btnrow" style="align-items:center">
               <span class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>. Tap the next man's bunker.</span>
               <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>`
-          : ""}</div>
-    ${curMatch() && curMatch().layout && curMatch().layout !== S.layoutKey
-      ? `<p class="warn">This sheet was played on <b>${esc((LAYOUTS[curMatch().layout]||{}).name || curMatch().layout)}</b>.
-         You are looking at ${esc(curLayout().name)}, so the bunkers under an out are the wrong field's.</p>`
-      : ""}`,
+          : ""}</div>`,
     matchLabel(curMatch()))}
 
   ${sec("Point sheet", `
@@ -7288,7 +7303,7 @@ function tally(){
           ran out. Ahead: over at this score. Level: overtime, next point. */""}
     ${(curMatch()||{}).timeUp || (curMatch()||{}).ot
       ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">Undo time's up</button>`
-      : !matchOver() && !nobodyToPlay()
+      : !matchOver() && !nobodyToPlay() && !sheetField()
         ? (sc.us === sc.them
           ? `<p class="note" style="margin-top:var(--s3)">Clock ran out level — your format says which:</p>
              <div class="btnrow">
@@ -7379,11 +7394,12 @@ function tally(){
           startUp("them",S.matchId,pt)}</b>, not 5 v 5. It is kept out of the bunker numbers when
           <b>Even points only</b> is on.</p>` : ""}`;
     })()}
-    ${matchOver() ? `<div class="btnrow">
-      ${/* The match is over: scoring another point on this sheet is a mis-tap,
-            so the result buttons stand down and New match leads. Back a point
-            is still there, because the last tap may have been the mis-tap. */""}
-      <button class="btn grow btn--lg" onclick="newMatch()">New match</button>
+    ${matchOver() || sheetField() ? `<div class="btnrow">
+      ${/* The match is over, or this sheet is on another field: scoring a point
+            on it is a mis-tap, so the result buttons stand down and New match
+            leads. Back a point is still there, because the last tap may have
+            been the mis-tap. */""}
+      <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
       ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
     </div>` : `<div class="btnrow">
       <button class="btn grow btn--lg" onclick="endPoint('us')">${
@@ -7398,7 +7414,7 @@ function tally(){
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
     <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Landscape · log on the fly</button>
-    ${matchOver() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
   ${sec("Where the points come from", valueSeg + (value.length ? valueTable : valueEmpty), curLayout().name)}
@@ -7587,8 +7603,9 @@ window.endPoint = won => {
   // The sheet stands its result buttons down once the race is won, but the
   // handler is also reached from the landscape log, the Scout strip and
   // anything a later build wires to it. A finished match takes no more
-  // results; Back a point is how a result is changed.
-  if(matchOver()) return;
+  // results; Back a point is how a result is changed. A sheet on another
+  // field takes none either — sheetOver() says so.
+  if(sheetOver()) return;
   const pt = S.point || 1;
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
@@ -7971,7 +7988,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
-    ${matchOver() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
   </div>`;
 }
@@ -10759,8 +10776,10 @@ function shell(){
 function quickLog(){
   const m = curMatch(), watch = !!(m && m.watch), pt = S.point || 1, sc = matchScore();
   const us = watch ? sideWord("us") : "We", them = watch ? sideWord("them") : "They";
-  const over = matchOver(), ot = inOvertime(), mp = matchPoint();
-  const tail = over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
+  // A sheet on another field takes no result either: the quick log stands
+  // its buttons down the way it does on a finished race and names the field.
+  const off = sheetField(), over = matchOver() || !!off, ot = inOvertime(), mp = matchPoint();
+  const tail = off ? "other field" : over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
   return `<div class="qlog">
     <div class="qlog__top">
       ${clockChip()}
@@ -10784,7 +10803,7 @@ function quickLog(){
     </div>` : nobodyToPlay() ? `<div class="qlog__score">
       <button class="btn btn--lg" style="grid-column:1 / -1" onclick="needOpponent()">Pick the other team first · back to the sheet</button>
     </div>` : over ? `<div class="qlog__score">
-      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match</button>
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match`}</button>
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}

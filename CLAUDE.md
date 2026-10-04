@@ -1007,6 +1007,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   sized from the same cap (the board is 300 by 240) and the picture fills it;
   the suite checks the ink layer and the picture are the same box and a stroke
   lands.
+- Let a sheet follow the coach to another field. A match carries the layout
+  it was started on, and changing the event with a match on left the same
+  sheet open at point 4 on the new field, so an out tapped there was stamped
+  on Tampa inside a Lone Star match. `sheetField()` names the field the open
+  sheet is on when it is not the one on screen; `sheetOver()` refuses through
+  it, the point sheet says so and offers Back to that field or New match here,
+  and the result buttons stand down the way they do on a finished race.
 - Open a sheet through more than one door. New match carried the format and
   replaced an empty sheet; Watch this game and We play on the Schedule did
   neither, so a game opened off the schedule had no race, no clock and left
