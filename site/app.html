@@ -8606,11 +8606,17 @@ function openSheet(fields){
 // Leaving a sheet that holds anything asks first. What it holds is read by
 // every log — his rows, the score and their five — because a sheet he only
 // scored, or only charted their break on, is still a sheet.
+/* Men placed on a sheet and not yet told. A new sheet hides them: the
+ * backlog under the field is this sheet's, so seven men placed between
+ * points and left for later were out of sight the moment New match was
+ * tapped, and nothing said so. */
+const untoldOn = mid => (S.breakouts || []).filter(r => r && r.m === mid && r.todo).length;
 function gameGuard(){
   const cur = curMatch();
-  const n = cur ? sheetSize(cur) : 0;
+  const n = cur ? sheetSize(cur) : 0, owed = cur ? untoldOn(cur.id) : 0;
   return !n || confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
-    + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`);
+    + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`
+    + (owed ? ` ${owed} ${owed === 1 ? "man" : "men"} placed on it ${owed === 1 ? "is" : "are"} still to tell: open it again from Matches to finish.` : ""));
 }
 window.watchGame = id => {
   const g = gameById(id); if(!g || !gameGuard()) return;
@@ -11494,7 +11500,8 @@ function moreBody(k){
             !m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}${
             m.watch?" · watched":""}${on?" · on now":""}</span>
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
-            day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}</span></span>
+            day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}${
+            untoldOn(m.id) ? ` · <b style="color:var(--warn)">${untoldOn(m.id)} still to tell</b>` : ""}</span></span>
           ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>`}
         </div>`;
       }).join("")}</div>`

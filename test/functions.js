@@ -3910,6 +3910,19 @@ const ROSTER = [
     S.roster = was; window.newMatch();
     return ok;
   }));
+  check("New match says when men placed on the sheet are still to tell, and Matches lists them on the sheet's row", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const bl = curLayout().bunkers; S.tallyStep = "place";
+    [3, 8, 40].forEach(i => window.tallyTap([bl[i].x, bl[i].y]));
+    const first = S.matchId;
+    let asked = ""; const was = window.confirm; window.confirm = q => { asked = q; return true; };
+    window.newMatch(); window.confirm = was;
+    window.set({ tab: "more", more: "matches" });
+    const row = [...document.querySelectorAll("#root .assign")].find(el => /still to tell/.test(el.textContent));
+    const ok = /3 men placed on it are still to tell/.test(asked) && S.matchId !== first && !!row && /3 still to tell/.test(row.textContent);
+    S.breakouts = (S.breakouts || []).filter(r => r.m !== first);
+    return ok;
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
