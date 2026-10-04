@@ -4862,6 +4862,12 @@ const ROSTER = [
     window.set({ plays: keep.plays, layoutKey: keep.layout, script: keep.script, pbView: null, building: null });
     return built && inPicker && !askedIt && askedHere;
   }));
+  check("a copy's summary leads with the sheets and the points scored, and names his plays and calls", await ev(() => {
+    const d = { matches: [{id: "a"}, {id: "b"}], results: [{m: "a", pt: 1, won: "us"}, {m: "a", pt: 2, won: "them"}, {m: "b", pt: 1, won: "us"}], roster: [{name: "Reyes"}], plays: [{k: "my:1", name: "Rocket"}], calls: [{m: "a", pt: 1, script: "snake"}], scout: {Rejects: {}} };
+    const t = copySummary(d);
+    return /^2 sheets · 3 points scored · 1 player · 1 play of yours · 1 team scouted · 1 call logged$/.test(t)
+      && copySummary({ plays: [{}, {}], scout: { A: {}, B: {} }, calls: [{}, {}], pens: [{}, {}] }) === "2 plays of yours · 2 teams scouted · 2 calls logged · 2 penalties";
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
