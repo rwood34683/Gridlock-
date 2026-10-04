@@ -1323,7 +1323,8 @@ const ROSTER = [
   check("the board loads team names containing quotes and HTML entities", await ev(name =>
     S.right.name === name, quotedTeam));
   await ev(() => window.set({scoutTab:"board"}));
-  await page.locator(".assign").filter({hasText:quotedTeam}).getByRole("button", {name:"Remove",exact:true}).click();
+  // The row carries the name in an input now (fix the spelling in place), so it is found by that input's label rather than by text.
+  await page.locator(".assign").filter({has: page.getByLabel("Team name for " + quotedTeam, {exact:true})}).getByRole("button", {name:"Remove",exact:true}).click();
   check("that team can also be removed through its visible control", await ev(name =>
     !(S.teams.pro || []).some(t => t.name === name), quotedTeam));
 
@@ -5169,6 +5170,38 @@ const ROSTER = [
     S.roster = keep; window.set({ flash: "" });
     return taken && free && said;
   }));
+  const teamFix = await ev(() => {
+    window.confirm = () => true;
+    const keep = { teams: S.teams, scout: S.scout, matches: S.matches, tally: S.tally, breakouts: S.breakouts, calls: S.calls, sightings: S.arrivalSightings };
+    // a typo at the Tally gate makes a team and a sheet against it
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "" } });
+    // the gate's box is only on screen when the sheet has nobody to play; stand one in for it, then start the sheet against the typo
+    let inp = document.getElementById("oppName");
+    if (!inp) { inp = document.createElement("input"); inp.id = "oppName"; document.getElementById("root").appendChild(inp); }
+    inp.value = "Houston Heet"; window.playNamed(); window.newMatch();
+    const m = S.matchId, made = matchVs() === "Houston Heet" && !!anyTeam("houston heet");
+    window.setRaceTo(0); window.setMercy(0);
+    window.markOut("them", "#3"); window.logCall(S.script); window.logTheirBreak("right", "blitz", []); window.endPoint("us");
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "s-tf", team: "Houston Heet", player: "number:3", layout: S.layoutKey, m, pt: 1, bunker: curLayout().bunkers[0].id, at: 1 }];
+    const heatBreaks = (profileOf("Houston Heat").breaks || []).length;
+    // fix it on the board: Heet folds into the league's Houston Heat
+    window.set({ tab: "scout", scoutTab: "board" });
+    window.renameTeam("Houston Heet", "houston heat");
+    const sheet = matchById(m).vs === "Houston Heat" && matchVs() === "Houston Heat" && pitOf("right").name === "Houston Heat";
+    const rows = (S.tally || []).some(o => o.m === m && o.vs === "Houston Heat") && (S.calls || []).some(c => c.m === m && c.vs === "Houston Heat")
+              && (S.arrivalSightings || []).find(x => x.id === "s-tf").team === "Houston Heat" && !(S.tally || []).some(o => o.vs === "Houston Heet");
+    const book = !(S.scout || {})["Houston Heet"] && (profileOf("Houston Heat").breaks || []).length === heatBreaks + 1;
+    const list = !anyTeam("Houston Heet") && /folded into Houston Heat/.test(S.flash || "");
+    // and a plain respelling of his own team keeps it his, under the new spelling
+    const el = document.getElementById("newTeam"); if (el) { el.value = "Zeta Test Sqaud"; window.addTeam(); }
+    window.renameTeam("Zeta Test Sqaud", "Zeta Test Squad");
+    const own = !anyTeam("Zeta Test Sqaud") && !!anyTeam("Zeta Test Squad") && /is Zeta Test Squad now/.test(S.flash || "");
+    Object.assign(S, { teams: keep.teams, scout: keep.scout, matches: keep.matches, tally: keep.tally, breakouts: keep.breakouts, calls: keep.calls, arrivalSightings: keep.sightings });
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    const flags = { made, sheet, rows, book, list, own };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a team typed wrong at the gate is fixed on the board: renaming carries every sheet, out, call, read and sighting, and a name already on the list folds into it", teamFix === true, teamFix);
   const theirRekey = await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "scout", scoutTab: "matchup", right: { name: "Dynasty" } });

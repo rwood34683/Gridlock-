@@ -2332,6 +2332,39 @@ window.delTeam = name => {
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== name)};
   save(S); render();
 };
+// A team typed at the Tally gate between points is typed fast — "Houston
+// Heet" — and everything that point logged is keyed on the spelling: the
+// sheet, the outs, the calls, their breaks, their men. Renaming the team
+// carries all of it, and a name that folds onto a team already on the list
+// (the league's or his) merges into that one under its own spelling, the
+// scout book included, so a typo is one tap to undo rather than a season
+// split in two. Only teams he added can be renamed; the league's are the
+// league's.
+window.renameTeam = (from, v) => {
+  const id = divisionOf().id, typed = clean(String(v || "").trim()).slice(0, 40);
+  if(!typed || typed === from){ render(); return; }
+  const hit = anyTeam(typed), to = hit && foldName(hit.name) !== foldName(from) ? hit.name : typed;
+  const merging = !!hit && foldName(hit.name) !== foldName(from);
+  const team = (rows, key) => (rows || []).map(r => r && r[key] === from ? {...r, [key]: to} : r);
+  S.matches = (S.matches || []).map(m => m ? {...m, vs: m.vs === from ? to : m.vs, home: m.home === from ? to : m.home, away: m.away === from ? to : m.away} : m);
+  S.tally = team(S.tally, "vs"); S.breakouts = team(S.breakouts, "vs"); S.calls = team(S.calls, "vs");
+  S.arrivalSightings = team(S.arrivalSightings, "team"); S.arrivalShots = team(S.arrivalShots, "team"); S.voiceEvents = team(S.voiceEvents, "team");
+  S.games = (S.games || []).map(g => g ? {...g, h: g.h === from ? to : g.h, a: g.a === from ? to : g.a} : g);
+  ["left", "right"].forEach(side => { if((S[side] || {}).name === from) S[side] = {...S[side], name: to}; });
+  // The scout book: moved, or folded into the profile already there — their
+  // breaks and their men are counts and keep adding up; a word set on both
+  // keeps the one already there.
+  const book = {...(S.scout || {})}, mine = book[from];
+  if(mine){
+    const theirs = book[to];
+    book[to] = theirs ? {...mine, ...theirs, breaks: [...(theirs.breaks || []), ...(mine.breaks || [])],
+                         players: [...(theirs.players || []), ...(mine.players || []).filter(p => !(theirs.players || []).some(q => theirTag(q) === theirTag(p)))],
+                         answers: {...(mine.answers || {}), ...(theirs.answers || {})}} : mine;
+    delete book[from]; S.scout = book;
+  }
+  S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== from).concat(merging || addedTeams(id).some(t => t.name === to) ? [] : [{name: to}])};
+  save(S); flash(merging ? `${from} folded into ${to} — every sheet, out and read is theirs now.` : `${from} is ${to} now, on every sheet.`);
+};
 
 
 const defaultState = () => ({
@@ -9490,8 +9523,9 @@ function scoutBoard(){
         <button class="btn" onclick="addTeam()">Add team</button></div>
     </div>
     ${added.length?`<div class="assigns">${added.map(n=>`<div class="assign">
-      <span class="assign__body"><span class="assign__job">${esc(n)}</span>
-      <span class="assign__who">you added this one</span></span>
+      <span class="assign__body"><input id="tn-${esc(foldName(n).replace(/\W+/g, "-"))}" value="${esc(n)}" maxlength="40" aria-label="Team name for ${esc(n)}"
+          onchange="renameTeam(${jsq(n)}, this.value)"/>
+      <span class="assign__who">you added this one — fix the spelling here and every sheet follows; a name already on the list folds into it</span></span>
       <button class="btn btn--danger" onclick="delTeam(${jsq(n)})">Remove</button></div>`).join("")}</div>`:""}`,
     added.length?added.length+" added":"");
 }
