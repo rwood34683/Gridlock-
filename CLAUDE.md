@@ -10,6 +10,18 @@ npm install
 npm run serve   # http://localhost:5173
 ```
 
+Dependency security handoff (2026-10-04): `sharp` is now `^0.35.5`, the
+lockfile resolves `brace-expansion` to 5.0.12, and `xcode` uses UUID 11.1.1
+through a scoped override. Keep that override until Xcode's upstream
+dependency includes the buffer-bounds fix; UUID 11.1.1 retains its CommonJS API.
+The new `test/dependencies.js` checks UUID buffer bounds, Xcode project parsing
+and IDs, brace expansion, and Sharp image processing. It runs in `npm run check`.
+The brand test also normalizes Windows paths before checking generated files.
+Run `npm run test:dependencies` and `npm audit` after dependency changes.
+Validation before this handoff: clean install, zero audit vulnerabilities,
+build/site checks, and all 18 check suites passed after the Windows test fix;
+the native sync check was skipped and native binary builds remain unverified.
+
 Source of truth for *behavior*: `docs/GRIDLOCK-OVERSKILL-SPEC.md`
 Source of truth for *working UI*: `web/index.html` (open in a browser)
 Legacy native snapshot: `ios-native/GRIDLOCK-Coach/` (early SwiftUI, missing later tabs).

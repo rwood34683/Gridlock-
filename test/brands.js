@@ -77,7 +77,8 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
   const before = snapshot(ROOT + "/ios"); const beforeA = snapshot(ROOT + "/android"); const cfg = sha(fs.readFileSync(path.join(ROOT, "capacitor.config.json")));
   const dryN = brand.native("grindx", { dry: true, quiet: true });
   const dryB = brand.build("grindx", { dry: true, quiet: true });
-  check("a native dry run lists the identity files and the shells", dryN.dry && dryN.files.includes("ios/App/App.xcodeproj/project.pbxproj") && dryN.files.includes("android/app/build.gradle") && dryN.files.some(f => f.endsWith("public/index.html")));
+  const dryNPaths = dryN.files.map(file => file.replaceAll("\\", "/"));
+  check("a native dry run lists the identity files and the shells", dryN.dry && dryNPaths.includes("ios/App/App.xcodeproj/project.pbxproj") && dryNPaths.includes("android/app/build.gradle") && dryNPaths.some(f => f.endsWith("public/index.html")));
   check("a build dry run lists what would differ", dryB.dry && dryB.changed.includes("web/index.html") && dryB.changed.includes("web/manifest.webmanifest"));
   check("nothing on disk moved", same(before, snapshot(ROOT + "/ios")) && same(beforeA, snapshot(ROOT + "/android")) && cfg === sha(fs.readFileSync(path.join(ROOT, "capacitor.config.json"))));
 

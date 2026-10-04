@@ -21,7 +21,8 @@
     "bundle:android": "node scripts/native.js build android bundleRelease",
     "build:android:debug": "node scripts/native.js build android assembleDebug",
     "browser:install": "playwright-core install chromium",
-    "test": "node scripts/run-checks.js functions arrival arrival-custom platform voice-parser voice speech-native",
+    "test": "node scripts/run-checks.js dependencies functions arrival arrival-custom platform voice-parser voice speech-native",
+    "test:dependencies": "node scripts/run-checks.js dependencies",
     "test:server": "node scripts/run-checks.js server",
     "test:devices": "node scripts/run-checks.js devices",
     "test:offline": "node scripts/run-checks.js offline",
@@ -62,7 +63,12 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
     "playwright-core": "^1.49.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.5"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   },
   "engines": {
     "node": ">=22"

@@ -6,6 +6,7 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
+  dependencies: "test/dependencies.js",
   server: "test/server.js", functions: "test/functions.js", devices: "test/devices.js", bunkers: "tools/verify_bunkers.js",
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",
   "voice-parser": "test/voice-parser.js", voice: "test/voice.js", "speech-native": "test/speech-native.js",
@@ -23,7 +24,7 @@ async function main() {
   process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
     let url = process.env.APP_URL;
-    const needsBrowser = names.some(name => !["server", "voice-parser", "speech-native"].includes(name));
+    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native"].includes(name));
     if (!url && needsBrowser) {
       server = createServer();
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
