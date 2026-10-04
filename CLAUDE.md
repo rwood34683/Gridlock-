@@ -1181,6 +1181,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `rekeyTheirMan(team, before, after)` is that code made the one door the
   pit card, the pit's add row and the arrival screen all go through, and
   `theirTag()` is the one spelling of his breakout-sheet label.
+- Leave a typo'd team as a team. "Houston Heet" typed at the Tally gate
+  between points made a team, and a sheet, outs, calls, their breaks and
+  their men were all keyed on the spelling with no way back but deleting
+  the team and losing the point. `renameTeam(from, to)` on the Division
+  board's "you added" rows re-keys every store that carries a team's name —
+  matches (vs, home, away), outs, breakouts, calls, sightings, shots, voice
+  events, his added games, both pits — and a name that folds onto a team
+  already on the list merges into it under its own spelling, the scout book
+  included (breaks and men add up; a word set on both keeps the one already
+  there). Only teams he added can be renamed; the league's are the league's.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
