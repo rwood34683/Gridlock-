@@ -5221,6 +5221,27 @@ const ROSTER = [
     window.set({});
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("a class code typed without its hyphen, in lower case or with a stray mark still opens the sheet", await ev(() => {
+    window.set({ tab: "more", more: "classes", newClassTitle: "Fold Probe" }); window.makeClass();
+    const c = S.classes.find(x => x.title === "Fold Probe"), raw = c.code, bare = raw.replace("-", "").toLowerCase();
+    const opens = code => { window.set({ joinCode: code, joinSaid: "" }); return !!document.getElementById("fn"); };
+    const typed = { [bare]: true, [" " + raw.toLowerCase() + "."]: true, ["GL " + raw.slice(3)]: true, ["GL-" + raw.slice(3, 6) + "Z9"]: false, "": false };
+    const reads = Object.entries(typed).every(([k, v]) => opens(k) === v);
+    window.set({ joinCode: bare, joinSaid: "" });
+    document.getElementById("fn").value = "  Sam Fold  "; document.getElementById("fa").checked = true;
+    document.getElementById("fc").value = " 555-0100 "; document.getElementById("ft").value = "Runs the snake. " + "x".repeat(400);
+    window.submitForm(raw);
+    const r = (S.responses || []).find(x => x.code === raw);
+    const tidy = !!r && r.name === "Sam Fold" && r.contact === "555-0100" && r.notes.length === 280 && /Signed in as Sam Fold/.test(S.joinSaid || "");
+    window.set({ joinCode: bare, joinSaid: "" });
+    document.getElementById("fn").value = "Kim Fold"; document.getElementById("fa").checked = true;
+    document.getElementById("fn").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    const entered = (S.responses || []).some(x => x.code === raw && x.name === "Kim Fold");
+    const flags = { reads, tidy, entered };
+    window.confirm = () => true; window.delClass(raw);
+    window.set({ joinCode: "", joinSaid: "", newClassTitle: "", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

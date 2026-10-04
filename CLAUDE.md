@@ -1476,6 +1476,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the word, the member, the man who signed — because none of it is kept
   anywhere else. Undo on a tally row or a penalty stays one tap: those are
   one tap to put back.
+- Match a class code by its exact spelling. A kid reads "GL-7K2M" off a card
+  and types "gl7k2m" or "GL 7K2M", and the sheet said there was no such
+  session on this phone. `foldCode()` keeps the letters and digits and
+  `classByCode()` is the one lookup; what he fills in is trimmed and capped
+  like every other typed box, and Return in the name or contact box submits.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
