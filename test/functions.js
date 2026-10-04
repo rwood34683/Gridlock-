@@ -4721,6 +4721,13 @@ const ROSTER = [
     S.plays = keep; window.set({ script: "snake" });
     return leads && renamed && kept && opened && count;
   }));
+  check("the welcome pitch sells his own plays beside the twelve", await ev(() => {
+    const keep = { entered: S.entered, role: S.role, email: S.email };
+    window.set({ entered: false, mode: null });
+    const t = document.getElementById("root").textContent;
+    window.set(keep);
+    return /Twelve breaks and your own plays, drawn on the field you are actually playing/.test(t) && !/free|\$|no account/i.test(t.replace(/account takes a moment|Create your account|I already have one/g, ""));
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
