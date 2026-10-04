@@ -10027,9 +10027,21 @@ function formBox(c){
     <button class="btn btn--block" onclick="submitForm(${jsq(c.code)})">Submit</button>
   </div>`;
 }
+// A class code is what a kid types to find the sheet, so two classes cannot
+// share one: four random characters collide rarely, and when they did the
+// second class could never be signed in to.
+function freeClassCode(){
+  const taken = new Set((S.classes || []).map(c => String(c.code || "").toUpperCase()));
+  for(let i = 0; i < 50; i++){
+    const code = "GL-" + Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, "7");
+    if(code.length === 7 && !taken.has(code)) return code;
+  }
+  let n = 1; while(taken.has("GL-" + String(n).padStart(4, "0"))) n++;
+  return "GL-" + String(n).padStart(4, "0");
+}
 window.makeClass = () => {
   if(!staffed()) return;
-  const code="GL-"+Math.random().toString(36).slice(2,6).toUpperCase();
+  const code = freeClassCode();
   S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true,when:"",notes:""},...S.classes];
   save(S); render();
 };
