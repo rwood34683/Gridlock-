@@ -8220,10 +8220,7 @@ window.newMatch = () => {
   // the Tally sheet, which now leads with the opponent picker, rather than
   // throwing a system alert and bouncing to Scout.
   if(!pitNamed("right")) return set({tab:"tally"});
-  const cur = curMatch();
-  const n = cur ? loggedSize(cur.id) : 0;
-  if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
-                 + `${n===1?"entry":"entries"} — the point goes back to 1 for the new one.`)) return;
+  if(!gameGuard()) return;   // the one question, asked by New match and the Schedule alike
   openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
 };
@@ -8243,10 +8240,19 @@ window.newMatch = () => {
  * And a fresh sheet is level: Ahead / Must-score is read off the score, so it
  * is recomputed here or the counter-picker ranks the new match on the last
  * one's result. */
+// Everything on a sheet, counted: his rows, the results, and their breaks
+// logged against it from either pit. sheetEmpty() is this reading zero.
+function sheetSize(m){
+  if(!m) return 0;
+  return loggedSize(m.id) + (S.results || []).filter(r => r && r.m === m.id).length
+    + Object.values(S.scout || {}).reduce((n, p) => n + (p.breaks || []).filter(b => b && b.m === m.id).length, 0);
+}
 function openSheet(fields){
   const cur = curMatch();
-  const n = cur ? loggedSize(cur.id) : 0;
-  const blank = cur && !n && !(S.results || []).some(r => r.m === cur.id) ? cur.id : null;
+  // Blank is sheetEmpty(): a sheet with only their five charted on it was
+  // read as blank and replaced, and the break rows kept its id with no sheet
+  // behind them.
+  const blank = cur && sheetEmpty(cur) ? cur.id : null;
   const id = newMatchId();
   // The five he set on the blank sheet is the five he meant for this one:
   // it moves across as point 1's lineup and the blank sheet's keys go with it.
@@ -8286,9 +8292,12 @@ function openSheet(fields){
  * blue, so that is where they land. Both are still a team the coach picked —
  * he tapped the row — which is what the pit rule asks for.
  */
+// Leaving a sheet that holds anything asks first. What it holds is read by
+// every log — his rows, the score and their five — because a sheet he only
+// scored, or only charted their break on, is still a sheet.
 function gameGuard(){
   const cur = curMatch();
-  const n = cur ? loggedSize(cur.id) : 0;
+  const n = cur ? sheetSize(cur) : 0;
   return !n || confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
     + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`);
 }
