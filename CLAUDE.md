@@ -1014,7 +1014,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   sheet is on when it is not the one on screen; `sheetOver()` refuses through
   it, the point sheet says so and offers Back to that field or New match here,
   and the result buttons stand down the way they do on a finished race; the
-  quick log and the Scout strip read the same door. Opening a sheet from
+  quick log and the Scout strip read the same door, and so do rotations,
+  grades, lineups, timeouts, penalties, Time's up and the ends — Lineups,
+  Movement and Assess say so (`offFieldNote()`). Opening a sheet from
   Matches brings its field with it (`openMatchNow`).
 - Open a sheet through more than one door. New match carried the format and
   replaced an empty sheet; Watch this game and We play on the Schedule did

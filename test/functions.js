@@ -4807,11 +4807,34 @@ const ROSTER = [
     const strip = ![...document.querySelectorAll("#root button")].some(b => /^Next point$/.test(b.textContent.trim()));
     window.set({ tab: "tally" }); window.newMatch();
     const fresh = quick && strip && S.matchId !== mid && curMatch().layout === "tby" && /We won it/.test(document.getElementById("root").innerText);
+    // every other door refuses too, and the three screens about his five say so
+    window.set({ layoutKey: "tby" }); openMatchNow(mid); window.set({ layoutKey: "tby" });
+    const bl2 = curLayout().bunkers, c0 = [(S.moves||[]).length, (S.assessments||[]).length, (S.timeouts||[]).length, !!(curMatch()||{}).timeUp, (curMatch()||{}).end];
+    window.set({ tab: "more", more: "movement", moveWho: "Reyes", moveFrom: bl2[3].id, moveTo: bl2[9].id }); window.logMove();
+    const mvSaid = /This sheet is on NXL Lone Star Open/.test(document.getElementById("root").innerText);
+    window.set({ more: "assess", asWho: "Reyes", asScore: 4 }); window.saveAssess();
+    window.set({ more: "lineups" }); const lnSaid = /This sheet is on NXL Lone Star Open/.test(document.getElementById("root").innerText);
+    window.addTimeout("us"); window.timeUp(); window.switchEnds();
+    const c1 = [(S.moves||[]).length, (S.assessments||[]).length, (S.timeouts||[]).length, !!(curMatch()||{}).timeUp, (curMatch()||{}).end];
+    const doors = JSON.stringify(c0) === JSON.stringify(c1) && mvSaid && lnSaid;
     // opening the Lone Star sheet from Matches while standing on Tampa brings its field with it
     openMatchNow(mid);
     const brought = S.matchId === mid && S.layoutKey === "lso" && !sheetField();
     window.set({ layoutKey: "lso" }); window.newMatch();
-    return said && refused && back && fresh && brought;
+    return said && refused && back && fresh && brought && doors;
+  }));
+  check("a sentence that names a screen to go to carries a button that goes there", await ev(() => {
+    const keep = { roster: S.roster, right: S.right, left: S.left, tally: S.tally, moves: S.moves, breakouts: S.breakouts };
+    window.set({ roster: [], right: { name: "" }, left: { name: "" }, tally: [], moves: [], breakouts: [] });
+    const btn = re => [...document.querySelectorAll("#root button")].find(b => re.test(b.textContent));
+    window.set({ tab: "scout", scoutTab: "matchup" }); const a = btn(/Open the schedule/); if (a) a.click();
+    const sched = S.tab === "more" && S.more === "schedule";
+    window.set({ tab: "more", more: "stats" }); const b = btn(/Log a rotation/); if (b) b.click();
+    const mv = S.more === "movement";
+    window.set({ more: "codes" }); const c = btn(/Open Team/); if (c) c.click();
+    const team = S.more === "team";
+    window.set({ tab: "tally", roster: keep.roster, right: keep.right, left: keep.left, tally: keep.tally, moves: keep.moves, breakouts: keep.breakouts });
+    return !!a && sched && !!b && mv && !!c && team;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
