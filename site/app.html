@@ -3380,6 +3380,9 @@ function set(patch){
   // the coach has left costs him whatever he was typing on the one he is on.
   if(S.playing && "tab" in patch && patch.tab !== S.tab) stopPlaying();
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
+  // The hand-off box is the text he asked for on the screen he asked for it
+  // on; it does not follow him to the next tab or section.
+  if(S.handText && !("handText" in patch) && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) S.handText = null;
   Object.assign(S, patch); save(S); render();
 }
 // Put back what he was on, without a redraw — the caller is about to do one.
