@@ -5036,6 +5036,14 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("the play builder's name box commits without a redraw, so Save is still under the thumb that leaves it", await ev(() => {
+    window.set({ tab: "playbook", pbView: null }); window.newPlay();
+    const save = document.querySelector('#root button[onclick="savePlay()"]'); if(!save) return "no save button";
+    window.setPlayField("name", "Thumb Test");
+    const kept = document.contains(save) && (S.building || {}).name === "Thumb Test";
+    window.set({ building: null });
+    return kept;
+  }));
   check("the schedule paste box commits without a redraw, so Read it is still under the thumb that leaves the box", await ev(() => {
     window.set({ tab: "more", more: "schedule", gamePaste: "" });
     const box = document.querySelector("#root textarea"), btn = [...document.querySelectorAll("#root button")].find(b => /Read it/.test(b.textContent));

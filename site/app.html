@@ -3217,7 +3217,11 @@ window.playPick = id => {
 };
 window.setPlayField = (what, value) => {
   const b = S.building; if(!b) return;
-  set({building: {...b, [what]: what === "aggr" ? Math.min(5, Math.max(1, +value || 3)) : value}});
+  const next = {...b, [what]: what === "aggr" ? Math.min(5, Math.max(1, +value || 3)) : value};
+  // The name and the read are typed, and the next tap is Save: a redraw on
+  // blur rebuilt Save under the thumb. Text saves without rendering; the
+  // slider redraws because its label reads the number.
+  if(what === "aggr") set({building: next}); else { S.building = next; save(S); }
 };
 window.savePlay = () => {
   const b = S.building; if(!b) return;
