@@ -4973,6 +4973,22 @@ const ROSTER = [
     window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
     return moved && shot && fine;
   }));
+  const walkDup = await ev(() => {
+    const was = S.walk; window.set({ tab: "more", more: "walk", flash: "" });
+    const mk = (id, v) => { let el = document.getElementById(id); if(!el){ el = document.createElement("input"); el.id = id; document.body.appendChild(el); el.dataset.tmp = "1"; } el.value = v; return el; };
+    const w = mk("wkWhere", "Snake wire"), n = mk("wkNote", "Low wall, stay tight");
+    const n0 = walkNotes().length;
+    window.addWalk(); const one = walkNotes().length === n0 + 1;
+    mk("wkWhere", "Snake wire"); mk("wkNote", "  low wall,  stay tight "); window.addWalk();
+    const same = walkNotes().length === n0 + 1 && /Already noted here/.test(S.flash || "");
+    mk("wkWhere", "Dorito wire"); mk("wkNote", "Low wall, stay tight"); window.addWalk();
+    const elsewhere = walkNotes().length === n0 + 2;
+    [w, n].forEach(el => { if(el.dataset.tmp) el.remove(); });
+    S.walk = was; window.set({ flash: "" });
+    const flags = { one, same, elsewhere };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("the same Walk note on the same spot twice is one note", walkDup === true, walkDup);
   check("the read line says why a favoured call is not offered: turned off, deleted, or not in this build", await ev(() => {
     const goneWere = S.playGone; S.playGone = {...(S.playGone || {}), "my:ghost": "Ghost Play"};
     const live = offWord(S.script) === "";

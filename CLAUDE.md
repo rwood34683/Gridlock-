@@ -1355,6 +1355,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   bunker he broke to is a mis-tap, and logged it was a visit counted twice on
   Bunker stats or a man shot from his own bunker. `logBreakout` refuses both
   and says which box it is, the way Movement refuses two taps on one bunker.
+- Keep the same Walk note twice. Add tapped twice put the same sentence on
+  the same bunker twice; a note that folds onto one already on that spot is
+  refused and said, and a note is capped at 240 characters so a card can
+  carry it.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
