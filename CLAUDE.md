@@ -637,7 +637,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   it and that is the whole reason it works in Garland. `SCHEDULE` is read off
   the league the way the pro board is — a screenshot from the coach — and it
   carries `read` (where and when) and `covers` (what the read did *not* reach;
-  Sunday was off the bottom of the page). A league row is never edited in
+  Sunday was off the bottom of the page). `parseSchedule()` reads a line the
+  way a league page prints it: a weekday ahead of the clock is not a team, a
+  field column after the teams — "Field 2", "(F3)", "Pit 1" — is not part of
+  one, and "vs." leaves no stray period; the suite pastes all three. A league row is never edited in
   place: one he does not want goes in `S.gamesOff`, and `S.games` holds only
   what he added, so a re-read replaces the seeded list wholesale. And a row
   says what he already has on that game — "watched · 1–0", "you played

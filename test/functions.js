@@ -6065,6 +6065,19 @@ const ROSTER = [
       && rows[1].h === "San Diego Dynasty" && rows[1].a === "Royal City Seadogs"
       && rows[2].d === "2026-09-19" && rows[2].h === "Houston Heat";
   }));
+  check("a weekday before the clock, a field column after the teams and a dotted vs. all come off", await ev(() => {
+    const rows = parseSchedule(
+      "Pro X-Ball — Friday\nField 1\n9:50 AM  Edmonton Impact vs. Los Angeles Ironmen   Field 2\n" +
+      "Sat 10:40  New York Xtreme — Detroit Infamous (F3)\n" +
+      "11:30 AM Chicago Aftershock v Baltimore Revo Field 1\n" +
+      "12:20 PM Sun Devils vs Houston Heat Pit 2\nLunch\n");
+    return rows.length === 4
+      && rows[0].h === "Edmonton Impact" && rows[0].a === "Los Angeles Ironmen"
+      && rows[1].h === "New York Xtreme" && rows[1].a === "Detroit Infamous"
+      && rows[2].h === "Chicago Aftershock" && rows[2].a === "Baltimore Revo"
+      // a team called Sun Devils keeps its name: the weekday strip is only ahead of the clock
+      && rows[3].h === "Sun Devils" && rows[3].a === "Houston Heat" && rows[3].t === "12:20";
+  }));
   check("a game typed by hand joins the list in its own place", await ev(() => {
     window.newGame();
     window.setGameField("d", "2026-09-18"); window.setGameField("t", "07:00");
