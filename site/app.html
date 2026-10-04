@@ -8219,13 +8219,19 @@ window.dropGame = id => {
 };
 window.newGame = () => set({gameNew: {d: SCHEDULE.games[0].d, t: "09:00", h: "", a: "", g: ""}});
 window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(v)}; save(S); };
+// The same game twice — one day, one clock, the same two teams — is one row
+// typed twice or one page pasted twice, not two games.
+const sameGame = (a, b) => !!a && !!b && a.d === b.d && a.t === b.t && foldName(a.h) === foldName(b.h) && foldName(a.a) === foldName(b.a);
+const gameOnList = g => allGames().find(x => sameGame(x, g)) || null;
 window.saveGame = () => {
   const n = S.gameNew || {};
   if(!(n.h || "").trim() || !(n.a || "").trim())
     return flash("Both teams, or there is no game to watch.");
-  S.games = [...(S.games || []),
-             {id: gameId(), d: n.d || SCHEDULE.games[0].d, t: n.t || "09:00",
-              h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()}];
+  const row = {id: gameId(), d: n.d || SCHEDULE.games[0].d, t: n.t || "09:00",
+               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()};
+  const had = gameOnList(row);
+  if(had) return flash(`${had.h} v ${had.a} is already on the list at ${clockName(had.t)}.`);
+  S.games = [...(S.games || []), row];
   set({gameNew: null});
 };
 /* Pasting a schedule.
@@ -8310,8 +8316,14 @@ window.readSchedule = () => {
   if(!rows.length)
     return flash("Nothing in that looked like a game. One game a line, with a time and both teams — "
                + "for example: 9:00 AM  Dynasty vs Impact");
-  S.games = [...(S.games || []), ...rows];
+  // Pasted twice, or a page that overlaps the one before: a row already on
+  // the list is left as it is and counted, not added again.
+  const fresh = [];
+  rows.forEach(r => { if(!gameOnList(r) && !fresh.some(f => sameGame(f, r))) fresh.push(r); });
+  const already = rows.length - fresh.length;
+  S.games = [...(S.games || []), ...fresh];
   set({gamePaste: "", gameOpen: null});
+  flash(`Added ${fresh.length} ${fresh.length === 1 ? "game" : "games"}.${already ? ` ${already} ${already === 1 ? "was" : "were"} already on the list.` : ""}`);
 };
 
 // An old sheet is worth reading, and worth adding to when you tallied a point

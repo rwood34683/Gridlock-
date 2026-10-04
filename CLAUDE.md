@@ -1383,6 +1383,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   do the play builder's name and read boxes, whose next tap is Save, a
   class's notes and start time (Share and Close sign-ins sit under them) and
   the sheet's name on Matches (New match and Played against do).
+- Keep the same game twice. One day, one clock, the same two teams is one
+  game: typed again on the schedule it is refused and said (`sameGame`,
+  `gameOnList`), and a page pasted twice, or one that overlaps the last,
+  adds only the rows the list does not have and says how many it already
+  had — the league's own rows included.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
