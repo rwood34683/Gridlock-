@@ -2824,12 +2824,18 @@ function copyPayload(scope){
 }
 function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
-  const bits = [[n("roster"), "player"], [n("scout"), "team scouted"], [n("tally"), "out"], [n("breakouts"), "breakout"],
+  // The sheets and the score lead: a season of forty points with no out
+  // tallied used to read as "6 players", which is a copy a coach deletes.
+  const bits = [[n("matches"), "sheet"], [n("results"), "point scored"], [n("roster"), "player"], [n("plays"), "play of yours"],
+                [n("scout"), "team scouted"], [n("calls"), "call logged"], [n("tally"), "out"], [n("breakouts"), "breakout"],
+                [n("pens"), "penalty"], [n("timeouts"), "timeout"], [n("games"), "game added"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
                 [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"]];
   return bits.filter(b => b[0])
-             .map(b => `${b[0]} ${b[1]}${b[0] === 1 ? "" : b[1].endsWith("scouted") ? "s scouted" : "s"}`
-                        .replace("team scouteds scouted", "teams scouted"))
+             .map(b => { const [k, w] = b; if(k === 1) return `1 ${w}`;
+                         // the plural goes on the noun, not the tail: teams scouted, points scored, plays of yours
+                         const pl = x => /[^aeiou]y$/.test(x) ? x.slice(0, -1) + "ies" : x + "s";   // penalties, plays
+                         const m = /^(\w+)( .*)$/.exec(w); return m && /scouted|scored|of yours|logged|added/.test(m[2]) ? `${k} ${pl(m[1])}${m[2]}` : `${k} ${pl(w)}`; })
              .join(" · ") || "nothing in it";
 }
 // Merge, not clobber: two devices that both did real work should end up with
