@@ -1596,10 +1596,24 @@ window.addTeam = () => {
   S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
   save(S); render();
 };
+// What the board holds against a team he added: the sheets against them, the
+// breaks of theirs and the men logged. Said on the row, and asked before Remove
+// takes a team with any of it off the list — nothing logged is deleted, the
+// profile outlives the picker and typing the name again puts it back, but a
+// team that vanishes from every picker with a season behind it reads as lost.
+function teamHas(name){
+  const sheets = (S.matches || []).filter(m => m && (m.vs === name || m.home === name || m.away === name)
+    && (matchSize(m.id) || (S.results || []).some(r => r.m === m.id))).length;
+  const p = (S.scout || {})[name] || {}, breaks = (p.breaks || []).length, men = (p.players || []).length;
+  const bits = [sheets ? `${sheets} ${sheets === 1 ? "sheet" : "sheets"}` : "", breaks ? `${breaks} ${breaks === 1 ? "break" : "breaks"} logged` : "",
+                men ? `${men} ${men === 1 ? "man" : "men"} logged` : ""].filter(Boolean);
+  return {sheets, breaks, men, any: sheets + breaks + men > 0, text: bits.join(" · ")};
+}
 window.delTeam = name => {
-  const id = divisionOf().id;
+  const id = divisionOf().id, has = teamHas(name);
+  if(has.any && !confirm(`${name} has ${has.text}. Take them off the board? Nothing logged is deleted — typing the name again puts them back with all of it.`)) return;
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== name)};
-  save(S); render();
+  save(S); flash(has.any ? `${name} is off the board. The ${has.text} stay — type the name again to put them back.` : `${name} is off the board.`);
 };
 // A team typed at the Tally gate between points is typed fast — "Houston
 // Heet" — and everything that point logged is keyed on the spelling: the
@@ -7082,15 +7096,17 @@ window.togglePen = () => set({penOpen: !S.penOpen});
  * does nothing, and Undo gives it back. The clock is the official's. */
 const timeoutsFor = mid => (S.timeouts || []).filter(t => t && t.m === (mid || S.matchId));
 window.addTimeout = side => {
-  if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
+  if(sheetOver()) return;   // a sheet on another field, or one that is over, takes nothing
   if(nobodyToPlay()) return needOpponent();
-  if(timeoutsFor().some(t => t.side === side)) return;
+  const used = timeoutsFor().find(t => t.side === side);
+  if(used){ flash(`That timeout went on point ${used.pt} — one a team a match. Undo it on the sheet if it was the wrong side.`); return; }
   S.timeouts = [{id: penId(), m: S.matchId, pt: S.point || 1, side, at: Date.now()}, ...(S.timeouts || [])];
   save(S); render();
 };
 window.dropTimeout = id => { S.timeouts = (S.timeouts || []).filter(t => t.id !== id); save(S); render(); };
 window.addPen = (side, cost) => {
-  if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
+  if(sheetOver()) return;   // a sheet on another field, or one that is over, takes nothing
+  if(nobodyToPlay()) return needOpponent();
   S.pens = [{id: penId(), m: S.matchId, pt: S.point || 1, side, cost: +cost || 1,
              who: "", why: "", at: Date.now()}, ...(S.pens || [])];
   set({penOpen: false});
@@ -8858,7 +8874,7 @@ function scoutBoard(){
     ${added.length?`<div class="assigns">${added.map(n=>`<div class="assign">
       <span class="assign__body"><input id="tn-${esc(foldName(n).replace(/\W+/g, "-"))}" value="${esc(n)}" maxlength="40" aria-label="Team name for ${esc(n)}"
           onchange="renameTeam(${jsq(n)}, this.value)"/>
-      <span class="assign__who">you added this one — fix the spelling here and every sheet follows; a name already on the list folds into it</span></span>
+      <span class="assign__who">${teamHas(n).any ? esc(teamHas(n).text) + " · " : ""}you added this one — fix the spelling here and every sheet follows; a name already on the list folds into it</span></span>
       <button class="btn btn--danger" onclick="delTeam(${jsq(n)})">Remove</button></div>`).join("")}</div>`:""}`,
     added.length?added.length+" added":"");
 }

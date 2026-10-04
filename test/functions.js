@@ -4793,6 +4793,53 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("opening a kept sheet brings its opponent into the pit — the home and away sides for a watched game", reopenPit === true, reopenPit);
+  const delTeamSays = await ev(() => {
+    const did = divisionOf().id, asked = [];
+    window.confirm = q => { asked.push(q); return false; };
+    S.teams = {...(S.teams || {}), [did]: [...addedTeams(did), {name: "Loose Cannons Del"}, {name: "Quiet Ones Del"}]};
+    window.set({ tab: "tally", right: { name: "Loose Cannons Del" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const m = S.matchId; window.markOut("them", "#3"); window.logTheirBreak("right", "blitz", []); window.endPoint("us");
+    window.set({ tab: "scout", scoutTab: "board" });
+    const box = document.querySelector('#root input[aria-label="Team name for Loose Cannons Del"]');
+    const row = box ? box.closest(".assign").textContent.replace(/\s+/g, " ") : "";
+    const said = /1 sheet · 1 break logged/.test(row);
+    window.delTeam("Loose Cannons Del");
+    const kept = asked.length === 1 && /1 sheet · 1 break logged/.test(asked[0]) && /Nothing logged is deleted/.test(asked[0]) && !!anyTeam("Loose Cannons Del");
+    window.confirm = q => { asked.push(q); return true; };
+    window.delTeam("Loose Cannons Del");
+    const gone = asked.length === 2 && !anyTeam("Loose Cannons Del") && matchById(m).vs === "Loose Cannons Del" && (profileOf("Loose Cannons Del").breaks || []).length === 1
+      && /off the board.*stay/.test(S.flash || "");
+    window.delTeam("Quiet Ones Del");
+    const quiet = asked.length === 2 && !anyTeam("Quiet Ones Del") && /off the board\.$/.test(S.flash || "");
+    const flags = { said, kept, gone, quiet };
+    const bk = {...(S.scout || {})}; delete bk["Loose Cannons Del"]; S.scout = bk;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Remove on a team you added says what the board holds against them and asks first; nothing logged is deleted", delTeamSays === true, delTeamSays);
+  const penDoors = await ev(() => {
+    window.confirm = () => true;
+    // Nobody to play: the gate, not a row on the unnamed sheet.
+    window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
+    const pens0 = (S.pens || []).length, tos0 = (S.timeouts || []).length;
+    window.addPen("them", 2); window.addTimeout("us");
+    const gated = (S.pens || []).length === pens0 && (S.timeouts || []).length === tos0 && S.tallyNudge === true;
+    // A second timeout for the same side says where the first went.
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(1); window.setMercy(0);
+    window.addTimeout("us"); window.nextPoint(); window.addTimeout("us");
+    const second = timeoutsFor().filter(t => t.side === "us").length === 1 && /went on point 1/.test(S.flash || "");
+    // A finished sheet refuses both and says so.
+    window.endPoint("us"); window.set({ flash: "" });
+    const pens1 = (S.pens || []).length, tos1 = (S.timeouts || []).length;
+    window.addPen("them", 1);
+    const penOver = (S.pens || []).length === pens1 && /Match over/.test(S.flash || "");
+    window.set({ flash: "" }); window.addTimeout("them");
+    const toOver = (S.timeouts || []).length === tos1 && /Match over/.test(S.flash || "");
+    const flags = { gated, second, penOver, toOver };
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("penalty and timeout go through the same doors as every other row: nobody to play is the gate, a finished sheet refuses and says so, a second timeout says where the first went", penDoors === true, penDoors);
   check("Sightlines opens on the bunker your first man actually stands in from the right end", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
