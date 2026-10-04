@@ -542,6 +542,10 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .pitline__read{font-size:var(--t-xs);color:var(--dim);white-space:nowrap}
 .pitline__go{font-size:var(--t-xs);color:var(--mute);font-weight:700;white-space:nowrap}
 @media(max-width:519px){.pitline{grid-template-columns:1fr auto}.pitline__side{grid-column:1/-1}}
+/* Two pits share the column from 700 px, so up to 1060 px each line is under
+   520 px wide — the same squeeze as a phone, where "RIGHT PIT · WHO YOU PLAY"
+   left "Housto…" for the name on an iPad. The label takes its own row there. */
+@container main (min-width:700px) and (max-width:1060px){.pitline{grid-template-columns:1fr auto}.pitline__side{grid-column:1/-1}}
 .pit--l{--wire:var(--red)}
 .pit--r{--wire:var(--blue)}
 .pit__side{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--wire)}
