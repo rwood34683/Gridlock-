@@ -8079,7 +8079,15 @@ window.markOut = (side,name) => {
   if(sheetOver()) return;
   const pt = S.point || 1;
   const i = (S.tally || []).findIndex(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === name);
-  if(i >= 0){ S.tally = S.tally.filter((_, k) => k !== i); save(S); render(); return; }
+  if(i >= 0){
+    S.tally = S.tally.filter((_, k) => k !== i);
+    // Tapped back in. If his break chart said shot on the break, that row is
+    // what put him out; left as it was, the chart said shot and the tally
+    // said in. He is alive on the chart too now, and the sheet says so.
+    const charted = (S.breakouts || []).find(r => r && r.m === S.matchId && r.pt === pt && r.side === side && r.player === name && r.alive === false);
+    if(charted){ S.breakouts = S.breakouts.map(r => r === charted ? {...r, alive: true, shotFrom: ""} : r); flash(`${name} is back in — his break chart reads made it now.`); }
+    save(S); render(); return;
+  }
   if(outRow(side, name)){ save(S); render(); }
 };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
