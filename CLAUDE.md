@@ -1341,6 +1341,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   placeholder and nothing else, which a screen reader drops the moment he
   types. Every one carries an `aria-label` now, and the sweep that used to
   read five screens reads every tab, sub-tab and section.
+- Put one word on two bunkers, or one job on two men. A bunker's word is
+  how it is shouted, and "Snake 1" on two bunkers of one field is one word
+  for two places — the trap `callTaken` closes for the twelve calls, left
+  open on Team's bunker calls and the Job chip. `bunkerWordTaken()` and
+  `jobWordTaken()` fold case and spacing like the rest and say which bunker
+  or slot already answers to the word; a man's own word for a bunker is his
+  alone and is not checked.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
