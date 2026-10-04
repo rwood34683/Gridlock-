@@ -1414,6 +1414,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   tap used to do nothing at all; `toggleRun` says so now. Every refusal in
   the app says what it refused and why — a tap that does nothing reads as a
   broken button.
+- Add a list to the season without a key in `SAME`. `mergeInto()` adds rows
+  by that key and, for a list it has no key for, takes the incoming list
+  whole — so Merge it in from an assistant's squad copy replaced his plays
+  with theirs, and a full copy replaced his penalties, timeouts and the
+  games he added. Every list a copy carries has a key now; a new list gets
+  one the day it is written, and the merge check carries one of each.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -3115,6 +3115,16 @@ const SAME = {
   blastTo:     id => id,
   codes:       c => (c.word || "").toLowerCase(),
   messages:    m => String(m),
+  // Every list a merge can meet needs a key here, or the merge takes the
+  // incoming list whole and his own is gone: a squad copy merged in from an
+  // assistant's phone replaced his plays with theirs, and a full copy
+  // replaced his penalties, timeouts and added games.
+  plays:       p => p.k,
+  offPlays:    k => String(k),
+  games:       g => g.id,
+  gamesOff:    id => String(id),
+  pens:        p => p.id,
+  timeouts:    t => t.id,
 };
 // Maps hold independent work too: one team's two players, two groups' members,
 // or notes from two walks. Recursing keeps both lists while scalar conflicts

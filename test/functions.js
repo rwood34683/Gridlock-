@@ -5048,6 +5048,26 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a merge adds plays, penalties, timeouts and added games — it never replaces his own with the copy's", await ev(() => {
+    window.confirm = () => true;
+    const were = { plays: S.plays, offPlays: S.offPlays, games: S.games, gamesOff: S.gamesOff, pens: S.pens, timeouts: S.timeouts, matches: S.matches, matchId: S.matchId, results: S.results, copyStatus: S.copyStatus };
+    const ids = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [{ k: "my:mine", name: "Mine", read: "", aggr: 3, plants: { [S.layoutKey]: ids }, at: 1 }];
+    S.offPlays = ["snake"]; S.games = [{ id: "g-mine", d: SCHEDULE.games[0].d, t: "08:00", h: "Mine H", a: "Mine A", g: "" }]; S.gamesOff = ["sch:keep"];
+    S.pens = [{ id: "pen-mine", m: S.matchId, pt: 1, side: "us", cost: 1, who: "", why: "", at: 1 }]; S.timeouts = [{ id: "to-mine", m: S.matchId, pt: 1, side: "us", at: 1 }];
+    const copy = JSON.parse(copyPayload("all"));
+    copy.data = { plays: [{ k: "my:theirs", name: "Theirs", read: "", aggr: 3, plants: {}, at: 2 }], offPlays: ["dside"], games: [{ id: "g-theirs", d: SCHEDULE.games[0].d, t: "09:00", h: "Theirs H", a: "Theirs A", g: "" }], gamesOff: ["sch:other"],
+                  pens: [{ id: "pen-theirs", m: "m-x", pt: 1, side: "them", cost: 2, who: "", why: "", at: 2 }], timeouts: [{ id: "to-theirs", m: "m-x", pt: 1, side: "them", at: 2 }] };
+    window.set({ tab: "more", more: "nexus" }); const box = document.getElementById("copyIn"); if(box) box.value = JSON.stringify(copy);
+    window.loadCopy("merge");
+    const both = l => (S[l] || []).map(x => x.k || x.id || x);
+    const ok = both("plays").includes("my:mine") && both("plays").includes("my:theirs") && both("offPlays").includes("snake") && both("offPlays").includes("dside")
+      && both("games").includes("g-mine") && both("games").includes("g-theirs") && both("gamesOff").includes("sch:keep") && both("gamesOff").includes("sch:other")
+      && both("pens").includes("pen-mine") && both("pens").includes("pen-theirs") && both("timeouts").includes("to-mine") && both("timeouts").includes("to-theirs")
+      && /Merged in/.test(S.copyStatus || "");
+    Object.assign(S, were); window.set({ tab: "tally" });
+    return ok;
+  }));
   check("turning off the last call you run is refused and said, not ignored", await ev(() => {
     const offWere = S.offPlays, scriptWere = S.script;
     const keys = playKeys(); S.offPlays = keys.slice(1); S.script = keys[0]; window.set({ flash: "" });
