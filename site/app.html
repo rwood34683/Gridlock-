@@ -535,17 +535,19 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);
   border-top:3px solid var(--wire);
 }
-.pitline{display:grid;grid-template-columns:auto 1fr auto auto;gap:var(--s3);align-items:center;width:100%;min-height:52px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--wire);border-radius:var(--r-md);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+/* The folded pit line is its own container: under 520 px of its own width the
+   label takes a row of its own, whatever put it there — a phone, an iPad in
+   portrait, or two pits sharing a column. The name has no basis of its own,
+   so it ellipsizes before anything wraps. */
+.pitline{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;width:100%;min-height:52px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--wire);border-radius:var(--r-md);color:var(--ink);font:inherit;text-align:left;cursor:pointer;container-type:inline-size}
 .pitline--l{--wire:var(--red)}.pitline--r{--wire:var(--blue)}
 .pitline__side{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--wire)}
-.pitline__name{font-weight:800;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitline__side{flex:0 0 auto}
+.pitline__name{flex:1 1 0;min-width:5em;font-weight:800;font-size:var(--t-md);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pitline__read{font-size:var(--t-xs);color:var(--dim);white-space:nowrap}
 .pitline__go{font-size:var(--t-xs);color:var(--mute);font-weight:700;white-space:nowrap}
-@media(max-width:519px){.pitline{grid-template-columns:1fr auto}.pitline__side{grid-column:1/-1}}
-/* Two pits share the column from 700 px, so up to 1060 px each line is under
-   520 px wide — the same squeeze as a phone, where "RIGHT PIT · WHO YOU PLAY"
-   left "Housto…" for the name on an iPad. The label takes its own row there. */
-@container main (min-width:700px) and (max-width:1060px){.pitline{grid-template-columns:1fr auto}.pitline__side{grid-column:1/-1}}
+@container (max-width:519px){.pitline__side{flex-basis:100%}}
+@container (max-width:359px){.pitline__read{flex-basis:100%;order:1}}   /* a 320 px phone: the read drops under the name */
 .pit--l{--wire:var(--red)}
 .pit--r{--wire:var(--blue)}
 .pit__side{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--wire)}
