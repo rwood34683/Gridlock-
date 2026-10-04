@@ -955,6 +955,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and a wire picker measured 38 px. `.main` is a container now and those
   layouts read `@container main`: pits two-up from 700 px of column, the sheet
   beside the field from 760 px, because a field at 240 px is a dot a bunker.
+- Put two team names in a segment that scrolls. `.seg` scrolls sideways by
+  design, which is right for twelve calls and wrong for three options: on a
+  watched game the break toggle and the whose-five switch carry two long team
+  names and Both, and the third option sat past the edge of a phone. `.seg--wrap`
+  wraps and ellipsizes instead; the devices suite opens a watched game with two
+  long names on every device and measures the options.
 - Put the section name last on a line that ellipsizes. The header crumb read
   "event · call · section" and on a phone the ellipsis ate the section, so
   More › Lineups was headed "… · SNAKE …". The section is its own span that
