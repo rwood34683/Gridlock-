@@ -42,7 +42,10 @@ const DEVICES = [
   ["iPhone 14 / 15 Plus",       428, 926],
   ["iPhone 16 / 17 Pro Max",    430, 932],
   ["iPad mini 6",               744, 1133],
+  ["iPad 10.2 (9th gen)",       810, 1080],
+  ["iPad 10.2 landscape",      1080, 810],
   ["iPad 10.9 / Air 11",        820, 1180],
+  ["iPad Air 11 landscape",    1180, 820],
   ["iPad Pro 11",               834, 1194],
   ["iPad Pro 13",              1024, 1366],
   ["iPad Pro 13 landscape",    1366, 1024],
@@ -156,6 +159,29 @@ const measure = () => {
       if (m.tap && (!worst.tap || m.tap.px < worst.tap.px)) worst.tap = { ...m.tap, tab };
       if (m.line && (!worst.line || m.line.ch > worst.line.ch)) worst.line = { ...m.line, tab };
     }
+    // The call row under the field. On an iPad on its side the call card is a
+    // 340 px column beside the field, and "Change the call" broke onto two
+    // lines inside a button of normal height — no overflow, no tall button, so
+    // only counting the label's lines catches it. Both shapes of the row: one
+    // of the twelve (Make it yours) and one of his own (Edit, Delete).
+    const callRow = await page.evaluate(() => {
+      try{
+        const lines = btn => { const r = document.createRange(); r.selectNodeContents(btn); return new Set([...r.getClientRects()].map(q => Math.round(q.top))).size; };
+        const bad = [];
+        const L = S.layoutKey, keepPlays = S.plays, keepScript = S.script;
+        S.plays = [...(S.plays || []).filter(p => p.k !== "my:dev-row"), { k: "my:dev-row", name: "Rocket Left", read: "", aggr: 3, plants: { [L]: curLayout().bunkers.slice(0, 5).map(b => b.id) }, at: 1 }];
+        for (const k of ["snake", "my:dev-row"]) {
+          window.set({ tab: "playbook", pbView: null, script: k });
+          const row = document.querySelector("#root .callrow"); if(!row){ bad.push("no call row on " + k); continue; }
+          row.querySelectorAll("button").forEach(b => { const r = b.getBoundingClientRect();
+            if(lines(b) > 1) bad.push(`"${b.textContent.trim()}" on ${lines(b)} lines`);
+            if(r.right > window.innerWidth + 1) bad.push(`"${b.textContent.trim()}" past the edge`); });
+        }
+        S.plays = keepPlays; window.set({ script: keepScript });
+        return bad.length ? bad.join("; ") : true;
+      }catch(e){ return "threw " + e.message; }
+    });
+    check("Devices", `${name} — the call row under the field reads on one line a button`, callRow === true, callRow === true ? "" : String(callRow));
     // The header at its fullest: the break clock running, a long race score
     // and the Staff chip. Four chips at 375 px ran the Staff chip off the edge.
     const stressed = await page.evaluate(() => {
