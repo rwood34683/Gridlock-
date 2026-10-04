@@ -491,7 +491,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     his own point (`outRow` takes `pt`), not the point the coach is on now.
     A finished race does not stop him placing or telling them — the last
     point's men are charted walking off, after We won it, and land on that
-    point (`sheetPoint()`); only a sheet on another field refuses.
+    point (`sheetPoint()`); only a sheet on another field refuses. And a
+    new sheet does not hide them in silence: New match says how many men on
+    the sheet it closes are still to tell (`untoldOn`), and the sheet's row
+    under Matches says so until they are told.
     Their men placed on Tally are their
     five on Scout too (`syncTallyFive`): the point's break row for the team on
     the sheet takes their bunkers, marked `tallied`, so Where they plant, the
