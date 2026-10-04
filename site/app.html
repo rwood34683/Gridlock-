@@ -3181,7 +3181,9 @@ window.toggleRun = k => {
   const off = playOff();
   if(off.has(k)) off.delete(k);
   else {
-    if(playKeys().filter(x => x !== k).filter(runsPlay).length < 1) return;
+    // The last call standing cannot be turned off — an empty picker is a
+    // Playbook with nothing to draw — and the tap used to do nothing at all.
+    if(playKeys().filter(x => x !== k).filter(runsPlay).length < 1){ flash(`${callName(k)} is the last call you run — turn another one on first.`); return; }
     off.add(k);
   }
   S.offPlays = [...off];

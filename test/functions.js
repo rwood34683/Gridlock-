@@ -5048,6 +5048,14 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("turning off the last call you run is refused and said, not ignored", await ev(() => {
+    const offWere = S.offPlays, scriptWere = S.script;
+    const keys = playKeys(); S.offPlays = keys.slice(1); S.script = keys[0]; window.set({ flash: "" });
+    window.toggleRun(keys[0]);
+    const refused = runsPlay(keys[0]) && /is the last call you run/.test(S.flash || "");
+    S.offPlays = offWere; window.set({ script: scriptWere, flash: "" });
+    return refused;
+  }));
   check("a league row taken off the list can be put back, and the page says how many are off", await ev(() => {
     const offWere = S.gamesOff; window.confirm = () => true;
     const g = allGames().find(x => x.seed); if(!g) return "no seeded row";
