@@ -6304,7 +6304,7 @@ function playbook(){
   ${/* Which end the five break from. Below Play the break, not above it: a row
         over Play pushed it off the first screen on first run. */""}
   ${endsChip()}
-  <button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>
+  ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>`}
 
   ${/* A one-time nudge to the play maker. It sits BELOW Play the break so it
         never pushes that off the fold on first run, and retires itself the
@@ -7205,7 +7205,7 @@ function tally(){
     <div class="btnrow">
       <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
         S.tallyPick?"Close":"Change the call"}</button>
-      <button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>
+      ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>`}
     </div>
     ${lanesLine()}
     ${S.tallyPick?`<div class="seg seg--wrap">
@@ -7855,8 +7855,19 @@ function selfScout(){
 /* One point, one call. Logging again on the same point replaces what was
  * logged — a coach who changes the call and taps Log it again meant that,
  * and a double tap used to count one call twice in his own self-scout. */
+/* A game he is watching has no five of his on it. Lineups, Movement and
+ * Assess are about his five on this point, and Log it logs a call he made:
+ * none of them has anything to do on a watched sheet, so each says so and
+ * sends him to Scout, where the two teams on that field are charted. */
+function watchedNote(){
+  const m = curMatch() || {};
+  return `<div class="empty">A game you are watching: <b>${esc(m.home || "Home")}</b> v <b>${esc(m.away || "Away")}</b>.
+    Your five are not on this field, so there is nothing of yours to set here.
+    <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({tab:'scout',scoutTab:'breakouts',more:null})">Chart it on Scout</button></div>`;
+}
 window.logCall = () => {
   if(nobodyToPlay()) return needOpponent();
+  if((curMatch() || {}).watch) return;   // not his call to log
   if(sheetOver()) return;
   const pt = S.point || 1;
   S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now()},
@@ -9026,7 +9037,7 @@ function pointStory(gid, pt, team){
   const kv=(k,v)=>v?`<div class="kv__row"><span class="kv__k">${k}</span><span class="kv__v">${v}</span></div>`:"";
   const sc=scoreBefore(gid,pt);
   const facts=kv("Score before",m&&m.watch?`${esc(m.home||"Home")} ${sc.us} – ${sc.them} ${esc(m.away||"Away")}`:`${sc.us}–${sc.them}`)
-    +kv(m&&m.watch?`${esc(m.home||"Home")} called`:"You called",call?`<b>${esc(callName(call.script))}</b>`:"")
+    +(m&&m.watch?"":kv("You called",call?`<b>${esc(callName(call.script))}</b>`:""))
     +(homes?kv(`${esc(m.home)} ran`,`${homes.script?`<b>${esc(callName(homes.script))}</b>`:"unnamed"}${homes.plants?` · ${homes.plants.map(id=>esc(named(id))).join(", ")}`:""}`):"")
     +kv(`${esc(team)} ran`,theirs?`${theirs.script?`<b>${esc(callName(theirs.script))}</b>`:"unnamed"}${theirs.plants?` · ${theirs.plants.map(id=>esc(named(id))).join(", ")}`:""}`:"")
     +kv("Won by",res?`<b>${esc(who(res.won))}</b>${res.read?` · ${res.read==="right"?"right read":"wrong read"}`:""}`:"")
@@ -10031,6 +10042,7 @@ function moreBody(k){
       notes.length ? notes.length+(notes.length===1?" note":" notes") : layoutName);
   }
   if(k==="lineups"){
+    if((curMatch()||{}).watch) return sec("Lineups", watchedNote(), matchLabel(curMatch()));
     const pt=S.point||1, line=lineupFor(pt), five=fiveFor(pt);
     const mine=lineupPoints();
     const prev=mine.filter(n=>n<pt)[0];
@@ -10323,6 +10335,7 @@ function moreBody(k){
     })();
   }
   if(k==="movement"){
+    if((curMatch()||{}).watch) return sec("Movement", watchedNote(), matchLabel(curMatch()));
     const list=curLayout().bunkers;
     const mv=layoutMoves();
     // The list prints a point number against each rotation, so it has to be one
@@ -10390,6 +10403,7 @@ function moreBody(k){
       layoutName);
   }
   if(k==="assess"){
+    if((curMatch()||{}).watch) return sec("Assess", watchedNote(), matchLabel(curMatch()));
     const all=S.assessments||[];
     const here=rowsHere(all);
     const pt=S.point||1, on=onPoint(pt), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
@@ -10690,7 +10704,7 @@ function quickLog(){
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
-      <button class="btn btn--quiet grow" onclick="logCall()">✓ Log call</button>
+      ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log call</button>`}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point ›</button>
     </div>
     <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
