@@ -5536,6 +5536,35 @@ const ROSTER = [
     Object.assign(S, keep); window.set({ pad: null });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ") + " :: " + faceLabels.join(",");
   }));
+  check("men placed and not told before the point ends stay to tell, with their outs on their own point", await ev(() => {
+    const keep = { breakouts: S.breakouts, tally: S.tally, matches: S.matches, matchId: S.matchId, point: S.point, right: S.right, results: S.results, roster: S.roster, scout: S.scout };
+    S.roster = [{ name: "Reyes", num: 7 }, { name: "Dill", num: 3 }, { name: "Ortiz", num: 12 }, { name: "Kim", num: 4 }, { name: "Lowe", num: 9 }];
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.set({ tab: "tally", tallyStep: "place", flash: "" });
+    const ours = curLayout().bunkers.filter(b => b.x < 60);
+    ours.slice(0, 3).forEach(b => window.tallyTap([b.x, b.y]));
+    window.tallyStepTo("record"); window.setDraft({ player: "Reyes", alive: true }); window.logBreakout(); window.tallyDone();
+    window.endPoint("us");
+    const root = document.getElementById("root");
+    const owed = /Point 1 · 2 still to tell/.test(root.textContent) && /2 · What happened · 2 to tell/.test(root.textContent);
+    window.tallyStepTo("record");
+    const opened = (S.breakouts.find(r => r.id === S.tallyEdit) || {}).pt === 1 && /point 1 · man 2 of 3/.test((document.getElementById("tally-sheet") || {}).textContent || "");
+    window.setDraft({ player: "Dill", alive: false }); window.logBreakout();
+    const out = (S.tally || []).find(o => o.m === S.matchId && o.name === "Dill");
+    const outOnItsPoint = !!out && out.pt === 1;
+    window.setDraft({ alive: true }); window.logBreakout();
+    const done = !S.tallyEdit && /All 3 on point 1 recorded/.test(S.flash || "") && !/still to tell/.test(document.getElementById("root").textContent);
+    // the race is over: the last point's men can still be told
+    window.setRaceTo(2); window.set({ tallyStep: "place" });
+    ours.slice(3, 5).forEach(b => window.tallyTap([b.x, b.y]));
+    window.endPoint("us");
+    const over = matchOver() === "won" || !!matchOver();
+    window.tallyStepTo("record"); window.setDraft({ player: "Ortiz", alive: true }); window.logBreakout();
+    const toldAfter = (S.breakouts || []).some(r => r.m === S.matchId && r.pt === 2 && r.player === "Ortiz" && !r.todo);
+    const flags = { owed, opened, outOnItsPoint, done, over, toldAfter };
+    Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
     const keep = { plays: S.plays, off: S.offPlays, script: S.script };
     const wait = () => new Promise(r => setTimeout(r, 900));

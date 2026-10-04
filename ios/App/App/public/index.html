@@ -6697,6 +6697,12 @@ window.tallyTap = at => {
  * is told, so nothing is lost if the point ends before step two. */
 const pointRows = () => breakoutsHere().filter(r => r.pt === (S.point || 1) && r.layout === S.layoutKey)
   .sort((a, b) => a.at - b.at);
+/* Men placed and not yet told, on any point of this sheet. Between points
+ * there are forty-five seconds; a coach who placed ten and told three before
+ * the buzzer had seven men left on a point Tally no longer showed. The point
+ * he is on comes first, then the earliest point still owing. */
+const tellBacklog = () => breakoutsHere().filter(r => r.todo && r.layout === S.layoutKey)
+  .sort((a, b) => ((a.pt === (S.point || 1)) ? -1 : 0) - ((b.pt === (S.point || 1)) ? -1 : 0) || a.pt - b.pt || a.at - b.at);
 const placeSideWord = side => { const m = curMatch(); return m && m.watch ? (side === "us" ? m.home : m.away) || (side === "us" ? "Home" : "Away") : side === "us" ? "Yours" : "Theirs"; };
 /* Their five, charted once.
  *
@@ -6773,7 +6779,7 @@ window.editBreakout = id => {
 window.tallyStepTo = step => {
   S.tallySel = null; S.tallyDraft = null; S.tallyEdit = null; S.tallyPickFor = null;
   S.tallyStep = step === "record" ? "record" : "place";
-  const next = S.tallyStep === "record" && pointRows().find(r => r.todo);
+  const next = S.tallyStep === "record" && tellBacklog()[0];
   if(next) return editBreakout(next.id);
   save(S); render();
 };
@@ -6820,10 +6826,12 @@ window.tallyDone = () => set({tallySel:null, tallyDraft:null, tallyPickFor:null,
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
-  if(sheetOver()) return;
-  const d = draft(), at = Date.now();
   // Telling a placed man's story writes over his row: same id, same point.
   const editing = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
+  // A man already on a played point can be told after the race is over — the
+  // last point's men are told walking off — but never from another field.
+  if(editing ? (sheetField() && sheetOver()) : sheetOver()) return;
+  const d = draft(), at = Date.now();
   const pt = editing ? editing.pt : (S.point || 1);
   const side = d.side || sideOfBunker(b);
   // Moved to is where he went next and Shot from is where the paint came
@@ -6861,16 +6869,17 @@ window.logBreakout = () => {
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
-    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {})});
+    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || S.script});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
   S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
   // Step two walks the men he placed: Save opens the next one still to tell.
   if(editing){
-    const next = pointRows().find(r => r.todo);
+    const next = tellBacklog()[0];
     if(next) return editBreakout(next.id);
     S.tallyDraft = null; save(S);
-    if(!was) flash(`All ${pointRows().length} on this point recorded.`); else render();
+    const told = breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).length;
+    if(!was) flash(pt === (S.point || 1) ? `All ${told} on this point recorded.` : `All ${told} on point ${pt} recorded.`); else render();
     return;
   }
   // The side sticks if the coach set it — he is working through their five —
@@ -7047,8 +7056,12 @@ function tallyOverlay(){
 function breakoutSheet(){
   const b = selBunker(); if(!b) return "";
   const d = draft(), pt = S.point || 1, bl = curLayout().bunkers;
+  // A man told from an earlier point of the sheet is read against that point:
+  // its five, its number in the header.
+  const edRow = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
+  const rowPt = edRow ? edRow.pt : pt;
   const side = d.side || sideOfBunker(b);
-  const mine = fiveFor(pt).filter(Boolean).map(p => p.name);
+  const mine = fiveFor(rowPt).filter(Boolean).map(p => p.name);
   // On a watched game "us" is the home side, not his five: neither side is
   // his to name from his roster, so both are numbers, and the toggle names
   // the two teams. A home man filed as Reyes would land in Reyes's own read.
@@ -7057,7 +7070,7 @@ function breakoutSheet(){
     ? (wm ? theirNames() : mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
     : theirNames();
   const others = bl.filter(o => o.id !== b.id);
-  const far = others.filter(o => ((side === "us") === (ourEnd() === "left")) ? o.x > 75 : o.x < 75);
+  const far = others.filter(o => ((side === "us") === (ourEnd(rowPt) === "left")) ? o.x > 75 : o.x < 75);
   const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
     `<option value="${esc(o.id)}" ${val === o.id ? "selected" : ""}>${esc(callOf(o))} · ${esc(o.id)}</option>`).join("");
   const seg = items => `<div class="seg seg--wrap">${items.map(([on, label, click]) =>
@@ -7066,13 +7079,13 @@ function breakoutSheet(){
   const route = d.route || [];
   const flip = (field, val, on) => `setDraft({${field}:${on ? "''" : jsq(val)}})`;
   // Telling a placed man: which one of how many, and Save goes to the next.
-  const rowsPt = S.tallyEdit ? pointRows() : [];
+  const rowsPt = edRow ? breakoutsHere().filter(r => r.pt === rowPt && r.layout === S.layoutKey).sort((a, b) => a.at - b.at) : [];
   const nth = rowsPt.findIndex(r => r.id === S.tallyEdit) + 1;
-  const more = rowsPt.some(r => r.todo && r.id !== S.tallyEdit);
+  const more = tellBacklog().some(r => r.id !== S.tallyEdit);
   return `<div class="tsheet" id="tally-sheet">
     <div class="btnrow" style="align-items:center">
       <span class="grow"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
-        <span class="note" style="display:inline"> · ${esc(b.id)} · point ${pt}${nth ? ` · man ${nth} of ${rowsPt.length}` : ""}</span></span>
+        <span class="note" style="display:inline"> · ${esc(b.id)} · point ${rowPt}${nth ? ` · man ${nth} of ${rowsPt.length}` : ""}</span></span>
       ${S.tallyEdit ? `<button class="btn btn--quiet" onclick="undoBreakout(${jsq(S.tallyEdit)})">Take him off</button>` : ""}
       <button class="btn btn--quiet" onclick="tallyDone()">Done</button>
     </div>
@@ -7210,7 +7223,7 @@ function tally(){
   const watched = !!(curMatch()||{}).watch;
   const stepStrip = `<div class="seg seg--wrap" aria-label="Break chart step">
       <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">1 · Where they went</button>
-      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${todo ? ` · ${todo} to tell` : ""}</button>
+      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
       ? "Off the buzzer, tap the bunker each man broke to — one tap a man. Tap one again to take him off."
@@ -7223,7 +7236,13 @@ function tally(){
         <button class="${S.tallyPlace === "us" ? "on" : ""}" onclick="set({tallyPlace:'us'})">${esc(watched ? placeSideWord("us") : "Your five")}</button>
         <button class="${S.tallyPlace === "them" ? "on" : ""}" onclick="set({tallyPlace:'them'})">${esc(placeSideWord("them"))}</button>
       </div>` : "";
-  const placedList = rowsPt.length ? `<div class="kv" aria-label="Men on this point">
+  // Men from earlier points of this sheet still to tell: one line a point,
+  // one tap opens the first of them. Nothing placed is ever out of reach.
+  const owed = (() => {
+    const by = {}; tellBacklog().filter(r => r.pt !== pt).forEach(r => { (by[r.pt] = by[r.pt] || []).push(r); });
+    return Object.keys(by).map(Number).sort((a, b) => a - b).map(p => `<button class="btn btn--quiet btn--block" style="justify-content:flex-start" onclick="editBreakout(${jsq(by[p][0].id)})">Point ${p} · ${by[p].length} still to tell →</button>`).join("");
+  })();
+  const placedList = owed + (rowsPt.length ? `<div class="kv" aria-label="Men on this point">
       <div class="kv__row"><span class="kv__k">${esc(placeSideWord("us"))} ${placedBy("us")} of ${startUp("us", S.matchId, pt)} · ${esc(placeSideWord("them"))} ${placedBy("them")} of ${startUp("them", S.matchId, pt)}</span>
         <span class="kv__v">${todo ? `${todo} to tell` : "all told"}</span></div>
       ${rowsPt.map(r => `<div class="btnrow" style="align-items:center">
@@ -7233,7 +7252,7 @@ function tally(){
             : esc(describeBreakout(r))}</button>
         <button class="btn btn--quiet" aria-label="Take this man off" onclick="undoBreakout(${jsq(r.id)})">✕</button></div>`).join("")}
     </div>`
-    : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`;
+    : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`);
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
   return `${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
@@ -7627,7 +7646,9 @@ function theirNames(){
   return named;
 }
 function outRow(side, name, extra = {}){
-  const pt=S.point||1;
+  // The point the out belongs to: the one he is on, unless the row being
+  // told is from an earlier point of this sheet.
+  const pt=extra.pt||S.point||1;
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.m===S.matchId && o.pt===pt
                                     && o.side===side && o.name===name);
   if(already) return false;
@@ -10189,6 +10210,7 @@ const HELP_Q = [
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
+  ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in, and a second tap takes him off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
   ["The field looks wrong for this event.", "Change at the top of any screen switches the event, and every tab follows it. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
@@ -10207,7 +10229,7 @@ const HELP_Q = [
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
-  ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — logged on this point on Scout › Breakouts, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
+  ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — placed on Tally or logged on Scout › Breakouts for this point, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
   ["Where do they go after the break?", "Every sighting on How did they get there is where a man was, and the next sighting of the same man on the same point is where he went. Their rotations, under the field there, counts those moves across every match on this field — MD → T 4 times, #7 Dill 3 of them — and Anticipate carries the top three as After the break. A count of what was seen, never a model."],
   ["Who should I put on?", "Who's on, above your five on the point sheet, lists the squad with a line under each man counted from the breaks you have charted against this team on this field: breaks charted, made it, shot on the break and from where, the bunker he breaks to most. A man with nothing charted has no line. It is a count, not a grade — the grade is yours, on Assess."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
