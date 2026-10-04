@@ -5967,11 +5967,20 @@ function pitDup(side, num, name, except){
   return pitOf(side).players.findIndex((p, k) => k !== except && (num ? String(p.num || "").trim() === num : !!name && foldName(p.name) === foldName(name)));
 }
 const pitManTag = p => p.num ? `#${p.num}${p.name ? " " + p.name : ""}` : p.name;
+// His own man the same way: a roster row from an older copy or a paste can
+// have no number, and "#undefined Reyes" was printed on Playbook, Sightlines,
+// the cards, Lineups and the quick log.
+const manTag = p => !p ? "" : (p.num !== undefined && p.num !== null && p.num !== "" ? `#${p.num}${p.name ? " " + p.name : ""}` : (p.name || ""));
 window.editScoutPlayer = (side, i, field, value) => {
   const v = clean(String(value).trim());
   // A number moved onto another man's is refused: two #7s is one read split in two.
   if(field === "num" && v && pitDup(side, v, "", i) >= 0){ flash(`#${v} is already ${pitManTag(pitOf(side).players[pitDup(side, v, "", i)])}.`); return; }
   const before = pitOf(side).players[i], after = {...before, [field]: v};
+  // A man is his number or his name; emptying the one he has left leaves a
+  // blank row nothing can be counted under. Kept, and said.
+  if((field === "num" || field === "name") && !v && !String(after.num || "").trim() && !String(after.name || "").trim()){
+    flash(`${pitManTag(before)} needs his number or his name — kept the ${field === "num" ? "number" : "name"}.`); render(); return;
+  }
   if(field === "num" || field === "name") rekeyTheirMan(pitOf(side).name, before, after);
   editProfile(side, {players: pitOf(side).players.map((p, k) => k === i ? after : p)});
 };
@@ -6737,7 +6746,7 @@ function playbook(){
           <span class="assign__n">${pth.id}</span>
           <span class="assign__body">
             <span class="assign__job">${esc(jobName(key, pth.id, pth.label))}</span>
-            <span class="assign__who">${who?esc("#"+who.num+" "+who.name):"no one on this job yet"}</span>
+            <span class="assign__who">${who?esc(manTag(who)):"no one on this job yet"}</span>
           </span>
           <span class="assign__ctl">
             <span class="ps">
@@ -6939,7 +6948,7 @@ function cardsView(){
         <span class="assign__n">${c.n}</span>
         <span class="assign__body">
           <span class="call__name" style="font-size:var(--t-xl)">${esc(c.bunker)}</span>
-          <span class="assign__job">${c.who?esc("#"+c.who.num+" "+c.who.name):"no one on this job yet"}</span>
+          <span class="assign__job">${c.who?esc(manTag(c.who)):"no one on this job yet"}</span>
           <span class="assign__who">on the ${esc(c.wire)}</span>
         </span>
         <span class="assign__ctl" style="flex-basis:100%">
@@ -7860,7 +7869,7 @@ function whoPick(idx, side, value){
   // Your player went out — who got him? Theirs went out — which of yours?
   const list = side === "us"
     ? (pitOf("right").players || []).map(m => ({v:"#"+(m.num||"?"), t:"#"+(m.num||"?")+(m.name?" "+m.name:"")}))
-    : (S.roster || []).map(r => ({v:r.name, t:"#"+r.num+" "+r.name}));
+    : (S.roster || []).map(r => ({v:r.name, t:manTag(r)}));
   return causePick(side === "us" ? "By (them)" : "By (yours)", idx, "by", value, list);
 }
 
@@ -10704,7 +10713,7 @@ function moreBody(k){
         <span class="assign__n">${i+1}</span>
         <span class="assign__body">
           <span class="assign__job">${pl?esc(pl.name):"— empty —"}${job?` <span style="color:var(--dim);font-weight:400">· ${esc(job)}</span>`:""}</span>
-          <span class="assign__who">${pl?esc("#"+pl.num+" · P "+(pl.p||"—")+" · S "+(pl.s||"—")):open?"tap the man below":"tap to pick a man"}</span>
+          <span class="assign__who">${pl?esc((pl.num !== undefined && pl.num !== null && pl.num !== "" ? "#"+pl.num+" · " : "")+"P "+(pl.p||"—")+" · S "+(pl.s||"—")):open?"tap the man below":"tap to pick a man"}</span>
         </span>
       </button>${open?`<div class="seg seg--wrap" aria-label="Who plays slot ${i+1}">
         ${roster.map(r=>{ const at=slotOf(r.name); return `<button class="${at===i?"on":""}" onclick="setSlot(${i},${jsq(r.name)})">${esc(r.name)}${at>=0&&at!==i?` <span style="opacity:.6">· ${at+1}</span>`:""}</button>`; }).join("")}
