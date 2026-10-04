@@ -1055,6 +1055,17 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   match beside `raceTo`; both are the division's rule and both are set on
   the sheet. `docs/RULES-CHECK.md` is where a rule's structure is checked
   against the rulebook — never its text.
+- Count a break from the far end on the bunker he actually stood in. A charted
+  break keeps that bunker, rightly, but a job is the same job from either end
+  — the third can up the snake wire is Br#5 from the left and Br#6 from the
+  right — and a five that swapped ends every point read "+2 on Br#5, −2 on
+  Br#6, rethink this break" for one break. `ownBunker(id, side, m, pt)` is
+  the side's own-end frame (the left-end frame for his five, where plants
+  live); *Where the points come from* and `manRead()` count in it, the table
+  says so once ends have moved on this field, and `shownBunker()` maps a row
+  back to the bunker under his thumb on the end he breaks from now, so the
+  rings travel with the end. Bunker stats stays physical: it is a heat map of
+  where on the field things happened.
 - Switch ends on the point number. Teams switch after a point somebody won;
   a no-point moves nobody, and overtime starts on the pit side. `ourEnd()`
   reads the results through `scoredBefore()`, so "Next point, no result" keeps

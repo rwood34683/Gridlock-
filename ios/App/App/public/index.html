@@ -4537,7 +4537,9 @@ function manRead(side, who, team){
   const hit = r => r && r.side === side && r.player && (r.player === tag || r.player.split(" ")[0] === tag.split(" ")[0] && tag.startsWith("#"))
                  && (!team || r.vs === team) && !watchedMatch(r.m);
   const rows = (S.breakouts || []).filter(hit);
-  const top = key => { const m = {}; rows.forEach(r => { if(r[key]) m[r[key]] = (m[r[key]] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
+  // His bunker is counted in his own end's frame, so a man who swaps ends every point still "breaks to" one bunker.
+  const val = (r, key) => key === "bunker" && r.bunker && r.layout === S.layoutKey ? ownBunker(r.bunker, side, r.m, r.pt) : r[key];
+  const top = key => { const m = {}; rows.forEach(r => { const v = val(r, key); if(v) m[v] = (m[v] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
   return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
           delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battling").length,
           bunker: top("bunker"), shotFrom: top("shotFrom")};
@@ -6201,6 +6203,21 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
  * in the box before the buzzer. Now that penalties are recorded, an uneven point
  * can be left out — `Even points only` — and the table says how many it dropped
  * rather than quietly changing the numbers under him. */
+/* A charted break keeps the bunker the man actually stood in, but a job is the
+ * same job from either end: the third can up the snake wire is Br#5 broken
+ * from the left and Br#6 from the right. Counted as two bunkers, a five that
+ * swapped ends every point read "+2 on Br#5, -2 on Br#6, rethink this break"
+ * for one break. So anything that counts a side's bunkers across points does
+ * it in that side's own-end frame — the left-end frame for his five, the
+ * same frame plants are kept in — and the field maps it back to the bunker
+ * under his thumb on the end he is on now. The row itself is never changed. */
+function ownBunker(id, side, mid, pt){
+  // Theirs stay physical, like every count on Scout; it is his five whose
+  // plants and jobs are kept in the left-end frame.
+  return side !== "them" && ourEnd(pt, matchById(mid)) === "right" ? mirrorBunkerId(id) : id;
+}
+// The bunker to draw for an own-frame id, on the end his five break from now.
+const shownBunker = (id, side) => side !== "them" && ourEnd() === "right" ? mirrorBunkerId(id) : id;
 function bunkerValue(side, evenOnly){
   const won = new Map((S.results || []).filter(r => r && r.m).map(r => [r.m + "|" + r.pt, r.won]));
   const by = {};
@@ -6209,7 +6226,8 @@ function bunkerValue(side, evenOnly){
   // side, not his five, so it never counts toward where his points come from.
   (S.breakouts || []).filter(r => r && r.layout === S.layoutKey && r.side === side && !watchedMatch(r.m)).forEach(r => {
     if(evenOnly && !evenPoint(r.m, r.pt)){ skipped++; return; }
-    const t = by[r.bunker] = by[r.bunker] || {att:0, made:0, dead:0, won:0, lost:0};
+    const k = ownBunker(r.bunker, side, r.m, r.pt);
+    const t = by[k] = by[k] || {att:0, made:0, dead:0, won:0, lost:0};
     t.att++;
     if(r.alive === true) t.made++; else if(r.alive === false) t.dead++;
     const w = won.get(r.m + "|" + r.pt);
@@ -6257,7 +6275,7 @@ function tallyOverlay(){
     });
   }
   bunkerValue("us").forEach(r => {
-    const b = byId[r.id]; if(!b) return;
+    const b = byId[shownBunker(r.id, "us")]; if(!b) return;
     const s2 = bunkerSize(b, sx, sy);
     const col = r.net > 0 ? "#3ecf8e" : r.net < 0 ? "#e0a33a" : "#8d9092";
     out += `<rect class="tally-worth" x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${col}" stroke-width="1.4" opacity=".9"/>`
@@ -6467,7 +6485,7 @@ function tally(){
       <tbody>${value.map(valueRow).join("")}</tbody></table></div>
     ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
     ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
-    <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.</p>`;
+    <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.${(S.matches||[]).some(m => m.layout === S.layoutKey && (m.swapEnds || m.end === "right")) ? " A break from the far end is counted on the bunker it is from your own end, so one job is one row whichever end it was run from; the rings on the field sit on the end you break from now." : ""}</p>`;
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
   return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
