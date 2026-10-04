@@ -617,7 +617,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   two teams in its label, because 2–1 in red beside the Staff chip reads as
   his score),
   because there is no "us" on that field. Tally says so on screen and sends him
-  to Scout, which is where two other teams are actually charted.
+  to Scout, which is where two other teams are actually charted — and so do
+  Lineups, Movement and Assess (`watchedNote()`), which are about his five on
+  this point, while Log it is not offered on any screen and `logCall()`
+  refuses, because a call on a watched sheet is not a call he made.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in
   it and that is the whole reason it works in Garland. `SCHEDULE` is read off
   the league the way the pro board is — a screenshot from the coach — and it

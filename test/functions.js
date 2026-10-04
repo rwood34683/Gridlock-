@@ -4728,6 +4728,20 @@ const ROSTER = [
     window.set(keep);
     return /Twelve breaks and your own plays, drawn on the field you are actually playing/.test(t) && !/free|\$|no account/i.test(t.replace(/account takes a moment|Create your account|I already have one/g, ""));
   }));
+  check("on a watched game Lineups, Movement and Assess say his five are not on the field, and no screen logs a call of his", await ev(() => {
+    window.confirm = () => true;
+    S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
+    window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
+    const said = ["lineups", "movement", "assess"].every(k => { window.set({ tab: "more", more: k }); const t = document.getElementById("root").textContent; return /A game you are watching: Dynasty v Houston Heat/.test(t) && /Chart it on Scout/.test(t) && !/Save grade|Tap the man who moved|Tap the slot/.test(t); });
+    window.set({ tab: "playbook" }); const noPb = !/Log this call/.test(document.getElementById("root").textContent);
+    window.set({ tab: "tally" }); const noSheet = ![...document.querySelectorAll("#root button")].some(b => /Log it · point/.test(b.textContent));
+    const before = (S.calls || []).length; window.logCall(); const refused = (S.calls || []).length === before;
+    const go = [...document.querySelectorAll("#root button")].find(b => /Chart it on Scout/.test(b.textContent));
+    window.set({ tab: "more", more: "assess" }); [...document.querySelectorAll("#root button")].find(b => /Chart it on Scout/.test(b.textContent)).click();
+    const sent = S.tab === "scout" && S.scoutTab === "breakouts";
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return said && noPb && noSheet && refused && sent;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
@@ -5940,10 +5954,10 @@ const ROSTER = [
     return !!m.watch && m.home === "San Diego Dynasty" && S.point === 1
       && /watched/.test(matchLabel(m));
   }));
-  check("a call logged on it never counts toward your own self-scout", await ev(() => {
-    const before = selfScout().n;
+  check("a call of yours cannot be logged on it, so your self-scout stays yours", await ev(() => {
+    const before = selfScout().n, had = (S.calls || []).length;
     window.logCall(); window.nextPoint(); window.logCall();
-    return before === 0 && selfScout().n === 0 && (S.calls || []).length === 2;
+    return before === 0 && selfScout().n === 0 && (S.calls || []).length === had;
   }));
   check("the score on it names the two teams, because neither is you", await ev(() => {
     window.set({ tab: "tally" });
