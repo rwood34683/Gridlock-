@@ -9471,7 +9471,15 @@ function leaguePage(){
  */
 // One phone once, however many rows carry it — two men who share a parent's
 // number are one message to that parent.
-const reachable = g => { const seen = new Set(); return (g.members||[]).filter(m => { const to = clean(m.phone||m.email||"").toLowerCase(); if(!to || seen.has(to)) return false; seen.add(to); return true; }); };
+// "555-0100", "(555) 0100" and "+1 555 0100" are one phone: a number is its
+// digits, with a leading country 1 dropped; an email is its lower-case self.
+const contactKey = to => {
+  const t = clean(String(to || "")).trim().toLowerCase(); if(!t) return "";
+  if(t.includes("@")) return t;
+  const digits = t.replace(/\D/g, ""); if(!digits) return t;
+  return digits.length === 11 && digits[0] === "1" ? digits.slice(1) : digits;
+};
+const reachable = g => { const seen = new Set(); return (g.members||[]).filter(m => { const to = contactKey(m.phone||m.email||""); if(!to || seen.has(to)) return false; seen.add(to); return true; }); };
 function blastTo(){
   const live = S.groups.map(g=>g.id);
   return (S.blastTo || live).filter(id => live.includes(id));
