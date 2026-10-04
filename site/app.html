@@ -2719,9 +2719,19 @@ window.timeUp = how => {
   else patchMatch({timeUp: true});
   S.matchState = derivedState(); save(S); render();
 };
+// What match point reads as. On his own sheet it is yours, against you or
+// both ways; on a watched game it is the team's, because neither side is him.
+function matchPointWord(mp){
+  mp = mp === undefined ? matchPoint() : mp; if(!mp) return "";
+  const m = curMatch() || {};
+  if(m.watch) return mp === "both" ? "Match point, both ways" : `Match point for ${sideWord(mp)}`;
+  return `Match point${mp === "them" ? " against you" : mp === "both" ? ", both ways" : ""}`;
+}
 // What a finished sheet reads as, in the coach's words.
 function overWord(mid, us, them){
   const o = matchOver(mid); if(!o) return "";
+  const m = mid === undefined || mid === S.matchId ? curMatch() : null;
+  if(m && m.watch){ us = us || sideWord("us"); them = them || sideWord("them"); }   // no "you" on a watched game
   return o === "tie" ? "a tie" : o === "us" ? (us || "you") + " won" : (them || "they") + " won";
 }
 /* The clock between points. X-Ball gives a coach a set time from the hang to
@@ -7165,7 +7175,7 @@ function tally(){
     </div>
     ${matchOver() ? `<p class="warn"><b>Match over — ${overWord()} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
-      : matchPoint() ? `<p class="aid"><b>Match point${matchPoint() === "them" ? " against you" : matchPoint() === "both" ? ", both ways" : ""}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
+      : matchPoint() ? `<p class="aid"><b>${matchPointWord()}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
     <p class="note" style="margin:0;max-width:56ch">Tap the bunker a man broke to. A green ring wins you points on this field,
       amber costs you. The number is how often your five have broken to it.</p>
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
@@ -10697,7 +10707,7 @@ function quickLog(){
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
       <button class="btn btn--quiet grow" onclick="closeQuick()">Back to the sheet</button>
     </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
-            : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Match point${mp === "them" ? " against you" : mp === "both" ? ", both ways" : ""}.</b> First to ${raceTo()}.</p>` : ""}
+            : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${matchPointWord(mp)}.</b> First to ${raceTo()}.</p>` : ""}
     <div class="qlog__score">
       <button class="btn btn--lg" onclick="endPoint('us')">${esc(us)} won it</button>
       <button class="btn btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${esc(them)} won it</button>

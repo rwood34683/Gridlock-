@@ -5959,6 +5959,18 @@ const ROSTER = [
     window.logCall(); window.nextPoint(); window.logCall();
     return before === 0 && selfScout().n === 0 && (S.calls || []).length === had;
   }));
+  check("match point and match over on it name the team, never you", await ev(() => {
+    const keep = { race: raceTo(), results: (S.results || []).slice() };
+    window.setRaceTo(1);
+    window.set({ tab: "tally" });
+    const mp = (document.getElementById("root").innerText.match(/Match point[^\n]*/) || [""])[0];
+    window.endPoint("us");
+    const over = (document.getElementById("root").innerText.match(/Match over[^\n]*/) || [""])[0];
+    window.set({ quick: true });
+    const q = document.querySelector(".qlog"); const qOver = q ? (q.innerText.match(/Match over[^\n]*/) || [""])[0] : "";
+    window.set({ quick: false }); window.backPoint(); window.setRaceTo(keep.race || 0);
+    return /Match point, both ways/.test(mp) && /San Diego Dynasty won 1–0/.test(over) && !/you won/.test(over) && /San Diego Dynasty won/.test(qOver);
+  }));
   check("the score on it names the two teams, because neither is you", await ev(() => {
     window.set({ tab: "tally" });
     const t = document.getElementById("root").innerText;
