@@ -5188,10 +5188,20 @@ const ROSTER = [
     const nC = (S.codes || []).length; type("cdWord", "Returnword"); type("cdMeans", "go"); enter("cdMeans"); flags.code = (S.codes || []).length === nC + 1;
     window.set({ more: "messages" });
     const nM = (S.messages || []).length; type("md", "Return note"); enter("md"); flags.message = (S.messages || []).length === nM + 1;
+    window.set({ more: "classes" });
+    const nK = (S.classes || []).length, box = [...document.querySelectorAll("#root input")].find(x => (x.getAttribute("onchange") || "").includes("newClassTitle"));
+    if (box) { box.value = "Return Clinic"; box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); }
+    flags.klass = (S.classes || []).length === nK + 1 && S.classes[0].title === "Return Clinic";
+    if (flags.klass) S.classes = S.classes.slice(1);
+    // and the sign-in panel, the first box a coach ever types in: Return there is Sign in
+    const wasIn = { entered: S.entered, role: S.role, email: S.email, mode: S.mode };
+    window.set({ entered: false, mode: "login" });
+    flags.auth = ["em", "pw"].every(id => /doAuth\(\)/.test((document.getElementById(id) || {}).getAttribute("onkeydown") || ""));
+    window.set(wasIn);
     editProfile("right", { players: keep.players }); Object.assign(S, { teams: keep.teams, groups: keep.groups, roster: keep.roster, codes: keep.codes, messages: keep.messages }); window.set({ flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
-  check("Return in a one-line box beside an Add or Keep button is the tap on that button: team, pit man, group, player, code word, message", enterAdds === true, enterAdds);
+  check("Return in a one-line box beside an Add or Keep button is the tap on that button: team, pit man, group, player, code word, message, sign-in", enterAdds === true, enterAdds);
   const teamFix = await ev(() => {
     window.confirm = () => true;
     const keep = { teams: S.teams, scout: S.scout, matches: S.matches, tally: S.tally, breakouts: S.breakouts, calls: S.calls, sightings: S.arrivalSightings };

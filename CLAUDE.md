@@ -1195,9 +1195,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   keyboard's blue key is how a one-line box is submitted, and only the Tally
   gate's honoured it: a coach typed the team's name on the board, hit it, and
   read the box still full. `onEnter(call)` is the one attribute every such
-  box carries — the team, the pit's add row, the group, the roster add row,
-  the code word, the message, the play's name — and the suite presses it in
-  each. A textarea is multi-line and keeps its Return.
+  box carries — the sign-in panel's email and password, the team, the pit's
+  add row, the group, the roster add row, the code word, the message, the
+  play's name — and the suite presses it in each. A textarea is multi-line
+  and keeps its Return.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
