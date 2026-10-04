@@ -1159,6 +1159,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   entry means (the number, or the folded name when neither has one);
   `addScoutPlayer` fills the first entry in from the second and says so, and
   `editScoutPlayer` refuses to move a number onto another man's.
+- Hand out a number in silence. Two men on your own squad can wear one
+  number — a borrowed jersey — because the name is the key here, not the
+  number; but his card and the other man's both read "#7", so `addPlayer`
+  and `editPlayer` take it and say so (`numWorn`). A blank number takes the
+  first one nobody has (`freeNum`), not the roster's length, which collided
+  the moment anyone had been taken off the list.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
