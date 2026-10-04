@@ -1392,6 +1392,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   sheet; four random characters collide rarely, and when they did the second
   class could never be signed in to. `freeClassCode()` draws until the code
   is one no class has, and falls back to a counted one.
+- Clear the point on a result and not on Next point. `endPoint()` took the
+  ticked read, their picked five and the selected bunker with the point;
+  **Next point, no result** moved the cursor and left them, so a Right read
+  ticked on a point nobody won was recorded against the next point's result,
+  and a half-filled breakout sheet reopened on the wrong point.
+  `clearPointScratch()` is the one list both doors run — the read, the draft,
+  their pick, the selected bunker, the armed picker and the open penalty box.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

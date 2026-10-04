@@ -8057,7 +8057,16 @@ window.markOut = (side,name) => {
   if(outRow(side, name)){ save(S); render(); }
 };
 window.undoOut = i => { S.tally=(S.tally||[]).filter((_,k)=>k!==i); save(S); render(); };
-window.nextPoint = () => { S.point=(S.point||1)+1; S.theirPick = []; S.tallySel = null; S.tallyLast = ""; save(S); render(); };
+// Next point with no result. Everything half-done on this point goes with
+// it, exactly as it does when a result ends the point: a Right read ticked
+// and never used was riding onto the next point and recorded against its
+// result, and a half-filled breakout sheet reopened on the wrong point.
+window.nextPoint = () => {
+  S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
+};
+function clearPointScratch(){
+  S.theirPick = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
+}
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
  * answer rather than scoring it twice. */
@@ -8074,10 +8083,9 @@ window.endPoint = won => {
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
                 // Was the call the right read? Ticked before the result, kept on it.
                 ...(S.tallyRead ? {read: S.tallyRead} : {})}];
-  S.tallyRead = "";
   // The next point starts with the field clear: nothing half-logged carries —
   // including bunkers tapped for their five on Scout and not yet logged.
-  S.tallySel = null; S.tallyLast = ""; S.theirPick = [];
+  clearPointScratch();
   // The score is the read. Ahead / Even / Must-score follows it rather than
   // waiting to be told.
   S.matchState = derivedState();
