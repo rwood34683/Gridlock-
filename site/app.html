@@ -4302,7 +4302,7 @@ window.editCode = (i, field, value) => {
   const list = S.codes || [];
   if(!list[i]) return;
   const v = clean(String(value).trim());
-  if(field === "word" && !v) return;
+  if(field === "word" && !v){ flash("A code needs its word — kept the old one."); render(); return; }
   list[i][field] = v; save(S);           // no redraw: see editPlayer
 };
 window.delCode = i => {
@@ -4415,7 +4415,7 @@ window.setCall = () => {
   const id = document.getElementById('bcId').value;
   const nm = clean(document.getElementById('bcName').value.trim());
   const who = (document.getElementById('bcWho') || {}).value || "";
-  if(!id) return;
+  if(!id){ flash("Tap the bunker first."); return; }
   if(who) return setPlayerCall(who, id, nm);
   const all = {...(S.bunkerCalls || {})};
   const layer = {...(all[S.layoutKey] || {})};
@@ -4555,7 +4555,7 @@ window.logMove = () => {
   const from = (document.getElementById('mvFrom') || {}).value || S.moveFrom;
   const to = (document.getElementById('mvTo') || {}).value || S.moveTo;
   if(!who){ flash('Tap the man who moved.'); return; }
-  if(!from || !to) return;
+  if(!from || !to){ flash(!from ? 'Tap the bunker he left.' : 'Tap the bunker he went to.'); return; }
   if(from === to){ flash('A rotation needs two different bunkers.'); return; }
   S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
   S.moveFrom = null; S.moveTo = null; S.moveWho = null;
@@ -8908,11 +8908,13 @@ function scoutArrival(){
     <p class="note">Tap the field to select the nearest bunker for ${pick==='sighting'?'an earlier sighting':'the destination'}, or use the list under it. Selecting a bunker does not record a sighting.</p>
     <div class="fld"><label for="arrival-destination">Where he ended up</label><select id="arrival-destination" onchange="setArrival({destination:this.value})"><option value="">Pick the bunker</option>${bunkerOptions(options.destination)}</select></div>
       <div class="fld"><label for="arrival-sighting">Where you saw him on the way</label><select id="arrival-sighting" onchange="setArrival({sightingBunker:this.value})"><option value="">${options.destination?'Same as where he ended up':'Pick the bunker'}</option>${bunkerOptions(options.sightingBunker)}</select></div>
-    <div class="btnrow"><button class="btn" onclick="logArrivalSighting()"${!options.sightingBunker&&!options.destination?' disabled':''}>Record sighting</button>
+    ${/* Record is never disabled: the handler says what is missing ("Choose a
+          bunker before recording a sighting"), and a greyed button says nothing. */""}
+    <div class="btnrow"><button class="btn" onclick="logArrivalSighting()">Record sighting</button>
       <button class="btn btn--quiet" onclick="undoArrivalSighting()"${sightings.length?'':' disabled'}>Undo last sighting</button>
       <button class="btn btn--quiet" onclick="resetArrivalSightings()"${sightings.length||shots.length?'':' disabled'}>Clear this point</button></div>
     <div class="fld"><label for="arrival-shot">Shooting at</label><select id="arrival-shot" onchange="setArrival({shotAt:this.value})"><option value="">${options.sightingBunker||options.destination?'From '+esc(label(options.sightingBunker||options.destination))+' — choose where the paint went':'Choose the bunker they were at first'}</option>${bunkerOptions(a.shotAt||"")}</select></div>
-    <div class="btnrow"><button class="btn" onclick="logArrivalShot()"${(options.sightingBunker||options.destination)&&a.shotAt?'':' disabled'}>Record shot</button>
+    <div class="btnrow"><button class="btn" onclick="logArrivalShot()">Record shot</button>
       <button class="btn btn--quiet" onclick="undoArrivalShot()"${shots.length?'':' disabled'}>Undo last shot</button></div>
     <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there. Everything belongs only to this team, player, field, match and point.')}</p>`)
   + sec("Possible route",`${route ? `<p class="aid"><b>Inferred route, not confirmed movement.</b> Green numbered squares are your recorded sightings. The dashed amber line is one possible connection; the ? bunker is selected, not yet observed. The white marker demonstrates travel, with no measured timing.</p>
@@ -9819,8 +9821,8 @@ function leaguePage(){
         <button class="btn btn--danger" onclick="delMem(${jsq(g.id)},${i})">Remove</button>
       </div>`).join("")}</div>`:`<div class="empty">Nobody in this group yet.</div>`}
       <div class="btnrow">
-        <input id="mn-${esc(g.id)}" placeholder="Name" class="grow"/>
-        <input id="mp-${esc(g.id)}" placeholder="Phone or email" class="grow"/>
+        <input id="mn-${esc(g.id)}" placeholder="Name" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
+        <input id="mp-${esc(g.id)}" placeholder="Phone or email" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
         <button class="btn btn--ghost" onclick="addMem(${jsq(g.id)})">Add member</button>
       </div>
     </div>`).join("")}`, people+" people")}
@@ -9880,7 +9882,7 @@ window.delGroup = id => {
 window.addMem = id => {
   const name=document.getElementById("mn-"+id).value.trim();
   const phone=document.getElementById("mp-"+id).value.trim();
-  if(!name) return;
+  if(!name){ flash("Type the member's name first."); return; }
   S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name,phone}]}:g); save(S); render();
 };
 window.delMem = (id,i) => {
