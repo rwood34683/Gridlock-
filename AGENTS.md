@@ -17,7 +17,7 @@ Sightlines and More. Offline-first — the app makes no network calls.
 - `site/` — the landing page. `docs/` — the product spec and switch-on notes.
 - `layouts/bunkers.json` — measured bunker footprints. `tools/plants.js`
   generates `BREAK_PLANTS`; never hand-edit that block.
-- `brand/brands.json` + `scripts/brand.js` — the Gridlock and Grind X builds.
+- `brand/brands.json` + `scripts/brand.js` — the Gridlock, Grind X and Lockdown builds.
 
 ## Run it
 

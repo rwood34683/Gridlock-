@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-/* Two builds, one source.
+/* The builds, one source: Gridlock by default, and each variant in brand/brands.json.
  *
  *   npm run brand                        the guided version: pick a brand, pick a job
  *   npm run brand status
@@ -142,7 +142,9 @@ function stage(to, brands = loadBrands()) {
   site.set("contact.json", Buffer.from(JSON.stringify(contact, null, 2) + "\n"));
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, "capacitor.config.json"), "utf8"));
   config.appId = to.appId; config.appName = to.name;
-  return { from, to, contact, web, site, config };
+  // Every other build's display name, so a build can be refused for saying one.
+  const others = Object.values(brands.brands).filter(b => b.key !== to.key && b.key !== from.key);
+  return { from, to, contact, web, site, config, others };
 }
 
 // The refusal. Returns a list of sentences; an empty list is a pass.
@@ -156,6 +158,9 @@ function selfCheck(staged) {
       const out = buf.toString("utf8");
       const srcFile = path.join(tree === "web" ? WEB : SITE, rel);
       const src = fs.existsSync(srcFile) ? fs.readFileSync(srcFile, "utf8") : null;
+      // No build carries another build's name: not the default's in a variant,
+      // and no variant's in any build, the source included.
+      for (const b of staged.others || []) if (new RegExp(`\\b${esc(b.short)}\\b`).test(out)) problems.push(`${tree}/${rel} says "${b.short}", which is another build's name.`);
       if (from.key !== to.key) {
         if (other.test(out)) problems.push(`${tree}/${rel} still says "${from.short}".`);
         if (from.scheme !== to.scheme && out.includes(`${from.scheme}://`)) problems.push(`${tree}/${rel} still links ${from.scheme}://.`);
@@ -373,7 +378,7 @@ function nextSteps() {
     let c; try { c = contactOf(b); } catch { continue; }
     if (!c.email || !c.domain) out.push(`npm run brand contact ${b.key} -- --email support@example.com --domain example.com   (${b.short} has no support contact yet)`);
   }
-  out.push("npm run brand build -- --all   (both branded sites and apps into dist/brand/)");
+  out.push("npm run brand build -- --all   (every branded site and app into dist/brand/)");
   return out;
 }
 
@@ -393,7 +398,7 @@ async function wizard() {
     }
   };
   try {
-    console.log("\nGridlock / Grind X — two builds, one source\n");
+    console.log(`\n${Object.values(loadBrands().brands).map(b => b.short).join(" / ")} — ${Object.keys(loadBrands().brands).length} builds, one source\n`);
     for (;;) {
       console.log(statusLines().join("\n"));
       console.log("\nWhat would you like to do?");
