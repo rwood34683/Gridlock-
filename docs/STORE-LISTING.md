@@ -7,7 +7,7 @@ This is editable release copy for the supplied local app, not confirmation of a 
 `site/contact.json` contains null values until they are explicitly configured. No domain, support inbox, App Store ID, Google Play listing or release certificate was supplied. The static site displays that state without linking to nonexistent apps.
 
 1. Configure a monitored support email: `npm run contact -- --email YOUR_SUPPORT_EMAIL`.
-2. Configure an owned domain: `npm run contact -- --domain YOUR_DOMAIN`. This does not create an email inbox. Publish the finished site separately and verify the live support and privacy pages.
+2. Configure an owned domain: `npm run contact -- --domain YOUR_DOMAIN`. This does not create an email inbox. Publish the finished site separately and verify the live support and privacy pages — `docs/SITE.md` has the two owner steps (enable Pages, point the DNS).
 3. After creating the actual store listings, set `--appstore YOUR_NUMERIC_ID` and `--play YOUR_GOOGLE_PLAY_APP_URL`. These create ordinary text links on the site.
 4. Configure the SHA-256 release signing certificate using `--sha256 YOUR_COLON_SEPARATED_FINGERPRINT` if using Android verified app links.
 5. Review pricing, distribution, content rating, age targeting, privacy disclosures, signing and support ownership in the actual store consoles. They are release decisions, not values inferred by this code.
