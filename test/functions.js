@@ -4090,10 +4090,29 @@ const ROSTER = [
     window.set({ tab: "scout", scoutTab: "breakouts" }); sweep("breakouts");
     window.set({ scoutTab: "arrival" }); sweep("arrival");
     window.set({ scoutTab: "board" }); sweep("board");
+    // The screens the sweep used to skip: a placeholder is not a name.
+    window.set({ scoutTab: "anticipate" }); sweep("anticipate");
+    window.set({ scoutTab: "layers" }); sweep("layers");
+    window.set({ scoutTab: "games" }); sweep("games");
+    window.set({ scoutTab: "voice" }); sweep("voice");
+    window.handOff("Sweep", "text"); window.set({ tab: "more", more: "matches" }); sweep("matches"); window.set({ handText: null });
+    window.set({ more: "messages" }); sweep("messages");
+    window.set({ more: "codes" }); sweep("codes");
+    const groupsWere = S.groups; S.groups = [...(S.groups || []), { id: "g-sweep", name: "Sweep Crew", members: [{ name: "A", phone: "1" }] }];
+    window.set({ more: "league" }); sweep("league"); S.groups = groupsWere;
+    window.set({ more: "bunkerstats" }); sweep("bunkerstats");
+    window.set({ more: "plan" }); sweep("plan");
+    window.set({ more: "matches" }); sweep("matches");
+    window.set({ tab: "playbook", pbView: "cards" }); sweep("cards");
+    window.set({ pbView: "rep" }); sweep("rep");
+    window.set({ pbView: null, pbPick: true }); sweep("playbook pick"); window.set({ pbPick: false });
+    window.set({ tab: "sight" }); sweep("sight");
+    window.set({ tab: "tally", quick: true }); sweep("quick log"); window.set({ quick: false });
+    window.set({ tab: "more", more: null }); sweep("more menu");
     return bad;
   });
   if (unnamed.length) console.log("    unnamed:", unnamed.join(" | "));
-  check("every button and field on the point sheet and Scout has a name a screen reader can say", unnamed.length === 0);
+  check("every button and field on every screen has a name a screen reader can say — a placeholder is not a name", unnamed.length === 0);
   check("Games with results and no outs shows no replay, and never 'Point undefined'", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us"); window.endPoint("them");
     window.set({ tab: "scout", scoutTab: "games", replayMatch: null, replayPt: null, replayStep: null, pitOpen: null });

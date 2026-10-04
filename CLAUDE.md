@@ -1330,6 +1330,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the one door for his man the way `pitManTag` is for theirs — the hash only
   when there is a number — and the suite walks every tab, sub-tab and section
   with a numberless man on the point looking for undefined, NaN or an object.
+- Name a box with its placeholder. The Messages note, a new league group, a
+  new member's name and phone and the typed team on Played against had a
+  placeholder and nothing else, which a screen reader drops the moment he
+  types. Every one carries an `aria-label` now, and the sweep that used to
+  read five screens reads every tab, sub-tab and section.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
