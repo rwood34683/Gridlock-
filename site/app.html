@@ -2821,26 +2821,48 @@ function endSwapped(pt, m){
   if(m.ot && m.otFrom && pt >= m.otFrom) return false;
   return scoredBefore(pt, m) % 2 === 1;
 }
+// A switch made mid-sheet — at the half, say — is kept at the point it was
+// made (`flips`), so the points already played keep the end they were played
+// from. An odd number of switches at or before this point turns the end.
+function flippedAt(pt, m){ return ((m && m.flips) || []).filter(f => f <= pt).length % 2 === 1; }
+// Anything at all logged on this sheet before this point.
+function playedBefore(pt, m){
+  if(!m) return false;
+  const before = r => r && r.m === m.id && r.pt < pt;
+  return (S.results || []).some(before) || (S.tally || []).some(before) || (S.breakouts || []).some(before)
+      || (S.calls || []).some(before) || (S.moves || []).some(before);
+}
 function ourEnd(pt, m){
   pt = pt || S.point || 1; m = m === undefined ? curMatch() : m;
   const base = m && m.end === "right" ? "right" : "left";
-  return endSwapped(pt, m) ? (base === "left" ? "right" : "left") : base;
+  const turned = endSwapped(pt, m) !== flippedAt(pt, m);
+  return turned ? (base === "left" ? "right" : "left") : base;
 }
 window.switchEnds = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const m = curMatch(); if(!m) return;
-  const want = ourEnd() === "left" ? "right" : "left";
-  // The base end is point one's; flipping this point means flipping the base
-  // unless the swap rule already flipped it here.
-  const base = endSwapped(S.point || 1, m) ? (want === "left" ? "right" : "left") : want;
-  patchMatch({end: base}); save(S); render();
+  const pt = S.point || 1;
+  if(pt === 1 || !playedBefore(pt, m)){
+    // Nothing played before this point: the app simply had the end wrong, so
+    // point one's end flips — unless the swap rule or a switch already turned it here.
+    const want = ourEnd() === "left" ? "right" : "left";
+    const base = (endSwapped(pt, m) !== flippedAt(pt, m)) ? (want === "left" ? "right" : "left") : want;
+    patchMatch({end: base});
+  } else {
+    // Points have been played from the other end: this is a switch at this
+    // point, and those points keep the end they were played from. Tapping it
+    // again on the same point takes the switch back.
+    const flips = m.flips || [];
+    patchMatch({flips: flips.includes(pt) ? flips.filter(f => f !== pt) : [...flips, pt].sort((a, b) => a - b)});
+  }
+  save(S); render();
 };
 window.setSwapEnds = on => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const m = curMatch(); if(!m) return;
-  const cur = ourEnd(), swap = !!on;
+  const cur = ourEnd(), swap = !!on, pt = S.point || 1;
   // Changing the rule must not move the end he is on right now.
-  const base = endSwapped(S.point || 1, {...m, swapEnds: swap}) ? (cur === "left" ? "right" : "left") : cur;
+  const base = (endSwapped(pt, {...m, swapEnds: swap}) !== flippedAt(pt, m)) ? (cur === "left" ? "right" : "left") : cur;
   patchMatch({swapEnds: swap, end: base}); save(S); render();
 };
 const mirrorFt = q => [150 - q[0], q[1]];
@@ -2871,7 +2893,7 @@ const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
 function endsChip(){
   const e = ourEnd(), m = curMatch(), swap = !!(m && m.swapEnds);
   return `<div class="btnrow" style="align-items:center;margin-top:var(--s2)">
-    <span class="note grow" style="margin:0">${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}</span>
+    <span class="note grow" style="margin:0">${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}${(m && m.flips || []).length ? ` · switched at point ${(m.flips).join(", ")}` : ""}</span>
     <button class="btn btn--quiet" onclick="switchEnds()">Switch ends</button>
     <button class="tgl ${swap ? "on" : ""}" onclick="setSwapEnds(${!swap})" aria-pressed="${swap}"><i></i>Swap every point</button>
   </div>`;
@@ -3751,7 +3773,8 @@ function copyDataError(data){
       && ["player","playerName","bunker","bunkerName","reason"].every(k=>str(v[k]))
       && ["out","move","hit","note"].includes(v.kind) && ["speech","typed"].includes(v.source)
       && typeof v.review==="boolean" && Number.isInteger(v.pt) && v.pt>0 && num(v.at)),
-    matches:list(v => row(v) && str(v.id)),
+    // A match row carries one list: the points ends were switched at.
+    matches:list(v => record(v, {flips:list(x => Number.isInteger(x) && x > 1)}) && str(v.id) && Object.entries(v).every(([k, x]) => k === "flips" || scalar(x))),
     results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
@@ -9889,7 +9912,7 @@ const HELP_Q = [
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
-  ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. If your format swaps every point, turn on Swap every point once and the sheet alternates it for you."],
+  ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
   ["The field looks wrong for this event.", "Change at the top of any screen switches the event, and every tab follows it. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
