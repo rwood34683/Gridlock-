@@ -1433,6 +1433,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   0100" were three texts to one parent. `contactKey()` is the one door: a
   number is its digits with a leading country 1 dropped, an email its
   lower-case self.
+- Lose the read on a correction. The read is ticked before the result and
+  cleared with the point, so We won it, Back a point, They won it — the
+  ordinary way a mis-tap is fixed — recorded the corrected point with no
+  read at all. Back a point puts the taken result's read back as ticked, and
+  `endPoint()` carries an earlier result's read when none is ticked; the
+  winner is what changed, not the read.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
