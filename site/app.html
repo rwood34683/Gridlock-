@@ -5783,10 +5783,12 @@ window.addScoutPlayer = side => {
   editProfile(side, {players: [...pitOf(side).players, row]});
   render();
 };
-// The man already in the pit this entry means: the same number, or, with no
-// number on either, the same name folded on case and spacing.
+// The man already in the pit this entry means: the same number when one was
+// typed, else the same name folded on case and spacing — "Dill" typed again
+// with no number is #7 Dill, not a second Dill, the way the roster paste
+// already read it.
 function pitDup(side, num, name, except){
-  return pitOf(side).players.findIndex((p, k) => k !== except && (num ? String(p.num || "").trim() === num : !p.num && name && foldName(p.name) === foldName(name)));
+  return pitOf(side).players.findIndex((p, k) => k !== except && (num ? String(p.num || "").trim() === num : !!name && foldName(p.name) === foldName(name)));
 }
 const pitManTag = p => p.num ? `#${p.num}${p.name ? " " + p.name : ""}` : p.name;
 window.editScoutPlayer = (side, i, field, value) => {
