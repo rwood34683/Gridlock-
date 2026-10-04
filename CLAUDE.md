@@ -800,7 +800,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   end shown now and back (a mirror is its own inverse); the card, the Shot
   button and the select read it, and `ownShot()` takes a pick back into the
   frame. A lane's name ("up-field, snake side") is the field's and never
-  turns.
+  turns — but an *arrow* does: the eight on the Face pad, the Face and Shot
+  buttons, the lane options and Tally's "Shooting which way?" read
+  `seenGlyph()` / `seenSay()`, the angle as it reads on the end shown now,
+  or the arrow he taps points the opposite way to the chevron it draws. The
+  value kept is still the field's own lane. And a rotation of his own is kept
+  as the bunkers he tapped on that point, so **Your rotations** on Layers drew
+  the same job from two ends as two mirrored arrows: the arrows read
+  `shownBunker(frameId(from, m, pt))`, the frame every other count of his is
+  in. Movement's own list stays as tapped, because it names the bunker with
+  the point it was seen on.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday

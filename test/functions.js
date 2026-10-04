@@ -5062,6 +5062,47 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" }, pad: null }); window.newMatch();
     return left && right && laneWord && kept && card && row;
   }));
+  check("the eight arrows turn with the end: from the right end the pad's up-field arrow points left, the way the chevron it sets is drawn", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0); window.set({ script: "snake" });
+    const p = currentPaths()[0], was = (S.direct || {})[directKey(p.id)];
+    const padOf = () => [...document.querySelectorAll("#root .assign .pad button")];
+    const arrowFor = deg => { const b = padOf().find(x => x.getAttribute("onclick") === `setDirect('${p.id}','face',${deg})`); return b && b.textContent; };
+    window.set({ tab: "playbook", pbView: null, pad: "face:" + p.id });
+    const leftUp = arrowFor(0) === "\u2192" && /Face right$/.test(padOf().find(x => x.textContent === "\u2192").getAttribute("aria-label"));
+    window.setDirect(p.id, "face", 0);                                   // up the field, from the left end: →
+    const btnLeft = [...document.querySelectorAll("#root .assign .tgl")].some(x => x.textContent.trim() === "\u2192");
+    window.setSwapEnds(true); window.endPoint("us");                      // point 2 breaks from the right end
+    if (ourEnd() !== "right") return false;
+    window.set({ tab: "playbook", pbView: null, pad: "face:" + p.id });
+    const rightUp = arrowFor(0) === "\u2190" && /Face left$/.test(padOf().find(x => x.getAttribute("onclick") === `setDirect('${p.id}','face',0)`).getAttribute("aria-label"));
+    const btnRight = [...document.querySelectorAll("#root .assign .tgl")].some(x => x.textContent.trim() === "\u2190") && directOf(p.id).face === 0;
+    // and the Tally sheet's lane pad reads the same way, keeping the field's own lane
+    window.set({ tab: "tally", pad: null }); const tb = curLayout().bunkers.find(b => b.x > 75); window.tallyTap([tb.x, tb.y]);
+    const tpad = [...document.querySelectorAll("#root .tsheet .pad button, #root .pad button")];
+    const tRight = tpad.some(x => x.getAttribute("onclick") === "setDraft({dir:0})" && x.textContent === "\u2190");
+    window.set({ tallyDraft: null, tallySel: null });
+    window.setDirect(p.id, "face", null); if (was) S.direct[directKey(p.id)] = was;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return leftUp && btnLeft && rightUp && btnRight && tRight;
+  }));
+  check("your rotations draw in one frame: the same move logged from either end is one arrow, not two mirrored ones", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, a = bl.find(b => b.x < 60 && mirrorBunkerId(b.id) !== b.id), c = bl.find(b => b.x < 60 && b.id !== a.id && mirrorBunkerId(b.id) !== b.id);
+    const who = fiveFor(1)[0]; if (!who || !a || !c) return false;
+    const keep = S.moves; S.moves = [];                                            // only the two logged here are drawn
+    const log = (from, to) => { window.set({ tab: "more", more: "movement", moveWho: who.name, moveFrom: from, moveTo: to }); window.logMove(); };
+    log(a.id, c.id);                                                                 // point 1, from the left end
+    window.setSwapEnds(true); window.endPoint("us"); if (ourEnd() !== "right") return false;
+    log(mirrorBunkerId(a.id), mirrorBunkerId(c.id));                                 // point 2, the same job from the right end
+    const layersWere = S.scoutLayers;
+    window.set({ tab: "scout", scoutTab: "layers", scoutLayers: { ...(S.scoutLayers || { theirOuts: true }), rotations: true } });
+    const lines = [...document.querySelectorAll("svg.field line[stroke='#3ecf8e']")].map(l => [l.getAttribute("x1"), l.getAttribute("y1"), l.getAttribute("x2"), l.getAttribute("y2")].join(","));
+    const one = lines.length === 2 && new Set(lines).size === 1;
+    S.moves = keep; window.set({ tab: "tally", right: { name: "Dynasty" }, scoutLayers: layersWere, moveWho: null, moveFrom: null, moveTo: null }); window.newMatch();
+    return one;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
