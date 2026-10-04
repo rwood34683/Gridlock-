@@ -5193,12 +5193,24 @@ const ROSTER = [
     // the four quieter doors: a code word emptied, a bunker word with no bunker tapped, a rotation with no bunkers, a group member with no name
     window.set({ more: "codes", flash: "" }); S.codes = [{ word: "Rocket", means: "go" }]; render();
     window.editCode(0, "word", "  "); flags.codeKept = S.codes[0].word === "Rocket" && said(/needs its word/);
+    S.codes = [{ word: "Rocket", means: "go" }, { word: "Hammer", means: "hold" }]; render();
+    window.editCode(1, "word", " rocket "); flags.codeDup = S.codes[1].word === "Hammer" && said(/already a code word/);
     window.set({ more: "team", flash: "" }); const bc = document.getElementById("bcId"); if (bc) bc.value = ""; window.setCall(); flags.bunkerWord = said(/Tap the bunker first/);
     window.set({ more: "movement", moveWho: "Reyes", moveFrom: null, moveTo: null, flash: "" });
     ["mvFrom", "mvTo"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
     const nMv = (S.moves || []).length; window.logMove(); flags.move = (S.moves || []).length === nMv && said(/Tap the bunker he left/);
     window.set({ more: "league", flash: "" }); const gid = (S.groups || [])[0] && S.groups[0].id;
     if (gid) { const mn = document.getElementById("mn-" + gid); if (mn) mn.value = ""; const nMem = S.groups[0].members.length; window.addMem(gid); flags.member = S.groups[0].members.length === nMem && said(/member's name first/); }
+    // a class title emptied in place keeps the old one and says so
+    window.set({ tab: "more", more: "classes", flash: "" });
+    const hadClasses = S.classes; S.classes = [{ id: "GL-TT01", code: "GL-TT01", title: "Friday clinic", open: true, when: "", notes: "" }]; render();
+    window.setClass("GL-TT01", "title", "  "); flags.classTitle = S.classes[0].title === "Friday clinic" && said(/needs a title/);
+    S.classes = hadClasses;
+    // Breakouts: Log their five with nothing tapped is live and says to tap the field
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, theirPick: [], flash: "" });
+    const logFive = [...document.querySelectorAll("#root button")].find(b => /^Log their five/.test(b.textContent.trim()));
+    const nFive = theirBreaks("right").length;
+    flags.theirFive = !!logFive && !logFive.disabled && (logFive.click(), theirBreaks("right").length === nFive && said(/where their five ended up first/));
     // How did they get there: Record with nothing tapped is not greyed out, it says what to tap
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" }, flash: "" });
     S.arrival = { ...(S.arrival || {}), destination: "", sightingBunker: "", shotAt: "", notice: "" };

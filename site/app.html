@@ -4303,6 +4303,8 @@ window.editCode = (i, field, value) => {
   if(!list[i]) return;
   const v = clean(String(value).trim());
   if(field === "word" && !v){ flash("A code needs its word — kept the old one."); render(); return; }
+  // Retyping a word onto another code's is the same trap addCode already shuts: two rows, one word.
+  if(field === "word" && list.some((c, k) => k !== i && foldName(c.word) === foldName(v))){ flash(`${v} is already a code word — kept the old one.`); render(); return; }
   list[i][field] = v; save(S);           // no redraw: see editPlayer
 };
 window.delCode = i => {
@@ -5711,7 +5713,10 @@ window.logTheirBreak = (side, script, plants) => {
   if(picked.length) S.theirPick = [];
   save(S); render();
 };
-window.logTheirFive = side => { if((S.theirPick || []).length) logTheirBreak(side, "", S.theirPick); };
+window.logTheirFive = side => {
+  if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
+  logTheirBreak(side, "", S.theirPick);
+};
 // The logged five for the point being looked at, if any.
 function theirFiveLogged(side = "right"){
   const pt = S.point || 1;
@@ -9219,7 +9224,7 @@ function scoutBreakouts(){
       No names needed — those can come later on How did they get there?</p>
     <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     <div class="btnrow">
-      <button class="btn" onclick="logTheirFive('${side}')"${picked.length?'':' disabled'}>Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}</button>
+      <button class="btn" onclick="logTheirFive('${side}')">Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}</button>
       <button class="btn btn--quiet" onclick="set({theirPick:(S.theirPick||[]).slice(0,-1)})"${picked.length?'':' disabled'}>Undo last</button>
       <button class="btn btn--quiet" onclick="set({theirPick:[]})"${picked.length?'':' disabled'}>Clear</button>
     </div>
@@ -9521,7 +9526,8 @@ function scoutBoard(){
       card and it fills in here. Under Roster, green is what you have logged yourself and amber is a
       roster the league published, waiting to be added on the pit card.</p>`, div.name)
   + sec("Missing a team?", `<p class="lede">Divisions change every season. Add anyone who is not on the
-      list and they behave like any other team — you can scout them, log their five and their calls.</p>
+      list and they behave like any other team — you can scout them, log their five and their calls.
+      Typed one wrong? Its name is a box below: fix it there and every sheet follows.</p>
     <div class="who2">
       <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Team name</span>
         <input id="newTeam" placeholder="Add to ${esc(div.name)}" ${onEnter("addTeam()")}/></label>
@@ -9764,6 +9770,8 @@ window.makeClass = () => {
  * on the class rather than in the coach's head. Closing it closes it: the form
  * is gone, not just the tag. */
 window.setClass = (code, key, val) => {
+  // A class with no title is a code and nothing else on the card the kids read; the old one stays.
+  if(key === "title" && !String(val || "").trim()){ flash("A class needs a title — kept the old one."); render(); return; }
   S.classes = S.classes.map(c => c.code===code ? {...c, [key]: val} : c);
   save(S); render();
 };
