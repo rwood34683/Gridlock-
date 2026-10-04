@@ -1278,6 +1278,28 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   silence. Both go through the same two doors now, and the timeout says
   which point the first one went on. A new row type takes the same doors
   the day it is written.
+- Grade a point nobody played. A grade is written after the point, and after
+  the last point of a race the sheet is over and the cursor sits on the point
+  after it — so the grades for the final point, the ones a coach writes
+  walking off, were stamped on point N+1 of a match that ended at N, and so
+  was a rotation. `sheetPoint()` is the door: the point he is on, or on a
+  finished sheet the last one played, and Assess and Movement say so above the
+  form. With nobody across the tape there is no point at all: both screens
+  show the gate (`noOpponentNote`) with one tap to Tally, and `saveAssess` /
+  `logMove` send him there rather than writing the row on the unnamed sheet.
+- Count the five as a log. A lineup is who is standing, not a thing that
+  happened, and `matchSize()` counted it: a coach who rotated a man on before
+  naming the other team had an unnamed sheet with "1 entry", kept in Matches
+  as No opponent for good and asked about every time he started the real one.
+  `loggedSize()` is what was logged; `sheetEmpty()`, `openSheet()`, New match
+  and the schedule's gate read it, and the five written on a blank sheet
+  moves across as point 1's lineup on the sheet that replaces it.
+- Take a man off in silence. Remove on the roster and on the pit card dropped
+  him with one tap and no word, and a man with twelve outs and a season of
+  grades behind him read as lost — he was not, every row keeps his name, but
+  nothing said so. `manHas(name)` and `theirManHas(p)` count what he has on
+  the sheets; Remove asks first when there is any and says afterwards what
+  stays, the same contract as Remove on a team.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

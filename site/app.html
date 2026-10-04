@@ -2720,9 +2720,16 @@ function matchLabel(m){
 // How much is actually recorded against a match, so New match can warn before
 // it walks away from a sheet and Matches can say what is in each one.
 function matchSize(id){
+  return loggedSize(id) + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
+}
+// What was logged on a sheet, the five not counted: a lineup is who is
+// standing, not a thing that happened. A coach sets his five before he has
+// named the other team, and the unnamed sheet it was written on used to count
+// as a sheet with "1 entry" — kept in Matches as No opponent for good, and
+// asked about every time he started the real one.
+function loggedSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens) + n(S.timeouts)
-       + Object.keys(S.lineups || {}).filter(k => k.startsWith(id + "|")).length;
+  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens) + n(S.timeouts);
 }
 /* Who the match is against.
  *
@@ -3472,9 +3479,33 @@ function renamePlayer(from, to){
   if(S.moveWho === from) S.moveWho = to;
   if(S.asWho === from) S.asWho = to;
 }
+// What a man of his has on the sheets: outs, charted breaks, grades,
+// rotations. Said before Remove takes him off the squad, because the rows
+// keep his name and nothing is deleted, but a man who vanishes from the
+// roster with a season behind him reads as lost.
+function manHas(name){
+  const n = (rows, f) => (rows || []).filter(r => r && typeof r === "object" && f(r)).length;
+  const outs = n(S.tally, r => r.side === "us" && r.name === name), charted = n(S.breakouts, r => r.side === "us" && r.player === name);
+  const grades = n(S.assessments, r => r.who === name), moves = n(S.moves, r => r.who === name);
+  const w = (k, one, many) => k ? `${k} ${k === 1 ? one : many}` : "";
+  const text = [w(outs, "out", "outs"), w(charted, "break charted", "breaks charted"), w(grades, "grade", "grades"), w(moves, "rotation", "rotations")].filter(Boolean).join(" · ");
+  return {any: outs + charted + grades + moves > 0, text};
+}
+// Their man: sightings, shots and charted breaks under his number or name.
+function theirManHas(p){
+  const key = arrivalPlayerKey(p), tag = theirTag(p);
+  const n = (rows, f) => (rows || []).filter(r => r && typeof r === "object" && f(r)).length;
+  const seen = n(S.arrivalSightings, r => r.player === key), shots = n(S.arrivalShots, r => r.player === key);
+  const charted = n(S.breakouts, r => r.side === "them" && r.player === tag);
+  const w = (k, one, many) => k ? `${k} ${k === 1 ? one : many}` : "";
+  const text = [w(seen, "sighting", "sightings"), w(shots, "shot", "shots"), w(charted, "break charted", "breaks charted")].filter(Boolean).join(" · ");
+  return {any: seen + shots + charted > 0, text};
+}
 window.delPlayer = i => {
   const list = [...(S.roster || [])];
   const gone = (list[i] || {}).name;
+  const has = gone ? manHas(gone) : {any: false, text: ""};
+  if(has.any && !confirm(`${gone} has ${has.text} on your sheets. Take him off the squad? What he did stays under his name — nothing logged is deleted.`)) return;
   list.splice(i, 1);
   S.roster = list;
   // He also has to come off any point he was written into, or the five reads
@@ -3487,7 +3518,7 @@ window.delPlayer = i => {
     });
     S.lineups = lines;
   }
-  save(S); render();
+  save(S); flash(has.any ? `${gone} is off the squad. The ${has.text} stay under his name.` : gone ? `${gone} is off the squad.` : "");
 };
 
 /* QR, byte mode, error correction level M, versions 1 to 3.
@@ -4605,15 +4636,32 @@ function layoutMoves(){
 }
 // The man who moved is tapped, the five on the point first — same as Assess.
 window.movePick = name => { S.moveWho = S.moveWho === name ? null : name; render(); };
+// The point a rotation or a grade goes on. A grade is written after the
+// point, and after the last point of a race the sheet is over and the cursor
+// sits on a point nobody played — so on a finished sheet the row goes on the
+// last point that was, and the screen says so. Never a guess: a finished
+// sheet has no next point.
+function sheetPoint(){ return matchOver() ? Math.max(1, lastPoint()) : (S.point || 1); }
+// Movement and Assess are about his five on this point, and with nobody
+// across the tape there is no point: the note sends him to the gate on Tally
+// rather than writing the row on the unnamed sheet.
+function noOpponentNote(what){
+  return `<div class="empty">Pick the other team first — ${what} goes on the point, and there is no point until the sheet has an opponent.
+    <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({tab:'tally'});needOpponent()">Pick the other team · Tally</button></div>`;
+}
+function overPointNote(){
+  return matchOver() ? `<p class="note">Match over — this goes on point ${sheetPoint()}, the last one played.</p>` : "";
+}
 window.logMove = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
+  if(nobodyToPlay()){ set({tab:"tally"}); return needOpponent(); }
   const who = S.moveWho;
   const from = (document.getElementById('mvFrom') || {}).value || S.moveFrom;
   const to = (document.getElementById('mvTo') || {}).value || S.moveTo;
   if(!who){ flash('Tap the man who moved.'); return; }
   if(!from || !to){ flash(!from ? 'Tap the bunker he left.' : 'Tap the bunker he went to.'); return; }
   if(from === to){ flash('A rotation needs two different bunkers.'); return; }
-  S.moves = [{pt:S.point||1, m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
+  S.moves = [{pt:sheetPoint(), m:S.matchId, who, from, to, layout:S.layoutKey, at:Date.now()}, ...(S.moves||[])];
   S.moveFrom = null; S.moveTo = null; S.moveWho = null;
   save(S); render();
 };
@@ -4665,12 +4713,13 @@ window.assessScore = n => { S.asScore = S.asScore === n ? 0 : n; assessRender();
 function gradeOn(name, pt){ return (S.assessments||[]).find(a => a.who === name && a.pt === (pt||S.point||1) && a.m === S.matchId) || null; }
 window.saveAssess = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
+  if(nobodyToPlay()){ set({tab:"tally"}); return needOpponent(); }
   const who = S.asWho, score = Number(S.asScore);
   const note = clean(((document.getElementById('asNote') || {}).value || "").trim());
   if(!who || !score){ flash(!who ? "Tap the man first." : "Tap a score."); return; }
   // One man has one grade a point: a changed mind replaces it rather than
   // standing beside it, the way one point has one call.
-  const pt = S.point||1;
+  const pt = sheetPoint();
   S.assessments = [{who, score, note, pt, m:S.matchId, at:Date.now()}, ...(S.assessments||[]).filter(a => !(a && a.who === who && a.pt === pt && a.m === S.matchId))];
   S.asWho = null; S.asScore = 0;
   save(S); render();
@@ -5745,7 +5794,7 @@ function pitOnSheet(side){
 // Nothing logged on this sheet: no row of his, no result, and no call of
 // theirs stamped with it from any pit.
 function sheetEmpty(m){
-  return !!m && !matchSize(m.id) && !(S.results || []).some(r => r && r.m === m.id)
+  return !!m && !loggedSize(m.id) && !(S.results || []).some(r => r && r.m === m.id)
     && !Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b && b.m === m.id));
 }
 window.logTheirBreak = (side, script, plants) => {
@@ -6044,8 +6093,11 @@ window.keepRoster = () => {
   save(S); render();
 };
 window.delScoutPlayer = (side, i) => {
+  const p = (pitOf(side).players || [])[i]; if(!p) return;
+  const has = theirManHas(p), who = theirTag(p) || "This man";
+  if(has.any && !confirm(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`)) return;
   editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
-  render();
+  flash(has.any ? `${who} is off the card. The ${has.text} stay.` : `${who} is off the card.`);
 };
 
 function stars(n, key){
@@ -7964,7 +8016,7 @@ window.newMatch = () => {
   // throwing a system alert and bouncing to Scout.
   if(!pitNamed("right")) return set({tab:"tally"});
   const cur = curMatch();
-  const n = cur ? matchSize(cur.id) : 0;
+  const n = cur ? loggedSize(cur.id) : 0;
   if(n && !confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
                  + `${n===1?"entry":"entries"} — the point goes back to 1 for the new one.`)) return;
   openSheet({vs: (S.right||{}).name || ""});
@@ -7988,9 +8040,20 @@ window.newMatch = () => {
  * one's result. */
 function openSheet(fields){
   const cur = curMatch();
-  const n = cur ? matchSize(cur.id) : 0;
+  const n = cur ? loggedSize(cur.id) : 0;
   const blank = cur && !n && !(S.results || []).some(r => r.m === cur.id) ? cur.id : null;
   const id = newMatchId();
+  // The five he set on the blank sheet is the five he meant for this one:
+  // it moves across as point 1's lineup and the blank sheet's keys go with it.
+  if(blank){
+    const keys = Object.keys(S.lineups || {}).filter(k => k.startsWith(blank + "|"));
+    if(keys.length){
+      const standing = lineupAt(lastPoint(blank), blank);
+      const kept = {...S.lineups}; keys.forEach(k => { delete kept[k]; });
+      if(standing.some(Boolean)) kept[lineKey(1, id)] = standing.slice(0, 5);
+      S.lineups = kept;
+    }
+  }
   S.matches = [{id, at: Date.now(), layout: S.layoutKey,
                 raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
                 breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
@@ -8017,7 +8080,7 @@ function openSheet(fields){
  */
 function gameGuard(){
   const cur = curMatch();
-  const n = cur ? matchSize(cur.id) : 0;
+  const n = cur ? loggedSize(cur.id) : 0;
   return !n || confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
     + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`);
 }
@@ -10867,6 +10930,7 @@ function moreBody(k){
   if(k==="movement"){
     if((curMatch()||{}).watch) return sec("Movement", watchedNote(), matchLabel(curMatch()));
     if(sheetField()) return sec("Movement", offFieldNote(), matchLabel(curMatch()));
+    if(nobodyToPlay()) return sec("Movement", noOpponentNote("a rotation"));
     const list=curLayout().bunkers;
     const mv=layoutMoves();
     // The list prints a point number against each rotation, so it has to be one
@@ -10876,7 +10940,7 @@ function moreBody(k){
     // The man is tapped, the five on the point first and the bench after, the
     // way Assess does it — a dropdown of nine asked him to find the man he was
     // looking at.
-    const on=onPoint(S.point||1), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const on=onPoint(sheetPoint()), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
     const chip=n=>`<button class="${S.moveWho===n?"on":""}" onclick="movePick(${jsq(n)})">${esc(n)}</button>`;
     const who=!roster.length
       ? `<div class="empty">No roster yet. Add your squad, then log who moved.
@@ -10889,7 +10953,7 @@ function moreBody(k){
     // The field is the picker, as on Tally: two taps, the bunker he left and the
     // bunker he went to. Two 58-row dropdowns are still there underneath for a
     // thumb that prefers them, and they follow the taps.
-    return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Tap the bunker he left, then the bunker he went to. Every rotation counts as a move into the new bunker on Bunker stats.</p>
+    return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Tap the bunker he left, then the bunker he went to. Every rotation counts as a move into the new bunker on Bunker stats.</p>${overPointNote()}
       <div class="field-wrap" id="move-map">${fieldSVG({static:true,moves:true,noPaths:true,names:true,pick:true,overlay:moveOverlay()})}</div>
       <p class="note" style="margin:var(--s2) 0 0">${S.moveFrom ? `From <b>${esc(nm(S.moveFrom))}</b>${S.moveTo ? ` to <b>${esc(nm(S.moveTo))}</b>` : " — now tap where he went"}` : "Tap the bunker he left."}${
         S.moveFrom ? ` <button class="btn btn--quiet" style="min-height:36px;padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
@@ -10900,7 +10964,7 @@ function moreBody(k){
       </div>
       <button class="btn btn--block" onclick="logMove()">${S.moveWho?`Log the move · ${esc(S.moveWho)}`:"Log the move"}</button>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
-                 :`<p class="note">No rotations logged on this layout yet.</p>`}`, "Point "+(S.point||1))
+                 :`<p class="note">No rotations logged on this layout yet.</p>`}`, "Point "+sheetPoint())
     + (mvHere.length?sec("Rotations", `<div class="assigns">
         ${mvHere.slice(0,30).map(m=>{
           const a=list.find(b=>b.id===m.from), b2=list.find(b=>b.id===m.to);
@@ -10940,9 +11004,10 @@ function moreBody(k){
   if(k==="assess"){
     if((curMatch()||{}).watch) return sec("Assess", watchedNote(), matchLabel(curMatch()));
     if(sheetField()) return sec("Assess", offFieldNote(), matchLabel(curMatch()));
+    if(nobodyToPlay()) return sec("Assess", noOpponentNote("a grade"));
     const all=S.assessments||[];
     const here=rowsHere(all);
-    const pt=S.point||1, on=onPoint(pt), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const pt=sheetPoint(), on=onPoint(pt), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
     const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${g.score}`:""}</button>`; };
     const names=[...new Set(all.map(a=>a.who))];
     const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
@@ -10959,7 +11024,7 @@ function moreBody(k){
         <div class="seg seg--wrap" aria-label="Score">${[5,4,3,2,1].map(n=>`<button class="${S.asScore===n?"on":""}" onclick="assessScore(${n})">${n} · ${SCORE_WORDS[n]}</button>`).join("")}</div>
         <div class="fld" style="margin-top:var(--s3)"><label>Note</label><textarea id="asNote" placeholder="Read the snake early, held the corner."></textarea></div>
         <button class="btn btn--block" onclick="saveAssess()" ${ready?"":"disabled"}>${!S.asWho?"Tap the man first":!S.asScore?"Tap a score":"Save grade · "+esc(S.asWho)+" · "+S.asScore}</button>`;
-    return sec("Grade a player", `<p class="lede">After the point, not during it. The grade stays with the roster.</p>${form}`, "Point "+pt)
+    return sec("Grade a player", `<p class="lede">After the point, not during it. The grade stays with the roster.</p>${overPointNote()}${form}`, "Point "+pt)
     + (names.length?sec("Averages", `<div class="facts">
         ${names.map(n=>`<span class="fact"><b>${avg(n)}</b><span>${esc(n)}</span></span>`).join("")}
       </div>`, names.length+" graded"):"")
