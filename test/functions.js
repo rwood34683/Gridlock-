@@ -5169,6 +5169,37 @@ const ROSTER = [
     S.roster = keep; window.set({ flash: "" });
     return taken && free && said;
   }));
+  const renamed = await ev(() => {
+    window.confirm = () => true;
+    const keep = { roster: S.roster, tally: S.tally, breakouts: S.breakouts, assessments: S.assessments, moves: S.moves, pens: S.pens, lineups: S.lineups, playerCalls: S.playerCalls };
+    S.roster = ["Reyes", "Okafor", "Vance", "Marsh", "Bright", "Cole"].map((n, i) => ({ name: n, num: i + 1, p: "", s: "" }));
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, a = bl[0], c = bl[3];
+    window.markOut("us", "Reyes");
+    window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    window.set({ tab: "more", more: "lineups" }); window.setSlot(2, "Reyes");
+    window.set({ more: "movement", moveWho: "Reyes", moveFrom: a.id, moveTo: c.id }); window.logMove();
+    S.assessments = [{ who: "Reyes", score: 4, note: "", pt: 1, m: S.matchId, at: Date.now() }, ...(S.assessments || [])];
+    S.pens = [{ id: "p-t", m: S.matchId, pt: 1, side: "us", cost: 1, who: "Reyes", why: "", at: Date.now() }, ...(S.pens || [])];
+    S.pens = [{ id: "p-t2", m: S.matchId, pt: 1, side: "them", cost: 1, who: "Reyes", why: "", at: Date.now() }, ...S.pens];   // their Reyes stays theirs
+    window.setPlayerCall("Reyes", a.id, "Doghouse");
+    const oldN = manRead("us", "Reyes", "Dynasty").n;                       // other checks have charted a Reyes vs Dynasty too
+    window.set({ more: "team" }); window.editPlayer(0, "name", "Reyes Jr");
+    const m = S.matchId;
+    const out = (S.tally || []).some(o => o.m === m && o.name === "Reyes Jr") && !(S.tally || []).some(o => o.m === m && o.name === "Reyes");
+    const br = (S.breakouts || []).some(r => r.m === m && r.player === "Reyes Jr");
+    const gr = (S.assessments || []).some(x => x.m === m && x.who === "Reyes Jr");
+    const mv = (S.moves || []).some(x => x.m === m && x.who === "Reyes Jr");
+    const pen = (S.pens || []).find(x => x.id === "p-t").who === "Reyes Jr" && (S.pens || []).find(x => x.id === "p-t2").who === "Reyes";
+    const lu = fiveFor(1)[2] && fiveFor(1)[2].name === "Reyes Jr";
+    const word = callOf(a, "Reyes Jr") === "Doghouse";
+    // A rename is squad-wide: every break ever charted under Reyes is his, so the old name reads nothing and the new one reads all of it.
+    const read = manRead("us", "Reyes Jr", "Dynasty").n === oldN && manRead("us", "Reyes", "Dynasty").n === 0 && /break/.test(manLine("us", "Reyes Jr", "Dynasty"));
+    Object.assign(S, keep); window.set({ tab: "tally", right: { name: "Dynasty" }, moveWho: null, moveFrom: null, moveTo: null }); window.newMatch();
+    const flags = { out, br, gr, mv, pen, lu, word, read };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("renaming a man carries his season with him: outs, breakouts, grades, rotations, penalties, lineups and bunker words all read the new name", renamed === true, renamed);
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
@@ -7093,7 +7124,7 @@ const ROSTER = [
   }
   const failed = results.filter(r => !r.pass);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
-  if (failed.length) { console.log("\nFAILED:"); failed.forEach(f => console.log(`  ${f.group} — ${f.name}`)); }
+  if (failed.length) { console.log("\nFAILED:"); failed.forEach(f => console.log(`  ${f.group} — ${f.name}${f.detail !== undefined && f.detail !== true ? `\n    detail: ${String(f.detail).slice(0, 300)}` : ""}`)); }
   if (errors.length) { console.log("\nPAGE ERRORS:"); errors.forEach(e => console.log("  " + e)); }
   else console.log("No page errors during the run.");
 

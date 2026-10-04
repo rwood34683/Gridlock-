@@ -1165,6 +1165,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and `editPlayer` take it and say so (`numWorn`). A blank number takes the
   first one nobody has (`freeNum`), not the roster's length, which collided
   the moment anyone had been taken off the list.
+- Rename a man and leave his season behind. A name is the key an out, a
+  breakout, a grade, a rotation, a penalty, a lineup slot and a bunker word
+  are written against, so a rename on Team orphaned all of it under a name no
+  longer on the squad and his read went blank. `renamePlayer(from, to)` is
+  the one door `editPlayer` goes through; it re-keys his own side's rows
+  only, because their men are keyed by number and a name there is somebody
+  else's. Taking a man off the squad is different and stays so: what he did
+  is history and keeps his name; only his lineup slots empty.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

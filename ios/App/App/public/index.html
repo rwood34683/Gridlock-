@@ -2614,10 +2614,34 @@ window.editPlayer = (i, field, value) => {
     const v = clean(String(value).trim()).slice(0, 32);
     if(field === "name" && !v) return;     // never let a name be emptied by accident
     if(field === "name" && squadHas(v, i)){ flash(`${v} is already on the squad.`); render(); return; }
+    if(field === "name" && v !== list[i].name) renamePlayer(list[i].name, v);
     list[i][field] = v;
   }
   save(S);
 };
+// A name is the key an out, a breakout, a grade, a rotation, a penalty, a
+// lineup slot and a bunker word are all written against, so renaming the man
+// has to carry every one of them with him or his season is orphaned under a
+// name no longer on the squad. Only his own side's rows: their men are keyed
+// by number and a name there is somebody else's.
+function renamePlayer(from, to){
+  const re = (rows, key, side) => (rows || []).map(r => r && r[key] === from && (!side || r.side === side) ? {...r, [key]: to} : r);
+  S.tally = re(S.tally, "name", "us");
+  S.breakouts = re(S.breakouts, "player", "us");
+  S.assessments = re(S.assessments, "who");
+  S.moves = re(S.moves, "who");
+  S.pens = re(S.pens, "who", "us");
+  const lines = {};
+  Object.entries(S.lineups || {}).forEach(([k, v]) => { lines[k] = v.map(n => n === from ? to : n); });
+  S.lineups = lines;
+  const calls = {};
+  Object.entries(S.playerCalls || {}).forEach(([layout, byWho]) => {
+    calls[layout] = Object.fromEntries(Object.entries(byWho || {}).map(([who, m]) => [who === from ? to : who, m]));
+  });
+  S.playerCalls = calls;
+  if(S.moveWho === from) S.moveWho = to;
+  if(S.asWho === from) S.asWho = to;
+}
 window.delPlayer = i => {
   const list = [...(S.roster || [])];
   const gone = (list[i] || {}).name;
