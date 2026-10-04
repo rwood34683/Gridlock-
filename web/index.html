@@ -1581,6 +1581,7 @@ const defaultState = () => ({
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
   namesOn:false,
   scoutShow:"them", scoutFold:true, scoutNavMore:false, flash:"",               // the Scout field draws one pit at a time: theirs, yours, or both
+  scoutSide:"right",       // scratch: whose five Breakouts logs on a watched game — both teams are on that field
   // Empty, because the app does not know who you are playing. What you learn
   // about whoever you put here lives in scout[], keyed by team.
   left:{}, right:{},
@@ -1812,7 +1813,7 @@ S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
 S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
 S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
 S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
-S.theirPick = []; S.sightAim = null;
+S.theirPick = []; S.sightAim = null; S.scoutSide = "right";
 S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
 S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
 // The season copy shown as text is the whole season again, saved inside the
@@ -4778,7 +4779,7 @@ window.logTheirBreak = (side, script, plants) => {
   const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
   // Stamped with the point only when this team is on the sheet; otherwise it
   // is a season row — counted in what they run, never joined to a score.
-  if(side === "right") adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
+  if(side === "right" && !(curMatch()||{}).watch) adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
   const entry = pitOnSheet(side)
     ? {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()}
     : {script: script || "", layout:S.layoutKey, at:Date.now()};
@@ -7236,7 +7237,9 @@ function scout(){
         to open the card, tap again to fold it. An empty pit stays open,
         because picking a team is the first thing to do. */""}
   <div class="pits">${["left","right"].map(side => {
-      const T = side === "left" ? L : R, label = side === "left" ? "Left pit · a team you watch" : "Right pit · who you play";
+      const w = !!(curMatch()||{}).watch,
+            T = side === "left" ? L : R,
+            label = side === "left" ? (w ? "Left pit · the home side" : "Left pit · a team you watch") : (w ? "Right pit · the away side" : "Right pit · who you play");
       // Off Matchup a pit folds to one line. An empty right pit stays open,
       // because nothing below works until he says who he is playing; an
       // empty left pit is optional and used to put a twenty-row picker above
@@ -7250,8 +7253,8 @@ function scout(){
        taps where their five ended up — and a second field above it put that
        job two screens down on a phone. */""}
   ${["games","board","breakouts"].includes(view) ? "" : sec("The break", `<div class="seg">
-      <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">Theirs</button>
-      <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">Yours</button>
+      <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">${(curMatch()||{}).watch ? esc(R.named ? R.name : "Away") : "Theirs"}</button>
+      <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">${(curMatch()||{}).watch ? esc(L.named ? L.name : "Home") : "Yours"}</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
     </div>
     ${/* The five display toggles are set-and-forget, so they fold behind one chip
@@ -8139,15 +8142,21 @@ function scoutAnticipate(){
 
 /* ---- Breakouts: what this team has actually run, counted ---------------- */
 function scoutBreakouts(){
-  const R=pitOf("right"), seen=theirBreaks("right"), freq=breakFreq("right");
+  // On his own sheet the five he charts are the right pit's. On a game he is
+  // watching both teams are on that field, so a switch says whose five this is.
+  const watch = !!(curMatch()||{}).watch, side = watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
+  const R=pitOf(side), seen=theirBreaks(side), freq=breakFreq(side);
   const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=S.point||1;
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
-  const plants=plantCounts("right");
-  return sec("Where did they go?", `<p class="lede">Tap the field where each of their five ended up, in any order.
+  const plants=plantCounts(side);
+  const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg" aria-label="Whose five">
+      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[]})">${esc(pitOf(sd).name)}</button>`).join("")}
+    </div>` : "";
+  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order.
       No names needed — those can come later on How did they get there?</p>
-    <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,"#3d8bff")})}</div>
+    <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     <div class="btnrow">
-      <button class="btn" onclick="logTheirFive('right')"${picked.length?'':' disabled'}>Log their five · point ${pt}</button>
+      <button class="btn" onclick="logTheirFive('${side}')"${picked.length?'':' disabled'}>Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}</button>
       <button class="btn btn--quiet" onclick="set({theirPick:(S.theirPick||[]).slice(0,-1)})"${picked.length?'':' disabled'}>Undo last</button>
       <button class="btn btn--quiet" onclick="set({theirPick:[]})"${picked.length?'':' disabled'}>Clear</button>
     </div>
@@ -8158,9 +8167,9 @@ function scoutBreakouts(){
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
-      ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="logTheirBreak('right','${k}')">${esc(callName(k))}</button>`).join("")}
+      ${Object.entries(allPlays()).map(([k,v])=>`<button onclick="logTheirBreak('${side}','${k}')">${esc(callName(k))}</button>`).join("")}
     </div>
-    ${pitOnSheet("right")
+    ${pitOnSheet(side)
       ? `<p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`
       : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${esc(R.name)} is not on it, so what you log here
           counts for the season on ${esc(curLayout().name)} and never against a point.</p>
@@ -8188,7 +8197,7 @@ function scoutBreakouts(){
         <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt || "·"}</span>
         <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
         <span class="assign__who">${b.pt ? `point ${b.pt}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
-        <button class="btn btn--danger" onclick="unlogTheirBreak('right',${i})">Remove</button>
+        <button class="btn btn--danger" onclick="unlogTheirBreak('${side}',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
 
