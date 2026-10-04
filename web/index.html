@@ -5171,9 +5171,12 @@ const jsq = v => esc(JSON.stringify(String(v == null ? "" : v)));
 
 // A section is an eyebrow and a rule. Cards are for things that are
 // actually objects — a pit, a class, a group — not for every block.
+// The note is text — a team's name, the sheet's label, a count — and is
+// escaped here, once, because twelve callers passed matchLabel() raw and a
+// team called <b>x</b> printed bold on the point sheet and in Matches.
 function sec(eyebrow, body, note){
   return `<section class="sec">
-    <div class="sec__head"><h2 class="sec__eyebrow">${eyebrow}</h2>${note?`<span class="sec__note">${note}</span>`:""}</div>
+    <div class="sec__head"><h2 class="sec__eyebrow">${eyebrow}</h2>${note?`<span class="sec__note">${esc(note)}</span>`:""}</div>
     <div class="sec__body">${body}</div>
   </section>`;
 }
@@ -5971,7 +5974,7 @@ function cardsView(){
     ${(c => c && c.clear ? `<p class="note"><b>clear on</b> is counted off ${esc(curLayout().name)}, bunker to bunker, against ${c.theirBasis === "logged" ? "the five they logged on this point" : "the five they usually plant"}. Where they actually stand off the buzzer is yours to see.</p>` : "")(cards[0])}
     <button class="btn btn--block" onclick="shareCards()">Share the five</button>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`,
-    esc(breakName()))}`;
+    breakName())}`;
 }
 
 function repView(){
@@ -6538,7 +6541,9 @@ function tally(){
   const valueSide = S.tallyValue === "them" ? "them" : "us";
   const value = bunkerValue(valueSide, !!S.evenOnly);
   const uneven = unevenBreaks(valueSide);
-  const named = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
+  // Rows are frame ids; they are named on the end the field shows now, the
+  // way the rings are drawn, so the row and the ring are the same bunker.
+  const named = id => { const b = bl.find(x=>x.id===shownBunker(id)); return b?esc(callOf(b)):esc(id); };
   const best = value[0], worst = value[value.length-1];
   const netColour = n => n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)";
   const valueSeg = `<div class="seg">
@@ -6554,7 +6559,7 @@ function tally(){
       <p class="note" style="color:var(--warn)">${uneven} of these breaks came on a point somebody was
         short a man. ${S.evenOnly ? `They are out of the table below.`
         : `They are counted below — a bunker is wearing a point that was lost in the box.`}</p>` : ""}`;
-  const valueRow = r => `<tr><td>${named(r.id)} <span class="note" style="display:inline">${esc(r.id)}</span></td>
+  const valueRow = r => `<tr><td>${named(r.id)} <span class="note" style="display:inline">${esc(shownBunker(r.id))}</span></td>
         <td class="num">${r.att}</td>
         <td class="num">${r.made+r.dead ? Math.round(100*r.made/(r.made+r.dead))+"%" : "—"}</td>
         <td class="num" style="font-weight:800;color:${netColour(r.net)}">${r.net>0?"+":""}${r.net}</td></tr>`;
@@ -6564,7 +6569,7 @@ function tally(){
       <tbody>${value.map(valueRow).join("")}</tbody></table></div>
     ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
     ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
-    <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.${(S.matches||[]).some(m => m.layout === S.layoutKey && (m.swapEnds || m.end === "right")) ? " A break from the far end is counted on the bunker it is from your own end, so one job is one row whichever end it was run from; the rings on the field sit on the end you break from now." : ""}</p>`;
+    <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.${(S.matches||[]).some(m => m.layout === S.layoutKey && (m.swapEnds || m.end === "right")) ? " A break from the far end is counted on the bunker it is from your own end, so one job is one row whichever end it was run from; the rings on the field and the names in the rows are the end you break from now." : ""}</p>`;
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
   return `${tip("tally","Tap the bunker a man broke to, say what you saw, log it. Who won the point sets the score.")}
@@ -8345,7 +8350,7 @@ function scoutAnticipate(){
     named.length
       ? named.map(side => card(pitOf(side), ...readFor(side, pitOf(side)))).join("")
       : `<div class="empty">Nothing to anticipate until a team is in a pit. Pick who you play on Division, or open the right pit above.</div>`,
-    named.length === 2 ? "Both pits" : named.length ? esc(pitOf(named[0]).name) : "");
+    named.length === 2 ? "Both pits" : named.length ? pitOf(named[0]).name : "");
 }
 
 /* ---- Breakouts: what this team has actually run, counted ---------------- */
@@ -8379,7 +8384,7 @@ function scoutBreakouts(){
     </div>
     ${pitOnSheet(side)
       ? `<p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`
-      : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${esc(R.name)} is not on it, so what you log here
+      : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${R.name} is not on it, so what you log here
           counts for the season on ${esc(curLayout().name)} and never against a point.</p>
           ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(R.name)}</button>`}</div>`}`,
     esc(R.name))
@@ -8464,7 +8469,7 @@ function scoutGames(){
             n:theirs.filter(o=>o.m===id).length};
   }).sort((a,b)=>b.at-a.at);
   if(!games.length) return sec("Games", `<div class="empty">No points scored or outs logged against ${esc(R.name)} yet.
-    Score a point on Tally and it shows up here.</div>`, esc(R.name));
+    Score a point on Tally and it shows up here.</div>`, R.name);
   // The one you are on, if it is against them; otherwise the most recent.
   const gid=games.some(g=>g.id===S.replayMatch)?S.replayMatch
            :games.some(g=>g.id===S.matchId)?S.matchId:games[0].id;
@@ -8488,7 +8493,7 @@ function scoutGames(){
       ${pts.map(n=>`<button class="${n===pick?"on":""}" onclick="set({replayPt:${n},replayStep:null})">Point ${n}</button>`).join("")}
     </div>
     <p class="note">${events.length ? `${events.length} out${events.length===1?"":"s"} logged on point ${pick}, in the order you tapped them.` : pts.length ? "No outs tallied on this point." : "No outs tallied on this sheet — only who won each point."}</p>`,
-    esc(R.name))
+    R.name)
   + (!pts.length ? "" : pointStory(gid, pick, R.name))
   + (!events.length ? "" : sec("Replay", `<div class="fld"><label>Step through it · ${step} of ${events.length}</label>
       <input type="range" min="0" max="${events.length}" value="${step}"
@@ -8664,7 +8669,7 @@ function scoutBoard(){
     <p class="note">Tap a row to load it into the right pit, <b>press and hold</b> to load it into the
       left. A dash under Pts means nobody has scored it yet — set the tendency and threat on the pit
       card and it fills in here. Under Roster, green is what you have logged yourself and amber is a
-      roster the league published, waiting to be added on the pit card.</p>`, esc(div.name))
+      roster the league published, waiting to be added on the pit card.</p>`, div.name)
   + sec("Missing a team?", `<p class="lede">Divisions change every season. Add anyone who is not on the
       list and they behave like any other team — you can scout them, log their five and their calls.</p>
     <div class="who2">

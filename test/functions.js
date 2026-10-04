@@ -4923,10 +4923,13 @@ const ROSTER = [
     const kept = (S.breakouts || []).slice(0, 2).map(r => r.bunker).sort().join() === [leftB.id, rightB.id].sort().join();   // the rows keep the bunker he stood in
     // on the right end the ring sits on the twin; back on the left it sits on the bunker itself
     const ringAt = () => { const t = [...document.querySelectorAll("#tally-map .tally-worth")]; const byId = Object.fromEntries(bl.map(b => [b.id, b])); return t.map(r => { const x = parseFloat(r.getAttribute("x")) + parseFloat(r.getAttribute("width")) / 2; return bl.map(b => [Math.abs(b.x * 2 - x), b.id]).sort((a, b) => a[0] - b[0])[0][1]; }); };
-    const ringRight = ringAt(); window.endPoint("them"); const ringLeft = ringAt();
+    // and the table's one row names the same bunker the ring sits on: the twin from the right end, the bunker itself from the left
+    const rowNames = () => [...document.querySelectorAll("#root .tbl td .note")].map(x => x.textContent.trim());
+    const ringRight = ringAt(), rowRight = rowNames(); window.endPoint("them"); const ringLeft = ringAt(), rowLeft = rowNames();
+    const rowsFollow = rowRight.includes(rightB.id) && !rowRight.includes(leftB.id) && rowLeft.includes(leftB.id);
     const man = manRead("us", "Reyes", "Rejects"); const read = man.n === 2 && man.bunker && man.bunker[0] === leftB.id && man.bunker[1] === 2;
     window.setSwapEnds(false); window.newMatch();
-    return twin && onRight && one && kept && ringRight.includes(rightB.id) && !ringRight.includes(leftB.id) && ringLeft.includes(leftB.id) && read;
+    return twin && onRight && one && kept && ringRight.includes(rightB.id) && !ringRight.includes(leftB.id) && ringLeft.includes(leftB.id) && rowsFollow && read;
   }));
   check("their five tapped in from either end are one five: the ghost, where they plant and the usual man all read in one frame", await ev(() => {
     window.confirm = () => true;
@@ -5102,6 +5105,22 @@ const ROSTER = [
     const one = lines.length === 2 && new Set(lines).size === 1;
     S.moves = keep; window.set({ tab: "tally", right: { name: "Dynasty" }, scoutLayers: layersWere, moveWho: null, moveFrom: null, moveTo: null }); window.newMatch();
     return one;
+  }));
+  check("a team named with markup prints literally in every section note: the point sheet, Matches, Scout's pit notes", await ev(() => {
+    window.confirm = () => true;
+    const nasty = `Ro"ck't <b>x</b> Team`;
+    window.set({ tab: "tally", right: { name: nasty } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0); window.endPoint("us");
+    const literal = () => { const root = document.getElementById("root");
+      const notes = [...root.querySelectorAll(".sec__note")].filter(n => n.textContent.includes("Ro\"ck't"));
+      return notes.length > 0 && notes.every(n => n.textContent.includes("<b>x</b>") && !n.querySelector("b")); };
+    const tally = literal();
+    window.set({ tab: "more", more: "matches" }); const matches = literal();
+    window.set({ tab: "scout", scoutTab: "anticipate", more: null }); const scout = literal();
+    // and the Counter's lede, which names them in bold inside a sentence
+    window.set({ scoutTab: "counter" }); const root = document.getElementById("root");
+    const counter = root.innerText.includes(`against Ro"ck't <b>x</b> Team`) && ![...root.querySelectorAll("b")].some(b => b.textContent === "x");
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return tally && matches && scout && counter;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

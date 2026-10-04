@@ -809,7 +809,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the same job from two ends as two mirrored arrows: the arrows read
   `shownBunker(frameId(from, m, pt))`, the frame every other count of his is
   in. Movement's own list stays as tapped, because it names the bunker with
-  the point it was seen on.
+  the point it was seen on. And a frame id is never *printed* raw: *Where the
+  points come from* named its rows with the frame id while the ring sat on
+  the twin, so the row and the ring were two bunkers; rows read
+  `shownBunker(r.id)` like `manLine()` does.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday
@@ -1133,6 +1136,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   either did. `squadHas()` folds case and spacing; Team refuses the duplicate
   on add and on rename and says so, and a name is capped at 32 characters so
   it fits a card.
+- Pass a name into markup raw. `sec(eyebrow, body, note)` took its note as
+  HTML and twelve callers handed it `matchLabel()` straight, so a team called
+  `<b>x</b>` printed bold on the point sheet and in Matches. The note is text
+  and `sec()` escapes it once; a caller never escapes it first or the name
+  reads `&amp;`. Anything typed by a coach — a team, a man, a play, a bunker
+  word — goes through `esc()` exactly once, at the door it is printed through.
 - Let two calls share a name. A play saved as "Snake Stack", a play renamed
   onto another, or a built-in renamed onto his play is one button twice in
   every picker and one word shouted for two breaks. `callTaken(name, except)`
