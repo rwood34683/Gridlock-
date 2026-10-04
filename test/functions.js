@@ -5048,6 +5048,14 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("the scratch a relaunch clears is one list, and a durable restore runs it too", await ev(() => {
+    window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half" });
+    clearScratch();
+    const cleared = !S.tallyRead && !S.tallyDraft && !S.penOpen && !(S.theirPick || []).length && !S.handText && !S.tallyPickFor && !S.gamePaste;
+    const wired = /clearScratch\(\); resetLiveState\(\);/.test(String(window.gridlockRestore));
+    window.set({});
+    return cleared && wired;
+  }));
   check("a merge leaves his pits, his turned-off calls and his taken-off league rows alone — they are his place in the day, not records", await ev(() => {
     window.confirm = () => true;
     const were = { left: S.left, right: S.right, offPlays: S.offPlays, gamesOff: S.gamesOff, blastTo: S.blastTo, copyStatus: S.copyStatus };
