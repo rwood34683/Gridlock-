@@ -1544,7 +1544,10 @@ function clockName(t){
 const gameId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 function allGames(){
   const gone = new Set(Array.isArray(S.gamesOff) ? S.gamesOff : []);
-  const seeded = SCHEDULE.games.map((g, i) => ({...g, id:"sch" + i, seed:true}));
+  // A league row's id is the game itself — day, clock, the two teams — not
+  // its place in the list: the rows he took off were remembered by index, so
+  // a re-read that added a Sunday game above them hid the wrong games.
+  const seeded = SCHEDULE.games.map(g => ({...g, id:"sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a), seed:true}));
   const mine = (Array.isArray(S.games) ? S.games : []).filter(g => g && g.id);
   return [...seeded, ...mine].filter(g => !gone.has(g.id))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
