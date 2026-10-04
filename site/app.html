@@ -2811,6 +2811,7 @@ function inOvertime(mid){ const m = matchById(mid); return !!(m && m.ot) && !mat
  * back, because a sideline is a sideline. */
 window.timeUp = how => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
+  if(nobodyToPlay()) return needOpponent();  // no horn on a sheet with nobody across the tape
   const m = curMatch(); if(!m) return;
   const sc = scoreOf(m.id);
   if(m.timeUp || m.ot){ patchMatch({timeUp: false, ot: false, tie: false, raceTo: m.ot ? (m.raceWas > 0 ? m.raceWas : null) : m.raceTo, raceWas: null, otFrom: null}); }
@@ -4049,12 +4050,26 @@ function copyNudge(){
   return `<div class="fld" style="margin-top:var(--s3)"><p class="note" style="margin:0 0 var(--s2)">${when} It is the only thing that protects it.</p>
     <button class="btn btn--quiet btn--block" onclick="set({tab:'more',more:'nexus'})">Save a copy · Nexus</button></div>`;
 }
+// Is there a season on this phone worth asking about: a sheet with anything
+// logged or scored, a roster, a team scouted, a play of his own.
+function seasonHere(){
+  return (S.matches || []).some(m => m && (loggedSize(m.id) || (S.results || []).some(r => r && r.m === m.id)))
+    || (S.roster || []).length > 0 || Object.keys(S.scout || {}).length > 0 || Object.keys(S.plays || {}).length > 0;
+}
 window.loadCopy = mode => {
   const el = document.getElementById("copyIn");
   copyDraft = el ? el.value : copyDraft;
   const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
+  // Replace throws away what is on this phone, and the button said so in a
+  // sentence above a file box — one tap, no question. When the phone holds a
+  // season, it asks, and names what it would throw away.
+  if(mode === "replace" && seasonHere()){
+    if(!confirm(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`)){
+      S.copyStatus = "Nothing replaced. Save a copy of this phone first, then come back."; save(S); render(); return;
+    }
+  }
   // Two squads' rosters stirred together is a mess nobody notices until the
   // five on Playbook are strangers. The code says whose copy this is; a merge
   // that mixes squads still happens, but it says so out loud.

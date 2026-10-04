@@ -4840,6 +4840,33 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("penalty and timeout go through the same doors as every other row: nobody to play is the gate, a finished sheet refuses and says so, a second timeout says where the first went", penDoors === true, penDoors);
+  const replaceAsks = await ev(() => {
+    const asked = []; window.confirm = q => { asked.push(q); return false; };
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.markOut("them", "#3"); window.endPoint("us");
+    const m = S.matchId, before = JSON.stringify([S.matches, S.tally, S.results]);
+    // A copy with nothing in it, pasted over a phone with a season on it.
+    const empty = JSON.stringify({...JSON.parse(copyPayload("all")), data: { roster: [], matches: [], tally: [], results: [] }});
+    window.set({ tab: "more", more: "nexus" });
+    const box = document.getElementById("copyIn"); if(box) box.value = empty;
+    window.loadCopy("replace");
+    const kept = asked.length === 1 && /Replace what is on this phone — .*\d+ points? scored.*\d+ outs?.* — with this copy\?/.test(asked[0]) && /Save a copy of this phone first/.test(asked[0])
+      && JSON.stringify([S.matches, S.tally, S.results]) === before && /Nothing replaced/.test(S.copyStatus || "");
+    // Merge never asks: it adds.
+    window.loadCopy("merge");
+    const merged = asked.length === 1 && matchById(m) && /Merged in/.test(S.copyStatus || "");
+    const flags = { kept, merged, seasonHere: seasonHere() === true };
+    window.set({ tab: "tally", right: { name: "Dynasty" }, copyStatus: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Replace everything on a saved copy asks first when the phone holds a season, naming what it would throw away; Merge never asks", replaceAsks === true, replaceAsks);
+  check("Time's up with nobody to play opens the gate and marks nothing", await ev(() => {
+    window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
+    const m = S.matchId; window.timeUp(); window.timeUp("tie");
+    const ok = !matchById(m).timeUp && !matchById(m).ot && !matchById(m).tie && S.tallyNudge === true;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, tallyNudge: false }); window.newMatch();
+    return ok;
+  }));
   const lastPt = await ev(() => {
     window.confirm = () => true;
     const bl = curLayout().bunkers, man = (S.roster[0] || {}).name;

@@ -1300,6 +1300,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   nothing said so. `manHas(name)` and `theirManHas(p)` count what he has on
   the sheets; Remove asks first when there is any and says afterwards what
   stays, the same contract as Remove on a team.
+- Throw a season away on one tap. **Replace everything** under Nexus › Load a
+  copy was a red button with a sentence above it and no question, on the one
+  screen a coach visits when a phone is new or in trouble — and a tap on the
+  wrong button replaced three months with an empty copy. When the phone holds
+  a season (`seasonHere()`: a sheet with anything logged or scored, a roster,
+  a team scouted, a play of his own) Replace asks first and names what it
+  would throw away, in the same words Save a copy uses to say what it kept.
+  Merge never asks: it only adds. And the horn: `timeUp()` opens the gate
+  with nobody across the tape, like every other row.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
