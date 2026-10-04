@@ -3709,7 +3709,7 @@ const ROSTER = [
   }));
   check("the kept list under Matches says how each sheet ended", await ev(() => {
     window.set({ tab: "more", more: "matches" });
-    return /Dynasty · 1–0 · you won/.test(document.getElementById("root").textContent);
+    return /Dynasty( · game \d+)? · 1–0 · you won/.test(document.getElementById("root").textContent);
   }));
   check("with nobody to play, We won it, Log it and a tapped out all refuse and light the picker", await ev(() => {
     window.set({ tab: "tally", right: { name: "" }, tallyNudge: false });
@@ -4958,6 +4958,21 @@ const ROSTER = [
     window.switchEnds(); const ok = !copyDataError(JSON.parse(copyPayload("all")).data);
     window.switchEnds(); window.newMatch();
     return corrected && back && mid && said && stays && undone && ok;
+  }));
+  check("a second sheet against the same team on the same day is numbered", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" } });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    window.setRaceTo(1); window.endPoint("us"); const a = curMatch();
+    window.newMatch(); window.endPoint("them"); const b = curMatch();
+    // the suite may already hold Rejects sheets from today, so the two are read relative to each other
+    const nA = +((matchLabel(a).match(/game (\d+)$/) || [])[1] || 0), nB = +((matchLabel(b).match(/game (\d+)$/) || [])[1] || 0);
+    const first = nA >= 1 && /^vs Rejects · /.test(matchLabel(a)), second = nB === nA + 1;
+    window.set({ right: { name: "Zeta Test Squad" } }); window.newMatch(); const c = curMatch();
+    const alone = /^vs Zeta Test Squad · [^·]+$/.test(matchLabel(c));
+    window.set({ tab: "more", more: "matches" }); const listed = new RegExp("game " + nB).test(document.getElementById("root").innerText);
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch();
+    return first && second && alone && listed;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");

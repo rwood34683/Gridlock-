@@ -1157,7 +1157,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Show a sheet a name it can never be given. The kept list printed `note`
   and nothing set it; Matches › This match has **Name this sheet** now
   (`setMatchNote`, forty characters), so Sunday's quarter is not "vs Dynasty ·
-  Oct 3" three times over.
+  Oct 3" three times over — and `matchLabel()` numbers a second sheet against
+  the same team on the same day ("· game 2") on its own, because four
+  one-point 5-man sheets read identically otherwise.
 - Log where their man was and never ask where he went. Every sighting on
   How did they get there is a place, and the next sighting of the same man
   on the same point is a move; the pairs were never counted. `theirMoves()`

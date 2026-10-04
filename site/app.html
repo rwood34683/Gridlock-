@@ -2631,14 +2631,26 @@ if(S.codeWords && !(S.codes||[]).length){
  */
 const newMatchId = () => "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || null; }
+// Four one-point sheets against the same team on the same day all read
+// "vs Houston Heat · Oct 4": the second and later ones are numbered, in the
+// label and in the kept list alike.
+function gameNth(m){
+  if(!m) return "";
+  const day = new Date(m.at).toDateString();
+  const twin = x => x && x.id !== m.id && !!x.watch === !!m.watch && (m.watch ? x.home === m.home && x.away === m.away : x.vs === m.vs)
+                 && new Date(x.at).toDateString() === day;
+  const same = (S.matches || []).filter(x => x.id === m.id || twin(x)).sort((a, b) => a.at - b.at);
+  return same.length > 1 ? ` · game ${same.findIndex(x => x.id === m.id) + 1}` : "";
+}
 function matchLabel(m){
   if(!m) return "";
   const d = new Date(m.at);
   const day = d.toLocaleDateString([], {month:"short", day:"numeric"});
   // A watched game has no "us" in it, so naming it "vs Dynasty" would read as a
   // sheet he played. It is named by the two teams that were actually on the field.
-  if(m.watch) return `${m.home || "?"} v ${m.away || "?"} · watched · ${day}`;
-  return m.vs ? `vs ${m.vs} · ${day}` : `No opponent yet · ${day}`;
+  const nth = gameNth(m);
+  if(m.watch) return `${m.home || "?"} v ${m.away || "?"} · watched · ${day}${nth}`;
+  return m.vs ? `vs ${m.vs} · ${day}${nth}` : `No opponent yet · ${day}`;
 }
 // How much is actually recorded against a match, so New match can warn before
 // it walks away from a sheet and Matches can say what is in each one.
@@ -10415,7 +10427,7 @@ function moreBody(k){
         const n=matchSize(m.id), on=m.id===S.matchId;
         return `<div class="assign">
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
-          <span class="assign__body"><span class="assign__job">${esc(m.watch ? `${m.home||"?"} v ${m.away||"?"}` : (m.vs||"No opponent"))}${
+          <span class="assign__body"><span class="assign__job">${esc(m.watch ? `${m.home||"?"} v ${m.away||"?"}` : (m.vs||"No opponent"))}${esc(gameNth(m))}${
             (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${
             !m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}${
             m.watch?" · watched":""}${on?" · on now":""}</span>
