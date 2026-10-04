@@ -7661,6 +7661,11 @@ window.backPoint = () => {
   // The result goes with it. Otherwise the score still counts a point he is
   // about to play again, and Back a point silently becomes a way to inflate it.
   S.results = (S.results || []).filter(r => !(r.m === S.matchId && r.pt === to));
+  // Time's up ended the match at that score; take the score back and the
+  // horn goes with it, or the sheet reads level with the clock still run out
+  // and the result buttons up beside Undo time's up. Overtime stays: the
+  // clock did run out level, and that point is still to be played.
+  const m = curMatch(); if(m && (m.timeUp || m.tie)) patchMatch({timeUp: false, tie: false});
   S.point = to;
   S.matchState = derivedState();
   save(S); render();
