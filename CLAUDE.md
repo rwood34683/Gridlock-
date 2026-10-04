@@ -876,6 +876,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   changed mind left a 3 and a 5 side by side in the list and the chip read
   whichever was newest. One man has one grade a point: `saveAssess` replaces
   it, the way one point has one call.
+- Chart a man twice on one point. The break chart appended, so a coach who
+  corrected himself — shot on the break, no, he made it — had two rows for
+  one man and a read that counted two breaks on one point. A named man
+  charted again on the same point replaces his earlier row, and if that row
+  had him shot and this one does not, the out it wrote goes with it; a row
+  with no name is one of five he is working through and stays. The flash
+  says it replaced.
 - Make a mis-tapped out a trip to the log. Tap a man and he is out; tap him
   again and he is back in — `markOut()` toggles on the live point. The log's
   Undo is still there for a point that has been left.

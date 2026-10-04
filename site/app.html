@@ -7088,12 +7088,23 @@ window.logBreakout = () => {
     routeType:d.routeType || "",
     route:(d.route || []).map(p => ({x:p.x, y:p.y, b:p.b || "", dl:!!p.dl})),
     vs:matchVs(), script:S.script};
+  // One row a man a point: a named man charted again on the same point is
+  // the coach correcting himself, not a second break, so his earlier row goes
+  // — and if that row had him shot and this one does not, the out it wrote
+  // goes with it. A row with no name is one of five he is working through.
+  const was = row.player ? (S.breakouts || []).find(r => r && r.m === S.matchId && r.pt === pt && r.side === side && r.player === row.player) : null;
+  if(was){
+    S.breakouts = (S.breakouts || []).filter(r => r !== was);
+    if(was.alive === false && row.alive !== false)
+      S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === row.player));
+  }
   S.breakouts = [row, ...(S.breakouts || [])];
   // A named man logged shot on the break is an out — the same out the columns
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {})});
+  if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
   S.tallySel = null;
   // The side sticks if the coach set it — he is working through their five —
