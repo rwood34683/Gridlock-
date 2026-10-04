@@ -8111,6 +8111,10 @@ window.backPoint = () => {
   // clock did run out level, and that point is still to be played.
   const m = curMatch(); if(m && (m.timeUp || m.tie)) patchMatch({timeUp: false, tie: false});
   S.point = to;
+  // Anything half-done on the point he is leaving would land on the point
+  // he is going back to; and the clock between points was counting down to
+  // a buzzer for a point that is no longer next.
+  clearPointScratch(); S.clockEnd = 0;
   S.matchState = derivedState();
   save(S); render();
 };
