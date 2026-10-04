@@ -3574,7 +3574,7 @@ const ROSTER = [
   await ev(() => { window.confirm = () => true; window.newMatch(); });
   check("nine men: the sheet offers Who's on, with four on the bench", await ev(() => {
     const t = document.getElementById("root").textContent;
-    return /Who's on · 4 on the bench/.test(t) && onPoint(1).join() === "Reyes,Okafor,Diaz,Park,Nguyen";
+    return /Who's on 4 on the bench/.test(t) && onPoint(1).join() === "Reyes,Okafor,Diaz,Park,Nguyen";
   }));
   check("tap a man off and a bench man on, and the sheet names the new five", await ev(() => {
     window.set({ whoOn: true });
@@ -3611,7 +3611,7 @@ const ROSTER = [
   check("Who's on is scratch: a relaunch closes the fold", await (async () => {
     await ev(() => window.set({ tab: "tally", whoOn: true }));
     await page.reload({ waitUntil: "networkidle" });
-    return await ev(() => { window.set({ entered: true, role: "staff", tab: "tally" }); return S.whoOn === false && /Who's on ·/.test(document.getElementById("root").textContent); });
+    return await ev(() => { window.set({ entered: true, role: "staff", tab: "tally" }); return S.whoOn === false && /Who's on \d+ on the bench/.test(document.getElementById("root").textContent); });
   })());
   check("a watched game offers no rotation — there is no 'us' on that field", await ev(() => {
     window.set({ tab: "tally", whoOn: false });
