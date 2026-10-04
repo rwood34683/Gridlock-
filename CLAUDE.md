@@ -1445,6 +1445,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   — the tap back in on the live point and Undo on the log both go through
   it: back in means alive on the chart too, with where the paint came from
   cleared, and the sheet says so.
+- Stamp a sighting against a team nobody named, or a sheet on another field.
+  How did they get there filled an empty pit with "Unidentified opponent" and
+  wrote the row against it — a team the coach never typed, which then sat in his
+  team list for good — and stamped it with the open sheet whatever field that
+  sheet was on. `arrivalRefusal()` is the one door both Record buttons read:
+  nobody in the pit says so with one tap to Matchup, a sheet on another field
+  says which and offers Back to it or New match here. Record is never disabled.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -5076,6 +5076,37 @@ const ROSTER = [
     window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
     return ok;
   }));
+  check("a sighting with nobody in the pit, or on a sheet from another field, is refused and said", await ev(() => {
+    const keepS = S.arrivalSightings, keepH = S.arrivalShots, keepM = S.matches, keepId = S.matchId, keepL = S.left, keepR = S.right;
+    window.set({ tab: "scout", scoutTab: "arrival", left: {}, right: {}, arrival: {}, pitOpen: null });
+    const bl = curLayout().bunkers, root = () => document.getElementById("root").textContent;
+    const gate = /Nobody is in the right pit yet/.test(root()) && !!document.querySelector("#root .warn button");
+    const opt = document.querySelector("#arrival-team option:checked");
+    const optBlank = !!opt && opt.value === "" && /Nobody in the pit yet/.test(opt.textContent);
+    window.setArrival({ destination: bl[3].id });
+    const n0 = (S.arrivalSightings || []).length, h0 = (S.arrivalShots || []).length;
+    window.logArrivalSighting();
+    const refused = (S.arrivalSightings || []).length === n0 && /Nobody is in the right pit/.test((S.arrival || {}).notice || "");
+    window.setArrival({ destination: bl[3].id, shotAt: bl[5].id });
+    window.logArrivalShot();
+    const refusedShot = (S.arrivalShots || []).length === h0 && (S.arrivalSightings || []).length === n0
+      && !(S.arrivalSightings || []).some(o => o.team === "Unidentified opponent");
+    document.querySelector("#root .warn button").click();
+    const went = S.scoutTab === "matchup";
+    const other = Object.keys(LAYOUTS).find(k => k !== S.layoutKey);
+    S.matches = [...(S.matches || []), { id: "off-arr", at: Date.now(), vs: "Dynasty", layout: other }];
+    window.set({ scoutTab: "arrival", right: { name: "Dynasty" }, matchId: "off-arr", arrival: { destination: bl[3].id } });
+    const offGate = root().includes("That sheet is on " + LAYOUTS[other].name) && /Back to /.test(root());
+    window.logArrivalSighting();
+    const offRefused = (S.arrivalSightings || []).length === n0 && /That sheet is on/.test((S.arrival || {}).notice || "");
+    window.set({ matchId: keepId, arrival: { destination: bl[3].id } });
+    window.logArrivalSighting();
+    const took = (S.arrivalSightings || []).length === n0 + 1 && (S.arrivalSightings || []).slice(-1)[0].team === "Dynasty" && !document.querySelector("#root .warn");
+    const flags = { gate, optBlank, refused, refusedShot, went, offGate, offRefused, took };
+    S.arrivalSightings = keepS; S.arrivalShots = keepH; S.matches = keepM;
+    window.set({ matchId: keepId, left: keepL, right: keepR, arrival: {}, scoutTab: "matchup", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
