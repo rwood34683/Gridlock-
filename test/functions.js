@@ -5048,6 +5048,17 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.setRead("right"); window.endPoint("us");
+    const first = (S.results || []).find(r => r.m === S.matchId && r.pt === 1);
+    window.backPoint(); window.endPoint("them");
+    const fixed = (S.results || []).find(r => r.m === S.matchId && r.pt === 1);
+    const ok = first.read === "right" && first.won === "us" && fixed.won === "them" && fixed.read === "right" && (S.results || []).filter(r => r.m === S.matchId && r.pt === 1).length === 1;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return ok;
+  }));
   check("a blast reaches one phone once however the number was typed", await ev(() => {
     const g = { id: "g-phones", name: "Phones", members: [
       { name: "A", phone: "555-010-0100" }, { name: "B", phone: "(555) 010 0100" }, { name: "C", phone: "+1 555 010 0100" },

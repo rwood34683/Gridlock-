@@ -8105,10 +8105,14 @@ window.endPoint = won => {
   // field takes none either — sheetOver() says so.
   if(sheetOver()) return;
   const pt = S.point || 1;
+  // Was the call the right read? Ticked before the result, kept on it — and
+  // kept through a correction: We won it then They won it on the same point
+  // replaces the winner, not the read he ticked before the first tap.
+  const prev = (S.results || []).find(r => r.m === S.matchId && r.pt === pt);
+  const read = S.tallyRead || (prev && prev.read) || "";
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
-                // Was the call the right read? Ticked before the result, kept on it.
-                ...(S.tallyRead ? {read: S.tallyRead} : {})}];
+                ...(read ? {read} : {})}];
   // The next point starts with the field clear: nothing half-logged carries —
   // including bunkers tapped for their five on Scout and not yet logged.
   clearPointScratch();
@@ -8130,6 +8134,9 @@ window.backPoint = () => {
   const to = Math.max(1, (S.point || 1) - 1);
   // The result goes with it. Otherwise the score still counts a point he is
   // about to play again, and Back a point silently becomes a way to inflate it.
+  // The read he ticked on it stands again, because Back a point is how a
+  // mis-tapped winner is corrected and the read was not what was wrong.
+  const taken = (S.results || []).find(r => r.m === S.matchId && r.pt === to);
   S.results = (S.results || []).filter(r => !(r.m === S.matchId && r.pt === to));
   // Time's up ended the match at that score; take the score back and the
   // horn goes with it, or the sheet reads level with the clock still run out
@@ -8141,6 +8148,7 @@ window.backPoint = () => {
   // he is going back to; and the clock between points was counting down to
   // a buzzer for a point that is no longer next.
   clearPointScratch(); S.clockEnd = 0;
+  if(taken && taken.read) S.tallyRead = taken.read;
   S.matchState = derivedState();
   save(S); render();
 };
