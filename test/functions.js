@@ -5036,6 +5036,15 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("the schedule paste box commits without a redraw, so Read it is still under the thumb that leaves the box", await ev(() => {
+    window.set({ tab: "more", more: "schedule", gamePaste: "" });
+    const box = document.querySelector("#root textarea"), btn = [...document.querySelectorAll("#root button")].find(b => /Read it/.test(b.textContent));
+    if(!box || !btn) return "no box";
+    box.value = "9:00 AM Dynasty vs Impact"; box.dispatchEvent(new Event("change", { bubbles: true }));
+    const same = document.contains(btn) && S.gamePaste === "9:00 AM Dynasty vs Impact";
+    window.set({ gamePaste: "", tab: "tally" });
+    return same;
+  }));
   check("one man cannot use one word for two bunkers on a field", await ev(() => {
     const was = S.playerCalls, bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "Probe Man";
     window.set({ flash: "" });

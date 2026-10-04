@@ -10889,7 +10889,7 @@ function moreBody(k){
         One game a line, with a clock and both teams — <i>9:00 AM Dynasty vs Impact</i>. A line that is
         only a date sets the day for the games under it.</p>
       <textarea rows="5" placeholder="Friday, Sep 18&#10;9:00 AM  Detroit Infamous vs Atlanta Jungle Cats"
-        onchange="set({gamePaste:this.value})">${esc(S.gamePaste || "")}</textarea>
+        onchange="S.gamePaste=this.value;save(S)">${esc(S.gamePaste || "")}</textarea>
       <button class="btn btn--block" onclick="readSchedule()">Read it</button>
       <p class="note">It is best effort and it does not pretend otherwise: what it reads lands in the
         list above as ordinary rows, so anything it got wrong you take off with one tap.</p>
