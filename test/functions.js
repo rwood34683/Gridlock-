@@ -5036,6 +5036,18 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("Next point with no result takes the ticked read and the half-filled sheet with it, like a result does", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers;
+    window.setRead("right"); window.selectBunker(bl[2].id); window.setDraft({ side: "us", alive: true }); window.set({ penOpen: true, tallyPickFor: "shootAt" });
+    window.nextPoint();
+    const cleared = !S.tallyRead && !S.tallyDraft && !S.tallySel && !S.tallyPickFor && !S.penOpen && (S.point || 1) === 2;
+    window.endPoint("us");
+    const notCarried = !(S.results || []).find(r => r.m === S.matchId && r.pt === 2).read;
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return cleared && notCarried;
+  }));
   check("two classes never share a code, even when the dice land the same way twice", await ev(() => {
     const was = S.classes, rnd = Math.random;
     Math.random = () => 0.123456789;   // the same four characters every time
