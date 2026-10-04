@@ -484,7 +484,14 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     sheet as before (`editBreakout`); Save writes over his row by id and
     opens the next, and a field tap on any other bunker still charts one more
     man the old way. `tallyStep`, `tallyEdit` and `tallyPlace` are scratch,
-    and a new point starts on step one. Their men placed on Tally are their
+    and a new point starts on step one — but a man placed and not told
+    before the buzzer is never out of reach: `tellBacklog()` is every untold
+    man on the sheet, the point he is on first, the list under the field says
+    *Point 3 · 2 still to tell*, and the out he is told shot on is written to
+    his own point (`outRow` takes `pt`), not the point the coach is on now.
+    A finished race does not stop him telling them — the last point's men
+    are told walking off; only a sheet on another field refuses.
+    Their men placed on Tally are their
     five on Scout too (`syncTallyFive`): the point's break row for the team on
     the sheet takes their bunkers, marked `tallied`, so Where they plant, the
     ghost, Lanes off the break and their shooter read a five charted once. A
