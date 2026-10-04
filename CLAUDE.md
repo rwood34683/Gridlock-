@@ -883,6 +883,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   had him shot and this one does not, the out it wrote goes with it; a row
   with no name is one of five he is working through and stays. The flash
   says it replaced.
+- Count their call twice because a thumb tapped twice. `logCall()` kept one
+  call a point for yours; theirs appended, so Blitz tapped twice read "Blitz
+  2 of 2" for a point they played once, and the five logged first and the
+  call named after it were two rows. `logTheirBreak` keeps one break a
+  point: a later row takes the earlier one's five or call when it has none
+  of its own, and a changed mind replaces. A season row — no point on it —
+  is never merged.
 - Make a mis-tapped out a trip to the log. Tap a man and he is out; tap him
   again and he is back in — `markOut()` toggles on the live point. The log's
   Undo is still there for a point that has been left.

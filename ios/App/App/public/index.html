@@ -4969,7 +4969,15 @@ window.logTheirBreak = (side, script, plants) => {
     ? {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()}
     : {script: script || "", layout:S.layoutKey, at:Date.now()};
   if(picked.length) entry.plants = picked;
-  editProfile(side, {breaks: [entry, ...theirBreaks(side)]});
+  // One point has one break of theirs, as it has one call of yours: a call
+  // tapped twice is one row, and the five logged first and the call named
+  // after are one row carrying both. A season row (no point) is never merged.
+  const was = entry.pt ? theirBreaks(side).find(b => b && b.m === entry.m && b.pt === entry.pt) : null;
+  if(was){
+    if(!entry.script && was.script) entry.script = was.script;
+    if(!entry.plants && Array.isArray(was.plants) && was.plants.length) entry.plants = was.plants;
+  }
+  editProfile(side, {breaks: [entry, ...theirBreaks(side).filter(b => b !== was)]});
   if(picked.length) S.theirPick = [];
   save(S); render();
 };
