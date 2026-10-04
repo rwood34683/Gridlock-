@@ -147,8 +147,8 @@ async function integrationChecks(page) {
   assert.equal(await page.evaluate(() => S.arrivalSightings.length), 0, "A roster plant never becomes an invented observation");
   assert((await page.locator("main").innerText()).includes("Inferred route, not confirmed movement"), "Inferred route is labeled");
   const original = await page.evaluate(() => arrivalContext());
-  assert.deepEqual(original, {side: "right", team: "Test Opponent", player: "number:7", layout: "mwo", m: "arrival-match-one", pt: 3},
-    "Observation context identifies team/player/layout/match/point");
+  assert.deepEqual(original, {side: "right", team: "Test Opponent", named: true, player: "number:7", layout: "mwo", m: "arrival-match-one", pt: 3},
+    "Observation context identifies team/player/layout/match/point, and says the team was named");
 
   await page.locator("details.arrival-context summary").click();
   await page.locator("#arrival-end").selectOption("left");

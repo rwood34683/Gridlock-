@@ -1452,8 +1452,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   sheet was on. `arrivalRefusal()` is the one door both Record buttons read:
   nobody in the pit says so with one tap to Matchup, a sheet on another field
   says which and offers Back to it or New match here, and Add player refuses
-  the same way rather than filing a man under the placeholder. Record is never
-  disabled.
+  the same way rather than filing a man under the placeholder. The Voice log
+  reads the same door, and its end picker carries the team only when one was
+  named (`voiceTeamValue`). Record is never disabled.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

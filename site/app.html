@@ -1376,9 +1376,12 @@ const _voiceUI = {phase:"idle",partial:"",status:"",draft:"",draftScope:"",gener
 const voiceKinds = {out:"Eliminated",move:"Position / move",hit:"Hit reported",note:"Observation"};
 function voiceContext(){
   const v=S.voice || {}, side=v.side === "left" ? "left" : "right", pit=pitOf(side);
-  return {side,team:v.team || (pit.named ? pit.name : "Unidentified opponent"),player:v.player || "auto",
+  return {side,team:v.team || (pit.named ? pit.name : "Unidentified opponent"),named:!!(v.team || pit.named),player:v.player || "auto",
     layout:S.layoutKey,m:S.matchId,pt:S.point || 1,language:v.language || "en-US"};
 }
+// The team as a value to carry across a change: the one the coach named, or
+// nothing. The placeholder is never written anywhere as if he had picked it.
+function voiceTeamValue(c=voiceContext()){ return c.named ? c.team : ""; }
 function voiceScope(c=voiceContext()){
   return JSON.stringify([c.side,c.team,c.player,c.layout,c.m,c.pt,c.language]);
 }
@@ -1436,6 +1439,10 @@ function checkVoiceAvailability(){
 window.startVoiceLog = async () => {
   if(_voiceUI.session) return;
   const context=voiceContext(), token=++_voiceUI.generation;
+  // Nobody in the pit, or a sheet on another field: the same door the
+  // sightings read, because every event here becomes one.
+  const why=arrivalRefusal(context);
+  if(why){ _voiceUI.status=why; render(); return; }
   const session={context,scope:voiceScope(context),options:voiceOptions(context),token,seen:new Set()};
   _voiceUI.session=session; _voiceUI.phase="starting"; _voiceUI.status="Starting microphone…"; _voiceUI.partial="";
   _voiceUI.editId=""; _voiceUI.edit=null;
@@ -1493,7 +1500,7 @@ function linkVoiceSighting(event){
 }
 function saveVoiceText(text,source,context=voiceContext(),options=voiceOptions(context)){
   const transcript=String(text || "").trim().slice(0,12000);
-  if(!transcript) return 0;
+  if(!transcript || arrivalRefusal(context)) return 0;
   const parsed=window.GridlockVoiceParser.parse(transcript,options), at=Date.now();
   const rows=parsed.map((p,index)=>({id:`v-${at.toString(36)}-${Math.random().toString(36).slice(2,10)}-${index}`,
     text:transcript,originalText:transcript,team:context.team,player:p.player || "",playerName:p.playerName || "",
@@ -1510,6 +1517,8 @@ window.recordVoiceText = () => {
   if(_voiceUI.draftScope && _voiceUI.draftScope!==voiceScope()){
     _voiceUI.status="This draft belongs to an earlier selection. Clear it or edit it for this team, player, field, match and point before recording.";updateVoiceLive();return;
   }
+  const why=arrivalRefusal(voiceContext());
+  if(why){ _voiceUI.status=why; updateVoiceLive(); return; }
   const count=saveVoiceText(text,"typed"); _voiceUI.draft="";_voiceUI.draftScope="";
   _voiceUI.status=`${count} event${count===1?"":"s"} saved${_voiceUI.session?" · listening":""}`;render();
 };
@@ -1541,7 +1550,7 @@ window.undoVoiceEvent = id => {
 };
 window.voiceManagePlayers = () => {
   const c=voiceContext();stopVoiceSession("Listening stopped.");
-  S.arrival={...(S.arrival || {}),side:c.side,team:c.team,player:c.player==="auto"?"number:1":c.player};
+  S.arrival={...(S.arrival || {}),side:c.side,team:voiceTeamValue(c),player:c.player==="auto"?"number:1":c.player};
   S.scoutTab="arrival";save(S);render();
 };
 window.openVoiceArrival = id => {
@@ -1566,10 +1575,11 @@ function scoutVoice(){
     && (c.player==="auto" || e.player===c.player || e.review && !e.player)).slice().reverse();
   const available=_voiceUI.availability, active=!!_voiceUI.session;
   return sec("Voice log",`<p class="lede">Say who you’re watching and what happens. Each completed phrase is saved to their history with the current team, match and point.</p>
+    ${arrivalGate(c)}
     <p class="aid"><b>A scouting record, not a prediction.</b> Unclear events are saved for review. Confirmed locations join the route viewer; match scores stay under the coach’s control.</p>
     <div class="voice-grid">
-      <div class="fld"><label for="voice-side">Their starting end</label><select id="voice-side" onchange="setVoice({side:this.value,team:voiceContext().team})"><option value="right"${c.side==='right'?' selected':''}>Right end → moving left</option><option value="left"${c.side==='left'?' selected':''}>Left end → moving right</option></select></div>
-      <div class="fld"><label for="voice-team">Opponent team</label><select id="voice-team" onchange="setVoice({team:this.value})">${teams.map(t=>`<option value="${esc(t)}"${t===c.team?' selected':''}>${esc(t)}</option>`).join("")}</select></div>
+      <div class="fld"><label for="voice-side">Their starting end</label><select id="voice-side" onchange="setVoice({side:this.value,team:voiceTeamValue()})"><option value="right"${c.side==='right'?' selected':''}>Right end → moving left</option><option value="left"${c.side==='left'?' selected':''}>Left end → moving right</option></select></div>
+      <div class="fld"><label for="voice-team">Opponent team</label><select id="voice-team" onchange="setVoice({team:this.value})">${teams.map(t=>`<option value="${esc(t===c.team && !c.named ? "" : t)}"${t===c.team?' selected':''}>${esc(t===c.team && !c.named ? "Nobody in the pit yet" : t)}</option>`).join("")}</select></div>
       <div class="fld"><label for="voice-player">Player being watched</label><select id="voice-player" onchange="setVoice({player:this.value})"><option value="auto"${c.player==='auto'?' selected':''}>Detect name or jersey number</option>${players.map(p=>`<option value="${esc(p.key)}"${c.player===p.key?' selected':''}>${esc(voicePlayerLabel(p))}</option>`).join("")}</select></div>
     </div><div class="voice-tools"><button class="btn btn--quiet" onclick="voiceManagePlayers()">Manage team &amp; players</button></div>
     <p class="note">${esc(curLayout().name)} · ${esc(matchLabel(curMatch()) || "Current match")} · Point ${c.pt} · English (US)</p>

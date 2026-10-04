@@ -5112,6 +5112,30 @@ const ROSTER = [
     window.set({ matchId: keepId, left: keepL, right: keepR, arrival: {}, scoutTab: "matchup", tab: "tally" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("the voice log refuses with nobody in the pit, and an end change names nobody", await ev(() => {
+    const keepV = S.voiceEvents, keepS = S.arrivalSightings, keepL = S.left, keepR = S.right;
+    window.set({ tab: "scout", scoutTab: "voice", left: {}, right: {}, voice: {}, pitOpen: null });
+    const root = () => document.getElementById("root").textContent;
+    const gate = /Nobody is in the right pit yet/.test(root()) && !!document.querySelector("#root .warn button");
+    const opt = document.querySelector("#voice-team option:checked");
+    const optBlank = !!opt && opt.value === "" && /Nobody in the pit yet/.test(opt.textContent);
+    const n0 = (S.voiceEvents || []).length;
+    document.getElementById("voice-manual").value = "Number seven is out"; window.editVoiceDraft("Number seven is out");
+    window.recordVoiceText();
+    const refused = (S.voiceEvents || []).length === n0 && /Nobody is in the right pit/.test(document.getElementById("voice-status").textContent);
+    window.setVoice({ side: "left", team: voiceTeamValue() });
+    const stillNobody = !(S.voice || {}).team && !voiceContext().named;
+    window.voiceManagePlayers();
+    const arrivalNobody = !(S.arrival || {}).team && S.scoutTab === "arrival";
+    window.set({ scoutTab: "voice", right: { name: "Dynasty" }, voice: {} });
+    document.getElementById("voice-manual").value = "Number seven is out"; window.editVoiceDraft("Number seven is out");
+    window.recordVoiceText();
+    const took = (S.voiceEvents || []).length === n0 + 1 && (S.voiceEvents || []).slice(-1)[0].team === "Dynasty" && !document.querySelector("#root .warn");
+    const flags = { gate, optBlank, refused, stillNobody, arrivalNobody, took };
+    S.voiceEvents = keepV; S.arrivalSightings = keepS;
+    window.set({ left: keepL, right: keepR, voice: {}, arrival: {}, scoutTab: "matchup", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
