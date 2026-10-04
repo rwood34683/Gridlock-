@@ -6917,7 +6917,13 @@ window.undoBreakout = id => {
     S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === row.m && o.pt === row.pt
                                            && o.side === row.side && o.name === row.player));
   if(S.tallyLast === id) S.tallyLast = "";
-  if(S.tallyEdit === id){ S.tallyEdit = null; S.tallySel = null; S.tallyDraft = null; S.tallyPickFor = null; }
+  if(S.tallyEdit === id){
+    S.tallyEdit = null; S.tallySel = null; S.tallyDraft = null; S.tallyPickFor = null;
+    // Taking a placed man off in step two is one less man to tell, not the
+    // end of telling them: the next one opens, the way Save opens it.
+    const next = tellBacklog()[0];
+    if(next){ flash(`Taken off ${bunkerLabel(row.bunker)}.`); return editBreakout(next.id); }
+  }
   save(S); render();
 };
 // Right read or wrong read, ticked before the result and kept on it.
@@ -7724,8 +7730,9 @@ window.nextPoint = () => {
 };
 function clearPointScratch(){
   S.theirPick = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
-  // A new point starts on placing the five again.
-  S.tallyStep = "place"; S.tallyEdit = null;
+  // A new point starts on placing the five again, and by half: Theirs set
+  // for one man who broke deep is not the next point's whole break.
+  S.tallyStep = "place"; S.tallyEdit = null; S.tallyPlace = "";
 }
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old

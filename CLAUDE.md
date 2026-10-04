@@ -484,7 +484,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     sheet as before (`editBreakout`); Save writes over his row by id and
     opens the next, and a field tap on any other bunker still charts one more
     man the old way. `tallyStep`, `tallyEdit` and `tallyPlace` are scratch,
-    and a new point starts on step one — but a man placed and not told
+    and a new point starts on step one and by half (`clearPointScratch`:
+    Theirs set for one man who broke deep is not the next point's break);
+    Take him off on a placed man opens the next one still to tell, as Save
+    does — but a man placed and not told
     before the buzzer is never out of reach: `tellBacklog()` is every untold
     man on the sheet, the point he is on first, the list under the field says
     *Point 3 · 2 still to tell*, and the out he is told shot on is written to

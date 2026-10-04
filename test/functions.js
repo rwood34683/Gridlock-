@@ -3946,6 +3946,24 @@ const ROSTER = [
     S.roster = was; window.tallyDone(); window.newMatch();
     return marked && refusedName && refusedSixth;
   }));
+  check("Take him off in step two opens the next man still to tell", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const bl = curLayout().bunkers, mine = bl.filter(b => sideOfBunker(b) === "us").slice(0, 3);
+    S.tallyStep = "place"; mine.forEach(b => window.tallyTap([b.x, b.y]));
+    window.tallyStepTo("record"); const first = S.tallyEdit;
+    window.undoBreakout(first);
+    const ok = S.tallyEdit && S.tallyEdit !== first && S.tallySel === mine[1].id && /Taken off/.test(S.flash || "")
+      && (S.breakouts || []).filter(r => r.m === S.matchId).length === 2;
+    window.tallyDone(); window.newMatch();
+    return ok;
+  }));
+  check("Theirs set for one man on the placing step goes back to By half on the next point", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    window.set({ tallyPlace: "them" }); window.endPoint("us");
+    const ok = S.tallyPlace === "";
+    window.newMatch();
+    return ok;
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
