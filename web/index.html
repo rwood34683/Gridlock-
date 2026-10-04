@@ -5789,8 +5789,11 @@ window.shareCards = () => {
    stops: a drill must not quietly change what he is about to call. */
 const REP_TARGET = 2000;
 function repState(){ return S.rep || {log:[]}; }
+// The drill draws a call; a play of his that is not built on this field has
+// nothing to draw, so it is not asked here — the picker still offers it.
+const repKeys = () => pickKeys().filter(k => !isMine(k) || myPlants(k));
 window.startRep = () => {
-  const keys = pickKeys();
+  const keys = repKeys(); if(!keys.length) return;
   S.rep = {running:true, was:S.script, wasT:S.t, log:[],
            ask:keys[Math.floor(Math.random()*keys.length)], at:Date.now()};
   S.script = S.rep.ask; S.t = 1; S.playing = false; S.pbView = "rep";
@@ -5800,8 +5803,8 @@ window.answerRep = key => {
   const r = repState();
   if(!r.running || !r.ask) return;
   const ms = Date.now() - r.at;
-  const keys = pickKeys().filter(k => k !== r.ask);
-  const next = keys[Math.floor(Math.random()*keys.length)];
+  const keys = repKeys().filter(k => k !== r.ask);
+  const next = keys.length ? keys[Math.floor(Math.random()*keys.length)] : r.ask;
   S.rep = {...r, log:[{ask:r.ask, said:key, ms, right:key === r.ask}, ...r.log],
            ask: next, at: Date.now()};
   S.script = next; S.t = 1;

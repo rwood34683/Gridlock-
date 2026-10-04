@@ -657,7 +657,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   collide with a built-in, and `allPlays()` / `playKeys()` are what every
   picker and every lookup reads. Never `Object.entries(BREAKS)` on a screen.
   Plants are per field and are never guessed: a play written at one event says
-  so at the next and offers to be built there. Team renames the app's twelve
+  so at the next and offers to be built there — and the Rep drill never asks
+  it there (`repKeys()`), because a call with nothing to draw is not a drill. Team renames the app's twelve
   only — a play already carries the name he gave it, and a second name on top
   of the first is a trap — but Team's Break calls **lists his own plays
   first**, name edited in place (`renamePlay`), with the fields each has a
