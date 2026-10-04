@@ -976,7 +976,7 @@ const ROSTER = [
   await page.waitForTimeout(120);
   check("a blast is sent and logged", await ev(() => S.blasts.length === 1 && S.blasts[0].body.includes("Pit gate")));
   check("the log records the recipient count", await ev(() => S.blasts[0].n === 1));
-  await ev(i => window.delMem(i, 0), gid);
+  await ev(i => { window.confirm = () => true; window.delMem(i, 0); }, gid);
   check("a member can be removed", await ev(i => S.groups.find(g => g.id === i).members.length === 0, gid));
   await ev(() => window.delGroup(S.groups[4].id));
   check("a group can be deleted", await ev(() => S.groups.length === 4));
@@ -1102,7 +1102,10 @@ const ROSTER = [
     window.set({ layoutKey: "not-a-field" }); const n = walkNotes().length;
     window.set({ layoutKey: "mwo" }); return n === 0;
   }));
-  check("a note can be removed", await ev(() => { window.delWalk(0); return walkNotes().length === 0; }));
+  check("a note can be removed, and Remove asks first", await ev(() => {
+    window.confirm = () => false; window.delWalk(0); const kept = walkNotes().length === 1;
+    window.confirm = () => true; window.delWalk(0); return kept && walkNotes().length === 0;
+  }));
   check("an empty note is refused", await ev(() => {
     document.getElementById("wkNote").value = "   "; window.addWalk(); return walkNotes().length === 0;
   }));
@@ -1123,7 +1126,10 @@ const ROSTER = [
   check("a word with no name is refused", await ev(() => {
     document.getElementById("cdWord").value = ""; window.addCode(); return S.codes.length === 1;
   }));
-  check("a code word can be removed", await ev(() => { window.delCode(0); return S.codes.length === 0; }));
+  check("a code word can be removed, and Remove asks first", await ev(() => {
+    window.confirm = () => false; window.delCode(0); const kept = S.codes.length === 1;
+    window.confirm = () => true; window.delCode(0); return kept && S.codes.length === 0;
+  }));
 
   G("Lineups");
   const SQUAD = [
@@ -1843,7 +1849,7 @@ const ROSTER = [
   check("the drawing hint tells him he can draw", await ev(() =>
     /Drag along a run to draw/.test(document.getElementById("root").innerText)));
 
-  await ev(() => window.resetAllPaths());
+  await ev(() => { window.confirm = () => true; window.resetAllPaths(); });
   check("resetting puts every path back on the routed line", await ev(() =>
     Object.keys(S.pathEdits || {}).length === 0 && !currentPaths().some(p => p.edited)));
   await ev(() => window.set({ editPath: false }));
@@ -2975,7 +2981,7 @@ const ROSTER = [
     document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:13}));
     return before === 2 && wbMarks().length === 1 && wbMarks()[0].t === "x";   // the pen went, the X stayed
   }));
-  check("Undo takes back the last mark, Wipe clears the board", await ev(() => {
+  check("Undo takes back the last mark, Wipe asks first and then clears the board", await ev(() => {
     window.wbTool("pen");
     const svg = document.querySelector("#wb-map"), surf = svg.querySelector("[data-wb]");
     const p = new DOMPoint(30*2, 30*2).matrixTransform(svg.getScreenCTM());
@@ -2983,8 +2989,13 @@ const ROSTER = [
     document.dispatchEvent(new PointerEvent("pointerup", {bubbles:true, pointerId:14}));
     const two = wbMarks().length === 2;
     window.wbUndo(); const one = wbMarks().length === 1;
+    let asked = "";
+    window.confirm = q => { asked = q; return false; };
+    window.wbWipe(); const kept = wbMarks().length === 1 && /Wipe 1 mark off this board/.test(asked);
+    window.confirm = () => true;
     window.wbWipe(); const none = wbMarks().length === 0;
-    return two && one && none;
+    const flags = { two, one, kept, none };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
   check("Blank swaps the field for a dark board", await ev(() => {
     window.wbField(false); const blank = !!document.querySelector("#root .wb-blank");
@@ -3197,7 +3208,7 @@ const ROSTER = [
     document.getElementById("md").value = "Bsu at 6am";
     window.sendMsg();
     const two = S.messages.length === 2;
-    window.delMsg(1);
+    window.confirm = () => true; window.delMsg(1);
     return two && S.messages.length === 1 && S.messages[0] === "Bus at 6am"
         && document.getElementById("root").textContent.includes("Bus at 6am");
   }));
@@ -5185,6 +5196,29 @@ const ROSTER = [
     window.delTeam("Zeta Pick Squad");
     S.arrivalSightings = keepS;
     window.set({ left: keepL, right: { name: "Dynasty" }, arrival: keepArr || {}, voice: keepV || {}, scoutTab: "matchup", tab: "tally", flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
+  check("every Remove that takes typed content asks first and keeps it when declined", await ev(() => {
+    const asked = [];
+    window.confirm = q => { asked.push(q); return false; };
+    const keepW = S.walk, keepC = S.codes, keepG = S.groups, keepM = S.messages, keepR = S.responses, keepE = S.pathEdits;
+    S.walk = {...(S.walk || {}), [S.layoutKey]: [{ where: "Snake wire", note: "hot" }]};
+    S.codes = [{ word: "Rocket", means: "snake stack" }];
+    S.groups = [...(S.groups || []), { id: "g-ask", name: "Ask Crew", members: [{ name: "Ann", phone: "5550100" }] }];
+    S.messages = ["Bus at 6am"];
+    S.responses = [...(S.responses || []), { code: "ASK-1", name: "Pat", at: 1 }];
+    const pk = pathKey(currentPaths()[0].id); S.pathEdits = {...(S.pathEdits || {}), [pk]: [[10, 10]]};
+    window.delWalk(0); window.delCode(0); window.delMem("g-ask", 0); window.delMsg(0); window.dropResponse("ASK-1", "Pat"); window.resetAllPaths();
+    const kept = walkNotes().length === 1 && S.codes.length === 1 && S.groups.find(g => g.id === "g-ask").members.length === 1
+      && S.messages.length === 1 && S.responses.some(r => r.code === "ASK-1") && !!S.pathEdits[pk];
+    const six = asked.length === 6 && asked.every(q => /\?/.test(q));
+    const named = /Snake wire/.test(asked[0]) && /Rocket/.test(asked[1]) && /Ann/.test(asked[2]) && /Pat/.test(asked[4]) && /one path/.test(asked[5]);
+    window.confirm = () => true;
+    window.dropResponse("ASK-1", "Pat"); window.resetAllPaths();
+    const went = !S.responses.some(r => r.code === "ASK-1") && !S.pathEdits[pk];
+    const flags = { kept, six, named, went };
+    S.walk = keepW; S.codes = keepC; S.groups = keepG; S.messages = keepM; S.responses = keepR; S.pathEdits = keepE; pathsChanged();
+    window.set({});
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
