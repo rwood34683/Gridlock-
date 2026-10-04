@@ -1207,6 +1207,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   add row, the group, the roster add row, the code word, the message, the
   play's name — and the suite presses it in each. A textarea is multi-line
   and keeps its Return.
+- Make a league group's typo a Delete. Groups had a name and a Delete, so
+  "Refss" was delete the list and type its members again. The name is a box
+  (`renameGroup`), empty keeps the old one, and `groupHas()` folds case and
+  spacing so two groups cannot share a name on add or rename — one blast
+  sent twice was the other half of that.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

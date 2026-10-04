@@ -5229,6 +5229,21 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("Add with the box empty says what is missing instead of refusing in silence: team, pit man, group, player, code word, note, walk note", emptyAdds === true, emptyAdds);
+  const groupFix = await ev(() => {
+    window.confirm = () => true;
+    const keep = S.groups;
+    window.set({ tab: "more", more: "league", flash: "" });
+    S.groups = [{ id: "g-a", name: "Refs", members: [{ name: "Ann", phone: "1" }] }, { id: "g-b", name: "Vendors", members: [] }]; render();
+    window.renameGroup("g-a", " Referees "); const renamed = S.groups[0].name === "Referees" && S.groups[0].members.length === 1;
+    window.renameGroup("g-b", "referees"); const dup = S.groups[1].name === "Vendors" && /already a group/.test(S.flash || "");
+    window.renameGroup("g-b", "  "); const kept = S.groups[1].name === "Vendors" && /needs a name/.test(S.flash || "");
+    const box = [...document.querySelectorAll("#root input")].find(x => x.value === "Referees");
+    const g = document.getElementById("ng"); if (g) g.value = "VENDORS"; window.addGroup(); const addDup = S.groups.length === 2 && /already a group/.test(S.flash || "");
+    S.groups = keep; window.set({ flash: "" });
+    const flags = { renamed, dup, kept, box: !!box, addDup };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a league group's name is fixed in place, keeps its members, and two groups cannot share a name", groupFix === true, groupFix);
   const enterAdds = await ev(() => {
     window.confirm = () => true;
     const keep = { teams: S.teams, groups: S.groups, roster: S.roster, codes: S.codes, messages: S.messages, players: pitOf("right").players };
