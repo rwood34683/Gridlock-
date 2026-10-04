@@ -457,6 +457,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     row instead, a red Delete keeps its own width, and the devices suite counts
     each label's lines on twenty devices, the 10.2-inch iPad both ways up and
     the Air on its side among them.
+39. ~~Where they went, then what happened.~~ Done — the owner asked for the
+    break chart in two steps. Off the buzzer ten men leave at once, and the
+    sheet asked for one man's whole story before the next could be placed,
+    so by the third man the first two had moved. **1 · Where they went**: a
+    tap on the field is a man on that bunker (`placeAt`), yours or theirs by
+    the half it lands in unless **By half / Your five / Theirs** says
+    otherwise, capped at what the side started the point with
+    (`startUp`), and a second tap on a man not yet told takes him off. He is
+    an ordinary breakout row from that tap, carrying `todo`. **2 · What
+    happened** (`tallyStepTo`) opens the first man still to tell in the same
+    sheet as before (`editBreakout`); Save writes over his row by id and
+    opens the next, and a field tap on any other bunker still charts one more
+    man the old way. `tallyStep`, `tallyEdit` and `tallyPlace` are scratch,
+    and a new point starts on step one.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

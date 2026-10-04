@@ -3382,7 +3382,7 @@ const ROSTER = [
   check("tapping the field with no opponent opens no sheet and sends him to the picker", await ev(() => {
     window.set({ right: { name: "Dynasty" } });
     S.matches = S.matches.map(m => ({ ...m, vs: "" })); window.set({ tab: "tally", tallySel: null, tallyNudge: false });
-    window.tallyTap({ x: 20, y: 40 });
+    S.tallyStep = "record"; window.tallyTap({ x: 20, y: 40 });
     const root = document.getElementById("root");
     return !S.tallySel && S.tallyNudge === true && /Name them first/.test(root.textContent) && !!root.querySelector("#tally-opp");
   }));
@@ -3877,7 +3877,7 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     const before = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
     const b = curLayout().bunkers[4];
-    window.tallyTap([b.x, b.y]); const noSheet = !S.tallySel;
+    S.tallyStep = "record"; window.tallyTap([b.x, b.y]); const noSheet = !S.tallySel;
     window.markOut("us", "Reyes"); window.logCall(); window.logTheirBreak("right", "snake");
     const after = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
     const said = /Match over — New match starts the next sheet/.test(S.flash || "");
@@ -3895,13 +3895,13 @@ const ROSTER = [
   check("on an open breakout sheet, arm Shooting at and a field tap fills it instead of opening another man's sheet", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" }, tallyPickFor: null }); window.playPit(); window.newMatch();
     const bl = curLayout().bunkers, a = bl[6], b = bl[13], c = bl[20];
-    window.tallyTap([a.x, a.y]);
+    S.tallyStep = "record"; window.tallyTap([a.x, a.y]);
     const open = S.tallySel === a.id;
-    window.set({ tallyPickFor: "shootAt" }); window.tallyTap([b.x, b.y]);
+    window.set({ tallyPickFor: "shootAt" }); S.tallyStep = "record"; window.tallyTap([b.x, b.y]);
     const shot = S.tallySel === a.id && draft().shootAt === b.id && S.tallyPickFor === null && document.querySelectorAll("#tally-map rect[stroke='#ffffff']").length === 1;
-    window.set({ tallyPickFor: "movedTo" }); window.tallyTap([a.x, a.y]);
+    window.set({ tallyPickFor: "movedTo" }); S.tallyStep = "record"; window.tallyTap([a.x, a.y]);
     const refused = draft().movedTo === undefined && /Tap another/.test(S.flash || "") && S.tallyPickFor === "movedTo";
-    window.tallyTap([c.x, c.y]);
+    S.tallyStep = "record"; window.tallyTap([c.x, c.y]);
     const moved = draft().movedTo === c.id && S.tallySel === a.id;
     window.tallyDone();
     return open && shot && refused && moved && !S.tallyPickFor;
@@ -4049,7 +4049,7 @@ const ROSTER = [
   }));
   check("Log this breakout rides the bottom of the screen while the sheet is open", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" }, tallySel: null, tallyDraft: null });
-    const bl = curLayout().bunkers; window.tallyTap([bl[12].x, bl[12].y]);
+    const bl = curLayout().bunkers; S.tallyStep = "record"; window.tallyTap([bl[12].x, bl[12].y]);
     const main = document.querySelector(".main"), act = document.querySelector("#root .tsheet__act");
     if (!act) return false;
     const sticky = getComputedStyle(act).position === "sticky";
@@ -4088,7 +4088,7 @@ const ROSTER = [
       document.querySelectorAll("#root select, #root input:not([type=hidden]), #root textarea").forEach(f => { if (!nameOf(f)) bad.push(where + " " + f.outerHTML.slice(0, 90).replace(/\s+/g, " ")); });
     };
     window.set({ tab: "tally", right: { name: "Dynasty" } });
-    const bl = curLayout().bunkers; window.tallyTap([bl[12].x, bl[12].y]); sweep("tally");
+    const bl = curLayout().bunkers; S.tallyStep = "record"; window.tallyTap([bl[12].x, bl[12].y]); sweep("tally");
     window.set({ tallySel: null, tallyDraft: null, tab: "scout", scoutTab: "matchup", pitOpen: null }); sweep("matchup");
     window.set({ scoutTab: "counter" }); sweep("counter");
     window.set({ tab: "more", more: "walk" }); sweep("walk");
@@ -5446,6 +5446,39 @@ const ROSTER = [
     window.set({ script: keep.script, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
   }));
+  check("Tally places every man first, then walks them one at a time for what happened", await ev(() => {
+    const keep = { breakouts: S.breakouts, tally: S.tally, matches: S.matches, matchId: S.matchId, point: S.point, right: S.right, results: S.results };
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
+    window.set({ tab: "tally", tallyStep: "place", tallyPlace: "", flash: "" });
+    const bl = curLayout().bunkers, ours = bl.filter(b => b.x < 60), theirs = bl.filter(b => b.x > 90);
+    ours.slice(0, 5).forEach(b => window.tallyTap([b.x, b.y]));
+    const noSheet = !S.tallySel && pointRows().length === 5 && pointRows().every(r => r.todo && r.side === "us");
+    window.tallyTap([ours[5].x, ours[5].y]);
+    const capped = pointRows().length === 5 && /all 5 placed/.test(S.flash || "");
+    window.tallyTap([ours[4].x, ours[4].y]);
+    const tookOff = pointRows().length === 4 && /Taken off/.test(S.flash || "");
+    theirs.slice(0, 2).forEach(b => window.tallyTap([b.x, b.y]));
+    const theirsByHalf = pointRows().filter(r => r.side === "them").length === 2;
+    const root = document.getElementById("root");
+    const listed = /what happened\?/.test(root.textContent) && [...root.querySelectorAll("button")].some(b => /Next · what happened/.test(b.textContent));
+    window.tallyStepTo("record");
+    const first = pointRows()[0];
+    const opened = S.tallyEdit === first.id && S.tallySel === first.bunker && /Save · next man/.test(root.textContent) && /man 1 of 6/.test(root.textContent);
+    const name = (S.roster[0] || {}).name || "1";
+    window.setDraft({ player: name, alive: false }); window.logBreakout();
+    const told = pointRows().length === 6 && !pointRows()[0].todo && pointRows()[0].player === name && pointRows()[0].id === first.id
+      && (S.tally || []).some(o => o.m === S.matchId && o.name === name) && S.tallyEdit === pointRows()[1].id;
+    window.setDraft({ alive: true }); window.logBreakout();
+    window.setDraft({ player: name, alive: true }); window.editBreakout(first.id); window.setDraft({ alive: true }); window.logBreakout();
+    const outBack = !(S.tally || []).some(o => o.m === S.matchId && o.name === name);
+    while(S.tallyEdit) window.logBreakout();
+    const allTold = pointRows().every(r => !r.todo) && /recorded/.test(S.flash || "");
+    window.nextPoint();
+    const freshPoint = S.tallyStep === "place" && !S.tallyEdit;
+    const flags = { noSheet, capped, tookOff, theirsByHalf, listed, opened, told, outBack, allTold, freshPoint };
+    Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
+  }));
   check("+ Yours, Make it yours and Edit bring the builder into view instead of opening it below the fold", await ev(async () => {
     const keep = { plays: S.plays, off: S.offPlays, script: S.script };
     const wait = () => new Promise(r => setTimeout(r, 900));
@@ -6047,9 +6080,9 @@ const ROSTER = [
     const bl = curLayout().bunkers, leftB = bl.filter(x => x.x < 60).sort((a, b) => a.x - b.x)[2], rightB = bl.find(x => x.id === mirrorBunkerId(leftB.id));
     const twin = rightB && rightB.id !== leftB.id;
     // point 1 from the left end to leftB, won; point 2 from the right end to its twin, lost
-    window.tallyTap([leftB.x, leftB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null }); window.endPoint("us");
+    S.tallyStep = "record"; window.tallyTap([leftB.x, leftB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null }); window.endPoint("us");
     const onRight = ourEnd() === "right";
-    window.tallyTap([rightB.x, rightB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([rightB.x, rightB.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
     const rows = bunkerValue("us"), one = rows.length === 1 && rows[0].id === leftB.id && rows[0].att === 2 && rows[0].won === 1;
     const kept = (S.breakouts || []).slice(0, 2).map(r => r.bunker).sort().join() === [leftB.id, rightB.id].sort().join();   // the rows keep the bunker he stood in
     // on the right end the ring sits on the twin; back on the left it sits on the bunker itself
@@ -6212,7 +6245,7 @@ const ROSTER = [
     const rightUp = arrowFor(0) === "\u2190" && /Face left$/.test(padOf().find(x => x.getAttribute("onclick") === `setDirect('${p.id}','face',0)`).getAttribute("aria-label"));
     const btnRight = [...document.querySelectorAll("#root .assign .tgl")].some(x => x.textContent.trim() === "\u2190") && directOf(p.id).face === 0;
     // and the Tally sheet's lane pad reads the same way, keeping the field's own lane
-    window.set({ tab: "tally", pad: null }); const tb = curLayout().bunkers.find(b => b.x > 75); window.tallyTap([tb.x, tb.y]);
+    window.set({ tab: "tally", pad: null }); const tb = curLayout().bunkers.find(b => b.x > 75); S.tallyStep = "record"; window.tallyTap([tb.x, tb.y]);
     const tpad = [...document.querySelectorAll("#root .tsheet .pad button, #root .pad button")];
     const tRight = tpad.some(x => x.getAttribute("onclick") === "setDraft({dir:0})" && x.textContent === "\u2190");
     window.set({ tallyDraft: null, tallySel: null });
@@ -6363,13 +6396,13 @@ const ROSTER = [
     const bl = curLayout().bunkers, a = bl[0], c = bl[3], pt = S.point || 1, m = S.matchId;
     const mine = () => (S.breakouts || []).filter(r => r.m === m && r.pt === pt && r.player === "Reyes");
     const outs = () => (S.tally || []).filter(o => typeof o === "object" && o.m === m && o.pt === pt && o.name === "Reyes");
-    window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: false }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: false }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
     const first = mine().length === 1 && mine()[0].bunker === a.id && outs().length === 1;
-    window.tallyTap([c.x, c.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([c.x, c.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
     const second = mine().length === 1 && mine()[0].bunker === c.id && mine()[0].alive === true && outs().length === 0 && /charted again/.test(S.flash || "");
     // two unnamed men on one point are two rows, as before
-    window.tallyTap([a.x, a.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
-    window.tallyTap([c.x, c.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([a.x, a.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([c.x, c.y]); window.setDraft({ side: "them", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
     const unnamed = (S.breakouts || []).filter(r => r.m === m && r.pt === pt && r.side === "them" && !r.player).length === 2;
     window.set({ flash: "" }); window.newMatch();
     return first && second && unnamed;
@@ -6549,7 +6582,7 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
     const bl = curLayout().bunkers, a = bl[0], c = bl[3];
     window.markOut("us", "Reyes");
-    window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
+    S.tallyStep = "record"; window.tallyTap([a.x, a.y]); window.setDraft({ player: "Reyes", side: "us", alive: true }); window.logBreakout(); window.set({ tallySel: null, tallyDraft: null });
     window.set({ tab: "more", more: "lineups" }); window.setSlot(2, "Reyes");
     window.set({ more: "movement", moveWho: "Reyes", moveFrom: a.id, moveTo: c.id }); window.logMove();
     S.assessments = [{ who: "Reyes", score: 4, note: "", pt: 1, m: S.matchId, at: Date.now() }, ...(S.assessments || [])];
@@ -7351,7 +7384,7 @@ const ROSTER = [
     svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return true;
   }, ft);
-  await ev(() => window.set({ tab:"tally", tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
+  await ev(() => window.set({ tab:"tally", tallyStep:"record", tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
   check("Tally has the field", await ev(() => !!document.querySelector("#tally-map svg.field [data-pick]")));
   const ours = await ev(() => { const b = curLayout().bunkers.find(x => x.x < 60 && x.y > 80); return {id:b.id, x:b.x, y:b.y}; });
   await tapTally([ours.x + 3, ours.y - 3]);
@@ -7387,9 +7420,9 @@ const ROSTER = [
   check("and every tap on the field just moves to another bunker", await ev(() => {
     const was = S.tallySel;
     const far = curLayout().bunkers.find(x => x.id !== was && x.x > 70);
-    window.tallyTap([far.x, far.y]);
+    S.tallyStep = "record"; window.tallyTap([far.x, far.y]);
     const moved = S.tallySel !== was;
-    window.tallyTap([byIdAll()[was].x, byIdAll()[was].y]);
+    S.tallyStep = "record"; window.tallyTap([byIdAll()[was].x, byIdAll()[was].y]);
     return moved && S.tallySel === was;
   }));
   await tapTally([theirs.x, theirs.y]);
@@ -7645,7 +7678,7 @@ const ROSTER = [
   }));
   check("so does the point sheet", await ev(() => {
     window.set({ tab: "tally", tallyPick: true });
-    const seg = document.querySelector("#root .seg--wrap");
+    const seg = (document.querySelector("#root .seg__add") || {}).parentElement;
     const n = seg ? seg.querySelectorAll("button:not(.seg__add)").length : 0;
     window.set({ tallyPick: false, tab: "playbook" });
     return n === 10;
@@ -8455,7 +8488,7 @@ const ROSTER = [
     window.set({ tab:"tally", tallyRead:"right", tallyPick:true, helpFor:"scout/counter", helpQ:3,
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
-                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"}, building:{k:"", name:"half a play", plants:["x"], layout:"lso"},
+                 quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"}, building:{k:"", name:"half a play", plants:["x"], layout:"lso"}, tallyStep:"record", tallyEdit:"b-half", tallyPlace:"them",
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -8471,6 +8504,7 @@ const ROSTER = [
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
       quick:S.quick, quickPick:S.quickPick,
       copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText, building:S.building,
+      tallyStep:S.tallyStep === "place" ? "" : S.tallyStep, tallyEdit:S.tallyEdit, tallyPlace:S.tallyPlace,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);
