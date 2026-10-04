@@ -1419,7 +1419,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   whole — so Merge it in from an assistant's squad copy replaced his plays
   with theirs, and a full copy replaced his penalties, timeouts and the
   games he added. Every list a copy carries has a key now; a new list gets
-  one the day it is written, and the merge check carries one of each.
+  one the day it is written, and the merge check carries one of each. And
+  the pits, the calls he has turned off, the league rows he took off and the
+  groups picked for a blast are his place in the day, not records: `HERE`
+  keeps them as his on a merge, the way it keeps the sheet and the point.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

@@ -5048,7 +5048,20 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
-  check("a merge adds plays, penalties, timeouts and added games — it never replaces his own with the copy's", await ev(() => {
+  check("a merge leaves his pits, his turned-off calls and his taken-off league rows alone — they are his place in the day, not records", await ev(() => {
+    window.confirm = () => true;
+    const were = { left: S.left, right: S.right, offPlays: S.offPlays, gamesOff: S.gamesOff, blastTo: S.blastTo, copyStatus: S.copyStatus };
+    window.set({ left: { name: "Houston Heat" }, right: { name: "Rejects" } }); S.offPlays = ["snake"]; S.gamesOff = ["sch:mine"]; S.blastTo = [];
+    const copy = JSON.parse(copyPayload("all"));
+    copy.data = { left: { name: "Dynasty" }, right: { name: "Impact" }, offPlays: ["dside", "blitz"], gamesOff: ["sch:theirs"], blastTo: ["g-x"] };
+    window.set({ tab: "more", more: "nexus" }); const box = document.getElementById("copyIn"); if(box) box.value = JSON.stringify(copy);
+    window.loadCopy("merge");
+    const kept = pitOf("left").name === "Houston Heat" && pitOf("right").name === "Rejects" && JSON.stringify(S.offPlays) === JSON.stringify(["snake"])
+      && JSON.stringify(S.gamesOff) === JSON.stringify(["sch:mine"]) && !(S.blastTo || []).length && /Merged in/.test(S.copyStatus || "");
+    Object.assign(S, were); window.set({ tab: "tally" });
+    return kept;
+  }));
+  check("a merge adds plays, penalties, timeouts and added games — it never replaces his own with the copy's — and leaves his turned-off calls and taken-off rows alone", await ev(() => {
     window.confirm = () => true;
     const were = { plays: S.plays, offPlays: S.offPlays, games: S.games, gamesOff: S.gamesOff, pens: S.pens, timeouts: S.timeouts, matches: S.matches, matchId: S.matchId, results: S.results, copyStatus: S.copyStatus };
     const ids = curLayout().bunkers.slice(0, 5).map(b => b.id);
@@ -5061,8 +5074,9 @@ const ROSTER = [
     window.set({ tab: "more", more: "nexus" }); const box = document.getElementById("copyIn"); if(box) box.value = JSON.stringify(copy);
     window.loadCopy("merge");
     const both = l => (S[l] || []).map(x => x.k || x.id || x);
-    const ok = both("plays").includes("my:mine") && both("plays").includes("my:theirs") && both("offPlays").includes("snake") && both("offPlays").includes("dside")
-      && both("games").includes("g-mine") && both("games").includes("g-theirs") && both("gamesOff").includes("sch:keep") && both("gamesOff").includes("sch:other")
+    // Plays, games, penalties and timeouts add; the calls he turned off and the rows he took off are his place in the day and stay his.
+    const ok = both("plays").includes("my:mine") && both("plays").includes("my:theirs") && JSON.stringify(both("offPlays")) === JSON.stringify(["snake"])
+      && both("games").includes("g-mine") && both("games").includes("g-theirs") && JSON.stringify(both("gamesOff")) === JSON.stringify(["sch:keep"])
       && both("pens").includes("pen-mine") && both("pens").includes("pen-theirs") && both("timeouts").includes("to-mine") && both("timeouts").includes("to-theirs")
       && /Merged in/.test(S.copyStatus || "");
     Object.assign(S, were); window.set({ tab: "tally" });

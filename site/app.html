@@ -4160,7 +4160,12 @@ window.loadCopy = mode => {
    * the wrong match. Replace is different — that is asking to become the other
    * phone, and it takes the lot.
    */
-  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "division", "matchState"];
+  // The pits are his place in the day too — who he is playing and who he is
+  // watching — and the calls he has turned off and the league rows he took
+  // off are his own choices, not records: an assistant's copy merged in used
+  // to swap his pits for theirs, turn off the calls they do not run and hide
+  // the schedule rows they did not want.
+  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
