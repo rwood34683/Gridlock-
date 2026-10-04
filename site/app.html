@@ -3331,13 +3331,18 @@ window.addPlayer = () => {
   const name = clean(rosterVal("rName").trim()).slice(0, 32);
   if(!name) return;                       // a player with no name is not a player
   if(squadHas(name)){ flash(`${name} is already on the squad.`); return; }
-  const num = parseInt(rosterVal("rNum"), 10);
-  S.roster = [...(S.roster || []), {
-    name, num: isFinite(num) ? num : (S.roster || []).length + 1,
-    p: clean(rosterVal("rP").trim()), s: clean(rosterVal("rS").trim()),
-  }];
-  save(S); render();
+  const typed = parseInt(rosterVal("rNum"), 10);
+  // Two men can wear one number — a kid borrowing a jersey — so it is taken,
+  // but said: his card reads "#7" and so does the other man's. A blank number
+  // takes the first one nobody has, not the roster's length, which collided
+  // the moment anyone had been taken off the list.
+  const num = isFinite(typed) ? typed : freeNum();
+  S.roster = [...(S.roster || []), {name, num, p: clean(rosterVal("rP").trim()), s: clean(rosterVal("rS").trim())}];
+  const other = numWorn(num, S.roster.length - 1);
+  save(S); if(other) flash(`${name} added. #${num} is also ${other.name}'s number.`); else render();
 };
+const numWorn = (n, except) => (S.roster || []).find((p, i) => i !== except && Number(p.num) === Number(n)) || null;
+function freeNum(){ let n = 1; while(numWorn(n, -1)) n++; return n; }
 // Edits save without re-rendering. onchange fires on blur, and blur happens as
 // you tap the next thing — so redrawing here would destroy the control under
 // the coach's thumb before the tap landed. The field already shows what was
@@ -3347,7 +3352,7 @@ window.editPlayer = (i, field, value) => {
   if(!list[i]) return;
   if(field === "num"){
     const n = parseInt(value, 10);
-    if(isFinite(n)) list[i].num = n;
+    if(isFinite(n)){ list[i].num = n; const other = numWorn(n, i); if(other){ save(S); flash(`#${n} is also ${other.name}'s number.`); return; } }
   } else {
     const v = clean(String(value).trim()).slice(0, 32);
     if(field === "name" && !v) return;     // never let a name be emptied by accident

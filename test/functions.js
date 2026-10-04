@@ -5154,6 +5154,21 @@ const ROSTER = [
     editProfile("right", { players: keep }); window.set({ flash: "" });
     return one && two && three && refused;
   }));
+  check("a jersey number worn twice on your own squad is taken and said; a blank number is the first one free", await ev(() => {
+    window.confirm = () => true;
+    const keep = S.roster;
+    S.roster = [{ name: "Reyes", num: 7, p: "", s: "" }, { name: "Okafor", num: 1, p: "", s: "" }];
+    window.set({ tab: "more", more: "team", flash: "" });
+    const g = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    g("rName", "Vance"); g("rNum", "7"); window.addPlayer();
+    const taken = S.roster.length === 3 && S.roster[2].num === 7 && /#7 is also Reyes's number/.test(S.flash || "");
+    g("rName", "Marsh"); g("rNum", ""); window.addPlayer();
+    const free = S.roster[3].num === 2;                                   // 1 and 7 are worn, 2 is the first free, not "roster length + 1"
+    window.editPlayer(1, "num", "7");
+    const said = S.roster[1].num === 7 && /#7 is also (Reyes|Vance)'s number/.test(S.flash || "");
+    S.roster = keep; window.set({ flash: "" });
+    return taken && free && said;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
