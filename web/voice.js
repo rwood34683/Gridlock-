@@ -131,6 +131,7 @@ function linkVoiceSighting(event){
 function saveVoiceText(text,source,context=voiceContext(),options=voiceOptions(context)){
   const transcript=String(text || "").trim().slice(0,12000);
   if(!transcript || arrivalRefusal(context)) return 0;
+  adoptTeamOnLog(context.m, context.team);
   const parsed=window.GridlockVoiceParser.parse(transcript,options), at=Date.now();
   const rows=parsed.map((p,index)=>({id:`v-${at.toString(36)}-${Math.random().toString(36).slice(2,10)}-${index}`,
     text:transcript,originalText:transcript,team:context.team,player:p.player || "",playerName:p.playerName || "",

@@ -1461,6 +1461,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   clock the way a coach types it — 13:45, 1:45 PM, 9am, 0900 — to the HH:MM
   the schedule keeps, and Add it refuses anything that is not a time, and a
   team against itself, in a sentence.
+- Stamp a sighting with a sheet about somebody else, or leave a rename
+  behind in a picker. A sighting carries a sheet and a point, so reading
+  Dynasty while the sheet is vs Rejects joined Dynasty's moves to Rejects'
+  points: `teamOnSheet()` is the test and `arrivalRefusal()` says so with one
+  tap to start a sheet against them; an empty sheet takes the team's name as
+  the first row lands (`adoptTeamOnLog`), the way the right pit does. And
+  `renameTeam` follows into `S.arrival.team` and `S.voice.team`, because a
+  pick left under the old spelling split the season the rename had joined.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
