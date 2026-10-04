@@ -1263,6 +1263,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   asked him to put his own opponent back. Opening a sheet is picking the
   team: `openMatchNow` puts its opponent in the right pit, and a watched
   game's home side left and away side right.
+- Take a team off the board in silence. Remove on a team he added dropped
+  it from every picker with one tap and no word, and a team with two sheets
+  and their calls logged behind it read as a season lost — it was not, the
+  profile and the sheets outlive the picker, but nothing said so.
+  `teamHas(name)` counts the sheets, the breaks and the men logged against
+  them; the row says it, Remove asks first when there is any, and the flash
+  says what stays and how to get the team back (type the name again).
+- Leave a door off the list. `sheetOver()` and `needOpponent()` guard
+  `tallyTap`, `logBreakout`, `markOut`, `logCall` and `logTheirBreak`, and the
+  penalty and the timeout were written later and guarded only the off-field
+  case: a penalty went on the unnamed sheet with nobody across the tape and
+  on a finished race, and a second timeout for the same side returned in
+  silence. Both go through the same two doors now, and the timeout says
+  which point the first one went on. A new row type takes the same doors
+  the day it is written.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
