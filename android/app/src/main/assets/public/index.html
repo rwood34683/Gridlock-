@@ -3687,6 +3687,14 @@ const FACE_PAD = [
   ["\u2199",  135, "down and left"], ["\u2193",  90, "down"], ["\u2198",  45, "down and right"]
 ];
 const FACE_GLYPH = Object.fromEntries(FACE_PAD.filter(f => f[1] !== null).map(f => [f[1], f[0]]));
+// Faces and lanes are kept in the left-end frame and the field turns them round
+// when his five break from the right end (mirrorDirect). The arrows on the pad
+// and the buttons have to turn with it, or the arrow he taps points the
+// opposite way to the chevron it draws. seenDeg() is the angle as it reads on
+// the end shown now; the stored value never changes.
+const seenDeg = deg => deg == null ? deg : ourEnd() === "right" ? ((180 - deg) % 360 + 360) % 360 : deg;
+const seenGlyph = deg => FACE_GLYPH[seenDeg(deg)];
+const seenSay = deg => (FACE_PAD.find(f => f[1] === seenDeg(deg)) || [])[2] || "";
 // What each of the eight is called on a field, so the picker reads like a
 // coach talks rather than like a compass.
 const LANE_NAME = {"-135":"back toward the dorito tape", "-90":"the dorito tape",
@@ -4214,9 +4222,13 @@ function fieldSVG(opts={}, runnersOnly){
   let moveArrows = "";
   if(opts.moves){
     const byId = Object.fromEntries(layout.bunkers.map(b=>[b.id,b]));
+    // A rotation is kept as the bunkers he tapped on that point; across matches
+    // and ends the same job is two mirrored arrows unless each is read in the
+    // point-one-left frame and drawn on the end shown now, like every other
+    // count of his (bunkerValue, manRead).
     moveArrows = layoutMoves().filter(typeof opts.moves === "function" ? opts.moves : () => true)
       .slice(0,40).map(m=>{
-      const a=byId[m.from], b=byId[m.to]; if(!a||!b) return "";
+      const a=byId[shownBunker(frameId(m.from, m.m, m.pt))], b=byId[shownBunker(frameId(m.to, m.m, m.pt))]; if(!a||!b) return "";
       const x1=a.x*sx, y1=a.y*sy, x2=b.x*sx, y2=b.y*sy;
       const ang=Math.atan2(y2-y1,x2-x1), L=Math.hypot(x2-x1,y2-y1);
       if(L<6) return "";
@@ -5749,14 +5761,14 @@ function playbook(){
               <button class="${role==="P"?"on":""}" onclick="setDirect('${pth.id}','role','P')">P</button>
               <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
             </span>
-            <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?FACE_GLYPH[d.face]:"Face"}</button>
-            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?FACE_GLYPH[shotLane(d.shot)]:shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?seenGlyph(d.face):"Face"}</button>
+            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
             <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
           ${open?`<div class="pad">
-            ${FACE_PAD.map(([g,deg,say])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}" aria-label="Face ${say}"
-              onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${g}</button>`).join("")}
+            ${FACE_PAD.map(([g,deg,say])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}" aria-label="Face ${deg===null?say:seenSay(deg)}"
+              onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${deg===null?g:seenGlyph(deg)}</button>`).join("")}
           </div>`:""}
           ${openJob?`<div style="flex-basis:100%">
             <input id="jbc-${pth.id}" value="${esc(myJob)}" maxlength="28"
@@ -5770,7 +5782,7 @@ function playbook(){
               <option value="">Lane he is running — no fixed target</option>
               <optgroup label="A lane, no bunker named">
                 ${FACE_PAD.filter(f=>f[1]!==null).map(([g,deg])=>
-                  `<option value="@${deg}" ${d.shot===("@"+deg)?"selected":""}>${g} ${esc(LANE_NAME[deg])}</option>`).join("")}
+                  `<option value="@${deg}" ${d.shot===("@"+deg)?"selected":""}>${seenGlyph(deg)} ${esc(LANE_NAME[deg])}</option>`).join("")}
               </optgroup>
               <optgroup label="A bunker on this field">
                 ${bl.map(b=>`<option value="${esc(b.id)}" ${shotId===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
@@ -6445,9 +6457,12 @@ function breakoutSheet(){
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
     ${q("Shooting which way?")}
+    ${/* The arrows read on the end the field shows; the value kept is the
+          field's own lane, so the story's "shooting up the field" is true
+          from either end. */""}
     <div class="pad">${FACE_PAD.map(([g, deg, say]) =>
-      `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}" aria-label="Shooting ${say}"
-        onclick="setDraft({dir:${deg === null ? "null" : deg}})">${g}</button>`).join("")}</div>
+      `<button class="${deg === null ? (d.dir == null ? "on" : "") : (d.dir === deg ? "on" : "")}" aria-label="Shooting ${deg === null ? say : seenSay(deg)}"
+        onclick="setDraft({dir:${deg === null ? "null" : deg}})">${deg === null ? g : seenGlyph(deg)}</button>`).join("")}</div>
     ${/* The field fills these two with a tap, the way it picked the bunker he
           broke to. Arm one, tap the bunker, done; the dropdown stays for a
           thumb that prefers it and follows the tap. */""}
