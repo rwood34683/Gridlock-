@@ -962,7 +962,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   charted again on the same point replaces his earlier row, and if that row
   had him shot and this one does not, the out it wrote goes with it; a row
   with no name is one of five he is working through and stays. The flash
-  says it replaced.
+  says it replaced. Telling a *placed* man is different: his bunker came from
+  the placing tap, so a name already on another bunker this point is the
+  wrong name picked, and replacing took the other placed man off the field
+  without a word — `logBreakout` refuses it and says which bunker the name is
+  on, and the Who chips print that bunker beside a taken name. And step two's
+  "one more man" is held to `startUp()` the way placing is: a side never has
+  more men charted on a point than it started it with.
 - Count their call twice because a thumb tapped twice. `logCall()` kept one
   call a point for yours; theirs appended, so Blitz tapped twice read "Blitz
   2 of 2" for a point they played once, and the five logged first and the

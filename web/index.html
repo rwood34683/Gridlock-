@@ -6856,12 +6856,30 @@ window.logBreakout = () => {
   // the coach correcting himself, not a second break, so his earlier row goes
   // — and if that row had him shot and this one does not, the out it wrote
   // goes with it. A row with no name is one of five he is working through.
+  const was = row.player ? (S.breakouts || []).find(r => r && r !== editing && r.m === row.m && r.pt === pt && r.side === side && r.player === row.player) : null;
+  // Telling a placed man, the bunker is the one he was placed on, so a name
+  // already on another bunker this point is the wrong name picked — not the
+  // coach charting the same man again. Replacing there took the other placed
+  // man off the field without a word.
+  if(editing && was && was.bunker !== b.id){
+    flash(`${row.player} is already the man on ${bunkerLabel(was.bunker)} this point — pick who this one is, or No name.`);
+    return;
+  }
+  // No more men on a side than it started the point with: placing is capped,
+  // and one more man charted from step two is held to the same count.
+  if(!editing || editing.side !== side){
+    const cap = startUp(side, row.m, pt);
+    const n = (S.breakouts || []).filter(r => r && r !== editing && r !== was && r.m === row.m && r.pt === pt && r.side === side).length;
+    if(n >= cap){
+      flash(`${placeSideWord(side)}: all ${cap} are charted on point ${pt}. Open one from the list to change him, or take him off first.`);
+      return;
+    }
+  }
   if(editing){
     S.breakouts = (S.breakouts || []).filter(r => r !== editing);
     if(editing.alive === false && editing.player)
       S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === editing.m && o.pt === editing.pt && o.side === editing.side && o.name === editing.player));
   }
-  const was = row.player ? (S.breakouts || []).find(r => r && r.m === S.matchId && r.pt === pt && r.side === side && r.player === row.player) : null;
   if(was){
     S.breakouts = (S.breakouts || []).filter(r => r !== was);
     if(was.alive === false && row.alive !== false)
@@ -7096,8 +7114,14 @@ function breakoutSheet(){
     ${seg([[side === "us", wm ? esc(wm.home || "Home") : "Your player", "setDraft({side:'us',sideSet:true,player:''})"],
            [side === "them", wm ? esc(wm.away || "Away") : "Theirs", "setDraft({side:'them',sideSet:true,player:''})"]])}
     ${q("Who")}
-    ${seg([[!d.player, "No name", "setDraft({player:''})"],
-           ...names.map(n => [d.player === n, esc(n), `setDraft({player:${jsq(n)}})`])])}
+    ${(() => {
+      // A name already charted on another bunker this point says where, so
+      // the coach sees the man is taken before he picks him twice.
+      const taken = n => breakoutsHere().find(r => r.pt === rowPt && r.side === side && r.player === n && r.id !== S.tallyEdit && r.bunker !== b.id);
+      return seg([[!d.player, "No name", "setDraft({player:''})"],
+        ...names.map(n => { const t = taken(n);
+          return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `setDraft({player:${jsq(n)}})`]; })]);
+    })()}
     ${q("Did he make it?")}
     ${seg([[d.alive === true, "Made it", `setDraft({alive:${d.alive === true ? "null" : "true"}})`],
            [d.alive === false, "Shot on the break", `setDraft({alive:${d.alive === false ? "null" : "false"}})`]])}
