@@ -9673,8 +9673,19 @@ window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
   if(!name){flash("Name is required.");return}
   if(!document.getElementById("fa").checked){flash("Tick the sign-in box to submit.");return}
-  S.responses=[{code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
-    wire:document.getElementById("fw").value,notes:document.getElementById("ft").value},...S.responses];
+  const row={code,name,contact:document.getElementById("fc").value,exp:document.getElementById("fe").value,
+    wire:document.getElementById("fw").value,notes:document.getElementById("ft").value};
+  // The same name on the same sheet twice is one participant who signed in
+  // again — a phone handed round a clinic gets that — not two. The second
+  // sign-in updates what he filled in; a box he left blank keeps the first.
+  const i=(S.responses||[]).findIndex(r=>r&&r.code===code&&foldName(r.name)===foldName(name));
+  if(i>=0){
+    const was=S.responses[i], merged={...was};
+    for(const k of ["contact","exp","wire","notes"]) if(String(row[k]||"").trim()) merged[k]=row[k];
+    S.responses=S.responses.map((r,j)=>j===i?merged:r);
+    S.joinCode=""; S.joinSaid=`${was.name} was already signed in — updated. Hand the phone back to the coach.`; save(S); render(); return;
+  }
+  S.responses=[row,...(S.responses||[])];
   S.joinCode=""; S.joinSaid=`Signed in as ${name}. Hand the phone back to the coach.`; save(S); render();
 };
 
