@@ -5400,8 +5400,8 @@ function authForm(){
       : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
          about you or your team ever leaves the device.`}</p>
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
-    <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com"/></div>
-    <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more"/></div>
+    <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com" ${onEnter("doAuth()")}/></div>
+    <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
       <button class="btn grow" onclick="doAuth()">${make?"Create account":"Sign in"}</button>
       <button class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
@@ -8958,7 +8958,7 @@ function classesPage(){
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
-        <input value="${esc(S.newClassTitle)}" onchange="S.newClassTitle=this.value;save(S)"/></div>
+        <input value="${esc(S.newClassTitle)}" onchange="S.newClassTitle=this.value;save(S)" ${onEnter("S.newClassTitle=this.value;save(S);makeClass()")}/></div>
       <button class="btn btn--block" onclick="makeClass()">Create class</button>
       ${(S.classes||[]).length?(S.classes).map(c=>{
         const r=S.responses.filter(x=>x.code===c.code);
