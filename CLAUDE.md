@@ -1042,6 +1042,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   no number that carries a role or heading word (`ROSTER_ROLE`) or starts
   with a team's name (`teamPrefix`) is skipped and listed as skipped, so the
   coach sees it was read and left out rather than finding a coach on the five.
+  A jersey number is one to three digits standing alone — "Roster 2026" is not
+  #026 — a number in brackets after the name is his, "D-side" and "S side" are
+  wires, and one man pasted three ways is one row that takes the number or
+  wire whichever line had it.
 - Let two men share a name. A name is the key an out, a lineup slot and a
   grade are written against, so the second Reyes made both rows go out when
   either did. `squadHas()` folds case and spacing; Team refuses the duplicate
