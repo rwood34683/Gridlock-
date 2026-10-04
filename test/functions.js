@@ -3873,16 +3873,44 @@ const ROSTER = [
     const text = document.getElementById("root").textContent;
     return t[a.id] && t[a.id].visits >= 2 && t[a.id].outs >= 1 && t[mv.id] && t[mv.id].visits >= 1 && !/Nothing logged yet/.test(text);
   }));
-  check("a finished sheet takes nothing more: the field, a tapped man, Log it and their five all refuse and say so", await ev(() => {
+  check("a finished sheet is charted on its last point: the field, a tapped man, Log it and their five all land on the point that was played, never past it", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
-    const before = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
-    const b = curLayout().bunkers[4];
-    S.tallyStep = "record"; window.tallyTap([b.x, b.y]); const noSheet = !S.tallySel;
-    window.markOut("us", "Reyes"); window.logCall(); window.logTheirBreak("right", "snake");
-    const after = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length, theirBreaks("right").length].join();
-    const said = /Match over — New match starts the next sheet/.test(S.flash || "");
+    const mid = S.matchId, last = sheetPoint(), past = S.point;
+    const b = curLayout().bunkers[4], c = curLayout().bunkers[30];
+    // Placed after We won it, on the final point.
+    S.tallyStep = "place"; window.tallyTap([b.x, b.y]);
+    const placed = (S.breakouts || []).find(r => r.m === mid && r.bunker === b.id);
+    // Told from step two, and one more man charted the old way.
+    window.tallyStepTo("record"); const opened = S.tallySel === b.id && S.tallyEdit === (placed || {}).id;
+    window.setDraft({ alive: true }); window.logBreakout();
+    S.tallyStep = "record"; window.tallyTap([c.x, c.y]); window.setDraft({ alive: true }); window.logBreakout();
+    const more = (S.breakouts || []).find(r => r.m === mid && r.bunker === c.id);
+    const told = (S.breakouts || []).find(r => placed && r.id === placed.id);
+    const name = (fiveFor(last).filter(Boolean)[0] || {}).name || "Reyes";
+    window.markOut("us", name); window.logCall(); window.logTheirBreak("right", "snake");
+    const out = (S.tally || []).find(o => o && o.m === mid && o.name === name);
+    const call = (S.calls || []).find(x => x && x.m === mid);
+    const theirs = theirBreaks("right").find(x => x && x.m === mid && x.script === "snake");
+    const pts = [placed, more, out, call, theirs].map(x => x && x.pt);
+    const note = /Match over — this goes on point 1, the last one played/.test(document.getElementById("root").textContent);
+    // Nothing past the end, and no new result.
+    const ok = past > last && pts.every(p => p === last) && told && !told.todo && opened && note
+      && (S.results || []).filter(r => r.m === mid).length === 1;
     window.newMatch();
-    return noSheet && before === after && said;
+    return ok;
+  }));
+  check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
+    const before = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length].join();
+    S.layoutKey = other; window.set({});
+    const b = curLayout().bunkers[4];
+    S.tallyStep = "place"; window.tallyTap([b.x, b.y]);
+    window.markOut("us", "Reyes"); window.logCall();
+    const after = [(S.breakouts || []).length, (S.tally || []).length, (S.calls || []).length].join();
+    const said = new RegExp("This sheet is on " + LAYOUTS[here].name).test(S.flash || "");
+    S.layoutKey = here; window.set({}); window.newMatch();
+    return before === after && said;
   }));
   check("Matchup names the five standing beside their jobs, and their men by number and name", await ev(() => {
     window.set({ tab: "scout", scoutTab: "matchup", right: { name: "Dynasty" }, pitOpen: null });

@@ -2989,7 +2989,9 @@ function playedBefore(pt, m){
       || (S.calls || []).some(before) || (S.moves || []).some(before);
 }
 function ourEnd(pt, m){
-  pt = pt || S.point || 1; m = m === undefined ? curMatch() : m;
+  // On a finished sheet the point he is on is the last one played: the
+  // cursor sits past the end, and that point's end may be the other one.
+  pt = pt || sheetPoint(); m = m === undefined ? curMatch() : m;
   const base = m && m.end === "right" ? "right" : "left";
   const turned = endSwapped(pt, m) !== flippedAt(pt, m);
   return turned ? (base === "left" ? "right" : "left") : base;
@@ -6032,13 +6034,12 @@ window.logTheirBreak = (side, script, plants) => {
   // On a field the open sheet is not on, what they run is still worth
   // counting: it lands as a season row on this field, never on that sheet's point.
   const off = !!sheetField();
-  if(!off && sheetOver()) return;
   const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
   // Stamped with the point only when this team is on the sheet; otherwise it
   // is a season row — counted in what they run, never joined to a score.
   if(side === "right" && !off && !(curMatch()||{}).watch) adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
   const entry = pitOnSheet(side) && !off
-    ? {script: script || "", pt:S.point||1, m:S.matchId, layout:S.layoutKey, at:Date.now()}
+    ? {script: script || "", pt:sheetPoint(), m:S.matchId, layout:S.layoutKey, at:Date.now()}
     : {script: script || "", layout:S.layoutKey, at:Date.now()};
   if(picked.length) entry.plants = picked;
   // One point has one break of theirs, as it has one call of yours: a call
@@ -6059,7 +6060,7 @@ window.logTheirFive = side => {
 };
 // The logged five for the point being looked at, if any.
 function theirFiveLogged(side = "right"){
-  const pt = S.point || 1;
+  const pt = sheetPoint();
   return theirBreaks(side).find(b => Array.isArray(b.plants) && b.plants.length
     && b.m === S.matchId && b.pt === pt && (!b.layout || b.layout === S.layoutKey)) || null;
 }
@@ -6919,7 +6920,7 @@ function playbook(){
   ${/* Which end the five break from. Below Play the break, not above it: a row
         over Play pushed it off the first screen on first run. */""}
   ${endsChip()}
-  ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${S.point||1}</button>`}
+  ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${sheetPoint()}</button>`}
 
   ${/* A one-time nudge to the play maker. It sits BELOW Play the break so it
         never pushes that off the fold on first run, and retires itself the
@@ -7325,7 +7326,7 @@ function nearestBunker(at){
 }
 // Which pit a man breaking to this bunker came from: yours run from the left,
 // and a bunker past the fifty is somebody else's plant. One tap says otherwise.
-const sideOfBunker = b => ((ourEnd() === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
+const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
 window.setDraft = patch => set({tallyDraft: {...draft(), ...patch}});
 window.selectBunker = id => {
   const b = curLayout().bunkers.find(x => x.id === id); if(!b) return;
@@ -7412,7 +7413,10 @@ window.tallyTap = at => {
   // Log stored the break with vs "" — a point charted into a void while the
   // gate above said to name the team first. The tap goes to the gate instead.
   if(!matchVs()) return needOpponent();
-  if(sheetOver()) return;
+  // A finished race still takes the last point's chart — the men are placed
+  // and told walking off, after We won it — but a sheet on another field
+  // takes nothing.
+  if(sheetField()){ sheetOver(); return; }
   const b = nearestBunker(at); if(!b) return;
   // With a sheet open and a picker armed, the tap fills that picker — the
   // bunker he was shooting at, or the one he moved to — and never re-opens
@@ -7449,14 +7453,14 @@ window.tallyTap = at => {
  * Save opening the next. A placed man is an ordinary breakout row from the
  * moment he is tapped — he did break there — carrying `todo` until his story
  * is told, so nothing is lost if the point ends before step two. */
-const pointRows = () => breakoutsHere().filter(r => r.pt === (S.point || 1) && r.layout === S.layoutKey)
+const pointRows = () => breakoutsHere().filter(r => r.pt === sheetPoint() && r.layout === S.layoutKey)
   .sort((a, b) => a.at - b.at);
 /* Men placed and not yet told, on any point of this sheet. Between points
  * there are forty-five seconds; a coach who placed ten and told three before
  * the buzzer had seven men left on a point Tally no longer showed. The point
  * he is on comes first, then the earliest point still owing. */
 const tellBacklog = () => breakoutsHere().filter(r => r.todo && r.layout === S.layoutKey)
-  .sort((a, b) => ((a.pt === (S.point || 1)) ? -1 : 0) - ((b.pt === (S.point || 1)) ? -1 : 0) || a.pt - b.pt || a.at - b.at);
+  .sort((a, b) => ((a.pt === sheetPoint()) ? -1 : 0) - ((b.pt === sheetPoint()) ? -1 : 0) || a.pt - b.pt || a.at - b.at);
 const placeSideWord = side => { const m = curMatch(); return m && m.watch ? (side === "us" ? m.home : m.away) || (side === "us" ? "Home" : "Away") : side === "us" ? "Yours" : "Theirs"; };
 /* Their five, charted once.
  *
@@ -7489,7 +7493,7 @@ function syncTallyFive(mid, pt){
   });
 }
 function placeAt(b){
-  const pt = S.point || 1, side = S.tallyPlace || sideOfBunker(b);
+  const pt = sheetPoint(), side = S.tallyPlace || sideOfBunker(b, pt);
   const rows = pointRows();
   // A second tap on a man placed and not yet told is a double tap or the
   // wrong bunker: it takes him off, and says so.
@@ -7582,12 +7586,12 @@ window.logBreakout = () => {
   if(!matchVs()) return needOpponent();
   // Telling a placed man's story writes over his row: same id, same point.
   const editing = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
-  // A man already on a played point can be told after the race is over — the
-  // last point's men are told walking off — but never from another field.
-  if(editing ? (sheetField() && sheetOver()) : sheetOver()) return;
+  // A finished race is charted on its last point — the last point's men are
+  // told walking off — but never from another field.
+  if(sheetField()){ sheetOver(); return; }
   const d = draft(), at = Date.now();
-  const pt = editing ? editing.pt : (S.point || 1);
-  const side = d.side || sideOfBunker(b);
+  const pt = editing ? editing.pt : sheetPoint();
+  const side = d.side || sideOfBunker(b, pt);
   // Moved to is where he went next and Shot from is where the paint came
   // from; either one being the bunker he broke to is a mis-tap, and logged it
   // was a rotation to nowhere or a man shot from his own bunker.
@@ -7633,7 +7637,7 @@ window.logBreakout = () => {
     if(next) return editBreakout(next.id);
     S.tallyDraft = null; save(S);
     const told = breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).length;
-    if(!was) flash(pt === (S.point || 1) ? `All ${told} on this point recorded.` : `All ${told} on point ${pt} recorded.`); else render();
+    if(!was) flash(pt === sheetPoint() ? `All ${told} on this point recorded.` : `All ${told} on point ${pt} recorded.`); else render();
     return;
   }
   // The side sticks if the coach set it — he is working through their five —
@@ -7724,7 +7728,7 @@ function describeBreakout(r){
 // Everything the chart puts on the field, above the bunkers and under the tap
 // surface: what each bunker is worth, this point's men, and the one being logged.
 function tallyOverlay(){
-  const sx = 2, sy = 2, pt = S.point || 1;
+  const sx = 2, sy = 2, pt = sheetPoint();
   const byId = Object.fromEntries(curLayout().bunkers.map(b => [b.id, b]));
   let out = "";
   // The open sheet's two targets, ringed while he is filling it in.
@@ -7809,12 +7813,12 @@ function tallyOverlay(){
 // a thumb can hit; nothing is required, and Log takes whatever was answered.
 function breakoutSheet(){
   const b = selBunker(); if(!b) return "";
-  const d = draft(), pt = S.point || 1, bl = curLayout().bunkers;
+  const d = draft(), pt = sheetPoint(), bl = curLayout().bunkers;
   // A man told from an earlier point of the sheet is read against that point:
   // its five, its number in the header.
   const edRow = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
   const rowPt = edRow ? edRow.pt : pt;
-  const side = d.side || sideOfBunker(b);
+  const side = d.side || sideOfBunker(b, rowPt);
   const mine = fiveFor(rowPt).filter(Boolean).map(p => p.name);
   // On a watched game "us" is the home side, not his five: neither side is
   // his to name from his roster, so both are numbers, and the toggle names
@@ -7889,10 +7893,10 @@ function breakoutSheet(){
 }
 
 function tally(){
-  const pt=S.point||1;
+  const pt=sheetPoint();
   const sc=matchScore(), was=resultFor(pt);
   const bl=curLayout().bunkers;
-  const mine=fiveFor(S.point||1).filter(Boolean);
+  const mine=fiveFor(pt).filter(Boolean);
   // The sheet, the counts and the log are this match's. A season of outs under
   // a point number that starts again every game is not a point sheet.
   const outs=rowsHere(S.tally);
@@ -7981,7 +7985,8 @@ function tally(){
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
       ? "Off the buzzer, tap the bunker each man broke to — one tap a man. Tap one again to take him off."
-      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>`;
+      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
+    ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
   // a man of theirs who broke deep into your half is still theirs. Under the
   // field, so the field stays as high on the phone as it was.
@@ -8348,7 +8353,7 @@ function pensFor(mid, pt){
 // How many men a side actually starts the point with. Never below one: a side
 // with nobody on the field is not a point, it is a typo.
 function startUp(side, mid, pt){
-  const cost = pensFor(mid || S.matchId, pt || S.point || 1)
+  const cost = pensFor(mid || S.matchId, pt || sheetPoint())
     .filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0);
   return Math.max(1, 5 - cost);
 }
@@ -8402,7 +8407,7 @@ function theirNames(){
 function outRow(side, name, extra = {}){
   // The point the out belongs to: the one he is on, unless the row being
   // told is from an earlier point of this sheet.
-  const pt=extra.pt||S.point||1;
+  const pt=extra.pt||sheetPoint();
   const already=(S.tally||[]).some(o=>typeof o==="object" && o.m===S.matchId && o.pt===pt
                                     && o.side===side && o.name===name);
   if(already) return false;
@@ -8416,11 +8421,11 @@ function outRow(side, name, extra = {}){
  * used to do nothing, so a mis-tap meant finding the row in the log below. */
 window.markOut = (side,name) => {
   if(nobodyToPlay()) return needOpponent();
-  if(sheetOver()) return;
-  const pt = S.point || 1;
+  if(sheetField()){ sheetOver(); return; }   // over, it is the last point played
+  const pt = sheetPoint();
   const i = (S.tally || []).findIndex(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === name);
   if(i >= 0){ releaseOut(S.tally[i]); save(S); render(); return; }
-  if(outRow(side, name)){ save(S); render(); }
+  if(outRow(side, name, {pt})){ save(S); render(); }
 };
 // An out taken back — tapped back in on the live point, or Undo on the log
 // for a point already left. If his break chart said shot on the break, that
@@ -8885,8 +8890,8 @@ function watchedNote(){
 window.logCall = () => {
   if(nobodyToPlay()) return needOpponent();
   if((curMatch() || {}).watch) return;   // not his call to log
-  if(sheetOver()) return;
-  const pt = S.point || 1;
+  if(sheetField()){ sheetOver(); return; }   // over, it is the last point played
+  const pt = sheetPoint();
   S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now()},
              ...(S.calls || []).filter(c => !(c.m === S.matchId && c.pt === pt))];
   save(S); render();
