@@ -2644,7 +2644,7 @@ S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.c
 // The season copy shown as text is the whole season again, saved inside the
 // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
 // was standing. None of them is a record, so none of them rides a relaunch.
-S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null;
+S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null;
 // The board used to be one flat list; it is per event now. Fold an old drawing
 // onto the field the app is opening on rather than dropping it.
 if(S.wb && Array.isArray(S.wb.marks)){
@@ -6847,7 +6847,7 @@ window.shareCards = () => {
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
         + `   ${c.bunker} · ${c.job}\n   ${c.role} · faces ${c.face} · lanes ${c.shot}`
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
-  if(window.gridlockShare) window.gridlockShare(t, "Gridlock cards"); else prompt("Cards", t);
+  handOff("Gridlock cards", t);
 };
 
 /* ============================================================
@@ -9647,7 +9647,7 @@ window.copyMatchup = () => {
   // The left pit is a team he watches; it is a side of this card only on a watched sheet.
   const who = (curMatch()||{}).watch && pitNamed("left") ? `${pitOf("left").name} vs ${pitOf("right").name}` : `vs ${pitOf("right").name}`;
   const t=`Gridlock · ${who}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
-  if(window.gridlockShare) window.gridlockShare(t,"Gridlock matchup"); else prompt("Matchup card", t);
+  handOff("Gridlock matchup", t);
 };
 
 function scoutBoard(){
@@ -9975,7 +9975,7 @@ window.shareClass = code => {
              clean(c.notes||""), c.open ? "" : "Sign-ins are closed.",
              "Sign in on the coach's phone — the session lives there."]
             .filter(Boolean).join("\n");
-  if(window.gridlockShare) window.gridlockShare(t, "Gridlock class"); else prompt("Class", t);
+  handOff("Gridlock class", t);
 };
 window.submitForm = code => {
   const name=document.getElementById("fn").value.trim();
@@ -10113,6 +10113,35 @@ window.addMem = id => {
 window.delMem = (id,i) => {
   S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g); save(S); render();
 };
+// Text the app hands over — a card, a class link, a blast. The phone app has
+// the share sheet; the browser build on a laptop or an insecure address has
+// nothing, and the fallback was prompt(): a system dialog with the whole card
+// squeezed into one line, which the house rule forbids anyway. The text goes
+// on screen instead, in a box he can copy from, with Copy where the browser
+// allows it. S.handText is scratch and never rides a relaunch.
+function handOff(title, text){
+  if(window.gridlockShare){ window.gridlockShare(text, title); return; }
+  S.handText = {title: String(title || "Copy this"), text: String(text || "")};
+  save(S); render();
+  requestAnimationFrame(() => { const el = document.getElementById("handoff"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+}
+window.copyHandText = () => {
+  const t = (S.handText || {}).text || "";
+  const el = document.getElementById("handoff-text"); if(el){ el.focus(); el.select(); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(() => flash("Copied."), () => flash("Select the text and copy it — the browser would not let the app do it."));
+  } else flash("Select the text and copy it — this browser has no clipboard for the app.");
+};
+function handOffBox(){
+  const h = S.handText; if(!h || !h.text) return "";
+  return `<div class="panel" id="handoff" role="region" aria-label="${esc(h.title)}">
+    <h3 class="panel__title">${esc(h.title)}</h3>
+    <p class="note">No share sheet here, so the text is below. Copy it and paste it where it is going.</p>
+    <div class="fld"><label for="handoff-text">Text</label><textarea id="handoff-text" readonly rows="6">${esc(h.text)}</textarea></div>
+    <div class="btnrow"><button class="btn grow" onclick="copyHandText()">Copy</button>
+      <button class="btn btn--quiet" onclick="set({handText:null})">Close</button></div>
+  </div>`;
+}
 window.sendBlast = () => {
   const body=clean(S.blastBody||"");
   if(!body){flash("Write the update first.");return}
@@ -10123,8 +10152,7 @@ window.sendBlast = () => {
   S.blasts=[{at:new Date().toLocaleString(),n:rec.length,body,
              to:picked.map(g=>g.name).join(", ")},...S.blasts];
   save(S);
-  if(rec.length && window.gridlockShare) window.gridlockShare(body+"\n"+rec.join(", "),"Gridlock league blast");
-  else prompt("Copy this blast", body+"\n"+rec.join(", "));
+  handOff("Gridlock league blast", body+"\n"+rec.join(", "));
   render();
 };
 
@@ -11285,7 +11313,7 @@ function shell(){
         <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}${crumb}</span>
       </div>`}
     </header>
-    <main class="main">${contextWarning()}${storeWarning()}${tut}${page}
+    <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
