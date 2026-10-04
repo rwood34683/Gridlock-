@@ -1981,7 +1981,9 @@ const ROSTER = [
       {pt:3,side:"us",  name:"Marsh",at:30,script:"blitz",layout:"mwo",vs:"Malicious",how:"Bounce"}],
     moves:[{pt:1,who:"Reyes",from:"SB#6",to:"GP#1",layout:"mwo",at:15}],
   };
-  await ev(st => window.set(st), AGAINST);
+  // The open sheet moves to the fixture's field with it: a sheet on another
+  // field takes nothing, by design, and that is checked on its own below.
+  await ev(st => { window.set(st); patchMatch({layout: st.layoutKey}); }, AGAINST);
   check("what a team runs is counted, most seen first", await ev(() => {
     const f = breakFreq("right");
     return f[0][0] === "snake" && f[0][1] === 2 && f[1][0] === "blitz";
@@ -4784,6 +4786,24 @@ const ROSTER = [
     const hold = rows.find(r => /Hold/.test(r)); const holdOk = !!hold && /won 0 of 2 vs Blitz/.test(hold);
     window.set({ tab: "tally" }); window.newMatch();
     return lede && first && holdOk;
+  }));
+  check("a sheet refuses anything logged on a field it was not started on, and offers the way back", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" } });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    window.endPoint("us");
+    const mid = S.matchId, results = (S.results || []).length, outs = (S.tally || []).length, calls = (S.calls || []).length;
+    window.set({ layoutKey: "tby" });
+    const t = document.getElementById("root").innerText;
+    const said = /This sheet is on NXL Lone Star Open/.test(t) && /Back to NXL Lone Star Open/.test(t) && !/We won it/.test(t);
+    window.endPoint("us"); window.markOut("us", "Reyes"); window.logCall();
+    const refused = (S.results || []).length === results && (S.tally || []).length === outs && (S.calls || []).length === calls && S.matchId === mid;
+    [...document.querySelectorAll("#root button")].find(b => /Back to NXL Lone Star Open/.test(b.textContent)).click();
+    const back = S.layoutKey === "lso" && /We won it/.test(document.getElementById("root").innerText);
+    window.set({ layoutKey: "tby" }); window.newMatch();
+    const fresh = S.matchId !== mid && curMatch().layout === "tby" && /We won it/.test(document.getElementById("root").innerText);
+    window.set({ layoutKey: "lso" }); window.newMatch();
+    return said && refused && back && fresh;
   }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
