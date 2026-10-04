@@ -5062,6 +5062,20 @@ const ROSTER = [
     window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
     return shot && back;
   }));
+  check("Undo on the log for a point already left releases the man on his break chart the same way", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "A";
+    window.selectBunker(bl[2].id); window.setDraft({ side: "us", player: man, alive: false, shotFrom: bl[1].id, movedTo: "" }); window.logBreakout();
+    window.endPoint("us");
+    const i = (S.tally || []).findIndex(o => o && o.m === S.matchId && o.pt === 1 && o.name === man);
+    window.undoOut(i);
+    const row = (S.breakouts || []).find(r => r.m === S.matchId && r.pt === 1 && r.player === man);
+    const ok = i >= 0 && !(S.tally || []).some(o => o && o.m === S.matchId && o.pt === 1 && o.name === man) && row && row.alive === true && !row.shotFrom && /back in/.test(S.flash || "");
+    S.breakouts = (S.breakouts || []).filter(r => !(r.m === S.matchId && r.player === man));
+    window.set({ tallySel: null, tallyDraft: null, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return ok;
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
