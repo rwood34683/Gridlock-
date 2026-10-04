@@ -9819,7 +9819,9 @@ function leaguePage(){
     </div>
     ${S.groups.map(g=>`<div class="panel">
       <div style="display:flex;align-items:center;gap:12px">
-        <h3 class="panel__title grow">${esc(g.name)}</h3>
+        <input class="panel__title grow" value="${esc(g.name)}" maxlength="40" aria-label="Group name for ${esc(g.name)}"
+          style="background:transparent;border:0;border-bottom:1px solid var(--line);padding:4px 0;min-width:0"
+          onchange="renameGroup(${jsq(g.id)}, this.value)"/>
         <span class="list__count">${(g.members||[]).length}</span>
         <button class="btn btn--danger" onclick="delGroup(${jsq(g.id)})">Delete</button>
       </div>
@@ -9876,11 +9878,22 @@ window.toggleBlastGroup = id => {
   S.blastTo = on.includes(id) ? on.filter(x=>x!==id) : [...on, id];
   save(S); render();
 };
+// Two groups with one name are one blast sent twice and one list read as two.
+const groupHas = (name, except) => (S.groups || []).some(g => g.id !== except && foldName(g.name) === foldName(name));
 window.addGroup = () => {
-  const n=document.getElementById("ng").value.trim(); if(!n){ flash("Type the group's name first."); return; }
+  const n=clean(document.getElementById("ng").value.trim()).slice(0, 40); if(!n){ flash("Type the group's name first."); return; }
+  if(groupHas(n)){ flash(`${n} is already a group.`); return; }
   const id="g"+Date.now();
   S.blastTo=[...blastTo(), id];
   S.groups=[...S.groups,{id,name:n,members:[]}]; save(S); render();
+};
+// A group's name is fixed in place, like a play's or an added team's: a
+// typo is not a reason to delete the list and type its members again.
+window.renameGroup = (id, v) => {
+  const n = clean(String(v || "").trim()).slice(0, 40);
+  if(!n){ flash("A group needs a name — kept the old one."); render(); return; }
+  if(groupHas(n, id)){ flash(`${n} is already a group — kept the old one.`); render(); return; }
+  S.groups = S.groups.map(g => g.id === id ? {...g, name: n} : g); save(S); render();
 };
 window.delGroup = id => {
   S.groups=S.groups.filter(g=>g.id!==id);
