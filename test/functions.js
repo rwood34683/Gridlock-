@@ -4840,6 +4840,103 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("penalty and timeout go through the same doors as every other row: nobody to play is the gate, a finished sheet refuses and says so, a second timeout says where the first went", penDoors === true, penDoors);
+  const lastPt = await ev(() => {
+    window.confirm = () => true;
+    const bl = curLayout().bunkers, man = (S.roster[0] || {}).name;
+    if(!man) return "no roster";
+    // Nobody to play: Assess and Movement show the gate and write nothing.
+    window.set({ tab: "more", more: "assess", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
+    const root = () => document.getElementById("root").innerText;
+    const noteA = /Pick the other team first/.test(root()) && !!document.querySelector("#root .empty button");
+    window.set({ more: "movement" });
+    const noteM = /Pick the other team first/.test(root());
+    const n0 = (S.assessments || []).length, mv0 = (S.moves || []).length;
+    window.set({ asWho: man, asScore: 4 }); window.saveAssess();
+    const gateA = (S.assessments || []).length === n0 && S.tab === "tally" && S.tallyNudge === true;
+    window.set({ tab: "more", more: "movement", moveWho: man, moveFrom: bl[0].id, moveTo: bl[1].id }); window.logMove();
+    const gateM = (S.moves || []).length === mv0 && S.tab === "tally";
+    // A finished sheet: the grade and the rotation go on the last point played, and the screen says so.
+    window.set({ tab: "tally", right: { name: "Rejects" }, tallyNudge: false }); window.newMatch(); window.setRaceTo(1); window.setMercy(0);
+    window.endPoint("us");
+    const over = matchOver() && (S.point || 1) === 2 && sheetPoint() === 1;
+    window.set({ tab: "more", more: "assess", asWho: man, asScore: 3 });
+    const saidA = /Match over — this goes on point 1/.test(root()) && /Point 1/.test(root());
+    window.saveAssess();
+    const gradeA = (S.assessments || []).find(a => a.m === S.matchId && a.who === man) || {};
+    window.set({ more: "movement", moveWho: man, moveFrom: bl[0].id, moveTo: bl[1].id });
+    const saidM = /Match over — this goes on point 1/.test(root());
+    window.logMove();
+    const moveM = (S.moves || []).find(a => a.m === S.matchId && a.who === man) || {};
+    const flags = { noteA, noteM, gateA, gateM, over, saidA, grade: gradeA.pt === 1, saidM, move: moveM.pt === 1 };
+    S.assessments = (S.assessments || []).filter(a => a.m !== S.matchId); S.moves = (S.moves || []).filter(a => a.m !== S.matchId);
+    window.set({ tab: "tally", right: { name: "Dynasty" }, asWho: null, asScore: 0, moveWho: null, moveFrom: null, moveTo: null }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a grade or a rotation goes on the last point played once the sheet is over, and the screen says so; with nobody to play, Assess and Movement send him to the gate and write nothing", lastPt === true, lastPt);
+  const fiveRides = await ev(() => {
+    window.confirm = () => true;
+    if(!S.roster.length) return "no roster";
+    // A bench man of his own for the check: the roster is padded to five first,
+    // or the new man is already on the point and the second tap takes him off.
+    const pads = []; while(S.roster.length + pads.length < 5) pads.push({ name: "Bench Pad " + (pads.length + 1), p: "", s: "" });
+    S.roster = [...S.roster, ...pads, { name: "Rides On", p: "", s: "" }];
+    const names = [S.roster[0].name, "Rides On"];
+    // A blank sheet with nobody named; he rotates a man on before the gate.
+    window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
+    const blank = S.matchId, asked = [];
+    window.swapOn(names[0]); window.swapOn(names[1]);
+    const wrote = lineupAt(1, blank).includes(names[1]) && !lineupAt(1, blank).includes(names[0]) && matchSize(blank) === 1 && loggedSize(blank) === 0;
+    window.confirm = q => { asked.push(q); return true; };
+    window.set({ right: { name: "Rejects" } }); window.newMatch();
+    const real = S.matchId;
+    const flags = {
+      wrote,
+      notAsked: asked.length === 0,
+      replaced: !(S.matches || []).some(m => m.id === blank),
+      carried: lineupAt(1, real).includes(names[1]) && !lineupAt(1, real).includes(names[0]) && fiveFor(1).some(p => p && p.name === names[1]),
+      noOrphan: !Object.keys(S.lineups || {}).some(k => k.startsWith(blank + "|")),
+    };
+    // And a sheet with an out on it is still asked about before it is closed.
+    window.markOut("them", "#3"); window.set({ right: { name: "Dynasty" } }); window.newMatch();
+    flags.askedLogged = asked.length === 1 && /1 entry/.test(asked[0]);
+    S.roster = S.roster.filter(p => p.name !== "Rides On" && !/^Bench Pad /.test(p.name));
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a five set before the other team is named rides onto the real sheet as point 1's lineup, and the blank sheet is replaced without a question", fiveRides === true, fiveRides);
+  const delMan = await ev(() => {
+    const asked = []; window.confirm = q => { asked.push(q); return false; };
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const m = S.matchId, bl = curLayout().bunkers;
+    S.roster = [...S.roster, { name: "Gone Soon", p: "", s: "" }, { name: "Never Played", p: "", s: "" }];
+    window.markOut("us", "Gone Soon"); window.set({ asWho: "Gone Soon", asScore: 4 }); window.saveAssess();
+    const i = () => S.roster.findIndex(p => p.name === "Gone Soon");
+    window.delPlayer(i());
+    const kept = asked.length === 1 && /1 out · 1 grade/.test(asked[0]) && /nothing logged is deleted/i.test(asked[0]) && i() >= 0;
+    window.confirm = q => { asked.push(q); return true; };
+    window.delPlayer(i());
+    const gone = i() < 0 && (S.tally || []).some(o => o && o.m === m && o.name === "Gone Soon") && /off the squad\. The 1 out · 1 grade stay/.test(S.flash || "");
+    window.delPlayer(S.roster.findIndex(p => p.name === "Never Played"));
+    const quiet = asked.length === 2 && !S.roster.some(p => p.name === "Never Played") && /Never Played is off the squad\.$/.test(S.flash || "");
+    // Their man on the pit card.
+    const was = pitOf("right").players || [];
+    editProfile("right", { players: [...was, { num: "77", name: "Seen Once", wire: "" }] });
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "s-del", team: "Rejects", player: "number:77", layout: S.layoutKey, m, pt: 1, bunker: bl[0].id, seq: 1, at: 1 }];
+    const j = () => (pitOf("right").players || []).findIndex(p => p.num === "77");
+    window.confirm = q => { asked.push(q); return false; };
+    window.delScoutPlayer("right", j());
+    const theirKept = asked.length === 3 && /#77 Seen Once has 1 sighting/.test(asked[2]) && j() >= 0;
+    window.confirm = q => { asked.push(q); return true; };
+    window.delScoutPlayer("right", j());
+    const theirGone = j() < 0 && (S.arrivalSightings || []).some(x => x.id === "s-del") && /off the card\. The 1 sighting stay/.test(S.flash || "");
+    const flags = { kept, gone, quiet, theirKept, theirGone };
+    S.arrivalSightings = (S.arrivalSightings || []).filter(x => x.id !== "s-del");
+    S.tally = (S.tally || []).filter(o => !(o && o.m === m && o.name === "Gone Soon")); S.assessments = (S.assessments || []).filter(a => !(a && a.m === m));
+    editProfile("right", { players: was });
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "", asWho: null, asScore: 0 }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Remove on a man of yours, or one of theirs on the pit card, says what he has on the sheets and asks first; nothing logged is deleted", delMan === true, delMan);
   check("Sightlines opens on the bunker your first man actually stands in from the right end", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
