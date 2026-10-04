@@ -5989,6 +5989,11 @@ const ROSTER = [
     window.set({ scoutSide: "right", theirPick: [] });
     return labels && sw.length === 2 && !!btn && logged && named;
   }));
+  check("Layers on it names the home and away outs, never yours", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "layers" });
+    const t = document.getElementById("root").innerText;
+    return /San Diego Dynasty outs · \d/.test(t) && /Royal City Seadogs outs · \d/.test(t) && !/Your outs/.test(t);
+  }));
   check("the ends chip on it says which team breaks from which end", await ev(() => {
     window.set({ tab: "tally" });
     return /San Diego Dynasty breaking from the (left|right) end/.test(document.getElementById("root").innerText);
