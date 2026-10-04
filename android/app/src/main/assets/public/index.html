@@ -5477,14 +5477,28 @@ window.dropPasted = i => {
 window.keepRoster = () => {
   const {side, found} = S.paste || {};
   if(!side || !(found || []).length) return;
-  const have = pitOf(side).players;
-  const dupe = p => have.some(h => (p.num && h.num === p.num) ||
-                                  (p.name && foldName(h.name || "") === foldName(p.name)));
-  const add = found.filter(p => !dupe(p));
-  editProfile(side, {players: [...have, ...add]});
-  const already = found.length - add.length;
+  // A pasted man already on the card is the same man written down again, as
+  // on the add row: the paste fills in what the card lacked — a name for a
+  // number, a number for a name, a wire where there was none — and his
+  // sightings follow his key. A man it would only repeat is left alone.
+  const players = [...pitOf(side).players], team = pitOf(side).name;
+  let added = 0, filled = 0, same = 0;
+  const num = h => String(h.num || "").trim(), flex = w => !w || w === "Flex";
+  found.forEach(p => {
+    const at = players.findIndex(h => (p.num && num(h) === p.num)
+      || (p.name && foldName(h.name || "") === foldName(p.name) && (!p.num || !num(h))));
+    if(at < 0){ players.push(p); added++; return; }
+    const was = players[at], merged = {...was};
+    if(!num(was) && p.num) merged.num = p.num;
+    if(!String(was.name || "").trim() && p.name) merged.name = p.name;
+    if(flex(was.wire) && !flex(p.wire)) merged.wire = p.wire;
+    if(JSON.stringify(merged) === JSON.stringify(was)){ same++; return; }
+    rekeyTheirMan(team, was, merged); players[at] = merged; filled++;
+  });
+  editProfile(side, {players});
   S.pasteSide = ""; S.paste = null;
-  S.pasteNote = `Added ${add.length}.` + (already ? ` ${already} ${already===1?"was":"were"} already logged.` : "");
+  S.pasteNote = `Added ${added}.` + (filled ? ` ${filled} already on the card ${filled===1?"was":"were"} filled in.` : "")
+    + (same ? ` ${same} ${same===1?"was":"were"} already logged.` : "");
   save(S); render();
 };
 window.delScoutPlayer = (side, i) => {
