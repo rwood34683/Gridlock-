@@ -922,6 +922,19 @@ const ROSTER = [
   await page.waitForTimeout(80);
   check("a valid form is accepted", await ev(() => S.responses.length === 1 && S.responses[0].name === "Sam Ortiz"));
   check("the response is listed under the class", await page.locator("text=Sam Ortiz").count() > 0);
+  // The same kid signing in again — case and spacing folded — updates his row rather than adding a second.
+  await ev(c => {
+    window.set({ joinCode: c });
+    document.getElementById("fn").value = " sam ORTIZ ";
+    document.getElementById("fc").value = "";
+    document.getElementById("ft").value = "left-handed";
+    document.getElementById("fa").checked = true;
+    window.submitForm(c);
+  }, code);
+  await page.waitForTimeout(80);
+  check("signing the same name onto the sheet twice is one row, updated, and says so", await ev(() =>
+    S.responses.length === 1 && S.responses[0].name === "Sam Ortiz" && S.responses[0].contact === "555-0100" && S.responses[0].notes === "left-handed"
+    && /already signed in — updated/.test(S.joinSaid || "") && /already signed in/.test(document.getElementById("root").innerText)));
 
   /* --------------------------------------------------------------- league */
   G("League");

@@ -1148,6 +1148,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   folds case and spacing like `squadHas()`; `savePlay`, `renamePlay` and
   `setBreakCall` all refuse through it and say so on screen, and the builder's
   Save button reads "Already a call" before the tap.
+- Sign the same name onto a clinic sheet twice. A phone handed round a
+  clinic gets the same kid twice — "Sam", "sam " — and the sheet counted two.
+  `submitForm()` folds the name per class code like `squadHas()`: a second
+  sign-in updates what he filled in, a box left blank keeps the first, and
+  the thank-you says it was an update.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
