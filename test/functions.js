@@ -5036,6 +5036,24 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("a class's notes and a sheet's name commit without a redraw under the next tap", await ev(() => {
+    window.confirm = () => true;
+    const classesWere = S.classes;
+    S.classes = [{ id: "GL-THUMB", code: "GL-THUMB", title: "Thumb clinic", open: true, when: "", notes: "" }, ...(S.classes || [])];
+    window.set({ tab: "more", more: "classes" });
+    const share = [...document.querySelectorAll("#root button")].find(b => /Share/.test(b.textContent)); if(!share) return "no share";
+    window.setClass("GL-THUMB", "notes", "Meet at the pit gate");
+    const notesKept = document.contains(share) && S.classes.find(c => c.code === "GL-THUMB").notes === "Meet at the pit gate";
+    window.setClass("GL-THUMB", "title", "Thumb clinic two");
+    const titleDrawn = /Thumb clinic two/.test(document.getElementById("root").innerText);
+    S.classes = classesWere;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.set({ tab: "more", more: "matches" });
+    const nm = [...document.querySelectorAll("#root button")].find(b => /New match/.test(b.textContent)); if(!nm) return "no new match";
+    window.setMatchNote("Prelim 2");
+    const noteKept = document.contains(nm) && (curMatch() || {}).note === "Prelim 2";
+    window.setMatchNote(""); window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return notesKept && titleDrawn && noteKept;
+  }));
   check("the play builder's name box commits without a redraw, so Save is still under the thumb that leaves it", await ev(() => {
     window.set({ tab: "playbook", pbView: null }); window.newPlay();
     const save = document.querySelector('#root button[onclick="savePlay()"]'); if(!save) return "no save button";

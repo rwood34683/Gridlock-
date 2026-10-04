@@ -1380,7 +1380,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   it: `onchange` fires on blur, blur happens as the thumb lands on Read it,
   and a redraw there rebuilds the button under the tap. The schedule paste
   box saves without rendering, like the Team rows and the blast body, and so
-  do the play builder's name and read boxes, whose next tap is Save.
+  do the play builder's name and read boxes, whose next tap is Save, a
+  class's notes and start time (Share and Close sign-ins sit under them) and
+  the sheet's name on Matches (New match and Played against do).
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

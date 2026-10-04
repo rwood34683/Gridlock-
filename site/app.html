@@ -2885,7 +2885,9 @@ function matchPoint(mid){
   return u && t ? "both" : u ? "us" : t ? "them" : null;
 }
 function patchMatch(patch){ S.matches = (S.matches || []).map(m => m.id === S.matchId ? {...m, ...patch} : m); }
-window.setMatchNote = v => { patchMatch({note: clean(v).slice(0, 40)}); save(S); render(); };
+// Saved without a redraw: the next tap after naming the sheet is New match
+// or Played against, right under it.
+window.setMatchNote = v => { patchMatch({note: clean(v).slice(0, 40)}); save(S); };
 // The wrong team picked at the gate and three points tallied before anyone
 // noticed: the sheet, its outs, its calls, their breaks and their sightings
 // were all keyed on a team he never played, with no way back but a new sheet
@@ -10027,7 +10029,10 @@ window.setClass = (code, key, val) => {
   // A class with no title is a code and nothing else on the card the kids read; the old one stays.
   if(key === "title" && !String(val || "").trim()){ flash("A class needs a title — kept the old one."); render(); return; }
   S.classes = S.classes.map(c => c.code===code ? {...c, [key]: val} : c);
-  save(S); render();
+  // The notes and the start time are typed and the next tap is Share or
+  // Close sign-ins on the same card; a redraw on blur rebuilt that button
+  // under the thumb. The title redraws because the card's heading reads it.
+  save(S); if(key === "title") render();
 };
 // A sign-in sheet is a record, but a kid who signed the wrong clinic or a
 // name that is not a kid at all has to be able to come off it; the row
