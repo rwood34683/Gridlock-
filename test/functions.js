@@ -4923,6 +4923,22 @@ const ROSTER = [
     window.setSwapEnds(false); window.set({ tab: "tally" }); window.newMatch();
     return distinct && swapped && oneFive && ghostOne && drawnOnTwins && ghostRight && book;
   }));
+  check("How they get you and the bunker book count an out on the job, not the end it was shot from", await ev(() => {
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" }, tallyValue: "us" });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    window.setSwapEnds(true);
+    const bl = curLayout().bunkers, leftB = bl.filter(x => x.x < 60).sort((a, b) => a.x - b.x)[2], rightB = bl.find(x => x.id === mirrorBunkerId(leftB.id));
+    window.markOut("us", "Reyes"); const o1 = (S.tally || []).find(o => o && o.m === S.matchId && o.pt === 1 && o.name === "Reyes"); o1.shotAt = leftB.id; window.endPoint("them");
+    window.markOut("us", "Okafor"); const o2 = (S.tally || []).find(o => o && o.m === S.matchId && o.pt === 2 && o.name === "Okafor"); o2.shotAt = rightB.id; save(S);
+    const rd = opponentRead("Rejects"), one = rd.where.length === 1 && rd.where[0][1] === 2;
+    // on the right end now: the book for the twin (under his thumb) says two men lost here
+    const book = /you lost 2 men here/.test(bunkerBook(rightB.id)) && !/you lost/.test(bunkerBook(leftB.id));
+    window.endPoint("us");   // back on the left: the book moves with the end
+    const bookLeft = /you lost 2 men here/.test(bunkerBook(leftB.id));
+    window.setSwapEnds(false); window.newMatch();
+    return one && book && bookLeft;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

@@ -4128,7 +4128,8 @@ function walkWhereOf(b){ return callOf(b)+" · "+b.id; }
  * lost at it on either side. Walk and Sightlines both read it. */
 function bunkerBook(id, withLanes){
   const sl = withLanes ? sightLines(id, 2, 2) : null, theirs = (plantCounts("right").find(([k]) => k === frameId(id, S.matchId, S.point || 1)) || [0, 0])[1];
-  const lost = loggedOuts(o => o.side === "us" && o.shotAt === id).length, got = loggedOuts(o => o.side === "them" && o.shotAt === id).length;
+  const here = frameId(id, S.matchId, S.point || 1), at = o => o.shotAt && frameId(o.shotAt, o.m, o.pt) === here;
+  const lost = loggedOuts(o => o.side === "us" && at(o)).length, got = loggedOuts(o => o.side === "them" && at(o)).length;
   return [sl ? `<b>${sl.clear}</b> of ${sl.lines.length} lanes clear from here` : "",
           theirs ? `${pitNamed("right") ? esc(pitOf("right").name) : "they"} planted here ${theirs} time${theirs === 1 ? "" : "s"}` : "",
           lost ? `you lost ${lost} m${lost === 1 ? "an" : "en"} here` : "", got ? `they lost ${got} here` : ""].filter(Boolean).join(" · ");
@@ -5281,7 +5282,7 @@ function manRead(side, who, team){
                  && (!team || r.vs === team) && !watchedMatch(r.m);
   const rows = (S.breakouts || []).filter(hit);
   // His bunker is counted in his own end's frame, so a man who swaps ends every point still "breaks to" one bunker.
-  const val = (r, key) => key === "bunker" && r.bunker && r.layout === S.layoutKey ? ownBunker(r.bunker, side, r.m, r.pt) : r[key];
+  const val = (r, key) => (key === "bunker" || key === "shotFrom") && r[key] && r.layout === S.layoutKey ? frameId(r[key], r.m, r.pt) : r[key];
   const top = key => { const m = {}; rows.forEach(r => { const v = val(r, key); if(v) m[v] = (m[v] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
   return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
           delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battling").length,
@@ -5290,7 +5291,7 @@ function manRead(side, who, team){
 // The read as one line, or nothing when there is nothing counted.
 function manLine(side, who, team){
   const r = manRead(side, who, team); if(!r.n) return "";
-  const name = bunkerLabel;
+  const name = id => bunkerLabel(shownBunker(id));   // frame ids, named on the end shown now
   const bits = [`${r.n} break${r.n === 1 ? "" : "s"} charted`,
                 r.made ? `made it ${r.made}` : "", r.shot ? `shot on the break ${r.shot}${r.shotFrom ? ` (from ${esc(name(r.shotFrom[0]))} ${r.shotFrom[1]})` : ""}` : "",
                 r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : ""].filter(Boolean);
@@ -7944,9 +7945,10 @@ function opponentRead(team){
   const rows = loggedOuts(o => o.side === "us" && o.vs === team);
   const tally = (key) => rows.reduce((m, o) => (o[key] ? {...m, [o[key]]:(m[o[key]] || 0) + 1} : m), {});
   const rank = m => Object.entries(m).sort((a, b) => b[1] - a[1]);
-  // Where: the bunker your man was shot at, named the way the team names it.
+  // Where: the bunker your man was shot at, counted in the frame plants live in
+  // (the same job from either end) and named on the end the field shows now.
   const where = {};
-  rows.forEach(o => { if(o.shotAt){ const b = curLayout().bunkers.find(x => x.id === o.shotAt); const k = b ? callOf(b) : o.shotAt; where[k] = (where[k] || 0) + 1; } });
+  rows.forEach(o => { if(o.shotAt){ const id = shownBunker(frameId(o.shotAt, o.m, o.pt)); const b = curLayout().bunkers.find(x => x.id === id); const k = b ? callOf(b) : o.shotAt; where[k] = (where[k] || 0) + 1; } });
   return {n: rows.length, points: new Set(rows.map(o => o.pt)).size,
           how: rank(tally("how")), who: rank(tally("by")), where: rank(where)};
 }
