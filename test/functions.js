@@ -5169,6 +5169,33 @@ const ROSTER = [
     S.roster = keep; window.set({ flash: "" });
     return taken && free && said;
   }));
+  const theirRekey = await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "scout", scoutTab: "matchup", right: { name: "Dynasty" } });
+    const keep = { players: pitOf("right").players, sightings: S.arrivalSightings, shots: S.arrivalShots, breakouts: S.breakouts };
+    editProfile("right", { players: [{ num: "7", name: "Dill", wire: "", note: "", threat: 3 }, { num: "", name: "Smith", wire: "", note: "", threat: 3 }] });
+    const bl = curLayout().bunkers, m = S.matchId;
+    S.arrivalSightings = [...(S.arrivalSightings || []), { id: "s-t1", team: "Dynasty", player: "number:7", layout: S.layoutKey, m, pt: 1, bunker: bl[0].id, at: 1 },
+                                                        { id: "s-t2", team: "Dynasty", player: "name:smith", layout: S.layoutKey, m, pt: 1, bunker: bl[1].id, at: 2 }];
+    S.arrivalShots = [...(S.arrivalShots || []), { id: "h-t1", team: "Dynasty", player: "name:smith", layout: S.layoutKey, m, pt: 1, from: bl[1].id, to: bl[5].id, at: 3 }];
+    S.breakouts = [...(S.breakouts || []), { id: "b-t1", m, pt: 1, side: "them", vs: "Dynasty", player: "#7 Dill", bunker: bl[0].id, layout: S.layoutKey, alive: true, at: 4 },
+                                            { id: "b-t2", m, pt: 1, side: "them", vs: "Dynasty", player: "Smith", bunker: bl[1].id, layout: S.layoutKey, alive: true, at: 5 }];
+    // correct Dill's name on the pit card: his number is his key, so sightings stay; the breakout tag follows
+    window.editScoutPlayer("right", 0, "name", "Dillon");
+    const dill = (S.arrivalSightings || []).find(x => x.id === "s-t1").player === "number:7" && (S.breakouts || []).find(x => x.id === "b-t1").player === "#7 Dillon";
+    // give Smith his number: everything seen of him under his name moves to the number
+    window.editScoutPlayer("right", 1, "num", "9");
+    const smith = (S.arrivalSightings || []).find(x => x.id === "s-t2").player === "number:9" && (S.arrivalShots || []).find(x => x.id === "h-t1").player === "number:9"
+               && (S.breakouts || []).find(x => x.id === "b-t2").player === "#9 Smith" && manRead("them", "#9", "Dynasty").n === 1;
+    // and through the pit's add row: "#9" typed again with a wire fills him in and keys nothing twice
+    const g = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    g("sp-num-right", "9"); g("sp-name-right", ""); g("sp-note-right", "lefty"); window.addScoutPlayer("right");
+    const still = pitOf("right").players.length === 2 && (S.arrivalSightings || []).find(x => x.id === "s-t2").player === "number:9";
+    editProfile("right", { players: keep.players }); S.arrivalSightings = keep.sightings; S.arrivalShots = keep.shots; S.breakouts = keep.breakouts; window.set({ flash: "" });
+    const flags = { dill, smith, still };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("correcting their man on the pit card carries his sightings, shots and breakout rows with him, the way the arrival screen already did", theirRekey === true, theirRekey);
   const renamed = await ev(() => {
     window.confirm = () => true;
     const keep = { roster: S.roster, tally: S.tally, breakouts: S.breakouts, assessments: S.assessments, moves: S.moves, pens: S.pens, lineups: S.lineups, playerCalls: S.playerCalls };

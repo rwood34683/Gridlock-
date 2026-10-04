@@ -1172,7 +1172,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the one door `editPlayer` goes through; it re-keys his own side's rows
   only, because their men are keyed by number and a name there is somebody
   else's. Taking a man off the squad is different and stays so: what he did
-  is history and keeps his name; only his lineup slots empty.
+  is history and keeps his name; only his lineup slots empty. Their man has
+  the same problem the other way round: he is keyed "number:7" when he has
+  a number and by his name when he does not, and "#7 Dill" on the breakout
+  sheet, so giving him his number on the pit card orphaned everything seen
+  of him under his name. The arrival screen already re-keyed its own rows;
+  `rekeyTheirMan(team, before, after)` is that code made the one door the
+  pit card, the pit's add row and the arrival screen all go through, and
+  `theirTag()` is the one spelling of his breakout-sheet label.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
