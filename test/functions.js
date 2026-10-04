@@ -5083,6 +5083,11 @@ const ROSTER = [
     const gate = /Nobody is in the right pit yet/.test(root()) && !!document.querySelector("#root .warn button");
     const opt = document.querySelector("#arrival-team option:checked");
     const optBlank = !!opt && opt.value === "" && /Nobody in the pit yet/.test(opt.textContent);
+    window.toggleArrivalCustom("player");
+    document.getElementById("arrival-custom-name").value = "Ghost"; document.getElementById("arrival-custom-number").value = "99";
+    window.saveArrivalPlayer();
+    const noGhost = !Object.prototype.hasOwnProperty.call(S.scout || {}, "Unidentified opponent") && /Nobody is in the pit yet/.test(root());
+    window.toggleArrivalCustom("player");
     window.setArrival({ destination: bl[3].id });
     const n0 = (S.arrivalSightings || []).length, h0 = (S.arrivalShots || []).length;
     window.logArrivalSighting();
@@ -5102,7 +5107,7 @@ const ROSTER = [
     window.set({ matchId: keepId, arrival: { destination: bl[3].id } });
     window.logArrivalSighting();
     const took = (S.arrivalSightings || []).length === n0 + 1 && (S.arrivalSightings || []).slice(-1)[0].team === "Dynasty" && !document.querySelector("#root .warn");
-    const flags = { gate, optBlank, refused, refusedShot, went, offGate, offRefused, took };
+    const flags = { gate, optBlank, noGhost, refused, refusedShot, went, offGate, offRefused, took };
     S.arrivalSightings = keepS; S.arrivalShots = keepH; S.matches = keepM;
     window.set({ matchId: keepId, left: keepL, right: keepR, arrival: {}, scoutTab: "matchup", tab: "tally" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");

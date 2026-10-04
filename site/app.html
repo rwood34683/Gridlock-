@@ -8752,7 +8752,9 @@ window.saveArrivalPlayer = () => {
   const name = field("arrival-custom-name","name"), num = field("arrival-custom-number","number");
   if(!name && !num) return arrivalCustomError("Enter a player name or jersey number.");
   if(name.length > 80 || num.length > 30) return arrivalCustomError("Use up to 80 characters for the name and 30 for the number.");
-  const context = arrivalContext(), profile = profileOf(context.team), players = [...(profile.players || [])];
+  const context = arrivalContext();
+  if(!context.named) return arrivalCustomError("Nobody is in the pit yet. Add the team, or pick them on Matchup, before their man.");
+  const profile = profileOf(context.team), players = [...(profile.players || [])];
   let index = num ? players.findIndex(p=>arrivalCompare(p.num) === arrivalCompare(num))
     : players.findIndex(p=>name && arrivalCompare(p.name) === arrivalCompare(name));
   // Completing a previously unnamed/unnumbered player keeps their sightings.
