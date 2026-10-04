@@ -1349,7 +1349,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   open on Team's bunker calls and the Job chip. `bunkerWordTaken()` and
   `jobWordTaken()` fold case and spacing like the rest and say which bunker
   or slot already answers to the word; a man's own word for a bunker is his
-  alone and is not checked.
+  alone, but one man cannot use one word for two bunkers on a field either
+  (`setPlayerCall` says which bunker already carries it).
 - Log a rotation to nowhere. On the breakout sheet Moved to is where he went
   next and Shot from is where the paint came from; either one tapped onto the
   bunker he broke to is a mis-tap, and logged it was a visit counted twice on

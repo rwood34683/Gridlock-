@@ -4989,6 +4989,18 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("the same Walk note on the same spot twice is one note", walkDup === true, walkDup);
+  check("one man cannot use one word for two bunkers on a field", await ev(() => {
+    const was = S.playerCalls, bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "Probe Man";
+    window.set({ flash: "" });
+    window.setPlayerCall(man, bl[0].id, "Home");
+    const first = ((((S.playerCalls || {})[S.layoutKey] || {})[man] || {})[bl[0].id]) === "Home";
+    window.setPlayerCall(man, bl[1].id, " home ");
+    const refused = !((((S.playerCalls || {})[S.layoutKey] || {})[man] || {})[bl[1].id]) && new RegExp("is already " + man + "'s word for " + bl[0].id).test(S.flash || "");
+    window.setPlayerCall(man, bl[0].id, "Home");   // keeping his own word is not a clash
+    const same = ((((S.playerCalls || {})[S.layoutKey] || {})[man] || {})[bl[0].id]) === "Home";
+    S.playerCalls = was; window.set({ flash: "" });
+    return first && refused && same;
+  }));
   check("the read line says why a favoured call is not offered: turned off, deleted, or not in this build", await ev(() => {
     const goneWere = S.playGone; S.playGone = {...(S.playGone || {}), "my:ghost": "Ghost Play"};
     const live = offWord(S.script) === "";

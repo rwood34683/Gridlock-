@@ -3848,6 +3848,10 @@ window.setPlayerCall = (who, id, nm) => {
   const all = {...(S.playerCalls || {})};
   const layer = {...(all[S.layoutKey] || {})};
   const mine = {...(layer[who] || {})};
+  // His own word is his alone, but one man cannot call two bunkers on one
+  // field by the same word either — it is the word he shouts for a place.
+  const other = nm ? Object.keys(mine).find(b => b !== id && foldName(mine[b]) === foldName(nm)) : null;
+  if(other){ flash(`${nm} is already ${who}'s word for ${esc(other)} on this field.`); return; }
   if(nm) mine[id] = nm; else delete mine[id];
   if(Object.keys(mine).length) layer[who] = mine; else delete layer[who];
   all[S.layoutKey] = layer;
@@ -10574,7 +10578,7 @@ window.delMsg = i => { S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S)
 window.sendMsg = () => {
   const el=document.getElementById("md"); const v=(el.value||"").trim();
   if(!v){ flash("Type the note first."); return; }
-  S.messages=[...(S.messages||[]),clean(v)]; save(S); render();
+  S.messages=[...(S.messages||[]),clean(v).slice(0, 280)]; save(S); render();
 };
 
 /* ============================================================
