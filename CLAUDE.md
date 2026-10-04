@@ -792,7 +792,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   format put them at this point, and theirs from the other. Anything that
   decides yours-from-theirs by `x < 75`, starts a route at `x = 3`, or draws a
   break from the left asks `ourEnd()` first; the test is a point broken from
-  the right end tallying, routing and drawing the right way round.
+  the right end tallying, routing and drawing the right way round. That
+  includes what is *printed*: his card named the left-end bunker on a
+  right-end point while he ran to its twin, and a fixed shot target picked
+  from the select on the turned field was stored as the bunker he saw and
+  drawn at its twin. `shownBunker(id)` maps a frame id to the bunker on the
+  end shown now and back (a mirror is its own inverse); the card, the Shot
+  button and the select read it, and `ownShot()` takes a pick back into the
+  frame. A lane's name ("up-field, snake side") is the field's and never
+  turns.
 - Persist what the coach was in the middle of. `playing` was reset on load and
   nothing else was, so eleven scratch keys rode a relaunch — and two of them
   wrote bad data rather than merely looking odd: a Right read ticked on Saturday

@@ -3658,6 +3658,9 @@ window.rollSquadCode = () => {
 // differently on Snake Stack than on Hold & Read, and on a different field.
 function directKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
 function directOf(id){ return (S.direct || {})[directKey(id)] || {}; }
+// A shot picked off the turned field, back in the frame shots are kept in. A
+// lane ("@90") and "no target" pass through.
+window.ownShot = v => v && v[0] !== "@" ? shownBunker(v) : v;
 window.setDirect = (id, field, value) => {
   const all = {...(S.direct || {})};
   const k = directKey(id);
@@ -5727,7 +5730,11 @@ function playbook(){
       ${currentPaths().map((pth,i)=>{
         const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
         const bl=curLayout().bunkers;
-        const shotB=d.shot?bl.find(b=>b.id===d.shot):null;   // null when it is a lane
+        // A fixed target is kept in the left-end frame; from the right end the
+        // row shows its twin, which is the bunker on the field he is looking at,
+        // and a bunker picked there goes back through the same door.
+        const shotId=d.shot&&shotLane(d.shot)===null?shownBunker(d.shot):d.shot;
+        const shotB=shotId?bl.find(b=>b.id===shotId):null;   // null when it is a lane
         const role=d.role||"P";
         const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
         const openJob=S.pad==="job:"+pth.id, myJob=(((S.jobCalls||{})[key]||{})[pth.id]||"").trim();
@@ -5759,14 +5766,14 @@ function playbook(){
               every field, so this follows the call, not the layout. Leave it blank for the app's.</p>
           </div>`:""}
           ${openShot?`<div style="flex-basis:100%">
-            <select onchange="setDirect('${pth.id}','shot',this.value)">
+            <select onchange="setDirect('${pth.id}','shot',ownShot(this.value))">
               <option value="">Lane he is running — no fixed target</option>
               <optgroup label="A lane, no bunker named">
                 ${FACE_PAD.filter(f=>f[1]!==null).map(([g,deg])=>
                   `<option value="@${deg}" ${d.shot===("@"+deg)?"selected":""}>${g} ${esc(LANE_NAME[deg])}</option>`).join("")}
               </optgroup>
               <optgroup label="A bunker on this field">
-                ${bl.map(b=>`<option value="${esc(b.id)}" ${d.shot===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+                ${bl.map(b=>`<option value="${esc(b.id)}" ${shotId===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
               </optgroup>
             </select></div>`:""}
         </div>`;
@@ -5816,7 +5823,11 @@ function cardLines(){
     const d = directOf(p.id);
     const who = five[i];
     const lane = shotLane(d.shot);
-    const shotB = d.shot ? curLayout().bunkers.find(b => b.id === d.shot) : null;
+    // Plants and shots are kept in the left-end frame; from the right end the
+    // man runs to the twin bunker and lanes its twin, and the card is what he
+    // is handed. A lane's name is the field's ("up-field, snake side") and is
+    // the same from either end.
+    const shotB = d.shot && lane === null ? curLayout().bunkers.find(b => b.id === shownBunker(d.shot)) : null;
     // His card is the app speaking to him, so it uses his word for the bunker
     // where he has one. The field keeps the team's.
     const mine = who && who.name;
@@ -5824,13 +5835,13 @@ function cardLines(){
     // five logged on this point or the five they usually plant — and whether
     // one of them is where their shooter usually sets up. Geometry off the
     // measured field; nothing on the card says where they will actually stand.
-    const t5 = theirFiveNow("right"), plant = ourEnd() === "right" ? mirrorBunkerId(p.bunker) : p.bunker;
+    const t5 = theirFiveNow("right"), plant = shownBunker(p.bunker);
     const clear = t5 ? t5.ids.filter(id => laneClear(plant, id)).map(id => callOf(curLayout().bunkers.find(b => b.id === id) || {n: id}, mine)) : null;
     const sh = t5 ? shooterLane("right") : null;
     const onHim = sh && sh.at && laneClear(plant, sh.at) ? sh.tag : "";
     return {n: p.id, who, job: jobName(S.script, p.id, p.label), wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
             clear, onHim, theirBasis: t5 ? t5.basis : "",
-            bunker: callOf(curLayout().bunkers.find(b => b.id === p.bunker) || {n: "—"}, mine),
+            bunker: callOf(curLayout().bunkers.find(b => b.id === plant) || {n: "—"}, mine),
             role: d.role === "S" ? "Secondary" : "Primary",
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
             shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running"};
