@@ -1503,6 +1503,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   asking. `sheetSize(m)` counts his rows, the results and their breaks, and
   `sheetEmpty()` is that reading zero; `gameGuard()` is the one question New
   match, Watch this game and We play all ask through it.
+- Start the Rep drill into nothing. With every built-in turned off and his
+  own plays built on another field, `repKeys()` is empty and Rep returned in
+  silence. It says what is missing and the two ways to fix it.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
