@@ -3979,8 +3979,14 @@ const ROSTER = [
     // The call takes more of the line than the event does, and the event never
     // vanishes: a stub with an ellipsis still says what the button changes.
     const leads = cut && callW > evW * 2 && evW >= 20 && /ROCKET/i.test(call.textContent) && callW >= 140;
+    // And on a wide screen the event never grows: the call sits right after it,
+    // not pushed to the far edge beside CHANGE.
+    ctx.style.width = "900px";
+    const gap = call.getBoundingClientRect().left - ev.getBoundingClientRect().right;
+    ctx.style.width = "";
+    const tight = gap >= 0 && gap < 12;
     S.plays = customPlays().filter(p => had.includes(p.k)); window.set({ script: was });
-    return leads && S.script === was && !customPlay(k);
+    return leads && tight && S.script === was && !customPlay(k);
   }));
   check("the Division table folds Film, Roster and Read from away in a narrow column", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", more: null });
