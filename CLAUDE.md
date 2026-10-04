@@ -1721,7 +1721,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `placeAt`, `logBreakout`, `markOut`, `outRow`, `logCall`, `logTheirBreak`
   and `theirFiveLogged` all stamp through it, as Assess and Movement already
   did; `ourEnd()` defaults to it too, so the last point is charted from the
-  end it was broken from. Only a sheet on another field refuses them
+  end it was broken from. Who's on and Lineups (`swapOn`, `setSlot`) write
+  through it as well: a five written for the point past the end is a row
+  `lastPoint()` reads, and it walked `sheetPoint()` — and every chart door
+  with it — past the end of the race. Only a sheet on another field refuses them
   (`sheetField()`); a result, Next point, a penalty and a timeout still
   refuse on a finished sheet, because there is no next point to put them on.
 - List a man by number and wire when his name is logged. Matchup printed the

@@ -3899,6 +3899,17 @@ const ROSTER = [
     window.newMatch();
     return ok;
   }));
+  check("a rotation on a finished sheet goes on the last point played, so the chart does not walk past the end", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
+    const was = S.roster; S.roster = ["Ana", "Bo", "Cy", "Dee", "Eli", "Fox"].map((name, i) => ({ num: String(i + 1), name, wire: "snake" }));
+    const mid = S.matchId, bench = S.roster.map(p => p.name).filter(n => !onPoint(1).includes(n))[0];
+    const on = onPoint(1)[0];
+    if(on) window.swapOn(on); if(bench) window.swapOn(bench);
+    const keys = Object.keys(S.lineups || {}).filter(k => k.startsWith(mid + "|"));
+    const ok = keys.length > 0 && keys.every(k => k === mid + "|1") && sheetPoint() === 1 && lastPoint() === 1;
+    S.roster = was; window.newMatch();
+    return ok;
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
