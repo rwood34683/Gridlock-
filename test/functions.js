@@ -4868,6 +4868,20 @@ const ROSTER = [
     return /^2 sheets · 3 points scored · 1 player · 1 play of yours · 1 team scouted · 1 call logged$/.test(t)
       && copySummary({ plays: [{}, {}], scout: { A: {}, B: {} }, calls: [{}, {}], pens: [{}, {}] }) === "2 plays of yours · 2 teams scouted · 2 calls logged · 2 penalties";
   }));
+  check("Back a point after Time's up takes the horn with the score, and leaves overtime standing", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } });
+    const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
+    window.setRaceTo(7); ["us","them","us","them","us","them","us"].forEach(w => window.endPoint(w));
+    window.timeUp(); const ended = matchOver() === "us" && curMatch().timeUp;
+    window.backPoint(); const m1 = curMatch();
+    const horned = !m1.timeUp && !m1.tie && !matchOver() && matchScore().us === 3 && !/Undo time's up/.test(document.getElementById("root").innerText) && /We won it/.test(document.getElementById("root").innerText);
+    window.timeUp(); const ot = curMatch().ot && raceTo() === 4;
+    window.endPoint("us"); window.backPoint(); const m2 = curMatch();
+    const otStands = m2.ot && raceTo() === 4 && !matchOver() && /Overtime/.test(document.getElementById("root").innerText);
+    window.newMatch();
+    return ended && horned && ot && otStands;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });

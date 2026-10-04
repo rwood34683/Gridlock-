@@ -859,6 +859,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Scout and not yet logged are scratch for *this* point; `endPoint()` and
   `nextPoint()` clear `theirPick` with the rest of the sheet, or they would be
   logged under the next point number.
+- Leave the horn on a score that was taken back. Time's up at 4–3 ended the
+  match; Back a point took the fourth point and left `timeUp` set, so the sheet
+  read level with the clock run out and the result buttons up beside Undo
+  time's up. `backPoint()` clears `timeUp` and `tie` with the point; overtime
+  stays, because the clock did run out level and that point is still to play.
 - Decide what a level horn means. Some formats let a prelim end tied and
   some play on; the app has neither rulebook, so when the clock runs out
   level the sheet asks — **it's a tie** (`timeUp` + `tie`, `matchOver()`
