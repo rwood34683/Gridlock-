@@ -3923,6 +3923,29 @@ const ROSTER = [
     S.breakouts = (S.breakouts || []).filter(r => r.m !== first);
     return ok;
   }));
+  check("step two holds a side to the men it started with, and a name already on another placed man is refused rather than taking him off", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const was = S.roster; S.roster = ["Ana", "Bo", "Cy", "Dee", "Eli", "Fox"].map((name, i) => ({ num: String(i + 1), name, wire: "snake" }));
+    const mid = S.matchId, bl = curLayout().bunkers;
+    const mine = bl.filter(b => sideOfBunker(b) === "us").slice(0, 6);
+    S.tallyStep = "place"; mine.slice(0, 5).forEach(b => window.tallyTap([b.x, b.y]));
+    window.tallyStepTo("record");
+    // Man 1 is Ana; man 2 picked as Ana too is refused and man 1 stays.
+    window.setDraft({ player: "Ana", alive: true }); window.logBreakout();
+    const second = S.tallyEdit;
+    const chips = document.getElementById("root").textContent;
+    const marked = /Ana\s*·/.test(chips);
+    window.setDraft({ player: "Ana", alive: true }); window.logBreakout();
+    const refusedName = /Ana is already the man on/.test(S.flash || "") && S.tallyEdit === second
+      && (S.breakouts || []).filter(r => r.m === mid && r.side === "us").length === 5;
+    // A sixth man of yours charted from step two is refused.
+    window.tallyDone(); S.tallyStep = "record"; window.tallyTap([mine[5].x, mine[5].y]);
+    window.setDraft({ side: "us", sideSet: true, alive: true }); window.logBreakout();
+    const refusedSixth = /all 5 are charted on point 1/.test(S.flash || "")
+      && (S.breakouts || []).filter(r => r.m === mid && r.side === "us").length === 5;
+    S.roster = was; window.tallyDone(); window.newMatch();
+    return marked && refusedName && refusedSixth;
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
