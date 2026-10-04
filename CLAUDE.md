@@ -1309,6 +1309,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   would throw away, in the same words Save a copy uses to say what it kept.
   Merge never asks: it only adds. And the horn: `timeUp()` opens the gate
   with nobody across the tape, like every other row.
+- Delete on one tap what took an afternoon. A play of his own is five taps a
+  field and the calls logged under it are his record; Delete took it with no
+  word and left every logged call printing `my:k7f2` where its name had been.
+  `dropPlay` asks when the play has a five anywhere or a call logged, and
+  `S.playGone` keeps the name so `callName()` still prints it. The same
+  question stands in front of **Put the app's names back** (all twelve of
+  the team's words at once) and **Delete** on a league group with members;
+  a play, a list or a group with nothing behind it still goes with one tap.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
