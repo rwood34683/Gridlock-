@@ -4920,6 +4920,40 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("Delete on a play of yours, the team's call names and a league group each ask first when there is something behind them; a deleted play's calls keep its name", delAsks === true, delAsks);
+  check("renaming a play onto a deleted play's name takes its logged calls; naming one of the twelve with it is refused", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const ids = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [...customPlays(), { k: "my:old", name: "Hammer Old", read: "", aggr: 3, plants: { [S.layoutKey]: ids }, at: 1 },
+                                 { k: "my:new", name: "Fresh One", read: "", aggr: 3, plants: { [S.layoutKey]: ids }, at: 2 }];
+    window.set({ script: "my:old" }); window.logCall("my:old"); window.dropPlay("my:old");
+    window.renamePlay("my:new", "hammer old");
+    const took = (S.calls || []).some(c => c.script === "my:new") && !(S.calls || []).some(c => c.script === "my:old") && !(S.playGone || {})["my:old"]
+      && customPlay("my:new").name === "hammer old" && /are this play's now/.test(S.flash || "");
+    // Gone again, and one of the twelve cannot take the word.
+    window.dropPlay("my:new"); window.set({ flash: "" });
+    const el = document.createElement("input"); el.id = "brc-snake"; el.value = "Hammer Old"; document.body.appendChild(el);
+    window.setBreakCall("snake");
+    const refused = !(S.breakCalls || {}).snake && /a play you deleted/.test(S.flash || "");
+    el.remove();
+    S.calls = (S.calls || []).filter(c => c.script !== "my:new"); const pg = {...(S.playGone || {})}; delete pg["my:new"]; S.playGone = pg;
+    window.set({ script: defaultState().script, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return took && refused;
+  }));
+  check("a play built again under a deleted play's name takes its key back, so the calls logged under it are its record again", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const ids = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [...customPlays(), { k: "my:again", name: "Rocket Again", read: "", aggr: 3, plants: { [S.layoutKey]: ids }, at: 1 }];
+    window.set({ script: "my:again" }); window.logCall("my:again");
+    window.dropPlay("my:again");
+    const gone = !customPlay("my:again") && (S.playGone || {})["my:again"] === "Rocket Again";
+    S.building = { name: "rocket again", plants: ids, read: "", aggr: 3 }; window.savePlay();
+    const back = !!customPlay("my:again") && !(S.playGone || {})["my:again"] && S.script === "my:again" && (S.calls || []).some(c => c.script === "my:again") && callName("my:again") === "rocket again";
+    S.plays = customPlays().filter(p => p.k !== "my:again"); S.calls = (S.calls || []).filter(c => c.script !== "my:again");
+    window.set({ script: defaultState().script, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return gone && back;
+  }));
   check("Help answers the wrong team at the gate and a deleted play", await ev(() =>
     HELP_Q.some(([q, a]) => /wrong team at the gate/.test(q) && /Played against/.test(a))
     && HELP_Q.some(([q, a]) => /deleted one of my plays/.test(q) && /keep its name/.test(a))));

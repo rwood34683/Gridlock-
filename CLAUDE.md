@@ -1317,6 +1317,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   question stands in front of **Put the app's names back** (all twelve of
   the team's words at once) and **Delete** on a league group with members;
   a play, a list or a group with nothing behind it still goes with one tap.
+  And a play built again under a deleted play's name takes the old key back
+  (`savePlay` reads `S.playGone`), so the calls logged under it are its
+  record again rather than a second "Rocket" beside the first on self-scout.
+  Renaming a play onto that name does the same (`renamePlay` re-keys the
+  calls and the job words), and naming one of the twelve with it is refused
+  and says why — a built-in's five are not the deleted play's.
 - Hand text over through `prompt()`. Cards, a matchup card, a class link and
   a league blast all fell back to a system dialog when there was no share
   sheet — the browser build on a laptop, or an insecure address — with the
