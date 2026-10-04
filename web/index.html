@@ -2482,7 +2482,12 @@ window.savePlay = () => {
   if(!name || (b.plants || []).length !== 5) return;
   if(callTaken(name, b.k)){ flash(`${name} is already a call. Give this one its own name.`); return; }
   const rest = customPlays().filter(p => p.k !== b.k);
-  const k = b.k || ("my:" + Date.now().toString(36));
+  // A play built again under the name of one he deleted is the same play:
+  // it takes the old key back, so the calls logged under it are its record
+  // again rather than a second "Rocket" beside the first on self-scout.
+  const gone = b.k ? null : Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name));
+  const k = b.k || gone || ("my:" + Date.now().toString(36));
+  if(gone){ const pg = {...S.playGone}; delete pg[gone]; S.playGone = pg; }
   const was = customPlay(b.k) || {};
   S.plays = [...rest, {k, name, read: (b.read || "").trim().slice(0, 140),
                        aggr: Math.min(5, Math.max(1, +b.aggr || 3)),
@@ -2491,11 +2496,21 @@ window.savePlay = () => {
   S.building = null; S.script = k; S.t = 1; S.playing = false;
   save(S); render();
 };
+// The key of a deleted play that carried this name, if any.
+const goneKeyNamed = name => Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name)) || null;
 window.renamePlay = (k, v) => {
   const name = String(v || "").trim().slice(0, 28); if(!name) { render(); return; }   // an empty name keeps the old one
   if(callTaken(name, k)){ flash(`${name} is already a call. The old name stays.`); return; }
+  // Renamed onto a play he deleted: the calls logged under the old one are
+  // this play's now, so self-scout reads one record and not two "Rocket"s.
+  const gone = goneKeyNamed(name);
+  if(gone && gone !== k){
+    S.calls = (S.calls || []).map(c => c && c.script === gone ? {...c, script: k} : c);
+    if((S.jobCalls || {})[gone]){ const jc = {...S.jobCalls}; jc[k] = {...(jc[gone] || {}), ...(jc[k] || {})}; delete jc[gone]; S.jobCalls = jc; }
+    const pg = {...S.playGone}; delete pg[gone]; S.playGone = pg;
+  }
   S.plays = customPlays().map(p => p.k === k ? {...p, name} : p);
-  save(S); render();
+  save(S); if(gone && gone !== k) flash(`${name} — the calls logged under the play you deleted by that name are this play's now.`); else render();
 };
 window.dropPlay = k => {
   const p = customPlay(k); if(!p) return;
@@ -2541,6 +2556,10 @@ window.setBreakCall = key => {
   const el = document.getElementById("brc-" + key); if(!el) return;
   const word = (el.value || "").trim().slice(0, 28);
   if(word && callTaken(word, key)){ flash(`${word} is already a call. Two breaks cannot share a name.`); return; }
+  // A deleted play's name still names its logged calls; putting it on one of
+  // the twelve would read as one record and be two. Build the play again
+  // under that name instead, and its record comes back with it.
+  if(word && goneKeyNamed(word)){ flash(`${word} is a play you deleted, and its logged calls still carry the name. Build it again under that name to keep its record, or pick another word.`); return; }
   const all = {...(S.breakCalls || {})};
   if(word && word !== (allPlays()[key] || {}).name) all[key] = word; else delete all[key];
   S.breakCalls = all; save(S); render();
