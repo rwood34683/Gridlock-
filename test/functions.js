@@ -5036,6 +5036,19 @@ const ROSTER = [
     window.set({ replayStep: 0, tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return live && committed;
   }));
+  check("the same game twice is one row: typed again it is refused and said, pasted again it is counted and left", await ev(() => {
+    const gamesWere = S.games, d = SCHEDULE.games[0].d;
+    S.games = (S.games || []).filter(g => !/Dup Probe/.test(g.h + g.a));
+    window.set({ tab: "more", more: "schedule", gameNew: { d, t: "11:00", h: "Dup Probe Home", a: "Dup Probe Away", g: "" }, flash: "" });
+    window.saveGame(); const n1 = (S.games || []).filter(g => /Dup Probe/.test(g.h)).length;
+    window.set({ gameNew: { d, t: "11:00", h: " dup probe home ", a: "DUP PROBE AWAY", g: "" }, flash: "" }); window.saveGame();
+    const typed = n1 === 1 && (S.games || []).filter(g => /Dup Probe/i.test(g.h)).length === 1 && /already on the list at 11:00/.test(S.flash || "");
+    window.set({ gameNew: null, gamePaste: "11:00 AM Dup Probe Home vs Dup Probe Away\n12:00 PM Dup Probe Home vs Dup Probe Away", flash: "" });
+    window.readSchedule();
+    const pasted = (S.games || []).filter(g => /Dup Probe/i.test(g.h)).length === 2 && /Added 1 game\. 1 was already on the list/.test(S.flash || "");
+    S.games = gamesWere; window.set({ gamePaste: "", flash: "", tab: "tally" });
+    return typed && pasted;
+  }));
   check("a class's notes and a sheet's name commit without a redraw under the next tap", await ev(() => {
     window.confirm = () => true;
     const classesWere = S.classes;
