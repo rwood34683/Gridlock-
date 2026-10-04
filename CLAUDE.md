@@ -1408,7 +1408,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   schedule were kept by index (`sch3`), so a re-read that added a game above
   them hid the wrong games. A seeded row's id is the game itself — day,
   clock and both teams folded — and survives any order the league's list
-  comes back in.
+  comes back in. And a row taken off by mistake has a way back: the page
+  says how many league rows are off and **Put them back** forgets the list.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

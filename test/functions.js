@@ -5048,6 +5048,17 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("a league row taken off the list can be put back, and the page says how many are off", await ev(() => {
+    const offWere = S.gamesOff; window.confirm = () => true;
+    const g = allGames().find(x => x.seed); if(!g) return "no seeded row";
+    window.set({ tab: "more", more: "schedule", gameOpen: null }); window.dropGame(g.id);
+    const root = () => document.getElementById("root").innerText;
+    const said = /1 league row taken off the list/.test(root()) && !!document.querySelector('#root button[onclick="restoreGames()"]');
+    window.restoreGames();
+    const back = allGames().some(x => x.id === g.id) && !(S.gamesOff || []).length && /1 row is back on the list/.test(S.flash || "") && !/taken off the list/.test(root());
+    S.gamesOff = offWere; window.set({ flash: "", tab: "tally" });
+    return said && back;
+  }));
   check("a league row is remembered by the game, not by its place in the list", await ev(() => {
     const g = allGames().find(x => x.seed); if(!g) return "no seeded row";
     const byContent = g.id === "sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a) && !/^sch\d+$/.test(g.id);
