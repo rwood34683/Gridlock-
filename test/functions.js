@@ -5333,6 +5333,20 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("Rep with nothing to drill says so instead of doing nothing", await ev(() => {
+    const keepPlays = S.plays, keepOff = S.offPlays, keepScript = S.script;
+    const other = Object.keys(LAYOUTS).find(k => k !== S.layoutKey), ids = LAYOUTS[other].bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [{ k: "my:drill-probe", name: "Drill Probe", read: "", plants: { [other]: ids } }];
+    S.offPlays = Object.keys(BREAKS);
+    window.set({ tab: "playbook", pbView: "", script: "my:drill-probe", flash: "" });
+    const none = repKeys().length === 0;
+    window.startRep();
+    const said = !repState().running && S.pbView !== "rep" && /Nothing to drill on/.test(S.flash || "") && /Build one with \+ Yours/.test(S.flash || "");
+    S.plays = keepPlays; S.offPlays = keepOff;
+    window.set({ script: keepScript, flash: "" });
+    const flags = { none, said };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

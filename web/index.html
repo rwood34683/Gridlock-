@@ -6245,7 +6245,13 @@ function repState(){ return S.rep || {log:[]}; }
 // nothing to draw, so it is not asked here — the picker still offers it.
 const repKeys = () => pickKeys().filter(k => !isMine(k) || myPlants(k));
 window.startRep = () => {
-  const keys = repKeys(); if(!keys.length) return;
+  const keys = repKeys();
+  // Nothing to draw is nothing to drill: every call he runs is one of his own
+  // with no five on this field, or he has turned the rest off. Say which.
+  if(!keys.length){
+    flash(`Nothing to drill on ${curLayout().name}: none of the calls you run has a five here. Build one with + Yours, or turn a call back on under Team › Break calls.`);
+    return;
+  }
   S.rep = {running:true, was:S.script, wasT:S.t, log:[],
            ask:keys[Math.floor(Math.random()*keys.length)], at:Date.now()};
   S.script = S.rep.ask; S.t = 1; S.playing = false; S.pbView = "rep";
