@@ -2385,6 +2385,7 @@ window.savePlay = () => {
   const b = S.building; if(!b) return;
   const name = (b.name || "").trim().slice(0, 28);
   if(!name || (b.plants || []).length !== 5) return;
+  if(callTaken(name, b.k)){ flash(`${name} is already a call. Give this one its own name.`); return; }
   const rest = customPlays().filter(p => p.k !== b.k);
   const k = b.k || ("my:" + Date.now().toString(36));
   const was = customPlay(b.k) || {};
@@ -2397,6 +2398,7 @@ window.savePlay = () => {
 };
 window.renamePlay = (k, v) => {
   const name = String(v || "").trim().slice(0, 28); if(!name) { render(); return; }   // an empty name keeps the old one
+  if(callTaken(name, k)){ flash(`${name} is already a call. The old name stays.`); return; }
   S.plays = customPlays().map(p => p.k === k ? {...p, name} : p);
   save(S); render();
 };
@@ -2426,10 +2428,15 @@ function curBreak(){ return allPlays()[S.script] || BREAKS[defaultState().script
 function callName(key){
   return ((S.breakCalls || {})[key] || "").trim() || (allPlays()[key] || {}).name || key;
 }
+// Two calls with one name are one button twice in every picker and one word
+// shouted for two breaks. Case and spacing fold, like a player's name; the
+// call being named is the exception.
+const callTaken = (name, except) => playKeys().some(k => k !== except && foldName(callName(k)) === foldName(name));
 function breakName(){ return callName(S.script); }
 window.setBreakCall = key => {
   const el = document.getElementById("brc-" + key); if(!el) return;
   const word = (el.value || "").trim().slice(0, 28);
+  if(word && callTaken(word, key)){ flash(`${word} is already a call. Two breaks cannot share a name.`); return; }
   const all = {...(S.breakCalls || {})};
   if(word && word !== (allPlays()[key] || {}).name) all[key] = word; else delete all[key];
   S.breakCalls = all; save(S); render();
@@ -5884,7 +5891,8 @@ function repScore(){
 function playBuilder(){
   const b = S.building, five = b.plants || [], list = curLayout().bunkers;
   const nameOf = id => { const x = list.find(v => v.id === id); return x ? callOf(x) + " · " + x.id : id; };
-  const ready = (b.name || "").trim() && five.length === 5;
+  const taken = callTaken((b.name || "").trim(), b.k);
+  const ready = (b.name || "").trim() && five.length === 5 && !taken;
   return sec(b.k ? "Build it on this field" : "A play of your own", `
     <p class="lede">Tap the bunker each man plants on, in order — one is the
       first name you tap, five is the last. Tap a picked bunker again to take him off.
@@ -5907,7 +5915,7 @@ function playBuilder(){
         onchange="setPlayField('aggr', this.value)"/></div>
     <div class="btnrow">
       <button class="btn grow" onclick="savePlay()" ${ready ? "" : "disabled"}>${
-        ready ? "Save this play" : five.length === 5 ? "Name it first" : `Pick ${5 - five.length} more`}</button>
+        ready ? "Save this play" : taken ? "Already a call — pick another name" : five.length === 5 ? "Name it first" : `Pick ${5 - five.length} more`}</button>
       <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
     </div>
     <p class="note">A play is the five bunkers, and those change from field to field — so this is
@@ -9129,7 +9137,7 @@ const HELP = {
          "A man already on another slot swaps with this one — nobody doubles up.",
          "Kept per match and per point, so point three of two games is two different fives."]},
   "more/team": {t:"Team", w:"Your roster, and what you call each bunker.",
-    how:["Break calls lists your own plays first — rename one there or open it on the field — then the twelve the app ships with, each with your word for it and a switch for the ones you run.",
+    how:["Break calls lists your own plays first — rename one there or open it on the field — then the twelve the app ships with, each with your word for it and a switch for the ones you run. Two calls cannot share a name: it says so and keeps the old one.",
          "Add players with their numbers and positions.",
          "Rename any bunker to your team's word for it. It shows everywhere.",
          "Break calls names the twelve your way — what you shout, not what the app calls it.",

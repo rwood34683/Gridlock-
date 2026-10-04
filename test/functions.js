@@ -5009,6 +5009,31 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch();
     return first && second && alone && listed && chips && sched;
   }));
+  check("two calls cannot share a name: a play named Snake Stack, a play renamed onto another, a built-in renamed onto a play all refuse and say so", await ev(() => {
+    window.confirm = () => true;
+    const was = S.script, had = customPlays().map(p => p.k), calls = S.breakCalls;
+    const five = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    const build = nm => { window.newPlay(); window.setPlayField("name", nm); five.forEach(id => window.playPick(id)); };
+    // 1. a new play named like a built-in, case and spacing folded: the button says so, Save refuses
+    build("snake  stack");
+    const btn = [...document.querySelectorAll("#root button")].find(b => /Already a call/.test(b.textContent));
+    const n0 = customPlays().length; window.savePlay();
+    const refused = !!btn && btn.disabled && customPlays().length === n0 && /already a call/i.test(S.flash || "");
+    window.cancelPlay();
+    // 2. two of his own
+    build("Rocket"); window.savePlay(); const rocket = S.script;
+    build("Hammer"); window.savePlay(); const hammer = S.script;
+    window.renamePlay(hammer, "ROCKET");
+    const kept = customPlay(hammer).name === "Hammer" && /already a call/i.test(S.flash || "");
+    // 3. a built-in renamed onto his play
+    window.set({ tab: "more", more: "team" });
+    const el = document.getElementById("brc-snake"); let third = false;
+    if (el) { el.value = "rocket"; window.setBreakCall("snake"); third = callName("snake") === "Snake Stack" && !(S.breakCalls || {}).snake; }
+    // and a rename that is free still goes through
+    window.renamePlay(hammer, "Hammer Two"); const free = customPlay(hammer).name === "Hammer Two";
+    S.plays = customPlays().filter(p => had.includes(p.k)); S.breakCalls = calls; window.set({ script: was, flash: "", tab: "playbook", more: null });
+    return refused && rocket !== hammer && kept && third && free;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
