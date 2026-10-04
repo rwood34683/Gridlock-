@@ -3331,6 +3331,8 @@ function jobName(scriptKey, id, fallback){
 window.setJobCall = id => {
   const el = document.getElementById("jbc-" + id); if(!el) return;
   const word = (el.value || "").trim().slice(0, 28);
+  const other = jobWordTaken(word, id);
+  if(other){ flash(`${word} is already slot ${other}'s job on ${callName(S.script)}. Two men cannot answer to one word.`); return; }
   const all = {...(S.jobCalls || {})};
   const mine = {...(all[S.script] || {})};
   if(word) mine[id] = word; else delete mine[id];
@@ -4546,12 +4548,29 @@ function callPickOverlay(){
   const s2 = bunkerSize(b, 2, 2);
   return `<rect x="${(b.x*2-s2.h-3).toFixed(1)}" y="${(b.y*2-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffffff" stroke-width="1.8"/>`;
 }
+// A word is how a bunker is shouted, so two bunkers on one field cannot
+// share it — "Snake 1" on two bunkers is one word for two places, the same
+// trap as two calls with one name. The bunker already wearing it, if any.
+function bunkerWordTaken(word, exceptId, layoutKey = S.layoutKey){
+  const want = foldName(word); if(!want) return null;
+  const layer = (S.bunkerCalls || {})[layoutKey] || {};
+  return Object.keys(layer).find(id => id !== exceptId && foldName(layer[id]) === want) || null;
+}
+// And the five jobs inside one call: "Rocket 1" on two slots is two men
+// answering to one shout.
+function jobWordTaken(word, exceptId, script = S.script){
+  const want = foldName(word); if(!want) return null;
+  const mine = (S.jobCalls || {})[script] || {};
+  return Object.keys(mine).find(id => id !== exceptId && foldName(mine[id]) === want) || null;
+}
 window.setCall = () => {
   const id = document.getElementById('bcId').value;
   const nm = clean(document.getElementById('bcName').value.trim());
   const who = (document.getElementById('bcWho') || {}).value || "";
   if(!id){ flash("Tap the bunker first."); return; }
   if(who) return setPlayerCall(who, id, nm);
+  const other = bunkerWordTaken(nm, id);
+  if(other){ flash(`${nm} is already ${esc(other)} on this field. Two bunkers cannot share a word.`); return; }
   const all = {...(S.bunkerCalls || {})};
   const layer = {...(all[S.layoutKey] || {})};
   if(nm) layer[id] = nm; else delete layer[id];

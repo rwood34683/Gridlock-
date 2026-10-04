@@ -4940,6 +4940,24 @@ const ROSTER = [
     window.set({ script: defaultState().script, tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
     return took && refused;
   }));
+  check("two bunkers on one field cannot share a word, and two slots in one call cannot share a job", await ev(() => {
+    const bl = curLayout().bunkers, callsWere = S.bunkerCalls, jobsWere = S.jobCalls;
+    const mk = (id, v) => { const el = document.createElement("input"); el.id = id; el.value = v; document.body.appendChild(el); return el; };
+    const bcId = mk("bcId", bl[0].id), bcName = mk("bcName", "Snake One"); window.set({ flash: "" });
+    window.setCall(); const first = (bunkerCalls()[bl[0].id] || "") === "Snake One";
+    bcId.value = bl[1].id; bcName.value = " snake  one "; window.setCall();
+    const refused = !bunkerCalls()[bl[1].id] && new RegExp("is already " + bl[0].id + " on this field").test(S.flash || "");
+    bcName.value = "Snake One"; bcId.value = bl[0].id; window.setCall();   // the same bunker keeping its word is not a clash
+    const same = (bunkerCalls()[bl[0].id] || "") === "Snake One";
+    bcId.remove(); bcName.remove();
+    const slots = plantIdsFor(S.script) || [];
+    const j1 = mk("jbc-" + slots[0], "Rocket 1"); window.setJobCall(slots[0]); j1.remove();
+    const j2 = mk("jbc-" + slots[1], "rocket 1"); window.set({ flash: "" }); window.setJobCall(slots[1]); j2.remove();
+    const jobs = (S.jobCalls || {})[S.script] || {};
+    const jobRefused = jobs[slots[0]] === "Rocket 1" && !jobs[slots[1]] && /is already slot .* job on/.test(S.flash || "");
+    S.bunkerCalls = callsWere; S.jobCalls = jobsWere; window.set({ flash: "" });
+    return first && refused && same && jobRefused;
+  }));
   check("a play built again under a deleted play's name takes its key back, so the calls logged under it are its record again", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
