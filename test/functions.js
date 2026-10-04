@@ -5971,6 +5971,24 @@ const ROSTER = [
     window.set({ quick: false }); window.backPoint(); window.setRaceTo(keep.race || 0);
     return /Match point, both ways/.test(mp) && /San Diego Dynasty won 1–0/.test(over) && !/you won/.test(over) && /San Diego Dynasty won/.test(qOver);
   }));
+  check("Breakouts on it logs either team's five, and Scout names the two sides rather than you and them", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts" });
+    const root = () => document.getElementById("root");
+    const t0 = root().innerText;
+    const labels = /Left pit · the home side/i.test(t0) && /Right pit · the away side/i.test(t0) && !/who you play/i.test(t0);
+    const sw = [...root().querySelectorAll("#root .seg button")].filter(b => /San Diego Dynasty|Royal City Seadogs/.test(b.textContent));
+    const bl = curLayout().bunkers, ids = [2, 8, 15, 21, 29].map(i => bl[i].id);
+    const home = sw.find(b => /San Diego Dynasty/.test(b.textContent)); if (home) home.click();
+    window.set({ theirPick: ids });
+    const btn = [...root().querySelectorAll("button")].find(b => /Log San Diego Dynasty's five/.test(b.textContent));
+    const before = theirBreaks("left").length; if (btn) btn.click();
+    const logged = theirBreaks("left").length === before + 1 && theirBreaks("left")[0].plants.length === 5 && theirBreaks("left")[0].m === S.matchId;
+    window.set({ scoutTab: "matchup" });
+    const seg = [...root().querySelectorAll(".seg button")].map(b => b.textContent.trim());
+    const named = seg.includes("San Diego Dynasty") && seg.includes("Royal City Seadogs") && !seg.includes("Yours") && !seg.includes("Theirs");
+    window.set({ scoutSide: "right", theirPick: [] });
+    return labels && sw.length === 2 && !!btn && logged && named;
+  }));
   check("the ends chip on it says which team breaks from which end", await ev(() => {
     window.set({ tab: "tally" });
     return /San Diego Dynasty breaking from the (left|right) end/.test(document.getElementById("root").innerText);

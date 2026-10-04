@@ -625,7 +625,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   watching: `overWord()` names the sides on a watched sheet and
   `matchPointWord()` is the one door for match point, read by the sheet and
   the quick log alike, and the ends chip says which team is breaking from
-  which end.
+  which end. On Scout the pits are *the home side* and *the away side*, the
+  break toggle names the two teams instead of Theirs / Yours, and Breakouts
+  carries a switch for whose five is being charted (`S.scoutSide`, scratch),
+  because both teams on a watched field are teams he is scouting.
 - Fetch a schedule, or let the app imply it could. There is not one `fetch` in
   it and that is the whole reason it works in Garland. `SCHEDULE` is read off
   the league the way the pro board is — a screenshot from the coach — and it
