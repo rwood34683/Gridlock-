@@ -4845,6 +4845,23 @@ const ROSTER = [
     window.set({ tab: "tally", roster: keep.roster, right: keep.right, left: keep.left, tally: keep.tally, moves: keep.moves, breakouts: keep.breakouts });
     return !!a && sched && !!b && mv && !!c && team;
   }));
+  check("the Rep drill never draws a play of his that is not built on this field", await ev(() => {
+    window.confirm = () => true;
+    const keep = { plays: S.plays, layout: S.layoutKey, script: S.script };
+    window.set({ layoutKey: "lso", tab: "playbook", pbView: null });
+    window.newPlay(); window.setPlayField("name", "Rocket");
+    curLayout().bunkers.slice(0, 5).forEach(b => window.playPick(b.id)); window.savePlay();
+    const mine = Object.keys(allPlays()).find(k => /^my:/.test(k) && allPlays()[k].name === "Rocket");
+    const built = !!mine && !!myPlants(mine);
+    window.set({ layoutKey: "tby" });
+    const inPicker = !!pickPlays()[mine] && !myPlants(mine);
+    let askedIt = false;
+    for (let i = 0; i < 25; i++) { window.startRep(); if (S.rep.ask === mine) askedIt = true; for (let j = 0; j < 3; j++) { window.answerRep(S.rep.ask); if (S.rep.ask === mine) askedIt = true; } window.stopRep(); }
+    window.set({ layoutKey: "lso" });
+    let askedHere = false; for (let i = 0; i < 200 && !askedHere; i++) { window.startRep(); if (S.rep.ask === mine) askedHere = true; window.stopRep(); }
+    window.set({ plays: keep.plays, layoutKey: keep.layout, script: keep.script, pbView: null, building: null });
+    return built && inPicker && !askedIt && askedHere;
+  }));
   check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
