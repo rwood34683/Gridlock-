@@ -2498,12 +2498,21 @@ window.renamePlay = (k, v) => {
   save(S); render();
 };
 window.dropPlay = k => {
+  const p = customPlay(k); if(!p) return;
+  const fields = Object.keys(p.plants || {}).filter(l => Array.isArray(p.plants[l]) && p.plants[l].length).length;
+  const logged = (S.calls || []).filter(c => c && c.script === k).length;
+  const bits = [fields ? `a five on ${fields} ${fields === 1 ? "field" : "fields"}` : "", logged ? `${logged} ${logged === 1 ? "call" : "calls"} logged under it` : ""].filter(Boolean).join(" and ");
+  // A play he built is work — five taps a field — and the calls logged under
+  // it are his record. Delete asks when there is either, and the calls keep
+  // the play's name afterwards rather than printing its key.
+  if(bits && !confirm(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
+  if(logged) S.playGone = {...(S.playGone || {}), [k]: callName(k)};
   S.plays = customPlays().filter(p => p.k !== k);
   // Everything logged against it keeps its key and still counts; only the
   // drawing is gone. The header would throw on a key this build no longer
   // has, so move off it the way a missing layout is handled.
   if(S.script === k) S.script = defaultState().script;
-  S.building = null; save(S); render();
+  S.building = null; save(S); flash(bits ? `${callName(k)} deleted. ${logged ? "The calls logged under it keep its name." : ""}`.trim() : `${p.name || "The play"} deleted.`);
 };
 
 function curBreak(){ return allPlays()[S.script] || BREAKS[defaultState().script]; }
@@ -2521,7 +2530,7 @@ function curBreak(){ return allPlays()[S.script] || BREAKS[defaultState().script
  * one place he needs to know which of the twelve he is naming.
  */
 function callName(key){
-  return ((S.breakCalls || {})[key] || "").trim() || (allPlays()[key] || {}).name || key;
+  return ((S.breakCalls || {})[key] || "").trim() || (allPlays()[key] || {}).name || (S.playGone || {})[key] || key;
 }
 // Two calls with one name are one button twice in every picker and one word
 // shouted for two breaks. Case and spacing fold, like a player's name; the
@@ -2536,7 +2545,11 @@ window.setBreakCall = key => {
   if(word && word !== (allPlays()[key] || {}).name) all[key] = word; else delete all[key];
   S.breakCalls = all; save(S); render();
 };
-window.clearBreakCalls = () => { S.breakCalls = {}; save(S); render(); };
+window.clearBreakCalls = () => {
+  const n = Object.values(S.breakCalls || {}).filter(v => String(v || "").trim()).length;
+  if(n && !confirm(`Put the app's own names back on ${n === 1 ? "the one call" : `all ${n} calls`} you named? Every call logged keeps its record; only the words change.`)) return;
+  S.breakCalls = {}; save(S); flash(n ? "The app's names are back on every call." : "");
+};
 
 /* And what the team calls each of the five jobs inside a call.
  *
@@ -3011,8 +3024,8 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","matchState"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes"];
+                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -3180,6 +3193,7 @@ function copyDataError(data){
       breaks:list(v => record(v, {plants:list(str)}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
       answers:strings})),
     teams:map(list(nameRow)),
+    playGone:strings,
     left:v => row(v) && (v.name === undefined || str(v.name)),
     right:v => row(v) && (v.name === undefined || str(v.name)),
     tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
@@ -9333,6 +9347,9 @@ window.renameGroup = (id, v) => {
   S.groups = S.groups.map(g => g.id === id ? {...g, name: n} : g); save(S); render();
 };
 window.delGroup = id => {
+  const g = (S.groups || []).find(x => x.id === id); if(!g) return;
+  const n = (g.members || []).length;
+  if(n && !confirm(`Delete ${g.name} and its ${n} ${n === 1 ? "member" : "members"}? The blasts already logged keep their text.`)) return;
   S.groups=S.groups.filter(g=>g.id!==id);
   if(S.blastTo) S.blastTo=S.blastTo.filter(x=>x!==id);
   save(S); render();
@@ -9546,6 +9563,8 @@ const HELP = {
 const HELP_Q = [
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
+  ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
+  ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
   ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],

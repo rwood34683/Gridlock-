@@ -4860,6 +4860,50 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("Replace everything on a saved copy asks first when the phone holds a season, naming what it would throw away; Merge never asks", replaceAsks === true, replaceAsks);
+  const delAsks = await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const asked = []; window.confirm = q => { asked.push(q); return false; };
+    const ids = curLayout().bunkers.slice(0, 5).map(b => b.id);
+    S.plays = [...customPlays(), { k: "my:probe", name: "Probe Play", read: "", aggr: 3, plants: { [S.layoutKey]: ids }, at: 1 }];
+    window.set({ script: "my:probe" }); window.logCall("my:probe");
+    window.dropPlay("my:probe");
+    const playKept = asked.length === 1 && /Probe Play has a five on 1 field and 1 call logged under it/.test(asked[0]) && !!customPlay("my:probe");
+    window.confirm = q => { asked.push(q); return true; };
+    window.dropPlay("my:probe");
+    const playGone = !customPlay("my:probe") && callName("my:probe") === "Probe Play" && S.script !== "my:probe"
+      && (S.calls || []).some(c => c.script === "my:probe") && /Probe Play deleted/.test(S.flash || "") && KEEP_ALL.includes("playGone") && KEEP_SQUAD.includes("playGone");
+    // A play with nothing on it goes with one tap.
+    S.plays = [...customPlays(), { k: "my:blank", name: "Blank Play", read: "", aggr: 3, plants: {}, at: 1 }];
+    window.dropPlay("my:blank");
+    const blankGone = asked.length === 2 && !customPlay("my:blank");
+    // The team's names on the calls.
+    const callsWere = S.breakCalls; S.breakCalls = { snake: "Rocket", dside: "Hammer" };
+    window.confirm = q => { asked.push(q); return false; };
+    window.clearBreakCalls();
+    const namesKept = asked.length === 3 && /all 2 calls you named/.test(asked[2]) && (S.breakCalls || {}).snake === "Rocket";
+    window.confirm = q => { asked.push(q); return true; };
+    window.clearBreakCalls();
+    const namesGone = Object.keys(S.breakCalls || {}).length === 0;
+    // A league group with members.
+    const groupsWere = S.groups;
+    S.groups = [...(S.groups || []), { id: "g-probe", name: "Probe Crew", members: [{ name: "A", phone: "1" }, { name: "B", phone: "2" }] }, { id: "g-empty", name: "Nobody Yet", members: [] }];
+    window.confirm = q => { asked.push(q); return false; };
+    window.delGroup("g-probe");
+    const groupKept = asked.length === 5 && /Delete Probe Crew and its 2 members/.test(asked[4]) && S.groups.some(g => g.id === "g-probe");
+    window.delGroup("g-empty");
+    const emptyGone = asked.length === 5 && !S.groups.some(g => g.id === "g-empty");
+    const flags = { playKept, playGone, blankGone, namesKept, namesGone, groupKept, emptyGone };
+    S.groups = groupsWere; S.breakCalls = callsWere; S.calls = (S.calls || []).filter(c => c.script !== "my:probe");
+    const pg = {...(S.playGone || {})}; delete pg["my:probe"]; S.playGone = pg;
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("Delete on a play of yours, the team's call names and a league group each ask first when there is something behind them; a deleted play's calls keep its name", delAsks === true, delAsks);
+  check("Help answers the wrong team at the gate and a deleted play", await ev(() =>
+    HELP_Q.some(([q, a]) => /wrong team at the gate/.test(q) && /Played against/.test(a))
+    && HELP_Q.some(([q, a]) => /deleted one of my plays/.test(q) && /keep its name/.test(a))));
   check("Time's up with nobody to play opens the gate and marks nothing", await ev(() => {
     window.set({ tab: "tally", right: { name: "" }, tallyNudge: false }); window.openSheet({ vs: "" }); window.set({});
     const m = S.matchId; window.timeUp(); window.timeUp("tie");
