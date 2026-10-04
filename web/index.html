@@ -1637,6 +1637,11 @@ window.renameTeam = (from, v) => {
   S.arrivalSightings = team(S.arrivalSightings, "team"); S.arrivalShots = team(S.arrivalShots, "team"); S.voiceEvents = team(S.voiceEvents, "team");
   S.games = (S.games || []).map(g => g ? {...g, h: g.h === from ? to : g.h, a: g.a === from ? to : g.a} : g);
   ["left", "right"].forEach(side => { if((S[side] || {}).name === from) S[side] = {...S[side], name: to}; });
+  // The team the arrival and voice pickers hold is a pick, not a row, and it
+  // was left behind: the next sighting after a rename landed under the old
+  // spelling and split the season the rename had just joined.
+  if((S.arrival || {}).team === from) S.arrival = {...S.arrival, team: to};
+  if((S.voice || {}).team === from) S.voice = {...S.voice, team: to};
   // The scout book: moved, or folded into the profile already there — their
   // breaks and their men are counts and keep adding up; a word set on both
   // keeps the one already there.
@@ -8106,14 +8111,31 @@ function arrivalRefusal(context = arrivalContext()){
   const m = (S.matches || []).find(x => x && x.id === context.m);
   if(m && m.layout && LAYOUTS[m.layout] && m.layout !== S.layoutKey)
     return `That sheet is on ${LAYOUTS[m.layout].name}, not the field on screen. Pick a match played here under Pit, match & starting end, or change the event back.`;
+  // A sighting is stamped with a sheet and a point, so the team has to be on
+  // that sheet: reading Dynasty while the sheet is vs Rejects joined Dynasty's
+  // moves to Rejects' points. An empty sheet takes the team's name as the
+  // first row lands, the way the right pit does.
+  if(m && !teamOnSheet(m, context.team))
+    return `${context.team} is not on this sheet (${matchLabel(m)}). Pick one of their games under Pit, match & starting end, or start a sheet against them.`;
   return "";
+}
+const teamOnSheet = (m, team) => !!m && !!team && (m.watch ? m.home === team || m.away === team : m.vs === team || sheetEmpty(m));
+// The first row logged on an empty sheet names it for the team it is about.
+function adoptTeamOnLog(mid, team){
+  const m = (S.matches || []).find(x => x && x.id === mid);
+  if(!m || m.watch || !team || m.vs === team || !sheetEmpty(m)) return;
+  S.matches = S.matches.map(x => x.id === m.id ? {...x, vs: team} : x);
 }
 function arrivalGate(context){
   const why = arrivalRefusal(context); if(!why) return "";
-  const m = (S.matches || []).find(x => x && x.id === context.m), off = context.named && m ? m.layout : "";
+  const m = (S.matches || []).find(x => x && x.id === context.m);
+  const off = context.named && m && m.layout !== S.layoutKey ? m.layout : "";
+  const notOn = context.named && !off && m && !teamOnSheet(m, context.team);
   return `<div class="warn"><b>${esc(why)}</b>
     <div class="btnrow" style="margin-top:var(--s3)">${off
       ? `<button class="btn grow" onclick="pickEvent(${jsq(off)})">Back to ${esc(LAYOUTS[off].name)}</button><button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>`
+      : notOn
+      ? `<button class="btn grow" onclick="setPitTeam('right', ${jsq(context.team)}); newMatch()">Start a sheet against ${esc(context.team)}</button>`
       : `<button class="btn grow" onclick="set({scoutTab:'matchup'})">Pick them on Matchup</button>`}</div></div>`;
 }
 function arrivalSightings(context = arrivalContext()){
@@ -8349,6 +8371,7 @@ window.logArrivalSighting = () => {
     S.arrival = {...a,notice:"Choose a bunker before recording a sighting."}; render(); return;
   }
   const rows = arrivalSightings(context), at = Date.now();
+  adoptTeamOnLog(context.m, context.team);
   if(rows.length && rows[rows.length-1].bunker === id){
     S.arrival = {...a,notice:"That is already the latest sighting. Choose the next bunker they moved to."}; render(); return;
   }
@@ -8383,6 +8406,7 @@ window.logArrivalShot = () => {
   if(!has(to)){ S.arrival = {...a,notice:"Choose the bunker they were shooting at."}; render(); return; }
   if(from === to){ S.arrival = {...a,notice:"A man does not shoot the bunker he is in. Choose where the paint was going."}; render(); return; }
   const shots = arrivalShots(context), last = shots[shots.length-1], at = Date.now();
+  adoptTeamOnLog(context.m, context.team);
   if(last && last.from === from && last.to === to){
     S.arrival = {...a,notice:"That lane is already the latest shot recorded. Choose a different one, or move him first."}; render(); return;
   }

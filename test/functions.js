@@ -5155,6 +5155,38 @@ const ROSTER = [
     window.set({ gameNew: null, flash: "", tab: "tally" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("a sighting against a team not on the sheet is refused with a way out, and a rename follows into the pickers", await ev(() => {
+    window.confirm = () => true;
+    const keepS = S.arrivalSightings, keepL = S.left, keepR = S.right, keepArr = S.arrival, keepV = S.voice;
+    window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    window.markOut("us", (S.roster[0] || {}).name || "A");   // the sheet has something on it, so it is Rejects' and nobody else's
+    const bl = curLayout().bunkers, root = () => document.getElementById("root").textContent;
+    window.set({ tab: "scout", scoutTab: "arrival", arrival: { team: "Dynasty", destination: bl[3].id }, pitOpen: null });
+    const gate = /Dynasty is not on this sheet/.test(root()) && /Start a sheet against Dynasty/.test(root());
+    const n0 = (S.arrivalSightings || []).length;
+    window.logArrivalSighting();
+    const refused = (S.arrivalSightings || []).length === n0 && /not on this sheet/.test((S.arrival || {}).notice || "");
+    [...document.querySelectorAll("#root .warn button")].find(b => /Start a sheet/.test(b.textContent)).click();
+    const started = matchVs() === "Dynasty" && pitOf("right").name === "Dynasty" && !document.querySelector("#root .warn");
+    window.set({ arrival: { team: "Dynasty", destination: bl[3].id } });
+    window.logArrivalSighting();
+    const took = (S.arrivalSightings || []).length === n0 + 1 && (S.arrivalSightings || []).slice(-1)[0].m === S.matchId;
+    // an empty sheet takes the team's name as the first row lands
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch();
+    window.set({ tab: "scout", scoutTab: "arrival", arrival: { team: "Dynasty", destination: bl[4].id } });
+    const openGate = !document.querySelector("#root .warn");
+    window.logArrivalSighting();
+    const adopted = matchVs() === "Dynasty" && (S.arrivalSightings || []).length === n0 + 2;
+    // a rename follows into the pickers
+    window.set({ arrival: { team: "Zeta Pick Probe" }, voice: { team: "Zeta Pick Probe" } });
+    window.addTeam("Zeta Pick Probe"); window.renameTeam("Zeta Pick Probe", "Zeta Pick Squad");
+    const followed = (S.arrival || {}).team === "Zeta Pick Squad" && (S.voice || {}).team === "Zeta Pick Squad";
+    const flags = { gate, refused, started, took, openGate, adopted, followed };
+    window.delTeam("Zeta Pick Squad");
+    S.arrivalSightings = keepS;
+    window.set({ left: keepL, right: { name: "Dynasty" }, arrival: keepArr || {}, voice: keepV || {}, scoutTab: "matchup", tab: "tally", flash: "" }); window.newMatch();
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

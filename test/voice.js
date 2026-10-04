@@ -178,11 +178,19 @@ async function run(page) {
   await page.locator("#voice-team").selectOption("Other Opponent");
   await button("Record text").click();
   assert.equal((await events()).length, draftCount, "Changing opponent does not attribute an old typed draft to the new team");
+  // An event belongs to the team on the sheet: Other Opponent is not on
+  // voice-match-one, so recording for them is refused until their sheet is up.
+  await page.locator("#voice-manual").fill("Alex is eliminated");
+  await button("Record text").click();
+  assert.equal((await events()).length, draftCount, "An event for a team that is not on the open sheet is refused");
+  assert((await page.locator("#voice-status").innerText()).includes("not on this sheet"), "The refusal says the team is not on this sheet");
+  await page.evaluate(() => set({matchId: "voice-match-two"}));
   await page.locator("#voice-manual").fill("Alex is eliminated");
   await button("Record text").click();
   const newlyEdited = (await events()).at(-1);
-  assert(newlyEdited.text === "Alex is eliminated" && newlyEdited.team === "Other Opponent" && newlyEdited.player === "number:7",
-    "Editing the stale draft explicitly records the revised observation under the current team");
+  assert(newlyEdited.text === "Alex is eliminated" && newlyEdited.team === "Other Opponent" && newlyEdited.player === "number:7" && newlyEdited.m === "voice-match-two",
+    "Editing the stale draft explicitly records the revised observation under the current team, on their sheet");
+  await page.evaluate(() => set({matchId: "voice-match-one"}));
   await page.locator("#voice-team").selectOption("Voice Opponent");
 
   const protectedCount = (await events()).length;
