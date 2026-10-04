@@ -28,16 +28,18 @@ Legacy native snapshot: `ios-native/GRIDLOCK-Coach/` (early SwiftUI, missing lat
 `ios/` and `android/` are the generated Capacitor projects — edit `web/`, then `npm run sync`.
 Do not treat Overskill `.txt` as compiled code. It is the product prompt.
 
-## Two builds, one source
+## Three builds, one source
 
 The app ships as **Gridlock** (the default — everything committed reads
-Gridlock) and **Grind X** (a variant built from the same source). Both are
+Gridlock), **Grind X** and **Lockdown** (variants built from the same source,
+`lockdown://` and `com.upra.lockdown.coach` for Lockdown). All are
 defined once in `brand/brands.json`; `npm run brand` builds, checks and
 switches them, and `docs/BRANDS.md` is the long version. The rule: the capital
 word **Gridlock**, the deep link `gridlock://` and the store identity change per
 build; every lowercase `gridlock` token — `window.gridlock*`, the storage keys,
 `COPY_FORMAT`, the service-worker cache, `GridlockVoiceParser` — is a namespace
-shared by both and **never changes**. The build refuses if one moves.
+shared by all and **never changes**. The build refuses if one moves, and
+refuses any build that says another build's name.
 
 ## Hard rules
 
@@ -507,8 +509,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   display word is Gridlock and it changes per build; `gridlock.coach.v2`,
   `gridlock.coach.copy`, `window.gridlockKeep` and the rest are where a coach's
   season lives, and are identical in every build or the other build cannot read
-  it. `scripts/brand.js` counts them and refuses. Never `Grind X` in `web/` or
-  `site/` either — the variant is generated, and the suite fails on a stray name.
+  it. `scripts/brand.js` counts them and refuses. Never `Grind X` or `Lockdown`
+  in `web/` or `site/` either — the variants are generated, and the suite fails
+  on a stray name.
 - Rebuild custom cloud auth in the first pass. (There is still no server. Nexus →
   Save a copy is the offline answer to backup and moving between phones.)
 - Scrape player face photos.

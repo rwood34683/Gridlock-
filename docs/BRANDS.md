@@ -1,21 +1,21 @@
-# Two builds, one source
+# Three builds, one source
 
-The app ships under two names. **Gridlock** is the default — the committed
+The app ships under three names. **Gridlock** is the default — the committed
 `web/`, `site/`, `ios/` and `android/` read Gridlock, `npm run build` and the
 Pages workflow publish Gridlock to gridlockpb.com, and every test asserts
-Gridlock. **Grind X** is a variant produced from the same source by
-`scripts/brand.js`. Nothing is forked: there is one app, and a build step that
+Gridlock. **Grind X** and **Lockdown** are variants produced from the same
+source by `scripts/brand.js`. Nothing is forked: there is one app, and a build step that
 re-labels it.
 
-| | Gridlock (default) | Grind X |
-|---|---|---|
-| On screen | Gridlock · Gridlock Coach | Grind X · Grind X Coach |
-| Bundle / application id | `com.upra.gridlock.coach` | `com.upra.grindx.coach` |
-| Class join link | `gridlock://class/…` | `grindx://class/…` |
-| Support contact | `site/contact.json` | `site/contact.grindx.json` |
-| Site output | `dist/` | `dist/brand/grindx/` |
+| | Gridlock (default) | Grind X | Lockdown |
+|---|---|---|---|
+| On screen | Gridlock · Gridlock Coach | Grind X · Grind X Coach | Lockdown · Lockdown Coach |
+| Bundle / application id | `com.upra.gridlock.coach` | `com.upra.grindx.coach` | `com.upra.lockdown.coach` |
+| Class join link | `gridlock://class/…` | `grindx://class/…` | `lockdown://class/…` |
+| Support contact | `site/contact.json` | `site/contact.grindx.json` | `site/contact.lockdown.json` |
+| Site output | `dist/` | `dist/brand/grindx/` | `dist/brand/lockdown/` |
 
-Both are defined once, in **`brand/brands.json`**. That file is the only place
+All are defined once, in **`brand/brands.json`**. That file is the only place
 a brand's name, id, scheme or contact file is written down.
 
 ## The rule that makes this safe
@@ -86,9 +86,11 @@ hold and compare against the source transformed to that brand, so a shell
 pointed at Grind X is *in step*, not stale. The committed state is Gridlock;
 switch, archive in Xcode or Android Studio, switch back before committing.
 
-## Finishing Grind X
+## Finishing Grind X (and Lockdown)
 
-The infrastructure is done; the Grind X build passes every check today. What it
+The infrastructure is done; the Grind X and Lockdown builds pass every check
+today. The steps below are written for Grind X; Lockdown's are the same with
+`lockdown` for `grindx` and `com.upra.lockdown.coach` for the id. What it
 does not have is an owner's details, and the tool never invents them:
 
 1. **Domain and support email** — `npm run brand contact grindx -- --email … --domain …`.
@@ -105,8 +107,10 @@ does not have is an owner's details, and the tool never invents them:
    wherever that domain is served. The Pages workflow publishes `dist/`, which
    is Gridlock; a second workflow or a second host carries Grind X.
 
-## Adding a third
+## Adding another
 
-One entry in `brand/brands.json` (unique short name, id and scheme, its own
+Lockdown was added this way. One entry in `brand/brands.json` (unique short name, id and scheme, its own
 contact file under `site/`) and it is built, checked and switchable with the
-same commands. Nothing in `web/` changes.
+same commands. Nothing in `web/` changes. With more than one variant the
+self-check also refuses any build that says another build's name — Grind X in
+Lockdown, Lockdown in Grind X, either in the Gridlock source.

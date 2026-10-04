@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-/* Two builds, one source: the Gridlock default and the Grind X variant.
+/* The builds, one source: the Gridlock default and the Grind X and Lockdown variants.
  *
  * What is pinned here: the default build is the source byte for byte; the
  * variant carries the other name and the other deep link and nothing else;
@@ -43,11 +43,13 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
 
 (async () => {
   const brands = brand.loadBrands();
-  const gridlock = brand.brandOf("gridlock", brands), grindx = brand.brandOf("grindx", brands);
+  const gridlock = brand.brandOf("gridlock", brands), grindx = brand.brandOf("grindx", brands), lockdown = brand.brandOf("lockdown", brands);
 
   console.log("brands.json");
-  check("two brands, Gridlock the default", brands.default === "gridlock" && Object.keys(brands.brands).length === 2);
+  check("three brands, Gridlock the default", brands.default === "gridlock" && JSON.stringify(Object.keys(brands.brands)) === JSON.stringify(["gridlock", "grindx", "lockdown"]));
   check("separate store identities", gridlock.appId !== grindx.appId && gridlock.scheme !== grindx.scheme && grindx.appId === "com.upra.grindx.coach" && grindx.scheme === "grindx");
+  check("Lockdown has its own store identity", lockdown.appId === "com.upra.lockdown.coach" && lockdown.scheme === "lockdown" && lockdown.name === "Lockdown Coach"
+    && new Set([gridlock, grindx, lockdown].map(b => b.appId)).size === 3 && new Set([gridlock, grindx, lockdown].map(b => b.scheme)).size === 3);
   check("an unknown brand is refused by name", (() => { try { brand.brandOf("nope", brands); return false; } catch (e) { return /no brand called "nope"/.test(e.message); } })());
 
   console.log("the transform");
@@ -67,6 +69,14 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     const broken = { ...staged, web: new Map(staged.web) };
     broken.web.set("native.js", Buffer.from(staged.web.get("native.js").toString("utf8").replace("Grind X", "Gridlock")));
     check("a stray default name in the variant is refused", brand.selfCheck(broken).some(p => /still says "Gridlock"/.test(p)));
+  }
+  {
+    // With three builds, a variant can also leak another variant's name.
+    const lock = brand.stage(lockdown, brands);
+    check("Lockdown passes its own check", !brand.selfCheck(lock).length, brand.selfCheck(lock)[0]);
+    const broken = { ...lock, web: new Map(lock.web) };
+    broken.web.set("native.js", Buffer.from(lock.web.get("native.js").toString("utf8").replace("Lockdown", "Grind X")));
+    check("another variant's name in Lockdown is refused", brand.selfCheck(broken).some(p => /says "Grind X", which is another build's name/.test(p)));
   }
   for (const token of brand.TECHNICAL) {
     const src = fs.readFileSync(path.join(WEB, "index.html"), "utf8"), out = staged.web.get("index.html").toString("utf8");
@@ -166,9 +176,34 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     }
   } finally { await browser.close(); server.close(); }
 
+  console.log("the Lockdown build");
+  {
+    const lb = brand.build("lockdown"), lo = lb.out, lrd = rel => fs.readFileSync(path.join(lo, rel), "utf8");
+    const others = /\bGridlock\b(?!VoiceParser)|\bGrind X\b/;
+    check("builds to dist/brand/lockdown with its own standalone file", lo.endsWith(path.join("dist", "brand", "lockdown")) && fs.existsSync(path.join(lo, "app/index.html")) && fs.existsSync(path.join(lo, "Lockdown.html")));
+    check("the Lockdown app and site never show another build's name", ["app/index.html", "app/native.js", "app/manifest.webmanifest", "Lockdown.html", "index.html", "support.html", "privacy.html"].every(f => !others.test(lrd(f))));
+    check("Lockdown's deep link, marker and store identity are its own", lrd("app/index.html").includes('"lockdown://class/"') && brand.markerOf(lrd("app/index.html")) === "lockdown"
+      && JSON.parse(lrd("capacitor.config.json")).appId === "com.upra.lockdown.coach" && JSON.parse(lrd("app/manifest.webmanifest")).short_name === "Lockdown");
+    check("Lockdown keeps the shared storage keys", lrd("app/index.html").includes("gridlock.coach.v2") && lrd("app/index.html").includes("gridlock.coach.copy"));
+    const browser = await chromium.launch(launchOptions());
+    const server = createServer({ root: path.join(lo, "app") });
+    await new Promise(r => server.listen(0, "127.0.0.1", r));
+    try {
+      const errors = [];
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      page.on("pageerror", e => errors.push(e.message));
+      await page.goto(`http://127.0.0.1:${server.address().port}/`); await page.waitForTimeout(400);
+      const root = await page.evaluate(() => document.getElementById("root").innerText);
+      check("the Lockdown promo reads Lockdown", /Lockdown/.test(root) && !others.test(root), root.slice(0, 80));
+      check("the Lockdown document is titled for it", await page.title() === "Lockdown System · Coach Edition");
+      check("a Lockdown class link is lockdown://", await page.evaluate(() => joinLink("GL-7K2M")) === "lockdown://class/GL-7K2M");
+      check("no page errors in Lockdown", errors.length === 0, errors.join(" | "));
+    } finally { await browser.close(); server.close(); }
+  }
+
   console.log("the command");
   const status = node("scripts/brand.js", "status");
-  check("status names both brands and the next step", /gridlock/.test(status) && /grindx/.test(status) && /Next:/.test(status) && /Grind X has no support contact yet/.test(status));
+  check("status names every brand and the next step", /gridlock/.test(status) && /grindx/.test(status) && /lockdown/.test(status) && /Next:/.test(status) && /Grind X has no support contact yet/.test(status) && /Lockdown has no support contact yet/.test(status));
   const noArgs = node("scripts/brand.js");
   check("with no terminal it prints the usage instead of a wizard", /npm run brand build/.test(noArgs) && /gridlock/.test(noArgs));
   const bad = (() => { try { node("scripts/brand.js", "build", "nope"); return ""; } catch (e) { return String(e.stderr); } })();
