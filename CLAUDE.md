@@ -1379,7 +1379,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   Nor does a box commit with a redraw when the next tap is the button beside
   it: `onchange` fires on blur, blur happens as the thumb lands on Read it,
   and a redraw there rebuilds the button under the tap. The schedule paste
-  box saves without rendering, like the Team rows and the blast body.
+  box saves without rendering, like the Team rows and the blast body, and so
+  do the play builder's name and read boxes, whose next tap is Save.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an
