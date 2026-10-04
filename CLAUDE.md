@@ -1455,6 +1455,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the same way rather than filing a man under the placeholder. The Voice log
   reads the same door, and its end picker carries the team only when one was
   named (`voiceTeamValue`). Record is never disabled.
+- Keep a time the way it was typed. The typed-game form said "24-hour, like
+  13:45" and stored whatever was in the box, so "9am" sorted after every real
+  clock and printed as itself, and "25:99" was a game. `clockOf()` reads a
+  clock the way a coach types it — 13:45, 1:45 PM, 9am, 0900 — to the HH:MM
+  the schedule keeps, and Add it refuses anything that is not a time, and a
+  team against itself, in a sentence.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

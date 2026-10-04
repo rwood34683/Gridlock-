@@ -5136,6 +5136,25 @@ const ROSTER = [
     window.set({ left: keepL, right: keepR, voice: {}, arrival: {}, scoutTab: "matchup", tab: "tally" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
+  check("a typed game takes the clock the way a coach types it and refuses a team against itself", await ev(() => {
+    const d = SCHEDULE.games[0].d, mine = () => (S.games || []).filter(g => /Clock Probe/.test(g.h));
+    const clocks = { "1:45 pm": "13:45", "1:45PM": "13:45", "13:45": "13:45", "9": "09:00", "9am": "09:00", "12 pm": "12:00", "12am": "00:00", "0900": "09:00", "1345": "13:45", "25:99": "", "13:60": "", "13pm": "", "noon": "", "": "" };
+    const reads = Object.entries(clocks).every(([k, v]) => clockOf(k) === v);
+    window.set({ tab: "more", more: "schedule", gameNew: { d, t: "1:45 pm", h: "Clock Probe Home", a: "Clock Probe Away", g: "" }, flash: "" });
+    window.saveGame();
+    const kept = mine().length === 1 && mine()[0].t === "13:45";
+    window.set({ gameNew: { d, t: "25:99", h: "Clock Probe Home 2", a: "Clock Probe Away", g: "" }, flash: "" });
+    window.saveGame();
+    const badClock = mine().length === 1 && /not a time/.test(S.flash || "") && !!S.gameNew;
+    window.set({ gameNew: { d, t: "10:00", h: "Clock Probe Home", a: " clock probe HOME ", g: "" }, flash: "" });
+    window.saveGame();
+    const self = mine().length === 1 && /cannot play itself/.test(S.flash || "");
+    const pasted = !parseSchedule("9:00 AM  Clock Probe Home vs clock probe home").length && parseSchedule("9:00 AM  Clock Probe Home vs Clock Probe Away").length === 1;
+    const flags = { reads, kept, badClock, self, pasted };
+    S.games = (S.games || []).filter(g => !/Clock Probe/.test(g.h));
+    window.set({ gameNew: null, flash: "", tab: "tally" });
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  }));
   check("correcting who won a point keeps the read ticked before the first tap", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
