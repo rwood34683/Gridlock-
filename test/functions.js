@@ -873,7 +873,8 @@ const ROSTER = [
     window.assessPick("Reyes"); window.assessScore(2);
     return document.getElementById("asNote").value === "Half typed";
   }));
-  await ev(() => { window.saveAssess(); });
+  // Reyes already has this point's grade and one man has one grade a point, so his 2 is written against the next point: two rows, average 3.0.
+  await ev(() => { S.assessments = [{ who: "Reyes", score: 2, note: "", pt: (S.point || 1) + 1, m: S.matchId, at: Date.now() }, ...S.assessments]; window.set({ asWho: null, asScore: 0 }); });
   await page.waitForTimeout(80);
   check("an average is shown", await page.locator("text=3.0").count() > 0);
   await ev(() => window.undoAssess(0));
@@ -5253,6 +5254,17 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("Add with the box empty says what is missing instead of refusing in silence: team, pit man, group, player, code word, note, walk note", emptyAdds === true, emptyAdds);
+  check("one man has one grade a point: grading him again replaces it, and Save with nothing tapped says what to tap", await ev(() => {
+    window.confirm = () => true;
+    const keep = S.assessments; S.assessments = [];
+    window.set({ tab: "more", more: "assess", right: { name: "Dynasty" }, asWho: "Reyes", asScore: 3, flash: "" }); window.saveAssess();
+    window.set({ asWho: "Reyes", asScore: 5 }); window.saveAssess();
+    const mine = (S.assessments || []).filter(a => a.who === "Reyes" && a.pt === (S.point || 1) && a.m === S.matchId);
+    const one = mine.length === 1 && mine[0].score === 5 && gradeOn("Reyes").score === 5;
+    window.set({ asWho: null, asScore: 0, flash: "" }); window.saveAssess(); const said = /Tap the man first/.test(S.flash || "") && (S.assessments || []).length === 1;
+    S.assessments = keep; window.set({ flash: "" });
+    return one && said;
+  }));
   const groupFix = await ev(() => {
     window.confirm = () => true;
     const keep = S.groups;

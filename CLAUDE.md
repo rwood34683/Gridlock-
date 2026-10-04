@@ -872,6 +872,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Count a call twice because a thumb tapped twice. One point has one call:
   `logCall()` replaces what this point already logged, so a double tap and a
   changed mind both leave one row, and self-scout reads what was actually run.
+- Stand two grades for one man on one point. Save on Assess appended, so a
+  changed mind left a 3 and a 5 side by side in the list and the chip read
+  whichever was newest. One man has one grade a point: `saveAssess` replaces
+  it, the way one point has one call.
 - Make a mis-tapped out a trip to the log. Tap a man and he is out; tap him
   again and he is back in — `markOut()` toggles on the live point. The log's
   Undo is still there for a point that has been left.
