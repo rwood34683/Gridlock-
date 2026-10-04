@@ -1362,6 +1362,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the same bunker twice; a note that folds onto one already on that spot is
   refused and said, and a note is capped at 240 characters so a card can
   carry it.
+- Take "-5" as a jersey number. `parseInt` did, and so did "1234", and the
+  card read "#-5" until it was handed over. `jerseyNum()` is the one door: a
+  whole number from 0 to 999, else refused and said, on the add row and in
+  place — a blank still takes the first free number.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

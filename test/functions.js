@@ -4989,6 +4989,27 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("the same Walk note on the same spot twice is one note", walkDup === true, walkDup);
+  const jersey = await ev(() => {
+    const was = S.roster; window.set({ tab: "more", more: "team", flash: "" });
+    const mk = (id, v) => { let el = document.getElementById(id); if(!el){ el = document.createElement("input"); el.id = id; document.body.appendChild(el); el.dataset.tmp = "1"; } el.value = v; return el; };
+    // Every refusal re-renders the page and the add row with it, so the boxes are filled again before each tap.
+    const fill = num => { mk("rName", "Minus Man"); mk("rNum", num); mk("rP", ""); mk("rS", ""); };
+    fill("-5"); const n0 = S.roster.length; window.addPlayer();
+    const minus = S.roster.length === n0 && /0 to 999/.test(S.flash || "");
+    window.set({ flash: "" }); fill("1234"); window.addPlayer();
+    const four = S.roster.length === n0 && /0 to 999/.test(S.flash || "");
+    fill(" 42 "); window.addPlayer();
+    const ok = S.roster.length === n0 + 1 && S.roster[n0].num === 42;
+    window.editPlayer(n0, "num", "-1");
+    const kept = S.roster[n0].num === 42 && /kept the old one/.test(S.flash || "");
+    window.editPlayer(n0, "num", "007");
+    const seven = S.roster[n0].num === 7;
+    ["rName","rNum","rP","rS"].forEach(id => { const el = document.getElementById(id); if(el && el.dataset.tmp) el.remove(); });
+    S.roster = was; window.set({ flash: "" });
+    const flags = { minus, four, ok, kept, seven, pure: jerseyNum("0") === 0 && jerseyNum("") === null && jerseyNum("7a") === null };
+    return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
+  });
+  check("a jersey number is 0 to 999: a minus or a fourth digit is refused and said, on the add row and in place", jersey === true, jersey);
   check("one man cannot use one word for two bunkers on a field", await ev(() => {
     const was = S.playerCalls, bl = curLayout().bunkers, man = (S.roster[0] || {}).name || "Probe Man";
     window.set({ flash: "" });
