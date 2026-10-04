@@ -1399,6 +1399,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and a half-filled breakout sheet reopened on the wrong point.
   `clearPointScratch()` is the one list both doors run — the read, the draft,
   their pick, the selected bunker, the armed picker and the open penalty box.
+  Back a point runs it too, and stops the clock between points: the scratch
+  would have landed on the point he was going back to, and the clock was
+  counting down to a buzzer for a point that was no longer next.
 - Add a code word that is already there. A code is a lookup for the player
   who joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   A word typed again updates what it means (`foldName` match) and says so; an

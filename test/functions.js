@@ -5048,6 +5048,17 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return cleared && notCarried;
   }));
+  check("Back a point takes the half-done scratch and the break clock with it", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0); window.setBreakClock(60);
+    window.endPoint("us");
+    const ticking = S.clockEnd > 0 && (S.point || 1) === 2;
+    window.setRead("wrong"); window.selectBunker(curLayout().bunkers[1].id); window.setDraft({ side: "them", alive: true }); window.set({ theirPick: [curLayout().bunkers[0].id] });
+    window.backPoint();
+    const back = (S.point || 1) === 1 && !S.tallyRead && !S.tallyDraft && !S.tallySel && !(S.theirPick || []).length && S.clockEnd === 0;
+    window.setBreakClock(0); window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return ticking && back;
+  }));
   check("two classes never share a code, even when the dice land the same way twice", await ev(() => {
     const was = S.classes, rnd = Math.random;
     Math.random = () => 0.123456789;   // the same four characters every time
