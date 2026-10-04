@@ -4641,7 +4641,7 @@ const onPoint = pt => fiveFor(pt).filter(Boolean).map(p => p.name);
  * keep their slots and their jobs. */
 window.swapOn = name => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
-  const pt = S.point || 1;
+  const pt = sheetPoint();
   const line = [...lineupAt(pt)];
   while(line.length < 5) line.push("");
   if(!line.some(Boolean)) onPoint(pt).forEach((n, i) => { line[i] = n; });
@@ -4657,7 +4657,7 @@ window.swapOn = name => {
 };
 window.setSlot = (i, name) => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
-  const pt = S.point || 1;
+  const pt = sheetPoint();
   // Start from the five that is standing — written, or roster order when none
   // was — so one change keeps the other four. A five that was only roster order
   // used to come back as one man and four empty slots.
@@ -9967,7 +9967,7 @@ function scoutBreakouts(){
   // watching both teams are on that field, so a switch says whose five this is.
   const watch = !!(curMatch()||{}).watch, side = watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
   const R=pitOf(side), seen=theirBreaks(side), freq=breakFreq(side);
-  const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=S.point||1;
+  const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=sheetPoint();
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
   const plants=plantCounts(side);
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
@@ -11314,7 +11314,7 @@ function moreBody(k){
   if(k==="lineups"){
     if((curMatch()||{}).watch) return sec("Lineups", watchedNote(), matchLabel(curMatch()));
     if(sheetField()) return sec("Lineups", offFieldNote(), matchLabel(curMatch()));
-    const pt=S.point||1, line=lineupFor(pt), five=fiveFor(pt);
+    const pt=sheetPoint(), line=lineupFor(pt), five=fiveFor(pt);
     const mine=lineupPoints();
     const prev=mine.filter(n=>n<pt)[0];
     if(!roster.length) return sec("Lineups",
@@ -11470,7 +11470,7 @@ function moreBody(k){
             ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
-          point ${S.point||1}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${matchSize(S.matchId)} logged</p>
+          point ${sheetPoint()}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${matchSize(S.matchId)} logged</p>
       </div>
       <div class="fld"><label>Name this sheet</label>
         <input value="${esc((curMatch()||{}).note||"")}" placeholder="Prelim 2 · Sunday quarter" maxlength="40" onchange="setMatchNote(this.value)"/></div>
@@ -11975,7 +11975,7 @@ function quickLog(){
       <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tail ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${tail}</small>` : ""}</span>
       <span class="qlog__vs">${esc(pitNamed("right") ? pitOf("right").name : curLayout().name)}</span>
       <span class="grow"></span>
-      <span class="qlog__pt">POINT ${pt}</span>
+      <span class="qlog__pt">POINT ${over && !off ? sheetPoint() : pt}</span>
       <button class="btn btn--quiet" onclick="set({quick:false, tab:'more', more:'wb'})">▚ Board</button>
       <button class="btn btn--quiet" onclick="closeQuick()">✕ Exit</button>
     </div>
