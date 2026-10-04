@@ -7751,7 +7751,10 @@ function parseSchedule(text){
     if(ap === "am" && h === 12) h = 0;
     const t = String(h).padStart(2, "0") + ":" + clock[2];
     // Whatever is left once the clock is cut out, split on the usual separators.
-    const rest = line.slice(0, clock.index) + " | " + line.slice(clock.index + clock[0].length);
+    // A weekday before the clock ("Sat 10:40 …") is not a team; it is taken off
+    // the front only, so Sun Devils keep their name after it.
+    const rest = line.slice(0, clock.index).replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|$)/ig, " ")
+      + " | " + line.slice(clock.index + clock[0].length);
     // The bracket tag, the row's own "Division:" / "Field:" labels and stray
     // punctuation all ride along on a copied table row. A team name is what is
     // left once they are taken off.
@@ -7764,13 +7767,16 @@ function parseSchedule(text){
     // columns inline, and the field cell — "NXL Pro - Pit 1" — hides a spaced
     // hyphen that is NOT a team separator. Take those columns off first, then
     // the two teams are what is left, joined by " - ".
+    // A field column after the teams — "Field 2", "(F3)", "Pit 1" — is not
+    // part of a team's name.
     const clean = rest
       .replace(/[\w.'&/]+(?:\s+[\w.'&/]+)*\s+-\s+Pit\s*\d+/ig, " | ")
+      .replace(/\(?\b(?:Field|Pit|F)\s*\d+\)?/ig, " ")
       .replace(/\bPro\s*X-?Ball(?:\u2122|\(TM\))?/ig, " ")
       .replace(/\b[A-D]?\s*Prelims?\b|\bQuarters?\b|\bSemis?\b|\bFinals?\b/ig, " ");
-    // Teams are split on a SPACED dash (or vs / comma / pipe / tab). The space
-    // is what tells "Seattle Uprising - Houston Heat" apart from "X-Factor".
-    const bits = clean.split(/\s+[-\u2013\u2014]\s+|\s*(?:\||,|\bvs?\b|\bv\.?\b|\t)\s*/i)
+    // Teams are split on a SPACED dash (or vs / vs. / v / comma / pipe / tab).
+    // The space is what tells "Seattle Uprising - Houston Heat" apart from "X-Factor".
+    const bits = clean.split(/\s+[-\u2013\u2014]\s+|\s*(?:\||,|\bvs?\.?(?=\s)|\bv\.?(?=\s)|\t)\s*/i)
       .map(strip)
       .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x));
     if(bits.length < 2) return;
