@@ -539,6 +539,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     and expecting `BREAK_PLANTS` back. Fields ride in both copies (`fields` in
     `SAME`, the schema checks the bunker list), and a field a sheet was played
     on cannot be deleted.
+41. ~~The map under it.~~ Done — PB Scout's whole field is a photo, and a
+    coach building a field by eye off a map held in his other hand was guessing
+    twice. **Put the event's map under it** in the builder takes a screenshot
+    or photo, downscales it to 1000 px (`FIELD_MAP_MAX`, a JPEG under
+    `FIELD_MAP_BYTES`), turns a tall one on its side, and draws it faint under
+    the field, stretched to its edges; **Turn the map** turns it a quarter,
+    **Hide** and **Take the map off** do what they say. It is a guide and never
+    a measurement — the footprints are still the inflatables — but it gives what
+    the eye cannot: the paint. `mapPaint()` reads the inner part of each
+    bunker's footprint on the map and calls it red or blue only when that
+    colour is most of what is there; anything else is grey. The map is `map`
+    on the field, so it rides in both copies, and the schema takes only a
+    `data:image` JPEG or PNG under the cap. The decoded pixels (`MAP_PIX`) are
+    never saved.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -554,10 +568,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Let a coach size a bunker, colour one, or pass his placing off as measured.
   A field he builds keeps every house rule a measured one does: a bunker type
   is one inflatable and its footprint comes from `BUNKER_KINDS`, never a box he
-  drags out; nobody sampled its paint, so it is drawn neutral grey; and its
-  source line (`FIELD_SOURCE`) says on the Events list that he placed it by eye
-  and nobody measured it. The app still never invents a coordinate — he does,
-  off the event's own map or his walk, and the field says so.
+  drags out; its paint is sampled or it is grey — with the event's map under
+  the builder (`fieldMapLoad`, stored downscaled as `map` on the field) each
+  bunker takes the red or blue the map prints under its footprint
+  (`mapPaint`), re-sampled whenever it moves or turns or the map is turned,
+  and anything else, or no map, is neutral grey; there is never a colour
+  picker. Its source line (`FIELD_SOURCE`, `FIELD_SOURCE_MAP` with a map) says
+  on the Events list that he placed it by eye and nobody measured it. The map
+  is a guide stretched to the field's edges, never a measurement: the app
+  still never invents a coordinate — he does, and the field says so.
 - Write the plant rule twice and let the copies drift. `plantRule` in the app
   and `tools/plants.js` are the same rule; the suite runs the app's copy over
   the measured fields and expects `BREAK_PLANTS`. Change one, change both.
