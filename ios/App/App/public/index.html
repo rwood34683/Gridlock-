@@ -12043,7 +12043,7 @@ function moreBody(k){
             ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
             .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
                                  hour:"numeric", minute:"2-digit"}))} ·
-          point ${sheetPoint()}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${matchSize(S.matchId)} logged</p>
+          point ${sheetPoint()}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${sheetSize(curMatch())} logged</p>
       </div>
       <div class="fld"><label>Name this sheet</label>
         <input value="${esc((curMatch()||{}).note||"")}" placeholder="Prelim 2 · Sunday quarter" maxlength="40" onchange="setMatchNote(this.value)"/></div>
@@ -12064,7 +12064,9 @@ function moreBody(k){
       ${sheetSize(curMatch()) || matchVs() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2);color:var(--warn)" onclick="delSheet(${jsq(S.matchId)})">Delete this sheet</button>` : ""}`, matchLabel(curMatch()))
     + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
     + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
-        const n=matchSize(m.id), on=m.id===S.matchId;
+        // Everything on the sheet, the points scored included: a sheet scored
+        // and never tallied read 0 beside its 4–2.
+        const n=sheetSize(m), on=m.id===S.matchId;
         return `<div class="assign">
           <span class="assign__n" style="background:${on?"var(--accent)":"var(--panel-2)"};color:${on?"#fff":"var(--mute)"};font-size:11px">${n}</span>
           <span class="assign__body"><span class="assign__job">${esc(m.watch ? `${m.home||"?"} v ${m.away||"?"}` : (m.vs||"No opponent"))}${esc(gameNth(m))}${
