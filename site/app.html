@@ -2579,6 +2579,7 @@ function save(s){
     ? "This phone's storage for the app is full."
     : "This phone is not letting the app save."; }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
+  if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) keepMaps();
   // Opt-in league sync: a best-effort push, throttled and fully guarded. It can
   // never throw out of save() and never blocks a point — a no-signal push is a
   // no-op and the phone stays the working copy.
@@ -2746,14 +2747,69 @@ const FIELD_MIN = 8;
 const fieldReady = f => !!f && Array.isArray(f.bunkers) && f.bunkers.length >= FIELD_MIN;
 const FIELD_SOURCE = "Built by you on this phone: each bunker placed by eye off the event's own map or your walk, its size the measured inflatable. Not measured, so the lanes are as good as the placing.";
 const FIELD_SOURCE_MAP = "Built by you on this phone over the event's map: each bunker placed by eye on the one the map prints, its size the measured inflatable and its red or blue sampled off the map under it. Not measured, so the lanes are as good as the placing.";
+/* A field's map is kept beside the season, not inside it. It is a picture of
+ * a few hundred kilobytes, and inside the season it was written to storage
+ * and handed to the durable copy on every tap of a sideline, for a thing that
+ * changes once an event. So the maps have their own key (MAPS_KEY), mirrored
+ * the same way the season and the account are, and `mapOf(f)` is the one
+ * door every screen reads a field's map through. A copy still carries each
+ * map on its field — Save a copy and Send this sheet put them back on the way
+ * out — and `liftMaps()` takes them off again whenever fields arrive, from a
+ * copy, a restore or an older save. */
+const FIELD_MAP_MAX = 1000, FIELD_MAP_BYTES = 700000;
+const fieldMapOk = v => typeof v === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= FIELD_MAP_BYTES;
+const MAPS_KEY = "gridlock.coach.maps";
+// `var`, not `let`: save() runs during launch before this line does, and
+// asks whether the maps have been mirrored yet.
+var _mapsMirrored = false;
+var FIELD_MAPS = (() => {
+  try {
+    const m = JSON.parse(localStorage.getItem(MAPS_KEY) || "{}");
+    return m && typeof m === "object" && !Array.isArray(m)
+      ? Object.fromEntries(Object.entries(m).filter(([k, v]) => String(k).startsWith("my:") && fieldMapOk(v))) : {};
+  } catch(e){ return {}; }
+})();
+const mapOf = f => !f ? "" : (f.key && FIELD_MAPS[f.key]) || (fieldMapOk(f.map) ? f.map : "");
+function keepMaps(){
+  const text = JSON.stringify(FIELD_MAPS);
+  try{ localStorage.setItem(MAPS_KEY, text); }
+  catch(e){ _storeFail = "This phone's storage for the app is full."; }
+  if(window.gridlockKeep) try{ window.gridlockKeep(text, MAPS_KEY); _mapsMirrored = true; }catch(e){}
+}
+function liftMaps(){
+  let moved = false;
+  S.fields = (S.fields || []).map(f => {
+    if(!f || f.map === undefined) return f;
+    const c = {...f};
+    if(fieldMapOk(c.map) && String(c.key || "").startsWith("my:")) FIELD_MAPS[c.key] = c.map;
+    delete c.map; moved = true;
+    return c;
+  });
+  // Never pruned here: on a phone that lost its storage the maps can come
+  // back from the durable copy before the fields do. A deleted field takes its
+  // map with it in deleteField, and Replace drops the lot in loadCopy.
+  if(moved) keepMaps();
+}
+// A phone that lost its storage gets its maps back from the durable copy, but
+// never over a map it already has.
+window.gridlockRestoreMaps = text => {
+  let m = null; try{ m = JSON.parse(text); }catch(e){ return; }
+  if(!m || typeof m !== "object") return;
+  let took = false;
+  Object.entries(m).forEach(([k, v]) => { if(!FIELD_MAPS[k] && String(k).startsWith("my:") && fieldMapOk(v)){ FIELD_MAPS[k] = v; took = true; } });
+  if(took){ try{ localStorage.setItem(MAPS_KEY, JSON.stringify(FIELD_MAPS)); }catch(e){} registerFields(); render(); }
+};
+// Fields as a copy carries them: each with its map back on it.
+const fieldsOut = list => (list || []).map(f => mapOf(f) ? {...f, map: mapOf(f)} : f);
 // His fields join the three the app carries, under keys that can never be one
 // of theirs, and the twelve plant on each by the rule. Run at launch, after a
 // copy is loaded or restored, and whenever a field is changed.
 function registerFields(){
+  liftMaps();
   Object.keys(LAYOUTS).filter(k => k.startsWith("my:")).forEach(k => { delete LAYOUTS[k]; delete BREAK_PLANTS[k]; });
   (S.fields || []).forEach(f => {
     if(!fieldReady(f) || !String(f.key || "").startsWith("my:")) return;
-    LAYOUTS[f.key] = {name: f.name || "My field", key: f.key, mine: true, source: f.map ? FIELD_SOURCE_MAP : FIELD_SOURCE,
+    LAYOUTS[f.key] = {name: f.name || "My field", key: f.key, mine: true, source: mapOf(f) ? FIELD_SOURCE_MAP : FIELD_SOURCE,
                       bunkers: f.bunkers.map(b => ({...b}))};
     const planted = {};
     Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(f.bunkers, shape); } catch(e){} });
@@ -2829,6 +2885,7 @@ window.deleteField = key => {
   if(sheets){ flash(`${sheets} sheet${sheets === 1 ? " was" : "s were"} played on ${f.name}, so the field stays — they are read on it.`); return; }
   if(f.bunkers.length && !confirm(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`)) return;
   S.fields = S.fields.filter(x => x.key !== key);
+  if(FIELD_MAPS[key]){ delete FIELD_MAPS[key]; keepMaps(); }
   if(S.fieldEdit && S.fieldEdit.key === key) S.fieldEdit = null;
   registerFields();
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
@@ -2920,21 +2977,20 @@ window.fieldRemove = () => {
  * blue the map prints under it, sampled, the same contract as the three
  * measured fields. Where the map is neither, or there is no map, it stays grey.
  * Stored on the field, downscaled, so it rides in a copy with the bunkers. */
-const FIELD_MAP_MAX = 1000, FIELD_MAP_BYTES = 700000;
-const fieldMapOk = v => typeof v === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= FIELD_MAP_BYTES;
 let MAP_PIX = null;   // {src, w, h, data} — decoded once per map, never saved
 function mapPixels(f){
-  if(!f || !fieldMapOk(f.map)) return null;
-  if(MAP_PIX && MAP_PIX.src === f.map) return MAP_PIX.data ? MAP_PIX : null;
-  MAP_PIX = {src: f.map, data: null};
+  const src = mapOf(f);
+  if(!src) return null;
+  if(MAP_PIX && MAP_PIX.src === src) return MAP_PIX.data ? MAP_PIX : null;
+  MAP_PIX = {src, data: null};
   const img = new Image();
   img.onload = () => {
-    if(!MAP_PIX || MAP_PIX.src !== f.map) return;
+    if(!MAP_PIX || MAP_PIX.src !== src) return;
     const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
     const g = c.getContext("2d"); g.drawImage(img, 0, 0);
-    MAP_PIX = {src: f.map, w: c.width, h: c.height, data: g.getImageData(0, 0, c.width, c.height).data};
+    MAP_PIX = {src, w: c.width, h: c.height, data: g.getImageData(0, 0, c.width, c.height).data};
   };
-  img.src = f.map;
+  img.src = src;
   return null;
 }
 // The paint under a bunker: the inner part of its footprint on the map, pixel
@@ -2982,7 +3038,8 @@ function storeMap(key, c, said){
   if(src.length > FIELD_MAP_BYTES) src = c.toDataURL("image/jpeg", 0.55);
   if(!fieldMapOk(src)){ flash("That picture is too big to keep — crop it to the field and try again."); return false; }
   MAP_PIX = {src, w: c.width, h: c.height, data: c.getContext("2d").getImageData(0, 0, c.width, c.height).data};
-  S.fields = (S.fields || []).map(f => f.key === key ? {...f, map: src, bunkers: (f.bunkers || []).map(b => paintFrom({map: src}, {...b}))} : f);
+  FIELD_MAPS[key] = src; keepMaps();
+  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: (f.bunkers || []).map(b => paintFrom({map: src}, {...b}))} : f);
   registerFields();
   S.flash = said;
   save(S); render();
@@ -3008,17 +3065,17 @@ window.fieldMapFile = input => {
   rd.readAsDataURL(file);
 };
 window.fieldMapTurn = () => new Promise(done => {
-  const f = S.fieldEdit && fieldOf(S.fieldEdit.key); if(!f || !fieldMapOk(f.map)){ done(false); return; }
+  const f = S.fieldEdit && fieldOf(S.fieldEdit.key); if(!f || !mapOf(f)){ done(false); return; }
   const img = new Image();
   img.onload = () => done(storeMap(f.key, mapCanvas(img, 1), "Map turned a quarter. The bunkers took their colour again from where they sit on it."));
-  img.src = f.map;
+  img.src = mapOf(f);
 });
 window.fieldMapShow = () => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, hideMap: !S.fieldEdit.hideMap}; save(S); render(); };
 window.fieldMapDrop = () => {
-  const f = S.fieldEdit && fieldOf(S.fieldEdit.key); if(!f || !f.map) return;
+  const f = S.fieldEdit && fieldOf(S.fieldEdit.key); if(!f || !mapOf(f)) return;
   if(!confirm(`Take the map off ${f.name}? The bunkers stay where they are and go back to grey, because nothing else says their paint.`)) return;
-  S.fields = S.fields.map(x => x.key === f.key ? {...x, map: undefined, bunkers: x.bunkers.map(b => { const c = {...b}; delete c.c; return c; })} : x);
-  S.fields = S.fields.map(x => { const c = {...x}; if(c.map === undefined) delete c.map; return c; });
+  delete FIELD_MAPS[f.key]; keepMaps();
+  S.fields = S.fields.map(x => x.key === f.key ? {...x, bunkers: x.bunkers.map(b => { const c = {...b}; delete c.c; return c; })} : x);
   MAP_PIX = null; registerFields();
   S.flash = `Map taken off ${f.name}. The bunkers are where you put them, in grey.`;
   save(S); render();
@@ -3036,7 +3093,7 @@ function fieldBuildSVG(f){
     </defs>
     <rect x="-8" y="${-M}" width="${W + 16}" height="${H + M * 2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
-    ${fieldMapOk(f.map) && !(S.fieldEdit && S.fieldEdit.hideMap) ? `<image class="fieldmap" href="${esc(f.map)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none" opacity=".5"/>` : ""}
+    ${mapOf(f) && !(S.fieldEdit && S.fieldEdit.hideMap) ? `<image class="fieldmap" href="${esc(mapOf(f))}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none" opacity=".5"/>` : ""}
     ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
     ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
     <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1"/>
@@ -3065,13 +3122,13 @@ function fieldBuilder(){
       across the fifty, and one on the fifty stays single. Sizes are the measured inflatables, so a bunker is
       only ever where you put it, never bigger or smaller.</p>
     <div class="btnrow" style="margin-bottom:var(--s2)">
-      <label class="btn btn--quiet" style="cursor:pointer;position:relative">${f.map ? "Use a different map" : "Put the event's map under it"}
+      <label class="btn btn--quiet" style="cursor:pointer;position:relative">${mapOf(f) ? "Use a different map" : "Put the event's map under it"}
         <input type="file" accept="image/*" aria-label="Picture of the event's map" onchange="fieldMapFile(this)" style="position:absolute;width:1px;height:1px;opacity:0"/></label>
-      ${f.map ? `<button class="btn btn--quiet" onclick="fieldMapTurn()">Turn the map</button>
+      ${mapOf(f) ? `<button class="btn btn--quiet" onclick="fieldMapTurn()">Turn the map</button>
         <button class="btn btn--quiet" onclick="fieldMapShow()">${ed.hideMap ? "Show the map" : "Hide the map"}</button>
         <button class="btn btn--quiet" onclick="fieldMapDrop()">Take the map off</button>` : ""}
     </div>
-    ${f.map ? `<p class="note" style="margin:0 0 var(--s2)">The map is a guide, stretched to the field's edges — crop it to the field before you pick it. Each bunker you place takes the red or blue the map prints under it; on anything else it stays grey.</p>` : ""}
+    ${mapOf(f) ? `<p class="note" style="margin:0 0 var(--s2)">The map is a guide, stretched to the field's edges — crop it to the field before you pick it. Each bunker you place takes the red or blue the map prints under it; on anything else it stays grey.</p>` : ""}
     <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k =>
       `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})">${esc(k.name)}</button>`).join("")}</div>
     <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
@@ -4389,6 +4446,7 @@ function copyPayload(scope){
   const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
+  if(data.fields) data.fields = fieldsOut(data.fields);
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
@@ -4418,7 +4476,7 @@ function sheetPayload(id){
   });
   if(Object.keys(scout).length) data.scout = scout;
   if((S.roster || []).length && !m.watch) data.roster = S.roster;
-  const f = fieldOf(m.layout); if(f) data.fields = [f];
+  const f = fieldOf(m.layout); if(f) data.fields = fieldsOut([f]);
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: "sheet", sheet: id,
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
@@ -4814,6 +4872,8 @@ window.loadCopy = mode => {
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
+  // Replace takes the copy's fields, so it takes only the copy's maps.
+  if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
   if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
   Object.keys(next).forEach(k => { S[k] = next[k]; });
   if(!curMatch()){
@@ -13371,6 +13431,10 @@ render();
     // a rescue.
     P.Preferences.get({ key: ACCOUNT }).then(function (r) {
       if (r && r.value && window.gridlockRestoreAccount) window.gridlockRestoreAccount(r.value);
+    }).catch(function () {});
+    // The field maps live under their own key, beside the season.
+    P.Preferences.get({ key: "gridlock.coach.maps" }).then(function (r) {
+      if (r && r.value && window.gridlockRestoreMaps) window.gridlockRestoreMaps(r.value);
     }).catch(function () {});
     P.Preferences.get({ key: KEY }).then(function (r) {
       // gridlockRestore decides: it only takes this if the launch found no
