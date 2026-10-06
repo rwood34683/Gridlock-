@@ -4284,6 +4284,40 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
     return ok || JSON.stringify({ pens: pens.map(p => p.id), tos: tos.map(t => t.id), mv: mv.length, status });
   }));
+  check("a sheet can be deleted with everything logged on it, a season copy merged later does not bring it back, the sheet sent on its own does, and deleting the one in play opens a fresh one", await ev(() => {
+    window.confirm = () => true;
+    boardTeam("Delete FC");
+    window.set({ tab: "tally", right: { name: "Delete FC" } }); window.playPit(); window.newMatch();
+    const id = S.matchId, L = S.layoutKey, bl = curLayout().bunkers, name = (S.roster[0] || {}).name || "Reyes";
+    S.results = [{ m: id, pt: 1, won: "us" }, ...(S.results || [])];
+    S.calls = [{ m: id, pt: 1, at: 5, script: "snake", layout: L, vs: "Delete FC" }, ...(S.calls || [])];
+    S.tally = [{ m: id, pt: 1, side: "us", name, at: 5, layout: L, vs: "Delete FC" }, ...(S.tally || [])];
+    S.lineups = { ...(S.lineups || {}), [id + "|1"]: [name] };
+    S.scout = { ...(S.scout || {}), "Delete FC": { name: "Delete FC", breaks: [{ m: id, pt: 1, script: "blitz", layout: L, at: 5 }] } };
+    window.set({ point: 2 });
+    const season = copyPayload("all"), sent = sheetPayload(id);
+    window.newMatch();
+    const other = S.matchId;
+    window.set({ tab: "more", more: "matches" });
+    const rowBtn = [...document.getElementById("root").querySelectorAll("button")].some(b => /^Delete$/.test(b.textContent.trim()));
+    window.delSheet(id);
+    const gone = !matchById(id) && !S.results.some(r => r.m === id) && !S.calls.some(c => c.m === id) && !S.tally.some(o => o.m === id)
+      && !Object.keys(S.lineups).some(k => k.startsWith(id + "|")) && !(S.scout["Delete FC"].breaks || []).some(b => b.m === id) && S.matchId === other;
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = season; window.loadCopy("merge");
+    const stayed = !matchById(id) && !S.results.some(r => r.m === id) && /1 sheet you deleted on this phone left out/.test(S.copyStatus);
+    document.getElementById("copyIn").value = sent; window.loadCopy("merge");
+    const back = !!matchById(id) && S.results.some(r => r.m === id) && !(S.sheetsGone || []).includes(id);
+    window.delSheet(id);
+    // The one in play: a fresh sheet in the same format, on point one.
+    S.results = [{ m: other, pt: 1, won: "them" }, ...S.results];
+    window.delSheet(other);
+    const fresh = S.matchId !== other && !!curMatch() && S.point === 1 && !matchById(other);
+    window.set({ tab: "more", more: "matches" });
+    const hereBtn = /Delete this sheet/.test(document.getElementById("root").textContent) === false;
+    delete S.scout["Delete FC"]; window.set({ copyStatus: "", copySheet: null, right: { name: "Dynasty" }, tab: "tally" });
+    return rowBtn && gone && stayed && back && fresh && hereBtn || JSON.stringify({ rowBtn, gone, stayed, back, fresh, hereBtn });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
