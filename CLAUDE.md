@@ -508,6 +508,25 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     sides — the home side is not his five, and a home man filed under one of
     his own names would land in that man's read.
 
+40. ~~A field of his own.~~ Done — the app carried three NXL fields and every
+    other paintball app lets a coach use the field he is on: PB Scout puts his
+    players on a photo of it, Paintball Coach ships dozens of layouts, Paintball
+    Stats picks a field. A coach at a regional event or his home park had
+    nothing to stand on. More › Nexus › Events › **Build a field**: name it,
+    pick a bunker type (`BUNKER_KINDS`, footprints from `layouts/bunkers.json`),
+    tap where it sits; its twin appears across the fifty (`tw` on both), one on
+    the fifty stays single. Tap a bunker to pick it, then Turn, move it or take
+    it off (asking first when anything logged names it — `bunkerUses`). Ids are
+    never reused or renumbered, because a breakout keeps the id of the bunker it
+    broke to. Eight bunkers (`FIELD_MIN`) and it registers into `LAYOUTS` under
+    a `my:` key (`registerFields()`, run at launch, after a copy loads or a
+    restore, and on every change), and the twelve calls plant on it by
+    `plantRule` — the rule `tools/plants.js` runs, ported, and the suite holds
+    the two together by running the app's copy over the three measured fields
+    and expecting `BREAK_PLANTS` back. Fields ride in both copies (`fields` in
+    `SAME`, the schema checks the bunker list), and a field a sheet was played
+    on cannot be deleted.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -519,6 +538,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 
 ## Do not
 
+- Let a coach size a bunker, colour one, or pass his placing off as measured.
+  A field he builds keeps every house rule a measured one does: a bunker type
+  is one inflatable and its footprint comes from `BUNKER_KINDS`, never a box he
+  drags out; nobody sampled its paint, so it is drawn neutral grey; and its
+  source line (`FIELD_SOURCE`) says on the Events list that he placed it by eye
+  and nobody measured it. The app still never invents a coordinate — he does,
+  off the event's own map or his walk, and the field says so.
+- Write the plant rule twice and let the copies drift. `plantRule` in the app
+  and `tools/plants.js` are the same rule; the suite runs the app's copy over
+  the measured fields and expects `BREAK_PLANTS`. Change one, change both.
 - Rename a lowercase `gridlock` token, or write the brand name into one. The
   display word is Gridlock and it changes per build; `gridlock.coach.v2`,
   `gridlock.coach.copy`, `window.gridlockKeep` and the rest are where a coach's

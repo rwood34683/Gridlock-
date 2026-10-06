@@ -3964,6 +3964,42 @@ const ROSTER = [
     window.newMatch();
     return ok;
   }));
+  check("the plant rule inside the app is the rule the tool wrote BREAK_PLANTS with, on all three measured fields", await ev(() =>
+    ["lso", "tby", "mwo"].every(l => Object.keys(PLANT_SHAPES).every(k =>
+      JSON.stringify(plantRule(LAYOUTS[l].bunkers, PLANT_SHAPES[k])) === JSON.stringify(BREAK_PLANTS[l][k])))
+    && Object.keys(PLANT_SHAPES).length === 12));
+  check("a coach builds his own field: twins across the fifty, a bunker on the fifty single, turn and move carry the twin, eight bunkers and the twelve plant on it", await ev(() => {
+    window.confirm = () => true;
+    const was = { fields: S.fields, layoutKey: S.layoutKey };
+    window.set({ tab: "more", more: "nexus", fields: [] });
+    document.getElementById("field-name").value = "Practice Park";
+    window.newField();
+    const k = S.fieldEdit.key;
+    const put = (kind, x, y) => { window.fieldKind(kind); window.fieldTap([x, y]); };
+    put("md", 25, 14); const f1 = fieldOf(k).bunkers;
+    const twinned = f1.length === 2 && f1[0].tw === f1[1].id && f1[1].x === 125 && f1[1].y === 14;
+    put("gp", 75.8, 60); const plus = fieldOf(k).bunkers.filter(b => b.n === "GP");
+    const single = plus.length === 1 && plus[0].x === 75 && !plus[0].tw;
+    window.fieldDone(); const notYet = !LAYOUTS[k] && /needs at least 8/.test(S.flash || "");
+    window.editField(k);
+    put("sb", 30, 104); put("sb", 45, 104); put("t", 20, 40); put("br", 55, 50);
+    const can = fieldOf(k).bunkers.find(b => b.n === "Br" && b.x < 75);
+    window.fieldTap([can.x, can.y]); window.fieldTurn(); window.fieldTap([40, 80]);
+    const moved = fieldOf(k).bunkers.find(b => b.id === can.id), mtw = fieldOf(k).bunkers.find(b => b.id === can.tw);
+    const turnedMoved = moved.w > moved.h && moved.x === 40 && moved.y === 80 && mtw.x === 110 && mtw.y === 80 && mtw.w > mtw.h;
+    window.fieldDone();
+    const ready = !!LAYOUTS[k] && Object.keys(BREAK_PLANTS[k]).length === 12 && /ready/.test(S.flash || "");
+    const listed = /Practice Park/.test(document.getElementById("root").textContent);
+    window.pickEvent(k); const on = curLayout().key === k;
+    const copyOk = !copyDataError(JSON.parse(copyPayload("all")).data) && JSON.parse(copyPayload("squad")).data.fields.length === 1;
+    // A sheet played on it keeps the field.
+    window.set({ right: { name: "Dynasty" } }); window.playPit(); window.newMatch(); window.endPoint("us");
+    window.deleteField(k); const kept = !!fieldOf(k) && /stays/.test(S.flash || "");
+    S.matches = (S.matches || []).filter(m => m.layout !== k); S.results = (S.results || []).filter(r => matchById(r.m));
+    window.deleteField(k); const gone = !fieldOf(k) && !LAYOUTS[k] && S.layoutKey === "lso";
+    S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso" }); window.newMatch();
+    return twinned && single && notYet && turnedMoved && ready && listed && on && copyOk && kept && gone;
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);
@@ -5695,9 +5731,9 @@ const ROSTER = [
     return JSON.stringify(r) === JSON.stringify(["A", "E", "G"]) && contactKey("+1 (555) 010-0100") === "5550100100" && contactKey("Mom@X.com") === "mom@x.com" && contactKey("") === "";
   }));
   check("the scratch a relaunch clears is one list, and a durable restore runs it too", await ev(() => {
-    window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half" });
+    window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half", fieldEdit: { key: "my:x", kind: "md", sel: null } });
     clearScratch();
-    const cleared = !S.tallyRead && !S.tallyDraft && !S.penOpen && !(S.theirPick || []).length && !S.handText && !S.tallyPickFor && !S.gamePaste;
+    const cleared = !S.tallyRead && !S.tallyDraft && !S.penOpen && !(S.theirPick || []).length && !S.handText && !S.tallyPickFor && !S.gamePaste && !S.fieldEdit;
     const wired = /clearScratch\(\); resetLiveState\(\);/.test(String(window.gridlockRestore));
     window.set({});
     return cleared && wired;
