@@ -4116,6 +4116,27 @@ window.saveCopy = async scope => {
  * 3 counted that call twice in self-scout, that out twice in the tally and
  * that man twice in his read. This phone's row is kept (the merge puts its
  * rows first) and the other's fills only what this one lacks. */
+/* A sheet both phones hold is against the team this phone says it is. Played
+ * against moved a sheet here, but the assistant's phone never heard: its
+ * rows came back on the next send still marked with the team that was picked
+ * by mistake, and their breaks under that team's scout book, so the sheet and
+ * what was logged on it disagreed about who was across the tape. The rows
+ * follow the match row. A watched game names two teams and is left alone. */
+function alignSheet(id){
+  const m = matchById(id); if(!m || m.watch || !m.vs) return 0;
+  let n = 0;
+  const fix = (rows, key) => (rows || []).map(r => r && r.m === id && r[key] && r[key] !== m.vs ? (n++, {...r, [key]: m.vs}) : r);
+  S.tally = fix(S.tally, "vs"); S.breakouts = fix(S.breakouts, "vs"); S.calls = fix(S.calls, "vs");
+  S.arrivalSightings = fix(S.arrivalSightings, "team"); S.arrivalShots = fix(S.arrivalShots, "team"); S.voiceEvents = fix(S.voiceEvents, "team");
+  const book = {...(S.scout || {})}; let moving = [];
+  Object.keys(book).forEach(k => {
+    const p = book[k]; if(k === m.vs || !p || !Array.isArray(p.breaks) || !p.breaks.some(b => b && b.m === id)) return;
+    moving = [...moving, ...p.breaks.filter(b => b && b.m === id)];
+    book[k] = {...p, breaks: p.breaks.filter(b => !(b && b.m === id))};
+  });
+  if(moving.length){ n += moving.length; book[m.vs] = {...profileOf(m.vs), breaks: [...moving, ...(profileOf(m.vs).breaks || [])]}; S.scout = book; }
+  return n;
+}
 function reconcileSheet(mid){
   let dupes = 0;
   const keepFirst = (list, keyOf) => {
@@ -4423,6 +4444,9 @@ window.loadCopy = mode => {
     });
     if(folded.length) S.copyStatus += ` · ${folded.join(", ")} ${folded.length === 1 ? "was" : "were"} on both phones — kept as one play`;
     if(renumbered.length) S.copyStatus += ` · a play named like a call here was renamed: ${renumbered.join(", ")}`;
+    let aligned = 0;
+    shared.forEach(id => { aligned += alignSheet(id); });
+    if(aligned) S.copyStatus += ` · ${aligned} ${aligned === 1 ? "row" : "rows"} the other phone had under another team moved to the team the sheet is against here`;
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
     if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
     clashes.forEach((pts, id) => {

@@ -601,7 +601,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     row itself is this phone's, but what only the other phone set on it —
     the race, the mercy, the clock, the sheet's name, the horn — fills in
     where this phone's row has nothing, or a race the other phone finished
-    never ends here.
+    never ends here. And a sheet both phones hold is against the team this
+    phone says (`alignSheet`): moved with Played against here, the other
+    phone's rows on it came back under the team picked by mistake and their
+    breaks in that team's book, so they follow the match row now.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

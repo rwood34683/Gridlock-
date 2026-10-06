@@ -4456,6 +4456,28 @@ const ROSTER = [
     Object.assign(S, was); window.set({ copyStatus: "" });
     return ok || JSON.stringify({ names, row, carried });
   }));
+  check("a sheet moved to the right team here takes the other phone's rows and their breaks on it along when they come back under the team picked by mistake", await ev(() => {
+    window.confirm = () => true;
+    boardTeam("Wrong FC"); boardTeam("Right FC");
+    window.set({ tab: "tally", right: { name: "Wrong FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, L = S.layoutKey, bl = curLayout().bunkers;
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const sent = JSON.parse(sheetPayload(mid));   // the other phone, still against Wrong FC
+    window.setMatchVs("Right FC");
+    sent.data.calls = [{ m: mid, pt: 1, at: 7, script: "snake", layout: L, vs: "Wrong FC" }];
+    sent.data.scout = { "Wrong FC": { name: "Wrong FC", breaks: [{ m: mid, pt: 1, script: "blitz", plants: bl.slice(40, 45).map(x => x.id), layout: L, at: 7 }] } };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const call = S.calls.find(c => c.m === mid && c.pt === 1);
+    const ok = matchById(mid).vs === "Right FC" && call && call.vs === "Right FC"
+      && ((S.scout["Right FC"] || {}).breaks || []).some(b => b.m === mid) && !((S.scout["Wrong FC"] || {}).breaks || []).some(b => b.m === mid)
+      && /moved to the team the sheet is against here/.test(S.copyStatus);
+    const status = S.copyStatus;
+    S.calls = S.calls.filter(c => c.m !== mid); S.results = S.results.filter(r => r.m !== mid); delete S.scout["Right FC"]; delete S.scout["Wrong FC"];
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return ok || JSON.stringify({ vs: matchById(mid) && matchById(mid).vs, call, status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
