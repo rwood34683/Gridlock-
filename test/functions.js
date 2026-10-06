@@ -4478,6 +4478,32 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
     return ok || JSON.stringify({ vs: matchById(mid) && matchById(mid).vs, call, status });
   }));
+  check("a team renamed on the board here lands on its new name when a copy from a phone that never saw the rename brings the typo back", await ev(() => {
+    window.confirm = () => true;
+    boardTeam("Heet FC");
+    window.set({ tab: "tally", right: { name: "Heet FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, L = S.layoutKey;
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const copy = JSON.parse(copyPayload("all"));   // the other phone, before the fix
+    window.renameTeam("Heet FC", "Heat FC");
+    const other = "x2-" + mid;
+    copy.data.matches = [...copy.data.matches, { id: other, at: Date.now(), vs: "Heet FC", layout: L }];
+    copy.data.calls = [{ m: other, pt: 1, at: 4, script: "blitz", layout: L, vs: "Heet FC" }];
+    copy.data.scout = { ...(copy.data.scout || {}), "Heet FC": { name: "Heet FC", breaks: [{ m: other, pt: 1, script: "blitz", layout: L, at: 4 }] } };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("merge");
+    const typo = JSON.stringify([S.matches, S.calls, Object.keys(S.scout || {}), S.teams, S.right]).includes("Heet FC");
+    const landed = (matchById(other) || {}).vs === "Heat FC" && S.calls.some(c => c.m === other && c.vs === "Heat FC")
+      && ((S.scout["Heat FC"] || {}).breaks || []).some(b => b.m === other);
+    const carried = (JSON.parse(copyPayload("squad")).data.renamedTeams || {})["Heet FC"] === "Heat FC";
+    const said = /teams renamed: Heet FC → Heat FC/.test(S.copyStatus), status = S.copyStatus;
+    S.calls = S.calls.filter(c => c.m !== other); S.results = S.results.filter(r => r.m !== mid); S.matches = S.matches.filter(m => m.id !== other);
+    delete S.scout["Heat FC"]; S.renamedTeams = {};
+    S.teams = Object.fromEntries(Object.entries(S.teams || {}).map(([k, list]) => [k, (list || []).filter(t => !/^He[ae]t FC$/.test(t.name))]));
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return !typo && landed && carried && said || JSON.stringify({ typo, landed, carried, status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

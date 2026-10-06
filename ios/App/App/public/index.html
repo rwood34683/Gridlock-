@@ -1614,6 +1614,7 @@ function boardTeam(name){
   const hit = anyTeam(typed); if(hit) return hit.name;
   const id = divisionOf().id;
   S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name: typed}]};
+  forgetTeamRename(typed);
   return typed;
 }
 window.setDivision = id => { const d = DIVISIONS.find(x => x.id === id); if(d) set({division:id}); };
@@ -1625,6 +1626,7 @@ window.addTeam = () => {
   if(hit){ flash(`Already on the list as ${hit.name}.`); return; }
   const id = divisionOf().id;
   S.teams = {...(S.teams || {}), [id]: [...addedTeams(id), {name}]};
+  forgetTeamRename(name);
   save(S); render();
 };
 // What the board holds against a team he added: the sheets against them, the
@@ -1683,12 +1685,31 @@ function rekeyTeam(from, to){
     delete book[from]; S.scout = book;
   }
 }
+// A team renamed on the board is remembered, as a man renamed on Team is: a
+// sheet or a season from a phone that still has "Houston Heet" lands on
+// Houston Heat rather than bringing the typo back as a second team. Both
+// copies carry it; a league team's name is never taken for a rename.
+const leagueTeam = name => DIVISIONS.some(d => (d.teams || []).some(t => foldName(t.name) === foldName(name)));
+function noteTeamRename(from, to){
+  const rn = {...(S.renamedTeams || {})};
+  Object.keys(rn).forEach(k => { if(foldName(rn[k]) === foldName(from)) rn[k] = to; });
+  rn[from] = to;
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(rn[k])) delete rn[k]; });
+  S.renamedTeams = rn;
+}
+// A team added later under a name that used to be a typo is a team.
+function forgetTeamRename(name){
+  const rn = {...(S.renamedTeams || {})}; let hit = false;
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(name)){ delete rn[k]; hit = true; } });
+  if(hit) S.renamedTeams = rn;
+}
 window.renameTeam = (from, v) => {
   const id = divisionOf().id, typed = clean(String(v || "").trim()).slice(0, 40);
   if(!typed || typed === from){ render(); return; }
   const hit = anyTeam(typed), to = hit && foldName(hit.name) !== foldName(from) ? hit.name : typed;
   const merging = !!hit && foldName(hit.name) !== foldName(from);
   rekeyTeam(from, to);
+  noteTeamRename(from, to);
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== from).concat(merging || addedTeams(id).some(t => t.name === to) ? [] : [{name: to}])};
   save(S); flash(merging ? `${from} folded into ${to} — every sheet, out and read is theirs now.` : `${from} is ${to} now, on every sheet.`);
 };
@@ -3773,8 +3794,8 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields","renamedMen"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen"];
+                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields","renamedMen","renamedTeams"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -4017,7 +4038,7 @@ function copyDataError(data){
     results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
-    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings), renamedMen:strings,
+    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings), renamedMen:strings, renamedTeams:strings,
     // A play carries one non-scalar field — the five per field — so the schema
     // names it and checks its shape, or a season with a play in it is a copy
     // that cannot be restored.
@@ -4344,6 +4365,7 @@ window.loadCopy = mode => {
   };
   const mineBefore = {}; [...Object.keys(OVERLAP), "breakouts"].forEach(k => { mineBefore[k] = S[k] || []; });
   const playsBefore = new Set(customPlays().map(p => p.k));
+  const teamRenamesMine = {...(S.renamedTeams || {})};
   const renamesMine = {...(S.renamedMen || {})}, rosterBefore = new Set((S.roster || []).map(p => p && foldName(p.name)));
   const wordsBefore = {breakCalls: {...(S.breakCalls || {})}, jobCalls: JSON.parse(JSON.stringify(S.jobCalls || {})), bunkerCalls: JSON.parse(JSON.stringify(S.bunkerCalls || {}))};
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
@@ -4394,6 +4416,23 @@ window.loadCopy = mode => {
       if(had) renamedNow.push(`${ghost ? ghost.name : old} → ${to}`);
     });
     if(renamedNow.length) S.copyStatus += ` · renamed here, so the copy's ${renamedNow.join(", ")}`;
+    // A team renamed here — or on the other phone, unless the old name is a
+    // league team's — comes back under the old name on a copy from a phone
+    // that never saw it. It lands on the new name.
+    S.renamedTeams = teamRenamesMine;
+    Object.entries(d.renamedTeams || {}).forEach(([old, to]) => {
+      if(typeof to === "string" && to && foldName(old) !== foldName(to) && !leagueTeam(old)) S.renamedTeams = {...S.renamedTeams, [old]: to};
+    });
+    const teamsNow = [];
+    Object.entries(S.renamedTeams || {}).forEach(([old, to]) => {
+      const held = JSON.stringify([S.matches, S.tally, S.breakouts, S.calls, S.arrivalSightings, S.arrivalShots, S.voiceEvents, S.games, Object.keys(S.scout || {}), S.teams]);
+      if(!held.includes(JSON.stringify(old))) return;
+      rekeyTeam(old, to);
+      const dv = Object.fromEntries(Object.entries(S.teams || {}).map(([k, list]) => [k, (list || []).filter(t => !(t && t.name === old))]));
+      S.teams = dv; boardTeam(to);
+      teamsNow.push(`${old} → ${to}`);
+    });
+    if(teamsNow.length) S.copyStatus += ` · teams renamed: ${teamsNow.join(", ")}`;
     // Before any re-spelling: it rebuilds rows, and this phone's rows are
     // told from the copy's by being the same objects they were.
     let dupes = overlapRows(shared, mineBefore);
