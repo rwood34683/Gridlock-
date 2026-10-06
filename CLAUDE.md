@@ -1375,7 +1375,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   whose name this phone's play already has into that one (`rekeyPlay`: the
   calls, their breaks and answers, Face/Shot/Go, paths, job words, off), its
   fives filling only fields this phone has none on; one named like a
-  built-in call here takes a number. The message says which.
+  built-in call here takes a number. The message says which. The team's
+  words merge the same way: a map takes the copy's word, so this phone's
+  "Rocket" for Snake and the copy's "Rocket" for Blitz were one shout for two
+  breaks. `keepWordsUnique()` puts back this phone's word (or none) wherever
+  a word the copy brought for a call, a job slot or a bunker now says what
+  another already says.
 - Sign the same name onto a clinic sheet twice. A phone handed round a
   clinic gets the same kid twice — "Sam", "sam " — and the sheet counted two.
   `submitForm()` folds the name per class code like `squadHas()`: a second
