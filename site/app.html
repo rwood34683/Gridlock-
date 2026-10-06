@@ -2407,11 +2407,12 @@ window.delTeam = name => {
 // scout book included, so a typo is one tap to undo rather than a season
 // split in two. Only teams he added can be renamed; the league's are the
 // league's.
-window.renameTeam = (from, v) => {
-  const id = divisionOf().id, typed = clean(String(v || "").trim()).slice(0, 40);
-  if(!typed || typed === from){ render(); return; }
-  const hit = anyTeam(typed), to = hit && foldName(hit.name) !== foldName(from) ? hit.name : typed;
-  const merging = !!hit && foldName(hit.name) !== foldName(from);
+// Every store that carries a team's name, moved from one spelling to
+// another: renaming a team on the board, and a copy merged in from a phone
+// that typed the same team another way, both go through here, so the sheets,
+// the outs, the calls, their breaks and their men never split between them.
+function rekeyTeam(from, to){
+  if(!from || !to || from === to) return;
   const team = (rows, key) => (rows || []).map(r => r && r[key] === from ? {...r, [key]: to} : r);
   S.matches = (S.matches || []).map(m => m ? {...m, vs: m.vs === from ? to : m.vs, home: m.home === from ? to : m.home, away: m.away === from ? to : m.away} : m);
   S.tally = team(S.tally, "vs"); S.breakouts = team(S.breakouts, "vs"); S.calls = team(S.calls, "vs");
@@ -2434,6 +2435,13 @@ window.renameTeam = (from, v) => {
                          answers: {...(mine.answers || {}), ...(theirs.answers || {})}} : mine;
     delete book[from]; S.scout = book;
   }
+}
+window.renameTeam = (from, v) => {
+  const id = divisionOf().id, typed = clean(String(v || "").trim()).slice(0, 40);
+  if(!typed || typed === from){ render(); return; }
+  const hit = anyTeam(typed), to = hit && foldName(hit.name) !== foldName(from) ? hit.name : typed;
+  const merging = !!hit && foldName(hit.name) !== foldName(from);
+  rekeyTeam(from, to);
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== from).concat(merging || addedTeams(id).some(t => t.name === to) ? [] : [{name: to}])};
   save(S); flash(merging ? `${from} folded into ${to} — every sheet, out and read is theirs now.` : `${from} is ${to} now, on every sheet.`);
 };
@@ -4548,7 +4556,11 @@ function mergeMapValue(mine, incoming, trail){
     incoming.forEach(x => {
       const key = identity(x), i = indexes.get(key);
       if(i === undefined){ indexes.set(key, out.length); out.push(x); }
-      else out[i] = mergeMapValue(out[i], x, trail.concat(key));
+      // A team both phones added keeps this phone's spelling: the rows here
+      // are keyed on it, and the copy's rows are re-keyed onto it.
+      else out[i] = trail[0] === "teams" && plainRecord(out[i]) && plainRecord(x)
+        ? {...mergeMapValue(out[i], x, trail.concat(key)), name: out[i].name}
+        : mergeMapValue(out[i], x, trail.concat(key));
     });
     return out;
   }
@@ -4911,8 +4923,32 @@ window.loadCopy = mode => {
   HERE.forEach(k => { mine[k] = S[k]; });
   // Who won a point is the one thing two phones can disagree on outright. The
   // merge keeps this phone's result; the message names the points.
-  const scoreClash = sheetId ? [...new Set((d.results || []).filter(r => r && r.m === sheetId
-    && (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt && x.won !== r.won)).map(r => r.pt))].sort((a, b) => a - b) : [];
+  // Any sheet both phones hold can overlap — a sheet sent across, or a whole
+  // season copied from an assistant who charted the same match — so the
+  // check runs on every one of them, not only on a sheet sent alone.
+  const before = new Set((S.matches || []).map(m => m && m.id).filter(Boolean));
+  const shared = mode === "replace" ? [] : [...new Set((d.matches || []).map(m => m && m.id).filter(id => id && before.has(id)))];
+  if(sheetId && !shared.includes(sheetId)) shared.push(sheetId);
+  const clashes = new Map();
+  (d.results || []).forEach(r => {
+    if(!r || !shared.includes(r.m)) return;
+    if((S.results || []).some(x => x && x.m === r.m && x.pt === r.pt && x.won !== r.won)) clashes.set(r.m, [...(clashes.get(r.m) || []), r.pt]);
+  });
+  // A team the other phone typed another way — "dynasty" for Dynasty — is
+  // this phone's team under this phone's spelling: the board's when the
+  // board has it, else whatever this phone already logged them as.
+  const spelled = new Map();
+  const noteName = n => { if(n && !spelled.has(foldName(n))) spelled.set(foldName(n), n); };
+  (S.matches || []).forEach(m => { if(m){ noteName(m.vs); noteName(m.home); noteName(m.away); } });
+  Object.keys(S.scout || {}).forEach(noteName);
+  const theirNamesIn = data => {
+    const out = new Set();
+    (data.matches || []).forEach(m => { if(m){ [m.vs, m.home, m.away].forEach(n => n && out.add(n)); } });
+    ["tally", "breakouts", "calls"].forEach(k => (data[k] || []).forEach(r => r && r.vs && out.add(r.vs)));
+    ["arrivalSightings", "arrivalShots", "voiceEvents"].forEach(k => (data[k] || []).forEach(r => r && r.team && out.add(r.team)));
+    Object.keys(data.scout || {}).forEach(n => out.add(n));
+    return [...out];
+  };
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -4927,16 +4963,28 @@ window.loadCopy = mode => {
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   dropPathCache();
+  if(mode !== "replace"){
+    const moved = [];
+    theirNamesIn(d).forEach(n => {
+      const hit = anyTeam(n), to = hit ? hit.name : spelled.get(foldName(n));
+      if(to && to !== n && foldName(to) === foldName(n)){ rekeyTeam(n, to); moved.push(`${n} → ${to}`); }
+    });
+    if(moved.length) S.copyStatus += ` · spelled as this phone has them: ${moved.join(", ")}`;
+    let dupes = 0;
+    shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
+    if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
+    clashes.forEach((pts, id) => {
+      const m = matchById(id); const list = [...new Set(pts)].sort((a, b) => a - b);
+      S.copyStatus += ` · the phones disagree on who won point${list.length === 1 ? "" : "s"} ${list.join(", ")}${sheetId === id ? "" : ` of ${m ? matchLabel(m) : "a sheet"}`} — this phone's result kept; fix it on the sheet if it was the other`;
+    });
+    // Standing on a sheet both phones charted: the point he is on moves on to
+    // the first one nobody has a result for, or the next tap scores a point twice.
+    if(shared.includes(S.matchId)){ const last = lastPoint(); S.point = resultFor(last) ? last + 1 : last; S.matchState = derivedState(); }
+  }
   // A sheet from the coach beside him: its team joins the board the way a
   // typed team does, and the line under the message opens it.
   if(sheetId && matchById(sheetId)){
     const sm = matchById(sheetId);
-    const dupes = reconcileSheet(sheetId);
-    if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
-    if(scoreClash.length) S.copyStatus += ` · the phones disagree on who won point${scoreClash.length === 1 ? "" : "s"} ${scoreClash.join(", ")} — this phone's result kept; fix it on the sheet if it was the other`;
-    // Standing on that sheet already: the point he is on moves on to the
-    // first one nobody has a result for, or the next tap scores a point twice.
-    if(sheetId === S.matchId){ const last = lastPoint(); S.point = resultFor(last) ? last + 1 : last; S.matchState = derivedState(); }
     (sm.watch ? [sm.home, sm.away] : [sm.vs]).filter(Boolean).forEach(boardTeam);
     S.copySheet = sheetId;
   }
