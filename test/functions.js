@@ -4015,6 +4015,20 @@ const ROSTER = [
     return r.n === 2 && r.gunUp === 1 && r.took === 1 && r.tallied === 1 && r.alive === 0 && r.first === 1
       && /shooting off the break 1 of 2/.test(line) && /took 1 off the break/.test(line) && /alive at the end 0 of 1/.test(line) && /first out 1/.test(line);
   }));
+  check("Anticipate counts their men off the buzzer by wire — stop, run, shoot, run & shoot — from told breakout rows only", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Wire Check FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, at = Date.now();
+    const snake = bl.find(b => b.y > 88 && b.x > 75), dor = bl.find(b => b.y < 24 && b.x > 75), other = bl.find(b => b.y > 44 && b.y < 66);
+    const row = (id, b, extra) => ({ id, m: mid, pt: 1, side: "them", player: "", bunker: b.id, layout: S.layoutKey, alive: true, at, vs: "Wire Check FC", ...extra });
+    S.breakouts = [row("rr1", snake, {}), row("rr2", snake, { movedTo: other.id }), row("rr3", snake, { dir: 0, movedTo: other.id }),
+                   row("rr4", dor, { shootAt: other.id }), row("rr5", dor, { todo: true }), ...(S.breakouts || [])];
+    const r = roleRead("Wire Check FC"), sw = r.find(x => x.band === "snake wire"), dw = r.find(x => x.band === "dorito wire");
+    window.set({ tab: "scout", scoutTab: "anticipate" });
+    const t = document.getElementById("root").textContent;
+    S.breakouts = S.breakouts.filter(x => !/^rr/.test(x.id)); window.newMatch();
+    return sw.n === 3 && sw.stop === 1 && sw.run === 1 && sw.both === 1 && dw.n === 1 && dw.shoot === 1
+      && /By wire off the buzzer/.test(t) && /Snake wire\s*3 charted — stop 1 · run 1 · run & shoot 1/.test(t);
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);

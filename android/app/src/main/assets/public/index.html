@@ -9522,6 +9522,42 @@ function scoutMatchup(){
     "This call");
 }
 
+/* Off the buzzer, by wire. PB Scout sells this per role — what each of their
+ * men does off the break, stop, run, shoot or both — and every piece of it is
+ * already on a told breakout row: the bunker he broke to says the wire, a lane
+ * or a target ticked says he shot, a Moved to says he ran on. Counted over the
+ * men charted for that team on this field, his own sheets and the games he
+ * watched alike; a placed man not yet told is not counted, because nobody has
+ * said what he did. Counts with the sample, never a percentage. */
+function teamCharted(team){
+  const f = foldName(team);
+  return (S.breakouts || []).filter(r => {
+    if(!r || r.todo || r.layout !== S.layoutKey) return false;
+    const m = matchById(r.m); if(!m) return false;
+    if(m.watch) return foldName(r.side === "us" ? m.home : m.away) === f;
+    return r.side === "them" && foldName(r.vs || m.vs) === f;
+  });
+}
+function roleRead(team){
+  const bl = curLayout().bunkers;
+  const out = PLANT_BANDS.map(band => ({band, n: 0, stop: 0, run: 0, shoot: 0, both: 0}));
+  teamCharted(team).forEach(r => {
+    const b = bl.find(x => x.id === r.bunker); if(!b) return;
+    const row = out.find(o => o.band === plantBand(b.y));
+    const shot = (r.dir !== null && r.dir !== undefined && r.dir !== "") || !!r.shootAt, ran = !!r.movedTo;
+    row.n++;
+    if(shot && ran) row.both++; else if(shot) row.shoot++; else if(ran) row.run++; else row.stop++;
+  });
+  return out.filter(o => o.n);
+}
+function roleLine(team){
+  const rows = roleRead(team), n = rows.reduce((a, r) => a + r.n, 0);
+  if(n < 3) return "";
+  const word = b => b[0].toUpperCase() + b.slice(1);
+  return `<div class="kv__row"><span class="kv__k">By wire off the buzzer</span><span class="kv__v">${rows.map(r =>
+    `<b>${esc(word(r.band))}</b> ${r.n} charted — ${[["stop", r.stop], ["run", r.run], ["shoot", r.shoot], ["run & shoot", r.both]]
+      .filter(([, c]) => c).map(([w, c]) => `${w} ${c}`).join(" · ")}`).join("<br>")}</span></div>`;
+}
 function scoutAnticipate(){
   // The generic reads are a starting point. What a coach actually wants before
   // the horn is the two or three players he logged himself, hardest first.
@@ -9575,7 +9611,8 @@ function scoutAnticipate(){
           : `<b>${esc(callName(rd.recent[0][0]))}</b> ${rd.recent[0][1]} of their last ${rd.recentN} — same as the season.`}</span></div>`
       : "";
     const shooter = (sh => sh && pitOnSheet(side) ? `<div class="kv__row"><span class="kv__k">Their shooter</span><span class="kv__v">${sh}</span></div>` : "")(shooterLine(side))
-      + (mv => mv ? `<div class="kv__row"><span class="kv__k">After the break</span><span class="kv__v">${mv}</span></div>` : "")(movesLine(T.name));
+      + (mv => mv ? `<div class="kv__row"><span class="kv__k">After the break</span><span class="kv__v">${mv}</span></div>` : "")(movesLine(T.name))
+      + roleLine(T.name);
     return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
@@ -10616,6 +10653,7 @@ const HELP_Q = [
   ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
   ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — placed on Tally or logged on Scout › Breakouts for this point, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
+  ["What does each of their men do off the buzzer?", "Scout › Anticipate, By wire off the buzzer: every man of theirs you charted on Tally, sorted by the wire of the bunker he broke to, and what he did there — stop, run (a Moved to), shoot (a lane or target ticked) or run & shoot. A count of what you told the sheet, with how many charted on each wire; a man placed and not yet told is not counted."],
   ["Where do they go after the break?", "Every sighting on How did they get there is where a man was, and the next sighting of the same man on the same point is where he went. Their rotations, under the field there, counts those moves across every match on this field — MD → T 4 times, #7 Dill 3 of them — and Anticipate carries the top three as After the break. A count of what was seen, never a model."],
   ["Who should I put on?", "Who's on, above your five on the point sheet, lists the squad with a line under each man counted from the breaks you have charted against this team on this field: breaks charted, made it, shot on the break and from where, the bunker he breaks to most. A man with nothing charted has no line. It is a count, not a grade — the grade is yours, on Assess."],
   ["We called a timeout.", "Tap Our timeout on the point sheet, or Their timeout when they call theirs. Each team gets one a match, so the button says used and the point it went on; tap it again to give it back. The minute itself is the official's clock."],
