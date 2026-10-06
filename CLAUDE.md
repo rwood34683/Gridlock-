@@ -553,6 +553,20 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     on the field, so it rides in both copies, and the schema takes only a
     `data:image` JPEG or PNG under the cap. The decoded pixels (`MAP_PIX`) are
     never saved.
+42. ~~Two phones, one match.~~ Done — Breakout Paintball and Scout Pro sell
+    one match charted by two people, and here it took a whole-season copy each
+    way, which hands an assistant every scouting note you own. **Send this
+    sheet to another coach** on Matches › This match writes a copy with scope
+    `sheet` (`sheetPayload(id)`): the match row, every row stamped with its id
+    (`SHEET_LISTS`), its lineups, their breaks on it and only the profile of
+    the team or teams on it, the roster its names are read against, and the
+    field if he built it. It goes out through the same share sheet or download
+    as Save a copy (`sendSheet`). The other phone merges it through Load a
+    copy like any copy — the `SAME` keys join it, so sent back and forth it
+    doubles nothing — the team joins his board (`boardTeam`), and **Open** under
+    the message takes him to it (`openSentSheet`, `S.copySheet` scratch);
+    Replace refuses a sheet. Still no server: the file travels however he
+    sends files.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

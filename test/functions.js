@@ -4039,6 +4039,44 @@ const ROSTER = [
     return loaded && turned && painted && swapped && shown && hidden && played && copyOk && refused && dropped
       || JSON.stringify({loaded, turned, which, swapped, shown, hidden, played, copyOk, refused, dropped});
   }));
+  check("Send this sheet: one match goes to the other coach's phone, Merge joins it, his half comes back the same way and nothing doubles; Replace refuses a sheet", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Two Phone FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, at = Date.now();
+    window.endPoint("us");
+    S.breakouts = [{ id: "tp1", m: mid, pt: 1, side: "them", player: "", bunker: bl[40].id, layout: S.layoutKey, alive: true, at, vs: "Two Phone FC" }, ...(S.breakouts || [])];
+    // Something that is not on this sheet must not travel.
+    S.breakouts.push({ id: "tp-other", m: "elsewhere", pt: 1, side: "them", player: "", bunker: bl[40].id, layout: S.layoutKey, alive: true, at, vs: "Other" });
+    const sent = JSON.parse(sheetPayload(mid));
+    const onlyThis = sent.scope === "sheet" && sent.sheet === mid && sent.data.matches.length === 1
+      && sent.data.breakouts.every(r => r.m === mid) && sent.data.results.length === 1 && !copyDataError(sent.data);
+    const paste = t => { document.getElementById("copyIn").value = t; };
+    const phoneA = JSON.stringify(S);
+    // Phone B has never seen this sheet.
+    S.matches = S.matches.filter(m => m.id !== mid); S.results = S.results.filter(r => r.m !== mid);
+    S.breakouts = S.breakouts.filter(r => r.m !== mid);
+    window.set({ tab: "more", more: "nexus" });
+    paste(JSON.stringify(sent)); window.loadCopy("replace");
+    const refused = /one sheet, not a season/.test(S.copyStatus) && !matchById(mid);
+    paste(JSON.stringify(sent)); window.loadCopy("merge");
+    const joined = !!matchById(mid) && S.results.filter(r => r.m === mid).length === 1 && S.breakouts.some(r => r.id === "tp1")
+      && S.copySheet === mid && /Open /.test(document.getElementById("root").textContent);
+    window.openSentSheet();
+    const opened = S.matchId === mid && S.tab === "tally" && S.point === 2;
+    // He charts point 2 on phone B and sends it back.
+    window.endPoint("them");
+    S.breakouts.unshift({ id: "tp2", m: mid, pt: 2, side: "them", player: "", bunker: bl[41].id, layout: S.layoutKey, alive: true, at: at + 9, vs: "Two Phone FC" });
+    const back = sheetPayload(mid);
+    Object.assign(S, JSON.parse(phoneA)); registerFields();
+    window.set({ tab: "more", more: "nexus" });
+    paste(back); window.loadCopy("merge");
+    const both = S.results.filter(r => r.m === mid).length === 2 && S.breakouts.filter(r => r.m === mid).length === 2
+      && S.matches.filter(m => m.id === mid).length === 1;
+    paste(back); window.loadCopy("merge");
+    const once = S.results.filter(r => r.m === mid).length === 2 && S.breakouts.filter(r => r.m === mid).length === 2;
+    S.breakouts = S.breakouts.filter(r => !/^tp/.test(r.id)); window.set({ copySheet: null, copyStatus: "" }); window.newMatch();
+    return onlyThis && refused && joined && opened && both && once || JSON.stringify({ onlyThis, refused, joined, opened, both, once });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
@@ -5799,9 +5837,9 @@ const ROSTER = [
     return JSON.stringify(r) === JSON.stringify(["A", "E", "G"]) && contactKey("+1 (555) 010-0100") === "5550100100" && contactKey("Mom@X.com") === "mom@x.com" && contactKey("") === "";
   }));
   check("the scratch a relaunch clears is one list, and a durable restore runs it too", await ev(() => {
-    window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half", fieldEdit: { key: "my:x", kind: "md", sel: null } });
+    window.set({ tallyRead: "right", tallyDraft: { side: "us" }, penOpen: true, theirPick: ["x"], handText: { title: "t", text: "x" }, tallyPickFor: "shootAt", gamePaste: "half", fieldEdit: { key: "my:x", kind: "md", sel: null }, copySheet: "m-x" });
     clearScratch();
-    const cleared = !S.tallyRead && !S.tallyDraft && !S.penOpen && !(S.theirPick || []).length && !S.handText && !S.tallyPickFor && !S.gamePaste && !S.fieldEdit;
+    const cleared = !S.tallyRead && !S.tallyDraft && !S.penOpen && !(S.theirPick || []).length && !S.handText && !S.tallyPickFor && !S.gamePaste && !S.fieldEdit && !S.copySheet;
     const wired = /clearScratch\(\); resetLiveState\(\);/.test(String(window.gridlockRestore));
     window.set({});
     return cleared && wired;
