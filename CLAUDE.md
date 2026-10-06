@@ -1860,3 +1860,18 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   call panel said "Put the other team in the right pit on Scout" as text;
   on first run that is the first thing he has to do. Anything that names a
   screen he should go to is a button that goes there.
+- Work out on every draw what only changes when the data does. With a full
+  season in (forty sheets, ten men charted a point) a tap on Tally took six
+  to seven seconds on a phone-speed CPU: every redraw re-routed every man on
+  the point, `segHitsBox` built an array of arrays per call inside a router
+  that asks it millions of times, and the fifty-row value table read the
+  whole season for the point once a row through `shownBunker()` →
+  `ourEnd()` → `sheetPoint()` → `lastPoint()`. A run is now kept by what
+  it depends on (`autoRoute` → `autoRouteFresh`, keyed on field, bunker,
+  moved to, end and holds; dropped with the other route caches in
+  `dropPathCache`), the router rejects a box by the leg's extent before the
+  exact test, and `lastPoint()` / `sheetPoint()` are kept for the length of
+  one draw only (`_lastPointMemo`, set and cleared around `shell()` in
+  `render()`, because nothing is logged mid-draw). The tap is under a second
+  at the same throttle. The suite counts the routes and the season reads a
+  redraw makes, not the milliseconds, so a slow runner cannot make it lie.
