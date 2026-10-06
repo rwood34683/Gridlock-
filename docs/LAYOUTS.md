@@ -27,9 +27,13 @@ Open and the Lone Star Open.
 
 A field not in the pack can be built on the phone (More › Nexus › Events ›
 Build a field). Bunker *sizes* still come from `layouts/bunkers.json` — the
-coach only places them — the field is drawn neutral grey because nobody
-sampled its colours, and its source line says it was placed by eye, not
-measured. It never enters this pack: it lives in the coach's season and rides
+coach only places them — and its source line says it was placed by eye, not
+measured. With the event's map put under the builder, each bunker takes the
+red or blue the map prints under its footprint (`mapPaint`, the same "most of
+the pixels, clearly one colour" test in miniature that step 2 below runs on
+the official 2D); without a map, or over anything else, it is neutral grey.
+The map is stretched to the field's edges and is a guide only — it never
+moves or sizes a bunker. It never enters this pack: it lives in the coach's season and rides
 in Save a copy.
 
 ## How the Midwest Open was digitized

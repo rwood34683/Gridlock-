@@ -4000,6 +4000,45 @@ const ROSTER = [
     S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso" }); window.newMatch();
     return twinned && single && notYet && turnedMoved && ready && listed && on && copyOk && kept && gone;
   }));
+  check("the event's map goes under a field he builds: a tall map is turned on its side, each bunker placed takes the paint the map prints under it, grey where it prints neither, and a copy carries it", await ev(async () => {
+    window.confirm = () => true;
+    const was = { fields: S.fields, layoutKey: S.layoutKey };
+    window.set({ tab: "more", more: "nexus", fields: [] });
+    document.getElementById("field-name").value = "Map Park";
+    window.newField();
+    const k = S.fieldEdit.key;
+    // A map printed upright: ends top and bottom. Turned a quarter clockwise
+    // onto its side, its left edge (blue) is the dorito side along the top,
+    // green runs across the middle and its right edge (red) the snake side.
+    const c = document.createElement("canvas"); c.width = 240; c.height = 300;
+    const g = c.getContext("2d");
+    g.fillStyle = "#2a6a2a"; g.fillRect(0, 0, 240, 300);
+    g.fillStyle = "#c8302a"; g.fillRect(160, 0, 80, 300);
+    g.fillStyle = "#2a3ac8"; g.fillRect(0, 0, 80, 300);
+    const loaded = await window.fieldMapLoad(k, c.toDataURL("image/png"));
+    const f = fieldOf(k), turned = !!MAP_PIX && MAP_PIX.w > MAP_PIX.h && /turned on its side/.test(S.flash || "");
+    const put = (kind, x, y) => { window.fieldKind(kind); window.fieldTap([x, y]); };
+    put("md", 30, 16); put("md", 30, 104); put("t", 30, 60);
+    const at = (x, y) => fieldOf(k).bunkers.find(b => b.x === x && b.y === y);
+    const which = [at(30, 16), at(30, 104), at(30, 60), at(120, 16)].map(b => b && (b.c || "grey")).join(",");
+    const painted = which === "b,r,grey,b";
+    // Turn the map a half and the paint swaps sides under the bunkers already placed.
+    await window.fieldMapTurn(); await window.fieldMapTurn();
+    const swapped = at(30, 16).c === "r" && at(30, 104).c === "b";
+    const shown = !!document.querySelector("#fieldbuild-map image.fieldmap");
+    window.fieldMapShow(); const hidden = !document.querySelector("#fieldbuild-map image.fieldmap"); window.fieldMapShow();
+    put("sb", 45, 104); put("br", 55, 50); window.fieldDone();
+    const played = !!LAYOUTS[k] && LAYOUTS[k].bunkers.some(b => b.c === "r") && /sampled off the map/.test(LAYOUTS[k].source);
+    const data = JSON.parse(copyPayload("all")).data;
+    const copyOk = !copyDataError(data) && !!data.fields[0].map;
+    const bad = JSON.parse(JSON.stringify(data)); bad.fields[0].map = "javascript:alert(1)";
+    const refused = !!copyDataError(bad);
+    window.editField(k); window.fieldMapDrop();
+    const dropped = !fieldOf(k).map && fieldOf(k).bunkers.every(b => !b.c) && /grey/.test(S.flash || "");
+    S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso", fieldEdit: null });
+    return loaded && turned && painted && swapped && shown && hidden && played && copyOk && refused && dropped
+      || JSON.stringify({loaded, turned, which, swapped, shown, hidden, played, copyOk, refused, dropped});
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
