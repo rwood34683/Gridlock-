@@ -2366,7 +2366,7 @@ function clearScratch(){
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
-  S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null; S.fieldEdit = null;
+  S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null; S.fieldEdit = null; S.copySheet = null;
   // A play half-built is five bunker ids off one field: reopened on another
   // event, Save stored that field's ids against this one.
   S.building = null;
@@ -3618,6 +3618,36 @@ function copyPayload(scope){
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
+/* One sheet, to hand to the coach beside you. Two phones on one match — one
+ * on the tally, one charting their five off the fence — had no way to put
+ * the two halves together but a whole-season copy each way, which hands an
+ * assistant every scouting note you own. A sheet copy is the match row and
+ * every row stamped with its id, their breaks on it, its lineups, the roster
+ * its names are read against and the field it was played on if he built it.
+ * It is an ordinary copy with scope "sheet": Merge on the other phone adds
+ * the rows by the keys every merge uses, so the same sheet sent back and
+ * forth joins up rather than doubling, and Replace refuses it. */
+const SHEET_LISTS = ["tally","breakouts","calls","moves","assessments","results","pens","timeouts","arrivalSightings","arrivalShots","voiceEvents"];
+function sheetPayload(id){
+  const m = matchById(id); if(!m) return "";
+  const on = r => !!r && typeof r === "object" && r.m === id;
+  const data = {matches: [m]};
+  SHEET_LISTS.forEach(k => { const v = (S[k] || []).filter(on); if(v.length) data[k] = v; });
+  const lines = Object.entries(S.lineups || {}).filter(([k]) => k.startsWith(id + "|"));
+  if(lines.length) data.lineups = Object.fromEntries(lines);
+  const names = (m.watch ? [m.home, m.away] : [m.vs]).filter(Boolean).map(foldName);
+  const scout = {};
+  Object.entries(S.scout || {}).forEach(([k, prof]) => {
+    if(!prof || !names.includes(foldName(prof.name || k))) return;
+    const breaks = (prof.breaks || []).filter(on);
+    scout[k] = {name: prof.name || k, players: prof.players || [], ...(breaks.length ? {breaks} : {})};
+  });
+  if(Object.keys(scout).length) data.scout = scout;
+  if((S.roster || []).length && !m.watch) data.roster = S.roster;
+  const f = fieldOf(m.layout); if(f) data.fields = [f];
+  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: "sheet", sheet: id,
+                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
+}
 function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
   // The sheets and the score lead: a season of forty points with no out
@@ -3905,6 +3935,37 @@ window.saveCopy = async scope => {
   save(S);
   render();
 };
+window.sendSheet = async () => {
+  const m = curMatch();
+  if(!m || !sheetSize(m)){ flash("Nothing on this sheet yet — send it once a point is on it."); return; }
+  const text = sheetPayload(m.id);
+  const who = m.watch ? `${m.home || "home"}-v-${m.away || "away"}` : (m.vs || "sheet");
+  const name = `gridlock-sheet-${who.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${new Date(m.at).toISOString().slice(0, 10)}.json`;
+  const what = `${matchLabel(m)} · ${copySummary(JSON.parse(text).data)}`;
+  if(typeof window.gridlockExportFile === "function"){
+    try {
+      const r = await window.gridlockExportFile(text, name);
+      if(r && r.status === "shared"){ flash(`Sheet sent · ${what}. On the other phone: Nexus › Load a copy › Merge it in.`); return; }
+      if(r && r.status === "cancelled"){ flash("Share cancelled. Nothing was sent."); return; }
+    } catch(e){}
+    handOff("This sheet", text); return;
+  }
+  let saved = false;
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type: "application/json"}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    saved = true;
+  } catch(e){}
+  if(saved) flash(`Sheet saved as ${name} · ${what}. Send the file to the other coach; on his phone, Nexus › Load a copy › Merge it in.`);
+  else handOff("This sheet", text);
+};
+window.openSentSheet = () => {
+  const id = S.copySheet; if(!id || !matchById(id)) return;
+  S.copySheet = null; window.openMatch(id);
+  if(S.matchId === id) set({tab: "tally"});
+};
 window.showCopy = scope => { S.copyText = copyPayload(scope); S.copiedAt = Date.now(); save(S); render(); };
 /* The one thing protecting a season is the copy, and nothing ever said how
  * long it had been. Said where he has a minute — a finished sheet, and the
@@ -3931,6 +3992,11 @@ window.loadCopy = mode => {
   const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
+  const sheetId = r.payload.scope === "sheet" && typeof r.payload.sheet === "string" ? r.payload.sheet : "";
+  if(mode === "replace" && sheetId){
+    S.copyStatus = "That is one sheet, not a season — Merge it in. Replace would throw this phone's season away for one match.";
+    save(S); render(); return;
+  }
   // Replace throws away what is on this phone, and the button said so in a
   // sentence above a file box — one tap, no question. When the phone holds a
   // season, it asks, and names what it would throw away.
@@ -3944,7 +4010,7 @@ window.loadCopy = mode => {
   // that mixes squads still happens, but it says so out loud.
   const clash = mode !== "replace" && d.teamCode && S.teamCode && d.teamCode !== S.teamCode
                 && (S.roster || []).length && (d.roster || []).length;
-  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + copySummary(d)
+  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + (sheetId ? "a sheet · " : "") + copySummary(d)
     + (clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.`
              : "");
   // What just loaded is a copy, so the season has one as of now — the nudge
@@ -3985,6 +4051,13 @@ window.loadCopy = mode => {
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   dropPathCache();
+  // A sheet from the coach beside him: its team joins the board the way a
+  // typed team does, and the line under the message opens it.
+  if(sheetId && matchById(sheetId)){
+    const sm = matchById(sheetId);
+    (sm.watch ? [sm.home, sm.away] : [sm.vs]).filter(Boolean).forEach(boardTeam);
+    S.copySheet = sheetId;
+  }
   copyDraft = "";
   S.copyText = ""; save(S); render();
 };
@@ -10748,6 +10821,7 @@ const HELP = {
 const HELP_Q = [
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
@@ -11274,6 +11348,10 @@ function moreBody(k){
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
+      ${sheetSize(curMatch()) ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="sendSheet()">Send this sheet to another coach</button>
+      <p class="note">Two phones on one match — one on the tally, one charting off the fence: send the sheet, he taps
+        Merge it in under Nexus › Load a copy, and both halves are on one sheet. Send it back the same way;
+        nothing doubles. Only this match goes — none of the rest of your season.</p>` : ""}
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>`, matchLabel(curMatch()))
@@ -11664,7 +11742,9 @@ function moreBody(k){
     ${S.copyText?`<div class="fld"><label>Copy this and keep it somewhere safe</label>
       <textarea readonly style="min-height:150px;font-family:ui-monospace,monospace;font-size:11px"
         onclick="this.select()">${esc(S.copyText)}</textarea></div>`:""}
-    ${S.copyStatus?`<p class="note" style="color:var(--accent-lit)">${esc(S.copyStatus)}</p>`:""}`,
+    ${S.copyStatus?`<p class="note" style="color:var(--accent-lit)">${esc(S.copyStatus)}</p>`:""}
+    ${S.copySheet && matchById(S.copySheet) ? `<button class="btn btn--block" onclick="openSentSheet()">${
+      S.copySheet === S.matchId ? "Back to this sheet" : "Open " + esc(matchLabel(matchById(S.copySheet)))}</button>` : ""}`,
     copySummary(S))
   + (_recoveryText ? sec("Recover an unreadable save", `<p class="lede">This is the original saved text that
       the app could not open. Keep it before repairing or replacing any data.</p>
