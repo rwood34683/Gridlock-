@@ -305,7 +305,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     `derivedState()` reads Must-score at their match point whatever the
     margin. `matchOver()` / `matchPoint()` are the doors. A new sheet carries
     the format over, because it is the event's, not the sheet's. No N means no
-    race: the score is just the score.
+    race: the score is just the score. A race the score has already passed is
+    a mis-tap, not a format — at 3–2 a race to 2 would have ended points ago
+    and `matchOver()` called it for whichever side it checked first — so
+    `setRaceTo` refuses it and says the least race that fits, and `setMercy`
+    refuses a lead already past the mercy the same way.
 29. ~~Ends.~~ Done — the two teams break from opposite ends and which end is
     yours changes, at the half or every point; the app drew every break from
     the left end and `sideOfBunker` called every bunker in the left half yours,
