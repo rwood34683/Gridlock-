@@ -590,6 +590,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     phone's spelling: the board's, else what this phone already logged them
     as, re-keyed through `rekeyTeam()`, the store-by-store move `renameTeam`
     makes, with the board keeping this phone's spelling on a merge.
+    The rows a point can hold more than one of — a penalty, a rotation, a
+    sighting, a shot — cannot be held to one a point, so `overlapRows()`
+    keeps the larger of the two phones' counts for each (point, side, what),
+    never the sum: the same 1-for-1 written on both phones took two men off
+    `startUp()`. A timeout is one a team a match and keys on the side alone.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

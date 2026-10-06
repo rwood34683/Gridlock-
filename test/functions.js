@@ -4258,6 +4258,32 @@ const ROSTER = [
     return !lower && oneCall && otherIs && kept && said && board.length === 1 && board[0] === "Spelling FC"
       || JSON.stringify({ lower, oneCall, otherIs, kept, said, board, status: S.copyStatus });
   }));
+  check("a penalty, a timeout and a rotation both phones logged on one sheet are counted once — the larger count of the two phones, never the sum", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey, name = (S.roster[0] || {}).name || "Reyes";
+    S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "us" }, ...(S.results || [])];
+    S.pens = [{ id: "pm1", m: mid, pt: 3, side: "us", cost: 1, who: "", why: "", at: 1 }, ...(S.pens || [])];
+    S.timeouts = [{ id: "tm1", m: mid, pt: 2, side: "us", at: 1 }, ...(S.timeouts || [])];
+    S.moves = [{ m: mid, pt: 2, who: name, from: bl[3].id, to: bl[5].id, layout: L, at: 1 }, ...(S.moves || [])];
+    window.set({ point: 3 });
+    const sent = JSON.parse(sheetPayload(mid));
+    // The other phone wrote the same penalty and a second one of the same kind,
+    // spent the same timeout, and logged the same rotation, each a moment later.
+    sent.data.pens = [{ id: "po1", m: mid, pt: 3, side: "us", cost: 1, who: "", why: "", at: 2 }, { id: "po2", m: mid, pt: 3, side: "us", cost: 1, who: "", why: "", at: 3 }];
+    sent.data.timeouts = [{ id: "to1", m: mid, pt: 2, side: "us", at: 2 }];
+    sent.data.moves = [{ m: mid, pt: 2, who: name, from: bl[3].id, to: bl[5].id, layout: L, at: 2 }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const pens = S.pens.filter(p => p.m === mid), tos = S.timeouts.filter(t => t.m === mid), mv = S.moves.filter(v => v.m === mid);
+    const ok = pens.length === 2 && pens.some(p => p.id === "pm1") && tos.length === 1 && tos[0].id === "tm1" && mv.length === 1 && mv[0].at === 1
+      && startUp("us", mid, 3) === 3 && /3 things both phones logged kept once/.test(S.copyStatus);
+    const status = S.copyStatus;
+    S.pens = S.pens.filter(p => p.m !== mid); S.timeouts = S.timeouts.filter(t => t.m !== mid); S.moves = S.moves.filter(v => v.m !== mid);
+    S.results = S.results.filter(r => r.m !== mid);
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
+    return ok || JSON.stringify({ pens: pens.map(p => p.id), tos: tos.map(t => t.id), mv: mv.length, status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

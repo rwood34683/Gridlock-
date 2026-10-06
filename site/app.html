@@ -4817,6 +4817,35 @@ function reconcileSheet(mid){
   });
   return dupes;
 }
+/* The rows a point can hold more than one of — a penalty, a rotation, a
+ * sighting, a shot — cannot be kept to one a point, but two phones on one
+ * sheet log the same one twice: the 1-for-1 on point 3 written on both took
+ * two men off the startUp count, and one rotation read as two. So the union
+ * for each key is the larger of the two phones' counts, never their sum —
+ * this phone's rows first, the other's only where it saw more. A timeout is
+ * one a team a match, so it keys on the side alone. */
+const OVERLAP = {
+  pens:             p => [p.pt, p.side, +p.cost || 1].join("|"),
+  timeouts:         t => String(t.side),
+  moves:            v => [v.pt, foldName(v.who), v.from, v.to].join("|"),
+  arrivalSightings: o => [o.pt, foldName(o.team), o.player, o.bunker].join("|"),
+  arrivalShots:     o => [o.pt, foldName(o.team), o.player, o.from, o.to].join("|"),
+};
+function overlapRows(shared, mineBefore){
+  let dupes = 0;
+  Object.entries(OVERLAP).forEach(([k, keyOf]) => {
+    const mine = new Set(mineBefore[k] || []), have = new Map(), took = new Map();
+    const at = r => r.m + "|" + keyOf(r);
+    (S[k] || []).forEach(r => { if(r && mine.has(r) && shared.includes(r.m)) have.set(at(r), (have.get(at(r)) || 0) + 1); });
+    S[k] = (S[k] || []).filter(r => {
+      if(!r || mine.has(r) || !shared.includes(r.m)) return true;
+      const key = at(r), n = (took.get(key) || 0) + 1; took.set(key, n);
+      if(n <= (have.get(key) || 0)){ dupes++; return false; }
+      return true;
+    });
+  });
+  return dupes;
+}
 window.sendSheet = async () => {
   const m = curMatch();
   if(!m || !sheetSize(m)){ flash("Nothing on this sheet yet — send it once a point is on it."); return; }
@@ -4949,6 +4978,7 @@ window.loadCopy = mode => {
     Object.keys(data.scout || {}).forEach(n => out.add(n));
     return [...out];
   };
+  const mineBefore = {}; Object.keys(OVERLAP).forEach(k => { mineBefore[k] = S[k] || []; });
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -4964,13 +4994,15 @@ window.loadCopy = mode => {
   fixBreak();
   dropPathCache();
   if(mode !== "replace"){
+    // Before any re-spelling: it rebuilds rows, and this phone's rows are
+    // told from the copy's by being the same objects they were.
+    let dupes = overlapRows(shared, mineBefore);
     const moved = [];
     theirNamesIn(d).forEach(n => {
       const hit = anyTeam(n), to = hit ? hit.name : spelled.get(foldName(n));
       if(to && to !== n && foldName(to) === foldName(n)){ rekeyTeam(n, to); moved.push(`${n} → ${to}`); }
     });
     if(moved.length) S.copyStatus += ` · spelled as this phone has them: ${moved.join(", ")}`;
-    let dupes = 0;
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
     if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
     clashes.forEach((pts, id) => {
