@@ -4438,6 +4438,24 @@ const ROSTER = [
     Object.assign(S, was); window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
     return ok1 && ok2 || JSON.stringify({ roster, out, moves: moves.map(v => v.who), status, ok2 });
   }));
+  check("a squad copy carries a rename to the assistant's phone, which lands his rows on the new name — but never folds a man this phone has under both names", await ev(() => {
+    window.confirm = () => true;
+    const was = { roster: S.roster, renamedMen: S.renamedMen, tally: S.tally };
+    S.roster = [...(S.roster || []), { name: "Ghost2", num: 78, p: "", s: "" }, { name: "Ghost3", num: 79, p: "", s: "" }, { name: "Ghost3 Jr", num: 80, p: "", s: "" }];
+    S.renamedMen = {};
+    S.tally = [{ m: S.matchId, pt: 1, side: "us", name: "Ghost2", at: 3, layout: S.layoutKey, vs: matchVs() }, ...(S.tally || [])];
+    const copy = JSON.parse(copyPayload("squad"));
+    copy.data.roster = [{ name: "Ghost2 Jr", num: 78, p: "", s: "" }, { name: "Ghost3 Jr", num: 80, p: "", s: "" }];
+    copy.data.renamedMen = { Ghost2: "Ghost2 Jr", Ghost3: "Ghost3 Jr" };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("merge");
+    const names = S.roster.map(p => p.name).filter(n => /^Ghost/.test(n)).sort().join();
+    const row = S.tally.some(o => o.name === "Ghost2 Jr" && o.at === 3) && !S.tally.some(o => o.name === "Ghost2");
+    const carried = (JSON.parse(copyPayload("squad")).data.renamedMen || {}).Ghost2 === "Ghost2 Jr";
+    const ok = names === "Ghost2 Jr,Ghost3,Ghost3 Jr" && row && carried;
+    Object.assign(S, was); window.set({ copyStatus: "" });
+    return ok || JSON.stringify({ names, row, carried });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
