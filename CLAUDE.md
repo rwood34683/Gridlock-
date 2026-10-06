@@ -574,7 +574,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     doubles nothing — the team joins his board (`boardTeam`), and **Open** under
     the message takes him to it (`openSentSheet`, `S.copySheet` scratch);
     Replace refuses a sheet. Still no server: the file travels however he
-    sends files.
+    sends files. Two coaches overlap — both log point 3's call, both tap the
+    same man out — and a merge only skips byte-identical rows, so
+    `reconcileSheet(mid)` runs after a sheet merge and holds the one-a-point
+    rules: one call a point, one out a man, one row a named man, one grade a
+    man, one break of theirs a point (the first keeps its row and takes what
+    the other had). This phone's row wins; a point the two phones scored
+    differently keeps this phone's result and the message names it; and a
+    coach standing on that sheet is moved on to the first point with no
+    result, or his next tap scores a point twice.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

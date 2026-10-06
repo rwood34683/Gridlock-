@@ -4767,6 +4767,44 @@ window.saveCopy = async scope => {
   save(S);
   render();
 };
+/* Two phones on one match each log the point the way one phone does: one
+ * call a point, one out a man, one breakout row a named man, one grade a man,
+ * one break of theirs a point. A merge joins rows by what makes a row the
+ * same row, and two phones logging the same call a second apart are two rows
+ * to it — so a sheet sent back and forth after both coaches had logged point
+ * 3 counted that call twice in self-scout, that out twice in the tally and
+ * that man twice in his read. This phone's row is kept (the merge puts its
+ * rows first) and the other's fills only what this one lacks. */
+function reconcileSheet(mid){
+  let dupes = 0;
+  const keepFirst = (list, keyOf) => {
+    const seen = new Set();
+    return (list || []).filter(r => {
+      if(!r || typeof r !== "object" || r.m !== mid) return true;
+      const k = keyOf(r); if(k === null) return true;
+      if(seen.has(k)){ dupes++; return false; }
+      seen.add(k); return true;
+    });
+  };
+  S.calls = keepFirst(S.calls, c => c.pt ? String(c.pt) : null);
+  S.tally = keepFirst(S.tally, o => o.pt && o.name ? [o.pt, o.side, foldName(o.name)].join("|") : null);
+  S.breakouts = keepFirst(S.breakouts, r => r.player ? [r.pt, r.side, foldName(r.player)].join("|") : null);
+  S.assessments = keepFirst(S.assessments, a => a.pt && a.who ? [a.pt, foldName(a.who)].join("|") : null);
+  Object.keys(S.scout || {}).forEach(k => {
+    const prof = S.scout[k]; if(!prof || !Array.isArray(prof.breaks)) return;
+    const byPt = new Map(), kept = [];
+    prof.breaks.forEach(b => {
+      if(!b || b.m !== mid || !b.pt){ kept.push(b); return; }
+      const first = byPt.get(b.pt);
+      if(!first){ const c = {...b}; byPt.set(b.pt, c); kept.push(c); return; }
+      dupes++;
+      if(!first.script && b.script) first.script = b.script;
+      if(!(Array.isArray(first.plants) && first.plants.length) && Array.isArray(b.plants) && b.plants.length) first.plants = b.plants;
+    });
+    S.scout[k] = {...prof, breaks: kept};
+  });
+  return dupes;
+}
 window.sendSheet = async () => {
   const m = curMatch();
   if(!m || !sheetSize(m)){ flash("Nothing on this sheet yet — send it once a point is on it."); return; }
@@ -4871,6 +4909,10 @@ window.loadCopy = mode => {
   const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
+  // Who won a point is the one thing two phones can disagree on outright. The
+  // merge keeps this phone's result; the message names the points.
+  const scoreClash = sheetId ? [...new Set((d.results || []).filter(r => r && r.m === sheetId
+    && (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt && x.won !== r.won)).map(r => r.pt))].sort((a, b) => a - b) : [];
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -4889,6 +4931,12 @@ window.loadCopy = mode => {
   // typed team does, and the line under the message opens it.
   if(sheetId && matchById(sheetId)){
     const sm = matchById(sheetId);
+    const dupes = reconcileSheet(sheetId);
+    if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
+    if(scoreClash.length) S.copyStatus += ` · the phones disagree on who won point${scoreClash.length === 1 ? "" : "s"} ${scoreClash.join(", ")} — this phone's result kept; fix it on the sheet if it was the other`;
+    // Standing on that sheet already: the point he is on moves on to the
+    // first one nobody has a result for, or the next tap scores a point twice.
+    if(sheetId === S.matchId){ const last = lastPoint(); S.point = resultFor(last) ? last + 1 : last; S.matchState = derivedState(); }
     (sm.watch ? [sm.home, sm.away] : [sm.vs]).filter(Boolean).forEach(boardTeam);
     S.copySheet = sheetId;
   }
@@ -6492,14 +6540,24 @@ function teamMeta(name){
 function profileOf(name){
   if(!name) return {tend:"Balanced", threat:3, notes:"", players:[], breaks:[],
                     answers:{}, unscored:true};
-  const kept = (S.scout || {})[name];
-  if(kept) return {players:[], breaks:[], answers:{}, ...kept};
   // Seeded where the event data knew; neutral where it did not. A team nobody
   // has scored is a 3 because that is the middle, not because it is average.
   const t = teamMeta(name);
-  return {tend: t.tend === "Snake" ? "Snake" : t.tend === "Dorito" ? "Dorito" : "Balanced",
+  const base = {tend: t.tend === "Snake" ? "Snake" : t.tend === "Dorito" ? "Dorito" : "Balanced",
           threat: t.threat || 3, notes: "", players: [], breaks: [], answers: {},
           unscored: t.threat === undefined};
+  // A kept profile can be partial: a sheet sent from another phone carries
+  // only the team's men and their breaks, and the Division board read the
+  // tendency off it and stopped drawing. What it lacks comes from the base.
+  const kept = (S.scout || {})[name];
+  if(kept){
+    const out = {...base, ...kept};
+    // A profile that was scored keeps reading as scored; one that never was
+    // (no threat on it, no word either way) reads as the base says.
+    if(!("unscored" in kept)) out.unscored = kept.threat === undefined ? base.unscored : undefined;
+    return out;
+  }
+  return base;
 }
 /* Who is in a pit, or nobody.
  *
@@ -11976,7 +12034,7 @@ const HELP = {
 const HELP_Q = [
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
-  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
+  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
