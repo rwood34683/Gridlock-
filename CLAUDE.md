@@ -1366,7 +1366,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   every picker and one word shouted for two breaks. `callTaken(name, except)`
   folds case and spacing like `squadHas()`; `savePlay`, `renamePlay` and
   `setBreakCall` all refuse through it and say so on screen, and the builder's
-  Save button reads "Already a call" before the tap.
+  Save button reads "Already a call" before the tap. A merge is the other
+  way in: an assistant who built "Rocket" on his own phone has it under its
+  own key, and the copy added it beside this phone's. `loadCopy` folds a play
+  whose name this phone's play already has into that one (`rekeyPlay`: the
+  calls, their breaks and answers, Face/Shot/Go, paths, job words, off), its
+  fives filling only fields this phone has none on; one named like a
+  built-in call here takes a number. The message says which.
 - Sign the same name onto a clinic sheet twice. A phone handed round a
   clinic gets the same kid twice — "Sam", "sam " — and the sheet counted two.
   `submitForm()` folds the name per class code like `squadHas()`: a second
