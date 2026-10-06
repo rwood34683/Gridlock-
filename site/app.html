@@ -6247,7 +6247,15 @@ function breakFreq(side){
  * winning one — and what they have run lately against what they ran all
  * season. Counts, never a model: "Blitz, 3 of the 4 times they were behind". */
 function scoreBefore(mid, pt){
-  const rows = (S.results || []).filter(r => r && r.m === mid && r.pt < pt);
+  // A season's results, read once per logged break per bucket, was most of
+  // the read line's cost on a full season: within one draw each sheet's
+  // results are pulled out of the season once and kept.
+  let mine = _lastPointMemo && _lastPointMemo.get("res|" + mid);
+  if(!mine){
+    mine = (S.results || []).filter(r => r && r.m === mid);
+    if(_lastPointMemo) _lastPointMemo.set("res|" + mid, mine);
+  }
+  const rows = mine.filter(r => r.pt < pt);
   return {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
 }
 function theirReads(side){
@@ -8294,7 +8302,14 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
 // on the right — the frame plants live in. A bunker logged on a point broken
 // the other way round is its twin here. Both sides turn together, so one rule
 // serves both: their five tapped in from either end are the same five.
-function frameId(id, mid, pt){ return ourEnd(pt, matchById(mid)) === "right" ? mirrorBunkerId(id) : id; }
+function frameId(id, mid, pt){
+  // Asked once a charted row by every count across points; the end a point
+  // was broken from does not change within one draw.
+  const k = "end|" + mid + "|" + pt;
+  let end = _lastPointMemo && _lastPointMemo.get(k);
+  if(!end){ end = ourEnd(pt, matchById(mid)); if(_lastPointMemo) _lastPointMemo.set(k, end); }
+  return end === "right" ? mirrorBunkerId(id) : id;
+}
 function ownBunker(id, side, mid, pt){ return frameId(id, mid, pt); }
 // The bunker to draw for a frame id, on the end the field shows now.
 const shownBunker = id => ourEnd() === "right" ? mirrorBunkerId(id) : id;
@@ -8929,15 +8944,33 @@ function whoPick(idx, side, value){
   return causePick(side === "us" ? "By (them)" : "By (yours)", idx, "by", value, list);
 }
 
+/* Each of these is a list of every bunker on the field, and the outs on the
+ * point each carry two, so a point with three men out drew some three hundred
+ * and fifty options on every tap of the sheet — most of the Log's nodes, laid
+ * out and styled every redraw while nobody was looking at them. The box draws
+ * only what it says now and fills the moment a finger or a key reaches it
+ * (`fillPick`), before the phone opens its picker. */
+const bunkerOption = (b, value) => `<option value="${esc(b.id)}"${value === b.id ? " selected" : ""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
 function bunkerPick(label, idx, field, value){
-  const list = curLayout().bunkers;
+  const cur = value && curLayout().bunkers.find(b => b.id === value);
   return `<label style="display:flex;flex-direction:column;gap:4px">
     <span class="note">${label}</span>
-    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
-      <option value="">—</option>
-      ${list.map(b=>`<option value="${esc(b.id)}" ${value===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+    <select data-fill="bunkers" onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm);min-width:9em">
+      <option value="">—</option>${cur ? bunkerOption(cur, value) : ""}
     </select></label>`;
 }
+function fillPick(sel){
+  if(!sel || sel.dataset.fill !== "bunkers") return;
+  const v = sel.value;
+  sel.innerHTML = `<option value="">—</option>` + curLayout().bunkers.map(b => bunkerOption(b, v)).join("");
+  sel.value = v;
+  delete sel.dataset.fill;
+}
+["pointerdown", "mousedown", "touchstart", "focusin", "keydown"].forEach(type =>
+  document.addEventListener(type, ev => {
+    const sel = ev.target && ev.target.closest && ev.target.closest("select[data-fill]");
+    if(sel) fillPick(sel);
+  }, true));
 window.setOutBunker = (i, field, val) => {
   const t = [...(S.tally||[])];
   if(!t[i] || typeof t[i] !== "object") return;

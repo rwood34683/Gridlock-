@@ -1875,3 +1875,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `render()`, because nothing is logged mid-draw). The tap is under a second
   at the same throttle. The suite counts the routes and the season reads a
   redraw makes, not the milliseconds, so a slow runner cannot make it lie.
+  The same draw-long memo holds each sheet's results for `scoreBefore()` and
+  the end each point was broken from for `frameId()`, which the read line and
+  the value table ask once a charted row. And the Log's bunker boxes
+  (`bunkerPick`) draw only the value they hold — two options instead of
+  fifty-nine each — and `fillPick` fills them on the first pointer, touch,
+  focus or key, before the phone opens its picker: three men out on a point
+  was three hundred and fifty options styled and laid out on every tap. A
+  median Tally tap on a full season is about half a second at six times
+  slower than a laptop.

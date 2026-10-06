@@ -4109,6 +4109,24 @@ const ROSTER = [
     S.breakouts = was.breakouts || []; S.tally = was.tally || []; S.results = was.results || []; window.newMatch();
     return first <= 10 && again === 0 && reads <= 3 && same || JSON.stringify({ first, again, reads, same });
   }));
+  check("the Log's bunker boxes draw only what they say until a finger reaches them, then hold every bunker and still set the out", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Pick Check FC" } }); window.playPit(); window.newMatch();
+    const name = (S.roster[0] || {}).name; window.markOut("us", name);
+    window.set({ tab: "tally" });
+    const boxes = [...document.querySelectorAll("#root select[data-fill]")];
+    const lean = boxes.length >= 2 && boxes.every(b => b.options.length <= 2);
+    const box = boxes[0];
+    box.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    const full = box.options.length === curLayout().bunkers.length + 1 && !box.dataset.fill;
+    const target = curLayout().bunkers[7].id;
+    box.value = target; box.dispatchEvent(new Event("change", { bubbles: true }));
+    const row = rowsHere(S.tally).find(o => o.name === name);
+    const set = !!row && (row.shotAt === target || row.movedTo === target);
+    // Drawn again with a value, the box says it without its list.
+    const again = [...document.querySelectorAll("#root select[data-fill]")].some(b => b.value === target && b.options.length === 2);
+    window.markOut("us", name); window.newMatch();
+    return lean && full && set && again || JSON.stringify({ lean, full, set, again, n: boxes.length });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
