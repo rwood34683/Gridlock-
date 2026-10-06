@@ -2609,7 +2609,16 @@ function raceTo(m){ m = m === undefined ? curMatch() : m; return m && m.raceTo >
 // one side leads by a set margin. How big is the division's rule, so it is
 // set on the sheet like the race and never shipped as a number.
 function mercy(m){ m = m === undefined ? curMatch() : m; return m && m.mercy > 0 ? m.mercy : 0; }
-window.setMercy = n => { patchMatch({mercy: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
+// The same for the mercy rule: a lead already past it would have ended the
+// match before now. A lead that has just reached it ends it here.
+window.setMercy = n => {
+  const want = Number(n) > 0 ? Number(n) : null;
+  if(want){
+    const sc = matchScore(), lead = Math.abs(sc.us - sc.them);
+    if(lead > want){ flash(`The lead is already ${lead}, so a mercy at ${want} would have ended it before now. Mercy at ${lead} or more.`); return; }
+  }
+  patchMatch({mercy: want}); S.matchState = derivedState(); save(S); render();
+};
 function matchById(mid){ return (S.matches || []).find(x => x.id === (mid || S.matchId)) || null; }
 function matchOver(mid){
   const m = matchById(mid); if(!m) return null;
@@ -2741,7 +2750,21 @@ window.setMatchVs = name => {
   S.right = {...(S.right || {}), name: to};
   save(S); flash(`This sheet is against ${to} now — every out, call and read on it moved with it.`);
 };
-window.setRaceTo = n => { patchMatch({raceTo: Number(n) > 0 ? Number(n) : null}); S.matchState = derivedState(); save(S); render(); };
+// A race the score has already passed is a mis-tap, not a format: at 3–2 a
+// race to 2 would have ended points ago, and matchOver() read it as a win
+// for whichever side it checked first. The race is at least the higher score,
+// and one past it when the score is level.
+window.setRaceTo = n => {
+  const want = Number(n) > 0 ? Number(n) : null;
+  if(want){
+    const sc = matchScore(), hi = Math.max(sc.us, sc.them), lo = Math.min(sc.us, sc.them);
+    if(hi > want || lo >= want){
+      const least = hi > lo ? hi : hi + 1;
+      flash(`The score is already ${sc.us}–${sc.them}, so a race to ${want} would have ended before now. Race to ${least} or more.`); return;
+    }
+  }
+  patchMatch({raceTo: want}); S.matchState = derivedState(); save(S); render();
+};
 /* Ends. Your five break from one end of the field and the other team from the
  * other, and which end is yours changes — at the half, or every point,
  * depending on the format. The app drew every break from the left end and

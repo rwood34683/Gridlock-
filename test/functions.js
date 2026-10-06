@@ -4504,6 +4504,30 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
     return !typo && landed && carried && said || JSON.stringify({ typo, landed, carried, status });
   }));
+  check("a race or a mercy the score has already passed is refused and says the least that fits — a mis-tap never ends a sheet with the wrong winner", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId;
+    S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "us" }, { m: mid, pt: 3, won: "them" }, { m: mid, pt: 4, won: "them" }, { m: mid, pt: 5, won: "us" }, ...(S.results || [])];
+    window.set({ point: 6 });
+    window.setRaceTo(2);
+    const refused = !matchById(mid).raceTo && /Race to 3 or more/.test(S.flash || document.getElementById("root").textContent);
+    window.setRaceTo(5);
+    const took = matchById(mid).raceTo === 5 && !matchOver(mid);
+    window.setRaceTo(3);
+    const ends = matchById(mid).raceTo === 3 && matchOver(mid) === "us";
+    S.results = S.results.filter(r => !(r.m === mid && r.pt === 5));
+    window.setRaceTo(2);
+    const level = matchById(mid).raceTo === 3 && /Race to 3 or more/.test(S.flash || document.getElementById("root").textContent);
+    window.setMercy(0); S.results = [{ m: mid, pt: 5, won: "us" }, { m: mid, pt: 6, won: "us" }, { m: mid, pt: 7, won: "us" }, ...S.results];
+    window.setRaceTo(0); window.setMercy(2);
+    const mercyNo = !matchById(mid).mercy && /Mercy at 3 or more/.test(S.flash || document.getElementById("root").textContent);
+    window.setMercy(3);
+    const mercyYes = matchById(mid).mercy === 3 && matchOver(mid) === "us";
+    S.results = S.results.filter(r => r.m !== mid);
+    window.set({ right: { name: "Dynasty" } }); window.newMatch();
+    return refused && took && ends && level && mercyNo && mercyYes || JSON.stringify({ refused, took, ends, level, mercyNo, mercyYes });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
