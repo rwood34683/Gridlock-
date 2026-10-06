@@ -6062,9 +6062,28 @@ function manRead(side, who, team){
   // His bunker is counted in his own end's frame, so a man who swaps ends every point still "breaks to" one bunker.
   const val = (r, key) => (key === "bunker" || key === "shotFrom") && r[key] && r.layout === S.layoutKey ? frameId(r[key], r.m, r.pt) : r[key];
   const top = key => { const m = {}; rows.forEach(r => { const v = val(r, key); if(v) m[v] = (m[v] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
+  // Four counts the other scouting apps sell, out of what was already charted
+  // — no extra tap between points. Shooting off the break is a lane or a
+  // target ticked on his row; taking one off the break is a man of the other
+  // side shot on that point from the bunker he broke to; alive at the end and
+  // first out read the outs tallied on the points he was charted on. Each is
+  // over his charted breaks, and printed with that sample.
+  const opp = side === "us" ? "them" : "us";
+  const all = S.breakouts || [], outs = (S.tally || []).filter(o => o && typeof o === "object");
+  const outOf = r => outs.find(o => o.m === r.m && o.pt === r.pt && o.side === side && (o.name === r.player || (tag.startsWith("#") && String(o.name).split(" ")[0] === tag.split(" ")[0])));
+  const firstOut = r => { const mine = outOf(r); if(!mine) return false;
+    const first = outs.filter(o => o.m === r.m && o.pt === r.pt && o.side === side).sort((x, y) => (x.at || 0) - (y.at || 0))[0];
+    return first === mine; };
   return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
           delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battling").length,
-          bunker: top("bunker"), shotFrom: top("shotFrom")};
+          bunker: top("bunker"), shotFrom: top("shotFrom"),
+          gunUp: rows.filter(r => (r.dir !== null && r.dir !== undefined && r.dir !== "") || r.shootAt).length,
+          took: rows.reduce((n, r) => n + all.filter(o => o && o.m === r.m && o.pt === r.pt && o.side === opp && o.alive === false && o.shotFrom && o.shotFrom === r.bunker).length, 0),
+          // Only points with an out tallied on them say anything about who
+          // was left standing; a point nobody tallied would read as alive.
+          tallied: rows.filter(r => outs.some(o => o.m === r.m && o.pt === r.pt)).length,
+          alive: rows.filter(r => outs.some(o => o.m === r.m && o.pt === r.pt) && r.alive !== false && !outOf(r)).length,
+          first: rows.filter(firstOut).length};
 }
 // The read as one line, or nothing when there is nothing counted.
 function manLine(side, who, team){
@@ -6072,7 +6091,9 @@ function manLine(side, who, team){
   const name = id => bunkerLabel(shownBunker(id));   // frame ids, named on the end shown now
   const bits = [`${r.n} break${r.n === 1 ? "" : "s"} charted`,
                 r.made ? `made it ${r.made}` : "", r.shot ? `shot on the break ${r.shot}${r.shotFrom ? ` (from ${esc(name(r.shotFrom[0]))} ${r.shotFrom[1]})` : ""}` : "",
-                r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : ""].filter(Boolean);
+                r.bunker ? `breaks to ${esc(name(r.bunker[0]))} ${r.bunker[1]} of ${r.n}` : "", r.delayed ? `delayed ${r.delayed}` : "",
+                r.gunUp ? `shooting off the break ${r.gunUp} of ${r.n}` : "", r.took ? `took ${r.took} off the break` : "",
+                r.tallied ? `alive at the end ${r.alive} of ${r.tallied}` : "", r.first ? `first out ${r.first}` : ""].filter(Boolean);
   return bits.join(" · ");
 }
 /* The read for the next point. The most specific situation the coach is in
