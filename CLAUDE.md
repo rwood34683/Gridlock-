@@ -583,6 +583,13 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     differently keeps this phone's result and the message names it; and a
     coach standing on that sheet is moved on to the first point with no
     result, or his next tap scores a point twice.
+    A whole-season copy can hold the same sheet too — an assistant who
+    charted the match and sends his season — so the reconcile and the score
+    check run on every sheet both phones hold, not only on a sheet sent alone.
+    And a team the other phone typed another way ("dynasty") lands under this
+    phone's spelling: the board's, else what this phone already logged them
+    as, re-keyed through `rekeyTeam()`, the store-by-store move `renameTeam`
+    makes, with the board keeping this phone's spelling on a merge.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

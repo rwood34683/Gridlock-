@@ -4226,6 +4226,38 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "" }); window.newMatch();
     return oneCall && oneOut && oneMan && oneBreak && kept && said || JSON.stringify({ oneCall, oneOut, oneMan, oneBreak, kept, said });
   }));
+  check("a whole-season copy from a phone that charted the same sheet keeps one call a point too, and a team it typed another way lands under this phone's spelling", await ev(() => {
+    window.confirm = () => true;
+    boardTeam("Spelling FC");
+    window.set({ tab: "tally", right: { name: "Spelling FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, L = S.layoutKey, bl = curLayout().bunkers;
+    S.calls = [{ m: mid, pt: 1, at: 1000, script: "snake", layout: L, vs: "Spelling FC" }, ...(S.calls || [])];
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const copy = JSON.parse(copyPayload("all"));
+    // The other phone: the same sheet with point 1's call a second later and
+    // scored the other way, one more sheet of its own against "spelling fc",
+    // its scout book and its board keyed the same way.
+    const other = "x-" + mid;
+    copy.data.matches = [{ ...matchById(mid), vs: "spelling fc" }, { id: other, at: Date.now(), vs: "spelling fc", layout: L }];
+    copy.data.calls = [{ m: mid, pt: 1, at: 2000, script: "snake", layout: L, vs: "spelling fc" }, { m: other, pt: 1, at: 2001, script: "blitz", layout: L, vs: "spelling fc" }];
+    copy.data.results = [{ m: mid, pt: 1, won: "them" }, { m: other, pt: 1, won: "us" }];
+    copy.data.scout = { "spelling fc": { name: "spelling fc", breaks: [{ m: other, pt: 1, script: "blitz", plants: bl.slice(40, 45).map(x => x.id), layout: L, at: 2002 }] } };
+    copy.data.teams = { [divisionOf().id]: [{ name: "spelling fc" }] };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("merge");
+    const lower = JSON.stringify([S.matches, S.calls, Object.keys(S.scout || {}), S.teams]).includes("spelling fc");
+    const oneCall = S.calls.filter(c => c.m === mid && c.pt === 1).length === 1;
+    const otherIs = (matchById(other) || {}).vs === "Spelling FC" && ((S.scout["Spelling FC"] || {}).breaks || []).some(b => b.m === other);
+    const kept = S.results.find(r => r.m === mid && r.pt === 1).won === "us";
+    const said = /kept once/.test(S.copyStatus) && /disagree on who won point 1/.test(S.copyStatus) && /spelled as this phone has them/.test(S.copyStatus);
+    const board = addedTeams(divisionOf().id).filter(t => foldName(t.name) === "spelling fc").map(t => t.name);
+    S.calls = S.calls.filter(c => c.m !== mid && c.m !== other); S.results = S.results.filter(r => r.m !== mid && r.m !== other);
+    S.matches = S.matches.filter(m => m.id !== other); delete S.scout["Spelling FC"];
+    window.set({ copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return !lower && oneCall && otherIs && kept && said && board.length === 1 && board[0] === "Spelling FC"
+      || JSON.stringify({ lower, oneCall, otherIs, kept, said, board, status: S.copyStatus });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
