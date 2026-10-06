@@ -4000,6 +4000,21 @@ const ROSTER = [
     S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso" }); window.newMatch();
     return twinned && single && notYet && turnedMoved && ready && listed && on && copyOk && kept && gone;
   }));
+  check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
+    S.breakouts = [
+      { id: "kr1", m: mid, pt: 1, side: "us", player: "Reyes", bunker: a.id, layout: S.layoutKey, alive: true, dir: 0, at, vs: "Dynasty" },
+      { id: "kr2", m: mid, pt: 1, side: "them", player: "#7", bunker: c.id, layout: S.layoutKey, alive: false, shotFrom: a.id, at, vs: "Dynasty" },
+      { id: "kr3", m: mid, pt: 2, side: "us", player: "Reyes", bunker: a.id, layout: S.layoutKey, alive: true, at, vs: "Dynasty" },
+      ...(S.breakouts || [])];
+    S.tally = [{ m: mid, pt: 2, side: "us", name: "Reyes", at: at + 5, layout: S.layoutKey, vs: "Dynasty" },
+               { m: mid, pt: 2, side: "us", name: "Okafor", at: at + 9, layout: S.layoutKey, vs: "Dynasty" }, ...(S.tally || [])];
+    const r = manRead("us", "Reyes", "Dynasty"), line = manLine("us", "Reyes", "Dynasty");
+    S.breakouts = S.breakouts.filter(x => !/^kr/.test(x.id)); S.tally = S.tally.filter(o => o.m !== mid); window.newMatch();
+    return r.n === 2 && r.gunUp === 1 && r.took === 1 && r.tallied === 1 && r.alive === 0 && r.first === 1
+      && /shooting off the break 1 of 2/.test(line) && /took 1 off the break/.test(line) && /alive at the end 0 of 1/.test(line) && /first out 1/.test(line);
+  }));
   check("a sheet on another field still takes nothing: the field, a tapped man and Log it refuse and say so", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const here = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== here);

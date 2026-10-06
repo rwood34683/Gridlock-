@@ -386,6 +386,13 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     bunker he breaks to most — and `manLine()` prints it beside their men on
     Anticipate and Matchup and under your man on Assess; *How they get you*
     names the bunker you lose men at most against that team.
+    Four more counts sit on the same line, because the other scouting apps
+    sell them and every one is already in the chart: **shooting off the
+    break** (a lane or target ticked on his row), **took N off the break** (a
+    man of the other side shot on that point from the bunker he broke to),
+    **alive at the end** (only over points with an out tallied on them — a
+    point nobody tallied says nothing about who was standing) and **first
+    out**. No extra tap.
 
 35. ~~The read for the next point.~~ Done — the owner asked for predictive
     intelligence as strong as it can be made, and the honest ceiling is the
