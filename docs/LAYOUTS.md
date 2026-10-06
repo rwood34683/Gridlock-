@@ -23,6 +23,15 @@ Open and the Lone Star Open.
 | nxl_2026_lone_star | published | `grid_digitized` | 58 |
 | nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
 
+## A field the coach builds
+
+A field not in the pack can be built on the phone (More › Nexus › Events ›
+Build a field). Bunker *sizes* still come from `layouts/bunkers.json` — the
+coach only places them — the field is drawn neutral grey because nobody
+sampled its colours, and its source line says it was placed by eye, not
+measured. It never enters this pack: it lives in the coach's season and rides
+in Save a copy.
+
 ## How the Midwest Open was digitized
 
 Source: `layouts/images/nxl_2026_midwest_2d_labeled.jpg` (5698 × 4322), the

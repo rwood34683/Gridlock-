@@ -1837,6 +1837,7 @@ window.gridlockRestore = text => {
   Object.keys(d).forEach(k => { S[k] = d[k]; });
   Object.assign(S, held);
   clearScratch(); resetLiveState();
+  registerFields();
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   _hadLocal = true;
@@ -1895,6 +1896,316 @@ function resetLiveState(){
   if(!["playbook", "tally", "scout", "sightlines", "more"].includes(S.tab)) S.tab = "playbook";
 }
 resetLiveState();
+/* A field of his own.
+ *
+ * The app carried three fields, all NXL, and a coach at a regional event, a
+ * local league or his own practice field had nothing to stand on: every other
+ * paintball app lets him use the field he is on. So he builds it. The rule
+ * that keeps the three measured fields honest holds here too: a bunker's
+ * *size* is never his to choose — one type is one inflatable, and the
+ * footprints below are the ones measured off the Midwest 2D in
+ * layouts/bunkers.json — only *where* it sits, which he reads off the event's
+ * own map or his walk. A field nobody sampled the colours of stays neutral
+ * grey, and the field says, wherever its source is shown, that a coach placed
+ * it and nobody measured it. Fields mirror across the fifty, so he places the
+ * left half and the twin appears; a bunker on the fifty stays one bunker.
+ * The twelve calls plant on it by the same rule tools/plants.js runs for the
+ * measured fields (`plantRule`, checked against BREAK_PLANTS in the suite),
+ * so the playbook works on the day he builds it. */
+const BUNKER_KINDS = [
+  {key:"sb", name:"Snake beam",   n:"SB", t:"beam",    w:9.68,  h:1.49},
+  {key:"md", name:"Dorito",       n:"MD", t:"dorito",  w:6.69,  h:6.11},
+  {key:"sd", name:"Small dorito", n:"SD", t:"dorito",  w:5.21,  h:4.53},
+  {key:"ck", name:"Cake",         n:"Ck", t:"tridown", w:4.15,  h:4.05},
+  {key:"t",  name:"Temple",       n:"T",  t:"temple",  w:4.82,  h:4.71},
+  {key:"mt", name:"Maya temple",  n:"MT", t:"temple",  w:4.98,  h:4.95},
+  {key:"br", name:"Can",          n:"Br", t:"can",     w:3.54,  h:8.04},
+  {key:"gb", name:"Giant brick",  n:"GB", t:"gbrick",  w:4.76,  h:10.09},
+  {key:"c",  name:"Cylinder",     n:"C",  t:"ball",    w:4.11,  h:4.27},
+  {key:"tr", name:"Tree",         n:"Tr", t:"ball",    w:3.63,  h:3.57},
+  {key:"mw", name:"Mini-W",       n:"MW", t:"mw",      w:1.93,  h:7.07},
+  {key:"wg", name:"Wing",         n:"Wg", t:"bar",     w:3.05,  h:7.3},
+  {key:"gw", name:"Giant wing",   n:"GW", t:"gwing",   w:5.34,  h:5.66},
+  {key:"gp", name:"Giant plus",   n:"GP", t:"plus",    w:11.31, h:11.09, k:4.02},
+];
+// The twelve calls as tools/plants.js writes them: five slots of a wire band
+// and a depth up the home half. Kept in step with the tool by the suite, which
+// runs this copy over the three measured fields and expects BREAK_PLANTS back.
+const PLANT_BANDS = ["snake wire", "snake side", "centre", "dorito side", "dorito wire"];
+const plantBand = y => y > 88 ? "snake wire" : y > 66 ? "snake side" : y > 44 ? "centre" : y > 24 ? "dorito side" : "dorito wire";
+const PLANT_SHAPES = (() => {
+  const SW = "snake wire", SS = "snake side", C = "centre", DS = "dorito side", DW = "dorito wire";
+  return {
+    hold:     {slots: [[SW,.40],[SS,.45],[C,.45],[DS,.15],[DW,.30]]},
+    base:     {slots: [[SW,.65],[SS,.45],[C,.70],[DS,.60],[DW,.50]]},
+    snake:    {slots: [[SW,.81],[SW,.73],[SS,.94],[SS,1.0],[DS,.60]]},
+    flood:    {slots: [[DW,.90],[DW,.69],[DW,.50],[DS,.60],[C,.45]]},
+    blitz:    {slots: [[SW,.81],[SS,.94],[C,.94],[DS,.81],[DW,.90]]},
+    conserve: {slots: [[SW,.20],[SS,.22],[C,.32],[DS,.20],[DW,.20]]},
+    counter:  {slots: [[C,.85],[SW,.55],[DW,.55],[SS,.32],[DS,.32]]},
+    split:    {slots: [[SW,.72],[SS,.55],[DW,.72],[DS,.55],[C,.22]]},
+    tower:    {slots: [[C,.95],[C,.58],[SS,.45],[DS,.45],[SW,.28]]},
+    trade:    {slots: [[SW,.62],[SS,.64],[C,.66],[DS,.64],[DW,.62]], prefer: true},
+    contain:  {slots: [[SW,.85],[DW,.85],[C,.30],[SS,.24],[DS,.24]]},
+    lock:     {slots: [[SW,.28],[SS,.32],[C,.34],[DS,.32],[DW,.28]], prefer: true},
+  };
+})();
+// The bunkers you stand and shoot from: brick, either temple, giant brick,
+// mini-W and cylinder (a tree is drawn the same shape and is not one).
+const laneBunker = b => ["can", "temple", "gbrick", "mw"].includes(b.t) || (b.t === "ball" && b.n === "C");
+function plantRule(bunkers, shape){
+  const pad = 0.9;
+  const reachable = b => !bunkers.some(o => o !== b && o.n !== b.n
+    && Math.abs(o.x - b.x) < o.w / 2 + pad && Math.abs(o.y - b.y) < o.h / 2 + pad);
+  const free = bunkers.filter(b => b.x < 76 && reachable(b));
+  const taken = [];
+  const usedSnake = () => taken.some(b => b.n === "SB");
+  return shape.slots.map(([band, depth]) => {
+    const want = 10 + depth * (72 - 10);
+    const order = [band, ...PLANT_BANDS.filter(x => x !== band)
+      .sort((p, q) => Math.abs(PLANT_BANDS.indexOf(p) - PLANT_BANDS.indexOf(band)) - Math.abs(PLANT_BANDS.indexOf(q) - PLANT_BANDS.indexOf(band)))];
+    for(const wanted of order){
+      const pick = free.filter(x => !taken.includes(x) && plantBand(x.y) === wanted)
+        .filter(x => !(x.n === "SB" && usedSnake()))
+        .filter(x => !taken.some(t => Math.abs(t.x - x.x) < t.w / 2 + 1 && Math.abs(t.y - x.y) < t.h / 2 + 1))
+        .map(x => ({x, cost: Math.abs(x.x - want) - (shape.prefer && laneBunker(x) ? 8 : 0)}))
+        .sort((p, q) => p.cost - q.cost)[0];
+      if(pick){ taken.push(pick.x); return pick.x.id; }
+    }
+    throw new Error("nowhere left to plant");
+  });
+}
+// Enough of a field to play on. A practice field can be small; eight is the
+// fewest that puts a man in every band.
+const FIELD_MIN = 8;
+const fieldReady = f => !!f && Array.isArray(f.bunkers) && f.bunkers.length >= FIELD_MIN;
+const FIELD_SOURCE = "Built by you on this phone: each bunker placed by eye off the event's own map or your walk, its size the measured inflatable. Not measured, so the lanes are as good as the placing.";
+// His fields join the three the app carries, under keys that can never be one
+// of theirs, and the twelve plant on each by the rule. Run at launch, after a
+// copy is loaded or restored, and whenever a field is changed.
+function registerFields(){
+  Object.keys(LAYOUTS).filter(k => k.startsWith("my:")).forEach(k => { delete LAYOUTS[k]; delete BREAK_PLANTS[k]; });
+  (S.fields || []).forEach(f => {
+    if(!fieldReady(f) || !String(f.key || "").startsWith("my:")) return;
+    LAYOUTS[f.key] = {name: f.name || "My field", key: f.key, mine: true, source: FIELD_SOURCE,
+                      bunkers: f.bunkers.map(b => ({...b}))};
+    const planted = {};
+    Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(f.bunkers, shape); } catch(e){} });
+    BREAK_PLANTS[f.key] = planted;
+  });
+  if(typeof dropPathCache === "function") dropPathCache();
+}
+registerFields();
+const fieldOf = key => (S.fields || []).find(f => f && f.key === key) || null;
+const fieldSnap = v => Math.round(v * 2) / 2;
+// The next free number for a code on this field. Ids are never reused or
+// renumbered: a breakout keeps the id of the bunker he broke to, so moving or
+// taking one off must not hand its id to another bunker.
+function fieldNextId(list, n, more = []){
+  const used = [...list, ...more].filter(b => b.n === n).map(b => Number(String(b.id).split("#")[1]) || 0);
+  return n + "#" + ((used.length ? Math.max(...used) : 0) + 1);
+}
+// Every row that names a bunker on this field: a man's break, an out, a
+// rotation, a sighting, a shot, their five, a play's plant.
+function bunkerUses(key, id){
+  const tag = JSON.stringify(id);
+  const hit = r => r && typeof r === "object" && r.layout === key && JSON.stringify(r).includes(tag);
+  let n = 0;
+  ["breakouts", "tally", "moves", "arrivalSightings", "arrivalShots", "voiceEvents"].forEach(k => (S[k] || []).forEach(r => { if(hit(r)) n++; }));
+  Object.values(S.scout || {}).forEach(p => (p.breaks || []).forEach(b => { if(hit(b)) n++; }));
+  (S.plays || []).forEach(p => { const five = (p.plants || {})[key]; if(Array.isArray(five) && five.includes(id)) n++; });
+  return n;
+}
+function patchField(key, fn, said){
+  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: fn((f.bunkers || []).map(b => ({...b})))} : f);
+  registerFields();
+  if(said) S.flash = said;
+  save(S); render();
+}
+function showFieldBuilder(){
+  requestAnimationFrame(() => { const el = document.getElementById("fieldbuild"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+}
+window.newField = () => {
+  const box = document.getElementById("field-name");
+  const name = clean(String(box ? box.value : "").trim()).slice(0, 40);
+  if(!name){ flash("Name the field first — the event or the park it is at."); return; }
+  const taken = [...Object.values(LAYOUTS).map(L => L.name), ...(S.fields || []).map(f => f.name)].find(n => foldName(n) === foldName(name));
+  if(taken){ flash(`There is already a field called ${taken}.`); return; }
+  const key = "my:f" + Date.now().toString(36);
+  S.fields = [...(S.fields || []), {key, name, at: Date.now(), bunkers: []}];
+  S.fieldEdit = {key, kind: "md", sel: null};
+  save(S); render(); showFieldBuilder();
+};
+window.editField = key => { if(!fieldOf(key)) return; S.fieldEdit = {key, kind: "md", sel: null}; save(S); render(); showFieldBuilder(); };
+window.fieldKind = k => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, kind: k, sel: null}; save(S); render(); };
+window.fieldDeselect = () => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, sel: null}; save(S); render(); };
+// The name box sits beside Done: it commits without a redraw, or the redraw
+// rebuilds Done under the thumb that is landing on it.
+window.renameField = (key, value) => {
+  const f = fieldOf(key); if(!f) return;
+  const name = clean(String(value || "").trim()).slice(0, 40);
+  if(!name){ flash("A field needs a name — it is how the event picker shows it."); return; }
+  const taken = [...Object.values(LAYOUTS).filter(L => L.key !== key).map(L => L.name), ...(S.fields || []).filter(x => x.key !== key).map(x => x.name)].find(n => foldName(n) === foldName(name));
+  if(taken){ flash(`There is already a field called ${taken}.`); return; }
+  S.fields = S.fields.map(x => x.key === key ? {...x, name} : x);
+  registerFields(); save(S);
+};
+window.fieldDone = () => {
+  const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
+  S.fieldEdit = null; registerFields();
+  if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
+  else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
+  save(S); render();
+};
+window.deleteField = key => {
+  const f = fieldOf(key); if(!f) return;
+  const sheets = (S.matches || []).filter(m => m.layout === key).length;
+  if(sheets){ flash(`${sheets} sheet${sheets === 1 ? " was" : "s were"} played on ${f.name}, so the field stays — they are read on it.`); return; }
+  if(f.bunkers.length && !confirm(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`)) return;
+  S.fields = S.fields.filter(x => x.key !== key);
+  if(S.fieldEdit && S.fieldEdit.key === key) S.fieldEdit = null;
+  registerFields();
+  if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  S.flash = `${f.name} deleted.`;
+  save(S); render();
+};
+// One tap on the field: a bunker is picked; ground with a bunker picked moves
+// it there; ground with nothing picked places the kind he has chosen — and
+// its twin across the fifty, unless it sits on the fifty.
+window.fieldTap = at => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const hit = f.bunkers.map(b => ({b, d: Math.hypot(b.x - at[0], b.y - at[1])}))
+    .filter(({b}) => Math.abs(b.x - at[0]) < b.w / 2 + 1.2 && Math.abs(b.y - at[1]) < b.h / 2 + 1.2)
+    .sort((p, q) => p.d - q.d)[0];
+  if(hit){ S.fieldEdit = {...ed, sel: hit.b.id === ed.sel ? null : hit.b.id}; save(S); render(); return; }
+  const onFifty = x => Math.abs(x - 75) < 1.5;
+  if(ed.sel){
+    const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
+    let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
+    x = Math.min(150 - sel.w / 2, Math.max(sel.w / 2, x)); y = Math.min(120 - sel.h / 2, Math.max(sel.h / 2, y));
+    if(onFifty(x)) x = 75;
+    patchField(f.key, list => {
+      const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
+      me.x = x; me.y = y;
+      if(x === 75){ if(twin){ delete me.tw; return list.filter(b => b !== twin); } return list; }
+      if(twin){ twin.x = 150 - x; twin.y = y; return list; }
+      const t = {...me, id: fieldNextId(list, me.n), x: 150 - x, tw: me.id};
+      if(t.a) t.a = -t.a;
+      me.tw = t.id;
+      return [...list, t];
+    });
+    S.fieldEdit = {...S.fieldEdit, sel: null}; save(S);
+    return;
+  }
+  const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
+  let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
+  x = Math.min(150 - kind.w / 2, Math.max(kind.w / 2, x)); y = Math.min(120 - kind.h / 2, Math.max(kind.h / 2, y));
+  if(onFifty(x)) x = 75;
+  patchField(f.key, list => {
+    const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
+    if(kind.k) b.k = kind.k;
+    if(x === 75) return [...list, b];
+    const t = {...b, id: fieldNextId(list, kind.n, [b]), x: 150 - x, tw: b.id};
+    b.tw = t.id;
+    return [...list, b, t];
+  });
+};
+// Turn: a beam goes flat, angled, upright, angled the other way; a plus goes
+// on its corner and back; a dorito points the other way; anything else turns
+// a quarter. The twin turns as its mirror does.
+window.fieldTurn = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
+  patchField(f.key, list => {
+    const me = list.find(b => b.id === ed.sel); if(!me) return list;
+    const turn = b => {
+      if(b.t === "beam"){
+        const flat = b.w >= b.h;
+        if(!b.a && flat) b.a = 45;
+        else if(b.a === 45){ delete b.a; [b.w, b.h] = [b.h, b.w]; }
+        else if(!b.a && !flat){ [b.w, b.h] = [b.h, b.w]; b.a = -45; }
+        else delete b.a;
+      } else if(b.t === "plus"){ if(b.a) delete b.a; else b.a = 45; }
+      else if(b.t === "dorito") b.t = "tridown";
+      else if(b.t === "tridown") b.t = "dorito";
+      else [b.w, b.h] = [b.h, b.w];
+    };
+    turn(me);
+    const twin = me.tw ? list.find(b => b.id === me.tw) : null;
+    if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; }
+    return list;
+  });
+};
+window.fieldRemove = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
+  const me = f.bunkers.find(b => b.id === ed.sel); if(!me) return;
+  const ids = [me.id, ...(me.tw ? [me.tw] : [])];
+  const uses = ids.reduce((n, id) => n + bunkerUses(f.key, id), 0);
+  if(uses && !confirm(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
+  S.fieldEdit = {...ed, sel: null};
+  patchField(f.key, list => list.filter(b => !ids.includes(b.id)), `Took off ${ids.join(" and ")}.`);
+};
+function fieldBuildSVG(f){
+  const W = 300, H = 240, M = 18, sx = 2, sy = 2, sel = S.fieldEdit && S.fieldEdit.sel;
+  const me = sel && f.bunkers.find(b => b.id === sel), twin = me && me.tw && f.bunkers.find(b => b.id === me.tw);
+  const ring = (b, dash) => b ? `<rect x="${((b.x - b.w / 2 - 1.6) * sx).toFixed(1)}" y="${((b.y - b.h / 2 - 1.6) * sy).toFixed(1)}" width="${((b.w + 3.2) * sx).toFixed(1)}" height="${((b.h + 3.2) * sy).toFixed(1)}" rx="4" fill="none" stroke="#efedeb" stroke-width="1.4"${dash ? ' stroke-dasharray="3 3" opacity=".7"' : ""}/>` : "";
+  const codes = f.bunkers.map(b => `<text x="${(b.x * sx).toFixed(1)}" y="${((b.y + b.h / 2) * sy + 7).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="#8d9092">${esc(b.n)}</text>`).join("");
+  return `<svg class="field" viewBox="-8 ${-M} ${W + 16} ${H + M * 2}" role="img" aria-label="${esc(f.name)}: ${f.bunkers.length} bunkers. Tap empty ground to place, tap a bunker to pick it.">
+    <defs>
+      <linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient>
+    </defs>
+    <rect x="-8" y="${-M}" width="${W + 16}" height="${H + M * 2}" fill="#0b0c0d"/>
+    <rect width="${W}" height="${H}" fill="#101111"/>
+    ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
+    ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
+    <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1"/>
+    <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
+    <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
+    ${f.bunkers.map(b => bunkerShape(b, sx, sy)).join("")}
+    ${codes}${ring(me, false)}${ring(twin, true)}
+    <rect data-pick="1" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+    <text x="${W / 2}" y="${-M + 8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
+    <text x="${W / 2}" y="${H + M - 4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
+  </svg>`;
+}
+function fieldBuilder(){
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key);
+  if(!f) return `<div class="fld" style="margin-top:var(--s3)"><label>Build a field — the event or the park it is at</label>
+      <div class="btnrow"><input id="field-name" aria-label="Name of the field" placeholder="e.g. CFOA Event 3 · Tampa" maxlength="40"${onEnter("newField()")} style="flex:1 1 200px"/>
+        <button class="btn btn--quiet" onclick="newField()">+ Build a field</button></div></div>`;
+  const me = ed.sel && f.bunkers.find(b => b.id === ed.sel);
+  const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
+  return `<div id="fieldbuild" style="margin-top:var(--s4)">
+    <div class="fld"><label>Field name</label>
+      <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
+    <p class="note">Your end is on the left, the snake side at the bottom, the dorito side at the top — the way
+      every field in the app is drawn. Place the left half off the event's map; each bunker's twin appears
+      across the fifty, and one on the fifty stays single. Sizes are the measured inflatables, so a bunker is
+      only ever where you put it, never bigger or smaller.</p>
+    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k =>
+      `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})">${esc(k.name)}</button>`).join("")}</div>
+    <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
+    <p class="note" style="margin:6px 0">${me
+      ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
+      : `Tap empty ground to place a <b>${esc(kind.name)}</b>. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+    <div class="btnrow">
+      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
+        <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
+        <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
+      <button class="btn" onclick="fieldDone()">Done</button>
+      <button class="btn btn--quiet" onclick="deleteField(${jsq(f.key)})">Delete field</button>
+    </div>
+  </div>`;
+}
+(function fieldBuilding(){
+  document.addEventListener("pointerdown", ev => {
+    if(!S.fieldEdit) return;
+    const surface = ev.target.closest("#fieldbuild-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    window.fieldTap(fieldFeet(svg, ev));
+  });
+})();
 // A saved layout that no longer ships — the fabricated Tampa Bay and Cincinnati
 // entries — must not leave a coach staring at an empty field.
 if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
@@ -1929,7 +2240,7 @@ function clearScratch(){
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
-  S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null;
+  S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null; S.fieldEdit = null;
   // A play half-built is five bunker ids off one field: reopened on another
   // event, Save stored that field's ids against this one.
   S.building = null;
@@ -3168,8 +3479,8 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone"];
+                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -3229,6 +3540,7 @@ const SAME = {
   gamesOff:    id => String(id),
   pens:        p => p.id,
   timeouts:    t => t.id,
+  fields:      f => f.key,
 };
 // Maps hold independent work too: one team's two players, two groups' members,
 // or notes from two walks. Recursing keeps both lists while scalar conflicts
@@ -3384,6 +3696,11 @@ function copyDataError(data){
       && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
     offPlays:list(str), gamesOff:list(str),
+    // A field he built carries one list, its bunkers, each one scalars only.
+    fields:list(v => record(v, {bunkers:list(b => row(b) && ["id","n","t"].every(k => str(b[k]) && b[k].length > 0)
+        && ["x","y","w","h"].every(k => num(b[k])))})
+      && str(v.key) && v.key.slice(0,3) === "my:" && str(v.name)
+      && Object.entries(v).every(([k, x]) => k === "bunkers" || scalar(x))),
     // A penalty is what the official took, recorded: which side, how many men.
     timeouts:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
       && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
@@ -3537,6 +3854,7 @@ window.loadCopy = mode => {
     S.matches = [{id, at:Date.now(), vs:(S.right || {}).name || "", layout:S.layoutKey}, ...(S.matches || [])];
     S.matchId = id;
   }
+  registerFields();
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   dropPathCache();
@@ -10237,11 +10555,13 @@ const HELP = {
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from.",
+         "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
     watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
@@ -11123,13 +11443,22 @@ function moreBody(k){
     <div class="assigns">${Object.values(LAYOUTS).map(L=>`
       <div class="assign" style="flex-wrap:wrap">
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
-        <span class="assign__who">${L.bunkers.length} bunkers</span></span>
+        <span class="assign__who">${L.bunkers.length} bunkers${L.mine ? ` · built by you · ${Object.keys(BREAK_PLANTS[L.key] || {}).length} of ${Object.keys(PLANT_SHAPES).length} calls plant here${Object.keys(BREAK_PLANTS[L.key] || {}).length < Object.keys(PLANT_SHAPES).length ? " — more bunkers on the left half plant the rest" : ""}` : ""}</span></span>
         ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`
           :`<button class="btn btn--quiet" onclick="pickEvent(${jsq(L.key)})">Use this field</button>`}
+        ${L.mine ? `<button class="btn btn--quiet" onclick="editField(${jsq(L.key)})">Edit</button>` : ""}
         <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
+      </div>`).join("")}
+      ${(S.fields || []).filter(f => !fieldReady(f)).map(f => `
+      <div class="assign" style="flex-wrap:wrap">
+        <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
+        <span class="assign__who">${f.bunkers.length} of at least ${FIELD_MIN} bunkers · still building</span></span>
+        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Keep building</button>
       </div>`).join("")}</div>
-    <p class="note">Field layouts come with the app and update with a new release. There is no live
-      event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
+    ${fieldBuilder()}
+    <p class="note">The NXL fields come with the app and update with a new release. A field you build is
+      yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
+      There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
   + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
       is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
