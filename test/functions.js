@@ -4411,6 +4411,33 @@ const ROSTER = [
     window.set({ right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
     return line && badge || JSON.stringify({ line, badge });
   }));
+  check("a man renamed on this phone and still under his old name on the other phone's sheet lands on him — no second man on the squad — and a new man added under the old name is a new man", await ev(() => {
+    window.confirm = () => true;
+    const was = { roster: S.roster, renamedMen: S.renamedMen };
+    S.roster = [...(S.roster || []).filter(p => !/^Ghost/.test(p.name)), { name: "Ghost", num: 77, p: "", s: "" }];
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey;
+    S.moves = [{ m: mid, pt: 1, who: "Ghost", from: bl[3].id, to: bl[5].id, layout: L, at: 1 }, ...(S.moves || [])];
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const sent = JSON.parse(sheetPayload(mid));   // the other phone, before the rename
+    window.editPlayer(S.roster.findIndex(p => p.name === "Ghost"), "name", "Ghost Jr");
+    sent.data.tally = [{ m: mid, pt: 1, side: "us", name: "Ghost", at: 9, layout: L, vs: "Overlap FC" }];
+    sent.data.moves = [{ m: mid, pt: 1, who: "Ghost", from: bl[3].id, to: bl[5].id, layout: L, at: 2 }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const roster = S.roster.filter(p => /^Ghost/.test(p.name)).map(p => p.name);
+    const out = S.tally.some(o => o.m === mid && o.name === "Ghost Jr") && !S.tally.some(o => o.m === mid && o.name === "Ghost");
+    const moves = S.moves.filter(v => v.m === mid);
+    const ok1 = roster.join() === "Ghost Jr" && out && moves.length === 1 && moves[0].who === "Ghost Jr" && /renamed here/.test(S.copyStatus);
+    const status = S.copyStatus;
+    window.set({ tab: "more", more: "team" });
+    document.getElementById("rName").value = "Ghost"; document.getElementById("rNum").value = ""; window.addPlayer();
+    const ok2 = !Object.keys(S.renamedMen || {}).some(k => foldName(k) === "ghost") && S.roster.some(p => p.name === "Ghost");
+    S.tally = S.tally.filter(o => o.m !== mid); S.moves = S.moves.filter(v => v.m !== mid); S.results = S.results.filter(r => r.m !== mid);
+    Object.assign(S, was); window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return ok1 && ok2 || JSON.stringify({ roster, out, moves: moves.map(v => v.who), status, ok2 });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
