@@ -4127,6 +4127,39 @@ const ROSTER = [
     window.markOut("us", name); window.newMatch();
     return lean && full && set && again || JSON.stringify({ lean, full, set, again, n: boxes.length });
   }));
+  check("Pod Wars opens on seven taps on the name, plays over the app without touching it, and keeps only its best score", await ev(() => {
+    window.set({ tab: "tally" });
+    for(let i = 0; i < 6; i++) window.podTap();
+    const shy = !document.getElementById("podwars");
+    window.podTap();
+    const opened = !!document.getElementById("podwars") && !document.querySelector("#root #podwars");
+    const beforeTab = S.tab; window.set({ tab: "playbook" });
+    const survives = !!document.getElementById("podwars") && S.tab === "playbook";
+    window.set({ tab: beforeTab });
+    window.podWars.seed(11); window.podWars.play();
+    const waitFor = test => { for(let i = 0; i < 400 && !test(window.podWars.state()); i++) window.podWars.step(16); return window.podWars.state(); };
+    // Shoot the first man who leans all the way out.
+    let st = waitFor(g => g.enemies.some(e => e.age > 160 && e.age < e.fireAt));
+    const man = st.enemies.find(e => e.age > 160 && e.age < e.fireAt);
+    window.podWars.tap(man.x, man.y); window.podWars.step(260);
+    st = window.podWars.state();
+    const shot = st.score === 1 && st.hopper === 19;
+    // Paint coming back: tucked, it hits the bunker; standing, it is the end.
+    st = waitFor(g => g.balls.some(b => !b.mine));
+    window.podWars.tuck(true); window.podWars.step(700);
+    const tucked = window.podWars.state().phase === "play";
+    window.podWars.tuck(false);
+    st = waitFor(g => g.phase === "out");
+    const out = st.phase === "out" && /Shot by #\d+/.test(st.why) && (S.podBest || 0) >= st.score && st.score >= 1;
+    // A pod reloads while he is tucked.
+    window.podWars.play(); window.podWars.tap(180, 200); const pods = window.podWars.state().pods;
+    window.podWars.reload(); const loading = window.podWars.state().reload > 0 && window.podWars.state().pods === pods - 1;
+    window.podWars.close();
+    const closed = !document.getElementById("podwars") && !window.podWars.state().open;
+    window.podWars.seed();
+    return shy && opened && survives && shot && tucked && out && loading && closed
+      || JSON.stringify({ shy, opened, survives, shot, tucked, out, loading, closed });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();

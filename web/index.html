@@ -4091,6 +4091,267 @@ window.readCopyFile = input => {
   fr.readAsText(f);
 };
 
+/* ============================================================
+   Pod Wars — the one thing in here that is not for the sideline
+   ============================================================
+
+   Tap the name in the header seven times inside a few seconds. It is a game,
+   so it keeps nothing but its best score: it draws over the app on a layer of
+   its own outside #root, so a render underneath never touches it and closing
+   it leaves the coach exactly where he was. Their men are blue squares behind
+   their bunkers, as on every Scout field; you are the red dot behind yours.
+   Tap a man to shoot him. Paint coming back at you: hold Tuck. The hopper
+   holds twenty; Pod reloads, and a pod someone dropped is worth a tap. One hit
+   and you are out, the way the game is. It stops the moment the app is hidden
+   and whenever it is closed — nothing of it runs in a pocket. */
+const POD = {W: 360, H: 560, hopperMax: 20, podsMax: 5};
+let pod = null;          // the running game, or null
+let podTaps = [];        // the taps on the name that open it
+function podRng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+let podRand = Math.random;
+const POD_BUNKERS = [
+  {x: 52, y: 150, t: "can", c: "b"}, {x: 116, y: 128, t: "temple", c: "r"}, {x: 180, y: 160, t: "brick", c: "b"},
+  {x: 244, y: 128, t: "temple", c: "r"}, {x: 308, y: 150, t: "can", c: "b"}];
+const POD_ME = {x: 180, y: 470};
+function podFresh(){
+  return {phase: "ready", t: 0, score: 0, level: 1, hopper: POD.hopperMax, pods: 3, tucked: false, held: false,
+          reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", num: 0};
+}
+function podLevel(g){ return 1 + Math.floor(g.score / 5); }
+function podStay(g){ return Math.max(700, 1500 - (g.level - 1) * 110); }
+function podSpawnGap(g){ return Math.max(450, 1300 - (g.level - 1) * 120); }
+function podSpawn(g){
+  const most = Math.min(3, 1 + Math.floor((g.level - 1) / 2));
+  if(g.enemies.length >= most) return;
+  const free = POD_BUNKERS.map((b, i) => i).filter(i => !g.enemies.some(e => e.b === i));
+  if(!free.length) return;
+  const i = free[Math.floor(podRand() * free.length)], b = POD_BUNKERS[i], side = podRand() < .5 ? -1 : 1;
+  const stay = podStay(g);
+  g.enemies.push({b: i, side, x: b.x + side * 20, y: b.y + 4, age: 0, stay, fireAt: stay * (0.45 + podRand() * 0.25), fired: false,
+                  num: [3, 7, 11, 21, 44, 5, 9][Math.floor(podRand() * 7)]});
+}
+function podStep(g, dt){
+  if(!g || g.phase !== "play") return;
+  g.t += dt;
+  g.level = podLevel(g);
+  g.tucked = g.held || g.reload > 0;
+  if(g.reload > 0){ g.reload -= dt; if(g.reload <= 0){ g.reload = 0; g.hopper = POD.hopperMax; } }
+  g.nextSpawn -= dt;
+  if(g.nextSpawn <= 0){ podSpawn(g); g.nextSpawn = podSpawnGap(g) * (0.7 + podRand() * 0.6); }
+  g.nextDrop -= dt;
+  if(g.nextDrop <= 0 && !g.drop && g.pods < POD.podsMax){
+    g.drop = {x: 70 + podRand() * 220, y: 395 + podRand() * 40, life: 3200};
+    g.nextDrop = 9000 + podRand() * 6000;
+  }
+  if(g.drop){ g.drop.life -= dt; if(g.drop.life <= 0) g.drop = null; }
+  g.enemies.forEach(e => {
+    e.age += dt;
+    // Leaning out, then back in: the bunker covers what is still behind it.
+    const out = Math.min(1, e.age / 140) * Math.min(1, Math.max(0, e.stay - e.age) / 140);
+    e.x = POD_BUNKERS[e.b].x + e.side * (6 + 14 * out);
+    if(!e.fired && e.age >= e.fireAt){
+      e.fired = true;
+      g.balls.push({mine: false, x0: e.x, y0: e.y, x1: POD_ME.x + (g.tucked ? 0 : -18), y1: POD_ME.y - 6, age: 0, dur: 520, from: e.num});
+    }
+  });
+  g.enemies = g.enemies.filter(e => e.age < e.stay);
+  g.balls.forEach(b => { b.age += dt; });
+  for(const b of g.balls.filter(b => b.age >= b.dur)){
+    if(b.mine){
+      const hit = g.enemies.find(e => Math.hypot(e.x - b.x1, e.y - b.y1) < 17);
+      if(hit){ g.enemies = g.enemies.filter(e => e !== hit); g.score++; g.splats.push({x: hit.x, y: hit.y, c: "#e5342f", age: 0, big: true}); }
+      else g.splats.push({x: b.x1, y: b.y1, c: "#e5342f", age: 0});
+    } else if(!g.tucked){
+      g.phase = "out"; g.why = `Shot by #${b.from}`; g.splats.push({x: POD_ME.x - 18, y: POD_ME.y - 6, c: "#3d8bff", age: 0, big: true});
+      podOver(g);
+    } else g.splats.push({x: POD_ME.x, y: POD_ME.y - 26, c: "#3d8bff", age: 0});
+  }
+  g.balls = g.balls.filter(b => b.age < b.dur);
+  g.splats.forEach(s => { s.age += dt; });
+  g.splats = g.splats.filter(s => s.age < 1400);
+  if(g.phase === "play" && !g.hopper && !g.pods && !g.reload && !g.drop && !g.balls.some(b => b.mine)){
+    g.phase = "out"; g.why = "Out of paint"; podOver(g);
+  }
+}
+function podOver(g){
+  if(g.score > (S.podBest || 0)){ S.podBest = g.score; g.best = true; save(S); }
+}
+function podTapAt(g, x, y){
+  if(!g || g.phase !== "play") return;
+  if(g.drop && Math.hypot(g.drop.x - x, g.drop.y - y) < 26){ g.drop = null; g.pods = Math.min(POD.podsMax, g.pods + 1); return; }
+  if(g.tucked || !g.hopper || y > 430) return;
+  g.hopper--;
+  g.balls.push({mine: true, x0: POD_ME.x - 18, y0: POD_ME.y - 8, x1: x, y1: y, age: 0, dur: 230});
+}
+function podReload(g){
+  if(!g || g.phase !== "play" || g.reload || !g.pods || g.hopper === POD.hopperMax) return;
+  g.pods--; g.reload = 700;
+}
+function podDraw(){
+  const cv = document.getElementById("pod-canvas"); if(!cv || !pod) return;
+  const g = pod.g, ctx = cv.getContext("2d"), k = cv.width / POD.W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.fillStyle = "#0b0c0d"; ctx.fillRect(0, 0, POD.W, POD.H);
+  ctx.fillStyle = "#101111"; ctx.fillRect(10, 40, POD.W - 20, POD.H - 70);
+  ctx.strokeStyle = "#1d2022"; ctx.lineWidth = 1;
+  for(let x = 10; x <= POD.W - 10; x += 40){ ctx.beginPath(); ctx.moveTo(x, 40); ctx.lineTo(x, POD.H - 30); ctx.stroke(); }
+  for(let y = 40; y <= POD.H - 30; y += 40){ ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(POD.W - 10, y); ctx.stroke(); }
+  ctx.fillStyle = "#3d8bff"; ctx.fillRect(10, 40, POD.W - 20, 3);
+  ctx.fillStyle = "#e5342f"; ctx.fillRect(10, POD.H - 33, POD.W - 20, 3);
+  ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(239,237,235,.25)"; ctx.beginPath(); ctx.moveTo(10, 300); ctx.lineTo(POD.W - 10, 300); ctx.stroke(); ctx.setLineDash([]);
+  const grad = (c, y0, y1) => { const gr = ctx.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, c === "r" ? "#c2453d" : "#4a49c4"); gr.addColorStop(1, c === "r" ? "#7d1512" : "#25246e"); return gr; };
+  const bunker = b => {
+    ctx.fillStyle = grad(b.c, b.y - 18, b.y + 18); ctx.strokeStyle = b.c === "r" ? "#5c0f0d" : "#1b1a55"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if(b.t === "can") ctx.arc(b.x, b.y, 15, 0, Math.PI * 2);
+    else if(b.t === "temple"){ ctx.moveTo(b.x, b.y - 18); ctx.lineTo(b.x + 16, b.y); ctx.lineTo(b.x, b.y + 18); ctx.lineTo(b.x - 16, b.y); ctx.closePath(); }
+    else ctx.rect(b.x - 22, b.y - 12, 44, 24);
+    ctx.fill(); ctx.stroke();
+  };
+  // Their men are drawn first, so the bunker covers the half still behind it.
+  g.enemies.forEach(e => {
+    const x = e.x;
+    ctx.fillStyle = "#3d8bff"; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 1.5;
+    ctx.fillRect(x - 9, e.y - 9, 18, 18); ctx.strokeRect(x - 9, e.y - 9, 18, 18);
+    ctx.fillStyle = "#0b0c0d"; ctx.font = "700 9px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(e.num), x, e.y + 3);
+  });
+  POD_BUNKERS.forEach(bunker);
+  if(g.drop){
+    ctx.save(); ctx.translate(g.drop.x, g.drop.y); ctx.rotate(.5);
+    ctx.fillStyle = "#efedeb"; ctx.fillRect(-6, -14, 12, 28); ctx.fillStyle = "#e5342f"; ctx.fillRect(-6, -14, 12, 6);
+    ctx.restore();
+  }
+  const meX = POD_ME.x + (g.tucked ? 0 : -18);
+  ctx.fillStyle = "#e5342f"; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(meX, POD_ME.y - 6, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  bunker({x: POD_ME.x, y: POD_ME.y - 28, t: "brick", c: "r"});
+  g.balls.forEach(b => {
+    const f = Math.min(1, b.age / b.dur), x = b.x0 + (b.x1 - b.x0) * f, y = b.y0 + (b.y1 - b.y0) * f;
+    ctx.fillStyle = "#0b0c0d"; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = b.mine ? "#e5342f" : "#3d8bff"; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  });
+  g.splats.forEach(s => {
+    ctx.globalAlpha = Math.max(0, 1 - s.age / 1400); ctx.fillStyle = s.c;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = "#efedeb"; ctx.font = "800 15px system-ui, sans-serif"; ctx.textAlign = "left";
+  ctx.fillText(`OUT ${g.score}`, 14, 26);
+  ctx.textAlign = "right"; ctx.fillStyle = "#8d9092"; ctx.font = "700 12px system-ui, sans-serif";
+  ctx.fillText(`BEST ${S.podBest || 0} · LEVEL ${g.level}`, POD.W - 14, 26);
+  // The hopper, along the bottom.
+  ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
+  ctx.fillStyle = g.reload ? "#8d9092" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
+  ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
+  ctx.fillText(g.reload ? "LOADING" : `${g.hopper} IN THE HOPPER`, 180, POD.H - 14);
+  if(g.phase !== "play"){
+    ctx.fillStyle = "rgba(11,12,13,.82)"; ctx.fillRect(0, 0, POD.W, POD.H);
+    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; ctx.font = "900 40px system-ui, sans-serif";
+    ctx.fillText(g.phase === "out" ? "YOU'RE OUT" : g.phase === "paused" ? "PAUSED" : "POD WARS", POD.W / 2, 210);
+    ctx.font = "600 14px system-ui, sans-serif"; ctx.fillStyle = "#8d9092";
+    const lines = g.phase === "out" ? [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]
+      : g.phase === "paused" ? ["Tap Play to pick up where you left off."]
+      : ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."];
+    lines.forEach((l, i) => ctx.fillText(l, POD.W / 2, 248 + i * 22));
+  }
+  const tuck = document.getElementById("pod-tuck"), re = document.getElementById("pod-pod"), go = document.getElementById("pod-go");
+  if(tuck) tuck.classList.toggle("on", !!g.tucked);
+  if(re){ re.textContent = `Pod · ${g.pods}`; re.disabled = false; }
+  if(go){ go.hidden = g.phase === "play"; go.textContent = g.phase === "out" ? "Play again" : g.phase === "paused" ? "Play" : "Play"; }
+}
+function podLoop(now){
+  if(!pod) return;
+  const dt = Math.min(50, now - (pod.last || now)); pod.last = now;
+  podStep(pod.g, dt);
+  podDraw();
+  pod.raf = pod.g.phase === "play" ? requestAnimationFrame(podLoop) : 0;
+}
+function podFit(){
+  const cv = document.getElementById("pod-canvas"), box = document.getElementById("pod-stage"); if(!cv || !box) return;
+  const r = box.getBoundingClientRect(), k = Math.min(r.width / POD.W, r.height / POD.H) || 1, dpr = window.devicePixelRatio || 1;
+  cv.style.width = Math.floor(POD.W * k) + "px"; cv.style.height = Math.floor(POD.H * k) + "px";
+  cv.width = Math.round(POD.W * k * dpr); cv.height = Math.round(POD.H * k * dpr);
+  podDraw();
+}
+window.podWars = {
+  open(){
+    if(pod) return;
+    const el = document.createElement("div");
+    el.id = "podwars"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Pod Wars");
+    el.innerHTML = `<style>
+      #podwars{position:fixed;inset:0;z-index:9999;background:#0b0c0d;color:#efedeb;display:flex;flex-direction:column;
+        padding:calc(env(safe-area-inset-top,0px) + 8px) 12px calc(env(safe-area-inset-bottom,0px) + 10px);gap:8px;touch-action:none;user-select:none;-webkit-user-select:none}
+      #podwars .pod-top{display:flex;align-items:center;gap:10px}
+      #podwars .pod-top b{font-weight:900;letter-spacing:.2em;font-size:15px}
+      #podwars .pod-top span{flex:1}
+      #pod-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+      #pod-canvas{border:1px solid #2a2e30;border-radius:6px;touch-action:none}
+      #podwars .pod-bar{display:flex;gap:10px}
+      #podwars .pod-bar button,#podwars .pod-top button{min-height:52px;border-radius:8px;border:1px solid #2a2e30;background:#141617;color:#efedeb;
+        font:800 14px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:0 16px}
+      #podwars .pod-top button{min-height:44px;font-size:12px}
+      #podwars .pod-bar button{flex:1}
+      #podwars #pod-go{background:#ad1515;border-color:#ad1515}
+      #podwars #pod-tuck.on{background:#efedeb;color:#0b0c0d}
+    </style>
+    <div class="pod-top"><b>POD WARS</b><span></span><button type="button" id="pod-close">Close</button></div>
+    <div id="pod-stage"><canvas id="pod-canvas" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
+    <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck">Tuck</button></div>`;
+    document.body.appendChild(el);
+    pod = {g: podFresh(), raf: 0, last: 0, el};
+    const cv = el.querySelector("#pod-canvas");
+    cv.addEventListener("pointerdown", ev => {
+      ev.preventDefault();
+      const r = cv.getBoundingClientRect();
+      podTapAt(pod.g, (ev.clientX - r.left) / r.width * POD.W, (ev.clientY - r.top) / r.height * POD.H);
+    });
+    const tuck = el.querySelector("#pod-tuck"), hold = v => ev => { ev.preventDefault(); if(pod) pod.g.held = v; };
+    tuck.addEventListener("pointerdown", hold(true));
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => tuck.addEventListener(t, hold(false)));
+    el.querySelector("#pod-pod").addEventListener("click", () => podReload(pod && pod.g));
+    el.querySelector("#pod-go").addEventListener("click", () => window.podWars.play());
+    el.querySelector("#pod-close").addEventListener("click", () => window.podWars.close());
+    window.addEventListener("resize", podFit);
+    document.addEventListener("keydown", podKey); document.addEventListener("keyup", podKey);
+    requestAnimationFrame(podFit);
+    podFit();
+  },
+  play(){
+    if(!pod) return;
+    if(pod.g.phase !== "paused") pod.g = podFresh();
+    pod.g.phase = "play"; pod.last = 0;
+    cancelAnimationFrame(pod.raf); pod.raf = requestAnimationFrame(podLoop);
+  },
+  pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0; podDraw(); } },
+  close(){
+    if(!pod) return;
+    cancelAnimationFrame(pod.raf);
+    pod.el.remove(); pod = null;
+    window.removeEventListener("resize", podFit);
+    document.removeEventListener("keydown", podKey); document.removeEventListener("keyup", podKey);
+  },
+  // For the suite: a seeded game it can step by hand.
+  seed(n){ podRand = n === undefined ? Math.random : podRng(n); },
+  state(){ return pod ? {...pod.g, enemies: pod.g.enemies.map(e => ({...e})), open: true, running: !!pod.raf} : {open: false}; },
+  step(ms){ if(pod){ cancelAnimationFrame(pod.raf); pod.raf = 0; for(let t = 0; t < ms; t += 16) podStep(pod.g, 16); podDraw(); } },
+  tap(x, y){ if(pod) podTapAt(pod.g, x, y); },
+  tuck(v){ if(pod) pod.g.held = !!v; },
+  reload(){ if(pod) podReload(pod.g); }
+};
+function podKey(ev){
+  if(!pod) return;
+  if(ev.key === "Escape" && ev.type === "keydown"){ window.podWars.close(); return; }
+  if(ev.key === " " || ev.key === "ArrowDown"){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
+  if((ev.key === "r" || ev.key === "R") && ev.type === "keydown") podReload(pod.g);
+}
+// Seven taps on the name, each within a second and a half of the last.
+window.podTap = () => {
+  const now = Date.now();
+  if(podTaps.length && now - podTaps[podTaps.length - 1] > 1500) podTaps = [];
+  podTaps.push(now);
+  if(podTaps.length >= 7){ podTaps = []; window.podWars.open(); }
+};
+document.addEventListener("visibilitychange", () => { if(document.hidden) window.podWars.pause(); });
+
 // ---- editing the break on the field ----------------------------------------
 //
 // Pointer events, not mouse: the same code has to work under a thumb. The SVG
@@ -11896,7 +12157,7 @@ function shell(){
   return `<div class="app">
     <header class="hdr${S.clockEnd ? " hdr--clock" : ""}">
       <div class="hdr__top">
-        <div class="brand">Gridlock<small>SYSTEM · COACH</small></div>
+        <div class="brand" onclick="podTap()">Gridlock<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
         ${clockChip()}${line}
         <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
