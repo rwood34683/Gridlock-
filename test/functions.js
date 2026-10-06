@@ -4318,6 +4318,28 @@ const ROSTER = [
     delete S.scout["Delete FC"]; window.set({ copyStatus: "", copySheet: null, right: { name: "Dynasty" }, tab: "tally" });
     return rowBtn && gone && stayed && back && fresh && hereBtn || JSON.stringify({ rowBtn, gone, stayed, back, fresh, hereBtn });
   }));
+  check("a play the other phone built under a name this phone has folds into the one here, and one named like a built-in call gets a number — no two calls share a name after a merge", await ev(() => {
+    window.confirm = () => true;
+    const was = { plays: S.plays, calls: S.calls, jobCalls: S.jobCalls, offPlays: S.offPlays, direct: S.direct };
+    const L = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== L && !/^my:/.test(k)), five = l => (BREAK_PLANTS[l] || {}).snake;
+    S.plays = [...(S.plays || []), { k: "my:fold-a", name: "Rocket", read: "", aggr: 3, plants: { [L]: five(L) }, at: 1 }];
+    S.calls = [{ script: "my:fold-a", layout: L, pt: 1, m: "fold-m1", vs: "Fold FC", at: 1 }, ...(S.calls || [])];
+    const copy = JSON.parse(copyPayload("squad"));
+    copy.data.plays = [{ k: "my:fold-b", name: "rocket ", read: "", aggr: 3, plants: { [L]: five(L), [other]: five(other) }, at: 2 },
+                       { k: "my:fold-c", name: callName("snake"), read: "", aggr: 3, plants: { [L]: five(L) }, at: 3 }];
+    copy.data.jobCalls = { "my:fold-b": { 1: "Rocket 1" } };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("merge");
+    const rockets = S.plays.filter(p => foldName(p.name) === "rocket");
+    const one = rockets.length === 1 && rockets[0].k === "my:fold-a" && !!(rockets[0].plants || {})[other];
+    const words = ((S.jobCalls || {})["my:fold-a"] || {})[1] === "Rocket 1" && !(S.jobCalls || {})["my:fold-b"];
+    const numbered = (customPlay("my:fold-c") || {}).name === callName("snake") + " 2";
+    const names = playKeys().map(k => foldName(callName(k))), unique = new Set(names).size === names.length;
+    const said = /Rocket was on both phones — kept as one play/.test(S.copyStatus) && /renamed/.test(S.copyStatus);
+    const status = S.copyStatus;
+    Object.assign(S, was); window.set({ copyStatus: "" });
+    return one && words && numbered && unique && said || JSON.stringify({ one, words, numbered, unique, status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

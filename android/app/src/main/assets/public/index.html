@@ -3124,6 +3124,35 @@ window.savePlay = () => {
   save(S);
   if(retired) flash(`${name} is yours. The app's ${retired} is turned off — Team › Break calls puts it back.`); else render();
 };
+/* One play under two keys, made one. Everything that names a play by its
+ * key moves from one to the other — the calls logged under it, their breaks
+ * and the answers written against them, Face, Shot, P|S, Go and drawn paths,
+ * the job words and whether it is turned off — and where both keys carry the
+ * same thing the one already kept under `to` stays. */
+function rekeyPlay(from, to){
+  if(!from || !to || from === to) return;
+  const sw = k => k === from ? to : k;
+  S.calls = (S.calls || []).map(c => c && c.script === from ? {...c, script: to} : c);
+  Object.keys(S.scout || {}).forEach(t => {
+    const p = S.scout[t]; if(!p) return;
+    const breaks = (p.breaks || []).map(b => b && b.script === from ? {...b, script: to} : b);
+    const answers = {};
+    Object.entries(p.answers || {}).forEach(([a, b]) => { if(!(sw(a) in answers) || a !== from) answers[sw(a)] = sw(b); });
+    S.scout[t] = {...p, breaks, answers};
+  });
+  const moved = store => {
+    const out = {}, later = [];
+    Object.entries(store || {}).forEach(([key, v]) => { const b = key.split("|");
+      if(b.length === 3 && b[1] === from){ b[1] = to; later.push([b.join("|"), v]); } else out[key] = v; });
+    later.forEach(([key, v]) => { if(!(key in out)) out[key] = v; });
+    return out;
+  };
+  S.direct = moved(S.direct); S.pathEdits = moved(S.pathEdits);
+  if((S.jobCalls || {})[from]){ const jc = {...S.jobCalls}; jc[to] = {...jc[from], ...(jc[to] || {})}; delete jc[from]; S.jobCalls = jc; }
+  if(Array.isArray(S.offPlays)) S.offPlays = [...new Set(S.offPlays.map(sw))];
+  if(S.script === from) S.script = to;
+  if((S.playGone || {})[from]){ const pg = {...S.playGone}; delete pg[from]; S.playGone = pg; }
+}
 // The key of a deleted play that carried this name, if any.
 const goneKeyNamed = name => Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name)) || null;
 window.renamePlay = (k, v) => {
@@ -4226,6 +4255,7 @@ window.loadCopy = mode => {
     return [...out];
   };
   const mineBefore = {}; Object.keys(OVERLAP).forEach(k => { mineBefore[k] = S[k] || []; });
+  const playsBefore = new Set(customPlays().map(p => p.k));
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -4259,6 +4289,27 @@ window.loadCopy = mode => {
       if(to && to !== n && foldName(to) === foldName(n)){ rekeyTeam(n, to); moved.push(`${n} → ${to}`); }
     });
     if(moved.length) S.copyStatus += ` · spelled as this phone has them: ${moved.join(", ")}`;
+    // A play the other phone built under a name this phone already has is
+    // this phone's play: two "Rocket"s in every picker is one word shouted
+    // for two breaks. It folds into the one here — its calls, its words, and
+    // a five on any field this phone has none on. A name that is one of the
+    // twelve here gets a number instead, because a built-in's five is not his.
+    const folded = [], renumbered = [];
+    customPlays().filter(p => !playsBefore.has(p.k)).forEach(p => {
+      const mine = customPlays().find(q => q.k !== p.k && playsBefore.has(q.k) && foldName(q.name) === foldName(p.name));
+      if(mine){
+        rekeyPlay(p.k, mine.k);
+        S.plays = customPlays().filter(q => q.k !== p.k).map(q => q.k === mine.k ? {...q, plants: {...(p.plants || {}), ...(q.plants || {})}} : q);
+        folded.push(mine.name); return;
+      }
+      if(callTaken(p.name, p.k)){
+        let n = 2, nm; do { nm = `${String(p.name).slice(0, 25)} ${n++}`; } while(callTaken(nm, p.k));
+        S.plays = customPlays().map(q => q.k === p.k ? {...q, name: nm} : q);
+        renumbered.push(`${p.name} → ${nm}`);
+      }
+    });
+    if(folded.length) S.copyStatus += ` · ${folded.join(", ")} ${folded.length === 1 ? "was" : "were"} on both phones — kept as one play`;
+    if(renumbered.length) S.copyStatus += ` · a play named like a call here was renamed: ${renumbered.join(", ")}`;
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
     if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
     clashes.forEach((pts, id) => {
