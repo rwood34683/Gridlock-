@@ -393,6 +393,12 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     **alive at the end** (only over points with an out tallied on them — a
     point nobody tallied says nothing about who was standing) and **first
     out**. No extra tap.
+    Their team is read by wire the same way (`roleRead`, **By wire off the
+    buzzer** on Anticipate): every told breakout row of theirs on this field,
+    his sheets and watched games alike, sorted by the band of the bunker the
+    man broke to, and counted stop / run (a Moved to) / shoot (a lane or
+    target) / run & shoot — PB Scout's per-role read, out of rows already
+    charted. A placed man not yet told is never counted.
 
 35. ~~The read for the next point.~~ Done — the owner asked for predictive
     intelligence as strong as it can be made, and the honest ceiling is the
