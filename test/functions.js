@@ -4191,6 +4191,56 @@ const ROSTER = [
     S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso", fieldEdit: null, copyStatus: "" });
     return outOfSeason && copyCarries && lifted && replaced && gone || JSON.stringify({ outOfSeason, copyCarries, lifted, replaced, gone });
   }));
+  check("a sheet merged from the other coach's phone keeps one call a point, one out a man, one row a named man and one break of theirs a point, and names the points the phones score differently", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey, name = (S.roster[0] || {}).name || "Reyes";
+    const mine = at => ({
+      results: [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "us" }],
+      calls: [{ m: mid, pt: 1, at, script: "snake", layout: L, vs: "Overlap FC" }],
+      tally: [{ m: mid, pt: 1, side: "us", name, at, layout: L, vs: "Overlap FC" }],
+      breakouts: [{ id: "ov-" + at, m: mid, pt: 1, side: "us", player: name, bunker: bl[3].id, layout: L, alive: false, at, vs: "Overlap FC" }]
+    });
+    const a = mine(1000);
+    S.results = [...a.results, ...(S.results || []).filter(r => r.m !== mid)]; S.calls = [...a.calls, ...(S.calls || [])];
+    S.tally = [...a.tally, ...(S.tally || [])]; S.breakouts = [...a.breakouts, ...(S.breakouts || [])];
+    S.scout = { ...(S.scout || {}), "Overlap FC": { ...((S.scout || {})["Overlap FC"] || { name: "Overlap FC" }), breaks: [{ m: mid, pt: 1, script: "blitz", layout: L, at: 1000 }] } };
+    window.set({ point: 3 });
+    // The other phone logged the same point a second later, and scored point 2 the other way.
+    const sent = JSON.parse(sheetPayload(mid)), b = mine(2000);
+    sent.data.calls = b.calls; sent.data.tally = b.tally;
+    sent.data.breakouts = [...b.breakouts, { id: "ov-loose", m: mid, pt: 1, side: "them", player: "", bunker: bl[40].id, layout: L, alive: true, at: 2001, vs: "Overlap FC" }];
+    sent.data.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "them" }];
+    sent.data.scout["Overlap FC"].breaks = [{ m: mid, pt: 1, script: "", plants: bl.slice(40, 45).map(x => x.id), layout: L, at: 2000 }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const here = list => (list || []).filter(r => r && r.m === mid);
+    const oneCall = here(S.calls).filter(c => c.pt === 1).length === 1;
+    const oneOut = here(S.tally).filter(o => o.pt === 1 && o.name === name).length === 1;
+    const oneMan = here(S.breakouts).filter(r => r.pt === 1 && r.player === name).length === 1 && here(S.breakouts).some(r => r.id === "ov-loose");
+    const brk = S.scout["Overlap FC"].breaks.filter(x => x.m === mid && x.pt === 1);
+    const oneBreak = brk.length === 1 && brk[0].script === "blitz" && (brk[0].plants || []).length === 5;
+    const kept = here(S.results).find(r => r.pt === 2).won === "us";
+    const said = /kept once/.test(S.copyStatus) && /disagree on who won point 2/.test(S.copyStatus);
+    S.breakouts = S.breakouts.filter(r => r.m !== mid); S.tally = S.tally.filter(o => o.m !== mid); S.calls = S.calls.filter(c => c.m !== mid);
+    window.set({ copySheet: null, copyStatus: "" }); window.newMatch();
+    return oneCall && oneOut && oneMan && oneBreak && kept && said || JSON.stringify({ oneCall, oneOut, oneMan, oneBreak, kept, said });
+  }));
+  check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
+    const was = S.scout;
+    boardTeam("Partial Sheet FC");
+    S.scout = { ...(S.scout || {}), "Partial Sheet FC": { name: "Partial Sheet FC", players: [{ num: "7", name: "Dill" }], breaks: [{ script: "blitz", at: 1 }] } };
+    let drew = true;
+    try {
+      window.set({ tab: "scout", scoutTab: "board" });
+      window.set({ right: { name: "Partial Sheet FC" }, scoutTab: "matchup" });
+      window.set({ scoutTab: "anticipate" }); window.set({ scoutTab: "counter" });
+    } catch(e){ drew = String(e); }
+    const p = profileOf("Partial Sheet FC");
+    const filled = p.tend === "Balanced" && p.threat === 3 && p.notes === "" && p.unscored === true && p.players.length === 1;
+    S.scout = was; window.set({ right: { name: "Dynasty" }, tab: "tally" });
+    return drew === true && filled || JSON.stringify({ drew, filled, p });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
