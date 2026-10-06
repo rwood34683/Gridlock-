@@ -1884,3 +1884,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was three hundred and fifty options styled and laid out on every tap. A
   median Tally tap on a full season is about half a second at six times
   slower than a laptop.
+- Let Pod Wars reach the sideline. The owner asked for a secret game: seven
+  taps on the name in the header, each within a second and a half of the
+  last (`podTap`), opens it. It draws on its own layer outside `#root`
+  (`#podwars`), so a render underneath never touches it and Close puts the
+  coach back exactly where he was; it keeps nothing but `S.podBest`, which is
+  not in either copy; it pauses the moment the app is hidden and its loop
+  stops on Close, the same contract as the break animation. Nothing else
+  names it — no Help entry, no menu row — because it is a secret, and it is
+  not a screen a coach needs on a field. `window.podWars` carries a seeded
+  step for the suite.
