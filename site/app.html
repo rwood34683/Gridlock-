@@ -5087,6 +5087,24 @@ window.loadCopy = mode => {
     // Before any re-spelling: it rebuilds rows, and this phone's rows are
     // told from the copy's by being the same objects they were.
     let dupes = overlapRows(shared, mineBefore);
+    // The match row on both phones is this phone's, but what only the other
+    // phone set — the race, the mercy, the clock, the sheet's name, the
+    // horn — fills in where this phone's row has nothing: a race the other
+    // phone set never arrived, so the sheet it finished never ended here.
+    const filled = [];
+    shared.forEach(id => {
+      const inc = (d.matches || []).find(x => x && x.id === id), m = matchById(id); if(!inc || !m) return;
+      const patch = {};
+      Object.entries(inc).forEach(([k, v]) => {
+        if(k === "id" || k === "at" || v === null || v === undefined || v === "" || v === false) return;
+        if(m[k] === undefined || m[k] === null || m[k] === "") patch[k] = v;
+      });
+      if(Object.keys(patch).length){
+        S.matches = (S.matches || []).map(x => x && x.id === id ? {...x, ...patch} : x);
+        if(patch.raceTo || patch.mercy || patch.timeUp) filled.push(matchLabel(matchById(id)));
+      }
+    });
+    if(filled.length) S.copyStatus += ` · the format the other phone set on ${filled.join(", ")} filled in`;
     const moved = [];
     theirNamesIn(d).forEach(n => {
       const hit = anyTeam(n), to = hit ? hit.name : spelled.get(foldName(n));

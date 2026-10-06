@@ -4380,6 +4380,24 @@ const ROSTER = [
     Object.assign(S, was); window.set({ copyStatus: "" });
     return calls && jobs && bunkers && said || JSON.stringify({ calls, jobs, bunkers, status, b: S.breakCalls });
   }));
+  check("what only the other phone set on a shared sheet — the race, the name — fills in where this phone has nothing, and a race it finished ends here too", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId;
+    S.matches = S.matches.map(m => m.id === mid ? { ...m, raceTo: null, note: "" } : m);
+    S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "us" }, ...(S.results || [])];
+    window.set({ point: 3, matchState: derivedState() });
+    const sent = JSON.parse(sheetPayload(mid));
+    sent.data.matches[0] = { ...sent.data.matches[0], raceTo: 2, note: "Prelim 2", end: "right" };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const m = matchById(mid);
+    const ok = m.raceTo === 2 && m.note === "Prelim 2" && m.end !== "right" && matchOver(mid) === "us" && /format the other phone set/.test(S.copyStatus);
+    const status = S.copyStatus, got = { raceTo: m.raceTo, note: m.note, end: m.end };
+    S.results = S.results.filter(r => r.m !== mid);
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
+    return ok || JSON.stringify({ got, status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

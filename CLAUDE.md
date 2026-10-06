@@ -597,7 +597,11 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     `startUp()`. A timeout is one a team a match and keys on the side alone.
     A man placed and not yet told has no name, so the bunker is what knows
     him: an unnamed row from the other phone goes where this phone already
-    has as many men on that bunker on that point, told or not.
+    has as many men on that bunker on that point, told or not. The match
+    row itself is this phone's, but what only the other phone set on it —
+    the race, the mercy, the clock, the sheet's name, the horn — fills in
+    where this phone's row has nothing, or a race the other phone finished
+    never ends here.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
