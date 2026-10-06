@@ -4398,6 +4398,19 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
     return ok || JSON.stringify({ got, status });
   }));
+  check("a sheet that was only scored counts its points on Matches — the badge and the line never read 0 beside a score", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId;
+    S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "them" }, ...(S.results || [])];
+    window.set({ point: 3, tab: "more", more: "matches" });
+    const root = document.getElementById("root");
+    const line = /point 3[^·]*· 2 logged/.test(root.textContent);
+    const badge = [...root.querySelectorAll(".assign")].some(a => /on now/.test(a.textContent) && a.querySelector(".assign__n").textContent.trim() === "2");
+    S.results = S.results.filter(r => r.m !== mid);
+    window.set({ right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return line && badge || JSON.stringify({ line, badge });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
