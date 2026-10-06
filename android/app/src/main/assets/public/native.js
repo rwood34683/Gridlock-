@@ -169,6 +169,10 @@
     P.Preferences.get({ key: ACCOUNT }).then(function (r) {
       if (r && r.value && window.gridlockRestoreAccount) window.gridlockRestoreAccount(r.value);
     }).catch(function () {});
+    // The field maps live under their own key, beside the season.
+    P.Preferences.get({ key: "gridlock.coach.maps" }).then(function (r) {
+      if (r && r.value && window.gridlockRestoreMaps) window.gridlockRestoreMaps(r.value);
+    }).catch(function () {});
     P.Preferences.get({ key: KEY }).then(function (r) {
       // gridlockRestore decides: it only takes this if the launch found no
       // usable local state, which is the whole point of keeping it.

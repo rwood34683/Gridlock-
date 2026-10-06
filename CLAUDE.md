@@ -549,10 +549,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     a measurement — the footprints are still the inflatables — but it gives what
     the eye cannot: the paint. `mapPaint()` reads the inner part of each
     bunker's footprint on the map and calls it red or blue only when that
-    colour is most of what is there; anything else is grey. The map is `map`
-    on the field, so it rides in both copies, and the schema takes only a
-    `data:image` JPEG or PNG under the cap. The decoded pixels (`MAP_PIX`) are
-    never saved.
+    colour is most of what is there; anything else is grey. The map is kept
+    beside the season, not in it — its own key, `gridlock.coach.maps`
+    (`FIELD_MAPS`, `keepMaps()`), mirrored to the phone's durable store like
+    the season and the account and restored by `gridlockRestoreMaps` — because
+    a picture of a few hundred kilobytes inside the season was written again
+    on every tap of a sideline. `mapOf(f)` is the one door every screen reads
+    a map through; a copy carries each map on its field (`fieldsOut` in Save a
+    copy and Send this sheet) and the schema takes only a `data:image` JPEG or
+    PNG under the cap; `liftMaps()`, run by `registerFields()`, takes a map
+    off any field that arrives with one — a copy, a restore, an older save.
+    Deleting a field takes its map; Replace takes only the copy's maps. The
+    decoded pixels (`MAP_PIX`) are never saved.
 42. ~~Two phones, one match.~~ Done — Breakout Paintball and Scout Pro sell
     one match charted by two people, and here it took a whole-season copy each
     way, which hands an assistant every scouting note you own. **Send this
@@ -583,7 +591,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   A field he builds keeps every house rule a measured one does: a bunker type
   is one inflatable and its footprint comes from `BUNKER_KINDS`, never a box he
   drags out; its paint is sampled or it is grey — with the event's map under
-  the builder (`fieldMapLoad`, stored downscaled as `map` on the field) each
+  the builder (`fieldMapLoad`, stored downscaled beside the season and read
+  through `mapOf(f)`) each
   bunker takes the red or blue the map prints under its footprint
   (`mapPaint`), re-sampled whenever it moves or turns or the map is turned,
   and anything else, or no map, is neutral grey; there is never a colour

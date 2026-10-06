@@ -4160,6 +4160,37 @@ const ROSTER = [
     return shy && opened && survives && shot && tucked && out && loading && closed
       || JSON.stringify({ shy, opened, survives, shot, tucked, out, loading, closed });
   }));
+  check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
+    window.confirm = () => true;
+    const was = { fields: S.fields, layoutKey: S.layoutKey };
+    window.set({ tab: "more", more: "nexus", fields: [] });
+    document.getElementById("field-name").value = "Map Store Park";
+    window.newField();
+    const k = S.fieldEdit.key;
+    const c = document.createElement("canvas"); c.width = 300; c.height = 240;
+    const g = c.getContext("2d"); g.fillStyle = "#c8302a"; g.fillRect(0, 0, 300, 120); g.fillStyle = "#2a3ac8"; g.fillRect(0, 120, 300, 120);
+    for(let i = 0; i < 400; i++){ g.fillStyle = `rgb(${i % 255},${(i * 7) % 255},${(i * 13) % 255})`; g.fillRect((i * 37) % 300, (i * 53) % 240, 9, 9); }
+    await window.fieldMapLoad(k, c.toDataURL("image/png"));
+    window.set({});
+    const season = localStorage.getItem("gridlock.coach.v2") || "";
+    const kept = JSON.parse(localStorage.getItem("gridlock.coach.maps") || "{}");
+    const outOfSeason = !season.includes("data:image") && !(fieldOf(k) || {}).map && fieldMapOk(kept[k]) && mapOf(fieldOf(k)) === kept[k];
+    const copy = JSON.parse(copyPayload("all"));
+    const copyCarries = copy.data.fields.some(f => f.key === k && f.map === kept[k]) && !copyDataError(copy.data);
+    // An older save: the map rode on the field. It is lifted out on the way in.
+    const legacy = (S.fields || []).map(f => f.key === k ? { ...f, map: kept[k] } : f);
+    delete FIELD_MAPS[k]; S.fields = legacy; registerFields();
+    const lifted = !fieldOf(k).map && FIELD_MAPS[k] === kept[k];
+    // Replace with a copy that has the field brings its map back; a copy
+    // without it takes the map away with the field.
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("replace");
+    const replaced = mapOf(fieldOf(k)) === kept[k];
+    window.deleteField(k);
+    const gone = !FIELD_MAPS[k] && !JSON.parse(localStorage.getItem("gridlock.coach.maps") || "{}")[k];
+    S.fields = was.fields || []; registerFields(); window.set({ layoutKey: LAYOUTS[was.layoutKey] ? was.layoutKey : "lso", fieldEdit: null, copyStatus: "" });
+    return outOfSeason && copyCarries && lifted && replaced && gone || JSON.stringify({ outOfSeason, copyCarries, lifted, replaced, gone });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();

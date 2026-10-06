@@ -37,7 +37,7 @@ const contactLib = require("./contact");
 // Extensions the transform reads as text. Anything else is copied verbatim.
 const TEXT = new Set([".html", ".js", ".json", ".webmanifest", ".css", ".svg", ".txt", ".md", ".xml"]);
 // The namespace. Each token's count must be identical in source and output.
-const TECHNICAL = ["gridlock.coach.v2", "gridlock.staff.v2", "gridlock.coach.copy", "gridlock-shell", "\"gridlock:\"", "window.gridlockKeep", "GridlockVoiceParser", "gridlock-exports/", "gridlock-app-link"];
+const TECHNICAL = ["gridlock.coach.v2", "gridlock.staff.v2", "gridlock.coach.maps", "gridlock.coach.copy", "gridlock-shell", "\"gridlock:\"", "window.gridlockKeep", "GridlockVoiceParser", "gridlock-exports/", "gridlock-app-link"];
 const MARKER = /<meta name="brand" content="([a-z][a-z0-9]*)"\s*\/?>/;
 
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
