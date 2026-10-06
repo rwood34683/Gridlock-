@@ -4361,6 +4361,25 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
     return ok || JSON.stringify({ theirs, ours: ours.map(r => r.player), status });
   }));
+  check("a word the copy brings for a call, a job or a bunker that already names another here goes back to this phone's word — one shout never means two things after a merge", await ev(() => {
+    window.confirm = () => true;
+    const was = { breakCalls: S.breakCalls, jobCalls: S.jobCalls, bunkerCalls: S.bunkerCalls };
+    const L = S.layoutKey, bl = curLayout().bunkers;
+    S.breakCalls = { snake: "Rocket" }; S.jobCalls = { snake: { 1: "Red 1" } }; S.bunkerCalls = { [L]: { [bl[3].id]: "Home" } };
+    const copy = JSON.parse(copyPayload("squad"));
+    copy.data.breakCalls = { blitz: "rocket", rush: "Hammer" };
+    copy.data.jobCalls = { snake: { 2: "red 1", 3: "Red 3" } };
+    copy.data.bunkerCalls = { [L]: { [bl[5].id]: "HOME", [bl[6].id]: "Can" } };
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(copy); window.loadCopy("merge");
+    const calls = S.breakCalls.snake === "Rocket" && !S.breakCalls.blitz && S.breakCalls.rush === "Hammer";
+    const jobs = S.jobCalls.snake[1] === "Red 1" && !S.jobCalls.snake[2] && S.jobCalls.snake[3] === "Red 3";
+    const bunkers = S.bunkerCalls[L][bl[3].id] === "Home" && !S.bunkerCalls[L][bl[5].id] && S.bunkerCalls[L][bl[6].id] === "Can";
+    const said = /this phone's words kept/.test(S.copyStatus);
+    const status = S.copyStatus;
+    Object.assign(S, was); window.set({ copyStatus: "" });
+    return calls && jobs && bunkers && said || JSON.stringify({ calls, jobs, bunkers, status, b: S.breakCalls });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

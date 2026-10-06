@@ -3907,6 +3907,41 @@ function rekeyPlay(from, to){
   if(S.script === from) S.script = to;
   if((S.playGone || {})[from]){ const pg = {...S.playGone}; delete pg[from]; S.playGone = pg; }
 }
+/* A merge takes the copy's word for a call, a job slot or a bunker where both
+ * phones named it — but one phone's "Rocket" for Blitz beside the other's
+ * "Rocket" for Snake is one shout for two breaks, the thing every door that
+ * sets a word refuses. A word the copy brought that now says what another
+ * already says goes back to this phone's (or to none), and the merge says
+ * which. `before` is the three maps as they were on this phone. */
+function keepWordsUnique(before){
+  const kept = [];
+  const layers = [
+    // [map of maps, how to name an entry, is it taken]
+    ["breakCalls", () => ({"": S.breakCalls || {}}), (w, k) => callTaken(w, k) || !!goneKeyNamed(w)],
+    ["jobCalls", () => S.jobCalls || {}, (w, id, sc) => !!jobWordTaken(w, id, sc)],
+    ["bunkerCalls", () => S.bunkerCalls || {}, (w, id, l) => !!bunkerWordTaken(w, id, l)],
+  ];
+  layers.forEach(([store, read, taken]) => {
+    for(let guard = 0; guard < 200; guard++){
+      let hit = null;
+      Object.entries(read()).some(([outer, inner]) => Object.entries(inner || {}).some(([k, w]) => {
+        const was = store === "breakCalls" ? (before[store] || {})[k] : ((before[store] || {})[outer] || {})[k];
+        if(!w || w === was || !taken(w, k, outer)) return false;
+        hit = {outer, k, w, was}; return true;
+      }));
+      if(!hit) break;
+      if(store === "breakCalls"){ const all = {...S.breakCalls}; if(hit.was) all[hit.k] = hit.was; else delete all[hit.k]; S.breakCalls = all; }
+      else {
+        const all = {...S[store]}, inner = {...(all[hit.outer] || {})};
+        if(hit.was) inner[hit.k] = hit.was; else delete inner[hit.k];
+        if(Object.keys(inner).length) all[hit.outer] = inner; else delete all[hit.outer];
+        S[store] = all;
+      }
+      kept.push(hit.w);
+    }
+  });
+  return [...new Set(kept)];
+}
 // The key of a deleted play that carried this name, if any.
 const goneKeyNamed = name => Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name)) || null;
 window.renamePlay = (k, v) => {
@@ -5024,6 +5059,7 @@ window.loadCopy = mode => {
   };
   const mineBefore = {}; [...Object.keys(OVERLAP), "breakouts"].forEach(k => { mineBefore[k] = S[k] || []; });
   const playsBefore = new Set(customPlays().map(p => p.k));
+  const wordsBefore = {breakCalls: {...(S.breakCalls || {})}, jobCalls: JSON.parse(JSON.stringify(S.jobCalls || {})), bunkerCalls: JSON.parse(JSON.stringify(S.bunkerCalls || {}))};
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -5062,6 +5098,8 @@ window.loadCopy = mode => {
     // for two breaks. It folds into the one here — its calls, its words, and
     // a five on any field this phone has none on. A name that is one of the
     // twelve here gets a number instead, because a built-in's five is not his.
+    const clashed = keepWordsUnique(wordsBefore);
+    if(clashed.length) S.copyStatus += ` · ${clashed.join(", ")} already ${clashed.length === 1 ? "names" : "name"} something else here — this phone's words kept`;
     const folded = [], renumbered = [];
     customPlays().filter(p => !playsBefore.has(p.k)).forEach(p => {
       const mine = customPlays().find(q => q.k !== p.k && playsBefore.has(q.k) && foldName(q.name) === foldName(p.name));
