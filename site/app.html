@@ -4235,10 +4235,11 @@ function renamePlayer(from, to){
   S.playerCalls = calls;
   if(S.moveWho === from) S.moveWho = to;
   if(S.asWho === from) S.asWho = to;
-  // Remembered on this phone: a sheet or a season from a phone that still
-  // knows him by the old name lands on him rather than putting a second man
-  // on the squad (loadCopy). A chain of renames points at the last name, and
-  // a name renamed back is no rename.
+  // Remembered: a sheet or a season from a phone that still knows him by the
+  // old name lands on him rather than putting a second man on the squad
+  // (loadCopy), and a squad copy carries it so the assistant's phone does the
+  // same. A chain of renames points at the last name, and a name renamed back
+  // is no rename.
   const rn = {...(S.renamedMen || {})};
   Object.keys(rn).forEach(k => { if(foldName(rn[k]) === foldName(from)) rn[k] = to; });
   rn[from] = to;
@@ -4526,8 +4527,8 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields"];
+                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields","renamedMen"];
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -4770,7 +4771,7 @@ function copyDataError(data){
     results:list(v => row(v) && str(v.m) && Number.isInteger(v.pt) && v.pt > 0
       && ["us", "them"].includes(v.won)),
     walk:map(list(row)), codes:list(v => row(v) && str(v.word)),
-    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings),
+    lineups:map(list(str)), bunkerCalls:map(strings), playerCalls:map(map(strings)), breakCalls:strings, jobCalls:map(strings), renamedMen:strings,
     // A play carries one non-scalar field — the five per field — so the schema
     // names it and checks its shape, or a season with a play in it is a copy
     // that cannot be restored.
@@ -5076,6 +5077,7 @@ window.loadCopy = mode => {
   };
   const mineBefore = {}; [...Object.keys(OVERLAP), "breakouts"].forEach(k => { mineBefore[k] = S[k] || []; });
   const playsBefore = new Set(customPlays().map(p => p.k));
+  const renamesMine = {...(S.renamedMen || {})}, rosterBefore = new Set((S.roster || []).map(p => p && foldName(p.name)));
   const wordsBefore = {breakCalls: {...(S.breakCalls || {})}, jobCalls: JSON.parse(JSON.stringify(S.jobCalls || {})), bunkerCalls: JSON.parse(JSON.stringify(S.bunkerCalls || {}))};
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
@@ -5106,6 +5108,15 @@ window.loadCopy = mode => {
     // his rows on that sheet under a name nobody wears any more. They land on
     // him. Only the copy's rows carry the old name, so this phone's rows keep
     // the objects overlapRows tells them apart by.
+    // The renames are this phone's own record; the copy's are taken only
+    // where they plainly mean a man here — this phone had the old name and
+    // not the new one before the merge — so a new kid added here under a
+    // name somebody else's phone renamed away is never folded into him.
+    S.renamedMen = renamesMine;
+    Object.entries(d.renamedMen || {}).forEach(([old, to]) => {
+      if(typeof to !== "string" || !to || foldName(old) === foldName(to)) return;
+      if(rosterBefore.has(foldName(old)) && !rosterBefore.has(foldName(to)) && squadHas(to)) S.renamedMen = {...S.renamedMen, [old]: to};
+    });
     const renamedNow = [];
     Object.entries(S.renamedMen || {}).forEach(([old, to]) => {
       if(!squadHas(to)) return;

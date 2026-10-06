@@ -1423,12 +1423,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `rekeyTheirMan(team, before, after)` is that code made the one door the
   pit card, the pit's add row and the arrival screen all go through, and
   `theirTag()` is the one spelling of his breakout-sheet label. A rename is
-  also remembered on this phone (`renamedMen`, never in a copy), because a
+  also remembered (`renamedMen`), because a
   sheet sent from the assistant's phone still carries the old name in its
   roster and its rows: merged, that was a second man on the squad and his
   rows under a name nobody wears. `loadCopy` lands them on him through
   `renamePlayer`; a man added later under the old name is a new man and
-  clears it (`forgetRename`).
+  clears it (`forgetRename`). Both copies carry the map so the assistant's
+  phone lands his rows the same way, but a copy's rename is adopted only
+  where this phone had the old name and not the new one before the merge —
+  never onto a man this phone has under both.
 - Leave a typo'd team as a team. "Houston Heet" typed at the Tally gate
   between points made a team, and a sheet, outs, calls, their breaks and
   their men were all keyed on the spelling with no way back but deleting
