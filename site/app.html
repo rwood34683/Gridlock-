@@ -1781,7 +1781,18 @@ function routeClear(from, to, targetId, obstacles){
   // not an obstacle for that player. Nor is the bunker they are running to.
   const holds = o => Math.abs(from[0]-o.x) <= o.hw && Math.abs(from[1]-o.y) <= o.hh;
   const live = obstacles.filter(o => !o.ids.has(targetId) && !holds(o));
-  const clear = (a, b) => !live.some(o => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh));
+  // Most boxes are nowhere near a given leg; the leg's own extent rules them
+  // out before the exact test runs. Strict, so a leg along an edge still hits.
+  const clear = (a, b) => {
+    const lx = a[0] < b[0] ? a[0] : b[0], hx = a[0] < b[0] ? b[0] : a[0];
+    const ly = a[1] < b[1] ? a[1] : b[1], hy = a[1] < b[1] ? b[1] : a[1];
+    for(let i = 0; i < live.length; i++){
+      const o = live[i];
+      if(hx < o.x - o.hw || lx > o.x + o.hw || hy < o.y - o.hh || ly > o.y + o.hh) continue;
+      if(segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh)) return false;
+    }
+    return true;
+  };
   const inField = c => c[0] > 1 && c[0] < 149 && c[1] > 1 && c[1] < 119;
 
   if(clear(from, to)) return [];
@@ -1872,8 +1883,8 @@ function pathEdit(id){ return (S.pathEdits || {})[pathKey(id)] || null; }
 // a break plays. Only the marker moves. So both are cached against the field,
 // the call and a counter bumped by any edit, and the animation loop does no
 // geometry at all — it just reads a string and moves a dot.
-let _routeCache = {}, _drawCache = {}, _pathVersion = 0;
-function dropPathCache(){ _routeCache = {}; _drawCache = {}; _pathVersion++; }
+let _routeCache = {}, _drawCache = {}, _pathVersion = 0, _autoCache = new Map(), _padCache = new Map();
+function dropPathCache(){ _routeCache = {}; _drawCache = {}; _pathVersion++; _autoCache = new Map(); _padCache = new Map(); }
 function pathsChanged(){ _drawCache = {}; _pathVersion++; }
 // Keyed on the edits themselves, not on everyone remembering to invalidate.
 // It is at most five short arrays, read once per paint.
@@ -3520,8 +3531,17 @@ function derivedState(){
  * score walked backwards and nothing said so. A point exists if ANYTHING was
  * recorded against it, so all of them are asked.
  */
+// Kept only while a screen is being drawn: nothing is logged mid-draw, and a
+// table of fifty bunkers asked it once a row, each time reading the season.
+let _lastPointMemo = null;
 function lastPoint(mid){
   const id = mid || S.matchId;
+  if(_lastPointMemo && _lastPointMemo.has(id)) return _lastPointMemo.get(id);
+  const v = lastPointFresh(id);
+  if(_lastPointMemo) _lastPointMemo.set(id, v);
+  return v;
+}
+function lastPointFresh(id){
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
   const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls), ...hit(S.pens),
                ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
@@ -5391,7 +5411,14 @@ window.movePick = name => { S.moveWho = S.moveWho === name ? null : name; render
 // sits on a point nobody played — so on a finished sheet the row goes on the
 // last point that was, and the screen says so. Never a guess: a finished
 // sheet has no next point.
-function sheetPoint(){ return matchOver() ? Math.max(1, lastPoint()) : (S.point || 1); }
+function sheetPoint(){
+  // Read once per row of a fifty-row table through shownBunker() and ourEnd(),
+  // so it is kept for the length of one draw the way lastPoint() is.
+  if(_lastPointMemo && _lastPointMemo.has("sheetPoint")) return _lastPointMemo.get("sheetPoint");
+  const v = matchOver() ? Math.max(1, lastPoint()) : (S.point || 1);
+  if(_lastPointMemo) _lastPointMemo.set("sheetPoint", v);
+  return v;
+}
 // Movement and Assess are about his five on this point, and with nobody
 // across the tape there is no point: the note sends him to the gate on Tally
 // rather than writing the row on the unnamed sheet.
@@ -5659,13 +5686,17 @@ function bunkerLabels(list, sx, sy){
 // Segment vs. axis-aligned footprint. Used by Sightlines to decide whether a
 // lane from one bunker to another actually clears everything between them.
 function segHitsBox(x1,y1,x2,y2,cx,cy,hw,hh){
-  // Liang–Barsky against the box, in the segment's own parameter space.
+  // Liang–Barsky against the box, in the segment's own parameter space. The
+  // router asks this millions of times a run, so it builds nothing: the four
+  // edges were an array of arrays per call, and the garbage alone was a
+  // second of a sideline tap on a phone.
   const dx=x2-x1, dy=y2-y1;
-  let t0=0, t1=1;
-  const edges=[[-dx, x1-(cx-hw)],[dx,(cx+hw)-x1],[-dy, y1-(cy-hh)],[dy,(cy+hh)-y1]];
-  for(const [p,q] of edges){
+  let t0=0, t1=1, p, q, r;
+  for(let e=0; e<4; e++){
+    if(e===0){ p=-dx; q=x1-(cx-hw); } else if(e===1){ p=dx; q=(cx+hw)-x1; }
+    else if(e===2){ p=-dy; q=y1-(cy-hh); } else { p=dy; q=(cy+hh)-y1; }
     if(p===0){ if(q<0) return false; continue; }
-    const r=q/p;
+    r=q/p;
     if(p<0){ if(r>t1) return false; if(r>t0) t0=r; }
     else   { if(r<t0) return false; if(r<t1) t1=r; }
   }
@@ -6216,7 +6247,15 @@ function breakFreq(side){
  * winning one — and what they have run lately against what they ran all
  * season. Counts, never a model: "Blitz, 3 of the 4 times they were behind". */
 function scoreBefore(mid, pt){
-  const rows = (S.results || []).filter(r => r && r.m === mid && r.pt < pt);
+  // A season's results, read once per logged break per bucket, was most of
+  // the read line's cost on a full season: within one draw each sheet's
+  // results are pulled out of the season once and kept.
+  let mine = _lastPointMemo && _lastPointMemo.get("res|" + mid);
+  if(!mine){
+    mine = (S.results || []).filter(r => r && r.m === mid);
+    if(_lastPointMemo) _lastPointMemo.set("res|" + mid, mine);
+  }
+  const rows = mine.filter(r => r.pt < pt);
   return {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
 }
 function theirReads(side){
@@ -7899,12 +7938,29 @@ function autoRoute(row){
   const layout = LAYOUTS[row.layout] || curLayout();
   const b = layout.bunkers.find(x => x.id === row.bunker);
   if(!b) return [];
+  /* A run is the same run every time it is drawn: it depends on the field,
+     the bunker he broke to, where he moved, the end he left from and the two
+     holds, and on nothing else. Tally redrew every man on the point on every
+     tap — ten routes at a time, six seconds a tap on a phone once a season was
+     in. Kept by those inputs, a run is worked out once; the cache goes with
+     every other route cache when a field changes (dropPathCache). */
+  const fromRightKey = (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left");
+  const key = [layout.key || row.layout, row.bunker, row.movedTo || "", fromRightKey ? 1 : 0,
+               row.movedDelayed ? 1 : 0, row.delayed ? 1 : 0].join("|");
+  if(_autoCache.has(key)) return _autoCache.get(key).map(p => ({...p}));
+  const made = autoRouteFresh(row, layout, b, fromRightKey);
+  _autoCache.set(key, made);
+  return made.map(p => ({...p}));
+}
+function autoRouteFresh(row, layout, b, fromRight){
   /* A man can squeeze closer to a bunker than the break router assumes: the
      default shoulder is what five men leaving together need, and one man
      picking his way to a far corner does not. Clearance is tried wide first
      and tightened only where wide finds nothing — the difference between a run
      that goes round and a straight line drawn through a bunker. */
-  const pads = [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w));
+  const padKey = layout.key || row.layout;
+  if(!_padCache.has(padKey)) _padCache.set(padKey, [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w)));
+  const pads = _padCache.get(padKey);
   /* Where a point actually starts: the centre of his own back line, anchored on
      the back-centre bunker the same way breakPaths does it. A flat [2,60] is a
      guess, and on a field whose back-centre sits off the middle it can start
@@ -7912,7 +7968,6 @@ function autoRoute(row){
      straight through whatever is in the way. */
   // Which goal line he left from: yours is the end you broke from on that
   // point, theirs the other — not always left and right.
-  const fromRight = (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left");
   const mine = fromRight
     ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
   const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
@@ -8247,7 +8302,14 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
 // on the right — the frame plants live in. A bunker logged on a point broken
 // the other way round is its twin here. Both sides turn together, so one rule
 // serves both: their five tapped in from either end are the same five.
-function frameId(id, mid, pt){ return ourEnd(pt, matchById(mid)) === "right" ? mirrorBunkerId(id) : id; }
+function frameId(id, mid, pt){
+  // Asked once a charted row by every count across points; the end a point
+  // was broken from does not change within one draw.
+  const k = "end|" + mid + "|" + pt;
+  let end = _lastPointMemo && _lastPointMemo.get(k);
+  if(!end){ end = ourEnd(pt, matchById(mid)); if(_lastPointMemo) _lastPointMemo.set(k, end); }
+  return end === "right" ? mirrorBunkerId(id) : id;
+}
 function ownBunker(id, side, mid, pt){ return frameId(id, mid, pt); }
 // The bunker to draw for a frame id, on the end the field shows now.
 const shownBunker = id => ourEnd() === "right" ? mirrorBunkerId(id) : id;
@@ -8882,15 +8944,33 @@ function whoPick(idx, side, value){
   return causePick(side === "us" ? "By (them)" : "By (yours)", idx, "by", value, list);
 }
 
+/* Each of these is a list of every bunker on the field, and the outs on the
+ * point each carry two, so a point with three men out drew some three hundred
+ * and fifty options on every tap of the sheet — most of the Log's nodes, laid
+ * out and styled every redraw while nobody was looking at them. The box draws
+ * only what it says now and fills the moment a finger or a key reaches it
+ * (`fillPick`), before the phone opens its picker. */
+const bunkerOption = (b, value) => `<option value="${esc(b.id)}"${value === b.id ? " selected" : ""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
 function bunkerPick(label, idx, field, value){
-  const list = curLayout().bunkers;
+  const cur = value && curLayout().bunkers.find(b => b.id === value);
   return `<label style="display:flex;flex-direction:column;gap:4px">
     <span class="note">${label}</span>
-    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
-      <option value="">—</option>
-      ${list.map(b=>`<option value="${esc(b.id)}" ${value===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+    <select data-fill="bunkers" onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm);min-width:9em">
+      <option value="">—</option>${cur ? bunkerOption(cur, value) : ""}
     </select></label>`;
 }
+function fillPick(sel){
+  if(!sel || sel.dataset.fill !== "bunkers") return;
+  const v = sel.value;
+  sel.innerHTML = `<option value="">—</option>` + curLayout().bunkers.map(b => bunkerOption(b, v)).join("");
+  sel.value = v;
+  delete sel.dataset.fill;
+}
+["pointerdown", "mousedown", "touchstart", "focusin", "keydown"].forEach(type =>
+  document.addEventListener(type, ev => {
+    const sel = ev.target && ev.target.closest && ev.target.closest("select[data-fill]");
+    if(sel) fillPick(sel);
+  }, true));
 window.setOutBunker = (i, field, val) => {
   const t = [...(S.tally||[])];
   if(!t[i] || typeof t[i] !== "object") return;
@@ -12840,7 +12920,9 @@ function render(){
   const main = document.querySelector(".main");
   const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
-  document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo();
+  _lastPointMemo = new Map();
+  try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }
+  finally { _lastPointMemo = null; }
   // A field here is a <label> followed by its control, and the label carries
   // no `for`, so a screen reader read every select as "pop-up button" and
   // nothing else. One pass ties each one to the label above it.

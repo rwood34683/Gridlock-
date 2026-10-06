@@ -4077,6 +4077,56 @@ const ROSTER = [
     S.breakouts = S.breakouts.filter(r => !/^tp/.test(r.id)); window.set({ copySheet: null, copyStatus: "" }); window.newMatch();
     return onlyThis && refused && joined && opened && both && once || JSON.stringify({ onlyThis, refused, joined, opened, both, once });
   }));
+  check("a tap on Tally with a full season does not redo the season: a man's run is worked out once, and the season is read for the point once a draw", await ev(() => {
+    const was = { breakouts: S.breakouts, tally: S.tally, results: S.results };
+    window.set({ tab: "tally", right: { name: "Speed Check FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey, at = Date.now();
+    // A season behind the sheet: twelve points charted, ten men a point.
+    const rows = [];
+    for(let pt = 1; pt <= 12; pt++) for(let k = 0; k < 10; k++)
+      rows.push({ id: `spd-${pt}-${k}`, m: mid, pt, side: k < 5 ? "us" : "them", player: "", bunker: bl[(k * 7 + pt) % bl.length].id,
+                  layout: L, alive: true, at: at + pt * 10 + k, vs: "Speed Check FC", movedTo: k % 4 ? "" : bl[(k * 3 + pt + 5) % bl.length].id });
+    S.breakouts = [...rows, ...(S.breakouts || [])];
+    S.results = [...Array.from({ length: 11 }, (_, i) => ({ m: mid, pt: i + 1, won: i % 2 ? "us" : "them" })), ...(S.results || [])];
+    window.set({ point: 12 });
+    const real = { route: autoRouteFresh, last: lastPointFresh };
+    let routed = 0, read = 0;
+    window.autoRouteFresh = function(){ routed++; return real.route.apply(this, arguments); };
+    window.lastPointFresh = function(){ read++; return real.last.apply(this, arguments); };
+    window.set({ tab: "tally" });
+    const first = routed;
+    routed = 0; read = 0;
+    window.set({ tab: "tally" });
+    const again = routed, reads = read;
+    window.autoRouteFresh = real.route; window.lastPointFresh = real.last;
+    // What the cache hands back is the run the router works out, every time.
+    const same = rows.filter(r => r.pt === 12).every(r => {
+      const cached = JSON.stringify(autoRoute(r));
+      const fresh = JSON.stringify(autoRouteFresh(r, curLayout(), bl.find(b => b.id === r.bunker),
+        (r.side === "them") === (ourEnd(r.pt, matchById(r.m)) === "left")));
+      return cached === fresh;
+    });
+    S.breakouts = was.breakouts || []; S.tally = was.tally || []; S.results = was.results || []; window.newMatch();
+    return first <= 10 && again === 0 && reads <= 3 && same || JSON.stringify({ first, again, reads, same });
+  }));
+  check("the Log's bunker boxes draw only what they say until a finger reaches them, then hold every bunker and still set the out", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Pick Check FC" } }); window.playPit(); window.newMatch();
+    const name = (S.roster[0] || {}).name; window.markOut("us", name);
+    window.set({ tab: "tally" });
+    const boxes = [...document.querySelectorAll("#root select[data-fill]")];
+    const lean = boxes.length >= 2 && boxes.every(b => b.options.length <= 2);
+    const box = boxes[0];
+    box.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    const full = box.options.length === curLayout().bunkers.length + 1 && !box.dataset.fill;
+    const target = curLayout().bunkers[7].id;
+    box.value = target; box.dispatchEvent(new Event("change", { bubbles: true }));
+    const row = rowsHere(S.tally).find(o => o.name === name);
+    const set = !!row && (row.shotAt === target || row.movedTo === target);
+    // Drawn again with a value, the box says it without its list.
+    const again = [...document.querySelectorAll("#root select[data-fill]")].some(b => b.value === target && b.options.length === 2);
+    window.markOut("us", name); window.newMatch();
+    return lean && full && set && again || JSON.stringify({ lean, full, set, again, n: boxes.length });
+  }));
   check("a man's read counts shooting off the break, men taken off the break, alive at the end and first out — from what was charted, with the sample", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
     const mid = S.matchId, bl = curLayout().bunkers, a = bl[3], c = bl[40], at = Date.now();
