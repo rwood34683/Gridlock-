@@ -4615,6 +4615,8 @@ function sheetPayload(id){
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: "sheet", sheet: id,
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
+// The lists copySummary() names, so a merge can count what it added.
+const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents"];
 function copySummary(d){
   const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
   // The sheets and the score lead: a season of forty points with no out
@@ -5083,9 +5085,15 @@ window.loadCopy = mode => {
   // that mixes squads still happens, but it says so out loud.
   const clash = mode !== "replace" && d.teamCode && S.teamCode && d.teamCode !== S.teamCode
                 && (S.roster || []).length && (d.roster || []).length;
-  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + (sheetId ? "a sheet · " : "") + copySummary(d)
-    + (clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.`
-             : "");
+  const clashSaid = clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.` : "";
+  S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + (sheetId ? "a sheet · " : "") + copySummary(d) + clashSaid;
+  const statusHead = S.copyStatus;
+  // A merge says what is new on this phone, not what was in the file: a sheet
+  // both phones already held read "Merged in 2 sheets · 7 outs · 7 breakouts"
+  // when one breakout was new, and a coach syncing twice could not tell
+  // whether the second did anything.
+  const sizeOf = () => { const o = {}; COPY_COUNTED.forEach(k => { const v = S[k]; o[k] = v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; }); return o; };
+  const sizeBefore = sizeOf();
   // What just loaded is a copy, so the season has one as of now — the nudge
   // must not open on a restored phone saying none was ever made.
   S.copiedAt = Date.now();
@@ -5230,7 +5238,7 @@ window.loadCopy = mode => {
         if(patch.raceTo || patch.mercy || patch.timeUp) filled.push(matchLabel(matchById(id)));
       }
     });
-    if(filled.length) S.copyStatus += ` · the format the other phone set on ${filled.join(", ")} filled in`;
+    if(filled.length) S.copyStatus += ` · the format the other phone set filled in on ${filled.length === 1 ? "the sheet" : "the sheets"} ${filled.join(", ")}`;
     const moved = [];
     theirNamesIn(d).forEach(n => {
       const hit = anyTeam(n), to = hit ? hit.name : spelled.get(foldName(n));
@@ -5267,7 +5275,7 @@ window.loadCopy = mode => {
     if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
     clashes.forEach((pts, id) => {
       const m = matchById(id); const list = [...new Set(pts)].sort((a, b) => a - b);
-      S.copyStatus += ` · the phones disagree on who won point${list.length === 1 ? "" : "s"} ${list.join(", ")}${sheetId === id ? "" : ` of ${m ? matchLabel(m) : "a sheet"}`} — this phone's result kept; fix it on the sheet if it was the other`;
+      S.copyStatus += ` · the phones disagree on who won point${list.length === 1 ? "" : "s"} ${list.join(", ")}${sheetId === id ? "" : ` on the sheet ${m ? matchLabel(m) : ""}`} — this phone's result kept; fix it on the sheet if it was the other`;
     });
     // Standing on a sheet both phones charted: the point he is on moves on to
     // the first one nobody has a result for, or the next tap scores a point twice.
@@ -5279,6 +5287,12 @@ window.loadCopy = mode => {
     const sm = matchById(sheetId);
     (sm.watch ? [sm.home, sm.away] : [sm.vs]).filter(Boolean).forEach(boardTeam);
     S.copySheet = sheetId;
+  }
+  if(mode !== "replace"){
+    const after = sizeOf(), delta = {};
+    COPY_COUNTED.forEach(k => { const n = after[k] - sizeBefore[k]; if(n > 0) delta[k] = Array(n).fill(0); });
+    const said = Object.keys(delta).length ? `new here: ${copySummary(delta)}` : "nothing new — this phone already had all of it";
+    S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
   }
   copyDraft = "";
   S.copyText = ""; save(S); render();

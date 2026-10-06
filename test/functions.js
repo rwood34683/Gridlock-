@@ -4528,6 +4528,23 @@ const ROSTER = [
     window.set({ right: { name: "Dynasty" } }); window.newMatch();
     return refused && took && ends && level && mercyNo && mercyYes || JSON.stringify({ refused, took, ends, level, mercyNo, mercyYes });
   }));
+  check("a merge says what is new on this phone — one breakout from a sheet both hold, and nothing new the second time", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey;
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const sent = JSON.parse(sheetPayload(mid));
+    sent.data.breakouts = [{ id: "nh-1", m: mid, pt: 1, side: "them", player: "", bunker: bl[40].id, layout: L, alive: true, todo: true, at: 1, vs: "Overlap FC" }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const first = S.copyStatus;
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const second = S.copyStatus;
+    S.breakouts = S.breakouts.filter(r => r.m !== mid); S.results = S.results.filter(r => r.m !== mid);
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
+    return /^Merged in a sheet — new here: 1 breakout$/.test(first) && /^Merged in a sheet — nothing new/.test(second) || JSON.stringify({ first, second });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

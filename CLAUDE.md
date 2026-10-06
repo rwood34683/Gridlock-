@@ -608,7 +608,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     never ends here. And a sheet both phones hold is against the team this
     phone says (`alignSheet`): moved with Played against here, the other
     phone's rows on it came back under the team picked by mistake and their
-    breaks in that team's book, so they follow the match row now.
+    breaks in that team's book, so they follow the match row now. The
+    message says what is **new on this phone** (`COPY_COUNTED` before and
+    after), not what was in the file — "Merged in a sheet — new here: 1
+    breakout", or "nothing new" on a second sync.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
