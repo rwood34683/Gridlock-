@@ -1445,6 +1445,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   already on the list merges into it under its own spelling, the scout book
   included (breaks and men add up; a word set on both keeps the one already
   there). Only teams he added can be renamed; the league's are the league's.
+  The rename is remembered (`renamedTeams`, `noteTeamRename`) and rides in
+  both copies, so a copy from a phone that still has "Houston Heet" lands on
+  Houston Heat instead of bringing the typo back as a second team; a team
+  added later under the old name clears it (`forgetTeamRename`), and a
+  league team's name is never taken for a rename (`leagueTeam`).
 - Make Return do nothing in a box with a button beside it. The phone
   keyboard's blue key is how a one-line box is submitted, and only the Tally
   gate's honoured it: a coach typed the team's name on the board, hit it, and
