@@ -1913,6 +1913,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was three hundred and fifty options styled and laid out on every tap. A
   median Tally tap on a full season is about half a second at six times
   slower than a laptop.
+- Keep a sheet a coach cannot get rid of. A practice sheet or a game charted
+  twice sat in the record, self-scout and every read for good, because there
+  was no delete. `delSheet(id)` on This match and on each kept row takes the
+  sheet and every row stamped with it (`dropSheetRows`: `SHEET_LISTS`, its
+  lineups, their breaks on it), asking first whenever anything is on it, and
+  deleting the sheet in play opens a fresh one through `openSheet`. The id goes
+  in `sheetsGone` — on this phone only, never in a copy — so a season copy
+  merged later leaves it out and says so; the one sheet sent on its own and
+  merged on purpose comes back.
 - Let Pod Wars reach the sideline. The owner asked for a secret game: seven
   taps on the name in the header, each within a second and a half of the
   last (`podTap`), opens it. It draws on its own layer outside `#root`

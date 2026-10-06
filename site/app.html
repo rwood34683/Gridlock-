@@ -402,6 +402,7 @@ svg.field{width:100%;height:auto;display:block}
 }
 .assign > .tgl{flex:none}
 .assign__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.assign__acts{display:flex;flex-direction:column;gap:6px;flex:none}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
 /* The job is the thing being read; the controls act on it. On a phone there is
@@ -4993,6 +4994,15 @@ window.loadCopy = mode => {
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
   fixBreak();
   dropPathCache();
+  // A sheet deleted on this phone stays deleted when a season copy that still
+  // holds it is merged; the one sheet sent on its own and merged on purpose
+  // comes back.
+  if(mode !== "replace" && (S.sheetsGone || []).length){
+    if(sheetId) S.sheetsGone = S.sheetsGone.filter(x => x !== sheetId);
+    const back = (d.matches || []).map(m => m && m.id).filter(id => id && S.sheetsGone.includes(id));
+    back.forEach(dropSheetRows);
+    if(back.length) S.copyStatus += ` · ${back.length} ${back.length === 1 ? "sheet" : "sheets"} you deleted on this phone left out`;
+  }
   if(mode !== "replace"){
     // Before any re-spelling: it rebuilds rows, and this phone's rows are
     // told from the copy's by being the same objects they were.
@@ -9920,6 +9930,40 @@ const openMatchNow = id => {
   S.matchState = derivedState();
   save(S); render();
 };
+/* A sheet can be deleted. A practice sheet, a game charted twice by mistake,
+ * a sheet a thumb opened between points: there was no way to take one off, so
+ * it sat in the record, in self-scout and in every read for good. Delete takes
+ * every row stamped with it — outs, chart, calls, grades, rotations, results,
+ * penalties, timeouts, sightings — its lineups and their breaks on it, and asks
+ * first whenever any of that is there, because nothing is kept anywhere else.
+ * The id is remembered on this phone (`sheetsGone`, never in a copy), so a
+ * season copy merged in later does not bring it back; a sheet sent on its own
+ * and merged on purpose does. Deleting the sheet in play opens a fresh one in
+ * the same format, the way New match does. */
+function dropSheetRows(id){
+  SHEET_LISTS.forEach(k => { if(Array.isArray(S[k])) S[k] = S[k].filter(r => !(r && r.m === id)); });
+  S.lineups = Object.fromEntries(Object.entries(S.lineups || {}).filter(([k]) => !k.startsWith(id + "|")));
+  Object.keys(S.scout || {}).forEach(k => {
+    const p = S.scout[k];
+    if(p && Array.isArray(p.breaks) && p.breaks.some(b => b && b.m === id)) S.scout[k] = {...p, breaks: p.breaks.filter(b => !(b && b.m === id))};
+  });
+  S.matches = (S.matches || []).filter(m => m && m.id !== id);
+  if(S.copySheet === id) S.copySheet = null;
+  if((S.arrival || {}).matchId === id) S.arrival = {...S.arrival, matchId: null, point: null};
+  if(S.replayMatch === id) S.replayMatch = null;
+}
+window.delSheet = id => {
+  const m = matchById(id); if(!m) return;
+  const pts = (S.results || []).filter(r => r && r.m === id).length, rest = sheetSize(m) - pts;
+  const what = [pts ? `${pts} ${pts === 1 ? "point" : "points"} scored` : "", rest ? `${rest} ${rest === 1 ? "thing" : "things"} logged` : ""].filter(Boolean).join(" and ");
+  if(what && !confirm(`Delete ${matchLabel(m)} — ${what}? It goes from the record, self-scout and every read, and it cannot be undone. Save a copy first if any of it matters.`)) return;
+  const label = matchLabel(m);
+  if(id === S.matchId) openSheet({vs: ""});
+  dropSheetRows(id);
+  S.sheetsGone = [...new Set([...(S.sheetsGone || []), id])].slice(-500);
+  S.matchState = derivedState();
+  save(S); flash(`${label} deleted${what ? ` — ${what} with it` : ""}.`);
+};
 // kept: older builds called this
 window.addOut = () => window.markOut("us","Player");
 
@@ -12087,7 +12131,8 @@ const HELP = {
          "Open an old one and you land on its last point, so you can still tally something you missed.",
          "New match starts a fresh sheet and puts the point back to one. Nothing is deleted.",
          "Name this sheet — Prelim 2, Sunday quarter — and the name shows in the kept list.",
-         "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate."]},
+         "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate.",
+         "Delete takes a sheet off for good — a practice sheet, a game charted twice — with everything logged on it. It asks first."]},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
     how:["Staff login required to create one.",
          "Joining does not need an account. Scan the code or type it.",
@@ -12114,6 +12159,7 @@ const HELP = {
 const HELP_Q = [
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
   ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
@@ -12647,7 +12693,8 @@ function moreBody(k){
         nothing doubles. Only this match goes — none of the rest of your season.</p>` : ""}
       <p class="note">A new sheet puts the point back to 1. Nothing is deleted — every match you
         have kept is below, and opening one puts you back on its last point so you can still
-        tally a point you logged late.</p>`, matchLabel(curMatch()))
+        tally a point you logged late.</p>
+      ${sheetSize(curMatch()) || matchVs() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2);color:var(--warn)" onclick="delSheet(${jsq(S.matchId)})">Delete this sheet</button>` : ""}`, matchLabel(curMatch()))
     + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
     + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
         const n=matchSize(m.id), on=m.id===S.matchId;
@@ -12660,7 +12707,8 @@ function moreBody(k){
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}${
             untoldOn(m.id) ? ` · <b style="color:var(--warn)">${untoldOn(m.id)} still to tell</b>` : ""}</span></span>
-          ${on?"":`<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>`}
+          ${on?"":`<span class="assign__acts"><button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>
+          <button class="btn btn--quiet" style="color:var(--warn)" aria-label="Delete ${esc(matchLabel(m))}" onclick="delSheet(${jsq(m.id)})">Delete</button></span>`}
         </div>`;
       }).join("")}</div>`
       :`<div class="empty">This is your first sheet. Tap New match when the next game starts and
