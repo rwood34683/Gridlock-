@@ -4184,6 +4184,7 @@ window.addPlayer = () => {
   // the moment anyone had been taken off the list.
   const num = typed !== null ? typed : freeNum();
   S.roster = [...(S.roster || []), {name, num, p: clean(rosterVal("rP").trim()), s: clean(rosterVal("rS").trim())}];
+  forgetRename(name);
   const other = numWorn(num, S.roster.length - 1);
   save(S); if(other) flash(`${name} added. #${num} is also ${other.name}'s number.`); else render();
 };
@@ -4234,6 +4235,22 @@ function renamePlayer(from, to){
   S.playerCalls = calls;
   if(S.moveWho === from) S.moveWho = to;
   if(S.asWho === from) S.asWho = to;
+  // Remembered on this phone: a sheet or a season from a phone that still
+  // knows him by the old name lands on him rather than putting a second man
+  // on the squad (loadCopy). A chain of renames points at the last name, and
+  // a name renamed back is no rename.
+  const rn = {...(S.renamedMen || {})};
+  Object.keys(rn).forEach(k => { if(foldName(rn[k]) === foldName(from)) rn[k] = to; });
+  rn[from] = to;
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(rn[k])) delete rn[k]; });
+  S.renamedMen = rn;
+}
+// A man added under a name somebody used to have is a new man, not the old
+// one's rename.
+function forgetRename(name){
+  const rn = {...(S.renamedMen || {})}; let hit = false;
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(name)){ delete rn[k]; hit = true; } });
+  if(hit) S.renamedMen = rn;
 }
 // What a man of his has on the sheets: outs, charted breaks, grades,
 // rotations. Said before Remove takes him off the squad, because the rows
@@ -5084,6 +5101,21 @@ window.loadCopy = mode => {
     if(back.length) S.copyStatus += ` · ${back.length} ${back.length === 1 ? "sheet" : "sheets"} you deleted on this phone left out`;
   }
   if(mode !== "replace"){
+    // A man renamed on this phone comes back under his old name on a copy
+    // from a phone that never saw the rename — a second man on the squad, and
+    // his rows on that sheet under a name nobody wears any more. They land on
+    // him. Only the copy's rows carry the old name, so this phone's rows keep
+    // the objects overlapRows tells them apart by.
+    const renamedNow = [];
+    Object.entries(S.renamedMen || {}).forEach(([old, to]) => {
+      if(!squadHas(to)) return;
+      const ghost = (S.roster || []).find(p => p && foldName(p.name) === foldName(old));
+      const had = ghost || manHas(old).any;
+      if(ghost) S.roster = S.roster.filter(p => p !== ghost);
+      [...new Set([old, ghost && ghost.name].filter(Boolean))].forEach(n => renamePlayer(n, to));
+      if(had) renamedNow.push(`${ghost ? ghost.name : old} → ${to}`);
+    });
+    if(renamedNow.length) S.copyStatus += ` · renamed here, so the copy's ${renamedNow.join(", ")}`;
     // Before any re-spelling: it rebuilds rows, and this phone's rows are
     // told from the copy's by being the same objects they were.
     let dupes = overlapRows(shared, mineBefore);
