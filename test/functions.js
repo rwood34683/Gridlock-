@@ -4340,6 +4340,27 @@ const ROSTER = [
     Object.assign(S, was); window.set({ copyStatus: "" });
     return one && words && numbered && unique && said || JSON.stringify({ one, words, numbered, unique, status });
   }));
+  check("men placed and not yet told on both phones are one man a bunker after a sheet merge — a told man on this phone stands for the other phone's untold one on his bunker", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey, name = (S.roster[0] || {}).name || "Reyes";
+    const row = (id, side, b, player) => ({ id, m: mid, pt: 1, side, player: player || "", bunker: b.id, layout: L, alive: true, todo: !player, at: 1, vs: "Overlap FC" });
+    S.breakouts = [row("pl-1", "them", bl[40]), row("pl-2", "them", bl[41]), row("pl-3", "us", bl[3], name), ...(S.breakouts || [])];
+    S.results = [{ m: mid, pt: 1, won: "us" }, ...(S.results || [])];
+    window.set({ point: 2 });
+    const sent = JSON.parse(sheetPayload(mid));
+    sent.data.breakouts = [row("po-1", "them", bl[40]), row("po-2", "them", bl[41]), row("po-3", "them", bl[42]), row("po-4", "us", bl[3])];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const here = S.breakouts.filter(r => r.m === mid);
+    const theirs = here.filter(r => r.side === "them").map(r => r.bunker).sort(), ours = here.filter(r => r.side === "us");
+    const ok = theirs.join() === [bl[40].id, bl[41].id, bl[42].id].sort().join() && ours.length === 1 && ours[0].player === name
+      && /3 things both phones logged kept once/.test(S.copyStatus);
+    const status = S.copyStatus;
+    S.breakouts = S.breakouts.filter(r => r.m !== mid); S.results = S.results.filter(r => r.m !== mid);
+    window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" } }); window.newMatch();
+    return ok || JSON.stringify({ theirs, ours: ours.map(r => r.player), status });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");

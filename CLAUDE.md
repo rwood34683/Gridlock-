@@ -595,6 +595,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     keeps the larger of the two phones' counts for each (point, side, what),
     never the sum: the same 1-for-1 written on both phones took two men off
     `startUp()`. A timeout is one a team a match and keys on the side alone.
+    A man placed and not yet told has no name, so the bunker is what knows
+    him: an unnamed row from the other phone goes where this phone already
+    has as many men on that bunker on that point, told or not.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

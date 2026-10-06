@@ -4120,6 +4120,20 @@ function overlapRows(shared, mineBefore){
       return true;
     });
   });
+  // A man placed and not yet told has no name, so the one-a-point reconcile
+  // cannot see him; the bunker is all there is to know him by. Both phones
+  // placing their five on one point was ten of them on the merged point, past
+  // what startUp() lets a side have. An unnamed row from the other phone goes
+  // where this phone already has as many men on that bunker, told or not.
+  const mineB = new Set(mineBefore.breakouts || []), haveB = new Map(), tookB = new Map();
+  const bk = r => [r.m, r.pt, r.side, r.bunker].join("|");
+  (S.breakouts || []).forEach(r => { if(r && mineB.has(r) && shared.includes(r.m)) haveB.set(bk(r), (haveB.get(bk(r)) || 0) + 1); });
+  S.breakouts = (S.breakouts || []).filter(r => {
+    if(!r || mineB.has(r) || !shared.includes(r.m) || r.player) return true;
+    const key = bk(r), n = (tookB.get(key) || 0) + 1; tookB.set(key, n);
+    if(n <= (haveB.get(key) || 0)){ dupes++; return false; }
+    return true;
+  });
   return dupes;
 }
 window.sendSheet = async () => {
@@ -4254,7 +4268,7 @@ window.loadCopy = mode => {
     Object.keys(data.scout || {}).forEach(n => out.add(n));
     return [...out];
   };
-  const mineBefore = {}; Object.keys(OVERLAP).forEach(k => { mineBefore[k] = S[k] || []; });
+  const mineBefore = {}; [...Object.keys(OVERLAP), "breakouts"].forEach(k => { mineBefore[k] = S[k] || []; });
   const playsBefore = new Set(customPlays().map(p => p.k));
   const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
