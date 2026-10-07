@@ -1,16 +1,21 @@
 /* Cache only the public app shell. Season data stays in the app's own storage. */
 "use strict";
-const VERSION = "gridlock-shell-v4";
+const VERSION = "gridlock-shell-v5";
 const SCOPE = self.registration.scope;
 const PREFIX = "gridlock:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = ["index.html", "native.js", "offline.js", "voice-parser.js", "speech.js", "voice.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
+// The logo ships in one build only, so it is cached when it is there and its
+// absence never fails the install.
+const OPTIONAL = ["logo-gridlock.jpg"];
 const URLS = FILES.map(file => new URL(file, SCOPE).href);
+const EXTRA = OPTIONAL.map(file => new URL(file, SCOPE).href);
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(
-    URLS.map(url => new Request(url, { cache: "reload" }))
-  )));
+  event.waitUntil(caches.open(CACHE).then(async cache => {
+    await cache.addAll(URLS.map(url => new Request(url, { cache: "reload" })));
+    await Promise.all(EXTRA.map(url => cache.add(new Request(url, { cache: "reload" })).catch(() => {})));
+  }));
   // An updated worker waits until the previous app session has closed.
 });
 
@@ -30,7 +35,7 @@ self.addEventListener("fetch", event => {
   const page = new URL("index.html", SCOPE).href;
   const clean = url.origin + url.pathname;
   const navigation = request.mode === "navigate" && (clean === SCOPE || clean === page);
-  if (!navigation && !URLS.includes(clean)) return;
+  if (!navigation && !URLS.includes(clean) && !EXTRA.includes(clean)) return;
   const key = navigation ? page : clean;
   event.respondWith((async () => {
     try {

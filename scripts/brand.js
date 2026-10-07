@@ -89,7 +89,20 @@ function transformText(text, from, to) {
   if (from.key === to.key) return text;
   return text
     .replace(new RegExp(`\\b${esc(from.short)}\\b(?!VoiceParser)`, "g"), to.short)
-    .replace(new RegExp(`${esc(from.scheme)}://`, "g"), `${to.scheme}://`);
+    .replace(new RegExp(`${esc(from.scheme)}://`, "g"), `${to.scheme}://`)
+    // The default brand's logo is a picture with its name painted in, so no
+    // word swap can rebrand it: in another build every <img data-logo> becomes
+    // that build's name as text, and the picture itself is never shipped.
+    .replace(/<img\b[^>]*\bdata-logo\b[^>]*>/g, tag => {
+      const alt = (/\balt="([^"]*)"/.exec(tag) || [, to.short])[1];
+      return `<span class="brand-logo brand-logo--word">${alt}</span>`;
+    });
+}
+// Files that belong to the default brand alone: its logo. Another build leaves
+// them out, and every comparison of a build against the source skips them.
+const BRAND_ONLY = /(^|\/)logo-[a-z0-9]+\.(?:jpg|png|webp|svg)$/;
+function ships(rel, toKey, brands = loadBrands()) {
+  return toKey === defaultBrand(brands).key || !BRAND_ONLY.test(rel);
 }
 function transformIndex(text, from, to) {
   const m = MARKER.exec(text);
@@ -131,10 +144,10 @@ function stage(to, brands = loadBrands()) {
   const from = defaultBrand(brands);
   const contact = contactOf(to);
   const web = new Map();
-  for (const rel of walk(WEB)) web.set(rel, transformFile(rel, fs.readFileSync(path.join(WEB, rel)), from, to, rel === "index.html"));
+  for (const rel of walk(WEB)) if (ships(rel, to.key, brands)) web.set(rel, transformFile(rel, fs.readFileSync(path.join(WEB, rel)), from, to, rel === "index.html"));
   const site = new Map();
   const skip = r => r === "README.md" || r === "build" || r.startsWith("build/") || r === "app.html" || r === "CNAME" || /^contact(\.[a-z0-9]+)?\.json$/.test(r) || r === ".well-known/assetlinks.json";
-  for (const rel of walk(SITE, skip)) site.set(rel, transformFile(rel, fs.readFileSync(path.join(SITE, rel)), from, to));
+  for (const rel of walk(SITE, skip)) if (ships(rel, to.key, brands)) site.set(rel, transformFile(rel, fs.readFileSync(path.join(SITE, rel)), from, to));
   for (const rel of ["support.html", "privacy.html"]) if (site.has(rel)) site.set(rel, Buffer.from(contactLib.stampSupport(site.get(rel).toString("utf8"), contact, to.short)));
   if (site.has("index.html")) site.set("index.html", Buffer.from(contactLib.stampIndex(site.get("index.html").toString("utf8"), contact)));
   if (contact.domain) site.set("CNAME", Buffer.from(contact.domain + "\n"));
@@ -163,6 +176,7 @@ function selfCheck(staged) {
       for (const b of staged.others || []) if (new RegExp(`\\b${esc(b.short)}\\b`).test(out)) problems.push(`${tree}/${rel} says "${b.short}", which is another build's name.`);
       if (from.key !== to.key) {
         if (other.test(out)) problems.push(`${tree}/${rel} still says "${from.short}".`);
+        if (/\bdata-logo\b/.test(out)) problems.push(`${tree}/${rel} still shows ${from.short}'s logo.`);
         if (from.scheme !== to.scheme && out.includes(`${from.scheme}://`)) problems.push(`${tree}/${rel} still links ${from.scheme}://.`);
       }
       if (src !== null) for (const token of TECHNICAL) {
@@ -347,7 +361,7 @@ function check(key) {
     let stale = [];
     for (const [name, dir] of [["iOS", SHELLS.iosPublic], ["Android", SHELLS.androidPublic]]) {
       if (!has(dir)) continue;
-      for (const rel of walk(WEB)) { const f = path.join(ROOT, dir, rel); if (!fs.existsSync(f) || !fs.readFileSync(f).equals(expected(rel, to.key, brands))) stale.push(`${name}/${rel}`); }
+      for (const rel of walk(WEB).filter(r => ships(r, to.key, brands))) { const f = path.join(ROOT, dir, rel); if (!fs.existsSync(f) || !fs.readFileSync(f).equals(expected(rel, to.key, brands))) stale.push(`${name}/${rel}`); }
     }
     ok("the phone shells carry this brand's web build", !stale.length, stale.length ? `stale: ${stale[0]} — run npm run brand native ${to.key}` : "in step");
   } else if (st.key) ok("the phone shells", true, `hold ${st.key}, not ${to.key} — npm run brand native ${to.key} switches them`);
@@ -526,7 +540,7 @@ async function main(argv) {
   }
 }
 
-module.exports = { loadBrands, brandOf, defaultBrand, contactOf, byAppId, transformText, transformFile, expected, markerOf, stage, selfCheck, build, native, nativeState, contact, check, statusLines, TECHNICAL };
+module.exports = { ships, loadBrands, brandOf, defaultBrand, contactOf, byAppId, transformText, transformFile, expected, markerOf, stage, selfCheck, build, native, nativeState, contact, check, statusLines, TECHNICAL };
 
 if (require.main === module) {
   main(process.argv.slice(2)).catch(e => { console.error(e.message); process.exitCode = 1; });

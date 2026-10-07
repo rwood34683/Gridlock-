@@ -40,6 +40,15 @@ build; every lowercase `gridlock` token — `window.gridlock*`, the storage keys
 `COPY_FORMAT`, the service-worker cache, `GridlockVoiceParser` — is a namespace
 shared by all and **never changes**. The build refuses if one moves, and
 refuses any build that says another build's name.
+Gridlock's logo is a picture with the name painted in (`web/logo-gridlock.jpg`,
+`site/img/logo-gridlock.jpg`, the owner's artwork trimmed and compressed), so
+no word swap can rebrand it: every place that shows it is an
+`<img data-logo … alt="Gridlock">` — in the app through `logoMark()`, on the
+site's header — and a variant build turns each into that build's name as text,
+leaves the `logo-*` files out (`ships()` in `scripts/brand.js`) and refuses
+itself if a `data-logo` survives. It is screened (`mix-blend-mode:screen`) so
+its black drops out over the red glow on the welcome page; the service worker
+caches it when it is there and never fails without it.
 
 ## Hard rules
 
