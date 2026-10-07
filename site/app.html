@@ -187,7 +187,9 @@ h1,h2,h3,p{margin:0}
    Cards are reserved for things that are actually objects.
    ============================================================ */
 .sec{display:flex;flex-direction:column;gap:var(--s3)}
-.sec__head{display:flex;align-items:baseline;gap:var(--s3);border-bottom:1px solid var(--line);padding-bottom:var(--s2)}
+.sec__head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s3);border-bottom:1px solid var(--line);padding-bottom:var(--s2)}
+/* The heading never shrinks for its note: "Save a copy" broke onto two lines beside a long summary. The note drops a line instead. */
+.sec__head > .sec__eyebrow{flex:0 0 auto;max-width:100%}
 .sec__eyebrow{font-size:var(--t-xs);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
 .sec__note{margin-left:auto;font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
 .sec__body{display:flex;flex-direction:column;gap:var(--s3)}
@@ -409,7 +411,10 @@ svg.field{width:100%;height:auto;display:block}
    not room for both on one line once every control is 44 px, so the controls
    take their own row rather than breaking the label into three. */
 .assign__ctl{flex:1 0 100%;display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
-@media (min-width:520px){
+/* Measured on the column, not the screen: an iPad mini's rail leaves a 528 px
+   column on a 744 px screen, and six controls beside a man's job at that
+   width crushed "SB · snake wire" to a word a line. */
+@container main (min-width:600px){
   .assign__ctl{flex:0 0 auto;justify-content:flex-end}
 }
 .ps{display:flex;gap:4px;flex:none}
@@ -600,6 +605,15 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rank__name{flex:1;font-size:var(--t-md);font-weight:600}
 .rank__pct{font-size:var(--t-xs);font-weight:700;color:var(--dim);white-space:nowrap}
 .rank__lanes{font-size:var(--t-xs);font-weight:500;color:var(--dim)}
+/* The number, the call, five pips and "won 2 of 2 vs Blitz" — which never
+   wraps — ran 13 px past a 320 px phone and clipped both ends of the row. In
+   a narrow column the pips and the record take a second line under the call. */
+@container main (max-width:460px){
+  .rank__row{flex-wrap:wrap;row-gap:4px}
+  .rank__name{flex:1 1 calc(100% - 18px - var(--s3));min-width:0}
+  .rank__row > .aggr{margin-left:calc(18px + var(--s3))}
+  .rank__pct{margin-left:auto;white-space:normal;text-align:right}
+}
 .clock-chip,.score-chip--go{cursor:pointer;color:var(--ink);font-family:inherit;min-height:44px}
 /* A narrow phone with the clock and the score both up: the brand's second
    line goes, the chips tighten, and the Staff chip steps aside — Nexus says
@@ -670,6 +684,11 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .rost__p input{min-width:0}
 .rost__ps{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
 .rost__ps label{display:flex;flex-direction:column;gap:4px}
+/* Their man's wire and five threat stars side by side need ~460 px: on a
+   320 px phone the stars pushed the second column wide, the wire picker
+   shrank to its arrow and the rows under it ran past the card. Narrower than
+   that, each takes its own row. */
+.rost__ps--pit{grid-template-columns:repeat(auto-fit,minmax(min(100%,232px),1fr))}
 .rost__num{text-align:center;font-weight:700}
 .rost__add{display:grid;grid-template-columns:66px 1fr;gap:var(--s2)}
 .rost__add .rost__ps{grid-column:1/-1}
@@ -9203,7 +9222,7 @@ function breakoutSheet(){
   const more = tellBacklog().some(r => r.id !== S.tallyEdit);
   return `<div class="tsheet" id="tally-sheet">
     <div class="btnrow" style="align-items:center">
-      <span class="grow"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
+      <span class="grow" style="min-width:min(100%,11rem)"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
         <span class="note" style="display:inline"> · ${esc(b.id)} · point ${rowPt}${nth ? ` · man ${nth} of ${rowsPt.length}` : ""}</span></span>
       ${S.tallyEdit ? `<button class="btn btn--quiet" onclick="undoBreakout(${jsq(S.tallyEdit)})">Take him off</button>` : ""}
       <button class="btn btn--quiet" onclick="tallyDone()">Done</button>
@@ -11188,7 +11207,7 @@ function pit(side,T,label){
           <input value="${esc(m.name)}" placeholder="name, if you know it"
             onchange="editScoutPlayer('${side}',${i},'name',this.value)"/>
           <button class="btn btn--danger" onclick="delScoutPlayer('${side}',${i})">Remove</button>
-          <div class="rost__ps">
+          <div class="rost__ps rost__ps--pit">
             <label><span class="note">Wire</span>
               <select onchange="editScoutPlayer('${side}',${i},'wire',this.value)">
                 ${SCOUT_WIRES.map(w=>`<option${m.wire===w?" selected":""}>${w}</option>`).join("")}
@@ -13329,6 +13348,9 @@ function moreBody(k){
         ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`
           :`<button class="btn btn--quiet" onclick="pickEvent(${jsq(L.key)})">Use this field</button>`}
         ${L.mine ? `<button class="btn btn--quiet" onclick="editField(${jsq(L.key)})">Edit</button>` : ""}
+        ${/* A note's reading width is capped, so beside the small ON chip it fit on the
+              same line and crushed the field's name to a word a line. The break puts it under. */""}
+        <span style="flex:1 0 100%;height:0" aria-hidden="true"></span>
         <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
       </div>`).join("")}
       ${(S.fields || []).filter(f => !fieldReady(f)).map(f => `

@@ -1222,7 +1222,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   are on the screen with it. The devices suite expects the rail on the same
   rule — and walks every Scout sub-tab, More section and open sheet (the
   breakout sheet, the penalty box, Cards) on all twenty devices, not only the
-  five tabs: the penalty's 1–4 sat at 41 px on every iPad until it did.
+  five tabs: the penalty's 1–4 sat at 41 px on every iPad until it did. On
+  a tablet it also fails a label broken to a word a line: "Direct the five"
+  put six controls inline on a 520 px *screen*, and the rail leaves an iPad
+  mini a 528 px column, so "SB · snake wire" sat in 30 px. The controls go
+  inline on the column now (`@container main (min-width:600px)`), the same
+  rule as every other two-up layout, and so do Counter's rank rows (the pips
+  and the record take a second line under 460 px of column) and their man's
+  wire and threat on the pit card (each its own row when the two do not fit).
 - Go two columns off the viewport width. With the rail up, a 744 px iPad has a
   528 px column, and the pits and the Tally sheet both went side by side at a
   720 px *viewport*, squeezing each pit to 250 px: the stars ran off the card
