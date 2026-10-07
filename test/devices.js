@@ -159,6 +159,43 @@ const measure = () => {
       if (m.tap && (!worst.tap || m.tap.px < worst.tap.px)) worst.tap = { ...m.tap, tab };
       if (m.line && (!worst.line || m.line.ch > worst.line.ch)) worst.line = { ...m.line, tab };
     }
+    // Every screen — not only the five tabs. The tab loop above never opened
+    // a Scout sub-tab, a More section, the breakout sheet, the penalty box or
+    // Cards, and the penalty's 1–4 sat at 41 px on every iPad and phone until
+    // an iPad probe walked them. Measured on each device: sideways scroll,
+    // anything past the right edge that does not sit in a scroller, and
+    // targets under 44 px.
+    {
+      const everyScreen = await page.evaluate((TAP) => {
+        try{
+          window.confirm = () => true;
+          const bad = [];
+          const look = where => {
+            const W = window.innerWidth, doc = document.documentElement, main = document.querySelector(".main");
+            const over = Math.max(doc.scrollWidth - W, main ? main.scrollWidth - main.clientWidth : 0);
+            if (over > 1) bad.push(`${where}: ${over}px sideways`);
+            const inScroller = el => { for (let a = el.parentElement; a; a = a.parentElement) { const cs = getComputedStyle(a); if (/(auto|scroll|hidden)/.test(cs.overflowX) && a.scrollWidth > a.clientWidth + 1) return true; } return false; };
+            document.querySelectorAll("#root button, #root select, #root input:not([type=hidden]), #root textarea").forEach(el => {
+              const b = el.getBoundingClientRect(); if (b.width <= 2 || b.height <= 2 || b.left > W) return;
+              if (b.right > W + 1 && !inScroller(el)) bad.push(`${where}: "${(el.textContent || el.tagName).trim().slice(0, 20)}" past the edge`);
+              if (Math.ceil(Math.min(b.width, b.height)) < TAP && !el.closest(".seg")) bad.push(`${where}: ${Math.round(Math.min(b.width, b.height))}px "${(el.textContent || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 20)}"`);
+            });
+          };
+          SCOUT_TABS.forEach(([k]) => { window.set({ tab: "scout", scoutTab: k }); look("Scout › " + k); });
+          MORE_GROUPS.flatMap(([, rows]) => rows.map(r => r[0])).forEach(k => { window.set({ tab: "more", more: k }); look("More › " + k); });
+          window.set({ tab: "tally", penOpen: true }); look("the penalty box");
+          window.set({ penOpen: false }); window.tallyStepTo("record"); look("the breakout sheet");
+          window.tallyStepTo("place");
+          window.set({ tab: "playbook", pbView: "cards" }); look("Cards");
+          window.set({ pbView: null });
+          return bad.length ? [...new Set(bad)].slice(0, 6).join("; ") : true;
+        }catch(e){ return "threw " + e.message; }
+      }, TAP);
+      check("Devices", `${name} — every Scout sub-tab, More section and open sheet holds up`, everyScreen === true, everyScreen === true ? "" : String(everyScreen));
+      await page.evaluate(s => { localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)); }, SEED);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(200);
+    }
     // The call row under the field. On an iPad on its side the call card is a
     // 340 px column beside the field, and "Change the call" broke onto two
     // lines inside a button of normal height — no overflow, no tall button, so

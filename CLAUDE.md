@@ -799,7 +799,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   many men off, stamped with the match and the point it was **served** on —
   which is the point that was actually played short, not the one the flag went
   up on. `startUp()` never returns below one: a side with nobody on the field
-  is a typo, not a point.
+  is a typo, not a point. `addPen` refuses a penalty that would leave a side fewer men than are
+  already charted or tallied out on that point — four placed and then a
+  three-man penalty was a side that broke four from two — and says so.
 - Count a short-handed point like an even one. Five against three is not a
   bunker's fault, and *Where the points come from* was marking a bunker down
   for it. `evenPoint(m, pt)` and the **Even points only** switch are the answer,
@@ -820,7 +822,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   (and the header's score chip says **watch** in the right pit's blue with the
   two teams in its label, because 2–1 in red beside the Staff chip reads as
   his score),
-  because there is no "us" on that field. Tally says so on screen and sends him
+  because there is no "us" on that field — Tally's scoreboard reads "Blast Camp v
+  Rejects" and "Blast Camp up / Rejects up", never "You up". Tally says so on screen and sends him
   to Scout, which is where two other teams are actually charted — and so do
   Lineups, Movement and Assess (`watchedNote()`), which are about his five on
   this point, while Log it is not offered on any screen and `logCall()`
@@ -1217,7 +1220,9 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   fitted to the height there is; on its side, the call card stands beside the
   field as it does on a sideways phone, so Change the call and Play the break
   are on the screen with it. The devices suite expects the rail on the same
-  rule.
+  rule — and walks every Scout sub-tab, More section and open sheet (the
+  breakout sheet, the penalty box, Cards) on all twenty devices, not only the
+  five tabs: the penalty's 1–4 sat at 41 px on every iPad until it did.
 - Go two columns off the viewport width. With the rail up, a 744 px iPad has a
   528 px column, and the pits and the Tally sheet both went side by side at a
   720 px *viewport*, squeezing each pit to 250 px: the stars ran off the card

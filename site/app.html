@@ -3153,7 +3153,7 @@ function fieldBuilder(){
       only ever where you put it, never bigger or smaller.</p>
     <div class="btnrow" style="margin-bottom:var(--s2)">
       <label class="btn btn--quiet" style="cursor:pointer;position:relative">${mapOf(f) ? "Use a different map" : "Put the event's map under it"}
-        <input type="file" accept="image/*" aria-label="Picture of the event's map" onchange="fieldMapFile(this)" style="position:absolute;width:1px;height:1px;opacity:0"/></label>
+        <input type="file" accept="image/*" aria-label="Picture of the event's map" onchange="fieldMapFile(this)" style="position:absolute;width:1px;height:1px;min-height:0;padding:0;border:0;opacity:0;pointer-events:none"/></label>
       ${mapOf(f) ? `<button class="btn btn--quiet" onclick="fieldMapTurn()">Turn the map</button>
         <button class="btn btn--quiet" onclick="fieldMapShow()">${ed.hideMap ? "Show the map" : "Hide the map"}</button>
         <button class="btn btn--quiet" onclick="fieldMapDrop()">Take the map off</button>` : ""}
@@ -9415,9 +9415,10 @@ function tally(){
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc(matchVs()||"Them")} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
-      <span class="fact"><b>${alive("us")}</b><span>You up</span></span>
-      <span class="fact"><b>${alive("them")}</b><span>Them up</span></span>
+        <span>${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : (matchVs() || "Them"))} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
+      ${/* A watched game has no "you": the two sides are the two teams on it. */""}
+      <span class="fact"><b>${alive("us")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"}</span></span>
+      <span class="fact"><b>${alive("them")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"}</span></span>
       <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
     </div>
     ${sheetField() ? `<div class="warn"><b>This sheet is on ${esc(LAYOUTS[sheetField()].name)}</b>, not the event on screen.
@@ -9567,7 +9568,8 @@ function tally(){
             <span class="assign__body"><span class="assign__job">${word(sd)}</span>
             <span class="assign__who">men off for point ${pt}</span></span>
             <span class="assign__ctl">
-              ${[1,2,3,4].map(c => `<button class="btn btn--quiet" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
+              ${/* A one-digit label left these 41 px wide, under the 44 a gloved thumb needs. */""}
+              ${[1,2,3,4].map(c => `<button class="btn btn--quiet" style="min-width:48px" aria-label="${c} ${c === 1 ? "man" : "men"} off" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
             </span>
           </div>`).join("")}
         </div>` : ""}
@@ -9762,6 +9764,14 @@ window.dropTimeout = id => { S.timeouts = (S.timeouts || []).filter(t => t.id !=
 window.addPen = (side, cost) => {
   if(sheetOver()) return;   // a sheet on another field, or one that is over, takes nothing
   if(nobodyToPlay()) return needOpponent();
+  // A penalty is what a side started the point with, so it cannot leave fewer
+  // men than are already charted or tallied out on it: four placed on point 1
+  // and then a three-man penalty was a side that broke four from two.
+  const pt = S.point || 1, c = +cost || 1;
+  const left = Math.max(1, 5 - pensFor(S.matchId, pt).filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0) - c);
+  const on = rows => (rows || []).filter(r => r && r.m === S.matchId && r.pt === pt && r.side === side).length;
+  const there = Math.max(on(S.breakouts), on(S.tally));
+  if(there > left){ flash(`${there} ${side === "us" ? "of yours" : "of theirs"} ${there === 1 ? "is" : "are"} already on point ${pt}'s chart, and that penalty leaves ${left}. Take the extra men off the chart first.`); return; }
   S.pens = [{id: penId(), m: S.matchId, pt: S.point || 1, side, cost: +cost || 1,
              who: "", why: "", at: Date.now()}, ...(S.pens || [])];
   set({penOpen: false});
