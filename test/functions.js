@@ -4545,6 +4545,29 @@ const ROSTER = [
     window.set({ copySheet: null, copyStatus: "", right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
     return /^Merged in a sheet — new here: 1 breakout$/.test(first) && /^Merged in a sheet — nothing new/.test(second) || JSON.stringify({ first, second });
   }));
+  check("a penalty that would leave a side fewer men than are already charted on the point is refused and says why", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, L = S.layoutKey;
+    S.breakouts = [3, 5, 7, 9].map((i, k) => ({ id: "pn-" + k, m: mid, pt: 1, side: "us", player: "", bunker: bl[i].id, layout: L, alive: true, todo: true, at: k, vs: "Overlap FC" })).concat(S.breakouts || []);
+    window.addPen("us", 3);
+    const refused = !(S.pens || []).some(p => p.m === mid) && /4 of yours are already on point 1's chart, and that penalty leaves 2/.test(S.flash);
+    window.addPen("us", 1);
+    const took = (S.pens || []).filter(p => p.m === mid).length === 1 && startUp("us", mid, 1) === 4;
+    S.pens = S.pens.filter(p => p.m !== mid); S.breakouts = S.breakouts.filter(r => r.m !== mid);
+    window.set({ right: { name: "Dynasty" }, penOpen: false }); window.newMatch();
+    return refused && took || JSON.stringify({ refused, took, flash: S.flash });
+  }));
+  check("Tally's scoreboard on a watched game names both teams — never \"You up\" for a game between two others", await ev(() => {
+    window.confirm = () => true;
+    openSheet({ vs: "Rejects", watch: true, home: "Blast Camp", away: "Rejects" }); save(S); window.set({ tab: "tally" });
+    const t = document.getElementById("root").textContent;
+    const ok = /Blast Camp v Rejects · point 1/.test(t) && /Blast Camp up/.test(t) && /Rejects up/.test(t) && !/You up/.test(t);
+    window.set({ right: { name: "Dynasty" } }); window.newMatch();
+    window.set({ tab: "tally" });
+    const own = /You up/.test(document.getElementById("root").textContent);
+    return ok && own || JSON.stringify({ ok, own });
+  }));
   check("a team that arrived on a sent sheet — men and breaks, nothing else — still draws on the Division board and the pits", await ev(() => {
     const was = S.scout;
     boardTeam("Partial Sheet FC");
