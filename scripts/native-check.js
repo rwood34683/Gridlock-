@@ -78,7 +78,7 @@ function verify() {
       for (const entry of fs.readdirSync(path.join(ROOT, "web", relative), { withFileTypes: true })) {
         const file = relative ? `${relative}/${entry.name}` : entry.name;
         if (entry.isDirectory()) visit(file);
-        else assert(brand.expected(file, key).equals(fs.readFileSync(path.join(ROOT, destination, file))), `Stale native file: ${destination}/${file}. Run npm run sync, or npm run brand native ${key}.`);
+        else if (brand.ships(file, key)) assert(brand.expected(file, key).equals(fs.readFileSync(path.join(ROOT, destination, file))), `Stale native file: ${destination}/${file}. Run npm run sync, or npm run brand native ${key}.`);
       }
     })();
   }

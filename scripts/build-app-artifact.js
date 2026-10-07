@@ -25,6 +25,14 @@ function bundle(web = WEB) {
     if (!mime) return tag;
     return `${before}data:${mime};base64,${fs.readFileSync(file).toString('base64')}${after}`;
   });
+  // A picture the app draws from its own markup — the logo — is inlined the
+  // same way, or the one-file build shows a broken image.
+  html = html.replace(/(<img\b[^>]*\bsrc=")([^"\s:]+\.(?:jpg|png|svg|webp))(")/g, (tag, before, rel, after) => {
+    const file = path.join(web, rel);
+    if (!fs.existsSync(file)) throw new Error(`Missing image: ${rel}`);
+    const mime = {'.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'}[path.extname(file)];
+    return `${before}data:${mime};base64,${fs.readFileSync(file).toString('base64')}${after}`;
+  });
   return html;
 }
 if (require.main === module) {
