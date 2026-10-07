@@ -37,7 +37,7 @@ const ROSTER = [
   const seed = async (extra = {}) => {
     await page.evaluate(s => localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)), {
       entered: true, role: "staff", email: "coach@team.com", tab: "playbook",
-      layoutKey: "mwo", script: "snake", faceOn: true, shotOn: true, t: 0.5, point: 1,
+      layoutKey: "mwo", script: "snake", callPicked: true, faceOn: true, shotOn: true, t: 0.5, point: 1,
       tips: { pb: 1, tally: 1, scout: 1, sl: 1, class: 1, lg: 1 }, roster: ROSTER,
       left: { name: "Blast Camp", tend: "Balanced", threat: 5, pts: 200, notes: "" },
       right: { name: "Rejects", tend: "Snake", threat: 4, pts: 186, notes: "" },
@@ -1243,7 +1243,7 @@ const ROSTER = [
     tally: [{pt:1,side:"them",name:"2",at:222,script:"snake",layout:"mwo",vs:"Malicious"}],
     codes: [{word:"Ladder",means:"trade out"}],
   };
-  await ev(st => window.set({ ...defaultState(), entered:true, role:"staff", tab:"more", more:"nexus", ...st }), OTHER);
+  await ev(st => window.set({ ...defaultState(), callPicked:true, entered:true, role:"staff", tab:"more", more:"nexus", ...st }), OTHER);
   await ev(t => { document.getElementById("copyIn").value = t; window.loadCopy("merge"); }, copy);
   check("merging keeps both rosters", await ev(() =>
     S.roster.length === 3 && S.roster.some(r => r.name === "Vance") && S.roster.some(r => r.name === "Reyes")));
@@ -1543,6 +1543,8 @@ const ROSTER = [
   }));
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(180);
+  // That old save never picked a call; what follows reads one.
+  await ev(() => { S.callPicked = true; });
   check("the migrated read lands on the right team", await ev(() =>
     /lean dorito/.test(profileOf("Malicious").notes) && profileOf("Rejects").notes === ""));
   check("the migrated slot keeps only the team name", await ev(() =>
@@ -1992,6 +1994,13 @@ const ROSTER = [
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
     return Math.min(f.bottom, window.innerHeight) - f.top > f.height * 0.95;
   }));
+  check("first run asks for the call rather than calling one: the header and the card say Pick the call, and the field draws no five", await ev(() =>
+    !S.callPicked && /PICK THE CALL/i.test(document.querySelector("#root .ctx__call").textContent)
+    && document.querySelector("#root .call__name").textContent === "Pick the call"
+    && document.querySelectorAll("#root .field-wrap polyline").length === 0
+    && document.querySelector("#root .ctx__call").getBoundingClientRect().bottom < window.innerHeight));
+  await ev(() => [...document.querySelectorAll("#root [data-callpick] + .seg button")][0].click());
+  await page.waitForTimeout(120);
   check("playing the break is reachable without scrolling", await ev(() => {
     const btns = [...document.querySelectorAll("button")].filter(b => /Play the break/.test(b.textContent));
     const r = btns[0].getBoundingClientRect();
@@ -4780,6 +4789,43 @@ const ROSTER = [
     const tight = gap >= 0 && gap < 24;
     S.plays = customPlays().filter(p => had.includes(p.k)); window.set({ script: was });
     return leads && tight && S.script === was && !customPlay(k);
+  }));
+  check("a new phone has no call: the header asks for one, the field draws no five, Log it refuses and a charted row carries no call", await ev(() => {
+    // It opened on Snake Stack, printed in white as if he had called it.
+    const keep = {script: S.script, picked: S.callPicked, tally: S.tally, calls: S.calls};
+    window.set({ tab: "playbook", pbView: null, pbPick: false, callPicked: false });
+    const hdr = /PICK THE CALL/i.test(document.querySelector("#root .ctx__call").textContent);
+    const card = document.querySelector("#root .call__name").textContent === "Pick the call";
+    const noFive = document.querySelectorAll("#root .field-wrap polyline").length === 0;
+    const listOpen = !!document.querySelector("#root [data-callpick] + .seg button") && !document.querySelector("#root [data-callpick] + .seg button.on");
+    const noPlay = ![...document.querySelectorAll("#root button")].some(b => /Play the break/.test(b.textContent));
+    const n = (S.calls || []).length; window.logCall();
+    const refused = (S.calls || []).length === n && /Pick the call/.test(S.flash || "");
+    window.set({ tab: "tally" });
+    const sheet = /Pick the call/.test(document.querySelector("#root").textContent);
+    window.set({ tab: "playbook" });
+    [...document.querySelectorAll("#root [data-callpick] + .seg button")].find(b => /Blitz/.test(b.textContent)).click();
+    const picked = S.callPicked && S.script === "blitz" && document.querySelectorAll("#root .field-wrap polyline").length > 0
+      && /BLITZ/i.test(document.querySelector("#root .ctx__call").textContent);
+    S.callPicked = keep.picked; S.calls = keep.calls; S.tally = keep.tally; window.set({ script: keep.script, callPicked: keep.picked, flash: "" });
+    return hdr && card && noFive && listOpen && noPlay && refused && sheet && picked;
+  }));
+  check("a save from before nothing-picked keeps the call he had made, and a fresh default does not", await ev(() =>
+    adoptCallPicked({script: "snake"}).callPicked === false
+    && adoptCallPicked({script: "blitz"}).callPicked === true
+    && adoptCallPicked({script: "snake", calls: [{script: "snake"}]}).callPicked === true
+    && adoptCallPicked({script: "snake", callPicked: false}).callPicked === false));
+  check("a blank sheet goes with the coach to another event; a sheet with anything on it stays", await ev(() => {
+    const keepM = S.matches, keepId = S.matchId, keepL = S.layoutKey, keepR = S.results;
+    const blank = {id: "blank-ev", at: Date.now(), vs: "", layout: "lso"};
+    S.matches = [blank, ...(S.matches || [])]; S.matchId = "blank-ev"; S.layoutKey = "lso";
+    window.pickEvent("mwo");
+    const moved = blank.layout === "mwo" && !sheetField();
+    S.results = [...(S.results || []), {m: "blank-ev", pt: 1, won: "us"}];
+    window.pickEvent("tby");
+    const stayed = blank.layout === "mwo" && sheetField() === "mwo";
+    S.matches = keepM; S.matchId = keepId; S.results = keepR; window.set({ layoutKey: keepL });
+    return moved && stayed;
   }));
   check("the header has two doors: the event opens a list of fields, the call opens Change the call — one tap never moves the event", await ev(() => {
     // One CHANGE ▾ sat beside the call and moved the whole app to the next

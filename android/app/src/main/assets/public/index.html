@@ -1769,7 +1769,7 @@ const defaultState = () => ({
   // half off the edge — so where each man is looking, which is the thing this
   // tab is for, is not on screen until you play it. Play the break runs it from
   // the line; Reset puts them back there.
-  layoutKey:"lso", script:"snake", playing:false, t:1,
+  layoutKey:"lso", script:"snake", callPicked:false, playing:false, t:1,
   faceOn:true, shotOn:true, rolesOn:true, smoothOn:true, outsOn:false, theirOn:false, awake:true,
   namesOn:false,
   scoutShow:"them", scoutFold:true, scoutNavMore:false, flash:"",               // the Scout field draws one pit at a time: theirs, yours, or both
@@ -1869,6 +1869,14 @@ let _storeFail = "";        // ...and can we still write one?
 const RECOVERY_KEY = STORE_KEY + ".recovery";
 let _recoveryText = "";
 try{ _recoveryText = localStorage.getItem(RECOVERY_KEY) || ""; }catch(e){}
+// A season from before nothing-picked existed — a save or a copy: the call
+// stands when he had made one — a call logged, a play of his own, or anything
+// but the default.
+function adoptCallPicked(d){
+  if(d && !("callPicked" in d)) d.callPicked = !!((d.calls || []).length || (d.plays || []).length
+    || (d.script && d.script !== defaultState().script));
+  return d;
+}
 function load(){
   let raw = "";
   try{
@@ -1877,6 +1885,7 @@ function load(){
     const parsed = JSON.parse(raw);
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
+    adoptCallPicked(parsed);
     return Object.assign(defaultState(), parsed);
   }catch(e){
     // Keep the exact bytes before a new session can overwrite the broken save.
@@ -3210,7 +3219,7 @@ window.savePlay = () => {
     if(b.retire && runsPlay(from)){ S.offPlays = [...new Set([...(Array.isArray(S.offPlays) ? S.offPlays : []), from])]; retired = callName(from); }
     pathsChanged();
   }
-  S.building = null; S.script = k; S.t = 1; S.playing = false;
+  S.building = null; S.script = k; S.callPicked = true; S.t = 1; S.playing = false;
   save(S);
   if(retired) flash(`${name} is yours. The app's ${retired} is turned off — Team › Break calls puts it back.`); else render();
 };
@@ -3341,6 +3350,13 @@ function callName(key){
 // call being named is the exception.
 const callTaken = (name, except) => playKeys().some(k => k !== except && foldName(callName(k)) === foldName(name));
 function breakName(){ return callName(S.script); }
+/* A new phone has no call. The app needs a key to stand on, so S.script is
+ * always a real one, but until the coach picks a call nothing shows it as
+ * his: the header asks for one, the field draws no five, and a row logged
+ * now carries no call rather than one he never made. */
+function callSet(){ return !!S.callPicked; }
+function myCall(){ return callSet() ? S.script : ""; }
+const PICK_CALL = "Pick the call";
 window.setBreakCall = key => {
   const el = document.getElementById("brc-" + key); if(!el) return;
   const word = (el.value || "").trim().slice(0, 28);
@@ -3432,6 +3448,10 @@ function set(patch){
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
   if(S.handText && !("handText" in patch) && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) S.handText = null;
+  // Any call set through here is a call he picked: a picker, Call it on the
+  // read line, Open on Team, a rank row on the Counter. The app's own moves
+  // (fixBreak, a play turned off, the drill) write S.script directly.
+  if("script" in patch && !("callPicked" in patch)) patch = {...patch, callPicked: true};
   Object.assign(S, patch); save(S); render();
 }
 // Put back what he was on, without a redraw — the caller is about to do one.
@@ -3863,7 +3883,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","matchState","playGone","fields","renamedMen","renamedTeams"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams"];
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
@@ -4409,7 +4429,7 @@ window.loadCopy = mode => {
   // off are his own choices, not records: an assistant's copy merged in used
   // to swap his pits for theirs, turn off the calls they do not run and hide
   // the schedule rows they did not want.
-  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
+  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   // Who won a point is the one thing two phones can disagree on outright. The
@@ -4445,7 +4465,7 @@ window.loadCopy = mode => {
   const teamRenamesMine = {...(S.renamedTeams || {})};
   const renamesMine = {...(S.renamedMen || {})}, rosterBefore = new Set((S.roster || []).map(p => p && foldName(p.name)));
   const wordsBefore = {breakCalls: {...(S.breakCalls || {})}, jobCalls: JSON.parse(JSON.stringify(S.jobCalls || {})), bunkerCalls: JSON.parse(JSON.stringify(S.bunkerCalls || {}))};
-  const next = mode === "replace" ? {...defaultState(), ...d, ...held} : mergeInto(S, d);
+  const next = mode === "replace" ? {...defaultState(), ...adoptCallPicked({...d}), ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
   if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
@@ -5867,7 +5887,10 @@ function fieldSVG(opts={}, runnersOnly){
      — not yours turned round. With nothing logged it falls back to the mirror
      and the legend says so. */
   const show = opts.both ? (opts.show || "both") : "us";
-  let paths = (opts.noPaths || show === "them") ? "" : runner(brPaths, opts.color||"#e5342f", 0);
+  // No call picked yet: nothing on the field is his five. The drill puts its
+  // own call on the field and draws it whatever he has picked.
+  const mineOn = callSet() || repState().running;
+  let paths = (opts.noPaths || show === "them" || !mineOn) ? "" : runner(brPaths, opts.color||"#e5342f", 0);
   if(opts.both && show !== "us"){
     // Their break is drawn only once you have logged one — the call seen most
     // against them on this field. With nothing logged the right pit is EMPTY,
@@ -6454,7 +6477,7 @@ function readLine(compact){
   // One tap calls it only if it is a play he runs: a turned-off built-in is
   // still named, with a word that it is off, but never set as the call.
   const off = a && !pickPlays()[a.call];
-  const btn = a && a.call !== S.script && !off && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : (off ? ` <span class="note" style="display:inline">${offWord(a.call)}</span>` : "");
+  const btn = a && a.call !== myCall() && !off && allPlays()[a.call] ? ` <button class="btn btn--quiet read-line__go" onclick="set({script:${jsq(a.call)},t:0,playing:false})">Call ${esc(callName(a.call))}</button>` : (off ? ` <span class="note" style="display:inline">${offWord(a.call)}</span>` : "");
   const plain = /^(after|at|on|facing)\b/.test(r.basis) || r.basis.includes(",");
   const basis = r.basis === "this season" ? "run" : `${plain ? "" : "when "}${esc(r.basis)} run`;
   const tell = compact ? null : myTell("right");
@@ -6545,7 +6568,7 @@ function watchLanes(){
 function fieldLanes(){
   const m = curMatch();
   if(m && m.watch){ const w = watchLanes(); return w && !w.thin ? w : null; }
-  if(!pitOnSheet("right")) return null;
+  if(!pitOnSheet("right") || !callSet()) return null;
   return breakLanes(S.script);
 }
 /* Their shooter, and who of yours has a lane on him. opponentRead() counts
@@ -6561,7 +6584,7 @@ function shooterLane(side = "right"){
   // The bunker in their five he is usually sighted in, matched by number.
   const at = t5.ids.map(id => ({id, u: usualMan(team, frameId(id, S.matchId, S.point || 1))})).find(x => x.u && x.u.who.split(" ")[0] === num);
   if(!at) return {tag, hits, at: null};
-  const mine = plantIdsFor(S.script); if(!mine) return {tag, hits, at: at.id};
+  const mine = callSet() ? plantIdsFor(S.script) : null; if(!mine) return {tag, hits, at: at.id, lanes: null, seen: at.u.n};
   const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, five = fiveFor(S.point || 1);
   const lanes = ids.map((a, i) => laneClear(a, at.id) ? {who: five[i] ? five[i].name : `slot ${i + 1}`, from: a} : null).filter(Boolean);
   return {tag, hits, at: at.id, lanes, seen: at.u.n};
@@ -6572,13 +6595,14 @@ function shooterLine(side = "right"){
   const who = `<b>${esc(sl.tag)}</b> has shot ${sl.hits} of your men`;
   if(!sl.at) return `${who} — nobody has sighted him in their five on this field yet.`;
   const where = `usually in <b>${esc(name(sl.at))}</b> (${sl.seen} sighting${sl.seen === 1 ? "" : "s"})`;
+  if(!sl.lanes) return callSet() ? `${who}, ${where}.` : `${who}, ${where}. Pick the call and the app says which of your five has a lane on him.`;
   return sl.lanes.length
     ? `${who}, ${where}: ${sl.lanes.map(l => `<b>${esc(l.who)}</b> from ${esc(name(l.from))}`).join(" and ")} ${sl.lanes.length === 1 ? "has" : "have"} a lane on him off the break.`
     : `${who}, ${where}: nobody in your five has a lane on him off the break on ${esc(breakName())}.`;
 }
 // One line for the call panel and the point sheet.
 function lanesLine(){
-  if(nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
+  if(!callSet() || nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
   const t = theirFiveNow(); const l = breakLanes(S.script, t); if(!l) return "";
   const five = t.basis === "logged" ? "the five they logged on this point" : `the five they usually plant${t.n ? ` (${t.n} logged fives)` : ""}`;
   return `<p class="note read-line"><b>Lanes off the break:</b> on ${esc(breakName())} against ${five}, ${l.onThem} of your ${l.mine} have a clear lane on one of theirs and ${l.onYou} of their ${l.theirs} have one on you. Counted off ${esc(curLayout().name)}, leaning out either side of the bunker.</p>${(sh => sh ? `<p class="note read-line"><b>Their shooter:</b> ${sh}</p>` : "")(shooterLine())}`;
@@ -7455,31 +7479,32 @@ function playbook(){
   if(S.pbView === "rep") return repView();
   if(S.pbView === "cards") return cardsView();
   const ans = oppAnswer("right");
+  const picked = callSet();
   return `${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
 
   <div class="pbtop">
   <div class="call">
     <div class="call__label">The call</div>
-    <div class="call__name">${esc(callName(key))}</div>
-    <p class="call__read">${m.read}</p>
-    ${(()=>{const r=breakRecord(key); return r.points
+    <div class="call__name">${picked ? esc(callName(key)) : PICK_CALL}</div>
+    <p class="call__read">${picked ? m.read : `Tap the one you are running under the field and it draws your five on ${esc(curLayout().name)}.`}</p>
+    ${(()=>{const r=breakRecord(key); return picked && r.points
       ? `<p class="note">On ${esc(curLayout().name)} you have called this ${r.points} time${r.points===1?"":"s"} —
          ${r.us} out${r.us===1?"":"s"} against you, ${r.them} against them.</p>`
       : "";})()}
     ${ans ? `<p class="note">You wrote down: they run <b>${esc(callName(ans.theirs))}</b>
       — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc(callName(ans.ours))}</b>.
-      ${ans.ours===key ? "That is this call." :
+      ${picked && ans.ours===key ? "That is this call." :
         `<button class="btn btn--quiet" style="margin-top:6px"
           onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
-      ${pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced")}
+      ${picked ? pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced") : ""}
       ${(curMatch()||{}).watch ? `<span class="vs">watching <b>${esc(matchLabel(curMatch()).split(" · ")[0])}</b> · this is your own board</span>`
         : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>${nextReadLine(false)}`
         :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
 
-  ${isMine(key) && !myPlants(key) ? `<div class="gate">
+  ${picked && isMine(key) && !myPlants(key) ? `<div class="gate">
       <span class="gate__tag">Not built here</span>
       <h3 class="gate__name">${esc(callName(key))} has no five on ${esc(curLayout().name)}</h3>
       <p class="lede">A play is the bunkers your men plant on, and those are different on every
@@ -7496,15 +7521,15 @@ function playbook(){
          buttons are a screen of their own. Same shape Tally already uses on the
          point sheet. */""}
   <div class="btnrow callrow" data-callpick>
-    <button class="btn btn--quiet grow" onclick="set({pbPick:!S.pbPick})">${
-      S.pbPick ? "Close" : "Change the call"}</button>
-    <button class="btn btn--quiet" onclick="newPlay()">+ Yours</button>
-    ${isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit</button>
+    ${picked ? `<button class="btn btn--quiet grow" onclick="set({pbPick:!S.pbPick})">${
+      S.pbPick ? "Close" : "Change the call"}</button>` : ""}
+    <button class="btn btn--quiet${picked ? "" : " grow"}" onclick="newPlay()">+ Yours</button>
+    ${!picked ? "" : isMine(key) ? `<button class="btn btn--quiet" onclick="buildPlay('${key}')">Edit</button>
       <button class="btn btn--danger" onclick="dropPlay('${key}')">Delete</button>`
       : BREAKS[key] ? `<button class="btn btn--quiet" onclick="copyPlay('${key}')">Make it yours</button>` : ""}
   </div>
-  ${S.pbPick ? `<div class="seg seg--wrap">
-      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
+  ${S.pbPick || !picked ? `<div class="seg seg--wrap">
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${picked&&key===k?"on":""}" onclick="set({script:'${k}',t:1,playing:false,pbPick:false})">${
         isMine(k) ? "★ " : ""}${esc(callName(k))}</button>`).join("")}
     </div>
     ${/* The twelve ship so day one is not an empty tab, and so Rep, Counter and
@@ -7529,7 +7554,7 @@ function playbook(){
 
   </div>
 
-  <button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
+  ${picked ? `<button class="btn btn--lg btn--block" onclick="playPath()">${S.playing?"❚❚  Pause the break":"▶  Play the break"}</button>
   ${/* Which end the five break from. Below Play the break, not above it: a row
         over Play pushed it off the first screen on first run. */""}
   ${endsChip()}
@@ -7551,19 +7576,19 @@ function playbook(){
     <button class="tgl ${S.smoothOn===false?"":"on"}" onclick="setSmooth(S.smoothOn===false)"><i></i>Smooth</button>
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
     <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
-  </div>
-  ${S.editPath?`<p class="note"><b>Drag along a run to draw it in.</b> Drag a corner to move it, tap one to
+  </div>` : ""}
+  ${picked && S.editPath?`<p class="note"><b>Drag along a run to draw it in.</b> Drag a corner to move it, tap one to
     take it out, tap the line to add one. Drag a player to point him. <button class="btn btn--danger"
     onclick="resetAllPaths()">Reset every path</button></p>`:""}
 
   <div class="toggles">
-    <button class="btn btn--quiet" onclick="set({pbView:'cards'})">Cards · here is your job</button>
+    ${picked ? `<button class="btn btn--quiet" onclick="set({pbView:'cards'})">Cards · here is your job</button>` : ""}
     <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'counter'})">Opp · they run X, we run Y</button>
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
   ${S.building ? `<div id="play-builder">${playBuilder()}</div>` : ""}
-  ${sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
+  ${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
     <div class="assigns">
@@ -7697,6 +7722,7 @@ function cardLines(){
   });
 }
 window.shareCards = () => {
+  if(!callSet()) return flash("Pick the call first — a card is one man's job on it.");
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
         + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}`
@@ -7799,6 +7825,9 @@ function playBuilder(){
 }
 
 function cardsView(){
+  if(!callSet()) return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({pbView:null})">‹ Playbook</button>
+    <div class="empty">A card is one man's job on the call. Pick the call first.
+      <button class="btn btn--block" style="margin-top:var(--s3)" onclick="openCallPick()">Pick the call</button></div>`;
   const cards = cardLines();
   return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({pbView:null})">‹ Playbook</button>
   ${sec("Cards", `<p class="lede">One card a man. Hand him the phone, or share the five into the squad
@@ -8141,7 +8170,7 @@ function placeAt(b){
     m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
     player:"", alive:null, shotFrom:"", entry:"", dir:null, shootAt:"",
     delayed:false, movedTo:"", movedDelayed:false, routeType:"", route:[],
-    vs:matchVs(), script:S.script, todo:true};
+    vs:matchVs(), script:myCall(), todo:true};
   S.breakouts = [row, ...(S.breakouts || [])];
   S.tallyLast = row.id;
   syncTallyFive(row.m, row.pt);
@@ -8234,7 +8263,7 @@ window.logBreakout = () => {
     delayed:!!d.delayed, movedTo:d.movedTo || "", movedDelayed:!!(d.movedTo && d.movedDelayed),
     routeType:d.routeType || "",
     route:(d.route || []).map(p => ({x:p.x, y:p.y, b:p.b || "", dl:!!p.dl})),
-    vs:matchVs(), script:S.script};
+    vs:matchVs(), script:myCall()};
   // One row a man a point: a named man charted again on the same point is
   // the coach correcting himself, not a second break, so his earlier row goes
   // — and if that row had him shot and this one does not, the out it wrote
@@ -8274,7 +8303,7 @@ window.logBreakout = () => {
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
-    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || S.script});
+    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || myCall()});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
   S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
@@ -8749,21 +8778,21 @@ function tally(){
     <div class="sec__head">
       <span class="sec__eyebrow">The call</span></div>
     <div class="call" style="padding:var(--s3) var(--s4)">
-      <div class="call__name" style="font-size:var(--t-xl)">${esc(breakName())}</div>
-      <div class="call__read">${esc(breakMeta(S.script).read)}</div>
+      <div class="call__name" style="font-size:var(--t-xl)">${callSet() ? esc(breakName()) : PICK_CALL}</div>
+      <div class="call__read">${callSet() ? esc(breakMeta(S.script).read) : "Tap the one you are running. It is the same call on Playbook."}</div>
     </div>
     ${/* The read and its Call button stay above Change the call and Log it;
           the lanes and their shooter are context and go under the buttons, so
           Log it stays a thumb from the call between points. */""}
     ${readLine(false)}
     <div class="btnrow" data-callpick>
-      <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
-        S.tallyPick?"Close":"Change the call"}</button>
+      ${callSet() ? `<button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
+        S.tallyPick?"Close":"Change the call"}</button>` : ""}
       ${(curMatch()||{}).watch || sheetField() ? "" : `<button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>`}
     </div>
     ${lanesLine()}
-    ${S.tallyPick?`<div class="seg seg--wrap">
-      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+    ${S.tallyPick || !callSet()?`<div class="seg seg--wrap">
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${callSet()&&S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,tallyPick:false})">${esc(callName(k))}</button>`).join("")}
       ${/* Build a call the app has never heard of, right from the sheet. It
             opens the builder on Playbook, where the field is, and the sheet
@@ -9108,7 +9137,7 @@ function outRow(side, name, extra = {}){
   // Enough context to count honestly afterwards: which break was called, on
   // which field, against whom. Without these an out is a number with no story.
   S.tally=[{pt,side,name,at:Date.now(),m:S.matchId,
-            script:S.script, layout:S.layoutKey, vs:matchVs(), ...extra},...(S.tally||[])];
+            script:myCall(), layout:S.layoutKey, vs:matchVs(), ...extra},...(S.tally||[])];
   return true;
 }
 /* Tap a man and he is out; tap him again and he is back in. The second tap
@@ -9626,6 +9655,7 @@ window.logCall = () => {
   if(nobodyToPlay()) return needOpponent();
   if((curMatch() || {}).watch) return;   // not his call to log
   if(sheetField()){ sheetOver(); return; }   // over, it is the last point played
+  if(!callSet()) return flash("Pick the call first — then Log it writes it down.");
   const pt = sheetPoint();
   S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now()},
              ...(S.calls || []).filter(c => !(c.m === S.matchId && c.pt === pt))];
@@ -9769,18 +9799,18 @@ function scout(){
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
             a left-pit team on that side of the field. */""}
-      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${(curMatch()||{}).watch && L.named ? esc(L.name) : "You"} · ${esc(breakName())}</span>`:""}
+      ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${(curMatch()||{}).watch && L.named ? esc(L.name) : "You"} · ${callSet() ? esc(breakName()) : "no call picked yet"}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
           ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
       ${(S.scoutShow||"them")!=="us"?ghostLegend():""}
-      ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") ? breakLanes(S.script) : null);
+      ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") && callSet() ? breakLanes(S.script) : null);
         const sh = w ? null : shooterLane("right");
         const words = w
           ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc((curMatch()||{}).home || "the home side")}'s on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc((curMatch()||{}).away || "the away side")}'s on Breakouts`}`
                    : `clear lanes off the break · ${w.onThem} of ${esc(w.homeName)}'s ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(w.awayName)}'s ${w.theirs} on ${esc(w.homeName)}`)
           : l ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
-          : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`;
+          : !callSet() && !w ? `lanes show once you pick the call` : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`;
         return `${sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : ""}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${words}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
@@ -10602,6 +10632,7 @@ function scoutMatchup(){
           not his own five against a call nobody is running. */""}
     ${(curMatch()||{}).watch
       ? `<p class="lede">A game you are watching: <b>${esc(L.named ? L.name : (curMatch().home || "Home"))}</b> v <b>${esc(R.name)}</b>. Your call and your five are not on this field.</p>`
+      : !callSet() ? `<p class="lede">You have not picked a call yet. <button class="btn btn--quiet read-line__go" onclick="openCallPick()">Pick the call</button></p>`
       : `<p class="lede">Your call is <b>${esc(breakName())}</b>. It puts your five here:</p>
     <div class="facts">
       ${Object.entries(split).map(([k,n])=>`<span class="fact"><b>${n}</b><span>${k}</span></span>`).join("")}
@@ -10617,8 +10648,8 @@ function scoutMatchup(){
           ? L.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}</li>`).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the left pit card above.</li>`}
       </ol></div>`
-        : `<div><h4>Your five · ${esc(breakName())}</h4><ol>
-        ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b>${who ? `${esc(who.name)} · ` : ""}${esc(jobName(S.script, p.id, p.label))}</li>`; }).join("")}
+        : `<div><h4>Your five${callSet() ? ` · ${esc(breakName())}` : ""}</h4><ol>
+        ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b>${who ? `${esc(who.name)}${callSet() ? " · " : ""}` : ""}${callSet() ? esc(jobName(S.script, p.id, p.label)) : who ? "" : "—"}</li>`; }).join("")}
       </ol></div>`}
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
@@ -11003,7 +11034,7 @@ function scoutCounter(){
 window.copyMatchup = () => {
   // The left pit is a team he watches; it is a side of this card only on a watched sheet.
   const who = (curMatch()||{}).watch && pitNamed("left") ? `${pitOf("left").name} vs ${pitOf("right").name}` : `vs ${pitOf("right").name}`;
-  const t=`Gridlock · ${who}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${breakName()}.`;
+  const t=`Gridlock · ${who}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${callSet() ? breakName() : "not picked yet"}.`;
   handOff("Gridlock matchup", t);
 };
 
@@ -11124,7 +11155,7 @@ window.pickSight = (which, id) => which === "from"
 // bunker in the map's list is wherever the digitiser started.
 function sightDefault(){
   const list = curLayout().bunkers;
-  const plants = (BREAK_PLANTS[S.layoutKey] || {})[S.script] || myPlants(S.script, S.layoutKey) || [];
+  const plants = !callSet() ? [] : (BREAK_PLANTS[S.layoutKey] || {})[S.script] || myPlants(S.script, S.layoutKey) || [];
   // Plants are kept in the left-end frame; breaking from the right end his
   // first man stands in the twin bunker, and that is the one he walks over to.
   const mine = plants.map(id => ourEnd() === "right" ? mirrorBunkerId(id) : id).find(id => list.some(b => b.id === id));
@@ -11750,6 +11781,7 @@ const HELP_Q = [
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in, and a second tap takes him off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
+  ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
@@ -12105,7 +12137,7 @@ function moreBody(k){
     const jobs=currentPaths();
     const slotOf=n=>five.findIndex(p=>p&&p.name===n);
     const slots=`<div class="assigns">${five.map((pl,i)=>{
-      const job=jobs[i]?jobName(S.script, jobs[i].id, jobs[i].label):"";
+      const job=jobs[i]&&callSet()?jobName(S.script, jobs[i].id, jobs[i].label):"";
       const open=S.slotPick===i;
       return `<button class="assign${open?" assign--on":""}" onclick="set({slotPick:${open?"null":i}})" aria-expanded="${open}">
         <span class="assign__n">${i+1}</span>
@@ -12746,7 +12778,7 @@ function shell(){
           ? `<button class="ctx__ev" onclick="set({evPick:!S.evPick})" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`
-          : `<button class="ctx__call" onclick="openCallPick()" aria-label="Call: ${esc(breakName())}. Change the call"><b class="ctx__t">${esc(breakName())}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
+          : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
       </div>
       ${S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
         Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${esc(l.name)}</button>`).join("")}</div>` : ""}
@@ -12784,12 +12816,12 @@ function quickLog(){
     </div>
     <button class="qlog__call" onclick="set({quickPick:!S.quickPick})">
       <span class="qlog__label">THE CALL</span>
-      <span class="qlog__name">${esc(breakName())}</span>
-      <span class="qlog__caret">${S.quickPick?"CLOSE ▴":"CHANGE ▾"}</span>
+      <span class="qlog__name">${callSet() ? esc(breakName()) : PICK_CALL}</span>
+      <span class="qlog__caret">${S.quickPick?"CLOSE ▴":callSet()?"CHANGE ▾":"PICK ▾"}</span>
     </button>
     ${nextReadLine(true)}
     ${S.quickPick ? `<div class="seg seg--wrap qlog__pick">
-      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${S.script===k?"on":""}"
+      ${Object.entries(pickPlays()).map(([k,v])=>`<button class="${callSet()&&S.script===k?"on":""}"
         onclick="set({script:'${k}',t:1,playing:false,quickPick:false})">${esc(callName(k))}</button>`).join("")}
       <button class="seg__add" onclick="newPlay()">+ Yours</button>
     </div>` : nobodyToPlay() ? `<div class="qlog__score">
@@ -12970,7 +13002,16 @@ window.flash = msg => {
   // is committed until onchange. The one element is taken off the page.
   _flashT = setTimeout(() => { if(S.flash){ S.flash = ""; save(S); document.querySelectorAll(".flash").forEach(el => el.remove()); } }, 3600);
 };
-window.pickEvent = key => { if(LAYOUTS[key]) set({layoutKey:key, evPick:false}); };
+/* A sheet with nothing on it has no field to belong to yet: a new phone
+   opened on one event and moved to another read "This sheet is on Lone Star,
+   nothing logs here" over a sheet nobody had touched. A blank sheet goes with
+   him; one with anything on it stays where it was played. */
+window.pickEvent = key => {
+  if(!LAYOUTS[key]) return;
+  const m = curMatch();
+  if(m && m.layout !== key && sheetEmpty(m)) m.layout = key;
+  set({layoutKey:key, evPick:false});
+};
 /* The call in the header opens Change the call where he is: on the point
    sheet when Tally is showing it, else on Playbook under the field. */
 window.openCallPick = () => {

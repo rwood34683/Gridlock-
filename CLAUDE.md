@@ -1270,6 +1270,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the point sheet when Tally is showing it, else on Playbook under the field
   (`[data-callpick]`). The call reads in white and the event quieter, because
   the call changes every point and the event twice a season.
+- Pick a call for him. A new phone opened on Snake Stack, printed in white in
+  the header and big on The Call card as if he had called it — a name the
+  owner read as not even a real call. `S.script` is always a real key, because
+  everything that draws reads one, but `S.callPicked` (false on a new phone)
+  says whether it is his: until it is, `callSet()` is false and the header, the
+  card, the point sheet and the quick log say **Pick the call** with the list
+  open, the field draws no five, Play the break, Face/Shot and Direct the five
+  wait, `logCall` refuses, the lanes and cards say to pick one, and a row
+  charted meanwhile carries no call (`myCall()` is ""). Any `set()` with a
+  `script` in it is his pick; the app's own moves — `fixBreak`, a play turned
+  off, the drill — write `S.script` directly and pick nothing. A save or a
+  copy from before the flag keeps its call when he had made one
+  (`adoptCallPicked`: a call logged, a play of his own, or anything but the
+  default). And a blank sheet goes with him to another event (`pickEvent`):
+  one with nothing on it has no field to belong to yet.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of
