@@ -166,7 +166,7 @@ const measure = () => {
     // anything past the right edge that does not sit in a scroller, and
     // targets under 44 px.
     {
-      const everyScreen = await page.evaluate((TAP) => {
+      const everyScreen = await page.evaluate(([TAP, TABLET]) => {
         try{
           window.confirm = () => true;
           const bad = [];
@@ -180,7 +180,19 @@ const measure = () => {
               if (b.right > W + 1 && !inScroller(el)) bad.push(`${where}: "${(el.textContent || el.tagName).trim().slice(0, 20)}" past the edge`);
               if (Math.ceil(Math.min(b.width, b.height)) < TAP && !el.closest(".seg")) bad.push(`${where}: ${Math.round(Math.min(b.width, b.height))}px "${(el.textContent || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 20)}"`);
             });
+            // On a tablet there is room for every label: a label broken to one
+            // word a line is a column squeezed by controls beside it. "SB ·
+            // snake wire" sat 30 px wide on an iPad mini, six controls beside
+            // it, because the controls went inline on a 520 px *screen*.
+            if (TABLET) document.querySelectorAll("#root *").forEach(el => {
+              if (el.children.length) return;   // plain text only: a badge beside text sits at its own height
+              const words = (el.textContent || "").trim().split(/\s+/).filter(x => x.length > 1);
+              if (words.length < 3 || !el.getBoundingClientRect().width) return;
+              const r = document.createRange(); r.selectNodeContents(el);
+              if (new Set([...r.getClientRects()].map(q => Math.round(q.top))).size >= words.length) bad.push(`${where}: "${el.textContent.trim().slice(0, 24)}" a word a line`);
+            });
           };
+          ["playbook", "tally", "sightlines"].forEach(t => { window.set({ tab: t, pbView: null }); look(t); });
           SCOUT_TABS.forEach(([k]) => { window.set({ tab: "scout", scoutTab: k }); look("Scout › " + k); });
           MORE_GROUPS.flatMap(([, rows]) => rows.map(r => r[0])).forEach(k => { window.set({ tab: "more", more: k }); look("More › " + k); });
           window.set({ tab: "tally", penOpen: true }); look("the penalty box");
@@ -190,7 +202,7 @@ const measure = () => {
           window.set({ pbView: null });
           return bad.length ? [...new Set(bad)].slice(0, 6).join("; ") : true;
         }catch(e){ return "threw " + e.message; }
-      }, TAP);
+      }, [TAP, w >= RAIL && h >= RAIL_TALL]);
       check("Devices", `${name} — every Scout sub-tab, More section and open sheet holds up`, everyScreen === true, everyScreen === true ? "" : String(everyScreen));
       await page.evaluate(s => { localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)); }, SEED);
       await page.reload({ waitUntil: "networkidle" });
