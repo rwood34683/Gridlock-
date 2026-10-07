@@ -141,7 +141,26 @@ h1,h2,h3,p{margin:0}
 .ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
-.ctx__caret{color:var(--dim);font-size:10px}
+/* Two doors, each saying what it changes. One CHANGE ▾ at the end of the line
+   sat beside the call and moved the whole app to the next event on one tap —
+   a coach reaching for the call landed on another field. The event opens a
+   list of the fields; the call opens Change the call. The event reads quieter
+   than the call: it changes twice a season, the call every point. */
+button.ctx__ev,button.ctx__call{
+  display:inline-flex;align-items:center;gap:.3em;min-height:44px;margin:-12px 0;
+  padding:0;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;
+  text-transform:inherit;cursor:pointer;text-align:left;
+}
+button.ctx__ev b{color:var(--mute)}
+.ctx__call b{color:var(--ink)}
+.ctx__t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ctx__car{flex:none;color:var(--accent-lit);font-style:normal;font-size:10px}
+.evpick{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 0 var(--s3)}
+.evpick button{
+  min-height:44px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);
+  background:none;color:var(--ink);font:inherit;font-size:var(--t-sm);font-weight:700;cursor:pointer;
+}
+.evpick button.on{border-color:var(--accent);background:var(--accent)}
 
 .tabs{
   display:flex;background:#000;border-top:1px solid var(--line);
@@ -1796,7 +1815,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false,
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false,
   plays:[], building:null,
   pens:[],                 // penalties, as the official called them and the coach recorded them
   timeouts:[],             // the one timeout a team gets a match, and the point it was taken on
@@ -2484,7 +2503,7 @@ function clearScratch(){
   S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
   S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
   S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
-  S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false;
+  S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false; S.evPick = false;
   S.theirPick = []; S.sightAim = null; S.scoutSide = "right"; S.joinOnly = false; S.joinSaid = "";
   S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
   S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
@@ -7476,7 +7495,7 @@ function playbook(){
          page hint is still there. Folded, for the same reason: twelve wrapped
          buttons are a screen of their own. Same shape Tally already uses on the
          point sheet. */""}
-  <div class="btnrow callrow">
+  <div class="btnrow callrow" data-callpick>
     <button class="btn btn--quiet grow" onclick="set({pbPick:!S.pbPick})">${
       S.pbPick ? "Close" : "Change the call"}</button>
     <button class="btn btn--quiet" onclick="newPlay()">+ Yours</button>
@@ -8737,7 +8756,7 @@ function tally(){
           the lanes and their shooter are context and go under the buttons, so
           Log it stays a thumb from the call between points. */""}
     ${readLine(false)}
-    <div class="btnrow">
+    <div class="btnrow" data-callpick>
       <button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
         S.tallyPick?"Close":"Change the call"}</button>
       ${(curMatch()||{}).watch || sheetField() ? "" : `<button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>`}
@@ -11731,7 +11750,7 @@ const HELP_Q = [
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in, and a second tap takes him off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
-  ["The field looks wrong for this event.", "Change at the top of any screen switches the event, and every tab follows it. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
+  ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "No. The app makes no network calls at all. Everything is on the phone and stays there."],
@@ -12722,19 +12741,20 @@ function shell(){
         <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
         <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
       </div>
-      ${Object.keys(LAYOUTS).length>1
-        ? `<button class="ctx" onclick="cycleEvent()">
-        <span class="ctx__line"><span class="ctx__ev"><b>${esc(curLayout().name)}</b></span><span class="ctx__call"><span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}</span>${crumb}</span>
-        <span class="ctx__caret">CHANGE ▾</span>
-      </button>`
-        : `<div class="ctx">
-        <span class="ctx__line"><b>${esc(curLayout().name)}</b> <span class="ctx__sep">·</span> ${drilling?"NAME THE CALL":esc(breakName())}${crumb}</span>
-      </div>`}
+      <div class="ctx">
+        <span class="ctx__line">${Object.keys(LAYOUTS).length>1
+          ? `<button class="ctx__ev" onclick="set({evPick:!S.evPick})" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
+          : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
+          ? `<span class="ctx__call">NAME THE CALL</span>`
+          : `<button class="ctx__call" onclick="openCallPick()" aria-label="Call: ${esc(breakName())}. Change the call"><b class="ctx__t">${esc(breakName())}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
+      </div>
+      ${S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
+        Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${esc(l.name)}</button>`).join("")}</div>` : ""}
     </header>
     <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
-    <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null})"><i></i>${n}</button>`).join("")}</nav>
+    <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>
     ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
@@ -12950,11 +12970,18 @@ window.flash = msg => {
   // is committed until onchange. The one element is taken off the page.
   _flashT = setTimeout(() => { if(S.flash){ S.flash = ""; save(S); document.querySelectorAll(".flash").forEach(el => el.remove()); } }, 3600);
 };
-window.cycleEvent = () => {
-  const keys=Object.keys(LAYOUTS);
-  set({layoutKey:keys[(keys.indexOf(S.layoutKey)+1)%keys.length]});
+window.pickEvent = key => { if(LAYOUTS[key]) set({layoutKey:key, evPick:false}); };
+/* The call in the header opens Change the call where he is: on the point
+   sheet when Tally is showing it, else on Playbook under the field. */
+window.openCallPick = () => {
+  if(S.tab === "tally"){
+    set({tallyPick: true, evPick: false});
+    const el = document.querySelector("[data-callpick]");
+    if(el){ requestAnimationFrame(() => el.scrollIntoView({behavior: "smooth", block: "center"})); return; }
+  }
+  set({tab: "playbook", more: null, pbView: null, pbPick: true, tallyPick: false, evPick: false});
+  requestAnimationFrame(() => { const el = document.querySelector("[data-callpick]"); if(el) el.scrollIntoView({behavior: "smooth", block: "center"}); });
 };
-window.pickEvent = key => { if(LAYOUTS[key]) set({layoutKey:key}); };
 window.setSmooth = on => set({smoothOn:!!on});
 /* The screen goes to sleep between points otherwise: a coach makes the call,
  * puts the phone down, and picks up a locked screen on the buzzer. The lock is
