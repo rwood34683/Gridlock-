@@ -555,8 +555,8 @@ const ROSTER = [
     Object.values(LAYOUTS).every(l => l.bunkers.length > 0 && l.bunkers.every(b => b.w > 0 && b.h > 0))));
   check("no event switch is offered while there is one field", await ev(() =>
     Object.keys(LAYOUTS).length > 1
-      ? !!document.querySelector("button.ctx")
-      : !document.querySelector("button.ctx") && !!document.querySelector(".ctx")));
+      ? !!document.querySelector("button.ctx__ev")
+      : !document.querySelector("button.ctx__ev") && !!document.querySelector(".ctx")));
 
   // Every tap rebuilds the screen. It used to come back at the top, which threw
   // the coach off whatever he was reading, halfway down a long card.
@@ -2229,7 +2229,7 @@ const ROSTER = [
     Object.values(LAYOUTS).every(l => /official NXL field map/.test(l.source))));
   check("the event becomes a picker once there is more than one to pick", await ev(() => {
     window.set({ tab: "playbook" });
-    return !!document.querySelector("button.ctx");
+    return !!document.querySelector("button.ctx__ev");
   }));
   check("Tampa carries its own 57 bunkers", await ev(() => LAYOUTS.tby.bunkers.length === 57));
   check("every one of them is on the field", await ev(() =>
@@ -4766,7 +4766,7 @@ const ROSTER = [
     const ctx = document.querySelector(".ctx"); ctx.style.width = "288px";
     const call = document.querySelector(".ctx__call"), ev = document.querySelector(".ctx__ev");
     const callW = call.getBoundingClientRect().width, evW = ev.getBoundingClientRect().width;
-    const cut = ev.scrollWidth > ev.clientWidth + 1;
+    const evT = ev.querySelector(".ctx__t") || ev, cut = evT.scrollWidth > evT.clientWidth + 1;
     ctx.style.width = "";
     // The call takes more of the line than the event does, and the event never
     // vanishes: a stub with an ellipsis still says what the button changes.
@@ -4776,9 +4776,32 @@ const ROSTER = [
     ctx.style.width = "900px";
     const gap = call.getBoundingClientRect().left - ev.getBoundingClientRect().right;
     ctx.style.width = "";
-    const tight = gap >= 0 && gap < 12;
+    // The dot between them is its own span now, outside both buttons.
+    const tight = gap >= 0 && gap < 24;
     S.plays = customPlays().filter(p => had.includes(p.k)); window.set({ script: was });
     return leads && tight && S.script === was && !customPlay(k);
+  }));
+  check("the header has two doors: the event opens a list of fields, the call opens Change the call — one tap never moves the event", await ev(() => {
+    // One CHANGE ▾ sat beside the call and moved the whole app to the next
+    // event on one tap: a coach reaching for the call landed on another field.
+    window.set({ tab: "playbook", more: null, pbPick: false, evPick: false, pbView: null });
+    const was = S.layoutKey, keys = Object.keys(LAYOUTS);
+    const noCaret = !/CHANGE/.test(document.querySelector("#root .ctx").textContent);
+    document.querySelector("#root button.ctx__ev").click();
+    const stayed = S.layoutKey === was && S.evPick;
+    const opts = [...document.querySelectorAll("#root .evpick button")];
+    const listed = opts.length === keys.length && opts.filter(b => b.classList.contains("on")).length === 1
+      && opts.every(b => b.getBoundingClientRect().height >= 44);
+    const other = keys.find(k => k !== was);
+    opts[keys.indexOf(other)].click();
+    const moved = S.layoutKey === other && !S.evPick && !document.querySelector("#root .evpick");
+    window.pickEvent(was);
+    window.set({ tab: "scout" });
+    document.querySelector("#root button.ctx__call").click();
+    const callOpen = S.tab === "playbook" && S.pbPick && !!document.querySelector("#root [data-callpick] + .seg button.on");
+    const tall = document.querySelector("#root button.ctx__call").getBoundingClientRect().height >= 44;
+    window.set({ pbPick: false });
+    return noCaret && stayed && listed && moved && callOpen && tall && S.layoutKey === was;
   }));
   check("the Division table folds Film, Roster and Read from away in a narrow column", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", more: null });

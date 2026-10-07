@@ -1261,6 +1261,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   GARLAN…" and no call at all on a 320 px phone. The event gives way first,
   down to a stub ("NXL…"), because the call is read between points and the
   event changes twice a season.
+- Put one CHANGE ▾ on the header line. It sat at the end, beside the call,
+  and moved the whole app to the next event on a single tap, so a coach
+  reaching to change the call landed on another field with nothing said. The
+  line is two doors now, each with its own ▾: the event (`.ctx__ev`) opens a
+  list of the fields (`S.evPick`, scratch) and moves nothing until one is
+  picked; the call (`.ctx__call`, `openCallPick()`) opens Change the call on
+  the point sheet when Tally is showing it, else on Playbook under the field
+  (`[data-callpick]`). The call reads in white and the event quieter, because
+  the call changes every point and the event twice a season.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of
