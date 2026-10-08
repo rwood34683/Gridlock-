@@ -2082,4 +2082,19 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   stops on Close, the same contract as the break animation. Nothing else
   names it — no Help entry, no menu row — because it is a secret, and it is
   not a screen a coach needs on a field. `window.podWars` carries a seeded
-  step for the suite.
+  step for the suite. Read line by line, it had eight faults, and the suite
+  holds each one now. A shot at the middle of a bunker hit the man behind it.
+  Now paint that lands on a bunker's footprint is on the bunker
+  (`podInBunker`), and a man shows enough to hit only past a quarter out. A man
+  at the brick could never be hit, because one lean served every bunker; he
+  now leans from that bunker's own edge (`podHalf`, `podLean`). His own ball and
+  theirs landing on one frame saved the best before his man counted; every
+  ball now lands before anything is decided. Dry ended the game with a pod on
+  its way, so the next drop is brought up and only one left uncollected
+  ends it. It was a dialog in name only: the app under it took focus and keys
+  and Escape reached both. Now everything under it is `inert`, keys are caught
+  on the way down, and focus goes back where it was. It hid the break clock, so
+  the clock sits in its top bar and the buzzer pauses the game, once. Play
+  pressed twice wiped a game, and Close threw the score away. A long press on
+  Tuck opened the phone's menu, so the menu is stopped. And it now pauses on
+  `blur` as well as when the app is hidden.
