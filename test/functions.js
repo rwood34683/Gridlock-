@@ -9640,6 +9640,63 @@ const ROSTER = [
     return folded && all && S.matches.length === base;
   }));
 
+  G("Third pass: the review's confirmed findings");
+  check("pass3: a play of his own with no five here draws nothing, never the balanced break's shape", await ev(() => {
+    const other = Object.keys(LAYOUTS).find(k => k !== "lso" && !k.startsWith("my:"));
+    const five = LAYOUTS[other].bunkers.slice(0, 5).map(b => b.id);
+    const keep = { plays: S.plays, script: S.script, layoutKey: S.layoutKey, callPicked: S.callPicked };
+    S.plays = [...(S.plays || []), { k: "my:p3", name: "Pass three", plants: { [other]: five } }];
+    window.set({ layoutKey: "lso", script: "my:p3", tab: "playbook" });
+    const none = currentPaths().length === 0 && document.querySelectorAll("#root .runner").length === 0;
+    window.set({ layoutKey: other });
+    const there = currentPaths().length === 5;
+    S.plays = keep.plays; window.set({ layoutKey: keep.layoutKey, script: keep.script, callPicked: keep.callPicked });
+    return none && there || JSON.stringify({ none, there });
+  }));
+  check("pass3: a man renamed onto a name another man left takes it clean — no stale rename moves his season off him", await ev(() => {
+    const keep = S.renamedMen; S.renamedMen = {};
+    renamePlayer("P3 Sam", "P3 Sammy"); renamePlayer("P3 Joe", "P3 Sam");
+    const rn = S.renamedMen, ok = !("P3 Sam" in rn) && rn["P3 Joe"] === "P3 Sam" && rn["P3 Sam"] === undefined;
+    S.renamedTeams = {}; noteTeamRename("P3 Heet", "P3 Heat"); noteTeamRename("P3 Other", "P3 Heet");
+    const teams = !("P3 Heet" in S.renamedTeams) && S.renamedTeams["P3 Other"] === "P3 Heet";
+    S.renamedMen = keep; S.renamedTeams = {};
+    return ok && teams || JSON.stringify({ rn, teams: S.renamedTeams });
+  }));
+  check("pass3: a tendency set scores Tend only — Threat stays a dash until he gives one", await ev(() => {
+    const team = "P3 Tendonly"; window.set({ right: { name: team }, tab: "scout", scoutTab: "matchup" });
+    window.setPitTend("right", "Snake");
+    const pr = profileOf(team), tendOnly = pr.tendSet === true && pr.unscored !== false;
+    window.setThreat("right", 4);
+    const both = profileOf(team).unscored === false && profileOf(team).threat === 4;
+    delete S.scout[team];
+    return tendOnly && both;
+  }));
+  check("pass3: their usual man is named as the sheet names him, so the shooter's bunker resolves", await ev(() => {
+    const team = "P3 Shooters", bk = curLayout().bunkers[40].id, keep = S.arrivalSightings;
+    S.scout = { ...(S.scout || {}), [team]: { players: [{ num: "7", name: "Dill" }], breaks: [] } };
+    S.arrivalSightings = [1, 2].map(i => ({ id: "p3s" + i, team, player: "number:7", bunker: bk, layout: S.layoutKey, m: S.matchId, pt: i }));
+    const u = usualMan(team, teamFrame(bk, S.matchId, 1, team));
+    S.arrivalSightings = keep; delete S.scout[team];
+    return !!u && u.who === "#7 Dill" || JSON.stringify(u);
+  }));
+  check("pass3: a man charted again, still shot, moves his out to the new bunker and keeps when it happened", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "P3 Rechart" }, layoutKey: "lso" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const bl = curLayout().bunkers.filter(b => b.x < 60), a = bl[3], c = bl[9];
+    S.tallyStep = "record"; window.tallyTap([a.x, a.y]); window.setDraft({ player: "P3 Reyes", side: "us", alive: false }); window.logBreakout();
+    const first = (S.tally || []).find(o => o.m === S.matchId && o.name === "P3 Reyes");
+    const at0 = first && first.at;
+    S.tallyStep = "record"; window.tallyTap([c.x, c.y]); window.setDraft({ player: "P3 Reyes", side: "us", alive: false }); window.logBreakout();
+    const outs = (S.tally || []).filter(o => o.m === S.matchId && o.name === "P3 Reyes");
+    const row = (S.breakouts || []).find(r => r.m === S.matchId && r.player === "P3 Reyes");
+    return outs.length === 1 && row && outs[0].shotAt === row.bunker && row.bunker === c.id && outs[0].at === at0
+      || JSON.stringify({ n: outs.length, shotAt: outs[0] && outs[0].shotAt, row: row && row.bunker, c: c.id });
+  }));
+  check("pass3: a copy whose play key, group id or class code is not the app's own kind of id is refused", await ev(() =>
+    !!copyDataError({ plays: [{ k: "my:x');alert(1)//", name: "x", plants: {} }] })
+    && !!copyDataError({ groups: [{ id: "g1');alert(1)//", name: "x", members: [] }] })
+    && !!copyDataError({ classes: [{ code: "GL-1');x//" }] })
+    && !copyDataError({ plays: [{ k: "my:k7f2", name: "x", plants: {} }], groups: [{ id: "g17", name: "x", members: [] }], classes: [{ code: "GL-7K2M" }] })));
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));

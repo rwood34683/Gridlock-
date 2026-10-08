@@ -1329,6 +1329,41 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the wires' green and red (white now, blocked grey and dashed), the Plan page
   offered three prices beside "nothing is for sale", and the iPad welcome sat
   in a phone's column at the foot of the screen.
+- Stop at two passes. The third read the whole file in eight slices plus the
+  last three PRs' diff, and a skeptic tried to refute every finding before it
+  was fixed; 17 of 18 stood. The ones a coach would feel first:
+  - A play of his own with no five on this field drew the balanced break's old
+    hand-typed paths under his name. `breakPaths` gives a `my:` play no runs
+    rather than a five nobody planted.
+  - A man renamed onto a name another man had left kept the stale rename in
+    `renamedMen`, so the next merge moved his whole season onto the other man.
+    `renamedTeams` had the same hole. Both now drop any rename keyed on the
+    name being taken.
+  - A man's or team's rename on the way into a merge rebuilds this phone's
+    rows, so `overlapRows` and the told-twin pass no longer recognised them as
+    "mine". Both phones' penalties and rotations survived. Rows are now known
+    by `rowKey` (the id, else fields a rename never touches).
+  - `usualMan` printed "number:7", so the ghost legend read "usually number:7"
+    and `shooterLane` never matched their shooter's bunker. It names him the
+    way the sheet does.
+  - A man charted again, still shot, kept his out on the old bunker. The out
+    now moves with the row and keeps its `at`.
+  - A left-pit sighting renamed his own empty sheet. `teamOnSheet` and
+    `adoptTeamOnLog` give an empty sheet only to the right pit.
+  - A tendency set revealed a default threat of 3. `tendSet` scores Tend alone.
+  - Smaller ones:
+    - Watched games' outs marked his Outs layer.
+    - A blank sheet blocked Delete field.
+    - How did they get there? routed on a built field's old bunkers.
+    - The arrival point label and the "Where they plant" count disagreed with
+      what they stamp or count.
+    - Schedule rows said "you played" for a sheet with only a lineup.
+    - Renaming a group redrew under the next tap.
+    - Adding a member who was already there said "updated" when nothing changed.
+  - And ids from a copy went raw into tap handlers. The copy check now takes a
+    play key, group id or class code only as the app's own kind of id
+    (`token`), and the member and sign-in boxes pass theirs through
+    `JSON.stringify`.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of
