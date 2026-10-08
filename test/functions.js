@@ -4170,6 +4170,91 @@ const ROSTER = [
     return shy && opened && survives && shot && tucked && out && loading && closed
       || JSON.stringify({ shy, opened, survives, shot, tucked, out, loading, closed });
   }));
+  check("Pod Wars: paint that lands on a bunker hits the bunker, never the man behind it", await ev(() => {
+    window.podWars.open(); window.podWars.seed(3);
+    const bk = POD_BUNKERS[3];
+    const shoot = (age, x, y) => { pod.g.phase = "ready"; window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.balls = [];
+      pod.g.enemies = [{ b: 3, side: -1, x: bk.x - 20, y: bk.y + 4, age, stay: 1500, fireAt: 1e9, fired: true, num: 7 }];
+      window.podWars.tap(x, y); window.podWars.step(240); return window.podWars.state().score; };
+    const covered = shoot(1200, bk.x, bk.y) === 0 && shoot(0, bk.x - 6, bk.y + 4) === 0;
+    const open = shoot(500, bk.x - 20, bk.y + 4) === 1;
+    // Every bunker, either side, a man all the way out can be hit: the brick
+    // is wider than a can, and one lean for all of them hid him behind it.
+    const everywhere = POD_BUNKERS.every((b, bi) => [-1, 1].every(side => {
+      pod.g.phase = "ready"; window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.balls = [];
+      pod.g.enemies = [{ b: bi, side, x: 0, y: b.y + 4, age: 400, stay: 1500, fireAt: 1e9, fired: true, num: 7 }];
+      window.podWars.step(16); const e = window.podWars.state().enemies[0];
+      window.podWars.tap(e.x, e.y); window.podWars.step(240); return window.podWars.state().score === 1; }));
+    window.podWars.close(); window.podWars.seed();
+    return covered && open && everywhere || JSON.stringify({ covered, open, everywhere });
+  }));
+  check("Pod Wars: a trade on one frame counts the man he took, on the best it saves", await ev(() => {
+    const best0 = S.podBest; S.podBest = 0;
+    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9;
+    pod.g.enemies = [{ b: 1, side: 1, x: POD_BUNKERS[1].x + 20, y: POD_BUNKERS[1].y + 4, age: 500, stay: 1500, fireAt: 1e9, fired: true, num: 7 }];
+    pod.g.balls = [{ mine: false, x0: 0, y0: 0, x1: 162, y1: 464, age: 509, dur: 510, from: 7 },
+                   { mine: true, x0: 0, y0: 0, x1: pod.g.enemies[0].x, y1: pod.g.enemies[0].y, age: 229, dur: 230 }];
+    window.podWars.step(16);
+    const st = window.podWars.state(), ok = st.phase === "out" && st.score === 1 && S.podBest === 1 && /Shot by #7/.test(st.why);
+    window.podWars.close(); S.podBest = best0;
+    return ok;
+  }));
+  check("Pod Wars: dry is not out while a pod is coming — the next drop comes now, and only an uncollected one ends it", await ev(() => {
+    window.podWars.open(); window.podWars.play();
+    Object.assign(pod.g, { hopper: 0, pods: 0, nextSpawn: 1e9, nextDrop: 9000, drop: null, enemies: [], balls: [] });
+    window.podWars.step(300);
+    const waiting = window.podWars.state().phase === "play";
+    window.podWars.step(1200);
+    const st = window.podWars.state(), dropped = !!st.drop && st.phase === "play";
+    window.podWars.tap(st.drop.x, st.drop.y);
+    const saved = window.podWars.state().pods === 1;
+    Object.assign(pod.g, { pods: 0, drop: null, dry: "", nextDrop: 9000 }); window.podWars.step(5000);
+    const out = window.podWars.state().phase === "out" && /Out of paint/.test(window.podWars.state().why);
+    window.podWars.close();
+    return waiting && dropped && saved && out;
+  }));
+  check("Pod Wars is a dialog: the app under it takes no tap, focus comes back, and Escape closes only the game", await ev(() => {
+    window.set({ tab: "more", more: null });
+    const btn = document.querySelector("#root button"); btn.focus();
+    window.podWars.open();
+    const locked = document.getElementById("root").inert && document.getElementById("podwars").getAttribute("aria-modal") === "true"
+      && document.getElementById("podwars").contains(document.activeElement);
+    let reached = false; const spy = () => { reached = true; }; document.addEventListener("keydown", spy);
+    // Pressed inside the game, where a key really starts: the app's own
+    // listeners on the document must never see it.
+    window.podWars.play(); window.dispatchEvent(new Event("blur"));
+    const pausedOnBlur = window.podWars.state().phase === "paused";
+    document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    document.removeEventListener("keydown", spy);
+    const closed = !document.getElementById("podwars") && !document.getElementById("root").inert && document.activeElement === btn;
+    return locked && pausedOnBlur && closed && !reached || JSON.stringify({ locked, pausedOnBlur, closed, reached });
+  }));
+  check("Pod Wars shows the break clock and stops at the buzzer; Pod is off when it cannot load", await ev(() => {
+    S.clockEnd = Date.now() + 30000;
+    window.podWars.open();
+    const shows = !!document.querySelector("#podwars [data-clock]");
+    window.podWars.play(); pod.g.nextSpawn = 1e9; window.podWars.step(16);
+    const full = document.getElementById("pod-pod").disabled;          // a full hopper
+    window.podWars.tap(180, 200); window.podWars.step(16);
+    const can = !document.getElementById("pod-pod").disabled;
+    S.clockEnd = Date.now() - 1; pod.raf && cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    const stopped = window.podWars.state().phase === "paused" && document.getElementById("pod-go").textContent === "Resume";
+    // Once a buzzer: Resume plays on while the clock sits at zero.
+    window.podWars.play(); cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    const resumes = window.podWars.state().phase === "play";
+    window.podWars.close(); S.clockEnd = 0;
+    return shows && full && can && stopped && resumes || JSON.stringify({ shows, full, can, stopped, resumes });
+  }));
+  check("Pod Wars: a second Play does not wipe a game, and closing mid-game keeps the best", await ev(() => {
+    const best0 = S.podBest; S.podBest = 0;
+    window.podWars.open(); window.podWars.play(); pod.g.score = 4;
+    window.podWars.play();
+    const kept = window.podWars.state().score === 4;
+    window.podWars.close();
+    const best = S.podBest === 4;
+    S.podBest = best0;
+    return kept && best;
+  }));
   check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };

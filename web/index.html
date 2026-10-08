@@ -4879,8 +4879,20 @@ const POD_BUNKERS = [
 const POD_ME = {x: 180, y: 470};
 function podFresh(){
   return {phase: "ready", t: 0, score: 0, level: 1, hopper: POD.hopperMax, pods: 3, tucked: false, held: false,
-          reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", num: 0};
+          reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", dry: ""};
 }
+// Whether a ball landing at (x, y) is on the bunker itself, by its shape.
+function podInBunker(b, x, y){
+  const dx = Math.abs(x - b.x), dy = Math.abs(y - b.y);
+  return b.t === "can" ? Math.hypot(dx, dy) <= 15 : b.t === "temple" ? dx / 16 + dy / 18 <= 1 : dx <= 22 && dy <= 12;
+}
+// Half the width of a bunker at a man's height. He leans from just behind
+// that edge to just past it: the brick is wider than a can, and with one lean
+// for every bunker a man at the brick never cleared it and could not be hit.
+function podHalf(b){ return b.t === "can" ? 15 : b.t === "temple" ? 16 : 22; }
+function podLean(b, side, out){ return b.x + side * (podHalf(b) - 9 + 15 * out); }
+// How far a man is leaned out of his bunker, 0 behind it to 1 all the way out.
+function podOut(e){ return Math.min(1, e.age / 140) * Math.min(1, Math.max(0, e.stay - e.age) / 140); }
 function podLevel(g){ return 1 + Math.floor(g.score / 5); }
 function podStay(g){ return Math.max(700, 1500 - (g.level - 1) * 110); }
 function podSpawnGap(g){ return Math.max(450, 1300 - (g.level - 1) * 120); }
@@ -4891,7 +4903,7 @@ function podSpawn(g){
   if(!free.length) return;
   const i = free[Math.floor(podRand() * free.length)], b = POD_BUNKERS[i], side = podRand() < .5 ? -1 : 1;
   const stay = podStay(g);
-  g.enemies.push({b: i, side, x: b.x + side * 20, y: b.y + 4, age: 0, stay, fireAt: stay * (0.45 + podRand() * 0.25), fired: false,
+  g.enemies.push({b: i, side, x: podLean(b, side, 0), y: b.y + 4, age: 0, stay, fireAt: stay * (0.45 + podRand() * 0.25), fired: false,
                   num: [3, 7, 11, 21, 44, 5, 9][Math.floor(podRand() * 7)]});
 }
 function podStep(g, dt){
@@ -4911,8 +4923,8 @@ function podStep(g, dt){
   g.enemies.forEach(e => {
     e.age += dt;
     // Leaning out, then back in: the bunker covers what is still behind it.
-    const out = Math.min(1, e.age / 140) * Math.min(1, Math.max(0, e.stay - e.age) / 140);
-    e.x = POD_BUNKERS[e.b].x + e.side * (6 + 14 * out);
+    e.out = podOut(e);
+    e.x = podLean(POD_BUNKERS[e.b], e.side, e.out);
     if(!e.fired && e.age >= e.fireAt){
       e.fired = true;
       g.balls.push({mine: false, x0: e.x, y0: e.y, x1: POD_ME.x + (g.tucked ? 0 : -18), y1: POD_ME.y - 6, age: 0, dur: 520, from: e.num});
@@ -4920,21 +4932,35 @@ function podStep(g, dt){
   });
   g.enemies = g.enemies.filter(e => e.age < e.stay);
   g.balls.forEach(b => { b.age += dt; });
+  // Every ball that lands this frame lands before anything is decided: one of
+  // his and one of theirs arriving together is a trade, and the man he took
+  // counts on the score his best is saved from.
+  let shotBy = null;
   for(const b of g.balls.filter(b => b.age >= b.dur)){
     if(b.mine){
-      const hit = g.enemies.find(e => Math.hypot(e.x - b.x1, e.y - b.y1) < 17);
+      // Paint that lands on a bunker is on the bunker: a man behind it is
+      // covered, and one barely leaning out shows too little to hit.
+      const cover = POD_BUNKERS.find(k => podInBunker(k, b.x1, b.y1));
+      const hit = !cover && g.enemies.find(e => (e.out === undefined ? podOut(e) : e.out) > .25 && Math.hypot(e.x - b.x1, e.y - b.y1) < 17);
       if(hit){ g.enemies = g.enemies.filter(e => e !== hit); g.score++; g.splats.push({x: hit.x, y: hit.y, c: "#e5342f", age: 0, big: true}); }
       else g.splats.push({x: b.x1, y: b.y1, c: "#e5342f", age: 0});
     } else if(!g.tucked){
-      g.phase = "out"; g.why = `Shot by #${b.from}`; g.splats.push({x: POD_ME.x - 18, y: POD_ME.y - 6, c: "#3d8bff", age: 0, big: true});
-      podOver(g);
+      if(!shotBy){ shotBy = b.from; g.splats.push({x: POD_ME.x - 18, y: POD_ME.y - 6, c: "#3d8bff", age: 0, big: true}); }
     } else g.splats.push({x: POD_ME.x, y: POD_ME.y - 26, c: "#3d8bff", age: 0});
   }
+  if(shotBy !== null){ g.phase = "out"; g.why = `Shot by #${shotBy}`; podOver(g); }
   g.balls = g.balls.filter(b => b.age < b.dur);
   g.splats.forEach(s => { s.age += dt; });
   g.splats = g.splats.filter(s => s.age < 1400);
-  if(g.phase === "play" && !g.hopper && !g.pods && !g.reload && !g.drop && !g.balls.some(b => b.mine)){
-    g.phase = "out"; g.why = "Out of paint"; podOver(g);
+  // Dry — nothing in the hopper, no pods, nothing loading, nothing in the
+  // air — is not over while a pod is coming: the next drop is brought up to
+  // now, and only when that one has come and gone uncollected is he out.
+  const dry = !g.hopper && !g.pods && !g.reload && !g.balls.some(b => b.mine);
+  if(!dry) g.dry = "";
+  else if(g.phase === "play"){
+    if(!g.dry){ g.dry = g.drop ? "shown" : "waiting"; if(!g.drop) g.nextDrop = Math.min(g.nextDrop, 1200); }
+    else if(g.dry === "waiting" && g.drop) g.dry = "shown";
+    else if(g.dry === "shown" && !g.drop){ g.phase = "out"; g.why = "Out of paint"; podOver(g); }
   }
 }
 function podOver(g){
@@ -5006,26 +5032,34 @@ function podDraw(){
   ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
   ctx.fillStyle = g.reload ? "#8d9092" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
   ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
-  ctx.fillText(g.reload ? "LOADING" : `${g.hopper} IN THE HOPPER`, 180, POD.H - 14);
+  ctx.fillText(g.reload ? "LOADING" : g.hopper ? `${g.hopper} IN THE HOPPER` : g.pods ? "EMPTY · TAP POD" : "EMPTY · GRAB A POD", 180, POD.H - 14);
   if(g.phase !== "play"){
     ctx.fillStyle = "rgba(11,12,13,.82)"; ctx.fillRect(0, 0, POD.W, POD.H);
     ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; ctx.font = "900 40px system-ui, sans-serif";
     ctx.fillText(g.phase === "out" ? "YOU'RE OUT" : g.phase === "paused" ? "PAUSED" : "POD WARS", POD.W / 2, 210);
     ctx.font = "600 14px system-ui, sans-serif"; ctx.fillStyle = "#8d9092";
     const lines = g.phase === "out" ? [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]
-      : g.phase === "paused" ? ["Tap Play to pick up where you left off."]
+      : g.phase === "paused" ? [...(S.clockEnd && clockLeft() === 0 ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]
       : ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."];
     lines.forEach((l, i) => ctx.fillText(l, POD.W / 2, 248 + i * 22));
   }
   const tuck = document.getElementById("pod-tuck"), re = document.getElementById("pod-pod"), go = document.getElementById("pod-go");
   if(tuck) tuck.classList.toggle("on", !!g.tucked);
-  if(re){ re.textContent = `Pod · ${g.pods}`; re.disabled = false; }
-  if(go){ go.hidden = g.phase === "play"; go.textContent = g.phase === "out" ? "Play again" : g.phase === "paused" ? "Play" : "Play"; }
+  // Pod says when it cannot load: nothing to load, loading already, or a full hopper.
+  if(re){ re.textContent = `Pod · ${g.pods}`; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
+  if(go){ go.hidden = g.phase === "play"; go.textContent = g.phase === "out" ? "Play again" : g.phase === "paused" ? "Resume" : "Play"; }
+  // The game stopped under his thumb: the next press is Play, not Tuck.
+  if(go && !go.hidden && tuck && document.activeElement === tuck) go.focus({preventScroll: true});
 }
 function podLoop(now){
   if(!pod) return;
   const dt = Math.min(50, now - (pod.last || now)); pod.last = now;
   podStep(pod.g, dt);
+  // The break clock is the coach's, and it does not stop for a game: at zero
+  // the game stops instead, so the buzzer finds him on the sideline.
+  // Once a buzzer: Resume after it plays on, rather than stopping again every
+  // frame while the clock sits at zero behind a header he cannot reach.
+  if(pod.g.phase === "play" && S.clockEnd && clockLeft() === 0 && pod.buzzed !== S.clockEnd){ pod.buzzed = S.clockEnd; pod.g.phase = "paused"; pod.g.held = false; }
   podDraw();
   pod.raf = pod.g.phase === "play" ? requestAnimationFrame(podLoop) : 0;
 }
@@ -5040,28 +5074,44 @@ window.podWars = {
   open(){
     if(pod) return;
     const el = document.createElement("div");
-    el.id = "podwars"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Pod Wars");
+    el.id = "podwars"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Pod Wars");
     el.innerHTML = `<style>
       #podwars{position:fixed;inset:0;z-index:9999;background:#0b0c0d;color:#efedeb;display:flex;flex-direction:column;
         padding:calc(env(safe-area-inset-top,0px) + 8px) 12px calc(env(safe-area-inset-bottom,0px) + 10px);gap:8px;touch-action:none;user-select:none;-webkit-user-select:none}
       #podwars .pod-top{display:flex;align-items:center;gap:10px}
-      #podwars .pod-top b{font-weight:900;letter-spacing:.2em;font-size:15px}
-      #podwars .pod-top span{flex:1}
+      #podwars .pod-top b{font-weight:900;letter-spacing:.2em;font-size:15px;white-space:nowrap}
+      @media (max-width:359px){ #podwars .pod-top b{letter-spacing:.08em;font-size:13px} #podwars .pod-clock{font-size:13px} }
+      #podwars .pod-top > span{flex:1;text-align:center}
       #pod-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
       #pod-canvas{border:1px solid #2a2e30;border-radius:6px;touch-action:none}
-      #podwars .pod-bar{display:flex;gap:10px}
+      #podwars .pod-bar{display:flex;gap:10px;width:100%;max-width:640px;margin:0 auto}
       #podwars .pod-bar button,#podwars .pod-top button{min-height:52px;border-radius:8px;border:1px solid #2a2e30;background:#141617;color:#efedeb;
-        font:800 14px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:0 16px}
+        font:800 14px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:0 16px;-webkit-touch-callout:none}
       #podwars .pod-top button{min-height:44px;font-size:12px}
-      #podwars .pod-bar button{flex:1}
+      #podwars .pod-bar button{flex:1;min-width:0;white-space:nowrap;padding:0 6px;letter-spacing:.06em;text-align:center;
+        font-size:clamp(12px,3.6vw,14px);overflow:hidden;text-overflow:ellipsis}
+      #podwars .pod-bar #pod-go{flex:1.4}
       #podwars #pod-go{background:#ad1515;border-color:#ad1515}
       #podwars #pod-tuck.on{background:#efedeb;color:#0b0c0d}
+      #podwars .pod-bar button:disabled{opacity:.4}
+      #podwars .pod-clock{font:800 15px system-ui,sans-serif;letter-spacing:.06em;color:#8d9092;white-space:nowrap}
+      #podwars .pod-clock [data-clock]{color:#efedeb}
+      #podwars .pod-clock .clock--late{color:#e0a33a}
+      #podwars .pod-clock .clock--out{color:#e5252a}
     </style>
-    <div class="pod-top"><b>POD WARS</b><span></span><button type="button" id="pod-close">Close</button></div>
+    <div class="pod-top"><b>POD WARS</b><span>${S.clockEnd ? `<span class="pod-clock">BREAK <span class="${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock>${mmss(clockLeft())}</span></span>` : ""}</span><button type="button" id="pod-close">Close</button></div>
     <div id="pod-stage"><canvas id="pod-canvas" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
     <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck">Tuck</button></div>`;
+    // A dialog in fact as well as in name: the app underneath takes no focus,
+    // no tap and no key while it is up, and focus goes back where it was.
+    const back = document.activeElement;
+    const under = [...document.body.children].filter(c => c.tagName !== "SCRIPT" && !c.inert);
+    under.forEach(c => { c.inert = true; });
     document.body.appendChild(el);
-    pod = {g: podFresh(), raf: 0, last: 0, el};
+    pod = {g: podFresh(), raf: 0, last: 0, el, back, under};
+    // Holding Tuck is a long press, and a long press opens the phone's menu,
+    // which cancels the press and stands him up into the paint.
+    el.addEventListener("contextmenu", ev => ev.preventDefault());
     const cv = el.querySelector("#pod-canvas");
     cv.addEventListener("pointerdown", ev => {
       ev.preventDefault();
@@ -5075,23 +5125,32 @@ window.podWars = {
     el.querySelector("#pod-go").addEventListener("click", () => window.podWars.play());
     el.querySelector("#pod-close").addEventListener("click", () => window.podWars.close());
     window.addEventListener("resize", podFit);
-    document.addEventListener("keydown", podKey); document.addEventListener("keyup", podKey);
+    window.addEventListener("keydown", podKey, true); window.addEventListener("keyup", podKey, true);
+    if(S.clockEnd) tickClock();
     requestAnimationFrame(podFit);
     podFit();
+    el.querySelector("#pod-go").focus();
   },
   play(){
-    if(!pod) return;
+    if(!pod || pod.g.phase === "play") return;
     if(pod.g.phase !== "paused") pod.g = podFresh();
     pod.g.phase = "play"; pod.last = 0;
     cancelAnimationFrame(pod.raf); pod.raf = requestAnimationFrame(podLoop);
+    // Play hides itself; focus goes to Tuck rather than falling to the page.
+    if(pod.el.contains(document.activeElement) || document.activeElement === document.body){ const t = pod.el.querySelector("#pod-tuck"); if(t) t.focus(); }
   },
   pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0; podDraw(); } },
   close(){
     if(!pod) return;
     cancelAnimationFrame(pod.raf);
+    // Closing mid-game is not losing what he scored: a best is a best.
+    if(pod.g.phase === "play" || pod.g.phase === "paused") podOver(pod.g);
+    const {back, under} = pod;
     pod.el.remove(); pod = null;
+    under.forEach(c => { c.inert = false; });
     window.removeEventListener("resize", podFit);
-    document.removeEventListener("keydown", podKey); document.removeEventListener("keyup", podKey);
+    window.removeEventListener("keydown", podKey, true); window.removeEventListener("keyup", podKey, true);
+    if(back && back.isConnected && back.focus) try{ back.focus(); }catch(e){}
   },
   // For the suite: a seeded game it can step by hand.
   seed(n){ podRand = n === undefined ? Math.random : podRng(n); },
@@ -5101,9 +5160,12 @@ window.podWars = {
   tuck(v){ if(pod) pod.g.held = !!v; },
   reload(){ if(pod) podReload(pod.g); }
 };
+// Caught on the way down, before the app's own keys see it: Escape closed the
+// game and whatever the app had open under it in the same press.
 function podKey(ev){
   if(!pod) return;
-  if(ev.key === "Escape" && ev.type === "keydown"){ window.podWars.close(); return; }
+  ev.stopPropagation();
+  if(ev.key === "Escape" && ev.type === "keydown"){ ev.preventDefault(); window.podWars.close(); return; }
   if(ev.key === " " || ev.key === "ArrowDown"){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
   if((ev.key === "r" || ev.key === "R") && ev.type === "keydown") podReload(pod.g);
 }
@@ -5115,6 +5177,9 @@ window.podTap = () => {
   if(podTaps.length >= 7){ podTaps = []; window.podWars.open(); }
 };
 document.addEventListener("visibilitychange", () => { if(document.hidden) window.podWars.pause(); });
+// A call coming in, the notification shade, another app over this one: the
+// page is still visible and the paint is still flying. Stop for those too.
+window.addEventListener("blur", () => window.podWars.pause());
 
 // ---- editing the break on the field ----------------------------------------
 //
