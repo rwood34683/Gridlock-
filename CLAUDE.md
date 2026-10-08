@@ -1285,6 +1285,28 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   (`adoptCallPicked`: a call logged, a play of his own, or anything but the
   default). And a blank sheet goes with him to another event (`pickEvent`):
   one with nothing on it has no field to belong to yet.
+- Trust one pass. The owner asked for the whole app read line by line, and
+  six readers over 2,200 lines each found what the suite never had: the
+  welcome page's recovery notice set `entered:true` (a door past the sign-in
+  — it is a notice now, and Nexus can clear the text); `fieldMapOk` declared
+  after `load()`, so an older save with a map on a field threw and went to
+  recovery; an edited play drew its old five (`savePlay` drops the route
+  cache, and a moved man loses the path drawn to his old bunker); one more
+  man tapped while a placed man's sheet was open moved the placed man;
+  Tally's routes always started from the left goal line (`goalStart`,
+  `rowFromRight`); a told man took the next point's call; Movement and
+  Team's bunker picker logged the first bunker in the list when nothing was
+  tapped (both open on "Tap the field"); Fill / Clear on Lineups and Switch
+  ends / Swap every point wrote past the end of a finished race
+  (`sheetPoint()`); a watched game's outs were his (`loggedOuts` skips
+  `watchedMatch`); a point counted by its number alone (`m|pt`); Bunker
+  stats, Movement, the bunker book, Layers and a man's read mixed fields
+  whose bunker ids repeat; the reads flipped ahead/behind for a team watched
+  as the home side (`readSides`); the lane cache outlived a field edit;
+  taking a bunker off could unregister the field a sheet was played on;
+  and watched team names, a play's read and a numberless man's card went
+  out unescaped or as "#undefined". Each has an `audit:` check where a
+  check can hold it.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of

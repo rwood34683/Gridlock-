@@ -719,8 +719,8 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .verdict span{font-size:var(--t-sm);color:var(--mute)}
 .verdict--yes{border-left-color:var(--ok)}
 .verdict--yes b{color:var(--ok)}
-.verdict--no{border-left-color:var(--red-lit)}
-.verdict--no b{color:var(--red-lit)}
+.verdict--no{border-left-color:var(--accent-lit)}
+.verdict--no b{color:var(--accent-lit)}
 /* A table row that answers a question is a control, and has to be hittable.
    Some of them answer a second question on a press and hold, so the row must
    not select its own text or raise the iOS callout while you are holding it. */
@@ -1177,7 +1177,10 @@ function pathEdit(id){ return (S.pathEdits || {})[pathKey(id)] || null; }
 // the call and a counter bumped by any edit, and the animation loop does no
 // geometry at all — it just reads a string and moves a dot.
 let _routeCache = {}, _drawCache = {}, _pathVersion = 0, _autoCache = new Map(), _padCache = new Map();
-function dropPathCache(){ _routeCache = {}; _drawCache = {}; _pathVersion++; _autoCache = new Map(); _padCache = new Map(); }
+// _laneCache too: a bunker moved or turned on a field he built left every
+// lane check on its old answer until a relaunch.
+let _laneCache = {};
+function dropPathCache(){ _routeCache = {}; _drawCache = {}; _pathVersion++; _autoCache = new Map(); _padCache = new Map(); _laneCache = {}; }
 function pathsChanged(){ _drawCache = {}; _pathVersion++; }
 // Keyed on the edits themselves, not on everyone remembering to invalidate.
 // It is at most five short arrays, read once per paint.
@@ -1225,7 +1228,7 @@ const goWord = p => p.go === "delay" ? "delays" : (p.lag || 0) === 0 ? "goes on 
 // keeps the curve inside the corridor the router already proved clear —
 // test/functions.js samples the drawn curve and checks it against every bunker.
 // The same five curves are rebuilt sixty times a second otherwise.
-const _runCache = {};
+let _runCache = {};
 function drawnRun(p, legs, sx, sy){
   const sm = S.smoothOn === false ? 0 : 1;
   // Keyed on the legs themselves. It was keyed on the path number and the
@@ -1234,6 +1237,8 @@ function drawnRun(p, legs, sx, sy){
   // own path on Playbook, and the sampled run cut through two bunkers on Lone
   // Star that the real route clears.
   const k = `${sx}|${sy}|${sm}|${JSON.stringify(legs)}`;
+  // A drag adds a curve a pointer move; start over well before that matters.
+  if(!_runCache[k] && Object.keys(_runCache).length > 400) _runCache = {};
   return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
 }
 /* Rounded corners, or the line as it is routed.
@@ -1682,7 +1687,7 @@ window.addTeam = () => {
 // team that vanishes from every picker with a season behind it reads as lost.
 function teamHas(name){
   const sheets = (S.matches || []).filter(m => m && (m.vs === name || m.home === name || m.away === name)
-    && (matchSize(m.id) || (S.results || []).some(r => r.m === m.id))).length;
+    && (loggedSize(m.id) || (S.results || []).some(r => r.m === m.id))).length;
   const p = (S.scout || {})[name] || {}, breaks = (p.breaks || []).length, men = (p.players || []).length;
   const bits = [sheets ? `${sheets} ${sheets === 1 ? "sheet" : "sheets"}` : "", breaks ? `${breaks} ${breaks === 1 ? "break" : "breaks"} logged` : "",
                 men ? `${men} ${men === 1 ? "man" : "men"} logged` : ""].filter(Boolean);
@@ -1866,6 +1871,11 @@ const defaultState = () => ({
  */
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
+// Declared before load(): copyDataError() checks a field's map with it, and an
+// older save carried its map on the field — read before this line existed it
+// threw, and the whole season went to recovery.
+const FIELD_MAP_MAX = 1000, FIELD_MAP_BYTES = 700000;
+const fieldMapOk = v => typeof v === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= FIELD_MAP_BYTES;
 const RECOVERY_KEY = STORE_KEY + ".recovery";
 let _recoveryText = "";
 try{ _recoveryText = localStorage.getItem(RECOVERY_KEY) || ""; }catch(e){}
@@ -1931,6 +1941,7 @@ window.gridlockRestore = text => {
      the screen he is standing on does not. */
   const held = {tab:S.tab, more:S.more, scoutTab:S.scoutTab,
                 entered:S.entered, role:S.role, email:S.email};
+  adoptCallPicked(d);
   Object.keys(d).forEach(k => { S[k] = d[k]; });
   Object.assign(S, held);
   clearScratch(); resetLiveState();
@@ -1974,9 +1985,11 @@ function storeWarning(){
     <span>This phone had lost its saved season, so it was put back from the copy the app keeps —
     everything up to <b>${esc(S.restored)}</b>.</span>
     <button onclick="set({restored:null})">OK</button></div>`;
+  // On the welcome page this is a notice, never a door: the button set
+  // entered:true and walked anyone past the sign-in the app requires.
   if(_recoveryText) return `<div class="tip" style="border-color:var(--red)">
-    <span>A saved season could not be opened. Its original text is preserved for recovery on Nexus.</span>
-    <button onclick="set({entered:true,tab:'more',more:'nexus'})">Open Nexus</button></div>`;
+    <span>A saved season could not be opened. Its original text is kept for you on Nexus${S.entered ? "" : " — sign in to see it"}.</span>
+    ${S.entered ? `<button onclick="set({tab:'more',more:'nexus'})">Open Nexus</button>` : ""}</div>`;
   return "";
 }
 let S = load();
@@ -2087,8 +2100,6 @@ const FIELD_SOURCE_MAP = "Built by you on this phone over the event's map: each 
  * map on its field — Save a copy and Send this sheet put them back on the way
  * out — and `liftMaps()` takes them off again whenever fields arrive, from a
  * copy, a restore or an older save. */
-const FIELD_MAP_MAX = 1000, FIELD_MAP_BYTES = 700000;
-const fieldMapOk = v => typeof v === "string" && /^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= FIELD_MAP_BYTES;
 const MAPS_KEY = "gridlock.coach.maps";
 // `var`, not `let`: save() runs during launch before this line does, and
 // asks whether the maps have been mirrored yet.
@@ -2238,6 +2249,14 @@ window.fieldTap = at => {
     let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
     x = Math.min(150 - sel.w / 2, Math.max(sel.w / 2, x)); y = Math.min(120 - sel.h / 2, Math.max(sel.h / 2, y));
     if(onFifty(x)) x = 75;
+    // On the fifty a bunker is single and its twin goes — ask first when
+    // anything logged names the twin, the way Take it off does.
+    const tw0 = x === 75 && sel.tw ? sel.tw : "";
+    const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
+    if(twUses && !confirm(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
+    // Picked no longer once it has moved: patchField redraws, and a selection
+    // cleared after it left the bunker ringed with Turn and Take it off live.
+    S.fieldEdit = {...ed, sel: null};
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
       me.x = x; me.y = y; paintFrom(f, me);
@@ -2249,7 +2268,6 @@ window.fieldTap = at => {
       me.tw = t.id;
       return [...list, t];
     });
-    S.fieldEdit = {...S.fieldEdit, sel: null}; save(S);
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
@@ -2295,6 +2313,12 @@ window.fieldRemove = () => {
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
   const me = f.bunkers.find(b => b.id === ed.sel); if(!me) return;
   const ids = [me.id, ...(me.tw ? [me.tw] : [])];
+  // Under eight bunkers a field is unregistered, and a field he is standing on
+  // or has played a sheet on cannot be: Tally fell back to Lone Star and kept
+  // stamping this field's name on Lone Star's bunkers.
+  if(fieldReady(f) && f.bunkers.length - ids.length < FIELD_MIN
+     && (S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key)))
+    return flash(`${f.name} needs at least ${FIELD_MIN} bunkers to stay playable${(S.matches || []).some(m => m && m.layout === f.key) ? " — a sheet was played on it" : ""}. Place another bunker first, then take this one off.`);
   const uses = ids.reduce((n, id) => n + bunkerUses(f.key, id), 0);
   if(uses && !confirm(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
   S.fieldEdit = {...ed, sel: null};
@@ -2515,7 +2539,7 @@ function clearScratch(){
   S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false; S.evPick = false;
   S.theirPick = []; S.sightAim = null; S.scoutSide = "right"; S.joinOnly = false; S.joinSaid = "";
   S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-  S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
+  S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.bcName = ""; S.bcWho = ""; S.billingSaid = ""; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -2861,7 +2885,7 @@ function ourEnd(pt, m){
 window.switchEnds = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const m = curMatch(); if(!m) return;
-  const pt = S.point || 1;
+  const pt = sheetPoint();   // the point shown: past the end of a race the cursor is one on
   if(pt === 1 || !playedBefore(pt, m)){
     // Nothing played before this point: the app simply had the end wrong, so
     // point one's end flips — unless the swap rule or a switch already turned it here.
@@ -2880,7 +2904,7 @@ window.switchEnds = () => {
 window.setSwapEnds = on => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const m = curMatch(); if(!m) return;
-  const cur = ourEnd(), swap = !!on, pt = S.point || 1;
+  const cur = ourEnd(), swap = !!on, pt = sheetPoint();
   // Changing the rule must not move the end he is on right now.
   const base = (endSwapped(pt, {...m, swapEnds: swap}) !== flippedAt(pt, m)) ? (cur === "left" ? "right" : "left") : cur;
   patchMatch({swapEnds: swap, end: base}); save(S); render();
@@ -3183,8 +3207,11 @@ window.setPlayField = (what, value) => {
   if(what === "aggr") set({building: next}); else { S.building = next; save(S); }
 };
 window.savePlay = () => {
+  // The routed paths are kept by field and call; a play saved with new plants
+  // under the same key drew its old five until a relaunch.
+  dropPathCache();
   const b = S.building; if(!b) return;
-  const name = (b.name || "").trim().slice(0, 28);
+  const name = clean((b.name || "").trim()).slice(0, 28);
   if(b.layout && b.layout !== S.layoutKey){ S.building = null; save(S); flash("That play was being built on another field. Start it again here."); return; }
   if(!name){ flash("Name it first — what your team shouts."); return; }
   if(!fullFive(b.plants)){ flash(`Place ${5 - (b.plants || []).filter(Boolean).length} more — tap the bunker each man plants on.`); return; }
@@ -3197,6 +3224,15 @@ window.savePlay = () => {
   const k = b.k || gone || ("my:" + Date.now().toString(36));
   if(gone){ const pg = {...S.playGone}; delete pg[gone]; S.playGone = pg; }
   const was = customPlay(b.k) || {};
+  // Edited: a man moved to another bunker loses the path drawn to the old
+  // one, the same rule Make it yours keeps — his run went to the old bunker
+  // first and then on to the new.
+  const before = (was.plants || {})[S.layoutKey];
+  if(Array.isArray(before)){
+    const pe = {...(S.pathEdits || {})};
+    b.plants.forEach((id, i) => { if(before[i] !== id) delete pe[`${S.layoutKey}|${k}|${i + 1}`]; });
+    S.pathEdits = pe; pathsChanged();
+  }
   S.plays = [...rest, {k, name, read: (b.read || "").trim().slice(0, 140),
                        aggr: Math.min(5, Math.max(1, +b.aggr || 3)),
                        plants: {...(b.every || {}), ...(was.plants || {}), [S.layoutKey]: [...b.plants]},
@@ -3290,30 +3326,34 @@ function keepWordsUnique(before){
 // The key of a deleted play that carried this name, if any.
 const goneKeyNamed = name => Object.keys(S.playGone || {}).find(gk => foldName(S.playGone[gk]) === foldName(name)) || null;
 window.renamePlay = (k, v) => {
-  const name = String(v || "").trim().slice(0, 28); if(!name) { render(); return; }   // an empty name keeps the old one
+  const name = clean(String(v || "").trim()).slice(0, 28); if(!name) { render(); return; }   // an empty name keeps the old one
   if(callTaken(name, k)){ flash(`${name} is already a call. The old name stays.`); return; }
   // Renamed onto a play he deleted: the calls logged under the old one are
   // this play's now, so self-scout reads one record and not two "Rocket"s.
   const gone = goneKeyNamed(name);
-  if(gone && gone !== k){
-    S.calls = (S.calls || []).map(c => c && c.script === gone ? {...c, script: k} : c);
-    if((S.jobCalls || {})[gone]){ const jc = {...S.jobCalls}; jc[k] = {...(jc[gone] || {}), ...(jc[k] || {})}; delete jc[gone]; S.jobCalls = jc; }
-    const pg = {...S.playGone}; delete pg[gone]; S.playGone = pg;
-  }
+  // Everything under the old key — their breaks and his answers on Counter
+  // as well as his calls — or those printed the raw key.
+  if(gone && gone !== k) rekeyPlay(gone, k);
   S.plays = customPlays().map(p => p.k === k ? {...p, name} : p);
   save(S); if(gone && gone !== k) flash(`${name} — the calls logged under the play you deleted by that name are this play's now.`); else render();
 };
 window.dropPlay = k => {
   const p = customPlay(k); if(!p) return;
   const fields = Object.keys(p.plants || {}).filter(l => Array.isArray(p.plants[l]) && p.plants[l].length).length;
-  const logged = (S.calls || []).filter(c => c && c.script === k).length;
+  // Their breaks can name his play too — Breakouts offers every play as
+  // their call — and those were counted nowhere, so the play went with no
+  // question and its key printed where its name had been.
+  const logged = (S.calls || []).filter(c => c && c.script === k).length
+    + Object.values(S.scout || {}).reduce((n, p) => n + ((p && p.breaks) || []).filter(b => b && b.script === k).length, 0);
   const bits = [fields ? `a five on ${fields} ${fields === 1 ? "field" : "fields"}` : "", logged ? `${logged} ${logged === 1 ? "call" : "calls"} logged under it` : ""].filter(Boolean).join(" and ");
   // A play he built is work — five taps a field — and the calls logged under
   // it are his record. Delete asks when there is either, and the calls keep
   // the play's name afterwards rather than printing its key.
   if(bits && !confirm(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
   const name = callName(k);   // read before the play goes, or the flash prints its key
-  if(logged) S.playGone = {...(S.playGone || {}), [k]: name};
+  // The name stays behind either way: anything that still names the key —
+  // an answer on Counter, a copy from the other phone — prints the name.
+  S.playGone = {...(S.playGone || {}), [k]: name};
   S.plays = customPlays().filter(p => p.k !== k);
   // His last play gone with the twelve turned off is a picker with nothing in
   // it — Only my plays and then Delete. The twelve come back on rather than
@@ -3359,7 +3399,7 @@ function myCall(){ return callSet() ? S.script : ""; }
 const PICK_CALL = "Pick the call";
 window.setBreakCall = key => {
   const el = document.getElementById("brc-" + key); if(!el) return;
-  const word = (el.value || "").trim().slice(0, 28);
+  const word = clean((el.value || "").trim()).slice(0, 28);
   if(word && callTaken(word, key)){ flash(`${word} is already a call. Two breaks cannot share a name.`); return; }
   // A deleted play's name still names its logged calls; putting it on one of
   // the twelve would read as one record and be two. Build the play again
@@ -3392,7 +3432,7 @@ function jobName(scriptKey, id, fallback){
 }
 window.setJobCall = id => {
   const el = document.getElementById("jbc-" + id); if(!el) return;
-  const word = (el.value || "").trim().slice(0, 28);
+  const word = clean((el.value || "").trim()).slice(0, 28);
   const other = jobWordTaken(word, id);
   if(other){ flash(`${word} is already slot ${other}'s job on ${callName(S.script)}. Two men cannot answer to one word.`); return; }
   const all = {...(S.jobCalls || {})};
@@ -3884,7 +3924,9 @@ const COPY_VERSION = 1;
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams"];
-const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams"];
+// Messages ride too: the Messages screen says a note travels in a squad copy,
+// and it did not.
+const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams","messages"];
 // Keep an import draft in memory, outside the season and its backups. Repainting
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
@@ -3923,6 +3965,10 @@ function sheetPayload(id){
   });
   if(Object.keys(scout).length) data.scout = scout;
   if((S.roster || []).length && !m.watch) data.roster = S.roster;
+  // A man or a team renamed here: without the map the other phone merged the
+  // sheet under the old name and had two of them.
+  if(Object.keys(S.renamedMen || {}).length && !m.watch) data.renamedMen = S.renamedMen;
+  if(Object.keys(S.renamedTeams || {}).length) data.renamedTeams = S.renamedTeams;
   const f = fieldOf(m.layout); if(f) data.fields = fieldsOut([f]);
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: "sheet", sheet: id,
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
@@ -4953,7 +4999,7 @@ window.resetAllPaths = () => {
     const wrap = document.getElementById("sight-map");
     if(wrap){
       const list = curLayout().bunkers;
-      const from = S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : list[0].id;
+      const from = S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
       wrap.innerHTML = fieldSVG({sightFrom:from, sightTo:S.sightTo, sightAim:S.sightAim, static:true, pick:true, noPaths:true, names:true});
       drag.svg = wrap.querySelector("svg.field");
     }
@@ -5078,7 +5124,9 @@ function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
 window.addWalk = () => {
   const where = rosterVal("wkWhere");
-  const note = clean(rosterVal("wkNote").trim());
+  // Cut before the duplicate check, the way it is kept: a long note added
+  // twice was compared whole against the kept 240 and never matched.
+  const note = clean(rosterVal("wkNote").trim()).slice(0, 240);
   if(!note){ flash("Type the note first."); return; }
   // The same note on the same spot twice is a thumb that tapped Add twice,
   // not two things worth knowing about the bunker.
@@ -5101,8 +5149,11 @@ function walkWhereOf(b){ return callOf(b)+" · "+b.id; }
  * measured layout, how often the right pit's five have planted on it, and men
  * lost at it on either side. Walk and Sightlines both read it. */
 function bunkerBook(id, withLanes){
-  const sl = withLanes ? sightLines(id, 2, 2) : null, theirs = (plantCounts("right").find(([k]) => k === frameId(id, S.matchId, S.point || 1)) || [0, 0])[1];
-  const here = frameId(id, S.matchId, S.point || 1), at = o => o.shotAt && frameId(o.shotAt, o.m, o.pt) === here;
+  // The end shown is the end of sheetPoint(): on a finished sheet the cursor
+  // sits a point past it, and with ends swapping that is the other end.
+  const here = frameId(id, S.matchId, sheetPoint());
+  const sl = withLanes ? sightLines(id, 2, 2) : null, theirs = (plantCounts("right").find(([k]) => k === here) || [0, 0])[1];
+  const at = o => o.shotAt && (!o.layout || o.layout === S.layoutKey) && frameId(o.shotAt, o.m, o.pt) === here;
   const lost = loggedOuts(o => o.side === "us" && at(o)).length, got = loggedOuts(o => o.side === "them" && at(o)).length;
   return [sl ? `<b>${sl.clear}</b> of ${sl.lines.length} lanes clear from here` : "",
           theirs ? `${pitNamed("right") ? esc(pitOf("right").name) : "they"} planted here ${theirs} time${theirs === 1 ? "" : "s"}` : "",
@@ -5165,7 +5216,7 @@ window.addCode = () => {
 window.editCode = (i, field, value) => {
   const list = S.codes || [];
   if(!list[i]) return;
-  const v = clean(String(value).trim());
+  const v = clean(String(value).trim()).slice(0, field === "word" ? 32 : 600);
   if(field === "word" && !v){ flash("A code needs its word — kept the old one."); render(); return; }
   // Retyping a word onto another code's is the same trap addCode already shuts: two rows, one word.
   if(field === "word" && list.some((c, k) => k !== i && foldName(c.word) === foldName(v))){ flash(`${v} is already a code word — kept the old one.`); render(); return; }
@@ -5248,8 +5299,11 @@ window.setSlot = (i, name) => {
   S.slotPick = null;
   save(S); render();
 };
+// The point Lineups shows: on a finished sheet that is the last one played,
+// and a five written for the point past the end walked sheetPoint() past it.
 window.fillLineup = from => {
-  const pt = S.point || 1;
+  if(sheetField()){ sheetOver(); return; }
+  const pt = sheetPoint();
   const src = from === "roster" ? (S.roster || []).slice(0,5).map(p => p.name)
                                 : [...lineupFor(from)];
   while(src.length < 5) src.push("");
@@ -5257,8 +5311,9 @@ window.fillLineup = from => {
   save(S); render();
 };
 window.clearLineup = () => {
+  if(sheetField()){ sheetOver(); return; }
   const all = {...(S.lineups || {})};
-  delete all[lineKey(S.point || 1)];
+  delete all[lineKey(sheetPoint())];
   S.lineups = all; save(S); render();
 };
 
@@ -5301,11 +5356,12 @@ window.setCall = () => {
   if(!id){ flash("Tap the bunker first."); return; }
   if(who) return setPlayerCall(who, id, nm);
   const other = bunkerWordTaken(nm, id);
-  if(other){ flash(`${nm} is already ${esc(other)} on this field. Two bunkers cannot share a word.`); return; }
+  if(other){ flash(`${nm} is already ${other} on this field. Two bunkers cannot share a word.`); return; }
   const all = {...(S.bunkerCalls || {})};
   const layer = {...(all[S.layoutKey] || {})};
   if(nm) layer[id] = nm; else delete layer[id];
   all[S.layoutKey] = layer;
+  S.bcName = "";
   S.bunkerCalls = all; save(S); render();
 };
 window.clearCall = id => {
@@ -5326,7 +5382,7 @@ window.setPlayerCall = (who, id, nm) => {
   if(nm) mine[id] = nm; else delete mine[id];
   if(Object.keys(mine).length) layer[who] = mine; else delete layer[who];
   all[S.layoutKey] = layer;
-  S.playerCalls = all; save(S); render();
+  S.bcName = ""; S.playerCalls = all; save(S); render();
 };
 window.clearPlayerCall = (who, id) => setPlayerCall(who, id, "");
 
@@ -5415,19 +5471,27 @@ function bunkerTraffic(keep){
     t[id] = t[id] || {outs:0, visits:0};
     t[id][key]++;
   };
+  // Ids repeat across fields — T#1 is on all three — so a row from another
+  // field must go on its own field's T#1, not this one's.
+  const elsewhere = x => x.layout && x.layout !== S.layoutKey;
   (S.tally || []).forEach(o => {
-    if(typeof o !== 'object' || !ok(o)) return;
+    if(!o || typeof o !== 'object' || elsewhere(o) || watchedMatch(o.m) || !ok(o)) return;
     bump(o.shotAt, 'outs');
     bump(o.movedTo, 'visits');
   });
-  (S.moves || []).forEach(m => { if(ok(m)) bump(m.to, 'visits'); });
+  (S.moves || []).forEach(m => { if(m && !elsewhere(m) && !watchedMatch(m.m) && ok(m)) bump(m.to, 'visits'); });
+  // A named man charted shot on the break is also the out the tally records,
+  // at the same bunker: counted once, not once from each log.
+  const tallied = r => (S.tally || []).some(o => o && o.m === r.m && o.pt === r.pt && o.side === r.side
+    && r.player && o.name === r.player && o.shotAt === r.bunker);
   // The break chart is the busiest log on the phone and this screen never
   // read it: a coach who charted every point saw "Nothing logged yet". A break
   // to a bunker is a visit, a man shot there on the break is an out there, and
   // where he moved to is a visit too. A watched game's traffic is not his.
   (S.breakouts || []).forEach(r => {
-    if(!r || typeof r !== 'object' || watchedMatch(r.m) || !ok(r)) return;
+    if(!r || typeof r !== 'object' || elsewhere(r) || watchedMatch(r.m) || !ok(r)) return;
     bump(r.bunker, 'visits');
+    if(r.alive === false && tallied(r)) return;
     if(r.alive === false) bump(r.bunker, 'outs');
     bump(r.movedTo, 'visits');
   });
@@ -5437,7 +5501,7 @@ function bunkerTraffic(keep){
 // ---- rotations after the break ----
 function layoutMoves(){
   const here = new Set(curLayout().bunkers.map(b => b.id));
-  return (S.moves || []).filter(m => here.has(m.from) && here.has(m.to));
+  return (S.moves || []).filter(m => (!m.layout || m.layout === S.layoutKey) && here.has(m.from) && here.has(m.to));
 }
 // The man who moved is tapped, the five on the point first — same as Assess.
 window.movePick = name => { S.moveWho = S.moveWho === name ? null : name; render(); };
@@ -6306,14 +6370,26 @@ function scoreBefore(mid, pt){
   const rows = mine.filter(r => r.pt < pt);
   return {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
 }
+/* Which side of the results this team was on for one row. A team watched as
+ * the home side is "us" on that sheet and "them" on every sheet of his: read
+ * off the pit it is in now, every row from the watched game had its lead, its
+ * last point and its match point the wrong way round. */
+function readSides(r, side){
+  const m = matchById(r.m), team = foldName(pitOf(side).name || "");
+  const th = m && m.watch ? (foldName(m.home || "") === team ? "us" : "them") : m ? "them" : (side === "left" ? "us" : "them");
+  return [th, th === "us" ? "them" : "us"];
+}
 function theirReads(side){
   // On a watched sheet the left pit is the home side, which results call "us".
   const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
   const rows = theirBreaks(side).filter(b => b.script && b.m);
   const tally = list => Object.entries(list.reduce((m, b) => ({...m, [b.script]: (m[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, tally: t}; };
-  const lead = r => { const sc = scoreBefore(r.m, r.pt); return sc[theirs] - sc[mine]; };
-  const last = (r, who) => (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt - 1 && x.won === who);
+  const lead = r => { const [t, o] = readSides(r, side), sc = scoreBefore(r.m, r.pt); return sc[t] - sc[o]; };
+  // who is "theirs" or "mine" as this team stood on that row's sheet.
+  const last = (r, who) => { const [t, o] = readSides(r, side), w = who === theirs ? t : o;
+    return (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt - 1 && x.won === w); };
+  const mpRow = (r, who) => { const [t, o] = readSides(r, side); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const all = bucket("overall", () => true);
   const recentRows = [...rows].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 5);
   const recent = tally(recentRows);
@@ -6322,7 +6398,7 @@ function theirReads(side){
           when: [bucket("on the first point", r => r.pt === 1),
                  bucket("when behind", r => lead(r) < 0), bucket("when ahead", r => lead(r) > 0), bucket("level", r => lead(r) === 0),
                  bucket("after losing a point", r => last(r, mine)), bucket("after winning a point", r => last(r, theirs)),
-                 bucket("at their match point", r => mpBefore(r.m, r.pt, theirs)), bucket("facing match point", r => mpBefore(r.m, r.pt, mine)),
+                 bucket("at their match point", r => mpRow(r, theirs)), bucket("facing match point", r => mpRow(r, mine)),
                  bucket("after a timeout", r => timeoutOn(r.m, r.pt))]};
 }
 // Whether `who` stood one point from the race, or one from the mercy lead,
@@ -6347,7 +6423,10 @@ function manRead(side, who, team){
                  && (!team || r.vs === team) && !watchedMatch(r.m);
   const rows = (S.breakouts || []).filter(hit);
   // His bunker is counted in his own end's frame, so a man who swaps ends every point still "breaks to" one bunker.
-  const val = (r, key) => (key === "bunker" || key === "shotFrom") && r[key] && r.layout === S.layoutKey ? frameId(r[key], r.m, r.pt) : r[key];
+  // A bunker from another field is another field's bunker: printed as this
+  // field's id it named a place he never broke to.
+  const val = (r, key) => (key === "bunker" || key === "shotFrom") && r[key]
+    ? (!r.layout || r.layout === S.layoutKey ? frameId(r[key], r.m, r.pt) : null) : r[key];
   const top = key => { const m = {}; rows.forEach(r => { const v = val(r, key); if(v) m[v] = (m[v] || 0) + 1; }); const e = Object.entries(m).sort((a, b) => b[1] - a[1])[0]; return e || null; };
   // Four counts the other scouting apps sell, out of what was already charted
   // — no extra tap between points. Shooting off the break is a lane or a
@@ -6399,8 +6478,9 @@ function nextRead(side = "right"){
   const last = lastWon === undefined ? "" : lastWon === mine ? "after losing a point" : "after winning a point";
   const rows = theirBreaks(side).filter(b => b.script && b.m);
   const tally = list => Object.entries(list.reduce((a, b) => ({...a, [b.script]: (a[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
-  const leadOf = r => { const x = scoreBefore(r.m, r.pt); return Math.sign(x[theirs] - x[mine]); };
-  const lastOf = r => { const w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === mine ? "after losing a point" : "after winning a point"; };
+  const leadOf = r => { const [t, o] = readSides(r, side), x = scoreBefore(r.m, r.pt); return Math.sign(x[t] - x[o]); };
+  const lastOf = r => { const [, o] = readSides(r, side), w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
+  const mpRow = (r, who) => { const [t, o] = readSides(r, side); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, alt: t[1] || null}; };
   // The moment he is in, most specific first: a timeout just spent, match
   // point either way, the first point of the sheet, then the score and the
@@ -6408,8 +6488,8 @@ function nextRead(side = "right"){
   const mp = matchPoint(m.id);
   const order = [
     timeoutOn(m.id, pt) ? bucket("after a timeout", r => timeoutOn(r.m, r.pt)) : null,
-    mp === "them" || mp === "both" ? bucket("at their match point", r => mpBefore(r.m, r.pt, theirs)) : null,
-    mp === "us" || mp === "both" ? bucket("facing match point", r => mpBefore(r.m, r.pt, mine)) : null,
+    mp === "them" || mp === "both" ? bucket("at their match point", r => mpRow(r, theirs)) : null,
+    mp === "us" || mp === "both" ? bucket("facing match point", r => mpRow(r, mine)) : null,
     pt === 1 ? bucket("on the first point", r => r.pt === 1) : null,
     last ? bucket(`${state}, ${last}`, r => leadOf(r) === lead && lastOf(r) === last) : null,
     bucket(state, r => leadOf(r) === lead),
@@ -6521,7 +6601,6 @@ function plantIdsFor(k, layoutKey = S.layoutKey){
   const p = (BREAK_PLANTS[layoutKey] || {})[k] || myPlants(k, layoutKey);
   return Array.isArray(p) && p.length ? p : null;
 }
-const _laneCache = {};
 // A man shoots from the edge of his bunker, not through the middle of it, so
 // the lane is tried from a foot outside either side of the shooter's bunker
 // (and from its centre) to the centre of the target's. Clear from any of the
@@ -6582,10 +6661,10 @@ function shooterLane(side = "right"){
   const [tag, hits] = r.who[0], num = String(tag).trim().split(" ")[0];
   const t5 = theirFiveNow(side); if(!t5) return null;
   // The bunker in their five he is usually sighted in, matched by number.
-  const at = t5.ids.map(id => ({id, u: usualMan(team, frameId(id, S.matchId, S.point || 1))})).find(x => x.u && x.u.who.split(" ")[0] === num);
+  const at = t5.ids.map(id => ({id, u: usualMan(team, frameId(id, S.matchId, sheetPoint()))})).find(x => x.u && x.u.who.split(" ")[0] === num);
   if(!at) return {tag, hits, at: null};
   const mine = callSet() ? plantIdsFor(S.script) : null; if(!mine) return {tag, hits, at: at.id, lanes: null, seen: at.u.n};
-  const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, five = fiveFor(S.point || 1);
+  const ids = ourEnd() === "right" ? mine.map(mirrorBunkerId) : mine, five = fiveFor(sheetPoint());
   const lanes = ids.map((a, i) => laneClear(a, at.id) ? {who: five[i] ? five[i].name : `slot ${i + 1}`, from: a} : null).filter(Boolean);
   return {tag, hits, at: at.id, lanes, seen: at.u.n};
 }
@@ -7459,12 +7538,16 @@ window.toggleSync = () => {
 window.deleteSynced = async () => {
   const cloud = window.gridlockCloud;
   const say = m => set({syncSaid: m});
-  if(cloud && cloud.deleteSeason){
-    say("Removing what you sent…");
-    try{ const r = await cloud.deleteSeason();
-      if(r && r.ok === false && !r.offline) return set({syncSaid: r.said || "That could not be removed. Try again with a signal."});
-    }catch(e){ return set({syncSaid: "Could not reach your league to remove it. Try again with a signal."}); }
-  }
+  // Only say it was removed when the league said so: with no adapter, or no
+  // signal, it said removed while everything sent was still there.
+  if(!cloud || !cloud.deleteSeason)
+    return set({syncOn: false, syncAt: null, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+  if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
+  say("Removing what you sent…");
+  try{ const r = await cloud.deleteSeason();
+    if(r && r.offline) return set({syncOn: false, syncAt: null, syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
+    if(r && r.ok === false) return set({syncSaid: r.said || "That could not be removed. Try again with a signal."});
+  }catch(e){ return set({syncSaid: "Could not reach your league to remove it. Try again with a signal."}); }
   set({syncOn: false, syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
@@ -7486,7 +7569,7 @@ function playbook(){
   <div class="call">
     <div class="call__label">The call</div>
     <div class="call__name">${picked ? esc(callName(key)) : PICK_CALL}</div>
-    <p class="call__read">${picked ? m.read : `Tap the one you are running under the field and it draws your five on ${esc(curLayout().name)}.`}</p>
+    <p class="call__read">${picked ? esc(m.read) : `Tap the one you are running under the field and it draws your five on ${esc(curLayout().name)}.`}</p>
     ${(()=>{const r=breakRecord(key); return picked && r.points
       ? `<p class="note">On ${esc(curLayout().name)} you have called this ${r.points} time${r.points===1?"":"s"} —
          ${r.us} out${r.us===1?"":"s"} against you, ${r.them} against them.</p>`
@@ -7494,6 +7577,9 @@ function playbook(){
     ${ans ? `<p class="note">You wrote down: they run <b>${esc(callName(ans.theirs))}</b>
       — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc(callName(ans.ours))}</b>.
       ${picked && ans.ours===key ? "That is this call." :
+        // pickPlays() decides what can be called: an answer he has turned off
+        // or deleted is named, never offered.
+        !pickPlays()[ans.ours] ? offWord(ans.ours) :
         `<button class="btn btn--quiet" style="margin-top:6px"
           onclick="set({script:${jsq(ans.ours)},t:1,playing:false})">Call it</button>`}</p>` : ""}
     <div class="call__meta">
@@ -7724,7 +7810,7 @@ function cardLines(){
 window.shareCards = () => {
   if(!callSet()) return flash("Pick the call first — a card is one man's job on it.");
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
-    + cardLines().map(c => `${c.n}. ${c.who ? "#" + c.who.num + " " + c.who.name : "(no name)"}\n`
+    + cardLines().map(c => `${c.n}. ${c.who ? manTag(c.who) : "(no name)"}\n`
         + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}`
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   handOff("Gridlock cards", t);
@@ -7995,6 +8081,15 @@ window.selectBunker = id => {
  * A row logged before this carries its own hand-traced `route` and keeps it:
  * what he drew is what he saw, and the app does not overrule it.
  */
+// The centre of a goal line, anchored on its back-centre bunker.
+function goalStart(layout, fromRight){
+  const mine = fromRight
+    ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
+  const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
+  return fromRight ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+}
+// Which goal line a charted man left from: his side's end on that point.
+function rowFromRight(row){ return (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left"); }
 function autoRoute(row){
   const layout = LAYOUTS[row.layout] || curLayout();
   const b = layout.bunkers.find(x => x.id === row.bunker);
@@ -8005,7 +8100,7 @@ function autoRoute(row){
      tap — ten routes at a time, six seconds a tap on a phone once a season was
      in. Kept by those inputs, a run is worked out once; the cache goes with
      every other route cache when a field changes (dropPathCache). */
-  const fromRightKey = (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left");
+  const fromRightKey = rowFromRight(row);
   const key = [layout.key || row.layout, row.bunker, row.movedTo || "", fromRightKey ? 1 : 0,
                row.movedDelayed ? 1 : 0, row.delayed ? 1 : 0].join("|");
   if(_autoCache.has(key)) return _autoCache.get(key).map(p => ({...p}));
@@ -8029,10 +8124,7 @@ function autoRouteFresh(row, layout, b, fromRight){
      straight through whatever is in the way. */
   // Which goal line he left from: yours is the end you broke from on that
   // point, theirs the other — not always left and right.
-  const mine = fromRight
-    ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
-  const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  const start = fromRight ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+  const start = goalStart(layout, fromRight);
   const out = [];
   const leg = (from, to, id, hold) => {
     // Take the first clearance that actually yields a run that clears. A leg
@@ -8096,6 +8188,10 @@ window.tallyTap = at => {
   // from the list under the field.
   const r = pointRows().find(x => x.bunker === b.id && x.todo);
   if(r) return editBreakout(r.id);
+  // One more man is a new row. With a placed man's sheet open, the draft and
+  // tallyEdit were his: Save moved him onto this bunker with his answers and
+  // the new man was never charted.
+  if(S.tallyEdit){ S.tallyEdit = null; S.tallyDraft = null; S.tallyPickFor = null; }
   selectBunker(b.id);
 };
 /* Where they went, then what happened.
@@ -8227,6 +8323,9 @@ const sheetOver = () => {
   return true;
 };
 window.needOpponent = () => {
+  // From the quick log the tab under it can be the whiteboard, where the gate
+  // is not: it closed and left him there with nothing said.
+  if(S.quick && S.tab !== "tally"){ S.tab = "tally"; S.more = null; }
   S.quick = false; S.quickPick = false;
   S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render();
   requestAnimationFrame(() => { const el = document.getElementById("tally-opp"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
@@ -8263,7 +8362,9 @@ window.logBreakout = () => {
     delayed:!!d.delayed, movedTo:d.movedTo || "", movedDelayed:!!(d.movedTo && d.movedDelayed),
     routeType:d.routeType || "",
     route:(d.route || []).map(p => ({x:p.x, y:p.y, b:p.b || "", dl:!!p.dl})),
-    vs:matchVs(), script:myCall()};
+    // A placed man keeps the call his point was run under: told from the
+    // backlog after the next call was picked, he read as the next point's call.
+    vs:matchVs(), script:editing ? (editing.script || "") : myCall()};
   // One row a man a point: a named man charted again on the same point is
   // the coach correcting himself, not a second break, so his earlier row goes
   // — and if that row had him shot and this one does not, the out it wrote
@@ -8446,10 +8547,13 @@ function tallyOverlay(){
      `route`; it was simply never read back. Logged runs are drawn a shade
      lighter than the one being filled in, so the man he is working on still
      leads. */
-  const routeSVG = (pts, bunker, side, live) => {
+  // The line starts on the goal line he actually left from on that point —
+  // a right-end point drawn from the left crossed the whole field.
+  const routeSVG = (pts, bunker, row, live) => {
     if(!pts || !pts.length) return "";
+    const side = row.side;
     const col = side === "them" ? "#3d8bff" : "#e5342f";
-    const start = side === "us" ? [2, 60] : [148, 60];
+    const start = goalStart(LAYOUTS[row.layout] || curLayout(), rowFromRight(row));
     const legs = [start, ...pts.map(p => [p.x, p.y])];
     if(pts[pts.length-1].b !== bunker.id) legs.push([bunker.x, bunker.y]);
     let g = "";
@@ -8469,7 +8573,7 @@ function tallyOverlay(){
   breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).forEach(r => {
     const b = byId[r.bunker]; if(!b) return;
     // The run first, so the marker for the man sits on top of his own line.
-    out += routeSVG(routeOf(r), b, r.side, false);
+    out += routeSVG(routeOf(r), b, r, false);
     const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1, y = b.y*sy - s2.v + 1;
     const col = r.side === "them" ? "#3d8bff" : "#e5342f";
     out += `<g class="tally-man"><rect x="${(x-4.5).toFixed(1)}" y="${(y-4.5).toFixed(1)}" width="9" height="9" rx="2" fill="${col}" stroke="#efedeb" stroke-width="1"/>`
@@ -8479,7 +8583,10 @@ function tallyOverlay(){
   const sel = selBunker(), d = draft();
   if(sel){
     const side = d.side || sideOfBunker(sel), col = side === "them" ? "#3d8bff" : "#e5342f";
-    out += routeSVG(routeOf({...d, bunker: sel.id, side, layout: S.layoutKey}), sel, side, true);
+    // A man from the backlog is routed from the end of his own point.
+    const er = S.tallyEdit && (S.breakouts || []).find(x => x.id === S.tallyEdit);
+    const live = {...d, bunker: sel.id, side, layout: S.layoutKey, pt: er ? er.pt : sheetPoint(), m: er ? er.m : S.matchId};
+    out += routeSVG(routeOf(live), sel, live, true);
     const s2 = bunkerSize(sel, sx, sy);
     out += `<rect class="tally-sel" x="${(sel.x*sx-s2.h-4).toFixed(1)}" y="${(sel.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="5" fill="none" stroke="#efedeb" stroke-width="2"/>`;
   }
@@ -8640,6 +8747,7 @@ function tally(){
   // Rows are frame ids; they are named on the end the field shows now, the
   // way the rings are drawn, so the row and the ring are the same bunker.
   const named = id => { const b = bl.find(x=>x.id===shownBunker(id)); return b?esc(callOf(b)):esc(id); };
+  const seen = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
   const best = value[0], worst = value[value.length-1];
   const netColour = n => n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)";
   const valueSeg = `<div class="seg">
@@ -8755,9 +8863,9 @@ function tally(){
           <button class="btn grow" onclick="pickEvent(${jsq(sheetField())})">Back to ${esc(LAYOUTS[sheetField()].name)}</button>
           <button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>
         </div></div>` : ""}
-    ${matchOver() ? `<p class="warn"><b>Match over — ${overWord()} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
+    ${matchOver() ? `<p class="warn"><b>Match over — ${esc(overWord())} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
-      : matchPoint() ? `<p class="aid"><b>${matchPointWord()}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
+      : matchPoint() ? `<p class="aid"><b>${esc(matchPointWord())}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
     ${stepStrip}
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
     ${endsChip()}
@@ -8873,7 +8981,7 @@ function tally(){
     ${(() => {
       // One timeout a team a match. Spent, the chip says which point it went
       // on and gives it back with one tap; the clock itself is the official's.
-      const word = sd => (curMatch()||{}).watch ? sideWord(sd) : (sd === "us" ? "Our" : esc(matchVs() || "Their"));
+      const word = sd => (curMatch()||{}).watch ? esc(sideWord(sd)) : (sd === "us" ? "Our" : esc(matchVs() || "Their"));
       return `<div class="btnrow" aria-label="Timeouts">${["us","them"].map(sd => {
         const t = timeoutsFor().find(x => x.side === sd);
         return t ? `<button class="btn btn--quiet grow" onclick="dropTimeout(${jsq(t.id)})" title="Undo">⏱ ${word(sd)} timeout · used, point ${t.pt} · undo</button>`
@@ -8882,7 +8990,7 @@ function tally(){
     })()}
     ${(() => {
       const here = pensFor(S.matchId, pt);
-      const word = sd => (curMatch()||{}).watch ? sideWord(sd) : (sd === "us" ? "Us" : esc(matchVs() || "Them"));
+      const word = sd => (curMatch()||{}).watch ? esc(sideWord(sd)) : (sd === "us" ? "Us" : esc(matchVs() || "Them"));
       return `<div class="btnrow">
         <button class="btn btn--quiet grow" onclick="togglePen()">${
           S.penOpen ? "Close" : here.length ? `Penalty · ${here.length} on this point` : "⚑ Penalty"}</button>
@@ -8925,7 +9033,7 @@ function tally(){
             leads. Back a point is still there, because the last tap may have
             been the mis-tap. */""}
       <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
-      ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+      ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     </div>` : `<div class="btnrow">
       <button class="btn grow btn--lg" onclick="endPoint('us')">${
         (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
@@ -8933,7 +9041,7 @@ function tally(){
         (curMatch()||{}).watch ? esc(sideWord("them")) + " won it" : "They won it"}</button>
     </div>
     <div class="btnrow">
-      ${pt > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+      ${(S.point||1) > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
     </div>`}
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
@@ -8966,7 +9074,9 @@ function tally(){
         // repaint — and you should not be editing an old point by accident.
         const live = !!o.pt && o.pt === pt;
         const where = [o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
-          o.shotAt?`at ${named(o.shotAt)}`:"", o.movedTo?`moved to ${named(o.movedTo)}`:""]
+          // A tally row keeps the bunker he was actually in, not a frame id —
+          // named() turned it to its twin on a right-end point.
+          o.shotAt?`at ${seen(o.shotAt)}`:"", o.movedTo?`moved to ${seen(o.movedTo)}`:""]
           .filter(Boolean).join(" · ");
         return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":o.side?"var(--red)":"var(--line-lit)"};font-size:11px">${o.pt||"·"}</span>
@@ -9002,7 +9112,9 @@ function causePick(label, idx, field, value, options){
 function whoPick(idx, side, value){
   // Your player went out — who got him? Theirs went out — which of yours?
   const list = side === "us"
-    ? (pitOf("right").players || []).map(m => ({v:"#"+(m.num||"?"), t:"#"+(m.num||"?")+(m.name?" "+m.name:"")}))
+    // A man with a number is "#7", as every out of his has been; one without
+    // is his name — two numberless men were both "#?" and one man to the read.
+    ? (pitOf("right").players || []).filter(m => m.num || m.name).map(m => ({v: m.num ? "#" + m.num : theirTag(m), t: theirTag(m)}))
     : (S.roster || []).map(r => ({v:r.name, t:manTag(r)}));
   return causePick(side === "us" ? "By (them)" : "By (yours)", idx, "by", value, list);
 }
@@ -9577,12 +9689,17 @@ window.addOut = () => window.markOut("us","Player");
    them, which is the honest version of "analysis" for a tool with one device
    and a season's worth of points. Entries logged before an out carried its
    context are simply not counted rather than guessed at. */
+// His outs and theirs. A watched game is two other teams: its home side is
+// filed as "us" and was read as his men lost, his calls' outs and his record.
 function loggedOuts(match){
-  return (S.tally || []).filter(o => o && typeof o === "object" && match(o));
+  return (S.tally || []).filter(o => o && typeof o === "object" && !watchedMatch(o.m) && match(o));
 }
 function breakRecord(scriptKey){
   const rows = loggedOuts(o => o.script === scriptKey && o.layout === S.layoutKey);
-  return {points: new Set(rows.map(o => o.pt)).size,
+  // A point is its sheet and its number — point 3 exists in every match — and
+  // a call logged with nobody out on it was still called.
+  const pts = new Set([...rows, ...loggedCalls().filter(c => c.script === scriptKey)].map(o => `${o.m || ""}|${o.pt}`));
+  return {points: pts.size,
           us: rows.filter(o => o.side === "us").length,
           them: rows.filter(o => o.side === "them").length};
 }
@@ -9594,8 +9711,9 @@ function opponentRead(team){
   // Where: the bunker your man was shot at, counted in the frame plants live in
   // (the same job from either end) and named on the end the field shows now.
   const where = {};
-  rows.forEach(o => { if(o.shotAt){ const id = shownBunker(frameId(o.shotAt, o.m, o.pt)); const b = curLayout().bunkers.find(x => x.id === id); const k = b ? callOf(b) : o.shotAt; where[k] = (where[k] || 0) + 1; } });
-  return {n: rows.length, points: new Set(rows.map(o => o.pt)).size,
+  // Where is a bunker on this field: another field's ids name other bunkers.
+  rows.forEach(o => { if(o.shotAt && (!o.layout || o.layout === S.layoutKey)){ const id = shownBunker(frameId(o.shotAt, o.m, o.pt)); const b = curLayout().bunkers.find(x => x.id === id); const k = b ? callOf(b) : o.shotAt; where[k] = (where[k] || 0) + 1; } });
+  return {n: rows.length, points: new Set(rows.map(o => `${o.m || ""}|${o.pt}`)).size,
           how: rank(tally("how")), who: rank(tally("by")), where: rank(where)};
 }
 
@@ -9707,7 +9825,7 @@ function matchStrip(){
   return `<div class="btnrow" style="align-items:center;flex-wrap:wrap;margin-bottom:var(--s3)">
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
-    ${pt > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${pt-1}</button>` : ""}
+    ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
   </div>`;
@@ -9964,7 +10082,7 @@ function arrivalContext(){
   const a = S.arrival || {}, side = a.side === "left" ? "left" : "right";
   const pit = pitOf(side), named = !!(a.team || pit.named), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
   return {side, team, named, player:a.player || "number:1", layout:S.layoutKey,
-          m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : S.point || 1};
+          m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : sheetPoint()};
 }
 /* A sighting belongs to a team and to a sheet on this field. With nobody in
  * the pit and no team picked, the row used to be stamped against a team called
@@ -10618,7 +10736,12 @@ function scoutMatchup(){
   const lPct=Math.round(tl/(tl+tr)*100);
   return sec("Matchup", `
     <div class="fld"><label>Threat, as you scored them</label>
-      <div class="bar"><i style="width:${lPct}%;background:var(--red)"></i><i style="width:${100-lPct}%;background:var(--blue)"></i></div>
+      ${/* Two sides only on a watched game. On his own sheet there is no score
+            for "you", and the left pit's stars sized the red half as if there were:
+            the bar is their stars out of five. */""}
+      <div class="bar">${(curMatch()||{}).watch && L.named
+        ? `<i style="width:${lPct}%;background:var(--red)"></i><i style="width:${100-lPct}%;background:var(--blue)"></i>`
+        : `<i style="width:${Math.round((R.threat||0)/5*100)}%;background:var(--blue)"></i>`}</div>
       <div class="barends" style="margin-top:8px">
         ${/* A head-to-head bar only when there are two sides on the field — a
               watched game. On his own sheet the left pit is a team he watches,
@@ -10787,7 +10910,7 @@ function scoutBreakouts(){
     <p class="note" role="status">${picked.length
       ? `${picked.length} of 5 placed: ${picked.map(id=>esc(label(id))).join(", ")}. Log the five on their own, or tap a named call below to log it with them.`
       : `Nothing placed yet. Tap a bunker; tap it again to take it out.`}</p>`,
-    esc(R.name))
+    R.name)
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
@@ -10795,13 +10918,13 @@ function scoutBreakouts(){
     </div>
     ${pitOnSheet(side)
       ? `<p class="note">Logged against point ${pt}, on ${esc(curLayout().name)}.</p>`
-      : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${R.name} is not on it, so what you log here
+      : `<div class="fld"><p class="warn">${matchVs() ? `This sheet is <b>${esc(matchVs())}</b>. ` : ""}${esc(R.name)} is not on it, so what you log here
           counts for the season on ${esc(curLayout().name)} and never against a point.</p>
           ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(R.name)}</button>`}</div>`}`,
-    esc(R.name))
+    R.name)
   + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([fid,n])=>{ const id = shownBunker(fid); return `<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${n}</span>
-        <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${n} of ${seen.filter(b=>b.plants).length} logged fives</span></span>
+        <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${n} of ${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged fives here</span></span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
       `${seen.filter(b=>b.plants).length} logged`) : "")
@@ -10834,7 +10957,9 @@ function scoutLayers(){
   const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true}, w=!!(curMatch()||{}).watch;
   // On a watched game "your outs" are the home side's — there is no you on that field.
   const name=(k,n)=> w && k==="theirOuts" ? `${sideWord("them")} outs` : w && k==="yourOuts" ? `${sideWord("us")} outs` : n;
-  const vs=o=>o.vs===R.name;
+  // On this field: bunker ids repeat across layouts, so another field's outs
+  // landed on this field's T#1.
+  const vs=o=>o.vs===R.name&&(!o.layout||o.layout===S.layoutKey);
   const counts={
     theirOuts:(S.tally||[]).filter(o=>o&&o.side==="them"&&vs(o)&&o.shotAt).length,
     yourOuts:(S.tally||[]).filter(o=>o&&o.side==="us"&&vs(o)&&o.shotAt).length,
@@ -10856,7 +10981,7 @@ function scoutLayers(){
     ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${esc(w && (k==="theirOuts"||k==="yourOuts") ? name(k,n) : n.toLowerCase())}`).join(" · ")}.</p>`
         :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
           the Tally tab, on the point you are on.</div>`}`,
-    esc(R.name));
+    R.name);
 }
 
 /* ---- Games: the points you played, and what happened in each ------------ */
@@ -10993,8 +11118,9 @@ function scoutCounter(){
     <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s ${read
         ? `<b style="color:var(--ink)">${esc(callName(read.call))}</b> — ${read.n} of ${read.of} ${esc(read.basis)}${read.alt ? `, ${esc(callName(read.alt[0]))} ${read.alt[1]}` : ""} —`
         : `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read ? ` Film read: ${esc(R.tend)}.` : ""}</p>
-    ${(()=>{const f=breakFreq("right"), n=theirBreaks("right").length;
-      return f.length?`<p class="note">You have logged them ${n} time${n===1?"":"s"} — most often
+    ${(()=>{const f=breakFreq("right"), n=f.reduce((a,[,c])=>a+c,0);
+      // Out of the calls named: a five with no call is never counted as one.
+      return f.length?`<p class="note">You have named their call ${n} time${n===1?"":"s"} — most often
         <b>${esc(callName(f[0][0]))}</b>, ${f[0][1]} of ${n}. Breakouts has the rest.</p>`:"";})()}
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
@@ -11028,7 +11154,7 @@ function scoutCounter(){
           </div>`).join("")}
         </div>
         <p class="aid">Yours, not the picker's. <b>The ranking above is a heuristic; this is what you saw.</b></p>`,
-        written ? `${written} written down` : esc(R.name));
+        written ? `${written} written down` : R.name);
     })();
 }
 window.copyMatchup = () => {
@@ -11748,7 +11874,7 @@ const HELP = {
   "more/plan": {t:"Plan", w:"What is free, what Team adds, and getting a purchase back.",
     how:["Everything you do while a point is on is free and always will be.",
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
-         "Restore purchases asks the store, so a new phone needs no account."],
+         "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
   "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
     how:["Save a copy is your backup and how you move to another phone.",
@@ -11773,7 +11899,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
-  ["My event's field isn't in the app.", "Every field in here is measured off the league's official map — the app never guesses a layout, so a field it has not measured cannot be drawn. The fields in this build are listed under More › Nexus. A new one arrives with an update; until then the break, Tally and Sightlines can only be drawn on a field the app has."],
+  ["My event's field isn't in the app.", "The NXL fields in this build are measured off the league's official maps; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
@@ -11785,9 +11911,9 @@ const HELP_Q = [
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
-  ["Do I need a signal?", "No. The app makes no network calls at all. Everything is on the phone and stays there."],
+  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. Only the things that talk to somebody else need one: League sync, if you switch it on, and the store when you buy or restore the plan."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
-  ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays. Guest can still coach; staff is only needed to create a class or send a blast."],
+  ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["What does it cost?", "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
@@ -11866,8 +11992,8 @@ function planPage(){
         : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
     </div>
     ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, billingLive() ? "" : "not selling yet")
-  + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire, it does
-      not need a signal, and it does not need an account.</p>
+  + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire and it does
+      not need a signal.</p>
     <div class="kv">
       ${row("Playbook", "The twelve breaks and your own plays on every measured field, Face, Shot, Job, and Log it.")}
       ${row("Tally", "The bunker-first break chart, the point sheet, the score, and where your points come from.")}
@@ -12039,6 +12165,7 @@ function upgradePanel(key){
       <button class="btn grow" onclick="set({tab:'more',more:'plan'})">See Team</button>
       <button class="btn btn--quiet" onclick="restorePlan()">Restore purchases</button>
     </div>
+    ${S.billingSaid ? `<p class="note" role="status">${esc(S.billingSaid)}</p>` : ""}
   </div>`;
 }
 const GATE_TITLE = {"scout":"Scout", "playbook/cards":"Cards", "playbook/rep":"Rep", "past-match":"An older sheet"};
@@ -12233,7 +12360,7 @@ function moreBody(k){
              [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
                n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
          <div class="fld"><label>Time · 24-hour, like 13:45</label>
-           <input value="${esc(n.t)}" maxlength="5" onchange="setGameField('t',this.value)"/></div>
+           <input value="${esc(n.t)}" maxlength="8" onchange="setGameField('t',this.value)"/></div>
          <div class="fld"><label>Home · takes the red pit</label>
            <input value="${esc(n.h)}" maxlength="40" onchange="setGameField('h',this.value)"/></div>
          <div class="fld"><label>Away · takes the blue pit</label>
@@ -12365,13 +12492,15 @@ function moreBody(k){
       it shows on his card, and never on the field, where five people read the same picture.</p>
       <div class="who2">
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker${S.callPick ? " · tapped on the field below" : " · or tap it on the field below"}</span>
-          <select id="bcId" onchange="set({callPick:this.value})">${list.map(b=>`<option value="${esc(b.id)}"${(S.callPick||list[0].id)===b.id?" selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
+          <select id="bcId" onchange="set({callPick:this.value||null})"><option value=""${S.callPick?"":" selected"}>Tap the field</option>${list.map(b=>`<option value="${esc(b.id)}"${S.callPick===b.id?" selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
-          <input id="bcName" placeholder="Home"/></label>
+          <input id="bcName" placeholder="Home" value="${esc(S.bcName || "")}" oninput="S.bcName=this.value"/></label>
       </div>
       <div class="fld"><label>Who calls it that</label>
-        <select id="bcWho"><option value="">The whole team</option>
-          ${roster.filter(p=>p.name).map(p=>`<option value="${esc(p.name)}">${esc(p.name)} only</option>`).join("")}
+        ${/* Kept as he picks: a tap on the field redraws, and the box and the
+              picker came back empty — Save then wrote the team's word, not his. */""}
+        <select id="bcWho" onchange="S.bcWho=this.value"><option value="">The whole team</option>
+          ${roster.filter(p=>p.name).map(p=>`<option value="${esc(p.name)}"${S.bcWho===p.name?" selected":""}>${esc(p.name)} only</option>`).join("")}
         </select></div>
       <button class="btn btn--block" onclick="setCall()">Save call</button>
       ${named.length?`<div class="assigns">${named.map(id=>{
@@ -12472,8 +12601,11 @@ function moreBody(k){
         S.moveFrom ? ` <button class="btn btn--quiet" style="min-height:36px;padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
       ${who}
       <div class="who2" style="margin-top:var(--s3)">
-        <div class="fld"><label>From</label><select id="mvFrom" onchange="set({moveFrom:this.value})">${list.map(b=>opt(b,S.moveFrom||list[0].id)).join("")}</select></div>
-        <div class="fld"><label>To</label><select id="mvTo" onchange="set({moveTo:this.value})">${list.map(b=>opt(b,S.moveTo||list[0].id)).join("")}</select></div>
+        ${/* Nothing chosen reads as nothing chosen. The boxes showed the first
+              bunker in the list, Log read that value, and a rotation was saved
+              to a bunker nobody tapped. */""}
+        <div class="fld"><label>From</label><select id="mvFrom" onchange="set({moveFrom:this.value||null})"><option value="" ${S.moveFrom?"":"selected"}>Tap the field</option>${list.map(b=>opt(b,S.moveFrom)).join("")}</select></div>
+        <div class="fld"><label>To</label><select id="mvTo" onchange="set({moveTo:this.value||null})"><option value="" ${S.moveTo?"":"selected"}>Tap the field</option>${list.map(b=>opt(b,S.moveTo)).join("")}</select></div>
       </div>
       <button class="btn btn--block" onclick="logMove()">${S.moveWho?`Log the move · ${esc(S.moveWho)}`:"Log the move"}</button>
       ${mv.length?`<p class="note">Green arrows are logged rotations, newest first. Showing up to 40.</p>`
@@ -12700,7 +12832,8 @@ function moreBody(k){
   + (_recoveryText ? sec("Recover an unreadable save", `<p class="lede">This is the original saved text that
       the app could not open. Keep it before repairing or replacing any data.</p>
     <div class="fld"><label>Original saved text</label><textarea readonly style="min-height:150px"
-      onclick="this.select()">${esc(_recoveryText)}</textarea></div>`) : "")
+      onclick="this.select()">${esc(_recoveryText)}</textarea></div>
+    <button class="btn btn--danger" onclick="clearRecovery()">I have it — clear this</button>`) : "")
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>
@@ -12827,13 +12960,13 @@ function quickLog(){
     </div>` : nobodyToPlay() ? `<div class="qlog__score">
       <button class="btn btn--lg" style="grid-column:1 / -1" onclick="needOpponent()">Pick the other team first · back to the sheet</button>
     </div>` : over ? `<div class="qlog__score">
-      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${overWord(undefined, us, them)} ${sc.us}–${sc.them} · New match`}</button>
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${esc(overWord(undefined, us, them))} ${sc.us}–${sc.them} · New match`}</button>
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
       <button class="btn btn--quiet grow" onclick="closeQuick()">Back to the sheet</button>
     </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
-            : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${matchPointWord(mp)}.</b> First to ${raceTo()}.</p>` : ""}
+            : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${esc(matchPointWord(mp))}.</b> ${raceTo() ? `First to ${raceTo()}.` : mercy() ? `A ${mercy()}-point lead ends it.` : ""}</p>` : ""}
     <div class="qlog__score">
       <button class="btn btn--lg" onclick="endPoint('us')">${esc(us)} won it</button>
       <button class="btn btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${esc(them)} won it</button>
@@ -13006,6 +13139,12 @@ window.flash = msg => {
    opened on one event and moved to another read "This sheet is on Lone Star,
    nothing logs here" over a sheet nobody had touched. A blank sheet goes with
    him; one with anything on it stays where it was played. */
+window.clearRecovery = () => {
+  if(!confirm("Clear the unreadable saved text from this phone? Copy it first if you still need it.")) return;
+  _recoveryText = "";
+  try{ localStorage.removeItem(RECOVERY_KEY); }catch(e){}
+  set({flash: "Cleared. The warning will not come back."});
+};
 window.pickEvent = key => {
   if(!LAYOUTS[key]) return;
   const m = curMatch();

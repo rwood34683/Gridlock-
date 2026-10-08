@@ -1381,12 +1381,13 @@ const ROSTER = [
     const counted = currentPaths().filter(p => wireOf(p.to[1]).startsWith("snake")).length;
     return w.Snake === counted;
   }));
-  check("the bar follows the threat you scored, both ways", await ev(() => {
+  check("the bar follows the threat you scored for them — on your own sheet the left pit is not you", await ev(() => {
+    // It sized a red "you" half off the left pit's stars, a team he watches.
     const read = () => document.querySelector(".bar i").style.width;
-    const wide = read();                                  // 5 vs 1
-    window.setThreat("right", 5);                         // now level
-    const level = read();
-    return wide === "83%" && level === "50%";
+    const low = read();                                   // they are scored 1
+    window.setThreat("right", 5);
+    const high = read();
+    return low === "20%" && high === "100%" && document.querySelectorAll(".bar i").length === 1;
   }));
   check("nothing on the panel is a hard-coded percentage", await ev(() => {
     const txt = document.querySelector(".main").textContent;
@@ -2059,7 +2060,7 @@ const ROSTER = [
   }));
   check("the counter-picker cites the count once there is one", await ev(() => {
     window.set({ scoutTab: "counter" });
-    return /logged them 3 times/.test(document.querySelector(".main").textContent);
+    return /named their call 3 times/.test(document.querySelector(".main").textContent);
   }));
   check("an unseen team claims no record", await ev(() => {
     window.set({ scoutTab: "breakouts" });
@@ -4815,6 +4816,54 @@ const ROSTER = [
     && adoptCallPicked({script: "blitz"}).callPicked === true
     && adoptCallPicked({script: "snake", calls: [{script: "snake"}]}).callPicked === true
     && adoptCallPicked({script: "snake", callPicked: false}).callPicked === false));
+  /* The line-by-line audit: one check for each hole a coach could hit. */
+  check("audit: one more man tapped while a placed man's sheet is open is a new man, and the placed man stays on his bunker", await ev(() => {
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.playPit(); window.newMatch();
+    const mid = S.matchId, bl = curLayout().bunkers, b = bl[4], c = bl[30];
+    S.tallyStep = "place"; window.tallyTap([b.x, b.y]);
+    const placed = (S.breakouts || []).find(r => r.m === mid && r.bunker === b.id);
+    window.tallyStepTo("record"); const opened = !!placed && S.tallyEdit === placed.id;
+    window.tallyTap([c.x, c.y]); const fresh = !S.tallyEdit && S.tallySel === c.id;
+    window.setDraft({ alive: true }); window.logBreakout();
+    const kept = (S.breakouts || []).find(r => r.id === placed.id), added = (S.breakouts || []).find(r => r.m === mid && r.bunker === c.id);
+    return opened && fresh && kept && kept.bunker === b.id && !!added && added.id !== placed.id;
+  }));
+  check("audit: Movement logs nothing to a bunker nobody tapped", await ev(() => {
+    const name = (S.roster[0] || {}).name, before = (S.moves || []).length;
+    window.set({ tab: "more", more: "movement", moveFrom: null, moveTo: null, moveWho: name, flash: "" });
+    const blank = document.getElementById("mvFrom").value === "" && document.getElementById("mvTo").value === "";
+    window.logMove();
+    return blank && (S.moves || []).length === before && /Tap the bunker he left/.test(S.flash || "");
+  }));
+  check("audit: Fill and Clear on Lineups write the point shown on a finished sheet, never the one past it", await ev(() => {
+    window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
+    const mid = S.matchId, last = sheetPoint();
+    window.fillLineup("roster");
+    const ok = !!(S.lineups || {})[`${mid}|${last}`] && !(S.lineups || {})[`${mid}|${last + 1}`] && sheetPoint() === last;
+    window.clearLineup();
+    return ok && !(S.lineups || {})[`${mid}|${last}`];
+  }));
+  check("audit: outs on a game he watched are not his outs, his calls' record or how they get him", await ev(() => {
+    const keep = { tally: S.tally, matches: S.matches };
+    S.matches = [{ id: "aud-w", at: Date.now(), watch: true, home: "Audit Home", away: "Audit Away", vs: "Audit Away", layout: S.layoutKey }, ...(S.matches || [])];
+    S.tally = [{ m: "aud-w", pt: 1, side: "us", name: "#3", vs: "Audit Away", layout: S.layoutKey, script: "snake", shotAt: curLayout().bunkers[2].id, at: 1 }, ...(S.tally || [])];
+    const read = opponentRead("Audit Away"), none = read.n === 0 && !loggedOuts(o => o.m === "aud-w").length;
+    S.tally = keep.tally; S.matches = keep.matches;
+    return none;
+  }));
+  check("audit: the welcome page's recovery notice is never a way in", await ev(() => {
+    const was = _recoveryText; _recoveryText = "{broken";
+    window.set({ entered: false, mode: null });
+    const html = document.getElementById("root").innerHTML;
+    const shut = /could not be opened/.test(html) && !/entered:true/.test(html) && !/Open Nexus/.test(html);
+    _recoveryText = was; window.set({ entered: true });
+    return shut;
+  }));
+  {
+    const src = require("fs").readFileSync(require("path").join(__dirname, "..", "web", "index.html"), "utf8");
+    check("audit: the map check a saved field needs is declared before the season is loaded",
+      src.indexOf("const fieldMapOk") > 0 && src.indexOf("const fieldMapOk") < src.indexOf("let S = load()"));
+  }
   check("a blank sheet goes with the coach to another event; a sheet with anything on it stays", await ev(() => {
     const keepM = S.matches, keepId = S.matchId, keepL = S.layoutKey, keepR = S.results;
     const blank = {id: "blank-ev", at: Date.now(), vs: "", layout: "lso"};
