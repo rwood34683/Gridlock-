@@ -7019,7 +7019,7 @@ const ROSTER = [
   }));
   check("a break from the far end is counted on the bunker it is from your own end, and the ring follows the end you are on", await ev(() => {
     window.confirm = () => true;
-    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" }, tallyValue: "us", evenOnly: false });
+    window.set({ layoutKey: "lso", tab: "tally", right: { name: "Rejects" }, tallyValue: "us", evenOnly: false, tallyValueOpen: true });
     const inp = document.getElementById("oppName"); if (inp) { inp.value = "Rejects"; window.playNamed(); } else window.newMatch();
     window.setSwapEnds(true);
     const bl = curLayout().bunkers, leftB = bl.filter(x => x.x < 60).sort((a, b) => a.x - b.x)[2], rightB = bl.find(x => x.id === mirrorBunkerId(leftB.id));
@@ -9438,6 +9438,7 @@ const ROSTER = [
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
                  quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"}, building:{k:"", name:"half a play", plants:["x"], layout:"lso"}, tallyStep:"record", tallyEdit:"b-half", tallyPlace:"them",
+                 tallyValueOpen:true, tallyAllBreaks:true, tallyAllOuts:true, sightAll:true, keptAll:true,
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -9454,6 +9455,7 @@ const ROSTER = [
       quick:S.quick, quickPick:S.quickPick,
       copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText, building:S.building,
       tallyStep:S.tallyStep === "place" ? "" : S.tallyStep, tallyEdit:S.tallyEdit, tallyPlace:S.tallyPlace,
+      tallyValueOpen:S.tallyValueOpen, tallyAllBreaks:S.tallyAllBreaks, tallyAllOuts:S.tallyAllOuts, sightAll:S.sightAll, keptAll:S.keptAll,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);
@@ -9466,6 +9468,92 @@ const ROSTER = [
     return r && !r.read;
   }));
   check("the whiteboard is kept across a relaunch", await ev(() => wbMarks().length === 1));
+
+  /* ------------------------------------------- a tap costs what it changes */
+  G("Every tap saves, and only what it changed");
+  check("a tap that only moves between screens leaves the season as it was written", await ev(() => {
+    window.set({ tab: "tally", roster: [...(S.roster || [])] });       // a write, so the season is current
+    const before = localStorage.getItem("gridlock.coach.v2"), at = S.savedAt;
+    window.set({ tab: "scout", scoutTab: "counter" }); window.set({ tab: "more", more: "matches" });
+    window.set({ tallyValueOpen: true, pitOpen: "right" });             // scratch, never a record
+    return localStorage.getItem("gridlock.coach.v2") === before && S.savedAt === at
+      && JSON.parse(localStorage.getItem("gridlock.coach.v2.here")).more === "matches";
+  }));
+  check("and where he was still comes back on a relaunch", await (async () => {
+    await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(150);
+    return ev(() => S.tab === "more" && S.more === "matches");
+  })());
+  check("anything logged writes the whole season on the tap", await ev(() => {
+    const before = localStorage.getItem("gridlock.coach.v2");
+    window.set({ roster: [...(S.roster || []), { name: "Tapwrite", num: "88" }] });
+    const now = JSON.parse(localStorage.getItem("gridlock.coach.v2"));
+    const ok = now.roster.some(p => p.name === "Tapwrite") && localStorage.getItem("gridlock.coach.v2") !== before && now.more === "matches";
+    window.set({ roster: S.roster.filter(p => p.name !== "Tapwrite") });
+    return ok;
+  }));
+  check("a change made straight on the season is written by the next tap, whatever the tap was", await ev(() => {
+    S.roster = [...(S.roster || []), { name: "Direct", num: "89" }];
+    window.set({ tab: "tally" });
+    const ok = JSON.parse(localStorage.getItem("gridlock.coach.v2")).roster.some(p => p.name === "Direct");
+    window.set({ roster: S.roster.filter(p => p.name !== "Direct") });
+    return ok;
+  }));
+  check("a season wiped behind the app's back is written again by the next tap", await ev(() => {
+    localStorage.removeItem("gridlock.coach.v2");
+    window.set({ tab: "playbook" });
+    return !!localStorage.getItem("gridlock.coach.v2");
+  }));
+  check("half-done keys are not written into the season at all", await ev(() => {
+    window.set({ tallyDraft: { player: "x" }, roster: [...(S.roster || [])] });
+    const saved = JSON.parse(localStorage.getItem("gridlock.coach.v2"));
+    window.set({ tallyDraft: null });
+    return !("tallyDraft" in saved) && !("handText" in saved) && "roster" in saved;
+  }));
+
+  G("The lists under a sheet open on the point he is on");
+  check("Tally's Breakouts and Log list this point, and one tap lists the sheet", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Foldtest" }, layoutKey: "lso" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
+    const b = curLayout().bunkers, m = S.matchId;
+    S.breakouts = [...[1, 2].map(pt => ({ id: "fold" + pt, m, pt, layout: "lso", side: "us", bunker: b[pt].id, player: "Fold" + pt, alive: true, at: pt })), ...(S.breakouts || [])];
+    S.tally = [...[1, 2].map(pt => ({ m, pt, side: "us", name: "Fold" + pt, layout: "lso", at: pt })), ...(S.tally || [])];
+    window.set({ point: 2 });
+    const secOf = name => [...document.querySelectorAll("#root .sec")].find(s => (s.querySelector(".sec__eyebrow") || {}).textContent === name);
+    const rowsOf = name => secOf(name).querySelectorAll(".assign").length;
+    const folded = rowsOf("Breakouts") === 1 && rowsOf("Log") === 1 && /Show all 2 on this sheet/.test(secOf("Log").textContent);
+    window.set({ tallyAllBreaks: true, tallyAllOuts: true });
+    const open = rowsOf("Breakouts") === 2 && rowsOf("Log") === 2 && /Only point 2/.test(secOf("Log").textContent);
+    window.set({ tallyAllBreaks: false, tallyAllOuts: false });
+    return folded && open;
+  }));
+  check("Where the points come from shows the best and worst until the table is asked for", await ev(() => {
+    window.endPoint("us");
+    const sec = () => [...document.querySelectorAll("#root .sec")].find(s => (s.querySelector(".sec__eyebrow") || {}).textContent === "Where the points come from");
+    const folded = !sec().querySelector(".tbl") && /Best bunker/.test(sec().textContent) && /Every bunker/.test(sec().textContent);
+    window.set({ tallyValueOpen: true });
+    const open = !!sec().querySelector(".tbl") && /Fold the table/.test(sec().textContent);
+    window.set({ tallyValueOpen: false });
+    return folded && open;
+  }));
+  check("Sightlines lists their five and the clear lanes, and one tap lists every lane", await ev(() => {
+    window.set({ tab: "sightlines" }); window.pickSight("from", curLayout().bunkers[5].id);
+    const n = () => document.querySelectorAll("#root .tbl tbody tr").length;
+    const total = sightLines(S.sightFrom, 2, 2).lines.length, folded = n();
+    window.set({ sightAll: true }); const all = n(); window.set({ sightAll: false });
+    return folded <= 13 && folded < total && all === total;
+  }));
+  check("Matches keeps the last dozen sheets in view and every sheet a tap away", await ev(() => {
+    const base = S.matches.length, add = Array.from({ length: 14 }, (_, i) => ({ id: "kept" + i, at: Date.now() - (i + 5) * 86400e3, vs: "Foldtest", layout: "lso" }));
+    S.matches = [...S.matches, ...add];
+    window.set({ tab: "more", more: "matches" });
+    const sec = [...document.querySelectorAll("#root .sec")].find(s => (s.querySelector(".sec__eyebrow") || {}).textContent === "Kept");
+    const folded = sec.querySelectorAll(".assign").length >= 12 && sec.querySelectorAll(".assign").length < S.matches.length && /Every sheet · /.test(sec.textContent);
+    window.set({ keptAll: true });
+    const sec2 = [...document.querySelectorAll("#root .sec")].find(s => (s.querySelector(".sec__eyebrow") || {}).textContent === "Kept");
+    const all = sec2.querySelectorAll(".assign").length === S.matches.length;
+    window.set({ keptAll: false, matches: S.matches.filter(m => !/^kept/.test(m.id)) });
+    return folded && all && S.matches.length === base;
+  }));
 
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
