@@ -1678,6 +1678,9 @@ function teamsHere(){ return divisionTeams(divisionOf().id); }
 const foldName = n => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
 function anyTeam(name){
   const want = foldName(name); if(!want) return null;
+  return drawOnce("team|" + want, () => anyTeamFresh(want));
+}
+function anyTeamFresh(want){
   for(const d of DIVISIONS){
     const hit = divisionTeams(d.id).find(t => foldName(t.name) === want);
     if(hit) return hit;
@@ -1930,6 +1933,7 @@ function load(){
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
     adoptCallPicked(parsed);
+    readHere(parsed, raw);
     return Object.assign(defaultState(), parsed);
   }catch(e){
     // Keep the exact bytes before a new session can overwrite the broken save.
@@ -1941,18 +1945,71 @@ function load(){
     return defaultState();
   }
 }
+/* What a tap costs to keep. Writing the season is most of it — 631 KB of a
+ * full season took ~53 ms a tap at a phone's speed, and the phone mirrors the
+ * same text across the native bridge. Every tap still saves, on the tap; what
+ * changes is what it writes. A tap that only opened a sheet or moved between
+ * screens changes nothing logged, so it writes the three keys that say where
+ * he is to a small record of its own (HERE_KEY) and leaves the season as it
+ * was. Anything logged, scored or edited writes the whole season, as before.
+ * The half-done keys clearScratch() resets are not written at all: a launch
+ * resets them anyway, and they were what made an unchanged season look new. */
+const HERE_KEY = STORE_KEY + ".here";
+const NAV_KEYS = ["tab", "more", "scoutTab"];
+var _scratchKeys = null, _lastSeason = null;
+function scratchKeys(){
+  if(!_scratchKeys){ const o = {}; clearScratch(o); _scratchKeys = new Set(Object.keys(o)); }
+  return _scratchKeys;
+}
+function seasonText(s){
+  const skip = scratchKeys(), out = {};
+  for(const k of Object.keys(s)) if(k !== "savedAt" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
+  return JSON.stringify(out);
+}
+// It names the season it sits on — when it was written and how long it is —
+// so a season written or wiped behind its back is never read through it.
+var _lastLen = 0;
+function saveHere(s){
+  const here = {base: s.savedAt || 0, len: _lastLen};
+  NAV_KEYS.forEach(k => { here[k] = s[k] === undefined ? null : s[k]; });
+  try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); }catch(e){ storeRefused(e); }
+}
+function storeRefused(e){
+  _lastSeason = null;
+  _storeFail = (e && e.name === "QuotaExceededError")
+    ? "This phone's storage for the app is full."
+    : "This phone is not letting the app save.";
+}
+// Reading the season back is a lookup the browser keeps in memory, not a
+// read of the disk, so the skip can afford to check it is still there.
+function hereHolds(s){
+  try{ const cur = localStorage.getItem(STORE_KEY);
+       return cur !== null && cur.length === _lastLen; }
+  catch(e){ return false; }
+}
+// Where he was, written after the season last was: applied over it at launch.
+function readHere(parsed, raw){
+  try{
+    const here = JSON.parse(localStorage.getItem(HERE_KEY) || "null");
+    if(!plainRecord(here) || here.base !== parsed.savedAt || here.len !== raw.length) return;
+    NAV_KEYS.forEach(k => { if(here[k] === null || typeof here[k] === "string") parsed[k] = here[k]; });
+  }catch(e){}
+}
 function save(s){
   // A slow native restore must not overwrite work already started this launch.
   _hadLocal = true;
+  const season = seasonText(s);
+  if(s === S && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
   s.savedAt = Date.now();
-  const text = JSON.stringify(s);
+  const nav = {savedAt: s.savedAt};
+  NAV_KEYS.forEach(k => { if(s[k] !== undefined) nav[k] = s[k]; });
+  const tail = JSON.stringify(nav);
+  const text = season === "{}" ? tail : season.slice(0, -1) + "," + tail.slice(1);
   // A throw here used to escape through set() before render() ever ran, so the
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
-  try{ localStorage.setItem(STORE_KEY, text); _storeFail = ""; }
-  catch(e){ _storeFail = (e && e.name === "QuotaExceededError")
-    ? "This phone's storage for the app is full."
-    : "This phone is not letting the app save."; }
+  try{ localStorage.setItem(STORE_KEY, text); _storeFail = ""; if(s === S){ _lastSeason = season; _lastLen = text.length; saveHere(s); } }
+  catch(e){ storeRefused(e); }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
   if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) keepMaps();
   // Opt-in league sync: a best-effort push, throttled and fully guarded. It can
@@ -2569,26 +2626,28 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = "";
 // One list, run at launch and again when a durable copy is restored onto a
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
-function clearScratch(){
-  S.tallySel = null; S.tallyDraft = null; S.tallyStep = "place"; S.tallyEdit = null; S.tallyPlace = "";
-  S.tallyRead = ""; S.tallyLast = ""; S.tallyPick = false;
-  S.editPath = false; S.pad = null; S.replayPt = null; S.replayStep = null;
-  S.helpFor = ""; S.helpQ = -1; S.promoTour = false; S.authSaid = "";
-  S.verifyPhone = ""; S.verifySent = false; S.verifySaid = ""; S.pbPick = false; S.evPick = false;
-  S.theirPick = []; S.sightAim = null; S.scoutSide = "right"; S.joinOnly = false; S.joinSaid = "";
-  S.gameOpen = null; S.gamePaste = ""; S.gameNew = null; S.penOpen = false; S.flash = "";
-  S.quick = false; S.quickPick = false; S.syncSaid = ""; S.tallyNudge = false; S.clockEnd = 0; S.whoOn = false; S.pitOpen = null; S.moveFrom = null; S.moveTo = null; S.tallyPickFor = null; S.callPick = null; S.walkPick = null; S.bcName = ""; S.bcWho = ""; S.billingSaid = ""; S.asWho = null; S.asScore = 0; S.slotPick = null; S.moveWho = null;
+function clearScratch(s = S){
+  s.tallySel = null; s.tallyDraft = null; s.tallyStep = "place"; s.tallyEdit = null; s.tallyPlace = "";
+  s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
+  s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
+  s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
+  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false;
+  s.theirPick = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
+  s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
-  S.copyText = ""; S.copyStatus = ""; S.sightPick = "from"; S.pbView = null; S.handText = null; S.fieldEdit = null; S.copySheet = null;
+  s.copyText = ""; s.copyStatus = ""; s.sightPick = "from"; s.pbView = null; s.handText = null; s.fieldEdit = null; s.copySheet = null;
   // A play half-built is five bunker ids off one field: reopened on another
   // event, Save stored that field's ids against this one.
-  S.building = null;
+  s.building = null;
   // A half-finished roster paste, the tutorial left open and the game being
   // replayed are places he was standing — a restore or a Replace brought them
   // back, and the tutorial opened itself after sign-in.
-  S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.showTutorial = false; S.replayMatch = null;
+  s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.showTutorial = false; s.replayMatch = null;
+  // The folded tables under the sheet open on this point again.
+  s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false;
 }
 clearScratch();
 // The board used to be one flat list; it is per event now. Fold an old drawing
@@ -2645,8 +2704,35 @@ function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || n
 // Four one-point sheets against the same team on the same day all read
 // "vs Houston Heat · Oct 4": the second and later ones are numbered, in the
 // label and in the kept list alike.
+// One formatter, made once: toLocaleDateString builds a new one every call,
+// and a sheet's name is printed in every game picker, chip and kept row.
+const DAY_FMT = new Intl.DateTimeFormat([], {month:"short", day:"numeric"});
+const dayOf = t => DAY_FMT.format(new Date(t));
 function gameNth(m){
   if(!m) return "";
+  // Read once a sheet a draw: every label read the whole list of sheets.
+  const mk = "nth|" + m.id + "|" + m.at;
+  if(_lastPointMemo && _lastPointMemo.has(mk)) return _lastPointMemo.get(mk);
+  const v = gameNthFresh(m);
+  if(_lastPointMemo) _lastPointMemo.set(mk, v);
+  return v;
+}
+// Every sheet's number at once: a game picker printed forty labels and each
+// one walked every sheet, building a date for each.
+function gameNthAll(){
+  const groups = new Map();
+  (S.matches || []).forEach(x => {
+    if(!x) return;
+    const k = [!!x.watch, x.watch ? x.home : "", x.watch ? x.away : "", x.watch ? "" : x.vs, new Date(x.at).toDateString()].join("|");
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(x);
+  });
+  const out = new Map();
+  groups.forEach(list => { if(list.length > 1) [...list].sort((a, b) => a.at - b.at).forEach((x, i) => out.set(x.id, ` · game ${i + 1}`)); });
+  return out;
+}
+function gameNthFresh(m){
+  if(_lastPointMemo && (S.matches || []).includes(m)) return drawOnce("nthAll", gameNthAll).get(m.id) || "";
   const day = new Date(m.at).toDateString();
   const twin = x => x && x.id !== m.id && !!x.watch === !!m.watch && (m.watch ? x.home === m.home && x.away === m.away : x.vs === m.vs)
                  && new Date(x.at).toDateString() === day;
@@ -2655,8 +2741,7 @@ function gameNth(m){
 }
 function matchLabel(m){
   if(!m) return "";
-  const d = new Date(m.at);
-  const day = d.toLocaleDateString([], {month:"short", day:"numeric"});
+  const day = dayOf(m.at);
   // A watched game has no "us" in it, so naming it "vs Dynasty" would read as a
   // sheet he played. It is named by the two teams that were actually on the field.
   const nth = gameNth(m);
@@ -3017,7 +3102,8 @@ function derivedState(){
  */
 // Kept only while a screen is being drawn: nothing is logged mid-draw, and a
 // table of fifty bunkers asked it once a row, each time reading the season.
-let _lastPointMemo = null;
+// `var`: launch code asks anyTeam() and watchedMatch() before this line runs.
+var _lastPointMemo = null;
 function lastPoint(mid){
   const id = mid || S.matchId;
   if(_lastPointMemo && _lastPointMemo.has(id)) return _lastPointMemo.get(id);
@@ -5586,8 +5672,10 @@ function bunkerTraffic(keep){
   (S.moves || []).forEach(m => { if(m && !elsewhere(m) && !watchedMatch(m.m) && ok(m)) bump(m.to, 'visits'); });
   // A named man charted shot on the break is also the out the tally records,
   // at the same bunker: counted once, not once from each log.
-  const tallied = r => (S.tally || []).some(o => o && o.m === r.m && o.pt === r.pt && o.side === r.side
-    && r.player && o.name === r.player && o.shotAt === r.bunker);
+  // Indexed once: a scan of every out for every man charted was O(n²) and
+  // the dearest thing on Bunker stats and Layers with a season in.
+  const outKeys = new Set((S.tally || []).filter(o => o && o.shotAt).map(o => [o.m, o.pt, o.side, o.name, o.shotAt].join("|")));
+  const tallied = r => !!r.player && outKeys.has([r.m, r.pt, r.side, r.player, r.bunker].join("|"));
   // The break chart is the busiest log on the phone and this screen never
   // read it: a coach who charted every point saw "Nothing logged yet". A break
   // to a bunker is a visit, a man shot there on the break is an out there, and
@@ -6469,13 +6557,30 @@ function scoreBefore(mid, pt){
   // A season's results, read once per logged break per bucket, was most of
   // the read line's cost on a full season: within one draw each sheet's
   // results are pulled out of the season once and kept.
+  const sk = "sb|" + mid + "|" + pt;
+  if(_lastPointMemo && _lastPointMemo.has(sk)) return _lastPointMemo.get(sk);
   let mine = _lastPointMemo && _lastPointMemo.get("res|" + mid);
   if(!mine){
     mine = (S.results || []).filter(r => r && r.m === mid);
     if(_lastPointMemo) _lastPointMemo.set("res|" + mid, mine);
   }
   const rows = mine.filter(r => r.pt < pt);
-  return {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
+  const out = {us: rows.filter(r => r.won === "us").length, them: rows.filter(r => r.won === "them").length};
+  if(_lastPointMemo) _lastPointMemo.set(sk, out);
+  return out;
+}
+// Who won one point of one sheet. The reads ask it once a logged break a
+// bucket, and a walk of the season's results each time was the read line's
+// whole cost on a full season; within one draw the results are indexed once.
+function wonAt(mid, pt){
+  if(!_lastPointMemo) return ((S.results || []).find(x => x && x.m === mid && x.pt === pt) || {}).won;
+  let ix = _lastPointMemo.get("wonAt");
+  if(!ix){
+    ix = new Map();
+    (S.results || []).forEach(x => { if(x && !ix.has(x.m + "|" + x.pt)) ix.set(x.m + "|" + x.pt, x.won); });
+    _lastPointMemo.set("wonAt", ix);
+  }
+  return ix.get(mid + "|" + pt);
 }
 /* Which side of the results this team was on for one row. A team watched as
  * the home side is "us" on that sheet and "them" on every sheet of his: read
@@ -6492,7 +6597,16 @@ function sideReader(side){
   };
 }
 function readSides(r, side){ return sideReader(side)(r); }
-function theirReads(side){
+// Asked by the read line, the Counter and Anticipate in one draw; the rows
+// cannot change mid-draw, so each side is read once.
+function theirReads(side){ return drawOnce("tr|" + side, () => theirReadsFresh(side)); }
+function nextRead(side = "right"){ return drawOnce("nr|" + side + "|" + (S.point || 1), () => nextReadFresh(side)); }
+function drawOnce(k, f){
+  if(!_lastPointMemo) return f();
+  if(_lastPointMemo.has(k)) return _lastPointMemo.get(k);
+  const v = f(); _lastPointMemo.set(k, v); return v;
+}
+function theirReadsFresh(side){
   // On a watched sheet the left pit is the home side, which results call "us".
   const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
   const rows = theirBreaks(side).filter(b => b.script && b.m);
@@ -6502,7 +6616,7 @@ function theirReads(side){
   const lead = r => { const [t, o] = rs(r), sc = scoreBefore(r.m, r.pt); return sc[t] - sc[o]; };
   // who is "theirs" or "mine" as this team stood on that row's sheet.
   const last = (r, who) => { const [t, o] = rs(r), w = who === theirs ? t : o;
-    return (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt - 1 && x.won === w); };
+    return wonAt(r.m, r.pt - 1) === w; };
   const mpRow = (r, who) => { const [t, o] = rs(r); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const all = bucket("overall", () => true);
   const recentRows = [...rows].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 5);
@@ -6582,7 +6696,7 @@ function manLine(side, who, team){
  * then the season — and what they ran in it. Never a model: the bucket, the
  * call, and "3 of 4". A side with fewer than three logged calls is "thin"
  * and says so rather than guessing. */
-function nextRead(side = "right"){
+function nextReadFresh(side = "right"){
   const m = curMatch(); if(!m || !pitNamed(side)) return null;
   const pt = S.point || 1;
   // The sheet he is on read in the same frame as the rows: which side of the
@@ -6596,7 +6710,7 @@ function nextRead(side = "right"){
   const rows = theirBreaks(side).filter(b => b.script && b.m);
   const tally = list => Object.entries(list.reduce((a, b) => ({...a, [b.script]: (a[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
   const leadOf = r => { const [t, o] = rs(r), x = scoreBefore(r.m, r.pt); return Math.sign(x[t] - x[o]); };
-  const lastOf = r => { const [, o] = rs(r), w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
+  const lastOf = r => { const [, o] = rs(r), w = wonAt(r.m, r.pt - 1); return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
   const mpRow = (r, who) => { const [t, o] = rs(r); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, alt: t[1] || null}; };
   // The moment he is in, most specific first: a timeout just spent, match
@@ -8866,6 +8980,10 @@ function tally(){
       </button>`).join("")}
     </div></div>`;
 
+  /* The three lists under the sheet open on the point he is on. A whole
+     sheet of them was a thousand-odd elements rebuilt on every tap — a man
+     placed, an out, a result — for rows he reads between games, not points. */
+  const chartHere = chartPt, outsHere = thisPoint;
   // Where the points come from: the table under the field, one side at a time.
   const valueSide = S.tallyValue === "them" ? "them" : "us";
   const value = bunkerValue(valueSide, !!S.evenOnly);
@@ -8879,8 +8997,8 @@ function tally(){
   const valueSeg = `<div class="seg">
       <button class="${valueSide==="us"?"on":""}" onclick="set({tallyValue:'us'})">Your five</button>
       <button class="${valueSide==="them"?"on":""}" onclick="set({tallyValue:'them'})">Theirs</button>
-    </div>
-    ${/* Off by default: a switch that silently rewrites numbers he has been
+    </div>`;
+  const unevenBlock = `${/* Off by default: a switch that silently rewrites numbers he has been
           reading all day is worse than the distortion it fixes. It appears only
           once there is something for it to drop, and says how much. */""}
     ${uneven || S.evenOnly ? `<div class="toggles">
@@ -9176,20 +9294,26 @@ function tally(){
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
-  ${sec("Where the points come from", valueSeg + (value.length ? valueTable : valueEmpty), curLayout().name)}
+  ${sec("Where the points come from", value.length && !S.tallyValueOpen
+      ? `${valueSeg}${unevenBlock}${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
+         ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.</p>` : ""}
+         <button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:true})">Every bunker · ${value.length} ${value.length === 1 ? "row" : "rows"}</button>`
+      : valueSeg + unevenBlock + (value.length ? valueTable + `<button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:false})">Fold the table</button>` : valueEmpty), curLayout().name)}
 
   ${chart.length ? sec("Breakouts", `<div class="assigns">
-      ${chart.slice(0,40).map(r=>`<div class="assign">
+      ${(S.tallyAllBreaks ? chart.slice(0,40) : chartHere).map(r=>`<div class="assign">
         <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${r.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(describeBreakout(r))}</span>
         <span class="assign__who">${r.side==="us"?"your player":esc(r.vs||matchVs()||"theirs")}${r.layout!==S.layoutKey?" · another field":""}</span></span>
         <button class="btn btn--danger" onclick="undoBreakout(${jsq(r.id)})">Undo</button>
       </div>`).join("")}
-    </div>${chart.length>40?`<p class="note">Showing the last 40 of ${chart.length}.</p>`:""}`,
+    </div>${!S.tallyAllBreaks
+      ? (chart.length > chartHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllBreaks:true})">${chartHere.length ? "Show" : "No rows on point " + pt + " yet · show"} all ${chart.length} on this sheet</button>` : "")
+      : `${chart.length>40?`<p class="note">Showing the last 40 of ${chart.length}.</p>`:""}<button class="btn btn--quiet btn--block" onclick="set({tallyAllBreaks:false})">Only point ${pt}</button>`}`,
     chart.length+" on this sheet") : ""}
 
   ${sec("Log", outs.length?`<div class="assigns">
-      ${outs.slice(0,40).map(o=>{
+      ${(S.tallyAllOuts ? outs.slice(0,40) : outsHere).map(o=>{
         // The log shows this match; Undo and the pickers write to the season.
         // So the index handed to them is the row's real place in S.tally, not
         // its place in the filtered view — those stopped being the same number
@@ -9216,7 +9340,9 @@ function tally(){
           ${whoPick(i, o.side, o.by)}
         </div>`:""}
       </div>`;}).join("")}
-    </div>${outs.length>40?`<p class="note">Showing the last 40 of ${outs.length}. Bunkers can be set on the point you are on.</p>`:`<p class="note">Bunkers can be set on the point you are on.</p>`}`
+    </div>${!S.tallyAllOuts
+      ? `${outsHere.length ? `<p class="note">Bunkers can be set on the point you are on.</p>` : `<p class="note">No outs on point ${pt} yet.</p>`}${outs.length > outsHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:true})">Show all ${outs.length} on this sheet</button>` : ""}`
+      : `<p class="note">${outs.length>40?`Showing the last 40 of ${outs.length}. `:""}Bunkers can be set on the point you are on.</p><button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:false})">Only point ${pt}</button>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
     outs.length?outs.length+" on this sheet":"")}`;
 }
@@ -9837,7 +9963,8 @@ function breakRecord(scriptKey){
           them: rows.filter(o => o.side === "them").length};
 }
 // How a given team takes your players out, and which of them does it.
-function opponentRead(team){
+function opponentRead(team){ return drawOnce("or|" + team + "|" + S.layoutKey, () => opponentReadFresh(team)); }
+function opponentReadFresh(team){
   const rows = loggedOuts(o => o.side === "us" && o.vs === team);
   const tally = (key) => rows.reduce((m, o) => (o[key] ? {...m, [o[key]]:(m[o[key]] || 0) + 1} : m), {});
   const rank = m => Object.entries(m).sort((a, b) => b[1] - a[1]);
@@ -9862,7 +9989,10 @@ function opponentRead(team){
    logs their breaks against them, but every call logged while a watched sheet
    is open would otherwise count toward how predictable YOU are on this field —
    self-scout would be reading somebody else's playbook back at you. */
+// Asked once a row by every count in the app; within a draw the watched
+// sheets are listed once.
 function watchedMatch(id){
+  if(_lastPointMemo) return drawOnce("watched", () => new Set((S.matches || []).filter(x => x && x.watch).map(x => x.id))).has(id);
   const m = (S.matches || []).find(x => x.id === id);
   return !!(m && m.watch);
 }
@@ -11159,7 +11289,7 @@ function scoutGames(){
   const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
   const bl=curLayout().bunkers;
   const named=bunkerLabel;
-  const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
+  const when=dayOf;
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
         when(g.at)}${esc(gameNth(matchById(g.id)))}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
@@ -11482,16 +11612,24 @@ function sightlines(){
   ${(() => { const t5 = pitOnSheet("right") || (curMatch()||{}).watch ? theirFiveNow("right") : null, ids = new Set(t5 ? t5.ids : []);
       const sh = t5 ? shooterLane("right") : null, lines = [...res.lines].sort((a, b) => (ids.has(b.to.id) ? 1 : 0) - (ids.has(a.to.id) ? 1 : 0));
       const onThem = t5 ? lines.filter(l => ids.has(l.to.id) && !l.blocked).length : 0;
+      // Folded, the table is their five and the clear lanes, twelve at most,
+      // and the lane he asked about: fifty-seven rows rebuilt on every tap of
+      // the field was most of what the screen cost, and the blocked rows are
+      // what he reads least. One tap opens every lane.
+      const lead = lines.filter(l => ids.has(l.to.id) || !l.blocked).slice(0, 12);
+      const shown = S.sightAll ? lines : lines.filter(l => lead.includes(l) || l.to.id === S.sightTo);
       return sec("Every lane from here", `${t5 ? `<p class="note">Their ${t5.basis === "logged" ? "five on this point" : "usual five"} first — <b>${onThem}</b> of ${ids.size} clear from here.</p>` : ""}<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Code</th><th>Lane</th></tr></thead>
-      <tbody>${lines.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}${ids.has(l.to.id)?" their-row":""}"
+      <tbody>${shown.map(l=>`<tr class="tap ${l.to.id===S.sightTo?"tap--on":""}${ids.has(l.to.id)?" their-row":""}"
           onclick="pickSight('to',${jsq(l.to.id)})">
         <td>${esc(l.to.n)}${ids.has(l.to.id)?` <span class="tag" style="font-size:10px;padding:1px 6px;${sh&&sh.at===l.to.id?"color:var(--warn);border-color:var(--warn)":""}">${sh&&sh.at===l.to.id?esc(sh.tag):"theirs"}</span>`:""}</td><td class="num">${esc(l.to.id)}</td>
         <td style="color:${l.blocked?"var(--dim)":"var(--ok)"}">${l.blocked
           ? "blocked by "+esc(name(l.by[0]))
           : "clear · "+l.ft+" ft"}</td>
       </tr>`).join("")}</tbody>
-    </table></div>`, res.clear+" of "+res.lines.length+" clear"); })()}`;
+    </table></div>${S.sightAll
+      ? `<button class="btn btn--quiet btn--block" onclick="set({sightAll:false})">Fold the table</button>`
+      : shown.length < lines.length ? `<button class="btn btn--quiet btn--block" onclick="set({sightAll:true})">All ${lines.length} lanes, blocked ones too</button>` : ""}`, res.clear+" of "+res.lines.length+" clear"); })()}`;
 }
 
 /* ============================================================
@@ -12572,7 +12710,10 @@ function moreBody(k){
         tally a point you logged late.</p>
       ${sheetSize(curMatch()) || matchVs() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2);color:var(--warn)" onclick="delSheet(${jsq(S.matchId)})">Delete this sheet</button>` : ""}`, matchLabel(curMatch()))
     + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
-    + sec("Kept", all.length>1?`<div class="assigns">${all.map(m=>{
+    // The last dozen sheets, the one on now and any with men still to tell;
+    // forty sheets of rows rebuilt on every tap was most of what this screen
+    // cost, and the old ones are one tap away.
+    + sec("Kept", all.length>1?`<div class="assigns">${(S.keptAll ? all : all.filter((m, i) => i < 12 || m.id === S.matchId || untoldOn(m.id))).map(m=>{
         // Everything on the sheet, the points scored included: a sheet scored
         // and never tallied read 0 beside its 4–2.
         const n=sheetSize(m), on=m.id===S.matchId;
@@ -12588,7 +12729,7 @@ function moreBody(k){
           ${on?"":`<span class="assign__acts"><button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>
           <button class="btn btn--quiet" style="color:var(--warn)" aria-label="Delete ${esc(matchLabel(m))}" onclick="delSheet(${jsq(m.id)})">Delete</button></span>`}
         </div>`;
-      }).join("")}</div>`
+      }).join("")}</div>${all.length > 12 ? `<button class="btn btn--quiet btn--block" onclick="set({keptAll:${!S.keptAll}})">${S.keptAll ? "Only the last 12" : `Every sheet · ${all.length}`}</button>` : ""}`
       :`<div class="empty">This is your first sheet. Tap New match when the next game starts and
         this becomes the list of every one you have kept.</div>`,
       all.length+(all.length===1?" match":" matches"));

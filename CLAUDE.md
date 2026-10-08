@@ -2044,6 +2044,26 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was three hundred and fifty options styled and laid out on every tap. A
   median Tally tap on a full season is about half a second at six times
   slower than a laptop.
+- Defer a save, or write the whole season for a tap that changed nothing.
+  The owner's call is that every tap saves on the tap — a phone in a pocket
+  between points is a phone the system may close — so `set()` still ends in
+  `save(S)`. What a save writes is what changed: writing 631 KB of a full
+  season was ~53 ms a tap at a phone's speed, against ~12 ms to build the
+  text. `seasonText()` builds the season without the half-done keys
+  `clearScratch()` resets (they never survive a launch, and they made an
+  unchanged season look new) and without `NAV_KEYS`; when it matches what was
+  last written, and the stored season is still there (`hereHolds()` — a
+  read the browser serves from memory), the tap writes only where he is to
+  `HERE_KEY` and `load()` lays it back over the season (`readHere`, matched on
+  the season's `savedAt` and length). Anything logged, scored or edited —
+  through `set()` or straight onto `S` — writes the whole season and the
+  durable mirror on that tap, as before. And the lists under a screen open on
+  what he is doing now: Tally's Breakouts and Log on this point, *Where the
+  points come from* on its best and worst bunker (the even-points switch stays
+  with it), Sightlines on their five and the clear lanes, Matches on the last
+  dozen sheets; one tap opens each, and the flags are scratch. The read line's
+  counts are kept for one draw (`drawOnce`, `wonAt`), because three screens
+  ask them and nothing is logged mid-draw.
 - Keep a sheet a coach cannot get rid of. A practice sheet or a game charted
   twice sat in the record, self-scout and every read for good, because there
   was no delete. `delSheet(id)` on This match and on each kept row takes the
