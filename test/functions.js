@@ -718,7 +718,7 @@ const ROSTER = [
   check("geometry blocks something", sl.blocked > 0);
   await ev(() => window.set({ sightFrom: LAYOUTS.mwo.bunkers[5].id }));
   await page.waitForTimeout(80);
-  check("changing the source redraws", await ev(() => fieldSVG({ sightFrom: S.sightFrom, static: true }).includes("#3ecf8e")));
+  check("changing the source redraws", await ev(() => fieldSVG({ sightFrom: S.sightFrom, static: true }).includes("sight-lane")));
 
   // Sightlines by touch. A bunker is about ten pixels across on a phone, so
   // none of this works if a coach has to land on the shape itself.
@@ -6924,7 +6924,7 @@ const ROSTER = [
     });
     window.set({ tab: "scout", scoutTab: "counter" });
     const t = document.getElementById("root").innerText;
-    const lede = /Rejects's Blitz — 4 of 4 /.test(t) && !/likely Snake break/.test(t) && /Film read: Snake/.test(t);
+    const lede = /Rejects' Blitz — 4 of 4 /.test(t) && !/likely Snake break/.test(t) && /Film read: Snake/.test(t);
     const rows = [...document.querySelectorAll(".rank__row")].map(r => r.textContent.replace(/\s+/g, " ").trim());
     const first = /Snake Stack/.test(rows[0]) && /won 2 of 2 vs Blitz/.test(rows[0]);
     const hold = rows.find(r => /Hold/.test(r)); const holdOk = !!hold && /won 0 of 2 vs Blitz/.test(hold);
@@ -8164,7 +8164,7 @@ const ROSTER = [
       return /Next point/.test(document.getElementById("root").textContent); });
   }));
   check("the strip switches games and lands on that game's last point", await ev(() => {
-    const here = S.matchId;
+    const here = S.matchId, hereRow = {...curMatch()};
     const old = {id:"m-old-game", at: Date.now() - 86400000, vs:"Aftershock", layout:S.layoutKey};
     window.set({ tab:"scout", scoutTab:"breakouts", matches:[...(S.matches||[]), old],
       results:[...(S.results||[]), {m:old.id, pt:1, won:"us", at:1}, {m:old.id, pt:2, won:"them", at:2}] });
@@ -8172,9 +8172,13 @@ const ROSTER = [
     if(!sel || [...sel.options].length < 2) return false;
     sel.value = old.id; sel.dispatchEvent(new Event("change"));
     const ok = S.matchId === old.id && S.point === 3 && document.querySelector("select[aria-label=Game]").value === old.id;
+    // A blank sheet left behind goes, the way New match replaces one; one
+    // with anything on it stays to come back to.
+    const blank = sheetEmpty(hereRow), gone = !matchById(here);
+    if(gone) S.matches = [hereRow, ...S.matches];
     window.openMatch(here);
     window.set({ matches:S.matches.filter(m => m.id !== old.id), results:S.results.filter(r => r.m !== old.id) });
-    return ok && S.matchId === here;
+    return ok && S.matchId === here && gone === blank;
   }));
 
   // "Make this part less messy": one five at a time on the Scout field.
