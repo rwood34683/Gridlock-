@@ -1157,9 +1157,12 @@ function breakPaths(layoutKey, scriptKey){
   const fallback = (BREAKS[scriptKey] || {}).paths || BREAKS.base.paths;
   const plants = (BREAK_PLANTS[layoutKey] || {})[scriptKey] || myPlants(scriptKey, layoutKey);
   const layout = LAYOUTS[layoutKey];
-  if(!plants || !layout) return fallback;
+  // A play of his own has only the fives he built. With none here it draws
+  // nothing — the "not built here" gate says so — never the balanced break's
+  // shape under his play's name, which is a five nobody planted.
+  if(!plants || !layout) return isMine(scriptKey) ? [] : fallback;
   const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
-  if(targets.some(t => !t)) return fallback;   // layout changed under us
+  if(targets.some(t => !t)) return isMine(scriptKey) ? [] : fallback;   // layout changed under us
 
   // All five break from the station at the centre of their own back line —
   // that is where an Xball point starts, not spread across the whole width.
@@ -1780,6 +1783,9 @@ const leagueTeam = name => DIVISIONS.some(d => (d.teams || []).some(t => foldNam
 function noteTeamRename(from, to){
   const rn = {...(S.renamedTeams || {})};
   Object.keys(rn).forEach(k => { if(foldName(rn[k]) === foldName(from)) rn[k] = to; });
+  // The name taken is this one's now: a rename that once pointed away from it
+  // is stale, and the next merge followed it and moved this one's season off.
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(to)) delete rn[k]; });
   rn[from] = to;
   Object.keys(rn).forEach(k => { if(foldName(k) === foldName(rn[k])) delete rn[k]; });
   S.renamedTeams = rn;
@@ -2314,7 +2320,8 @@ window.fieldDone = () => {
 };
 window.deleteField = key => {
   const f = fieldOf(key); if(!f) return;
-  const sheets = (S.matches || []).filter(m => m.layout === key).length;
+  // A blank sheet that followed him onto the field was not played on it.
+  const sheets = (S.matches || []).filter(m => m && m.layout === key && !sheetEmpty(m)).length;
   if(sheets){ flash(`${sheets} sheet${sheets === 1 ? " was" : "s were"} played on ${f.name}, so the field stays — they are read on it.`); return; }
   if(f.bunkers.length && !confirm(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`)) return;
   S.fields = S.fields.filter(x => x.key !== key);
@@ -2322,6 +2329,7 @@ window.deleteField = key => {
   if(S.fieldEdit && S.fieldEdit.key === key) S.fieldEdit = null;
   registerFields();
   if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
+  (S.matches || []).forEach(m => { if(m && m.layout === key) m.layout = S.layoutKey; });
   S.flash = `${f.name} deleted.`;
   save(S); render();
 };
@@ -2412,8 +2420,8 @@ window.fieldRemove = () => {
   // or has played a sheet on cannot be: Tally fell back to Lone Star and kept
   // stamping this field's name on Lone Star's bunkers.
   if(fieldReady(f) && f.bunkers.length - ids.length < FIELD_MIN
-     && (S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key)))
-    return flash(`${f.name} needs at least ${FIELD_MIN} bunkers to stay playable${(S.matches || []).some(m => m && m.layout === f.key) ? " — a sheet was played on it" : ""}. Place another bunker first, then take this one off.`);
+     && (S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m))))
+    return flash(`${f.name} needs at least ${FIELD_MIN} bunkers to stay playable${(S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m)) ? " — a sheet was played on it" : ""}. Place another bunker first, then take this one off.`);
   const uses = ids.reduce((n, id) => n + bunkerUses(f.key, id), 0);
   if(uses && !confirm(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
   S.fieldEdit = {...ed, sel: null};
@@ -3792,6 +3800,9 @@ function renamePlayer(from, to){
   // is no rename.
   const rn = {...(S.renamedMen || {})};
   Object.keys(rn).forEach(k => { if(foldName(rn[k]) === foldName(from)) rn[k] = to; });
+  // The name taken is this one's now: a rename that once pointed away from it
+  // is stale, and the next merge followed it and moved this one's season off.
+  Object.keys(rn).forEach(k => { if(foldName(k) === foldName(to)) delete rn[k]; });
   rn[from] = to;
   Object.keys(rn).forEach(k => { if(foldName(k) === foldName(rn[k])) delete rn[k]; });
   S.renamedMen = rn;
@@ -4297,6 +4308,9 @@ function copyDataError(data){
   const list = test => v => Array.isArray(v) && v.every(test);
   const map = test => v => plainRecord(v) && Object.values(v).every(test);
   const scalar = v => str(v) || num(v) || typeof v === "boolean" || v === null;
+  // A key the app writes into a tap handler: what it makes itself is always
+  // letters, digits and -_.: — a copy carrying anything else is not one of its own.
+  const token = v => /^[A-Za-z0-9_.:-]{1,64}$/.test(v);
   const row = v => record(v) && Object.values(v).every(scalar);
   const nameRow = v => row(v) && str(v.name);
   const strings = map(str);
@@ -4344,7 +4358,7 @@ function copyDataError(data){
     // names it and checks its shape, or a season with a play in it is a copy
     // that cannot be restored.
     plays:list(v => record(v, {plants:map(l => Array.isArray(l) && l.length === 5 && l.every(str))})
-      && str(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
+      && str(v.k) && token(v.k) && v.k.slice(0,3) === "my:" && str(v.name) && v.name.length > 0
       && Object.entries(v).every(([key, x]) => key === "plants" || scalar(x))),
     offPlays:list(str), gamesOff:list(str),
     // A field he built carries one list, its bunkers, each one scalars only.
@@ -4364,8 +4378,8 @@ function copyDataError(data){
     games:list(v => row(v) && ["id","d","t","h","a"].every(k => str(v[k]) && v[k].length > 0)
       && Object.values(v).every(scalar)),
     direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
-    classes:list(v => row(v) && str(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
-    groups:list(v => record(v, {members:list(row)}) && str(v.id) && str(v.name)),
+    classes:list(v => row(v) && str(v.code) && token(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
+    groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
     matchId:str, matchState:str, teamCode:str, division:str,
@@ -4503,14 +4517,20 @@ const OVERLAP = {
   arrivalSightings: o => [o.pt, foldName(o.team), o.player, o.bunker].join("|"),
   arrivalShots:     o => [o.pt, foldName(o.team), o.player, o.from, o.to].join("|"),
 };
+// This phone's rows, told from the copy's by what they are rather than by
+// being the same objects: a man's or a team's rename on the way in rebuilds
+// this phone's rows too, and by identity none of them was "mine" any more.
+// Its id where it has one; a rotation has none, and its point, its bunkers
+// and its moment are what a rename never touches.
+const rowKey = r => r && typeof r === "object" ? (r.id || [r.m, r.pt, r.from, r.to, r.layout, r.at].join("|")) : r;
 function overlapRows(shared, mineBefore){
   let dupes = 0;
   Object.entries(OVERLAP).forEach(([k, keyOf]) => {
-    const mine = new Set(mineBefore[k] || []), have = new Map(), took = new Map();
+    const mine = new Set((mineBefore[k] || []).map(rowKey)), have = new Map(), took = new Map();
     const at = r => r.m + "|" + keyOf(r);
-    (S[k] || []).forEach(r => { if(r && mine.has(r) && shared.includes(r.m)) have.set(at(r), (have.get(at(r)) || 0) + 1); });
+    (S[k] || []).forEach(r => { if(r && mine.has(rowKey(r)) && shared.includes(r.m)) have.set(at(r), (have.get(at(r)) || 0) + 1); });
     S[k] = (S[k] || []).filter(r => {
-      if(!r || mine.has(r) || !shared.includes(r.m)) return true;
+      if(!r || mine.has(rowKey(r)) || !shared.includes(r.m)) return true;
       const key = at(r), n = (took.get(key) || 0) + 1; took.set(key, n);
       if(n <= (have.get(key) || 0)){ dupes++; return false; }
       return true;
@@ -4521,11 +4541,11 @@ function overlapRows(shared, mineBefore){
   // placing their five on one point was ten of them on the merged point, past
   // what startUp() lets a side have. An unnamed row from the other phone goes
   // where this phone already has as many men on that bunker, told or not.
-  const mineB = new Set(mineBefore.breakouts || []), haveB = new Map(), tookB = new Map();
+  const mineB = new Set((mineBefore.breakouts || []).map(rowKey)), haveB = new Map(), tookB = new Map();
   const bk = r => [r.m, r.pt, r.side, r.bunker].join("|");
-  (S.breakouts || []).forEach(r => { if(r && mineB.has(r) && shared.includes(r.m)) haveB.set(bk(r), (haveB.get(bk(r)) || 0) + 1); });
+  (S.breakouts || []).forEach(r => { if(r && mineB.has(rowKey(r)) && shared.includes(r.m)) haveB.set(bk(r), (haveB.get(bk(r)) || 0) + 1); });
   S.breakouts = (S.breakouts || []).filter(r => {
-    if(!r || mineB.has(r) || !shared.includes(r.m) || r.player) return true;
+    if(!r || mineB.has(rowKey(r)) || !shared.includes(r.m) || r.player) return true;
     const key = bk(r), n = (tookB.get(key) || 0) + 1; tookB.set(key, n);
     if(n <= (haveB.get(key) || 0)){ dupes++; return false; }
     return true;
@@ -4746,8 +4766,8 @@ window.loadCopy = mode => {
       teamsNow.push(`${old} → ${to}`);
     });
     if(teamsNow.length) S.copyStatus += ` · teams renamed: ${teamsNow.join(", ")}`;
-    // Before any re-spelling: it rebuilds rows, and this phone's rows are
-    // told from the copy's by being the same objects they were.
+    // The renames above rebuilt rows, so this phone's rows are told from the
+    // copy's by id (rowKey), not by being the same objects they were.
     let dupes = overlapRows(shared, mineBefore);
     // A man placed on one phone and told on the other is the told man. Same
     // row (one phone placed him, sent the sheet, the other told him): the
@@ -4756,10 +4776,10 @@ window.loadCopy = mode => {
     // untold man of this phone's on the same bunker, or the point has ten.
     const fresh = new Map((d.breakouts || []).filter(b => b && b.id && !b.todo && shared.includes(b.m)).map(b => [b.id, b]));
     S.breakouts = (S.breakouts || []).map(r => r && r.todo && fresh.has(r.id) ? {...fresh.get(r.id)} : r);
-    const mineNow = new Set(mineBefore.breakouts || []), spent = new Set();
+    const mineNow = new Set((mineBefore.breakouts || []).map(rowKey)), spent = new Set();
     const bkey = r => [r.m, r.pt, r.side, r.bunker].join("|");
-    (S.breakouts || []).filter(r => r && !mineNow.has(r) && r.player && !r.todo && shared.includes(r.m)).forEach(r => {
-      const twin = (S.breakouts || []).find(l => l && mineNow.has(l) && !spent.has(l) && l.todo && !l.player && bkey(l) === bkey(r));
+    (S.breakouts || []).filter(r => r && !mineNow.has(rowKey(r)) && r.player && !r.todo && shared.includes(r.m)).forEach(r => {
+      const twin = (S.breakouts || []).find(l => l && mineNow.has(rowKey(l)) && !spent.has(l) && l.todo && !l.player && bkey(l) === bkey(r));
       if(twin){ spent.add(twin); dupes++; }
     });
     if(spent.size) S.breakouts = S.breakouts.filter(r => !spent.has(r));
@@ -6344,7 +6364,7 @@ function fieldSVG(opts={}, runnersOnly){
     const here = new Set(layout.bunkers.map(b=>b.id));
     const at = {};
     (S.tally||[]).forEach(o => {
-      if(typeof o!=="object" || o.layout!==layout.key || !o.shotAt || !here.has(o.shotAt)) return;
+      if(!o || typeof o!=="object" || o.layout!==layout.key || !o.shotAt || !here.has(o.shotAt) || !outsHere(o)) return;
       at[o.shotAt] = at[o.shotAt] || {us:0, them:0};
       at[o.shotAt][o.side==="them"?"them":"us"]++;
     });
@@ -6600,7 +6620,9 @@ window.setPitTeam = (side, name) => {
   if(side === "right"){ adoptPitAsOpponent(); if(matchVs()) S.tallyNudge = false; }
   save(S); render();
 };
-window.setPitTend = (side, tend) => { editProfile(side, {tend}); render(); };
+// A tendency set is the Tend column scored, not the threat: that stays a dash
+// until he gives one, or the board would print the default 3 as his read.
+window.setPitTend = (side, tend) => { editProfile(side, {tend, tendSet:true}); render(); };
 window.setPitNotes = (side, notes) => editProfile(side, {notes: clean(notes)});   // no redraw mid-type
 
 // ---- what they ran, logged as you see it ----
@@ -6873,7 +6895,12 @@ function usualMan(team, id){
   (S.arrivalSightings || []).filter(o => o && o.team === team && o.layout === S.layoutKey && o.player && teamFrame(o.bunker, o.m, o.pt, team) === id)
     .forEach(o => { c[o.player] = (c[o.player] || 0) + 1; });
   const e = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
-  return e ? {who: e[0], n: e[1]} : null;
+  if(!e) return null;
+  // A sighting is keyed "number:7" or "name:dill" (arrivalPlayerKey). Named
+  // the way the breakout sheet and an out's "by" name him — "#7 Dill" — or the
+  // legend read "usually number:7" and their shooter never matched a bunker.
+  const p = (profileOf(team).players || []).find(x => arrivalPlayerKey(x) === e[0]);
+  return {who: p ? theirTag(p) : e[0].replace(/^number:/, "#").replace(/^name:/, ""), n: e[1]};
 }
 // The ghost five as a legend line under the Scout field: the bunkers, the
 // counts, and the man usually seen in each.
@@ -7364,7 +7391,7 @@ window.delScoutPlayer = (side, i) => {
 function stars(n, key){
   return [1,2,3,4,5].map(i=>`<button class="star ${i<=n?"on":""}" aria-label="Threat ${i}" onclick="setThreat('${key}',${i})">${i<=n?"★":"☆"}</button>`).join("");
 }
-window.setThreat=(side,n)=>{editProfile(side,{threat:n});render()}
+window.setThreat=(side,n)=>{editProfile(side,{threat:n, unscored:false});render()}
 
 function staffed(){return S.role==="staff"||S.role==="admin"}
 
@@ -8690,10 +8717,17 @@ window.logBreakout = () => {
     if(editing.alive === false && editing.player)
       S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === editing.m && o.pt === editing.pt && o.side === editing.side && o.name === editing.player));
   }
+  // His earlier row's out goes with it either way: shot again, the out is
+  // written again at this row's bunker — outRow() keeps one out a man, so
+  // the old one stood on the old bunker while the chart named the new one.
+  // It keeps the moment it was first written, which is what first-out reads.
+  let wasAt = 0;
   if(was){
     S.breakouts = (S.breakouts || []).filter(r => r !== was);
-    if(was.alive === false && row.alive !== false)
-      S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === row.player));
+    if(was.alive === false){
+      const old = (S.tally || []).find(o => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side && o.name === row.player);
+      if(old){ wasAt = old.at || 0; S.tally = S.tally.filter(o => o !== old); }
+    }
   }
   S.breakouts = [row, ...(S.breakouts || [])];
   syncTallyFive(row.m, row.pt);
@@ -8701,7 +8735,7 @@ window.logBreakout = () => {
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
-    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || myCall()});
+    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || myCall(), ...(wasAt ? {at:wasAt} : {})});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
   S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
@@ -10123,8 +10157,11 @@ function plantsLogged(){
   return ["left","right"].some(side =>
     (pitOf(side).players || []).some(m => plantOf(m))) || !!theirFiveLogged("right");
 }
+// Whose outs a Scout field marks: his own sheets, or on a watched sheet that
+// game alone — the rule Layers reads. A game he watched is not his men lost.
+function outsHere(o){ return (curMatch() || {}).watch ? o.m === S.matchId : !watchedMatch(o.m); }
 function outsLogged(){
-  return (S.tally||[]).some(o => typeof o==="object" && o.layout===S.layoutKey && o.shotAt);
+  return (S.tally||[]).some(o => o && typeof o==="object" && o.layout===S.layoutKey && o.shotAt && outsHere(o));
 }
 /* The match, where the teams get picked.
  *
@@ -10427,11 +10464,15 @@ function arrivalRefusal(context = arrivalContext()){
   // that sheet: reading Dynasty while the sheet is vs Rejects joined Dynasty's
   // moves to Rejects' points. An empty sheet takes the team's name as the
   // first row lands, the way the right pit does.
-  if(m && !teamOnSheet(m, context.team))
+  if(m && !teamOnSheet(m, context.team, context.side))
     return `${context.team} is not on this sheet (${matchLabel(m)}). Pick one of their games under Pit, match & starting end, or start a sheet against them.`;
   return "";
 }
-const teamOnSheet = (m, team) => !!m && !!team && (m.watch ? m.home === team || m.away === team : m.vs === team || sheetEmpty(m));
+// An empty sheet is his next game, so it takes only the team he plays — the
+// right pit. A sighting of the team he only watches named his own sheet for
+// them and joined his points to theirs.
+const teamOnSheet = (m, team, side = "right") => !!m && !!team && (m.watch ? m.home === team || m.away === team
+  : m.vs === team || (sheetEmpty(m) && side === "right"));
 // The first row logged on an empty sheet names it for the team it is about.
 function adoptTeamOnLog(mid, team){
   const m = (S.matches || []).find(x => x && x.id === mid);
@@ -10442,7 +10483,7 @@ function arrivalGate(context){
   const why = arrivalRefusal(context); if(!why) return "";
   const m = (S.matches || []).find(x => x && x.id === context.m);
   const off = context.named && m && m.layout !== S.layoutKey ? m.layout : "";
-  const notOn = context.named && !off && m && !teamOnSheet(m, context.team);
+  const notOn = context.named && !off && m && !teamOnSheet(m, context.team, context.side);
   return `<div class="warn"><b>${esc(why)}</b>
     <div class="btnrow" style="margin-top:var(--s3)">${off
       ? `<button class="btn grow" onclick="pickEvent(${jsq(off)})">Back to ${esc(LAYOUTS[off].name)}</button><button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>`
@@ -10512,7 +10553,9 @@ function arrivalScope(context = arrivalContext()){
   return JSON.stringify([context.team,context.player,context.layout,context.m,context.pt]);
 }
 function arrivalGeometry(key){
-  if(_arrivalGeometryCache.has(key)) return _arrivalGeometryCache.get(key);
+  // A field he builds is registered again on every edit, a new layout under
+  // the same key: geometry kept by the key alone routed on the old bunkers.
+  const hit = _arrivalGeometryCache.get(key); if(hit && hit.layout === LAYOUTS[key]) return hit;
   const layout = LAYOUTS[key];
   if(!layout) return null;
   const obstacles = routeObstacles(layout.bunkers, 0.9);
@@ -10556,7 +10599,7 @@ function arrivalRoutes(layoutKey, options = {}){
   const end = options.startEnd === "left" || options.startEnd === "right" ? options.startEnd
     : options.side === "left" ? "left" : "right";
   const sightings = options.sightings || [];
-  const cacheKey = JSON.stringify([layoutKey,end,options.startBunker || "",options.destination || "",sightings.map(o=>o.bunker)]);
+  const cacheKey = JSON.stringify([layoutKey,_pathVersion,end,options.startBunker || "",options.destination || "",sightings.map(o=>o.bunker)]);
   if(_arrivalRoutesCache.has(cacheKey)) return _arrivalRoutesCache.get(cacheKey);
   const g = arrivalGeometry(layoutKey), anchors = [], routes = [];
   const finish = warning => {
@@ -10683,7 +10726,7 @@ window.logArrivalSighting = () => {
     S.arrival = {...a,notice:"Choose a bunker before recording a sighting."}; render(); return;
   }
   const rows = arrivalSightings(context), at = Date.now();
-  adoptTeamOnLog(context.m, context.team);
+  if(context.side === "right") adoptTeamOnLog(context.m, context.team);
   if(rows.length && rows[rows.length-1].bunker === id){
     S.arrival = {...a,notice:"That is already the latest sighting. Choose the next bunker they moved to."}; render(); return;
   }
@@ -10718,7 +10761,7 @@ window.logArrivalShot = () => {
   if(!has(to)){ S.arrival = {...a,notice:"Choose the bunker they were shooting at."}; render(); return; }
   if(from === to){ S.arrival = {...a,notice:"A man does not shoot the bunker he is in. Choose where the paint was going."}; render(); return; }
   const shots = arrivalShots(context), last = shots[shots.length-1], at = Date.now();
-  adoptTeamOnLog(context.m, context.team);
+  if(context.side === "right") adoptTeamOnLog(context.m, context.team);
   if(last && last.from === from && last.to === to){
     S.arrival = {...a,notice:"That lane is already the latest shot recorded. Choose a different one, or move him first."}; render(); return;
   }
@@ -10860,7 +10903,7 @@ function scoutArrival(){
         <option value=""${!a.matchId?' selected':''}>Current match · ${esc(matchLabel(curMatch()))}</option>
         ${(S.matches || []).map(m=>`<option value="${esc(m.id)}"${a.matchId===m.id?' selected':''}>${esc(matchLabel(m))}</option>`).join("")}</select></div>
       <div class="fld"><label for="arrival-point">Point</label><select id="arrival-point" onchange="setArrival({point:this.value?Number(this.value):null})">
-        <option value=""${!a.point?' selected':''}>${a.matchId?'Latest recorded point':'Current point'} · ${a.matchId?lastPoint(c.m):S.point || 1}</option>
+        <option value=""${!a.point?' selected':''}>${a.matchId?'Latest recorded point':'Current point'} · ${a.matchId?lastPoint(c.m):sheetPoint()}</option>
         ${Array.from({length:Math.min(500,Math.max(lastPoint(c.m),c.pt))},(_,i)=>i+1).map(n=>`<option value="${n}"${a.point===n?' selected':''}>Point ${n}</option>`).join("")}</select></div>
       <div class="fld"><label for="arrival-end">Their starting end</label><select id="arrival-end" onchange="setArrival({startEnd:this.value})">
         <option value="left"${options.startEnd==='left'?' selected':''}>Left end → moving right</option><option value="right"${options.startEnd==='right'?' selected':''}>Right end → moving left</option></select></div>
@@ -11254,7 +11297,7 @@ function scoutBreakouts(){
         <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${n} of ${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged fives here</span></span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
-      `${seen.filter(b=>b.plants).length} logged`) : "")
+      `${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged here`) : "")
   + sec("Their record", total
       ? `<div class="assigns">${freq.map(([k,n])=>{
           const pct=Math.round(n/total*100);
@@ -11533,7 +11576,7 @@ function scoutBoard(){
                : pub ? `<span class="tag tag--pend">${pub.men.length}</span>`
                : `<span class="note">—</span>`;
         })()}</td>
-        <td class="num">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
+        <td class="num">${pr.unscored&&!pr.tendSet&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
         <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:`<span class="th-stars">${"★".repeat(pr.threat)}</span><span class="th-num">${pr.threat}★</span>`}</td>
         <td class="col-opt">${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
              :t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
@@ -11784,8 +11827,8 @@ function classesPage(){
 function formBox(c){
   return `<div class="panel">
     <h3 class="panel__title">Joining ${esc(c.title)}</h3>
-    <div class="fld"><label>Name</label><input id="fn" maxlength="40" ${onEnter(`submitForm('${c.code}')`)}/></div>
-    <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional" maxlength="80" ${onEnter(`submitForm('${c.code}')`)}/></div>
+    <div class="fld"><label>Name</label><input id="fn" maxlength="40" ${onEnter(`submitForm(${JSON.stringify(String(c.code))})`)}/></div>
+    <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional" maxlength="80" ${onEnter(`submitForm(${JSON.stringify(String(c.code))})`)}/></div>
     <div class="fld"><label>Experience</label>
       <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select></div>
     <div class="fld"><label>Preferred wire</label>
@@ -11902,8 +11945,8 @@ function leaguePage(){
       ${/* Two boxes and a button on one row left each box 55 px on a small
             phone, "Nam" and "Phor". They wrap to a row of their own instead. */""}
       <div class="btnrow" style="flex-wrap:wrap">
-        <input id="mn-${esc(g.id)}" aria-label="New member's name for ${esc(g.name)}" placeholder="Name" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem('${g.id}')`)}/>
-        <input id="mp-${esc(g.id)}" aria-label="New member's phone or email for ${esc(g.name)}" placeholder="Phone or email" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem('${g.id}')`)}/>
+        <input id="mn-${esc(g.id)}" aria-label="New member's name for ${esc(g.name)}" placeholder="Name" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem(${JSON.stringify(String(g.id))})`)}/>
+        <input id="mp-${esc(g.id)}" aria-label="New member's phone or email for ${esc(g.name)}" placeholder="Phone or email" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem(${JSON.stringify(String(g.id))})`)}/>
         <button class="btn btn--ghost" onclick="addMem(${jsq(g.id)})">Add member</button>
       </div>
     </div>`).join("")}`, people+" people")}
@@ -11974,7 +12017,9 @@ window.renameGroup = (id, v) => {
   const n = clean(String(v || "").trim()).slice(0, 40);
   if(!n){ flash("A group needs a name — kept the old one."); render(); return; }
   if(groupHas(n, id)){ flash(`${n} is already a group — kept the old one.`); render(); return; }
-  S.groups = S.groups.map(g => g.id === id ? {...g, name: n} : g); save(S); render();
+  // Saved without a redraw: it commits on blur, as the thumb lands on the
+  // next button, and a redraw there rebuilt that button under the tap.
+  S.groups = S.groups.map(g => g.id === id ? {...g, name: n} : g); save(S);
 };
 window.delGroup = id => {
   const g = (S.groups || []).find(x => x.id === id); if(!g) return;
@@ -11985,7 +12030,8 @@ window.delGroup = id => {
   save(S); render();
 };
 window.addMem = id => {
-  const name=document.getElementById("mn-"+id).value.trim();
+  // Cleaned and capped before the duplicate test, so the name checked is the name kept.
+  const name=clean(document.getElementById("mn-"+id).value.trim()).slice(0, 40).trim();
   const phone=clean(document.getElementById("mp-"+id).value.trim()).slice(0, 80);
   if(!name){ flash("Type the member's name first."); return; }
   // The same person added twice is one person: a blast reaches a phone once.
@@ -11993,9 +12039,9 @@ window.addMem = id => {
   const g = S.groups.find(x => x.id === id), at = g ? (g.members || []).findIndex(m => foldName(m.name) === foldName(name)) : -1;
   if(at >= 0){
     S.groups = S.groups.map(x => x.id === id ? {...x, members: x.members.map((m, k) => k === at ? {...m, phone: phone || m.phone} : m)} : x);
-    save(S); flash(`${g.members[at].name} is already in ${g.name} — updated.`); return;
+    save(S); flash(`${g.members[at].name} is already in ${g.name}${phone && phone !== g.members[at].phone ? " — number updated." : "."}`); return;
   }
-  S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name:clean(name).slice(0, 40),phone}]}:g); save(S); render();
+  S.groups=S.groups.map(g=>g.id===id?{...g,members:[...g.members,{name,phone}]}:g); save(S); render();
 };
 window.delMem = (id,i) => {
   const g = (S.groups || []).find(x => x.id === id), was = g && g.members[i];
@@ -12653,7 +12699,7 @@ function moreBody(k){
     // through should say so on the row, not make him open each one to find out.
     const same = (a, b) => foldName(a) === foldName(b);
     const had = g => (S.matches || []).filter(m => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a)))
-      .filter(m => matchSize(m.id) || (S.results || []).some(r => r.m === m.id) || Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b.m === m.id)))
+      .filter(m => !sheetEmpty(m))
       .sort((a, b) => a.at - b.at)
       .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
         return { lead: m.watch ? "watched" : `you played ${esc(m.vs)}`,
