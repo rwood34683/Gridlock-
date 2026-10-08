@@ -2645,8 +2645,20 @@ function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || n
 // Four one-point sheets against the same team on the same day all read
 // "vs Houston Heat · Oct 4": the second and later ones are numbered, in the
 // label and in the kept list alike.
+// One formatter, made once: toLocaleDateString builds a new one every call,
+// and a sheet's name is printed in every game picker, chip and kept row.
+const DAY_FMT = new Intl.DateTimeFormat([], {month:"short", day:"numeric"});
+const dayOf = t => DAY_FMT.format(new Date(t));
 function gameNth(m){
   if(!m) return "";
+  // Read once a sheet a draw: every label read the whole list of sheets.
+  const mk = "nth|" + m.id + "|" + m.at;
+  if(_lastPointMemo && _lastPointMemo.has(mk)) return _lastPointMemo.get(mk);
+  const v = gameNthFresh(m);
+  if(_lastPointMemo) _lastPointMemo.set(mk, v);
+  return v;
+}
+function gameNthFresh(m){
   const day = new Date(m.at).toDateString();
   const twin = x => x && x.id !== m.id && !!x.watch === !!m.watch && (m.watch ? x.home === m.home && x.away === m.away : x.vs === m.vs)
                  && new Date(x.at).toDateString() === day;
@@ -2655,8 +2667,7 @@ function gameNth(m){
 }
 function matchLabel(m){
   if(!m) return "";
-  const d = new Date(m.at);
-  const day = d.toLocaleDateString([], {month:"short", day:"numeric"});
+  const day = dayOf(m.at);
   // A watched game has no "us" in it, so naming it "vs Dynasty" would read as a
   // sheet he played. It is named by the two teams that were actually on the field.
   const nth = gameNth(m);
@@ -5586,8 +5597,10 @@ function bunkerTraffic(keep){
   (S.moves || []).forEach(m => { if(m && !elsewhere(m) && !watchedMatch(m.m) && ok(m)) bump(m.to, 'visits'); });
   // A named man charted shot on the break is also the out the tally records,
   // at the same bunker: counted once, not once from each log.
-  const tallied = r => (S.tally || []).some(o => o && o.m === r.m && o.pt === r.pt && o.side === r.side
-    && r.player && o.name === r.player && o.shotAt === r.bunker);
+  // Indexed once: a scan of every out for every man charted was O(n²) and
+  // the dearest thing on Bunker stats and Layers with a season in.
+  const outKeys = new Set((S.tally || []).filter(o => o && o.shotAt).map(o => [o.m, o.pt, o.side, o.name, o.shotAt].join("|")));
+  const tallied = r => !!r.player && outKeys.has([r.m, r.pt, r.side, r.player, r.bunker].join("|"));
   // The break chart is the busiest log on the phone and this screen never
   // read it: a coach who charted every point saw "Nothing logged yet". A break
   // to a bunker is a visit, a man shot there on the break is an out there, and
@@ -11159,7 +11172,7 @@ function scoutGames(){
   const step=Math.min(events.length, S.replayStep==null?events.length:S.replayStep);
   const bl=curLayout().bunkers;
   const named=bunkerLabel;
-  const when=t=>new Date(t).toLocaleDateString([], {month:"short", day:"numeric"});
+  const when=dayOf;
   return sec("Games", `${games.length>1?`<div class="seg" style="flex-wrap:wrap">
       ${games.map(g=>`<button class="${g.id===gid?"on":""}" onclick="set({replayMatch:${jsq(g.id)},replayPt:null,replayStep:null})">${
         when(g.at)}${esc(gameNth(matchById(g.id)))}${(sc=>sc.us+sc.them?` · ${sc.us}–${sc.them}`:"")(scoreOf(g.id))}${watchedMatch(g.id)?" · watched":matchOver(g.id)?` · ${overWord(g.id)}`:""}${g.id===S.matchId?" · on now":""}</button>`).join("")}
