@@ -1678,6 +1678,9 @@ function teamsHere(){ return divisionTeams(divisionOf().id); }
 const foldName = n => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
 function anyTeam(name){
   const want = foldName(name); if(!want) return null;
+  return drawOnce("team|" + want, () => anyTeamFresh(want));
+}
+function anyTeamFresh(want){
   for(const d of DIVISIONS){
     const hit = divisionTeams(d.id).find(t => foldName(t.name) === want);
     if(hit) return hit;
@@ -2714,7 +2717,22 @@ function gameNth(m){
   if(_lastPointMemo) _lastPointMemo.set(mk, v);
   return v;
 }
+// Every sheet's number at once: a game picker printed forty labels and each
+// one walked every sheet, building a date for each.
+function gameNthAll(){
+  const groups = new Map();
+  (S.matches || []).forEach(x => {
+    if(!x) return;
+    const k = [!!x.watch, x.watch ? x.home : "", x.watch ? x.away : "", x.watch ? "" : x.vs, new Date(x.at).toDateString()].join("|");
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(x);
+  });
+  const out = new Map();
+  groups.forEach(list => { if(list.length > 1) [...list].sort((a, b) => a.at - b.at).forEach((x, i) => out.set(x.id, ` · game ${i + 1}`)); });
+  return out;
+}
 function gameNthFresh(m){
+  if(_lastPointMemo && (S.matches || []).includes(m)) return drawOnce("nthAll", gameNthAll).get(m.id) || "";
   const day = new Date(m.at).toDateString();
   const twin = x => x && x.id !== m.id && !!x.watch === !!m.watch && (m.watch ? x.home === m.home && x.away === m.away : x.vs === m.vs)
                  && new Date(x.at).toDateString() === day;
@@ -3084,7 +3102,8 @@ function derivedState(){
  */
 // Kept only while a screen is being drawn: nothing is logged mid-draw, and a
 // table of fifty bunkers asked it once a row, each time reading the season.
-let _lastPointMemo = null;
+// `var`: launch code asks anyTeam() and watchedMatch() before this line runs.
+var _lastPointMemo = null;
 function lastPoint(mid){
   const id = mid || S.matchId;
   if(_lastPointMemo && _lastPointMemo.has(id)) return _lastPointMemo.get(id);
@@ -9944,7 +9963,8 @@ function breakRecord(scriptKey){
           them: rows.filter(o => o.side === "them").length};
 }
 // How a given team takes your players out, and which of them does it.
-function opponentRead(team){
+function opponentRead(team){ return drawOnce("or|" + team + "|" + S.layoutKey, () => opponentReadFresh(team)); }
+function opponentReadFresh(team){
   const rows = loggedOuts(o => o.side === "us" && o.vs === team);
   const tally = (key) => rows.reduce((m, o) => (o[key] ? {...m, [o[key]]:(m[o[key]] || 0) + 1} : m), {});
   const rank = m => Object.entries(m).sort((a, b) => b[1] - a[1]);
@@ -9969,7 +9989,10 @@ function opponentRead(team){
    logs their breaks against them, but every call logged while a watched sheet
    is open would otherwise count toward how predictable YOU are on this field —
    self-scout would be reading somebody else's playbook back at you. */
+// Asked once a row by every count in the app; within a draw the watched
+// sheets are listed once.
 function watchedMatch(id){
+  if(_lastPointMemo) return drawOnce("watched", () => new Set((S.matches || []).filter(x => x && x.watch).map(x => x.id))).has(id);
   const m = (S.matches || []).find(x => x.id === id);
   return !!(m && m.watch);
 }
