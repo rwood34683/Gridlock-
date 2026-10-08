@@ -1307,6 +1307,28 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and watched team names, a play's read and a numberless man's card went
   out unescaped or as "#undefined". Each has an `audit:` check where a
   check can hold it.
+- Stop at one pass either. The second ran four lenses — whole journeys in a
+  browser, two phones swapping copies, the first pass's own diff, and a
+  screenshot of every screen at 320, 390 and iPad — and found what the
+  line-by-line could not. Replace kept `sheetsGone`, so the next merge deleted
+  a sheet the Replace had brought back; a man told on one phone came back
+  untold, and two phones' fives were ten men (told beats untold, by id and by
+  bunker); a lineup took the other phone's five (`mergeMapValue` keeps this
+  phone's for `lineups` / `pathEdits`); the same copy merged twice doubled a
+  re-spelled team's breaks; a shared play's new five, a joined play's outs
+  (`rekeyPlay` moves `tally` / `breakouts`) and a sent sheet's plays
+  (`sheetPayload` carries the plays it names) were lost. An event change kept
+  half-done bunker picks and logged them on the other field's ids (`set()`
+  clears them with `layoutKey`); a team watched as the home side planted in
+  his half (`teamFrame`); deleting or turning off the call he stood on picked
+  Snake Stack for him (`callPicked` false); Switch ends on point 1 left placed
+  men on the wrong side; the quick log named the pit, not the sheet; opening
+  an older sheet left a blank one behind. And the screens: the header lost the
+  call's last letters to a fraction of a pixel (`.ctx__call` shrinks at
+  .0001), Matchup's logged column was a word a line, Sightlines drew lanes in
+  the wires' green and red (white now, blocked grey and dashed), the Plan page
+  offered three prices beside "nothing is for sale", and the iPad welcome sat
+  in a phone's column at the foot of the screen.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of

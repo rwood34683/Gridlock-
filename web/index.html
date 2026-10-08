@@ -94,6 +94,11 @@ h1,h2,h3,p{margin:0}
   /* A caption, not a wall of text. 62ch of "0"s is about 80 proportional
      characters a line, which is where the devices suite draws the line. */
   .main .note,.main p{max-width:62ch}
+  /* A line straight under .main is centred by the column, so a capped one sat
+     in the middle while everything above started at the left edge: it keeps
+     the column's width, and a back button keeps its own instead of a 572 px bar. */
+  .main > p,.main > .note{max-width:860px}
+  .main > .btn:not(.btn--block):not(.btn--lg){width:auto;align-self:flex-start;margin-left:max(0px, calc((100% - 860px) / 2))}
 }
 
 .hdr{
@@ -137,7 +142,11 @@ h1,h2,h3,p{margin:0}
    no call at all on a 320 px phone, and the call is the thing read between
    points. */
 .ctx__ev{min-width:3.5em;flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
-.ctx__call{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__call{min-width:0;flex:0 .0001 auto;overflow:hidden;text-overflow:ellipsis}
+/* Shrink is shared in proportion: at 1 against the event's 999 the call
+   still lost a fraction of a pixel while the event had room to give, and its
+   ellipsis read "SNAKE STA…". At .0001 it gives nothing until the event is
+   down to its stub. */
 .ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
@@ -747,6 +756,10 @@ svg.field [data-pick]{cursor:crosshair}
 .who2 ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
 .who2 li{font-size:var(--t-sm);color:var(--ink);display:flex;gap:var(--s2)}
 .who2 li b{color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums;flex:none;width:14px}
+.who2 li>span{min-width:0;flex:1}
+/* Matchup's two lists carry a read under each man: two columns on a phone
+   put it in 90 px, a word a line. One column under 560 px of column. */
+@container main (max-width:560px){ .who2--stack{grid-template-columns:1fr} }
 
 .kv{display:flex;flex-direction:column;gap:var(--s3)}
 .kv__row{display:flex;flex-direction:column;gap:3px}
@@ -831,6 +844,15 @@ svg.field [data-pick]{cursor:crosshair}
    sentence rather than hanging off the end of it. */
 .read-line__go{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;margin:6px 0 0;vertical-align:middle}
 .turn-bar{display:none}
+/* Upright, the call is what is read between points: it wraps rather than
+   ending "Snake …", the opponent takes a line of its own rather than "Rej…"
+   beside the buttons, and "We won it" stays on one line. */
+@media (orientation:portrait){
+  .qlog__name{white-space:normal;overflow-wrap:anywhere}
+  .qlog__top{flex-wrap:wrap}
+  .qlog__vs{order:9;flex:1 1 100%}
+  .qlog__score .btn{font-size:var(--t-xl)}
+}
 @media (orientation:landscape) and (max-height:520px){
   .turn-bar{display:flex}
   .qlog__hint{display:none}
@@ -870,6 +892,13 @@ svg.field [data-pick]{cursor:crosshair}
    moment the content is taller than the box, and it can never be scrolled back
    to — which is how the headline ended up under the status bar. */
 .promo > :first-child{margin-top:auto}
+/* A tablet: one centred column, the pitch and the buttons the same width,
+   in the middle of the screen rather than a phone's column at its foot. */
+@media (min-width:740px) and (min-height:600px){
+  .promo{align-items:center}
+  .promo > *{width:100%;max-width:520px}
+  .promo > :last-child{margin-bottom:auto}
+}
 .promo__mark{display:flex;flex-direction:column;gap:var(--s2)}
 .promo__name{font-size:44px;font-weight:800;letter-spacing:.14em;line-height:1}
 /* The logo is a picture on black. Screened, the black drops out and the white,
@@ -1730,7 +1759,11 @@ function rekeyTeam(from, to){
   const book = {...(S.scout || {})}, mine = book[from];
   if(mine){
     const theirs = book[to];
-    book[to] = theirs ? {...mine, ...theirs, breaks: [...(theirs.breaks || []), ...(mine.breaks || [])],
+    // A break already in the book is the same break come round again — the
+    // same copy merged twice added the other spelling's breaks each time.
+    const bk = b => b ? [b.m || "", b.pt || "", b.script || "", b.at || ""].join("|") : "";
+    const have = new Set((theirs && theirs.breaks || []).map(bk));
+    book[to] = theirs ? {...mine, ...theirs, breaks: [...(theirs.breaks || []), ...(mine.breaks || []).filter(b => !have.has(bk(b)))],
                          players: [...(theirs.players || []), ...(mine.players || []).filter(p => !(theirs.players || []).some(q => theirTag(q) === theirTag(p)))],
                          answers: {...(mine.answers || {}), ...(theirs.answers || {})}} : mine;
     delete book[from]; S.scout = book;
@@ -1844,7 +1877,7 @@ const defaultState = () => ({
   joinCode:"",
   joinOnly:false, joinSaid:"",   // scratch: a class deep link on a phone with no account shows the join sheet alone
   blastBody:"",
-  newClassTitle:"Friday clinic"
+  newClassTitle:""
 });
 
 /* Where a season actually lives.
@@ -1883,7 +1916,8 @@ try{ _recoveryText = localStorage.getItem(RECOVERY_KEY) || ""; }catch(e){}
 // stands when he had made one — a call logged, a play of his own, or anything
 // but the default.
 function adoptCallPicked(d){
-  if(d && !("callPicked" in d)) d.callPicked = !!((d.calls || []).length || (d.plays || []).length
+  // A squad copy carries no call at all — nothing to adopt, nothing picked.
+  if(d && !("callPicked" in d)) d.callPicked = "script" in d && !!((d.calls || []).length || (d.plays || []).length
     || (d.script && d.script !== defaultState().script));
   return d;
 }
@@ -2252,6 +2286,10 @@ window.fieldTap = at => {
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
     const tw0 = x === 75 && sel.tw ? sel.tw : "";
+    // Its twin going is one bunker fewer: the same floor Take it off holds.
+    const inUse = S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key);
+    if(tw0 && fieldReady(f) && f.bunkers.length - 1 < FIELD_MIN && inUse)
+      return flash(`On the fifty ${sel.id} stands alone and ${tw0} goes, which leaves ${f.name} under ${FIELD_MIN} bunkers. Place another bunker first.`);
     const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
     if(twUses && !confirm(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
@@ -2547,6 +2585,10 @@ function clearScratch(){
   // A play half-built is five bunker ids off one field: reopened on another
   // event, Save stored that field's ids against this one.
   S.building = null;
+  // A half-finished roster paste, the tutorial left open and the game being
+  // replayed are places he was standing — a restore or a Replace brought them
+  // back, and the tutorial opened itself after sign-in.
+  S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.showTutorial = false; S.replayMatch = null;
 }
 clearScratch();
 // The board used to be one flat list; it is per event now. Fold an old drawing
@@ -2899,6 +2941,13 @@ window.switchEnds = () => {
     const flips = m.flips || [];
     patchMatch({flips: flips.includes(pt) ? flips.filter(f => f !== pt) : [...flips, pt].sort((a, b) => a - b)});
   }
+  // Men already placed on this point and not yet told were put on a side by
+  // the half they landed in, and the halves have just changed hands: "MD ·
+  // yours" sat in their half, their five stood in his.
+  let moved = 0;
+  S.breakouts = (S.breakouts || []).map(r => r && r.m === m.id && r.pt === pt && r.todo
+    ? (moved++, {...r, side: r.side === "us" ? "them" : "us"}) : r);
+  if(moved) syncTallyFive(m.id, pt);
   save(S); render();
 };
 window.setSwapEnds = on => {
@@ -3128,7 +3177,7 @@ window.toggleRun = k => {
   S.offPlays = [...off];
   // He turned off the call he is on: move to one he runs rather than leave the
   // field drawing a play he has just said he does not run.
-  if(!runsPlay(S.script)) { S.script = playKeys().filter(runsPlay)[0] || S.script; S.t = 1; S.playing = false; }
+  if(!runsPlay(S.script)) { S.script = playKeys().filter(runsPlay)[0] || S.script; S.callPicked = false; S.t = 1; S.playing = false; }   // the app moved him; nothing is his call until he picks
   save(S); render();
 };
 window.runAllPlays = () => { S.offPlays = []; save(S); render(); };
@@ -3139,7 +3188,7 @@ window.onlyMine = () => {
   const mine = customPlays().filter(p => p && p.k);
   if(!mine.length){ flash("Write a play of your own first — + Yours under the field, or Make it yours on one of the app's. The twelve stay until you have one."); return; }
   S.offPlays = Object.keys(BREAKS);
-  if(!runsPlay(S.script)){ const here = mine.find(p => myPlants(p.k)) || mine[0]; S.script = here.k; S.t = 1; S.playing = false; dropPathCache(); }
+  if(!runsPlay(S.script)){ const here = mine.find(p => myPlants(p.k)) || mine[0]; S.script = here.k; S.callPicked = false; S.t = 1; S.playing = false; dropPathCache(); }
   S.pbPick = false;
   save(S); flash(`Only your ${mine.length === 1 ? "play" : mine.length + " plays"} in the pickers now. Turn all twelve back on puts the app's in again — nothing logged is touched.`);
 };
@@ -3268,6 +3317,10 @@ function rekeyPlay(from, to){
   if(!from || !to || from === to) return;
   const sw = k => k === from ? to : k;
   S.calls = (S.calls || []).map(c => c && c.script === from ? {...c, script: to} : c);
+  // Outs and charted men carry the call too: left on the dead key, the play's
+  // record read nothing out on either side.
+  S.tally = (S.tally || []).map(o => o && o.script === from ? {...o, script: to} : o);
+  S.breakouts = (S.breakouts || []).map(r => r && r.script === from ? {...r, script: to} : r);
   Object.keys(S.scout || {}).forEach(t => {
     const p = S.scout[t]; if(!p) return;
     const breaks = (p.breaks || []).map(b => b && b.script === from ? {...b, script: to} : b);
@@ -3351,9 +3404,18 @@ window.dropPlay = k => {
   // the play's name afterwards rather than printing its key.
   if(bits && !confirm(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
   const name = callName(k);   // read before the play goes, or the flash prints its key
-  // The name stays behind either way: anything that still names the key —
-  // an answer on Counter, a copy from the other phone — prints the name.
-  S.playGone = {...(S.playGone || {}), [k]: name};
+  // The name stays behind where anything still names the key — a call, their
+  // break, an answer on Counter — so it prints the name, never the key. With
+  // nothing behind it the name is free again: kept, it refused that word for
+  // one of the twelve and handed the dead key to the next play built under it.
+  const answered = Object.values(S.scout || {}).some(p => p && Object.entries(p.answers || {}).some(([a, b]) => a === k || b === k));
+  if(logged || answered) S.playGone = {...(S.playGone || {}), [k]: name};
+  // His Face, Shot, P|S, Go and drawn paths were for this play's five; a play
+  // built again under its key must not inherit them aimed at the old bunkers.
+  const mine = key => key.split("|")[1] !== k;
+  S.direct = Object.fromEntries(Object.entries(S.direct || {}).filter(([key]) => mine(key)));
+  S.pathEdits = Object.fromEntries(Object.entries(S.pathEdits || {}).filter(([key]) => mine(key)));
+  pathsChanged();
   S.plays = customPlays().filter(p => p.k !== k);
   // His last play gone with the twelve turned off is a picker with nothing in
   // it — Only my plays and then Delete. The twelve come back on rather than
@@ -3363,7 +3425,7 @@ window.dropPlay = k => {
   // Everything logged against it keeps its key and still counts; only the
   // drawing is gone. The header would throw on a key this build no longer
   // has, so move off it the way a missing layout is handled — to a call he runs.
-  if(S.script === k) { const d = defaultState().script; S.script = runsPlay(d) ? d : (playKeys().filter(runsPlay)[0] || d); S.t = 1; S.playing = false; }
+  if(S.script === k) { const d = defaultState().script; S.script = runsPlay(d) ? d : (playKeys().filter(runsPlay)[0] || d); S.callPicked = false; S.t = 1; S.playing = false; }
   S.building = null; save(S);
   flash([`${name} deleted.`, logged ? "The calls logged under it keep its name." : "", empty ? "It was the last call you run, so the app's twelve are back on." : ""].filter(Boolean).join(" "));
 };
@@ -3484,6 +3546,12 @@ function set(patch){
   // A play being built is built on the field it was started on; another
   // event drops it rather than keep that field's bunkers in the draft.
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey && !("building" in patch)) patch = {...patch, building: null};
+  // Every half-done pick is a bunker id, and ids repeat across fields: three
+  // of their bunkers tapped on Lone Star logged as Tampa's Wg#2, and an open
+  // breakout sheet wrote its man to the other field's bunker.
+  if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
+    patch = {theirPick: [], tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: "place",
+             moveFrom: null, moveTo: null, callPick: null, walkPick: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -3969,6 +4037,13 @@ function sheetPayload(id){
   // sheet under the old name and had two of them.
   if(Object.keys(S.renamedMen || {}).length && !m.watch) data.renamedMen = S.renamedMen;
   if(Object.keys(S.renamedTeams || {}).length) data.renamedTeams = S.renamedTeams;
+  // A call of his own named on this sheet is a key the other phone has never
+  // heard of: it printed "my:k7f2". The plays the sheet names ride with it,
+  // and the name of one deleted here.
+  const keys = new Set([...(data.calls || []), ...(data.tally || []), ...(data.breakouts || []),
+    ...Object.values(scout).flatMap(p => p.breaks || [])].map(r => r && r.script).filter(k => isMine(k)));
+  const plays = customPlays().filter(p => keys.has(p.k)); if(plays.length) data.plays = plays;
+  const gone = Object.fromEntries(Object.entries(S.playGone || {}).filter(([k]) => keys.has(k))); if(Object.keys(gone).length) data.playGone = gone;
   const f = fieldOf(m.layout); if(f) data.fields = fieldsOut([f]);
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: "sheet", sheet: id,
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
@@ -4038,7 +4113,10 @@ function mergeMapValue(mine, incoming, trail){
       : end === "breaks" ? x => [x.pt, x.script, x.at].join("|")
       : end === "members" ? x => [x.name, x.phone || x.email || ""].join("|").toLowerCase()
       : null;
-    if(!identity) return incoming;
+    // A lineup and a drawn path are one value a key: this phone's stands, the
+    // way this phone's row wins everywhere else. Two phones sending at once
+    // swapped their fives.
+    if(!identity) return (trail[0] === "lineups" || trail[0] === "pathEdits") ? mine : incoming;
     const out = mine.slice(), indexes = new Map(out.map((x, i) => [identity(x), i]));
     incoming.forEach(x => {
       const key = identity(x), i = indexes.get(key);
@@ -4515,7 +4593,13 @@ window.loadCopy = mode => {
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
   if(mode !== "replace") HERE.forEach(k => { if(mine[k] !== undefined) next[k] = mine[k]; });
+  // Replace is the copy's season: a sheet deleted here and back in the copy is
+  // back, not left on the deleted list for the next merge to strip again.
+  if(mode === "replace") next.sheetsGone = (S.sheetsGone || []).filter(id => !(d.matches || []).some(m => m && m.id === id));
   Object.keys(next).forEach(k => { S[k] = next[k]; });
+  // And what he was in the middle of goes with the old season — the clock
+  // counting down to the next point of a sheet just thrown away.
+  if(mode === "replace"){ const cs = S.copyStatus; clearScratch(); S.copyStatus = cs; }
   if(!curMatch()){
     const id = newMatchId();
     S.matches = [{id, at:Date.now(), vs:(S.right || {}).name || "", layout:S.layoutKey}, ...(S.matches || [])];
@@ -4579,6 +4663,20 @@ window.loadCopy = mode => {
     // Before any re-spelling: it rebuilds rows, and this phone's rows are
     // told from the copy's by being the same objects they were.
     let dupes = overlapRows(shared, mineBefore);
+    // A man placed on one phone and told on the other is the told man. Same
+    // row (one phone placed him, sent the sheet, the other told him): the
+    // merge kept this phone's untold row and the story never landed. Each
+    // phone placed him: the told row from the copy takes the place of an
+    // untold man of this phone's on the same bunker, or the point has ten.
+    const fresh = new Map((d.breakouts || []).filter(b => b && b.id && !b.todo && shared.includes(b.m)).map(b => [b.id, b]));
+    S.breakouts = (S.breakouts || []).map(r => r && r.todo && fresh.has(r.id) ? {...fresh.get(r.id)} : r);
+    const mineNow = new Set(mineBefore.breakouts || []), spent = new Set();
+    const bkey = r => [r.m, r.pt, r.side, r.bunker].join("|");
+    (S.breakouts || []).filter(r => r && !mineNow.has(r) && r.player && !r.todo && shared.includes(r.m)).forEach(r => {
+      const twin = (S.breakouts || []).find(l => l && mineNow.has(l) && !spent.has(l) && l.todo && !l.player && bkey(l) === bkey(r));
+      if(twin){ spent.add(twin); dupes++; }
+    });
+    if(spent.size) S.breakouts = S.breakouts.filter(r => !spent.has(r));
     // The match row on both phones is this phone's, but what only the other
     // phone set — the race, the mercy, the clock, the sheet's name, the
     // horn — fills in where this phone's row has nothing: a race the other
@@ -4611,6 +4709,12 @@ window.loadCopy = mode => {
     const clashed = keepWordsUnique(wordsBefore);
     if(clashed.length) S.copyStatus += ` · ${clashed.join(", ")} already ${clashed.length === 1 ? "names" : "name"} something else here — this phone's words kept`;
     const folded = [], renumbered = [];
+    // A play both phones already had under one key: a five the other phone
+    // built on a field this phone has none on comes across — the merge kept
+    // this phone's row whole and said nothing new.
+    (d.plays || []).filter(p => p && playsBefore.has(p.k) && p.plants).forEach(p => {
+      S.plays = customPlays().map(q => q.k === p.k ? {...q, plants: {...p.plants, ...(q.plants || {})}} : q);
+    });
     customPlays().filter(p => !playsBefore.has(p.k)).forEach(p => {
       const mine = customPlays().find(q => q.k !== p.k && playsBefore.has(q.k) && foldName(q.name) === foldName(p.name));
       if(mine){
@@ -5982,13 +6086,16 @@ function fieldSVG(opts={}, runnersOnly){
       sight = S1.lines.map(l=>{
         const on = lit && l.to.id === lit && !aimed;
         const dim = lit && !on;
-        return `<line x1="${fx}" y1="${fy}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" `
-          + `stroke="${l.blocked?"#e5342f":"#3ecf8e"}" stroke-width="${on?3:l.blocked?1:1.6}" `
-          + `opacity="${dim?.08:on?1:l.blocked?.22:.85}" stroke-linecap="round"/>`;
+        // A lane is white, the house rule, so it reads against both wires;
+        // blocked is grey, dashed. Green and red here were the wires' colours
+        // on a screen about neither pit.
+        return `<line class="sight-lane" x1="${fx}" y1="${fy}" x2="${l.x.toFixed(1)}" y2="${l.y.toFixed(1)}" `
+          + `stroke="${l.blocked?"#8d9092":"#ffffff"}" stroke-width="${on?3:l.blocked?1:1.6}" ${l.blocked?'stroke-dasharray="3 3" ':''}`
+          + `opacity="${dim?.08:on?1:l.blocked?.35:.85}" stroke-linecap="round"/>`;
       }).join("")
       // What is in the way of the asked-about lane, ringed so it is findable.
       + (lit ? (S1.lines.find(l=>l.to.id===lit)?.by || []).map(o=>
-          `<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e5342f" stroke-width="1.6"/>`
+          `<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e0a33a" stroke-width="1.6"/>`
         ).join("") : "")
       + (lit ? (()=>{ const t=S1.lines.find(l=>l.to.id===lit);
           return t ? `<circle cx="${t.x.toFixed(1)}" cy="${t.y.toFixed(1)}" r="6" fill="none" stroke="#fff" stroke-width="1.6"/>` : ""; })() : "")
@@ -5996,8 +6103,8 @@ function fieldSVG(opts={}, runnersOnly){
       // The dragged lane replaces the centre-to-centre one: solid if clear,
       // dashed if something is in the way, and that something is ringed.
       + (aimed ? `<line class="aim-lane" x1="${fx}" y1="${fy}" x2="${(aimed.aim[0]*sx).toFixed(1)}" y2="${(aimed.aim[1]*sy).toFixed(1)}" `
-          + `stroke="${aimed.blocked?"#e5342f":"#3ecf8e"}" stroke-width="3" ${aimed.blocked?'stroke-dasharray="6 4"':''} stroke-linecap="round"/>`
-          + aimed.by.map(o=>`<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e5342f" stroke-width="1.6"/>`).join("") : "");
+          + `stroke="${aimed.blocked?"#8d9092":"#ffffff"}" stroke-width="3" ${aimed.blocked?'stroke-dasharray="6 4"':''} stroke-linecap="round"/>`
+          + aimed.by.map(o=>`<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e0a33a" stroke-width="1.6"/>`).join("") : "");
     }
   }
   // The handle sits above the tap surface, or it could never be grabbed.
@@ -6374,22 +6481,29 @@ function scoreBefore(mid, pt){
  * the home side is "us" on that sheet and "them" on every sheet of his: read
  * off the pit it is in now, every row from the watched game had its lead, its
  * last point and its match point the wrong way round. */
-function readSides(r, side){
-  const m = matchById(r.m), team = foldName(pitOf(side).name || "");
-  const th = m && m.watch ? (foldName(m.home || "") === team ? "us" : "them") : m ? "them" : (side === "left" ? "us" : "them");
-  return [th, th === "us" ? "them" : "us"];
+// Resolved once a sheet per read: per row it doubled the cost of every draw.
+function sideReader(side){
+  const team = foldName(pitOf(side).name || ""), memo = new Map();
+  return r => {
+    if(memo.has(r.m)) return memo.get(r.m);
+    const m = matchById(r.m);
+    const th = m && m.watch ? (foldName(m.home || "") === team ? "us" : "them") : m ? "them" : (side === "left" ? "us" : "them");
+    const out = [th, th === "us" ? "them" : "us"]; memo.set(r.m, out); return out;
+  };
 }
+function readSides(r, side){ return sideReader(side)(r); }
 function theirReads(side){
   // On a watched sheet the left pit is the home side, which results call "us".
   const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
   const rows = theirBreaks(side).filter(b => b.script && b.m);
   const tally = list => Object.entries(list.reduce((m, b) => ({...m, [b.script]: (m[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, tally: t}; };
-  const lead = r => { const [t, o] = readSides(r, side), sc = scoreBefore(r.m, r.pt); return sc[t] - sc[o]; };
+  const rs = sideReader(side);
+  const lead = r => { const [t, o] = rs(r), sc = scoreBefore(r.m, r.pt); return sc[t] - sc[o]; };
   // who is "theirs" or "mine" as this team stood on that row's sheet.
-  const last = (r, who) => { const [t, o] = readSides(r, side), w = who === theirs ? t : o;
+  const last = (r, who) => { const [t, o] = rs(r), w = who === theirs ? t : o;
     return (S.results || []).some(x => x && x.m === r.m && x.pt === r.pt - 1 && x.won === w); };
-  const mpRow = (r, who) => { const [t, o] = readSides(r, side); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
+  const mpRow = (r, who) => { const [t, o] = rs(r); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const all = bucket("overall", () => true);
   const recentRows = [...rows].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 5);
   const recent = tally(recentRows);
@@ -6471,16 +6585,19 @@ function manLine(side, who, team){
 function nextRead(side = "right"){
   const m = curMatch(); if(!m || !pitNamed(side)) return null;
   const pt = S.point || 1;
-  const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
+  // The sheet he is on read in the same frame as the rows: which side of the
+  // results this team is on here, by team, not by pit.
+  const rs = sideReader(side);
+  const [theirs, mine] = rs({m: m.id});
   const sc = scoreBefore(m.id, pt), lead = Math.sign(sc[theirs] - sc[mine]);
   const lastWon = ((S.results || []).find(r => r && r.m === m.id && r.pt === pt - 1) || {}).won;
   const state = lead < 0 ? "behind" : lead > 0 ? "ahead" : "level";
   const last = lastWon === undefined ? "" : lastWon === mine ? "after losing a point" : "after winning a point";
   const rows = theirBreaks(side).filter(b => b.script && b.m);
   const tally = list => Object.entries(list.reduce((a, b) => ({...a, [b.script]: (a[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
-  const leadOf = r => { const [t, o] = readSides(r, side), x = scoreBefore(r.m, r.pt); return Math.sign(x[t] - x[o]); };
-  const lastOf = r => { const [, o] = readSides(r, side), w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
-  const mpRow = (r, who) => { const [t, o] = readSides(r, side); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
+  const leadOf = r => { const [t, o] = rs(r), x = scoreBefore(r.m, r.pt); return Math.sign(x[t] - x[o]); };
+  const lastOf = r => { const [, o] = rs(r), w = ((S.results || []).find(x => x && x.m === r.m && x.pt === r.pt - 1) || {}).won; return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
+  const mpRow = (r, who) => { const [t, o] = rs(r); return mpBefore(r.m, r.pt, who === theirs ? t : o); };
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, alt: t[1] || null}; };
   // The moment he is in, most specific first: a timeout just spent, match
   // point either way, the first point of the sheet, then the score and the
@@ -6488,8 +6605,8 @@ function nextRead(side = "right"){
   const mp = matchPoint(m.id);
   const order = [
     timeoutOn(m.id, pt) ? bucket("after a timeout", r => timeoutOn(r.m, r.pt)) : null,
-    mp === "them" || mp === "both" ? bucket("at their match point", r => mpRow(r, theirs)) : null,
-    mp === "us" || mp === "both" ? bucket("facing match point", r => mpRow(r, mine)) : null,
+    mp === theirs || mp === "both" ? bucket("at their match point", r => mpRow(r, theirs)) : null,
+    mp === mine || mp === "both" ? bucket("facing match point", r => mpRow(r, mine)) : null,
     pt === 1 ? bucket("on the first point", r => r.pt === 1) : null,
     last ? bucket(`${state}, ${last}`, r => leadOf(r) === lead && lastOf(r) === last) : null,
     bucket(state, r => leadOf(r) === lead),
@@ -6551,7 +6668,8 @@ function readLine(compact){
       <button class="btn btn--quiet read-line__go" onclick="setPitTeam('right',${jsq(matchVs())})">Put ${esc(matchVs())} in the pit</button></p>`;
   const r = nextRead("right"); if(!r) return "";
   const them = esc(pitOf("right").name);
-  if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Scout › Breakouts and the read builds itself.</p>`;
+  if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Breakouts and the read builds itself.
+      <button class="btn btn--quiet read-line__go" onclick="set({tab:'scout',scoutTab:'breakouts',more:null})">Breakouts ›</button></p>`;
   const a = bestAnswer(r.call);
   const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
   // One tap calls it only if it is a play he runs: a turned-off built-in is
@@ -6573,7 +6691,7 @@ function readLine(compact){
 function usualMan(team, id){
   const c = {};
   // `id` is a frame id; a sighting is matched in the frame of the point it was made on.
-  (S.arrivalSightings || []).filter(o => o && o.team === team && o.layout === S.layoutKey && o.player && frameId(o.bunker, o.m, o.pt) === id)
+  (S.arrivalSightings || []).filter(o => o && o.team === team && o.layout === S.layoutKey && o.player && teamFrame(o.bunker, o.m, o.pt, team) === id)
     .forEach(o => { c[o.player] = (c[o.player] || 0) + 1; });
   const e = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
   return e ? {who: e[0], n: e[1]} : null;
@@ -6692,8 +6810,8 @@ function lanesLine(){
 function likelyPlants(side = "right", call){
   const rows = theirBreaks(side).filter(b => Array.isArray(b.plants) && b.plants.length && (!b.layout || b.layout === S.layoutKey));
   const under = call ? rows.filter(b => b.script === call) : [];
-  const use = under.length >= 2 ? under : rows;
-  const c = new Map(); use.forEach(b => b.plants.forEach(id => { const k = frameId(id, b.m, b.pt); c.set(k, (c.get(k) || 0) + 1); }));
+  const use = under.length >= 2 ? under : rows, team = pitOf(side).name;
+  const c = new Map(); use.forEach(b => b.plants.forEach(id => { const k = teamFrame(id, b.m, b.pt, team); c.set(k, (c.get(k) || 0) + 1); }));
   // Frame ids: a caller that draws or names them on the field goes through shownBunker().
   return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)};
 }
@@ -6775,9 +6893,9 @@ function theirFiveLogged(side = "right"){
 }
 // Every bunker their five have been logged on, on this field, most often first.
 function plantCounts(side = "right"){
-  const c = new Map();
+  const c = new Map(), team = pitOf(side).name;
   theirBreaks(side).filter(b => Array.isArray(b.plants) && (!b.layout || b.layout === S.layoutKey))
-    .forEach(b => b.plants.forEach(id => { const k = frameId(id, b.m, b.pt); c.set(k, (c.get(k) || 0) + 1); }));
+    .forEach(b => b.plants.forEach(id => { const k = teamFrame(id, b.m, b.pt, team); c.set(k, (c.get(k) || 0) + 1); }));
   return [...c].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
 }
 // Five numbered squares — square because a runner on the break is a circle.
@@ -8473,6 +8591,14 @@ function frameId(id, mid, pt){
   return end === "right" ? mirrorBunkerId(id) : id;
 }
 function ownBunker(id, side, mid, pt){ return frameId(id, mid, pt); }
+/* A team's bunker in the frame their own breaks are counted in. On his sheets
+ * they break from the end opposite his; watched as the home side they broke
+ * from the home end — the end frameId() puts at the left — so those fives
+ * landed in his half and the ghost mixed the two. */
+function teamFrame(id, mid, pt, team){
+  const f = frameId(id, mid, pt), m = matchById(mid);
+  return m && m.watch && team && foldName(m.home || "") === foldName(team) ? mirrorBunkerId(f) : f;
+}
 // The bunker to draw for a frame id, on the end the field shows now.
 const shownBunker = id => ourEnd() === "right" ? mirrorBunkerId(id) : id;
 function bunkerValue(side, evenOnly){
@@ -8851,7 +8977,7 @@ function tally(){
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : (matchVs() || "Them"))} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
+        <span>${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : `You v ${matchVs() || "them"}`)} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
       ${/* A watched game has no "you": the two sides are the two teams on it. */""}
       <span class="fact"><b>${alive("us")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"}</span></span>
       <span class="fact"><b>${alive("them")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"}</span></span>
@@ -8869,7 +8995,7 @@ function tally(){
     ${stepStrip}
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
     ${endsChip()}
-    ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<p class="note" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each →</button>` : "") + placedList}</div>`,
+    ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<p class="note" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
 
   ${sec("Point sheet", `
@@ -9624,6 +9750,13 @@ window.openMatch = id => {
 };
 const openMatchNow = id => {
   if(!(S.matches || []).some(m => m.id === id)) return;
+  // A blank sheet he is leaving goes, the way New match replaces one: left,
+  // it sat in every game picker and in the record as an open sheet.
+  const was = curMatch();
+  if(was && was.id !== id && sheetEmpty(was)){
+    S.matches = S.matches.filter(m => m.id !== was.id);
+    S.lineups = Object.fromEntries(Object.entries(S.lineups || {}).filter(([k]) => !k.startsWith(was.id + "|")));
+  }
   S.matchId = id;
   // Where he actually left off. A point that already has a winner recorded is
   // finished, so land on the next one — otherwise the first "We won it" after
@@ -9920,7 +10053,7 @@ function scout(){
       ${(S.scoutShow||"them")!=="them"?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--red)"></i>${(curMatch()||{}).watch && L.named ? esc(L.name) : "You"} · ${callSet() ? esc(breakName()) : "no call picked yet"}</span>`:""}
       ${S.scoutShow!=="us"?(()=>{ const ts = theirScript(), n = ts ? (breakFreq("right").find(([k])=>k===ts)||[0,0])[1] : 0;
         return `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:var(--blue)"></i>${esc(R.named?R.name:"Right pit · not set")} · ${
-          ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : "their break shows here once you scout them — log it on Breakouts"}</span>`; })():""}
+          ts ? `${esc(callName(ts))}, logged ${n} time${n===1?"":"s"}` : `their break shows here once you scout them — <button class="btn btn--quiet read-line__go" onclick="set({scoutTab:'breakouts'})">Log it on Breakouts ›</button>`}</span>`; })():""}
       ${(S.scoutShow||"them")!=="us"?ghostLegend():""}
       ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") && callSet() ? breakLanes(S.script) : null);
         const sh = w ? null : shooterLane("right");
@@ -9928,7 +10061,7 @@ function scout(){
           ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc((curMatch()||{}).home || "the home side")}'s on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc((curMatch()||{}).away || "the away side")}'s on Breakouts`}`
                    : `clear lanes off the break · ${w.onThem} of ${esc(w.homeName)}'s ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(w.awayName)}'s ${w.theirs} on ${esc(w.homeName)}`)
           : l ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
-          : !callSet() && !w ? `lanes show once you pick the call` : pitNamed("right") ? `lanes show once their five is known — log it on Breakouts` : `lanes show once a team is in the right pit`;
+          : !callSet() && !w ? `lanes show once you pick the call` : pitNamed("right") ? `lanes show once their five is known — <button class="btn btn--quiet read-line__go" onclick="set({scoutTab:'breakouts'})">Log it on Breakouts ›</button>` : `lanes show once a team is in the right pit`;
         return `${sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : ""}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${words}</span>`; })():""}
       ${S.theirOn?`<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:var(--blue);border:1.5px solid #efedeb"></i>their man, where you have seen him set up</span>`:""}
       ${S.outsOn?`<span style="display:inline-flex;align-items:center;gap:6px"><b style="color:#efedeb">✕</b> somebody went out here</span>
@@ -10146,7 +10279,7 @@ function arrivalShots(context = arrivalContext()){
 function teamLanes(team, layout = S.layoutKey){
   const count = new Map();
   (S.arrivalShots || []).filter(o => o.team === team && o.layout === layout).forEach(o => {
-    const k = frameId(o.from, o.m, o.pt) + "→" + frameId(o.to, o.m, o.pt);   // one frame across points, like every count
+    const k = teamFrame(o.from, o.m, o.pt, team) + "→" + teamFrame(o.to, o.m, o.pt, team);   // one frame across points, like every count
     count.set(k, (count.get(k) || 0) + 1);
   });
   return [...count].map(([k,n]) => { const [from,to] = k.split("→"); return {from,to,n}; })
@@ -10163,7 +10296,7 @@ function theirMoves(team, layout = S.layoutKey){
   const count = new Map();
   by.forEach(rows => {
     rows.sort((a, b) => (a.seq || 0) - (b.seq || 0) || (a.at || 0) - (b.at || 0));
-    const fr = o => frameId(o.bunker, o.m, o.pt);   // one point, one frame: both ends of a move turn together
+    const fr = o => teamFrame(o.bunker, o.m, o.pt, team);   // one point, one frame: both ends of a move turn together
     for(let i = 1; i < rows.length; i++){
       if(rows[i].bunker === rows[i-1].bunker) continue;
       const k = fr(rows[i-1]) + "→" + fr(rows[i]), c = count.get(k) || {n: 0, who: {}};
@@ -10761,28 +10894,27 @@ function scoutMatchup(){
       ${Object.entries(split).map(([k,n])=>`<span class="fact"><b>${n}</b><span>${k}</span></span>`).join("")}
       <span class="fact"><b>${(L.players||[]).length + (R.players||[]).length}</b><span>Players logged</span></span>
     </div>`}
-    <div class="who2">
+    <div class="who2 who2--stack">
       ${/* Names where the app has them. The five standing on this point beside
             each job, and the other team's men by number and name — a list of
             numbers and wires asked a coach to forget the names he had logged. */""}
       ${(curMatch()||{}).watch
         ? `<div><h4>${esc(L.named ? L.name : (curMatch().home || "Home"))} · logged</h4><ol>
         ${(L.players||[]).length
-          ? L.players.map(m=>`<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}</li>`).join("")
+          ? L.players.map(m=>`<li><b>${esc(m.num||"?")}</b><span>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}</span></li>`).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the left pit card above.</li>`}
       </ol></div>`
         : `<div><h4>Your five${callSet() ? ` · ${esc(breakName())}` : ""}</h4><ol>
-        ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b>${who ? `${esc(who.name)}${callSet() ? " · " : ""}` : ""}${callSet() ? esc(jobName(S.script, p.id, p.label)) : who ? "" : "—"}</li>`; }).join("")}
+        ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b><span>${who ? `${esc(who.name)}${callSet() ? " · " : ""}` : ""}${callSet() ? esc(jobName(S.script, p.id, p.label)) : who ? "" : "—"}</span></li>`; }).join("")}
       </ol></div>`}
       <div><h4>${esc(R.name)} · logged</h4><ol>
         ${(R.players||[]).length
-          ? R.players.map(m=>{ const line = manLine("them", m.num ? "#" + m.num : m.name, R.name); return `<li><b>${esc(m.num||"?")}</b>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}${line ? `<br><span class="note">${line}</span>` : ""}</li>`; }).join("")
+          ? R.players.map(m=>{ const line = manLine("them", m.num ? "#" + m.num : m.name, R.name); return `<li><b>${esc(m.num||"?")}</b><span>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}${m.note?" · "+esc(m.note):""}${line ? `<br><span class="note">${line}</span>` : ""}</span></li>`; }).join("")
           : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the pit card above.</li>`}
       </ol></div>
     </div>
     <p class="aid"><b>Counted, not predicted.</b> ${(curMatch()||{}).watch ? "Two teams you are reading, neither of them yours." : `The wire split is where this break actually plants on
-    ${esc(curLayout().name)}.`} The bar is the threat you scored the two teams, nothing more.
-    Officials govern the live call.</p>`,
+    ${esc(curLayout().name)}.`} The bar is the threat you scored ${(curMatch()||{}).watch ? "the two teams" : "them"}, nothing more.</p>`,
     "This call");
 }
 
@@ -10959,10 +11091,14 @@ function scoutLayers(){
   const name=(k,n)=> w && k==="theirOuts" ? `${sideWord("them")} outs` : w && k==="yourOuts" ? `${sideWord("us")} outs` : n;
   // On this field: bunker ids repeat across layouts, so another field's outs
   // landed on this field's T#1.
-  const vs=o=>o.vs===R.name&&(!o.layout||o.layout===S.layoutKey);
+  // His own sheets read as yours and theirs; a watched game's sides are two
+  // other teams — on his sheet they are out, on a watched sheet only it is in.
+  const vs=o=>o.vs===R.name&&(!o.layout||o.layout===S.layoutKey)&&(w ? o.m===S.matchId : !watchedMatch(o.m));
   const counts={
-    theirOuts:(S.tally||[]).filter(o=>o&&o.side==="them"&&vs(o)&&o.shotAt).length,
-    yourOuts:(S.tally||[]).filter(o=>o&&o.side==="us"&&vs(o)&&o.shotAt).length,
+    // Counted the way the rings are drawn — the tally and the break chart,
+    // a man counted once — or the rings stood on a field the count said was empty.
+    theirOuts:Object.values(bunkerTraffic(o=>o.side==="them"&&vs(o))).reduce((n,t)=>n+t.outs,0),
+    yourOuts:Object.values(bunkerTraffic(o=>o.side==="us"&&vs(o))).reduce((n,t)=>n+t.outs,0),
     rotations:layoutMoves().length,
     theirMoves:theirMoves(R.name).reduce((n,m)=>n+m.n,0),
   };
@@ -10990,7 +11126,10 @@ function scoutGames(){
   // A sheet at a time. You may have played this team four times, and their
   // point 3 is four different points — merging them into one list of "Point 3"
   // was the whole reason a match had to exist.
-  const theirs=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.vs===R.name&&o.pt);
+  // A watched game where they were the home side files its rows under the
+  // away team: those points are theirs too.
+  const homeOf=id=>{const m=matchById(id);return m&&m.watch?foldName(m.home||""):"";};
+  const theirs=(S.tally||[]).filter(o=>o&&typeof o==="object"&&o.pt&&(o.vs===R.name||(homeOf(o.m)&&homeOf(o.m)===foldName(R.name))));
   // A game is a sheet against them — one he tallied outs on, or one he only
   // scored. A coach who taps who won every point and never an out had games
   // this screen said did not exist.
@@ -11115,7 +11254,7 @@ function scoutCounter(){
     ${/* The left pit is a team he watches, not him — it read "Blast Camp
           against Rejects" as if Blast Camp were his five. Only a watched game
           has two named sides here. */""}
-    <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>'s ${read
+    <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>${/s$/i.test(R.name || "") ? "'" : "'s"} ${read
         ? `<b style="color:var(--ink)">${esc(callName(read.call))}</b> — ${read.n} of ${read.of} ${esc(read.basis)}${read.alt ? `, ${esc(callName(read.alt[0]))} ${read.alt[1]}` : ""} —`
         : `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read ? ` Film read: ${esc(R.tend)}.` : ""}</p>
     ${(()=>{const f=breakFreq("right"), n=f.reduce((a,[,c])=>a+c,0);
@@ -11125,7 +11264,7 @@ function scoutCounter(){
     <div class="rank">
       ${ranked.map((r,i)=>`<button class="rank__row" onclick="set({script:'${r.key}',t:0,playing:false,tab:'playbook'})">
         <span class="rank__n">${i+1}</span>
-        <span class="rank__name">${esc(r.name)}${S.script===r.key?` <span class="tag">CALLED</span>`:""}${(l => l ? `<br><span class="rank__lanes">lanes · ${l.onThem} on them · ${l.onYou} on you</span>` : "")(breakLanes(r.key, theirNow))}</span>
+        <span class="rank__name">${esc(r.name)}${callSet()&&S.script===r.key?` <span class="tag">CALLED</span>`:""}${(l => l ? `<br><span class="rank__lanes">lanes · ${l.onThem} on them · ${l.onYou} on you</span>` : "")(breakLanes(r.key, theirNow))}</span>
         ${pips(r.aggr,"")}
         <span class="rank__pct">${r.vs ? `won ${r.vs.won} of ${r.vs.n} vs ${esc(callName(read.call))}` : r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
       </button>`).join("")}
@@ -11303,7 +11442,7 @@ function sightlines(){
   const picking=S.sightPick==="to" ? "to" : "from";
   return `${tip("sl","Tap the field where you are standing. Tap again on what you want to see. Then drag the white dot to where you would actually put the paint — solid is clear, dashed is blocked.")}
 
-  ${sec("Tap the field", `<div class="seg">
+  ${sec("Tap the field", `<div class="seg seg--wrap">
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
@@ -11400,7 +11539,7 @@ function classesPage(){
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
-        <input value="${esc(S.newClassTitle)}" onchange="S.newClassTitle=this.value;save(S)" ${onEnter("S.newClassTitle=this.value;save(S);makeClass()")}/></div>
+        <input value="${esc(S.newClassTitle)}" placeholder="Friday clinic" aria-label="Class title" onchange="S.newClassTitle=this.value;save(S)" ${onEnter("S.newClassTitle=this.value;save(S);makeClass()")}/></div>
       <button class="btn btn--block" onclick="makeClass()">Create class</button>
       ${(S.classes||[]).length?(S.classes).map(c=>{
         const r=S.responses.filter(x=>x.code===c.code);
@@ -11557,9 +11696,11 @@ function leaguePage(){
         <span class="assign__who">${esc(m.phone||m.email||"no contact")}</span></span>
         <button class="btn btn--danger" onclick="delMem(${jsq(g.id)},${i})">Remove</button>
       </div>`).join("")}</div>`:`<div class="empty">Nobody in this group yet.</div>`}
-      <div class="btnrow">
-        <input id="mn-${esc(g.id)}" aria-label="New member's name for ${esc(g.name)}" placeholder="Name" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
-        <input id="mp-${esc(g.id)}" aria-label="New member's phone or email for ${esc(g.name)}" placeholder="Phone or email" class="grow" ${onEnter(`addMem('${g.id}')`)}/>
+      ${/* Two boxes and a button on one row left each box 55 px on a small
+            phone, "Nam" and "Phor". They wrap to a row of their own instead. */""}
+      <div class="btnrow" style="flex-wrap:wrap">
+        <input id="mn-${esc(g.id)}" aria-label="New member's name for ${esc(g.name)}" placeholder="Name" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem('${g.id}')`)}/>
+        <input id="mp-${esc(g.id)}" aria-label="New member's phone or email for ${esc(g.name)}" placeholder="Phone or email" class="grow" style="flex:1 1 9em;min-width:0" ${onEnter(`addMem('${g.id}')`)}/>
         <button class="btn btn--ghost" onclick="addMem(${jsq(g.id)})">Add member</button>
       </div>
     </div>`).join("")}`, people+" people")}
@@ -11740,8 +11881,8 @@ const HELP = {
          "Name it. The clock holds you to two seconds.",
          "Under two seconds means you are calling it, not reading it."]},
   tally: {t:"Tally", w:"The break chart and the point sheet.",
-    how:["1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Tap one again to take him off.",
-         "2 · What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
+    how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Tap one again to take him off.",
+         "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
          "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
@@ -12013,15 +12154,18 @@ function planPage(){
       ${row("Every sheet", "Open any match you have kept, not only the one you are on.")}
       ${row("Three phones", "You and two assistants.")}
     </div>
-    <div class="btnrow">
+    ${/* With nothing for sale, three price buttons beside "everything is
+          unlocked" read as a contradiction: the prices are said, not offered. */""}
+    ${billingLive() ? `<div class="btnrow">
       <button class="btn grow" onclick="buyPlan('team_season')">Team · $99 a season</button>
       <button class="btn btn--ghost grow" onclick="buyPlan('team_month')">$14.99 a month</button>
     </div>
-    <button class="btn btn--quiet btn--block" onclick="buyPlan('event_pass')">One event weekend · $25</button>
-    <p class="note">A season is the same as seven months of monthly, and it does not ask you again in
+    <button class="btn btn--quiet btn--block" onclick="buyPlan('event_pass')">One event weekend · $25</button>`
+      : `<p class="note">When the store is switched on: $99 a season, $14.99 a month, or $25 for one event weekend. Until then it is all unlocked.</p>`}
+    <p class="note">A season costs less than seven months of monthly, and it does not ask you again in
       the off-season.</p>`, "$99 a season")
-  + sec("Already paid?", `<p class="lede">New phone, or reinstalled? The store remembers, not us — there is no
-      account and nothing about you leaves the phone.</p>
+  + sec("Already paid?", `<p class="lede">New phone, or reinstalled? The store remembers your purchase,
+      through the Apple ID or Google account the phone already has — nothing about your season leaves the phone.</p>
     <button class="btn btn--block" onclick="restorePlan()">Restore purchases</button>`)
   + (staffed() ? sec("Preview", `<p class="lede">Show yourself exactly what a coach on the free plan sees.
       This only changes what is on screen — it buys nothing and cancels nothing.</p>
@@ -12839,7 +12983,7 @@ function moreBody(k){
     <div class="fld"><label>From a file</label>
       <input type="file" accept="application/json,.json,text/plain" onchange="readCopyFile(this)"/></div>
     <div class="fld"><label>Or paste it</label>
-      <textarea id="copyIn" placeholder='{"format":"gridlock.coach.copy", …}' oninput="copyDraft=this.value"
+      <textarea id="copyIn" placeholder="Paste the copy here — the whole text from Show it as text" aria-label="A copy to load" oninput="copyDraft=this.value"
         style="min-height:110px;font-family:ui-monospace,monospace;font-size:11px">${esc(copyDraft)}</textarea></div>
     <div class="toggles">
       <button class="btn" onclick="loadCopy('merge')">Merge it in</button>
@@ -12941,7 +13085,9 @@ function quickLog(){
     <div class="qlog__top">
       ${clockChip()}
       <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tail ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${tail}</small>` : ""}</span>
-      <span class="qlog__vs">${esc(pitNamed("right") ? pitOf("right").name : curLayout().name)}</span>
+      ${/* The sheet's opponent: the result buttons score this sheet, whoever
+            he has put in the right pit to read. */""}
+      <span class="qlog__vs">${esc(watch ? `${sideWord("us")} v ${sideWord("them")}` : matchVs() || curLayout().name)}</span>
       <span class="grow"></span>
       <span class="qlog__pt">POINT ${over && !off ? sheetPoint() : pt}</span>
       <button class="btn btn--quiet" onclick="set({quick:false, tab:'more', more:'wb'})">▚ Board</button>
