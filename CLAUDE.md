@@ -2221,6 +2221,17 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   once-only mark (`podBuzzed`) outlives a reopen, and only its own pause says
   the clock is out. BEST moves while he beats it. "A new best" shows only when
   the phone kept it.
+  It has two games for two teams on one phone, picked under the field (Solo ·
+  Duel · Head to head), because there is no network to play across phones.
+  **Duel** passes the phone: two names, one to five a side, one life each, turn
+  about; both turns of a round are dealt off one seed (`g.rand`, `podR`) so
+  each side meets the same men, and the most outs wins (`pod.duel`,
+  `podDuelTick`). **Head to head** is two players at once: red at the bottom,
+  blue drawn turned round at the top; tap your half under his man to shoot,
+  hold your end to tuck (`podH2HDown` / `podH2HUp`, one finger a hold), paint
+  slow enough to dodge, a trade scores nobody, first to three. Neither touches
+  `S.podBest` (`g.noBest`), and the names (`podNames`) live only while the app
+  is open. The game's keys stand aside in a name box.
 - Return a check's detail as its result. `check()` took `ok ||
   JSON.stringify({...})` as a pass, because a string is truthy: thirty-two
   checks could never fail, and two had been failing unseen. A returned

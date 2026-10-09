@@ -5713,6 +5713,10 @@ const POD = {W: 360, H: 560, hopperMax: 20, podsMax: 5};
 let pod = null;          // the running game, or null
 let podTaps = [];        // the taps on the name that open it
 let podBuzzed = 0;       // the break clock that last stopped a game: once a buzzer, across opens
+// Two teams on one phone: the names typed for a duel or head to head, and how
+// many play a side in a duel. Held for as long as the app is open, never saved.
+let podNames = ["", ""], podPer = 3;
+const podName = i => (String(podNames[i] || "").trim() || ["Red", "Blue"][i]).slice(0, 14);
 function podRng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 let podRand = Math.random;
 const POD_BUNKERS = [
@@ -5738,28 +5742,32 @@ function podOut(e){ return Math.min(1, e.age / 140) * Math.min(1, Math.max(0, e.
 function podLevel(g){ return 1 + Math.floor(g.score / 5); }
 function podStay(g){ return Math.max(700, 1500 - (g.level - 1) * 110); }
 function podSpawnGap(g){ return Math.max(450, 1300 - (g.level - 1) * 120); }
+// A duel deals both teams' turns in a round from one seed, so the same men
+// come up for each; solo and the suite's seed read the shared one.
+function podR(g){ return (g && g.rand || podRand)(); }
 function podSpawn(g){
   const most = Math.min(3, 1 + Math.floor((g.level - 1) / 2));
   if(g.enemies.length >= most) return;
   const free = POD_BUNKERS.map((b, i) => i).filter(i => !g.enemies.some(e => e.b === i));
   if(!free.length) return;
-  const i = free[Math.floor(podRand() * free.length)], b = POD_BUNKERS[i], side = podRand() < .5 ? -1 : 1;
+  const i = free[Math.floor(podR(g) * free.length)], b = POD_BUNKERS[i], side = podR(g) < .5 ? -1 : 1;
   const stay = podStay(g);
-  g.enemies.push({b: i, side, x: podLean(b, side, 0), y: b.y + 4, age: 0, stay, fireAt: stay * (0.45 + podRand() * 0.25), fired: false,
-                  num: [3, 7, 11, 21, 44, 5, 9][Math.floor(podRand() * 7)]});
+  g.enemies.push({b: i, side, x: podLean(b, side, 0), y: b.y + 4, age: 0, stay, fireAt: stay * (0.45 + podR(g) * 0.25), fired: false,
+                  num: [3, 7, 11, 21, 44, 5, 9][Math.floor(podR(g) * 7)]});
 }
 function podStep(g, dt){
   if(!g || g.phase !== "play") return;
+  if(g.kind === "h2h") return podH2HStep(g, dt);
   g.t += dt;
   g.level = podLevel(g);
   g.tucked = g.held || g.reload > 0;
   if(g.reload > 0){ g.reload -= dt; if(g.reload <= 0){ g.reload = 0; g.hopper = POD.hopperMax; } }
   g.nextSpawn -= dt;
-  if(g.nextSpawn <= 0){ podSpawn(g); g.nextSpawn = podSpawnGap(g) * (0.7 + podRand() * 0.6); }
+  if(g.nextSpawn <= 0){ podSpawn(g); g.nextSpawn = podSpawnGap(g) * (0.7 + podR(g) * 0.6); }
   g.nextDrop -= dt;
   if(g.nextDrop <= 0 && !g.drop && g.pods < POD.podsMax){
-    g.drop = {x: 70 + podRand() * 220, y: 395 + podRand() * 40, life: 3200};
-    g.nextDrop = 9000 + podRand() * 6000;
+    g.drop = {x: 70 + podR(g) * 220, y: 395 + podR(g) * 40, life: 3200};
+    g.nextDrop = 9000 + podR(g) * 6000;
   }
   if(g.drop){ g.drop.life -= dt; if(g.drop.life <= 0) g.drop = null; }
   g.enemies.forEach(e => {
@@ -5806,6 +5814,7 @@ function podStep(g, dt){
   }
 }
 function podOver(g){
+  if(g.noBest) return;   // a duel or head to head is the two teams', not his best
   // "A new best" only when it was kept: a full phone refuses the write.
   if(g.score > (S.podBest || 0)){ S.podBest = g.score; save(S); g.best = !_storeFail; }
 }
@@ -5820,10 +5829,113 @@ function podReload(g){
   if(!g || g.phase !== "play" || g.reload || !g.pods || g.hopper === POD.hopperMax) return;
   g.pods--; g.reload = 700;
 }
-function podDraw(){
-  const cv = document.getElementById("pod-canvas"); if(!cv || !pod) return;
-  const g = pod.g, ctx = cv.getContext("2d"), k = cv.width / POD.W;
-  ctx.setTransform(k, 0, 0, k, 0, 0);
+/* The duel: two teams pass the phone. Each player gets one life, the teams
+   turn about, and both turns of a round are dealt from one seed so the same
+   men come up for each side. Most outs between them wins. Nothing is saved:
+   a duel is the two teams', not his best. */
+function podDuelNew(){ return {per: podPer, turn: 0, outs: [[], []], seed: Math.floor(podRand() * 1e9), done: false}; }
+const podDuelSums = d => d.outs.map(a => a.reduce((n, x) => n + x, 0));
+function podDuelTurn(){
+  if(!pod.duel || pod.duel.done) pod.duel = podDuelNew();
+  const g = podFresh();
+  g.noBest = true; g.rand = podRng(pod.duel.seed + Math.floor(pod.duel.turn / 2));
+  return g;
+}
+// A turn that has ended is counted once, and the next team is up.
+function podDuelTick(){
+  const d = pod && pod.duel, g = pod && pod.g;
+  if(!d || pod.mode !== "duel" || !g || g.phase !== "out" || g.counted) return;
+  g.counted = true;
+  d.outs[d.turn % 2].push(g.score);
+  d.turn++;
+  if(d.turn >= d.per * 2) d.done = true;
+}
+function podAdvance(g, dt){ podStep(g, dt); podDuelTick(); }
+
+/* Head to head: two players, one screen. Red is at the bottom; blue sits at
+   the top and everything of his is drawn turned round, so each reads his own
+   end the right way up. Tap your own half under his man to shoot; hold your
+   own end to tuck. Paint takes long enough to cross the field that a man who
+   is watching can get in: a hit is a hit only on a man who was out. */
+const POD_H2H = {first: 3, hopper: 10, pods: 2, dur: 420, lull: 1500, mid: 280};
+// Blue's numbers are red's turned round the middle of the field.
+const POD_SIDE = [{y: 464, brick: 442, out: -18, half: y => y > 300, tuck: y => y >= 410},
+                  {y: 96, brick: 118, out: 18, half: y => y < 260, tuck: y => y <= 150}];
+function podH2HMan(holds){ return {hopper: POD_H2H.hopper, pods: POD_H2H.pods, reload: 0, holds: holds || 0, tucked: !!holds}; }
+function podH2HFresh(){
+  return {kind: "h2h", noBest: true, phase: "ready", t: 0, score: [0, 0], lull: 0, why: "", winner: -1,
+          p: [podH2HMan(), podH2HMan()], balls: [], splats: []};
+}
+const podManX = (g, i) => 180 + (g.p[i].tucked ? 0 : POD_SIDE[i].out);
+// A new round: full hoppers, nothing in the air. A finger still down holds.
+function podH2HRound(g){ g.p = g.p.map(m => podH2HMan(m.holds)); g.balls = []; g.lull = 0; g.why = ""; }
+function podH2HStep(g, dt){
+  g.t += dt;
+  g.splats.forEach(s => { s.age += dt; });
+  g.splats = g.splats.filter(s => s.age < 1400);
+  if(g.lull > 0){ g.lull -= dt; if(g.lull <= 0) podH2HRound(g); return; }
+  g.p.forEach(m => {
+    if(m.reload > 0){ m.reload -= dt; if(m.reload <= 0){ m.reload = 0; m.hopper = POD_H2H.hopper; } }
+    if(!m.hopper && !m.reload && m.pods){ m.pods--; m.reload = 700; }   // an empty hopper reloads itself
+    m.tucked = m.holds > 0 || m.reload > 0;
+  });
+  g.balls.forEach(b => { b.age += dt; });
+  // Every ball landing this frame lands before anything is decided: two men
+  // shot on one frame is a trade, and nobody takes the round.
+  const hit = [false, false];
+  for(const b of g.balls.filter(b => b.age >= b.dur)){
+    const o = 1 - b.from, c = b.from ? "#3d8bff" : "#e5342f";
+    if(!g.p[o].tucked && Math.abs(b.x1 - podManX(g, o)) < 15){ hit[o] = true; g.splats.push({x: podManX(g, o), y: POD_SIDE[o].y, c, age: 0, big: true}); }
+    else g.splats.push({x: b.x1, y: Math.abs(b.x1 - 180) < 26 ? POD_SIDE[o].brick : b.y1, c, age: 0});
+  }
+  g.balls = g.balls.filter(b => b.age < b.dur);
+  if(hit[0] || hit[1]){
+    if(hit[0] && hit[1]) g.why = "A trade — nobody takes it";
+    else { const w = hit[1] ? 0 : 1; g.score[w]++; g.why = `${podName(w)} takes it`; }
+    const top = Math.max(g.score[0], g.score[1]);
+    if(top >= POD_H2H.first){
+      g.winner = g.score[0] > g.score[1] ? 0 : 1; g.phase = "out";
+      g.why = `${podName(g.winner)} wins ${g.score[g.winner]}–${g.score[1 - g.winner]}`;
+      return;
+    }
+    g.lull = POD_H2H.lull; return;
+  }
+  // Both dry with nothing in the air: nobody can take the round, so it starts again.
+  if(!g.balls.length && g.p.every(m => !m.hopper && !m.pods && !m.reload)){ g.why = "Both dry — new round"; g.lull = POD_H2H.lull; }
+}
+function podH2HShoot(g, i, x){
+  if(!g || g.kind !== "h2h" || g.phase !== "play" || g.lull) return;
+  const m = g.p[i]; if(m.tucked || !m.hopper) return;
+  m.hopper--;
+  g.balls.push({from: i, x0: 180 + POD_SIDE[i].out, y0: POD_SIDE[i].y, x1: Math.max(20, Math.min(POD.W - 20, x)), y1: POD_SIDE[1 - i].y, age: 0, dur: POD_H2H.dur});
+}
+// A finger on his own end tucks him for as long as it stays down; a tap in
+// his half fires. The middle of the field is nobody's.
+function podH2HDown(g, id, x, y){
+  if(!g || g.kind !== "h2h" || g.phase !== "play") return;
+  const i = POD_SIDE[0].half(y) ? 0 : POD_SIDE[1].half(y) ? 1 : -1;
+  if(i < 0) return;
+  if(POD_SIDE[i].tuck(y)){ g.p[i].holds++; g.p[i].tucked = true; pod.holds.set(id, i); }
+  else podH2HShoot(g, i, x);
+}
+function podH2HUp(g, id){
+  if(!pod || !pod.holds.has(id)) return;
+  const i = pod.holds.get(id); pod.holds.delete(id);
+  if(g && g.kind === "h2h") g.p[i].holds = Math.max(0, g.p[i].holds - 1);
+}
+function podSetMode(m){
+  if(!pod || !["solo", "duel", "h2h"].includes(m) || pod.g.phase === "play" || pod.g.phase === "paused") return;
+  pod.mode = m; pod.duel = m === "duel" ? podDuelNew() : null; pod.holds = new Map();
+  pod.g = m === "h2h" ? podH2HFresh() : podFresh();
+  podDraw();
+}
+function podSetPer(n){
+  n = Math.max(1, Math.min(5, Math.round(Number(n)) || 1));
+  podPer = n;
+  if(pod && pod.duel && !pod.duel.turn) pod.duel.per = n;
+  podDraw();
+}
+function podGround(ctx, mid){
   ctx.fillStyle = "#0b0c0d"; ctx.fillRect(0, 0, POD.W, POD.H);
   ctx.fillStyle = "#101111"; ctx.fillRect(10, 40, POD.W - 20, POD.H - 70);
   ctx.strokeStyle = "#1d2022"; ctx.lineWidth = 1;
@@ -5831,16 +5943,63 @@ function podDraw(){
   for(let y = 40; y <= POD.H - 30; y += 40){ ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(POD.W - 10, y); ctx.stroke(); }
   ctx.fillStyle = "#3d8bff"; ctx.fillRect(10, 40, POD.W - 20, 3);
   ctx.fillStyle = "#e5342f"; ctx.fillRect(10, POD.H - 33, POD.W - 20, 3);
-  ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(239,237,235,.25)"; ctx.beginPath(); ctx.moveTo(10, 300); ctx.lineTo(POD.W - 10, 300); ctx.stroke(); ctx.setLineDash([]);
-  const grad = (c, y0, y1) => { const gr = ctx.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, c === "r" ? "#c2453d" : "#4a49c4"); gr.addColorStop(1, c === "r" ? "#7d1512" : "#25246e"); return gr; };
-  const bunker = b => {
-    ctx.fillStyle = grad(b.c, b.y - 18, b.y + 18); ctx.strokeStyle = b.c === "r" ? "#5c0f0d" : "#1b1a55"; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    if(b.t === "can") ctx.arc(b.x, b.y, 15, 0, Math.PI * 2);
-    else if(b.t === "temple"){ ctx.moveTo(b.x, b.y - 18); ctx.lineTo(b.x + 16, b.y); ctx.lineTo(b.x, b.y + 18); ctx.lineTo(b.x - 16, b.y); ctx.closePath(); }
-    else ctx.rect(b.x - 22, b.y - 12, 44, 24);
-    ctx.fill(); ctx.stroke();
-  };
+  ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(239,237,235,.25)"; ctx.beginPath(); ctx.moveTo(10, mid); ctx.lineTo(POD.W - 10, mid); ctx.stroke(); ctx.setLineDash([]);
+}
+function podBunker(ctx, b){
+  const gr = ctx.createLinearGradient(0, b.y - 18, 0, b.y + 18);
+  gr.addColorStop(0, b.c === "r" ? "#c2453d" : "#4a49c4"); gr.addColorStop(1, b.c === "r" ? "#7d1512" : "#25246e");
+  ctx.fillStyle = gr; ctx.strokeStyle = b.c === "r" ? "#5c0f0d" : "#1b1a55"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  if(b.t === "can") ctx.arc(b.x, b.y, 15, 0, Math.PI * 2);
+  else if(b.t === "temple"){ ctx.moveTo(b.x, b.y - 18); ctx.lineTo(b.x + 16, b.y); ctx.lineTo(b.x, b.y + 18); ctx.lineTo(b.x - 16, b.y); ctx.closePath(); }
+  else ctx.rect(b.x - 22, b.y - 12, 44, 24);
+  ctx.fill(); ctx.stroke();
+}
+function podBalls(ctx, g){
+  g.balls.forEach(b => {
+    const f = Math.min(1, b.age / b.dur), x = b.x0 + (b.x1 - b.x0) * f, y = b.y0 + (b.y1 - b.y0) * f;
+    ctx.fillStyle = "#0b0c0d"; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = (b.mine || b.from === 0) ? "#e5342f" : "#3d8bff"; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  });
+  g.splats.forEach(s => {
+    ctx.globalAlpha = Math.max(0, 1 - s.age / 1400); ctx.fillStyle = s.c;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+  });
+}
+// A line in the biggest size up to `size` that fits `max` wide: a team's name
+// is whatever was typed, and the canvas does not wrap.
+function podFitFont(ctx, text, max, size, weight){
+  let n = size; ctx.font = `${weight} ${n}px system-ui, sans-serif`;
+  while(n > 12 && ctx.measureText(text).width > max){ n -= 2; ctx.font = `${weight} ${n}px system-ui, sans-serif`; }
+}
+// What the cover over a stopped solo game or duel says.
+function podSoloText(g){
+  if(g.phase === "paused") return {title: "PAUSED", lines: [...(g.buzz ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]};
+  const d = pod.mode === "duel" && pod.duel;
+  if(d){
+    const sum = podDuelSums(d), score = `${podName(0)} ${sum[0]} · ${podName(1)} ${sum[1]}`;
+    if(d.done){
+      const w = sum[0] === sum[1] ? -1 : sum[0] > sum[1] ? 0 : 1;
+      return {title: w < 0 ? "A TIE" : `${podName(w).toUpperCase()} WIN`, lines: [score, ...[0, 1].map(i => `${podName(i)}: ${d.outs[i].join(", ")}`)]};
+    }
+    if(g.phase === "out"){
+      const was = d.turn - 1;
+      return {title: `${g.score} OUT`, lines: [`${podName(was % 2)} · player ${Math.floor(was / 2) + 1} · ${g.why}`, score,
+        `Hand it to ${podName(d.turn % 2)} · player ${Math.floor(d.turn / 2) + 1}`]};
+    }
+    return {title: "DUEL", lines: [`${podName(0)} v ${podName(1)} · ${d.per} a side`, "One life each, the teams turn about.",
+      "Same men each round. Most outs wins.", `First up: ${podName(0)} · player 1`]};
+  }
+  if(g.phase === "out") return {title: "YOU'RE OUT", lines: [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]};
+  return {title: "POD WARS", lines: ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."]};
+}
+function podH2HText(g){
+  if(g.phase === "paused") return {title: "PAUSED", lines: ["Tap Resume when you are both ready."]};
+  if(g.phase === "out") return {title: `${podName(g.winner).toUpperCase()} WINS`, lines: [`${g.score[g.winner]}–${g.score[1 - g.winner]}`, "Rematch to go again."]};
+  return {title: "HEAD TO HEAD", lines: ["Lay it flat between you.", "Tap your half under his man to shoot.", "Hold your end to tuck.", `First to ${POD_H2H.first} hits.`]};
+}
+function podSoloDraw(ctx, g){
+  podGround(ctx, 300);
   // Their men are drawn first, so the bunker covers the half still behind it.
   g.enemies.forEach(e => {
     const x = e.x;
@@ -5848,7 +6007,7 @@ function podDraw(){
     ctx.fillRect(x - 9, e.y - 9, 18, 18); ctx.strokeRect(x - 9, e.y - 9, 18, 18);
     ctx.fillStyle = "#0b0c0d"; ctx.font = "700 9px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(e.num), x, e.y + 3);
   });
-  POD_BUNKERS.forEach(bunker);
+  POD_BUNKERS.forEach(b => podBunker(ctx, b));
   if(g.drop){
     ctx.save(); ctx.translate(g.drop.x, g.drop.y); ctx.rotate(.5);
     ctx.fillStyle = "#efedeb"; ctx.fillRect(-6, -14, 12, 28); ctx.fillStyle = "#e5342f"; ctx.fillRect(-6, -14, 12, 6);
@@ -5857,53 +6016,126 @@ function podDraw(){
   const meX = POD_ME.x + (g.tucked ? 0 : -18);
   ctx.fillStyle = "#e5342f"; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(meX, POD_ME.y - 6, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  bunker({x: POD_ME.x, y: POD_ME.y - 28, t: "brick", c: "r"});
-  g.balls.forEach(b => {
-    const f = Math.min(1, b.age / b.dur), x = b.x0 + (b.x1 - b.x0) * f, y = b.y0 + (b.y1 - b.y0) * f;
-    ctx.fillStyle = "#0b0c0d"; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = b.mine ? "#e5342f" : "#3d8bff"; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
-  });
-  g.splats.forEach(s => {
-    ctx.globalAlpha = Math.max(0, 1 - s.age / 1400); ctx.fillStyle = s.c;
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-  });
+  podBunker(ctx, {x: POD_ME.x, y: POD_ME.y - 28, t: "brick", c: "r"});
+  podBalls(ctx, g);
   ctx.fillStyle = "#efedeb"; ctx.font = "800 15px system-ui, sans-serif"; ctx.textAlign = "left";
   ctx.fillText(`OUT ${g.score}`, 14, 26);
   ctx.textAlign = "right"; ctx.fillStyle = "#8d9092"; ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillText(`BEST ${Math.max(S.podBest || 0, g.score)} · LEVEL ${g.level}`, POD.W - 14, 26);
+  const d = pod.mode === "duel" && pod.duel;
+  const sums = d && podDuelSums(d);
+  ctx.fillText(d ? (d.done ? `${podName(0).toUpperCase()} ${sums[0]} · ${podName(1).toUpperCase()} ${sums[1]}` : `${podName(d.turn % 2).toUpperCase()} ${Math.floor(d.turn / 2) + 1}/${d.per} · LEVEL ${g.level}`)
+    : `BEST ${Math.max(S.podBest || 0, g.score)} · LEVEL ${g.level}`, POD.W - 14, 26);
   // The hopper, along the bottom.
   ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
   ctx.fillStyle = g.reload ? "#8d9092" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
   ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
   ctx.fillText(g.reload ? "LOADING" : g.hopper ? `${g.hopper} IN THE HOPPER` : g.pods ? "EMPTY · TAP POD" : "EMPTY · GRAB A POD", 180, POD.H - 14);
   if(g.phase !== "play"){
+    const t = podSoloText(g);
     ctx.fillStyle = "rgba(11,12,13,.82)"; ctx.fillRect(0, 0, POD.W, POD.H);
-    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; ctx.font = "900 40px system-ui, sans-serif";
-    ctx.fillText(g.phase === "out" ? "YOU'RE OUT" : g.phase === "paused" ? "PAUSED" : "POD WARS", POD.W / 2, 210);
-    ctx.font = "600 14px system-ui, sans-serif"; ctx.fillStyle = "#8d9092";
-    const lines = g.phase === "out" ? [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]
-      : g.phase === "paused" ? [...(g.buzz ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]
-      : ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."];
-    lines.forEach((l, i) => ctx.fillText(l, POD.W / 2, 248 + i * 22));
+    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, t.title, POD.W - 30, 40, 900);
+    ctx.fillText(t.title, POD.W / 2, 210);
+    ctx.fillStyle = "#8d9092";
+    t.lines.forEach((l, i) => { podFitFont(ctx, l, POD.W - 24, 14, 600); ctx.fillText(l, POD.W / 2, 248 + i * 22); });
   }
-  const tuck = document.getElementById("pod-tuck"), re = document.getElementById("pod-pod"), go = document.getElementById("pod-go");
-  if(tuck){ tuck.classList.toggle("on", !!g.tucked); if(tuck.getAttribute("aria-pressed") !== String(!!g.tucked)) tuck.setAttribute("aria-pressed", String(!!g.tucked)); }
+}
+function podH2HDraw(ctx, g){
+  podGround(ctx, POD_H2H.mid);
+  // Blue's end is red's turned round the middle of the field.
+  const turned = f => { ctx.save(); ctx.translate(POD.W, POD.H); ctx.rotate(Math.PI); f(); ctx.restore(); };
+  const each = f => { f(0); turned(() => f(1)); };
+  each(i => {
+    const m = g.p[i], c = i ? "#3d8bff" : "#e5342f";
+    ctx.fillStyle = "rgba(239,237,235,.035)"; ctx.fillRect(10, 410, POD.W - 20, POD.H - 443);
+    ctx.fillStyle = "rgba(239,237,235,.3)"; ctx.font = "700 10px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("TAP HERE, UNDER HIS MAN, TO SHOOT", POD.W / 2, 384);
+    ctx.fillText("HOLD YOUR END TO TUCK", POD.W / 2, 512);
+    ctx.fillStyle = c; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(180 + (m.tucked ? 0 : -18), POD_SIDE[0].y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    podBunker(ctx, {x: 180, y: POD_SIDE[0].brick, t: "brick", c: i ? "b" : "r"});
+    ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
+    ctx.fillStyle = m.reload ? "#8d9092" : c; ctx.fillRect(14, POD.H - 22, 160 * (m.reload ? 1 - m.reload / 700 : m.hopper / POD_H2H.hopper), 8);
+    ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
+    ctx.fillText(m.reload ? "LOADING" : m.hopper ? `${m.hopper} LEFT · ${m.pods} POD${m.pods === 1 ? "" : "S"}` : "DRY", 180, POD.H - 14);
+    // The score, on his own side of the fifty, his name first.
+    const sc = `${podName(i)} ${g.score[i]} · ${g.score[1 - i]} ${podName(1 - i)}`;
+    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, sc, POD.W - 40, 15, 800);
+    ctx.fillText(sc, POD.W / 2, POD_H2H.mid + 24);
+  });
+  podBalls(ctx, g);
+  if(g.lull > 0 && g.why) each(() => {
+    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, g.why, POD.W - 40, 22, 800);
+    ctx.fillText(g.why, POD.W / 2, POD_H2H.mid + 62);
+  });
+  if(g.phase !== "play"){
+    const t = podH2HText(g);
+    ctx.fillStyle = "rgba(11,12,13,.82)"; ctx.fillRect(0, 0, POD.W, POD.H);
+    each(() => {
+      ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, t.title, POD.W - 30, 32, 900);
+      ctx.fillText(t.title, POD.W / 2, 350);
+      ctx.fillStyle = "#8d9092";
+      t.lines.forEach((l, i) => { podFitFont(ctx, l, POD.W - 24, 14, 600); ctx.fillText(l, POD.W / 2, 382 + i * 20); });
+    });
+  }
+}
+function podDraw(){
+  const cv = document.getElementById("pod-canvas"); if(!cv || !pod) return;
+  const g = pod.g, ctx = cv.getContext("2d"), k = cv.width / POD.W;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  if(g.kind === "h2h") podH2HDraw(ctx, g); else podSoloDraw(ctx, g);
+  podChrome(cv, g);
+}
+// The buttons and what a screen reader hears, kept in step with the game.
+// Each is written only when it changes: this runs every frame.
+function podChrome(cv, g){
+  const el = pod.el, h2h = g.kind === "h2h", d = pod.mode === "duel" && pod.duel;
+  const idle = g.phase !== "play" && g.phase !== "paused", duelOn = !!(d && d.turn > 0 && !d.done);
+  const show = (n, v) => { if(n && n.hidden === !!v){ n.hidden = !v; pod.refit = true; } };
+  const press = (b, v) => { if(b.getAttribute("aria-pressed") !== String(v)) b.setAttribute("aria-pressed", String(v)); };
+  const tuck = el.querySelector("#pod-tuck"), re = el.querySelector("#pod-pod"), go = el.querySelector("#pod-go");
+  // The game picker and the names show only between games, never mid-duel.
+  show(el.querySelector(".pod-modes"), idle && !duelOn);
+  show(el.querySelector(".pod-setup"), idle && !duelOn && pod.mode !== "solo");
+  show(el.querySelector(".pod-per"), pod.mode === "duel");
+  el.querySelectorAll("[data-mode]").forEach(b => press(b, b.dataset.mode === pod.mode));
+  el.querySelectorAll("[data-per]").forEach(b => press(b, Number(b.dataset.per) === (d ? d.per : podPer)));
+  // Between duel turns Pod and Tuck do nothing, and the button that hands
+  // the phone on names the next team: it takes the whole row.
+  const kit = !h2h && !(d && idle);
+  show(re, kit); show(tuck, kit);
+  if(pod.refit){ pod.refit = false; requestAnimationFrame(podFit); }
+  if(tuck && kit){ tuck.classList.toggle("on", !!g.tucked); press(tuck, !!g.tucked); }
   // What the canvas shows, said: the field is a picture to a screen reader.
-  const label = `Pod Wars field: tap their men to shoot. ${g.score} out, best ${Math.max(S.podBest || 0, g.score)}, level ${g.level}, ${g.hopper} in the hopper.`;
+  let label, line = "";
+  if(h2h){
+    label = `Head to head, first to ${POD_H2H.first}: ${podName(0)} ${g.score[0]}, ${podName(1)} ${g.score[1]}. Tap your half to shoot, hold your end to tuck.`;
+    line = g.phase === "out" || g.lull > 0 ? g.why : g.phase === "paused" ? "Paused." : "";
+  } else {
+    const sum = d && podDuelSums(d);
+    label = d ? `Duel: ${podName(0)} ${sum[0]}, ${podName(1)} ${sum[1]}. ${d.done ? "" : `${podName(d.turn % 2)} player ${Math.floor(d.turn / 2) + 1} of ${d.per}: `}${g.score} out, ${g.hopper} in the hopper.`
+      : `Pod Wars field: tap their men to shoot. ${g.score} out, best ${Math.max(S.podBest || 0, g.score)}, level ${g.level}, ${g.hopper} in the hopper.`;
+    if(g.phase === "paused") line = `Paused.${g.buzz ? " The break clock is out." : ""}`;
+    else if(g.phase === "out"){ const t = podSoloText(g); line = `${t.title}. ${t.lines.join(". ")}.`; }
+  }
   if(cv.getAttribute("aria-label") !== label) cv.setAttribute("aria-label", label);
-  const say = document.getElementById("pod-say"),
-        line = g.phase === "out" ? `You're out. ${g.why || ""} ${g.score} out${g.best ? ", a new best" : ""}.` : g.phase === "paused" ? `Paused.${g.buzz ? " The break clock is out." : ""}` : "";
+  const say = el.querySelector("#pod-say");
   if(say && say.textContent !== line) say.textContent = line;
   // Pod says when it cannot load: nothing to load, loading already, or a full hopper.
-  if(re){ re.textContent = `Pod · ${g.pods}`; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
-  if(go){ go.hidden = g.phase === "play"; go.textContent = g.phase === "out" ? "Play again" : g.phase === "paused" ? "Resume" : "Play"; }
+  if(re && kit){ re.textContent = `Pod · ${g.pods}`; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
+  if(go){
+    go.hidden = g.phase === "play";
+    const word = g.phase === "paused" ? "Resume" : h2h ? (g.phase === "out" ? "Rematch" : "Play")
+      : d ? (d.done ? "Duel again" : d.turn ? `Play · ${podName(d.turn % 2)} ${Math.floor(d.turn / 2) + 1}` : "Start the duel")
+      : g.phase === "out" ? "Play again" : "Play";
+    if(go.textContent !== word) go.textContent = word;
+  }
   // The game stopped under his thumb: the next press is Play, not Tuck.
   if(go && !go.hidden && tuck && document.activeElement === tuck) go.focus({preventScroll: true});
 }
 function podLoop(now){
   if(!pod) return;
   const dt = Math.min(50, now - (pod.last || now)); pod.last = now;
-  podStep(pod.g, dt);
+  podAdvance(pod.g, dt);
   // The break clock is the coach's, and it does not stop for a game: at zero
   // the game stops instead, so the buzzer finds him on the sideline.
   // Once a buzzer: Resume after it plays on, rather than stopping again every
@@ -5947,10 +6179,26 @@ window.podWars = {
       #podwars .pod-clock [data-clock]{color:#efedeb}
       #podwars .pod-clock .clock--late{color:#e0a33a}
       #podwars .pod-clock .clock--out{color:#e5252a}
+      #podwars .pod-modes,#podwars .pod-setup{display:flex;gap:8px;width:100%;max-width:640px;margin:0 auto;flex-wrap:wrap}
+      #podwars .pod-modes[hidden],#podwars .pod-setup[hidden],#podwars .pod-per[hidden]{display:none}
+      #podwars .pod-modes button,#podwars .pod-per button{flex:1;min-height:44px;min-width:44px;border-radius:8px;border:1px solid #2a2e30;background:#141617;color:#8d9092;
+        font:800 clamp(11px,3.1vw,12px) system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;line-height:1.1;padding:0 4px;text-align:center}
+      #podwars .pod-modes button[aria-pressed="true"],#podwars .pod-per button[aria-pressed="true"]{color:#efedeb;border-color:#ad1515;background:#2a1213}
+      #podwars .pod-setup input{flex:1 1 130px;min-width:0;min-height:44px;border-radius:8px;border:1px solid #e5342f;background:#141617;color:#efedeb;
+        font:600 16px system-ui,sans-serif;padding:0 12px}
+      #podwars .pod-setup input + input{border-color:#3d8bff}
+      #podwars .pod-per{display:flex;gap:6px;align-items:center;flex:1 1 100%}
+      #podwars .pod-per span{font:800 11px system-ui,sans-serif;letter-spacing:.12em;color:#8d9092;white-space:nowrap;padding-right:4px}
     </style>
     <div class="pod-top"><b>POD WARS</b><span>${S.clockEnd ? `<span class="pod-clock">BREAK <span class="${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock>${mmss(clockLeft())}</span></span>` : ""}</span><button type="button" id="pod-close">Close</button></div>
     <div id="pod-stage"><canvas id="pod-canvas" role="img" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
     <p id="pod-say" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0"></p>
+    <div class="pod-setup" hidden>
+      <input id="pod-n0" aria-label="Red team's name" placeholder="Red team" maxlength="16" autocomplete="off" value="${esc(podNames[0])}">
+      <input id="pod-n1" aria-label="Blue team's name" placeholder="Blue team" maxlength="16" autocomplete="off" value="${esc(podNames[1])}">
+      <div class="pod-per" role="group" aria-label="Players a side" hidden><span>A SIDE</span>${[1, 2, 3, 4, 5].map(n => `<button type="button" data-per="${n}" aria-pressed="false">${n}</button>`).join("")}</div>
+    </div>
+    <div class="pod-modes" role="group" aria-label="Which game"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duel" aria-pressed="false">Duel</button><button type="button" data-mode="h2h" aria-pressed="false">Head to head</button></div>
     <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck" aria-pressed="false">Tuck</button></div>`;
     // A dialog in fact as well as in name: the app underneath takes no focus,
     // no tap and no key while it is up, and focus goes back where it was.
@@ -5958,16 +6206,22 @@ window.podWars = {
     const under = [...document.body.children].filter(c => c.tagName !== "SCRIPT" && !c.inert);
     under.forEach(c => { c.inert = true; });
     document.body.appendChild(el);
-    pod = {g: podFresh(), raf: 0, last: 0, el, back, under};
+    pod = {g: podFresh(), raf: 0, last: 0, el, back, under, mode: "solo", duel: null, holds: new Map(), refit: false};
     // Holding Tuck is a long press, and a long press opens the phone's menu,
     // which cancels the press and stands him up into the paint.
     el.addEventListener("contextmenu", ev => ev.preventDefault());
     const cv = el.querySelector("#pod-canvas");
     cv.addEventListener("pointerdown", ev => {
       ev.preventDefault();
-      const r = cv.getBoundingClientRect();
-      podTapAt(pod.g, (ev.clientX - r.left) / r.width * POD.W, (ev.clientY - r.top) / r.height * POD.H);
+      const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * POD.W, y = (ev.clientY - r.top) / r.height * POD.H;
+      if(pod.g.kind === "h2h") podH2HDown(pod.g, ev.pointerId, x, y); else podTapAt(pod.g, x, y);
     });
+    // A finger lifted off his end stands him back up.
+    ["pointerup", "pointercancel", "pointerleave"].forEach(t => cv.addEventListener(t, ev => podH2HUp(pod && pod.g, ev.pointerId)));
+    el.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => podSetMode(b.dataset.mode)));
+    el.querySelectorAll("[data-per]").forEach(b => b.addEventListener("click", () => podSetPer(b.dataset.per)));
+    // A name is drawn on the canvas as it is typed; nothing here is saved.
+    [0, 1].forEach(i => el.querySelector(`#pod-n${i}`).addEventListener("input", ev => { podNames[i] = ev.target.value.slice(0, 16); podDraw(); }));
     const tuck = el.querySelector("#pod-tuck"), hold = v => ev => { ev.preventDefault(); if(pod) pod.g.held = v; };
     tuck.addEventListener("pointerdown", hold(true));
     ["pointerup", "pointercancel", "pointerleave"].forEach(t => tuck.addEventListener(t, hold(false)));
@@ -5975,6 +6229,9 @@ window.podWars = {
     el.querySelector("#pod-go").addEventListener("click", () => window.podWars.play());
     el.querySelector("#pod-close").addEventListener("click", () => window.podWars.close());
     window.addEventListener("resize", podFit);
+    // The game picker and the names come and go between games, and the
+    // field takes whatever height they leave it.
+    if(typeof ResizeObserver === "function"){ pod.ro = new ResizeObserver(() => podFit()); pod.ro.observe(el.querySelector("#pod-stage")); }
     window.addEventListener("keydown", podKey, true); window.addEventListener("keyup", podKey, true);
     if(S.clockEnd) tickClock();
     requestAnimationFrame(podFit);
@@ -5983,13 +6240,17 @@ window.podWars = {
   },
   play(){
     if(!pod || pod.g.phase === "play") return;
-    if(pod.g.phase !== "paused") pod.g = podFresh();
+    if(pod.g.phase !== "paused") pod.g = pod.mode === "h2h" ? podH2HFresh() : pod.mode === "duel" ? podDuelTurn() : podFresh();
+    pod.holds = new Map();
+    if(pod.g.kind === "h2h") pod.g.p.forEach(m => { m.holds = 0; m.tucked = m.reload > 0; });
     pod.g.phase = "play"; pod.g.buzz = false; pod.last = 0;
     cancelAnimationFrame(pod.raf); pod.raf = requestAnimationFrame(podLoop);
     // Play hides itself; focus goes to Tuck rather than falling to the page.
     if(pod.el.contains(document.activeElement) || document.activeElement === document.body){ const t = pod.el.querySelector("#pod-tuck"); if(t) t.focus(); }
   },
   pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0;
+    // A finger held down when the app went away never comes up here.
+    pod.holds = new Map(); if(pod.g.kind === "h2h") pod.g.p.forEach(m => { m.holds = 0; });
     // Hidden is the last moment the game is sure to run: the system may close
     // the app from here, so a best is kept now, the way Close keeps it.
     podOver(pod.g); podDraw(); } },
@@ -5998,7 +6259,8 @@ window.podWars = {
     cancelAnimationFrame(pod.raf);
     // Closing mid-game is not losing what he scored: a best is a best.
     if(pod.g.phase === "play" || pod.g.phase === "paused") podOver(pod.g);
-    const {back, under} = pod;
+    const {back, under, ro} = pod;
+    if(ro) ro.disconnect();
     pod.el.remove(); pod = null;
     under.forEach(c => { c.inert = false; });
     window.removeEventListener("resize", podFit);
@@ -6008,8 +6270,14 @@ window.podWars = {
   },
   // For the suite: a seeded game it can step by hand.
   seed(n){ podRand = n === undefined ? Math.random : podRng(n); },
-  state(){ return pod ? {...pod.g, enemies: pod.g.enemies.map(e => ({...e})), open: true, running: !!pod.raf} : {open: false}; },
-  step(ms){ if(pod){ cancelAnimationFrame(pod.raf); pod.raf = 0; for(let t = 0; t < ms; t += 16) podStep(pod.g, 16); podDraw(); } },
+  state(){ return pod ? {...pod.g, enemies: (pod.g.enemies || []).map(e => ({...e})), open: true, running: !!pod.raf, mode: pod.mode} : {open: false}; },
+  step(ms){ if(pod){ cancelAnimationFrame(pod.raf); pod.raf = 0; for(let t = 0; t < ms; t += 16) podAdvance(pod.g, 16); podDraw(); } },
+  mode(m){ podSetMode(m); },
+  per(n){ podSetPer(n); },
+  duel(){ return pod && pod.duel ? JSON.parse(JSON.stringify(pod.duel)) : null; },
+  // Head to head, by player: 0 is red at the bottom, 1 is blue at the top.
+  shoot(i, x){ if(pod) podH2HShoot(pod.g, i, x); },
+  hold(i, v){ if(pod && pod.g.kind === "h2h"){ const m = pod.g.p[i]; m.holds = v ? 1 : 0; m.tucked = !!v || m.reload > 0; } },
   tap(x, y){ if(pod) podTapAt(pod.g, x, y); },
   tuck(v){ if(pod) pod.g.held = !!v; },
   reload(){ if(pod) podReload(pod.g); }
@@ -6020,6 +6288,8 @@ function podKey(ev){
   if(!pod) return;
   ev.stopPropagation();
   if(ev.key === "Escape" && ev.type === "keydown"){ ev.preventDefault(); window.podWars.close(); return; }
+  // A team's name is being typed: Space is a space and R is a letter.
+  if(ev.target instanceof HTMLInputElement) return;
   // Space presses the button it is on, as anywhere; it is Tuck only on Tuck or on no button.
   const onButton = ev.target instanceof HTMLButtonElement && ev.target.id !== "pod-tuck";
   if(ev.key === "ArrowDown" || (ev.key === " " && !onButton)){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
