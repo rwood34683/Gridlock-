@@ -1828,6 +1828,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   `gameOnList`), and a page pasted twice, or one that overlaps the last,
   adds only the rows the list does not have and says how many it already
   had — the league's own rows included.
+- Keep a play's five on five different bunkers. A coach doubles up home, or
+  the snake, and the builder took a second tap on a bunker as "take him off".
+  A tap on the field only ever places now — on a bunker that already has a man
+  it puts the next man beside him, two at most (`PLAY_DOUBLE`) — and a man
+  comes off by **Take off** on his own row (`playOff`). The two run to two
+  spots seven feet apart (`breakPaths`) and the builder's squares sit side by
+  side (`fiveSquares`), or one dot hides the other.
 - Hand two classes one code. A class code is what a kid types to find the
   sheet; four random characters collide rarely, and when they did the second
   class could never be signed in to. `freeClassCode()` draws until the code

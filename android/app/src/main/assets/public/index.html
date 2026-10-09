@@ -1186,9 +1186,13 @@ function breakPaths(layoutKey, scriptKey){
   const slot = {};
   order.forEach((idx, k) => { slot[idx] = cy - 8 + k * 4; });   // a 16 ft station
 
+  // A doubled-up bunker takes its two men side by side, seven feet
+  // apart — a marker is three feet across — so the runs and the dots at
+  // the end of them read as two men.
   const runs = targets.map((b, i) => {
     const from = [3, slot[i]];
-    const to = [b.x, b.y];
+    const k = plants.slice(0, i).filter(x => x === b.id).length, n = plants.filter(x => x === b.id).length;
+    const to = [b.x, b.y + (k - (n - 1) / 2) * 7];
     const via = routeClear(from, to, b.id, obstacles);
     const pts = [from, ...via, to];
     let len = 0;
@@ -2641,7 +2645,7 @@ if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
 
 // A half-finished paste is scratch, not a record. It should not still be sitting
 // open three days later at the next event.
-S.paste = null; S.pasteSide = ""; S.pasteNote = "";
+S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = "";
 
 /* Everything a coach was in the middle of, cleared the same way.
  *
@@ -2675,7 +2679,7 @@ function clearScratch(s = S){
   // A half-finished roster paste, the tutorial left open and the game being
   // replayed are places he was standing — a restore or a Replace brought them
   // back, and the tutorial opened itself after sign-in.
-  s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.showTutorial = false; s.replayMatch = null;
+  s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
   s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false;
 }
@@ -3365,13 +3369,25 @@ window.cancelPlay = () => set({building: null});
 // A man keeps his number. Taking him off leaves his slot open and the next
 // bunker tapped fills it, so moving man 3 is two taps and 4 and 5 stay 4 and
 // 5 — they used to slide up and his Face, Shot and job went with the slot.
+// Any bunker can be doubled up: a tap on one that already has a man puts the
+// next man there with him, two at most. So a tap on the field only ever
+// places, and a man comes off by the Take off on his own row.
+const PLAY_DOUBLE = 2;
 window.playPick = id => {
   const b = S.building; if(!b) return;
   const five = [...(b.plants || [])];
   while(five.length < 5) five.push(null);
-  const at = five.indexOf(id);
-  if(at >= 0) five[at] = null;                  // tap a picked bunker to take him off
-  else { const open = five.indexOf(null); if(open < 0){ flash("All five are placed. Tap one of them to take him off first."); return; } five[open] = id; }
+  const open = five.indexOf(null);
+  if(open < 0){ flash("All five are placed. Take one off on his row first."); return; }
+  if(five.filter(x => x === id).length >= PLAY_DOUBLE){ flash(`Two men is the most on one bunker. Men ${five.map((x, i) => x === id ? i + 1 : 0).filter(Boolean).join(" and ")} are already there.`); return; }
+  five[open] = id;
+  set({building: {...b, plants: five}});
+};
+window.playOff = n => {
+  const b = S.building; if(!b) return;
+  const five = [...(b.plants || [])];
+  while(five.length < 5) five.push(null);
+  five[n - 1] = null;
   set({building: {...b, plants: five}});
 };
 const fullFive = five => Array.isArray(five) && five.length === 5 && five.every(Boolean);
@@ -7473,9 +7489,12 @@ function plantCounts(side = "right"){
 // Five numbered squares — square because a runner on the break is a circle.
 function fiveSquares(ids, sx, sy, colour){
   const bl = curLayout().bunkers;
+  // Two men on one bunker sit side by side, not one square over the other.
+  const many = id => (ids || []).filter(x => x === id).length;
   return (ids || []).map((id, i) => {
     const b = bl.find(x => x.id === id); if(!b) return "";
-    const x = b.x*sx, y = b.y*sy, r = 6.2;
+    const r = 6.2, k = (ids || []).slice(0, i).filter(x => x === id).length, n = many(id);
+    const x = b.x*sx, y = b.y*sy + (k - (n - 1) / 2) * (r * 2 + 1.5);
     return `<g class="their-five" opacity=".95">`
       + `<rect x="${(x-r-0.6).toFixed(1)}" y="${(y-r-0.6).toFixed(1)}" width="${(r*2+1.2).toFixed(1)}" height="${(r*2+1.2).toFixed(1)}" rx="2.4" fill="#000" opacity=".55"/>`
       + `<rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" height="${(r*2).toFixed(1)}" rx="2" fill="${colour}" stroke="#efedeb" stroke-width="1.3"/>`
@@ -7707,7 +7726,7 @@ function parseRoster(text, team){
   });
   return {found: found.slice(0, 40), skipped};
 }
-window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = ""; save(S); render(); };
+window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = ""; S.pasteNoteSide = ""; save(S); render(); };
 window.closePaste = () => { S.pasteSide = ""; S.paste = null; save(S); render(); };
 window.readRoster = side => {
   const el = document.getElementById("rosterIn"), text = el ? el.value : "";
@@ -7741,6 +7760,9 @@ window.keepRoster = () => {
   });
   editProfile(side, {players});
   S.pasteSide = ""; S.paste = null;
+  // The note is the card's it was added to: printed under both pits, "Added
+  // 5." sat under a team with nobody on it and read as five men lost.
+  S.pasteNoteSide = side;
   S.pasteNote = `Added ${added}.` + (filled ? ` ${filled} already on the card ${filled===1?"was":"were"} filled in.` : "")
     + (same ? ` ${same} ${same===1?"was":"were"} already logged.` : "");
   save(S); render();
@@ -8575,21 +8597,25 @@ function playBuilder(){
   const elsewhere = Object.keys(b.every || {}).filter(l => l !== S.layoutKey && LAYOUTS[l]).map(l => LAYOUTS[l].name);
   return sec(from ? "Make it yours" : b.k ? "Build it on this field" : "A play of your own", `
     ${from ? `<p class="lede">Started from the app's <b>${esc(callName(from))}</b>, every man where it
-      puts him. Tap a man's bunker to take him off, then tap where you want him — he keeps his
-      number. Give it the name your team shouts.</p>
+      puts him. Take a man off on his row, then tap where you want him — he keeps his
+      number. Tap a bunker that already has a man to double it up. Give it the name your team shouts.</p>
       ${elsewhere.length ? `<p class="note">It comes with the same call's five on ${esc(elsewhere.join(", "))}, so it is built there too. Edit it on that field to move a man there.</p>` : ""}`
     : `<p class="lede">Tap the bunker each man plants on, in order — one is the
-      first name you tap, five is the last. Tap a picked bunker again to take him off.
+      first name you tap, five is the last. Tap a bunker that already has a man to
+      double it up; take a man off on his row.
       The app draws the runs and works out who leaves on the buzzer; Go on each man's row says otherwise.</p>`}
     <div class="fld"><label for="pl-name">What you call it</label>
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
         onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
     <div class="field-wrap" id="build-map">${fieldSVG({static:true, pick:true, noPaths:true, names:true,
       overlay: fiveSquares(five, 2, 2, "#e5342f")})}</div>
-    <div class="assigns">${[1,2,3,4,5].map(n => `<div class="assign">
-      <span class="assign__n"${five[n-1] ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
-      <span class="assign__body"><span class="assign__job">${five[n-1] ? esc(nameOf(five[n-1])) : "tap his bunker"}</span></span>
-    </div>`).join("")}</div>
+    <div class="assigns">${[1,2,3,4,5].map(n => {
+      const id = five[n-1], mate = id ? five.findIndex((x, i) => x === id && i !== n - 1) : -1;
+      return `<div class="assign">
+      <span class="assign__n"${id ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
+      <span class="assign__body"><span class="assign__job">${id ? esc(nameOf(id)) : "tap his bunker"}</span>${mate >= 0 ? `<span class="assign__who">doubled up with ${mate + 1}</span>` : ""}</span>
+      ${id ? `<span class="assign__ctl"><button class="btn btn--quiet" onclick="playOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
+    </div>`; }).join("")}</div>
     <div class="fld"><label for="pl-read">The read, in your words</label>
       <input id="pl-read" value="${esc(b.read || "")}" maxlength="140"
         placeholder="Overload the snake, centre holds the gap"
@@ -11386,7 +11412,7 @@ function pit(side,T,label){
     <div class="fld"><label>Tendency · your film read</label>
       <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
     </div>
-    <div class="fld"><label>Threat</label><div class="stars">${stars(T.threat,side)}</div></div>
+    <div class="fld"><label>Threat${T.threat ? "" : ` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--dim)">· not scored — tap a star</span>`}</label><div class="stars">${stars(T.threat,side)}</div></div>
     <div class="fld"><label>Notes</label>
       <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
@@ -11432,9 +11458,9 @@ function pit(side,T,label){
         <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <div class="rost__ps">
           <label><span class="note">Wire</span>
-            <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option>${w}</option>`).join("")}</select></label>
+            <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option${w === "Flex" ? " selected" : ""}>${w}</option>`).join("")}</select></label>
           <label><span class="note">Read</span>
-            <input id="sp-note-${side}" placeholder="snake runner" ${onEnter(`addScoutPlayer('${side}')`)}/></label>
+            <input id="sp-note-${side}" placeholder="what he does" ${onEnter(`addScoutPlayer('${side}')`)}/></label>
         </div>
       </div>
       <div class="toggles">
@@ -11442,7 +11468,7 @@ function pit(side,T,label){
         <button class="btn btn--quiet" onclick="openPaste('${side}')">Paste a roster</button>
       </div>
       ${S.pasteSide === side ? pasteBox(side) : ""}
-      ${S.pasteNote && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
+      ${S.pasteNote && S.pasteNoteSide === side && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
     </div>`}
   </div>`;
 }
