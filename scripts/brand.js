@@ -303,8 +303,11 @@ function native(key, { dry = false, quiet = false } = {}) {
   const to = brandOf(key, brands);
   const state = nativeState(brands);
   if (!state.config) throw new Error("capacitor.config.json names an appId that is not any brand's; fix it by hand before switching.");
-  if (state.key === null) throw new Error(`The shells disagree about their brand (config ${state.config}, iOS ${state.ios}, Android ${state.android}); run \`npm run sync\` first.`);
-  const from = brandOf(state.key, brands);
+  // The config is the authority: Info.plist, gradle and the scheme follow it,
+  // and the public folders are rewritten below either way. \`npm run sync\`
+  // copies the default web into a switched shell, and refusing here left no
+  // command that could switch either way.
+  const from = brandOf(state.key || state.config, brands);
   const staged = stage(to, brands);
   const problems = selfCheck(staged);
   if (problems.length) throw new Error(`Refusing to switch the shells to ${to.short}: ${problems[0]}`);

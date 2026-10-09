@@ -53,6 +53,21 @@ function build({ url, anonKey, outDir } = {}) {
   html = html.replace(ANCHOR, ANCHOR + '\n<script src="gridlock-config.js"></script>\n<script src="gridlock-cloud.js"></script>');
   fs.writeFileSync(idx, html);
 
+  // The service worker caches the shell by name, and these two are not in its
+  // list: opened once and then offline, the cloud build came up without its
+  // adapter — no cloud sign-in and no offline fallback. They join the list,
+  // and the cache gets its own version so the change reaches a phone.
+  const sw = path.join(outDir, "sw.js");
+  if (fs.existsSync(sw)) {
+    const before = fs.readFileSync(sw, "utf8");
+    const list = before.replace('"apple-touch-icon.png"]', '"apple-touch-icon.png", "gridlock-config.js", "gridlock-cloud.js"]');
+    if (list === before) throw new Error("Could not find the service worker's file list; the build layout changed.");
+    const stamp = require("node:crypto").createHash("sha256").update(html).update(url).digest("hex").slice(0, 12);
+    const after = list.replace(/const VERSION = ["'][^"']*["'];/, `const VERSION = "gridlock-cloud-${stamp}";`);
+    if (after === list) throw new Error("Service worker VERSION declaration was not found.");
+    fs.writeFileSync(sw, after);
+  }
+
   return { outDir, host: url.replace(/\/+$/, "") };
 }
 

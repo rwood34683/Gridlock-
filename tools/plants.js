@@ -138,7 +138,8 @@ if (process.argv.includes("--write")) {
   const file = path.join(ROOT, "web", "index.html");
   const html = fs.readFileSync(file, "utf8");
   const next = html.replace(/const BREAK_PLANTS = \{[\s\S]*?\n\};/, js);
-  if (next === html) { console.error("BREAK_PLANTS block not found"); process.exit(1); }
+  if (!/const BREAK_PLANTS = \{[\s\S]*?\n\};/.test(html)) { console.error("BREAK_PLANTS block not found"); process.exit(1); }
+  if (next === html) { console.log("web/index.html: already in step"); process.exit(0); }
   fs.writeFileSync(file, next);
   console.log(`web/index.html: ${report.length} calls planted`);
 } else {

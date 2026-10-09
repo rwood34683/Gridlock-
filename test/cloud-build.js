@@ -24,6 +24,9 @@ const OUT = path.resolve(__dirname, "..", "dist", "cloud-test");
   check("the build refuses a service key", (() => { try { build({ url: CFG.url, anonKey: "service_role-abc", outDir: OUT + "-x" }); return false; } catch (e) { return /service key/i.test(e.message); } })());
   check("it emits the adapter and a config next to the app", fs.existsSync(path.join(OUT, "gridlock-cloud.js")) && fs.existsSync(path.join(OUT, "gridlock-config.js")) && fs.existsSync(path.join(OUT, "index.html")));
 
+  const builtSw = fs.readFileSync(path.join(OUT, "sw.js"), "utf8");
+  check("the service worker keeps the adapter and its config for offline, under its own cache version",
+    /"gridlock-config\.js", "gridlock-cloud\.js"\]/.test(builtSw) && /const VERSION = "gridlock-cloud-[0-9a-f]{12}";/.test(builtSw));
   const builtIdx = fs.readFileSync(path.join(OUT, "index.html"), "utf8");
   check("index.html loads the config then the adapter, before the app boots", (() => {
     const c = builtIdx.indexOf("gridlock-config.js");

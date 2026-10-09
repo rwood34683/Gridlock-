@@ -45,6 +45,11 @@ function main() {
     cap("sync", name);
     normalisePaths();
     require("./configure-native").configure();
+    // cap sync copies web/ as it is — the default brand — into the shell. A
+    // shell switched to another build gets that build's web back, or it ships
+    // the wrong name and the wrong deep link under its own app id.
+    const active = require("./configure-native").activeBrand();
+    if (active.key !== require("./brand").loadBrands().default) require("./brand").native(active.key, { quiet: true });
     if (action === "build") {
       if (name !== "android") throw new Error("Archive the iOS app in Xcode after npm run ios:setup.");
       const task = extra[0] || "assembleDebug";
