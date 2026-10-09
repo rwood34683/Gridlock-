@@ -4287,6 +4287,64 @@ const ROSTER = [
     window.podWars.close(); S.clockEnd = 0;
     return first && again && quiet || JSON.stringify({ first, again, quiet });
   }));
+  check("Pod Wars duel: two teams pass the phone, turn about, the most outs wins, and nothing touches the best", await ev(() => {
+    const best0 = S.podBest; S.podBest = 7;
+    window.podWars.open(); window.podWars.seed(5); window.podWars.mode("duel"); window.podWars.per(2);
+    const n0 = document.getElementById("pod-n0"), n1 = document.getElementById("pod-n1");
+    n0.value = "Rejects"; n0.dispatchEvent(new Event("input")); n1.value = "Dynasty"; n1.dispatchEvent(new Event("input"));
+    const setup = !document.querySelector("#podwars .pod-setup").hidden && !document.querySelector("#podwars .pod-per").hidden
+      && document.getElementById("pod-go").textContent === "Start the duel";
+    // Both turns of a round are dealt the same men.
+    const firstMan = () => { for(let i = 0; i < 200 && !pod.g.enemies.length; i++) window.podWars.step(16); const e = pod.g.enemies[0]; return e && [e.b, e.side, e.num].join(); };
+    const out = n => { pod.g.score = n; pod.g.phase = "out"; pod.g.why = "Shot by #7"; window.podWars.step(16); };
+    window.podWars.play(); const red1 = firstMan(); out(6);
+    const between = document.querySelector("#podwars .pod-modes").hidden && document.querySelector("#podwars .pod-setup").hidden
+      && document.getElementById("pod-pod").hidden && /Dynasty 1/.test(document.getElementById("pod-go").textContent)
+      && /Hand it to Dynasty/.test(document.getElementById("pod-say").textContent);
+    window.podWars.play(); const blue1 = firstMan(); out(3);
+    window.podWars.play(); out(4); window.podWars.play(); out(5);
+    const d = window.podWars.duel(), say = document.getElementById("pod-say").textContent;
+    const done = d.done && d.outs[0].join() === "6,4" && d.outs[1].join() === "3,5" && /REJECTS WIN/.test(say) && /Rejects 10 · Dynasty 8/.test(say)
+      && document.getElementById("pod-go").textContent === "Duel again";
+    const kept = S.podBest === 7;
+    window.podWars.close(); window.podWars.seed(); S.podBest = best0;
+    return setup && red1 && red1 === blue1 && between && done && kept || JSON.stringify({ setup, red1, blue1, between, done, kept, d, say });
+  }));
+  check("Pod Wars head to head: a man who is out gets hit, one tucked does not and cannot shoot, a trade scores nobody, first to three", await ev(() => {
+    const best0 = S.podBest; S.podBest = 7;
+    window.podWars.open(); window.podWars.mode("h2h");
+    const kit = document.getElementById("pod-pod").hidden && document.getElementById("pod-tuck").hidden;
+    window.podWars.play();
+    const blueX = () => 180 + (pod.g.p[1].tucked ? 0 : 18), redX = () => 180 + (pod.g.p[0].tucked ? 0 : -18);
+    window.podWars.shoot(0, blueX()); window.podWars.step(450);
+    const hit = pod.g.score.join() === "1,0" && pod.g.lull > 0;
+    window.podWars.step(1600);
+    const round = !pod.g.lull && pod.g.p[0].hopper === 10 && !pod.g.balls.length;
+    window.podWars.hold(1, true); const h0 = pod.g.p[1].hopper;
+    window.podWars.shoot(1, redX()); window.podWars.shoot(0, 198); window.podWars.step(450);
+    const tucked = pod.g.score.join() === "1,0" && pod.g.p[1].hopper === h0;
+    window.podWars.hold(1, false); window.podWars.step(16);
+    window.podWars.shoot(0, blueX()); window.podWars.shoot(1, redX()); window.podWars.step(450);
+    const trade = pod.g.score.join() === "1,0" && /trade/.test(pod.g.why);
+    window.podWars.step(1600);
+    // A finger on his own end tucks him, and lifting it stands him up.
+    podH2HDown(pod.g, 41, 180, 500); const down = pod.g.p[0].tucked;
+    podH2HUp(pod.g, 41); window.podWars.step(16); const up = !pod.g.p[0].tucked;
+    for(let i = 0; i < 2; i++){ window.podWars.shoot(0, blueX()); window.podWars.step(450); window.podWars.step(1600); }
+    const st = window.podWars.state();
+    const won = st.phase === "out" && st.score.join() === "3,0" && /wins 3–0/.test(st.why) && document.getElementById("pod-go").textContent === "Rematch";
+    const kept = S.podBest === 7;
+    window.podWars.close(); S.podBest = best0;
+    return kit && hit && round && tucked && trade && down && up && won && kept || JSON.stringify({ kit, hit, round, tucked, trade, down, up, won, kept, why: st.why, score: st.score });
+  }));
+  check("Pod Wars: a team's name takes a space — the game's keys stand aside while one is typed", await ev(() => {
+    window.podWars.open(); window.podWars.mode("duel");
+    const n0 = document.getElementById("pod-n0"); n0.focus();
+    const ev1 = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }); n0.dispatchEvent(ev1);
+    const ok = !ev1.defaultPrevented && !pod.g.held;
+    window.podWars.mode("solo"); window.podWars.close();
+    return ok;
+  }));
   check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
