@@ -2213,4 +2213,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the clock sits in its top bar and the buzzer pauses the game, once. Play
   pressed twice wiped a game, and Close threw the score away. A long press on
   Tuck opened the phone's menu, so the menu is stopped. And it now pauses on
-  `blur` as well as when the app is hidden.
+  `blur` as well as when the app is hidden. A second read found six more.
+  Hidden is the last moment it is sure to run, so `pause()` keeps the best
+  there, not only on Close. Space presses the button it is on and is Tuck only
+  on Tuck. The canvas is `role="img"` with the score in its label, `#pod-say`
+  says out and paused, and Tuck carries `aria-pressed`. The buzzer's
+  once-only mark (`podBuzzed`) outlives a reopen, and only its own pause says
+  the clock is out. BEST moves while he beats it. "A new best" shows only when
+  the phone kept it.
+- Return a check's detail as its result. `check()` took `ok ||
+  JSON.stringify({...})` as a pass, because a string is truthy: thirty-two
+  checks could never fail, and two had been failing unseen. A returned
+  `{…}`, `[…]`, `failed:` or `status:` string is a failure now, with the
+  string as its detail.
