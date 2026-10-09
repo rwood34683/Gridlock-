@@ -1408,6 +1408,43 @@ the count of them. Point numbers are per match and start at one. Lineups are key
     - Long blasts and notes were cut short without a word.
   - And an out's `how`, a board team's `pts` / `reg` from a copy went into the
     screen unescaped.
+- Stop at four passes, or at reading. The fifth stopped reading lines and
+  used four other methods: two phones swapping copies, a random-tap tester
+  checking that the data stayed consistent, screenshots at four sizes, and the
+  code outside `web/index.html`.
+  - **Two phones.**
+    - Merging brought in the other phone's blank sheet every time.
+    - A squad copy's breaks of theirs read as "level", because their sheets
+      never came. Now they count for the season and lately and stay out of
+      the score buckets.
+    - A squad copy also brought back the breaks of a sheet deleted here.
+    - "#7 Dill" and "Dill" were two men after one phone numbered him.
+    - One game typed on both phones listed twice (`games` merges by the game).
+    - Two fields shared a name.
+    - Teams that differed only in spacing stayed as two.
+    - "Nothing new" was shown when the other phone's stories had arrived.
+  - **The random-tap tester.**
+    - Switch ends could put ten men on one side.
+    - After a penalty, more men could be tapped out than had started.
+    - Both are now held to `startUp()`.
+  - **Screens.**
+    - The read line grew the Playbook card past the fold; it now sits under
+      Play the break.
+    - On a tablet the open picker spilled across both columns; `.pbtop`
+      children are now placed.
+    - Names broke mid-word on the point sheet, and name boxes cut names off.
+    - Lane rows were 36 px tall and the clock chip was 42 px wide.
+    - "US — · not scored yet" now reads "Ranking points — not scored yet".
+  - **Outside the app.**
+    - `gridlockShare` fell back to `prompt()` and `alert()`. It now answers
+      "show", and `handOff` puts the text in its own box.
+    - `npm run sync` put the default web into a shell switched to another
+      brand, and no command could switch it back. `brand native` now trusts
+      the config, and sync restores the active brand's web.
+    - `tools/plants.js --write` reported a missing block when the block was
+      already up to date.
+    - `site:check` passed a stale `site/app.html`.
+    - The cloud build was not cached for offline.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of

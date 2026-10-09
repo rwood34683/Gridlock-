@@ -411,6 +411,7 @@ svg.field{width:100%;height:auto;display:block}
      point of the tab — never gets on it. */
   .pbtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
          gap:var(--s3);align-items:start}
+  .pbtop > *{grid-column:1} .pbtop > .field-wrap{grid-column:2;grid-row:1 / span 12}
   .pbtop .call__name{font-size:var(--t-xl);line-height:1.1}
   .pbtop .call__read{font-size:var(--t-sm)}
   .pbtop svg.field{max-height:calc(100vh - 170px)}
@@ -533,6 +534,8 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
    the screen with the field rather than a scroll under it. */
 @media (min-width:740px) and (min-height:600px) and (orientation:landscape){
   .pbtop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--s3);align-items:start}
+  /* Placed, not auto-flowed: an open picker scattered across both columns. */
+  .pbtop > *{grid-column:1} .pbtop > .field-wrap{grid-column:2;grid-row:1 / span 12}
   .pbtop svg.field{max-height:max(340px, calc(100vh - 330px))}
 }
 @keyframes tsel{from{opacity:.55}to{opacity:1}}
@@ -643,6 +646,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .rank__pct{margin-left:auto;white-space:normal;text-align:right}
 }
 .clock-chip,.score-chip--go{cursor:pointer;color:var(--ink);font-family:inherit;min-height:44px}
+.clock-chip{min-width:44px;justify-content:center}
 /* A narrow phone with the clock and the score both up: the brand's second
    line goes, the chips tighten, and the Staff chip steps aside — Nexus says
    who is signed in. Every chip stays inside the screen. */
@@ -676,6 +680,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   text-align:left;padding:var(--s2) var(--s3);background:var(--sunk);white-space:nowrap;
 }
 .tbl td{padding:var(--s3);border-top:1px solid var(--line);white-space:nowrap}
+.tbl tr.tap td{height:44px}
 .tbl tbody tr{background:var(--panel)}
 .tbl tbody tr:active{background:var(--panel-2)}
 /* Nine columns are 670 px, and on a phone 280 of them sat past the edge of a
@@ -711,6 +716,8 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   padding:var(--s3);background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);
 }
 .rost__p input{min-width:0}
+/* On a phone the number and Remove took most of the row and cut names off. */
+@container main (max-width:420px){ .rost__p{grid-template-columns:56px 1fr} .rost__p > .btn--danger{grid-column:1/-1;justify-self:end} }
 .rost__ps{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
 .rost__ps label{display:flex;flex-direction:column;gap:4px}
 /* Their man's wire and five threat stars side by side need ~460 px: on a
@@ -751,7 +758,8 @@ svg.field [data-pick]{cursor:crosshair}
    Antonio X-Factor Elite Squad · 5 up" on a 320 px phone pushed the two
    columns 70 px past the edge. The columns shrink and long names break. */
 .who2>div{min-width:0}
-.who2 h4,.who2 .assign__job{overflow-wrap:anywhere}
+.who2 h4,.who2 .assign__job{overflow-wrap:break-word;hyphens:auto}
+@container main (max-width:340px){ .who2{grid-template-columns:1fr} }
 .who2 h4{margin:0 0 var(--s2);font-size:var(--t-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
 .who2 ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
 .who2 li{font-size:var(--t-sm);color:var(--ink);display:flex;gap:var(--s2)}
@@ -3790,6 +3798,11 @@ window.switchEnds = () => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const m = curMatch(); if(!m) return;
   const pt = sheetPoint();   // the point shown: past the end of a race the cursor is one on
+  // The placed men below change sides with the halves; a side never ends up
+  // with more men on the point than it started it with.
+  const after = sd => (S.breakouts || []).filter(r => r && r.m === m.id && r.pt === pt && (r.todo ? (r.side === "us" ? "them" : "us") : r.side) === sd).length;
+  const over = ["us", "them"].find(sd => after(sd) > startUp(sd, m.id, pt));
+  if(over){ flash(`${placeSideWord(over)}: switching ends would make ${after(over)} men on point ${pt}, and the side started it with ${startUp(over, m.id, pt)}. Take the extra placed men off first.`); return; }
   if(pt === 1 || !playedBefore(pt, m)){
     // Nothing played before this point: the app simply had the end wrong, so
     // point one's end flips — unless the swap rule or a switch already turned it here.
@@ -4966,7 +4979,8 @@ const SAME = {
   // replaced his penalties, timeouts and added games.
   plays:       p => p.k,
   offPlays:    k => String(k),
-  games:       g => g.id,
+  // One day, one clock, the same two teams is one game, whatever id each phone gave it.
+  games:       g => [g.d, g.t, foldName(g.h), foldName(g.a)].join("|"),
   gamesOff:    id => String(id),
   pens:        p => p.id,
   timeouts:    t => t.id,
@@ -4979,7 +4993,7 @@ const SAME = {
 function mergeMapValue(mine, incoming, trail){
   if(Array.isArray(mine) && Array.isArray(incoming)){
     const end = trail[trail.length - 1];
-    const identity = trail[0] === "teams" ? x => x.name.toLowerCase()
+    const identity = trail[0] === "teams" ? x => foldName(x.name)
       : trail[0] === "walk" ? x => [x.where, x.note, x.at].join("|")
       : end === "players" ? x => String(x.num || x.name || "").toLowerCase()
       : end === "breaks" ? x => [x.pt, x.script, x.at].join("|")
@@ -5409,7 +5423,10 @@ window.loadCopy = mode => {
   // both phones already held read "Merged in 2 sheets · 7 outs · 7 breakouts"
   // when one breakout was new, and a coach syncing twice could not tell
   // whether the second did anything.
-  const sizeOf = () => { const o = {}; COPY_COUNTED.forEach(k => { const v = S[k]; o[k] = v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; }); return o; };
+  // A man told on the other phone replaces this phone's untold row and adds
+  // none, so breakouts count the told ones: "nothing new" was not true.
+  const sizeOf = () => { const o = {}; COPY_COUNTED.forEach(k => { const v = S[k]; o[k] = v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; });
+    o.breakouts += (S.breakouts || []).filter(r => r && !r.todo).length; return o; };
   const sizeBefore = sizeOf();
   // What just loaded is a copy, so the season has one as of now — the nudge
   // must not open on a restored phone saying none was ever made.
@@ -5470,6 +5487,21 @@ window.loadCopy = mode => {
   const teamRenamesMine = {...(S.renamedTeams || {})};
   const renamesMine = {...(S.renamedMen || {})}, rosterBefore = new Set((S.roster || []).map(p => p && foldName(p.name)));
   const wordsBefore = {breakCalls: {...(S.breakCalls || {})}, jobCalls: JSON.parse(JSON.stringify(S.jobCalls || {})), bunkerCalls: JSON.parse(JSON.stringify(S.bunkerCalls || {}))};
+  if(mode !== "replace"){
+    // The other phone's blank opening sheet is nothing to keep: merged, it sat
+    // in Matches as "No opponent" for good, and every sync brought another.
+    const haveIds = new Set((S.matches || []).map(m => m && m.id));
+    const usedIn = id => SHEET_LISTS.some(k => (d[k] || []).some(r => r && r.m === id)) 
+      || Object.keys(d.lineups || {}).some(k => k.startsWith(id + "|")) || Object.values(d.scout || {}).some(p => ((p && p.breaks) || []).some(b => b && b.m === id));
+    if(Array.isArray(d.matches)) d.matches = d.matches.filter(m => !m || haveIds.has(m.id) || usedIn(m.id));
+    // A field the other phone built under a name this phone already uses is a
+    // second field with one name in the event picker; it takes a number.
+    (d.fields || []).forEach(f => {
+      if(!f || (S.fields || []).some(x => x.key === f.key)) return;
+      const taken = n => [...Object.values(LAYOUTS).map(L => L.name), ...(S.fields || []).map(x => x.name)].some(x => foldName(x) === foldName(n));
+      if(taken(f.name)){ let i = 2, nm; do nm = `${String(f.name).slice(0, 36)} ${i++}`; while(taken(nm)); f.name = nm; }
+    });
+  }
   const next = mode === "replace" ? {...defaultState(), ...adoptCallPicked({...d}), ...held} : mergeInto(S, d);
   // Replace takes the copy's fields, so it takes only the copy's maps.
   if(mode === "replace"){ FIELD_MAPS = {}; keepMaps(); }
@@ -5478,6 +5510,16 @@ window.loadCopy = mode => {
   // back, not left on the deleted list for the next merge to strip again.
   if(mode === "replace") next.sheetsGone = (S.sheetsGone || []).filter(id => !(d.matches || []).some(m => m && m.id === id));
   Object.keys(next).forEach(k => { S[k] = next[k]; });
+  // Their man numbered on one phone and not yet on the other came back as two
+  // — "#7 Dill" and "Dill" — with his sightings split between the two keys.
+  // A numberless man is the numbered one of the same name, as pitDup reads it.
+  if(mode !== "replace") Object.entries(S.scout || {}).forEach(([team, p]) => {
+    const ps = (p && p.players) || [];
+    const twin = q => !String(q.num || "").trim() && q.name && ps.find(o => o !== q && String(o.num || "").trim() && foldName(o.name) === foldName(q.name));
+    const gone = ps.filter(twin); if(!gone.length) return;
+    gone.forEach(q => rekeyTheirMan(team, q, twin(q)));
+    S.scout[team] = {...p, players: ps.filter(q => !gone.includes(q))};
+  });
   // And what he was in the middle of goes with the old season — the clock
   // counting down to the next point of a sheet just thrown away.
   if(mode === "replace"){ const cs = S.copyStatus; clearScratch(); S.copyStatus = cs; }
@@ -5495,7 +5537,9 @@ window.loadCopy = mode => {
   // comes back.
   if(mode !== "replace" && (S.sheetsGone || []).length){
     if(sheetId) S.sheetsGone = S.sheetsGone.filter(x => x !== sheetId);
-    const back = (d.matches || []).map(m => m && m.id).filter(id => id && S.sheetsGone.includes(id));
+    // A squad copy carries no sheets but does carry their breaks on them.
+    const back = [...new Set([...(d.matches || []).map(m => m && m.id),
+      ...Object.values(d.scout || {}).flatMap(p => ((p && p.breaks) || []).map(b => b && b.m))])].filter(id => id && S.sheetsGone.includes(id));
     back.forEach(dropSheetRows);
     if(back.length) S.copyStatus += ` · ${back.length} ${back.length === 1 ? "sheet" : "sheets"} you deleted on this phone left out`;
   }
@@ -7471,7 +7515,10 @@ function drawOnce(k, f){
 function theirReadsFresh(side){
   // On a watched sheet the left pit is the home side, which results call "us".
   const theirs = side === "left" ? "us" : "them", mine = theirs === "us" ? "them" : "us";
-  const rows = theirBreaks(side).filter(b => b.script && b.m);
+  // A squad copy carries their breaks stamped with the other phone's sheets
+  // and not the sheets: they count for the season and lately, but with no
+  // score behind them they are no evidence of "level" or "after a point".
+  const rows = theirBreaks(side).filter(b => b.script && b.m), scored = r => !!matchById(r.m);
   const tally = list => Object.entries(list.reduce((m, b) => ({...m, [b.script]: (m[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
   const bucket = (label, test) => { const l = rows.filter(test), t = tally(l); return {label, n: l.length, top: t[0] || null, tally: t}; };
   const rs = sideReader(side);
@@ -7486,10 +7533,10 @@ function theirReadsFresh(side){
   const shift = !!(all.top && recent[0] && recent[0][0] !== all.top[0] && recent[0][1] >= 3);
   return {n: rows.length, all, recent, recentN: recentRows.length, shift,
           when: [bucket("on the first point", r => r.pt === 1),
-                 bucket("when behind", r => lead(r) < 0), bucket("when ahead", r => lead(r) > 0), bucket("level", r => lead(r) === 0),
-                 bucket("after losing a point", r => last(r, mine)), bucket("after winning a point", r => last(r, theirs)),
-                 bucket("at their match point", r => mpRow(r, theirs)), bucket("facing match point", r => mpRow(r, mine)),
-                 bucket("after a timeout", r => timeoutOn(r.m, r.pt))]};
+                 bucket("when behind", r => scored(r) && lead(r) < 0), bucket("when ahead", r => scored(r) && lead(r) > 0), bucket("level", r => scored(r) && lead(r) === 0),
+                 bucket("after losing a point", r => scored(r) && last(r, mine)), bucket("after winning a point", r => scored(r) && last(r, theirs)),
+                 bucket("at their match point", r => scored(r) && mpRow(r, theirs)), bucket("facing match point", r => scored(r) && mpRow(r, mine)),
+                 bucket("after a timeout", r => scored(r) && timeoutOn(r.m, r.pt))]};
 }
 // Whether `who` stood one point from the race, or one from the mercy lead,
 // before this point was played. Read off the sheet's own format, as
@@ -7569,7 +7616,10 @@ function nextReadFresh(side = "right"){
   const lastWon = ((S.results || []).find(r => r && r.m === m.id && r.pt === pt - 1) || {}).won;
   const state = lead < 0 ? "behind" : lead > 0 ? "ahead" : "level";
   const last = lastWon === undefined ? "" : lastWon === mine ? "after losing a point" : "after winning a point";
-  const rows = theirBreaks(side).filter(b => b.script && b.m);
+  // A squad copy carries their breaks stamped with the other phone's sheets
+  // and not the sheets: they count for the season and lately, but with no
+  // score behind them they are no evidence of "level" or "after a point".
+  const rows = theirBreaks(side).filter(b => b.script && b.m), scored = r => !!matchById(r.m);
   const tally = list => Object.entries(list.reduce((a, b) => ({...a, [b.script]: (a[b.script] || 0) + 1}), {})).sort((a, b) => b[1] - a[1]);
   const leadOf = r => { const [t, o] = rs(r), x = scoreBefore(r.m, r.pt); return Math.sign(x[t] - x[o]); };
   const lastOf = r => { const [, o] = rs(r), w = wonAt(r.m, r.pt - 1); return w === undefined ? "" : w === o ? "after losing a point" : "after winning a point"; };
@@ -7584,9 +7634,9 @@ function nextReadFresh(side = "right"){
     mp === theirs || mp === "both" ? bucket("at their match point", r => mpRow(r, theirs)) : null,
     mp === mine || mp === "both" ? bucket("facing match point", r => mpRow(r, mine)) : null,
     pt === 1 ? bucket("on the first point", r => r.pt === 1) : null,
-    last ? bucket(`${state}, ${last}`, r => leadOf(r) === lead && lastOf(r) === last) : null,
-    bucket(state, r => leadOf(r) === lead),
-    last ? bucket(last, r => lastOf(r) === last) : null,
+    last ? bucket(`${state}, ${last}`, r => scored(r) && leadOf(r) === lead && lastOf(r) === last) : null,
+    bucket(state, r => scored(r) && leadOf(r) === lead),
+    last ? bucket(last, r => scored(r) && lastOf(r) === last) : null,
     bucket("this season", () => true)];
   const pick = order.find(b => b && b.n >= 3 && b.top);
   if(!pick) return {thin: true, n: rows.length};
@@ -8683,7 +8733,7 @@ function playbook(){
     <div class="call__meta">
       ${picked ? pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced") : ""}
       ${(curMatch()||{}).watch ? `<span class="vs">watching <b>${esc(matchLabel(curMatch()).split(" · ")[0])}</b> · this is your own board</span>`
-        : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>${nextReadLine(false)}`
+        : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
         :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
@@ -8749,6 +8799,10 @@ function playbook(){
         over Play pushed it off the first screen on first run. */""}
   ${endsChip()}
   ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${sheetPoint()}</button>`}
+  ${/* The read for the next point, under the controls rather than in the call
+        card: with a real season it grew the card past the fold and put the
+        field, Change the call and Play the break under the tab bar. */""}
+  ${opp.named && !(curMatch()||{}).watch ? nextReadLine(false) : ""}
 
   ${/* A one-time nudge to the play maker. It sits BELOW Play the break so it
         never pushes that off the fold on first run, and retires itself the
@@ -9933,9 +9987,9 @@ function tally(){
         <span class="kv__v">${todo ? `${todo} to tell` : "all told"}</span></div>
       ${rowsPt.map(r => `<div class="btnrow" style="align-items:center">
         <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="editBreakout(${jsq(r.id)})">
-          <span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
+          <span><span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
             ? `${esc(bunkerLabel(r.bunker))} · ${esc(placeSideWord(r.side).toLowerCase())} · <span style="color:var(--warn)">what happened?</span>`
-            : esc(describeBreakout(r))}</button>
+            : esc(describeBreakout(r))}</span></button>
         <button class="btn btn--quiet" aria-label="Take this man off" onclick="undoBreakout(${jsq(r.id)})">✕</button></div>`).join("")}
     </div>`
     : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`);
@@ -10392,6 +10446,11 @@ window.markOut = (side,name) => {
   const pt = sheetPoint();
   const i = (S.tally || []).findIndex(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side && o.name === name);
   if(i >= 0){ releaseOut(S.tally[i]); save(S); render(); return; }
+  // No more men out than the side started the point with: five tapped out of
+  // three after a two-man penalty was a point nobody played.
+  const cap = startUp(side, S.matchId, pt);
+  if((S.tally || []).filter(o => typeof o === "object" && o.m === S.matchId && o.pt === pt && o.side === side).length >= cap){
+    flash(`${placeSideWord(side)}: all ${cap} are out on point ${pt}. Tap one back in first.`); return; }
   if(outRow(side, name, {pt})){ save(S); render(); }
 };
 // An out taken back — tapped back in on the live point, or Undo on the log
@@ -11757,11 +11816,11 @@ function pitLine(side, T, label){
 function pit(side,T,label){
   const men = T.players || [];
   return `<div class="pit pit--${side==="left"?"l":"r"}">
-    <div class="pit__side">${label}${S.pitOpen === side ? ` <button class="btn btn--quiet" style="float:right;min-height:36px;padding:6px 10px" onclick="set({pitOpen:null})">Fold ▴</button>` : ""}</div>
+    <div class="pit__side">${label}${S.pitOpen === side ? ` <button class="btn btn--quiet" style="float:right;padding:6px 10px" onclick="set({pitOpen:null})">Fold ▴</button>` : ""}</div>
     <div>
       <div class="pit__name"${T.named?"":` style="color:var(--dim)"`}>${T.named?esc(T.name):"Pick a team"}</div>
       <div class="pit__pts">${!T.named ? "nobody in this pit yet"
-        : T.pts === undefined ? "US — · not scored yet" : "US "+esc(T.pts)+" pts"}</div>
+        : T.pts === undefined ? "Ranking points — not scored yet" : "Ranking points "+esc(T.pts)}</div>
     </div>
     <select onchange="setPitTeam('${side}',this.value)" aria-label="${side === "right" ? "The team you are playing" : "A team you watch"}">
       <option value=""${T.named?"":" selected"}>${T.named?"— clear this pit —":"Pick a team"}</option>
@@ -13794,7 +13853,7 @@ function moreBody(k){
     return sec("Log a rotation", `<p class="lede">Who moved, and bunker to bunker. Tap the bunker he left, then the bunker he went to. Every rotation counts as a move into the new bunker on Bunker stats.</p>${overPointNote()}
       <div class="field-wrap" id="move-map">${fieldSVG({static:true,moves:true,noPaths:true,names:true,pick:true,overlay:moveOverlay()})}</div>
       <p class="note" style="margin:var(--s2) 0 0">${S.moveFrom ? `From <b>${esc(nm(S.moveFrom))}</b>${S.moveTo ? ` to <b>${esc(nm(S.moveTo))}</b>` : " — now tap where he went"}` : "Tap the bunker he left."}${
-        S.moveFrom ? ` <button class="btn btn--quiet" style="min-height:36px;padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
+        S.moveFrom ? ` <button class="btn btn--quiet" style="padding:6px 10px;margin-left:6px" onclick="set({moveFrom:null,moveTo:null})">Clear</button>` : ""}</p>
       ${who}
       <div class="who2" style="margin-top:var(--s3)">
         ${/* Nothing chosen reads as nothing chosen. The boxes showed the first
