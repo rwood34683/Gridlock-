@@ -12092,7 +12092,16 @@ window.delMem = (id,i) => {
 // on screen instead, in a box he can copy from, with Copy where the browser
 // allows it. S.handText is scratch and never rides a relaunch.
 function handOff(title, text){
-  if(window.gridlockShare){ window.gridlockShare(text, title); return; }
+  if(window.gridlockShare){
+    Promise.resolve(window.gridlockShare(text, title)).then(r => {
+      if(r === "show") handBox(title, text);
+      else if(r === "copied") flash("Copied — paste it where it is going.");
+    }, () => handBox(title, text));
+    return;
+  }
+  handBox(title, text);
+}
+function handBox(title, text){
   S.handText = {title: String(title || "Copy this"), text: String(text || "")};
   save(S); render();
   requestAnimationFrame(() => { const el = document.getElementById("handoff"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });

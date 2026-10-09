@@ -29,6 +29,9 @@ for (const page of pages) {
   ok(`${page} local assets and links exist`, broken.length === 0, [...new Set(broken)].join(', '));
   if (page !== 'app.html') ok(`${page} has no remote fonts or scripts`, !/<(?:script|link)[^>]+(?:src|href)="https?:/i.test(html));
 }
+// A host serving site/ hands the coach whatever app.html holds, so it has to
+// be today's app and not the one from the last time somebody rebuilt it.
+if (exists('app.html')) ok('app.html matches the current web build', read('app.html') === require('./build-app-artifact').bundle(), 'run npm run app:artifact');
 ok('Static styles and favicon exist', exists('styles.css') && exists('img/icon.svg'));
 ok('Dot-directory is retained on static hosts', exists('.nojekyll'));
 let config = {};

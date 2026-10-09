@@ -11,15 +11,17 @@
     document.documentElement.classList.add("platform-" + Cap.getPlatform());
   }
 
-  /* Share: native sheet on device, Web Share API in the browser, clipboard last. */
+  /* Share: native sheet on device, Web Share API in the browser, clipboard last.
+     Resolves true (shared), false (he cancelled), "copied", or "show" — the app
+     then puts the text on screen in its own box (handOff). Never a system
+     prompt or alert: a dialog is against the house rule, and on an insecure
+     address the prompt was the whole card squeezed into one line. */
   window.gridlockShare = function (text, title) {
     function canceled(error) { return error && (error.name === "AbortError" || /cancel/i.test(error.message || "")); }
-    function showText() { window.prompt("Copy this text to share it:", text); return false; }
+    function showText() { return "show"; }
     function copy() {
       if (!navigator.clipboard || !navigator.clipboard.writeText) return Promise.resolve(showText());
-      return navigator.clipboard.writeText(text).then(function () {
-        alert("Copied."); return true;
-      }).catch(showText);
+      return navigator.clipboard.writeText(text).then(function () { return "copied"; }).catch(showText);
     }
     if (native && P.Share) {
       return P.Share.share({ title: title || "Gridlock", text: text }).catch(function (error) {
