@@ -6400,7 +6400,7 @@ const ROSTER = [
       && /Make it yours/.test(document.getElementById("root").textContent);
     // move man 3: take him off, tap another bunker — 4 and 5 stay put
     const spare = curLayout().bunkers.find(x => !orig.includes(x.id)).id;
-    window.playPick(orig[2]); window.playPick(spare);
+    window.playOff(3); window.playPick(spare);
     const slotKept = S.building.plants[2] === spare && S.building.plants[3] === orig[3] && S.building.plants[4] === orig[4];
     // the app's name is refused, his is kept
     window.setPlayField("name", "Snake Stack"); window.set({ flash: "" }); window.savePlay();
@@ -9824,6 +9824,27 @@ const ROSTER = [
     const before = mpBefore("mp4", 6, "us"), during = mpBefore("mp4", 8, "us");
     Object.assign(S, keep);
     return before === false && during !== undefined;
+  }));
+  G("Doubled up");
+  check("a play can double up any bunker: a second tap puts the next man beside the first, a third is refused, Take off frees one, and the two run to two spots", await ev(() => {
+    const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building };
+    const bl = curLayout().bunkers, home = bl.filter(b => b.x < 20).sort((a, c) => Math.abs(a.y - 60) - Math.abs(c.y - 60))[0], gp = bl[5], third = bl[8];
+    window.set({ tab: "playbook", building: { name: "Dbl Check", plants: [], read: "", aggr: 3, layout: S.layoutKey } });
+    [home.id, home.id, home.id].forEach(id => window.playPick(id));
+    const two = S.building.plants.filter(x => x === home.id).length === 2 && /Two men is the most/.test(S.flash || "");
+    window.playOff(1);
+    const off = S.building.plants[0] === null && S.building.plants[1] === home.id;
+    [home.id, gp.id, gp.id, third.id].forEach(id => window.playPick(id));
+    const rows = document.getElementById("root").textContent;
+    const said = /doubled up with 2/.test(rows) && document.querySelectorAll('[aria-label="Take man 1 off"]').length === 1;
+    window.savePlay();
+    const k = Object.keys(allPlays()).find(x => allPlays()[x].name === "Dbl Check");
+    window.set({ script: k });
+    const ends = currentPaths().map(p => p.to.join());
+    const apart = new Set(ends).size === 5;
+    const copyOk = !copyDataError({ plays: [customPlay(k)] });
+    Object.assign(S, was); dropPathCache(); window.set({});
+    return two && off && said && !!k && apart && copyOk || JSON.stringify({ two, off, said, k, ends, copyOk });
   }));
   G("Match day");
   const unread = await ev(() => {
