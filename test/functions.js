@@ -7215,7 +7215,8 @@ const ROSTER = [
     build("snake  stack");
     const btn = [...document.querySelectorAll("#root button")].find(b => /Already a call/.test(b.textContent));
     const n0 = customPlays().length; window.savePlay();
-    const refused = !!btn && btn.disabled && customPlays().length === n0 && /already a call/i.test(S.flash || "");
+    // The button says it before the tap and stays live, so the refusal is said too.
+    const refused = !!btn && customPlays().length === n0 && /already a call/i.test(S.flash || "");
     window.cancelPlay();
     // 2. two of his own
     build("Rocket"); window.savePlay(); const rocket = S.script;
@@ -8601,9 +8602,9 @@ const ROSTER = [
     window.newPlay(); window.setPlayField("name", "Half");
     window.playPick(curLayout().bunkers[0].id);
     const btn = [...document.querySelectorAll("#root .btn")].find(x => /Pick 4 more/.test(x.textContent));
-    const blocked = !!btn && btn.disabled;
-    window.savePlay();                              // must do nothing
-    const none = customPlays().length === 0;
+    const blocked = !!btn;                          // the label says what is missing
+    window.savePlay();                              // must save nothing, and say why
+    const none = customPlays().length === 0 && !!S.flash;
     window.cancelPlay();
     return blocked && none;
   }));
@@ -9697,6 +9698,42 @@ const ROSTER = [
     && !!copyDataError({ groups: [{ id: "g1');alert(1)//", name: "x", members: [] }] })
     && !!copyDataError({ classes: [{ code: "GL-1');x//" }] })
     && !copyDataError({ plays: [{ k: "my:k7f2", name: "x", plants: {} }], groups: [{ id: "g17", name: "x", members: [] }], classes: [{ code: "GL-7K2M" }] })));
+  G("Fourth pass");
+  check("pass4: two path corners on one spot keep the run — no NaN in the drawn line", await ev(() =>
+    !/NaN/.test(smoothD([[3, 50], [1, 1], [1, 1], [40, 40]], 2, 2))));
+  check("pass4: a sheet deleted while the sightings screen pointed at it still loads the season", await ev(() =>
+    !copyDataError({ arrival: { team: "X", player: "number:7", layout: "lso", matchId: null, point: null } })));
+  check("pass4: how an out happened, from a copy, is printed as text", await ev(() => {
+    const keep = S.tally; window.set({ tab: "tally", tallyAllOuts: true });
+    S.tally = [{ m: S.matchId, pt: sheetPoint(), side: "us", name: "P4", how: "<img id=p4how>", layout: S.layoutKey, at: 1 }, ...(keep || [])];
+    window.set({});
+    const safe = !document.getElementById("p4how");
+    S.tally = keep; window.set({ tallyAllOuts: false });
+    return safe;
+  }));
+  check("pass4: the blast button counts one phone once across every group picked", await ev(() => {
+    const keep = { groups: S.groups, blastTo: S.blastTo };
+    S.groups = [{ id: "gp4a", name: "Ops", members: [{ name: "Bob", phone: "555-0100" }] }, { id: "gp4b", name: "Vendors", members: [{ name: "Bob", phone: "(555) 0100" }] }];
+    S.blastTo = ["gp4a", "gp4b"];
+    const n = blastCount(); Object.assign(S, keep);
+    return n === 1;
+  }));
+  check("pass4: two plays folded into one never give two men the same job word", await ev(() => {
+    const keep = S.jobCalls; S.jobCalls = { "my:p4a": { 1: "Rocket 1" }, "my:p4b": { 2: "Rocket 1", 3: "Rocket 3" } };
+    rekeyPlay("my:p4b", "my:p4a");
+    const jc = S.jobCalls["my:p4a"], words = Object.values(jc);
+    S.jobCalls = keep;
+    return words.filter(w => w === "Rocket 1").length === 1 && jc[3] === "Rocket 3";
+  }));
+  check("pass4: overtime does not turn the points before it into match point", await ev(() => {
+    const m = { id: "mp4", at: 1, vs: "X", layout: "lso", raceTo: 4, raceWas: 0, ot: true, otFrom: 7 };
+    const keep = { matches: S.matches, results: S.results };
+    S.matches = [...S.matches, m];
+    S.results = [...S.results, ...[["us", 1], ["them", 2], ["us", 3], ["them", 4], ["us", 5]].map(([won, pt]) => ({ m: "mp4", pt, won }))];
+    const before = mpBefore("mp4", 6, "us"), during = mpBefore("mp4", 8, "us");
+    Object.assign(S, keep);
+    return before === false && during !== undefined;
+  }));
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
   check("the banned shot-tool name appears nowhere", !/gunz\s*up/i.test(html));
