@@ -1364,6 +1364,45 @@ the count of them. Point numbers are per match and start at one. Lineups are key
     play key, group id or class code only as the app's own kind of id
     (`token`), and the member and sign-in boxes pass theirs through
     `JSON.stringify`.
+- Stop at three passes. The fourth, eight readers each confirming in a
+  browser, found 28 more. The ones a coach would feel:
+  - Deleting the sheet the sightings screen pointed at left `arrival.matchId`
+    null, which the copy check refused, so the next launch put the whole season
+    into recovery. The check now takes null.
+  - Charting a man again wiped the How and By set on his out, and an untold
+    man's out took the live call. The out now keeps them, and keeps his row's
+    own call.
+  - A built field's built-in calls with no five drew the old typed paths. Now
+    they draw nothing, behind a "Not on this field" gate.
+  - A play planted on a bunker since taken off drew nothing and hid its gate.
+    `myPlants` now checks the five still stand.
+  - A removed bunker's id was handed to the next bunker placed. The field keeps
+    `gone`, and `fieldNextId` never reuses one.
+  - Their logged fives were invisible to `lastPointFresh` and `playedBefore`:
+    a reopened sheet overwrote point 1's five, and Switch ends rewrote points
+    already played.
+  - Overtime turned the points before it into match point (`mpBefore` reads
+    `raceWas` before `otFrom`).
+  - Giving their numberless man a number left his outs' `by` behind.
+  - The pit's add row made a second "Dill" instead of numbering the first.
+  - The published roster skipped a numbered man without filling in his name.
+  - A merged play gave two slots one job word.
+  - Two path corners on one spot wrote NaN and cut the run off.
+  - Smaller ones:
+    - The builder's Save sat disabled after the name was typed. It is live and
+      speaks now.
+    - New match with the pit cleared said nothing.
+    - The Board button left the quick log's fullscreen on.
+    - Played against moved twice on Return.
+    - The blast count added one phone twice.
+    - The Walk note fell to "The field" after a bunker rename.
+    - Notes on a team showed a default tendency and threat.
+    - A watched game's replay said "yours".
+    - Their rotations named "number:7".
+    - Add team on the sightings screen kept a stale rename.
+    - Long blasts and notes were cut short without a word.
+  - And an out's `how`, a board team's `pts` / `reg` from a copy went into the
+    screen unescaped.
 - Hide a table's columns behind a sideways scroll. Division was nine columns
   and 670 px, and on a phone 280 px of it sat past an edge nobody swipes.
   Film, Roster and Read from are `col-opt` and fold away under 620 px of

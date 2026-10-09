@@ -1160,9 +1160,11 @@ function breakPaths(layoutKey, scriptKey){
   // A play of his own has only the fives he built. With none here it draws
   // nothing — the "not built here" gate says so — never the balanced break's
   // shape under his play's name, which is a five nobody planted.
-  if(!plants || !layout) return isMine(scriptKey) ? [] : fallback;
+  // Nor does a field he built: the old typed shapes were drawn for a measured
+  // field, and on his they end on open ground.
+  if(!plants || !layout) return isMine(scriptKey) || (layout && layout.mine) ? [] : fallback;
   const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
-  if(targets.some(t => !t)) return isMine(scriptKey) ? [] : fallback;   // layout changed under us
+  if(targets.some(t => !t)) return isMine(scriptKey) || layout.mine ? [] : fallback;   // layout changed under us
 
   // All five break from the station at the centre of their own back line —
   // that is where an Xball point starts, not spread across the whole width.
@@ -1291,6 +1293,9 @@ function smoothD(pts, sx, sy){
   for(let i = 1; i < P.length - 1; i++){
     const a = P[i - 1], b = P[i], c = P[i + 1];
     const la = Math.hypot(b[0]-a[0], b[1]-a[1]), lc = Math.hypot(c[0]-b[0], c[1]-b[1]);
+    // Two corners on one spot (both dragged to the field's edge) have no leg
+    // between them to round: 0/0 wrote NaN into the path and cut the run off.
+    if(!la || !lc){ d += `L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; continue; }
     const r = Math.min(R, la / 3, lc / 3);
     const p1 = [b[0] + (a[0]-b[0]) * r / la, b[1] + (a[1]-b[1]) * r / la];
     const p2 = [b[0] + (c[0]-b[0]) * r / lc, b[1] + (c[1]-b[1]) * r / lc];
@@ -2262,12 +2267,19 @@ const fieldSnap = v => Math.round(v * 2) / 2;
 // The next free number for a code on this field. Ids are never reused or
 // renumbered: a breakout keeps the id of the bunker he broke to, so moving or
 // taking one off must not hand its id to another bunker.
+// Ids are never reused: a breakout keeps the id of the bunker it broke to, so
+// one taken off is remembered on the field (`gone`) and never handed out again.
 function fieldNextId(list, n, more = []){
-  const used = [...list, ...more].filter(b => b.n === n).map(b => Number(String(b.id).split("#")[1]) || 0);
+  const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
+  const gone = String((f || {}).gone || "").split(",").filter(Boolean).map(id => ({id, n: id.split("#")[0]}));
+  const used = [...list, ...more, ...gone].filter(b => b.n === n).map(b => Number(String(b.id).split("#")[1]) || 0);
   return n + "#" + ((used.length ? Math.max(...used) : 0) + 1);
 }
 // Every row that names a bunker on this field: a man's break, an out, a
 // rotation, a sighting, a shot, their five, a play's plant.
+function noteGone(key, ids){
+  S.fields = (S.fields || []).map(x => x.key === key ? {...x, gone: [x.gone, ...ids].filter(Boolean).join(",")} : x);
+}
 function bunkerUses(key, id){
   const tag = JSON.stringify(id);
   const hit = r => r && typeof r === "object" && r.layout === key && JSON.stringify(r).includes(tag);
@@ -2360,6 +2372,7 @@ window.fieldTap = at => {
     // Picked no longer once it has moved: patchField redraws, and a selection
     // cleared after it left the bunker ringed with Turn and Take it off live.
     S.fieldEdit = {...ed, sel: null};
+    if(tw0) noteGone(f.key, [tw0]);
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
       me.x = x; me.y = y; paintFrom(f, me);
@@ -2425,6 +2438,7 @@ window.fieldRemove = () => {
   const uses = ids.reduce((n, id) => n + bunkerUses(f.key, id), 0);
   if(uses && !confirm(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
   S.fieldEdit = {...ed, sel: null};
+  noteGone(f.key, ids);
   patchField(f.key, list => list.filter(b => !ids.includes(b.id)), `Took off ${ids.join(" and ")}.`);
 };
 /* The event's own map, under the field he is building. Every other app that
@@ -3007,7 +3021,8 @@ function playedBefore(pt, m){
   if(!m) return false;
   const before = r => r && r.m === m.id && r.pt < pt;
   return (S.results || []).some(before) || (S.tally || []).some(before) || (S.breakouts || []).some(before)
-      || (S.calls || []).some(before) || (S.moves || []).some(before);
+      || (S.calls || []).some(before) || (S.moves || []).some(before) || (S.arrivalSightings || []).some(before)
+      || Object.values(S.scout || {}).some(p => ((p && p.breaks) || []).some(before));
 }
 function ourEnd(pt, m){
   // On a finished sheet the point he is on is the last one played: the
@@ -3123,6 +3138,7 @@ function lastPointFresh(id){
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
   const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls), ...hit(S.pens),
                ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
+               ...Object.values(S.scout || {}).flatMap(p => hit(p && p.breaks)),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
                   .map(k => Number(k.split("|")[1]))]
@@ -3290,7 +3306,10 @@ window.onlyMine = () => {
 function myPlants(k, layoutKey){
   const p = customPlay(k); if(!p) return null;
   const five = (p.plants || {})[layoutKey || S.layoutKey];
-  return Array.isArray(five) && five.length === 5 ? five : null;
+  // A five on a bunker since taken off a field he built is no five: it drew
+  // nothing and the "build it here" gate never showed.
+  const bl = (LAYOUTS[layoutKey || S.layoutKey] || {}).bunkers || [];
+  return Array.isArray(five) && five.length === 5 && five.every(id => bl.some(b => b.id === id)) ? five : null;
 }
 
 /* Writing one. The whole build is: name it, then tap the bunker each of the
@@ -3430,7 +3449,9 @@ function rekeyPlay(from, to){
     return out;
   };
   S.direct = moved(S.direct); S.pathEdits = moved(S.pathEdits);
-  if((S.jobCalls || {})[from]){ const jc = {...S.jobCalls}; jc[to] = {...jc[from], ...(jc[to] || {})}; delete jc[from]; S.jobCalls = jc; }
+  if((S.jobCalls || {})[from]){ const jc = {...S.jobCalls}, keep = jc[to] || {}, used = new Set(Object.values(keep).map(foldName));
+    // One shout, one man: a word the play already uses is not taken twice.
+    jc[to] = {...Object.fromEntries(Object.entries(jc[from]).filter(([, w]) => !used.has(foldName(w)))), ...keep}; delete jc[from]; S.jobCalls = jc; }
   if(Array.isArray(S.offPlays)) S.offPlays = [...new Set(S.offPlays.map(sw))];
   if(S.script === from) S.script = to;
   if((S.playGone || {})[from]){ const pg = {...S.playGone}; delete pg[from]; S.playGone = pg; }
@@ -4336,7 +4357,7 @@ function copyDataError(data){
       && (v.alive === null || v.alive === undefined || typeof v.alive === "boolean")
       && Object.entries(v).every(([k, x]) => k === "route" || scalar(x))),
     arrival:v => row(v) && record(v, {side:v=>["left","right"].includes(v),startEnd:v=>["left","right"].includes(v),
-      team:str,player:str,layout:str,matchId:str,point:v=>v===null || Number.isInteger(v)&&v>0,
+      team:str,player:str,layout:str,matchId:v=>v===null || str(v),point:v=>v===null || Number.isInteger(v)&&v>0,
       startBunker:str,destination:str,sightingBunker:str,shotAt:str,notice:str,scope:str,route:str,pick:str,details:v=>typeof v==="boolean"}),
     arrivalSightings:list(v => row(v) && ["id","team","player","layout","m","bunker"].every(k => str(v[k]) && v[k].length > 0)
       && Number.isInteger(v.pt) && v.pt > 0 && Number.isInteger(v.seq) && v.seq > 0 && num(v.at)),
@@ -5398,7 +5419,7 @@ function sampleStroke(pts, from, to){
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
 window.addWalk = () => {
-  const where = rosterVal("wkWhere");
+  const pb = walkPickedBunker(), where = pb ? walkWhereOf(pb) : rosterVal("wkWhere");
   // Cut before the duplicate check, the way it is kept: a long note added
   // twice was compared whole against the kept 240 and never matched.
   const note = clean(rosterVal("wkNote").trim()).slice(0, 240);
@@ -6720,7 +6741,7 @@ function theirReadsFresh(side){
 // before this point was played. Read off the sheet's own format, as
 // matchPoint() reads the live one.
 function mpBefore(mid, pt, who){
-  const m = matchById(mid), r = raceTo(m), mc = mercy(m); if(!m || (!r && !mc)) return false;
+  const m = matchById(mid), r = m && m.ot && m.otFrom > 0 && pt < m.otFrom ? (m.raceWas > 0 ? m.raceWas : 0) : raceTo(m), mc = mercy(m); if(!m || (!r && !mc)) return false;
   const sc = scoreBefore(mid, pt), other = who === "us" ? "them" : "us";
   return !!((r && sc[who] === r - 1) || (mc && sc[who] - sc[other] === mc - 1));
 }
@@ -7182,7 +7203,9 @@ window.addScoutPlayer = side => {
   // breakout of theirs is counted under — so a second #7 is the same man
   // written down again, and two rows would split his read. The second entry
   // fills in what the first lacked; a name typed again replaces the old one.
-  const at = pitDup(side, num, name);
+  let at = pitDup(side, num, name);
+  // A numberless man of that name is him, given his number now.
+  if(at < 0 && num && name) at = pitOf(side).players.findIndex(p => !String(p.num || "").trim() && foldName(p.name) === foldName(name));
   if(at >= 0){
     const was = pitOf(side).players[at], merged = {...was};
     for(const k of ["wire", "note"]) if(row[k]) merged[k] = row[k];
@@ -7257,13 +7280,10 @@ function published(name){ return PRO_ROSTERS[name] || null; }
 window.addPublished = side => {
   const name = pitOf(side).name, r = published(name);
   if(!r) return;
-  const have = pitOf(side).players;
-  const add = r.men
-    .filter(p => !have.some(h => (p.num && h.num === p.num) ||
-                                 (h.name || "").toLowerCase() === p.name.toLowerCase()))
-    .map(p => ({num: p.num, name: p.name, wire: "Flex", note: "", threat: 3, from: "published"}));
-  editProfile(side, {players: [...have, ...add]});
-  render();
+  // Through the paste merge: a man already on the card by number gets his
+  // name, by name gets his number, and his sightings follow his key.
+  S.paste = {side, found: r.men.map(p => ({num: p.num, name: p.name, wire: "Flex", note: "", threat: 3, from: "published"})), skipped: []};
+  keepRoster();
 };
 
 // ---- a roster read off a screenshot ----
@@ -7921,6 +7941,12 @@ function playbook(){
         field. This one was written somewhere else, so the app will not guess where your snake
         runner goes here.</p>
       <button class="btn btn--block" onclick="buildPlay('${key}')">Build it on this field</button>
+    </div>` : picked && !isMine(key) && curLayout().mine && !(BREAK_PLANTS[S.layoutKey] || {})[key] ? `<div class="gate">
+      <span class="gate__tag">Not on this field</span>
+      <h3 class="gate__name">${esc(callName(key))} has no five on ${esc(curLayout().name)}</h3>
+      <p class="lede">The bunkers you placed do not give this call the shape it is written for, so
+        the app will not guess where your men go. Make it yours and tap the five bunkers they plant on.</p>
+      <button class="btn btn--block" onclick="copyPlay(${jsq(key)})">Make it yours here</button>
     </div>` : ""}
   <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
 
@@ -8153,7 +8179,7 @@ const REP_TARGET = 2000;
 function repState(){ return S.rep || {log:[]}; }
 // The drill draws a call; a play of his that is not built on this field has
 // nothing to draw, so it is not asked here — the picker still offers it.
-const repKeys = () => pickKeys().filter(k => !isMine(k) || myPlants(k));
+const repKeys = () => pickKeys().filter(k => (BREAK_PLANTS[S.layoutKey] || {})[k] || myPlants(k));
 window.startRep = () => {
   const keys = repKeys();
   // Nothing to draw is nothing to drill: every call he runs is one of his own
@@ -8225,7 +8251,7 @@ function playBuilder(){
     ${from ? `<div class="toggles"><button class="tgl ${b.retire ? "on" : ""}" aria-pressed="${!!b.retire}"
         onclick="set({building:{...S.building, retire:!S.building.retire}})"><i></i>Turn the app's ${esc(callName(from))} off</button></div>` : ""}
     <div class="btnrow">
-      <button class="btn grow" onclick="savePlay()" ${ready ? "" : "disabled"}>${
+      <button class="btn grow" onclick="savePlay()">${
         ready ? "Save this play" : taken ? "Already a call — pick another name" : placed === 5 ? "Name it first" : `Pick ${5 - placed} more`}</button>
       <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
     </div>
@@ -8712,22 +8738,23 @@ window.logBreakout = () => {
       return;
     }
   }
+  // What the Log added to his out — how and by whom — and when it first
+  // happened ride over to the out written again below.
+  let keep = {};
+  const outOf = (m, p, sd, name) => (S.tally || []).find(o => o && typeof o === "object" && o.m === m && o.pt === p && o.side === sd && o.name === name);
   if(editing){
     S.breakouts = (S.breakouts || []).filter(r => r !== editing);
-    if(editing.alive === false && editing.player)
-      S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === editing.m && o.pt === editing.pt && o.side === editing.side && o.name === editing.player));
+    const old = editing.alive === false && editing.player ? outOf(editing.m, editing.pt, editing.side, editing.player) : null;
+    if(old){ if(old.name === row.player) keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
   }
   // His earlier row's out goes with it either way: shot again, the out is
   // written again at this row's bunker — outRow() keeps one out a man, so
   // the old one stood on the old bunker while the chart named the new one.
   // It keeps the moment it was first written, which is what first-out reads.
-  let wasAt = 0;
   if(was){
     S.breakouts = (S.breakouts || []).filter(r => r !== was);
-    if(was.alive === false){
-      const old = (S.tally || []).find(o => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side && o.name === row.player);
-      if(old){ wasAt = old.at || 0; S.tally = S.tally.filter(o => o !== old); }
-    }
+    const old = was.alive === false ? outOf(row.m, pt, side, row.player) : null;
+    if(old){ keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
   }
   S.breakouts = [row, ...(S.breakouts || [])];
   syncTallyFive(row.m, row.pt);
@@ -8735,7 +8762,7 @@ window.logBreakout = () => {
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
-    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script || myCall(), ...(wasAt ? {at:wasAt} : {})});
+    outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v))});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   S.tallyLast = row.id;
   S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
@@ -9422,7 +9449,7 @@ function tally(){
         // so rendering them for the whole log costs thousands of nodes a
         // repaint — and you should not be editing an old point by accident.
         const live = !!o.pt && o.pt === pt;
-        const where = [o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
+        const where = [o.how?esc(o.how.toLowerCase()):"", o.by?`by ${esc(o.by)}`:"",
           // A tally row keeps the bunker he was actually in, not a frame id —
           // named() turned it to its twin on a right-end point.
           o.shotAt?`at ${seen(o.shotAt)}`:"", o.movedTo?`moved to ${seen(o.movedTo)}`:""]
@@ -9717,7 +9744,9 @@ window.newMatch = () => {
   // No opponent means there is nothing to start a match against — send him to
   // the Tally sheet, which now leads with the opponent picker, rather than
   // throwing a system alert and bouncing to Scout.
-  if(!pitNamed("right")) return set({tab:"tally"});
+  // Tally opens on who-are-you-playing; with the pit cleared on a named sheet
+  // that gate stays hidden, so the reason is said either way.
+  if(!pitNamed("right")){ set({tab:"tally"}); return flash("Pick the team you play next first — New match starts the sheet against them."); }
   if(!gameGuard()) return;   // the one question, asked by New match and the Schedule alike
   openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
@@ -10364,7 +10393,7 @@ window.saveArrivalTeam = () => {
   const selected = existing || name;
   if(!existing){
     const id = divisionOf().id;
-    S.teams = {...(S.teams || {}),[id]:[...addedTeams(id),{name:selected}]};
+    S.teams = {...(S.teams || {}),[id]:[...addedTeams(id),{name:selected}]}; forgetTeamRename(selected);
   }
   if(!Object.prototype.hasOwnProperty.call(S.scout || {},selected)){
     S.scout = {...(S.scout || {}),[selected]:profileOf(selected)};
@@ -10435,6 +10464,11 @@ function rekeyTheirMan(team, before, after){
   const oldTag = theirTag(before), newTag = theirTag(after);
   if(oldTag && newTag && oldTag !== newTag)
     S.breakouts = (S.breakouts || []).map(r => r && r.side === "them" && r.vs === team && r.player === oldTag ? {...r, player: newTag} : r);
+  // Who shot one of his is written "#7", or the name for a man with no number.
+  const byKey = p => p.num ? "#" + String(p.num).trim() : theirTag(p);
+  const oldBy = byKey(before), newBy = byKey(after);
+  if(oldBy && newBy && oldBy !== newBy)
+    S.tally = (S.tally || []).map(o => o && o.side === "us" && o.vs === team && o.by === oldBy ? {...o, by: newBy} : o);
 }
 // How their man is written on the breakout sheet: "#7 Dill", "#7", or "Dill".
 const theirTag = p => (p.num ? "#" + p.num : "") + (p.num && p.name ? " " : "") + (p.name || "");
@@ -10540,7 +10574,9 @@ function theirMoves(team, layout = S.layoutKey){
     }
   });
   return [...count].map(([k, c]) => { const [from, to] = k.split("→"); const w = Object.entries(c.who).sort((a, b) => b[1] - a[1])[0];
-      return {from, to, n: c.n, who: w ? w[0] : "", whoN: w ? w[1] : 0}; })
+      // Named the way the sheet names him ("#7 Dill"), never the sighting key.
+      const p = w && (profileOf(team).players || []).find(x => arrivalPlayerKey(x) === w[0]);
+      return {from, to, n: c.n, who: w ? (p ? theirTag(p) : w[0].replace(/^number:/, "#").replace(/^name:/, "")) : "", whoN: w ? w[1] : 0}; })
     .sort((a, b) => b.n - a.n || a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
 }
 function movesLine(team, max = 3){
@@ -10971,7 +11007,7 @@ function pit(side,T,label){
     <div>
       <div class="pit__name"${T.named?"":` style="color:var(--dim)"`}>${T.named?esc(T.name):"Pick a team"}</div>
       <div class="pit__pts">${!T.named ? "nobody in this pit yet"
-        : T.pts === undefined ? "US — · not scored yet" : "US "+T.pts+" pts"}</div>
+        : T.pts === undefined ? "US — · not scored yet" : "US "+esc(T.pts)+" pts"}</div>
     </div>
     <select onchange="setPitTeam('${side}',this.value)" aria-label="${side === "right" ? "The team you are playing" : "A team you watch"}">
       <option value=""${T.named?"":" selected"}>${T.named?"— clear this pit —":"Pick a team"}</option>
@@ -11416,13 +11452,13 @@ function scoutGames(){
         oninput="(this.closest('.fld').querySelector('[data-replay-step]')||{}).textContent=this.value"
         onchange="set({replayStep:Number(this.value)})"/></div>
     <div class="assigns">${events.slice(0,step).map((o,i)=>{
-      const bits=[o.how?o.how.toLowerCase():"", o.by?`by ${esc(o.by)}`:"",
+      const bits=[o.how?esc(o.how.toLowerCase()):"", o.by?`by ${esc(o.by)}`:"",
                   o.shotAt?`at ${esc(named(o.shotAt))}`:"", o.movedTo?`moved to ${esc(named(o.movedTo))}`:""]
                  .filter(Boolean).join(" · ");
       return `<div class="assign">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${i+1}</span>
         <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
-        <span class="assign__who">${o.side==="us"?"yours":esc(R.name)}${bits?" · "+bits:""}</span></span>
+        <span class="assign__who">${(gm => gm&&gm.watch ? esc(o.side==="us" ? gm.home||"Home" : gm.away||"Away") : o.side==="us" ? "yours" : esc(R.name))(matchById(gid))}${bits?" · "+bits:""}</span></span>
       </div>`;}).join("")}</div>
     ${step<events.length?`<p class="note">${events.length-step} still up.</p>`:""}
     <p class="aid">What you logged, in the order you logged it. Nothing is reconstructed.</p>`,
@@ -11566,8 +11602,8 @@ function scoutBoard(){
           const seen = (pr.breaks || []).filter(b => b.script), tally = {}; seen.forEach(b => { tally[b.script] = (tally[b.script] || 0) + 1; });
           const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
           return seen.length >= 3 && top ? `<br><span class="note">${esc(callName(top[0]))} ${top[1]} of ${seen.length} logged</span>` : ""; })()}</td>
-        <td class="num">${t.pts==null?`<span class="note">—</span>`:t.pts}</td>
-        <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${t.reg}</span>`:`<span class="note">—</span>`}</td>
+        <td class="num">${t.pts==null?`<span class="note">—</span>`:esc(t.pts)}</td>
+        <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${esc(t.reg)}</span>`:`<span class="note">—</span>`}</td>
         <td class="num col-opt">${(n => scouted(t.name) || n ? `${scouted(t.name) ? `<span class="tag tag--paid">FILM</span>` : ""}${n ? `<span class="note" style="margin-left:4px">${n} call${n === 1 ? "" : "s"}</span>` : ""}` : `<span class="note">—</span>`)((pr.breaks || []).filter(b => b.script).length)}</td>
         <td class="num col-opt">${(() => {
           const mine = (profileOf(t.name).players || []).length;
@@ -11576,8 +11612,8 @@ function scoutBoard(){
                : pub ? `<span class="tag tag--pend">${pub.men.length}</span>`
                : `<span class="note">—</span>`;
         })()}</td>
-        <td class="num">${pr.unscored&&!pr.tendSet&&!scouted(t.name)?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
-        <td style="color:var(--accent-lit)">${pr.unscored&&!scouted(t.name)?`<span class="note">—</span>`:`<span class="th-stars">${"★".repeat(pr.threat)}</span><span class="th-num">${pr.threat}★</span>`}</td>
+        <td class="num">${pr.unscored&&!pr.tendSet?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
+        <td style="color:var(--accent-lit)">${pr.unscored?`<span class="note">—</span>`:`<span class="th-stars">${"★".repeat(pr.threat)}</span><span class="th-num">${pr.threat}★</span>`}</td>
         <td class="col-opt">${t.src==="reg"?`<span class="tag tag--paid">ENTERED</span>`
              :t.src==="page"?`<span class="tag tag--paid">LEAGUE</span>`
              :t.src==="event"?`<span class="tag tag--pend">EVENT</span>`
@@ -11952,7 +11988,7 @@ function leaguePage(){
     </div>`).join("")}`, people+" people")}
 
   ${sec("Blast", `<div class="fld"><label>Update</label>
-      <textarea onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${esc(S.blastBody)}</textarea></div>
+      <textarea maxlength="600" onchange="S.blastBody=this.value;save(S)" placeholder="Pit gate opens 8:00">${esc(S.blastBody)}</textarea></div>
     <div class="fld"><label>Who gets it</label>
       <div class="toggles">${S.groups.map(g=>`
         <button class="tgl${blastPicked(g.id)?" on":""}" onclick="toggleBlastGroup(${jsq(g.id)})">
@@ -11995,8 +12031,9 @@ function blastTo(){
   return (S.blastTo || live).filter(id => live.includes(id));
 }
 const blastPicked = id => blastTo().includes(id);
-const blastCount = () => S.groups.filter(g=>blastPicked(g.id))
-  .reduce((n,g)=>n+reachable(g).length, 0);
+// One phone once across every group picked, the way sendBlast counts it.
+const blastCount = () => new Set(S.groups.filter(g=>blastPicked(g.id))
+  .flatMap(g=>reachable(g).map(m=>contactKey(m.phone||m.email||"")))).size;
 window.toggleBlastGroup = id => {
   const on = blastTo();
   S.blastTo = on.includes(id) ? on.filter(x=>x!==id) : [...on, id];
@@ -12808,7 +12845,7 @@ function moreBody(k){
       ${matchVs() && !(curMatch()||{}).watch ? `<div class="fld"><label for="match-vs">Played against</label>
         <select id="match-vs" onchange="setMatchVs(this.value)">${[...new Set([matchVs(), ...teamsHere().map(t => t.name)])].map(n =>
           `<option value="${esc(n)}"${n === matchVs() ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
-        <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("setMatchVs(this.value)")}/>
+        <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("this.blur()")}/>
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
       <button class="btn btn--block" onclick="newMatch()">${
         pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
@@ -13128,7 +13165,7 @@ function moreBody(k){
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
-    + `<div class="btnrow"><input id="md" aria-label="Note for the squad" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
+    + `<div class="btnrow"><input id="md" maxlength="280" aria-label="Note for the squad" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
        <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+" notes");
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
@@ -13342,7 +13379,7 @@ function quickLog(){
       <span class="qlog__vs">${esc(watch ? `${sideWord("us")} v ${sideWord("them")}` : matchVs() || curLayout().name)}</span>
       <span class="grow"></span>
       <span class="qlog__pt">POINT ${over && !off ? sheetPoint() : pt}</span>
-      <button class="btn btn--quiet" onclick="set({quick:false, tab:'more', more:'wb'})">▚ Board</button>
+      <button class="btn btn--quiet" onclick="closeQuick(); set({tab:'more', more:'wb'})">▚ Board</button>
       <button class="btn btn--quiet" onclick="closeQuick()">✕ Exit</button>
     </div>
     <button class="qlog__call" onclick="set({quickPick:!S.quickPick})">
