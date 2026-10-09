@@ -9846,6 +9846,18 @@ const ROSTER = [
     Object.assign(S, was); dropPathCache(); window.set({});
     return two && off && said && !!k && apart && copyOk || JSON.stringify({ two, off, said, k, ends, copyOk });
   }));
+  check("a roster added to one pit says so under that pit only, and an unscored threat says to tap a star", await ev(() => {
+    const was = { scout: S.scout, left: S.left, right: S.right };
+    S.scout = { ...(S.scout || {}) }; delete S.scout["San Diego Dynasty"]; delete S.scout["San Antonio X-Factor"];
+    window.set({ tab: "scout", scoutTab: "matchup", left: { name: "San Diego Dynasty" }, right: { name: "San Antonio X-Factor" }, pitOpen: null });
+    window.addPublished("left");
+    const pits = [...document.querySelectorAll("#root .pit")].map(p => p.textContent);
+    const right = pits.find(t => /San Antonio X-Factor/.test(t) && /No one logged/.test(t)) || "";
+    const ok = /Added \d/.test(pits.join(" ")) && right && !/Added \d/.test(right) && /not scored — tap a star/.test(right)
+      && document.getElementById("sp-wire-right").value === "Flex";
+    Object.assign(S, was); window.set({});
+    return ok || JSON.stringify({ n: pits.length, right: right.slice(0, 300) });
+  }));
   G("Match day");
   const unread = await ev(() => {
     const snap = JSON.stringify(S);

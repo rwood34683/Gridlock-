@@ -3399,7 +3399,7 @@ if(!LAYOUTS[S.layoutKey]) S.layoutKey = "lso";
 
 // A half-finished paste is scratch, not a record. It should not still be sitting
 // open three days later at the next event.
-S.paste = null; S.pasteSide = ""; S.pasteNote = "";
+S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = "";
 
 /* Everything a coach was in the middle of, cleared the same way.
  *
@@ -3433,7 +3433,7 @@ function clearScratch(s = S){
   // A half-finished roster paste, the tutorial left open and the game being
   // replayed are places he was standing — a restore or a Replace brought them
   // back, and the tutorial opened itself after sign-in.
-  s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.showTutorial = false; s.replayMatch = null;
+  s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
   s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false;
 }
@@ -8480,7 +8480,7 @@ function parseRoster(text, team){
   });
   return {found: found.slice(0, 40), skipped};
 }
-window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = ""; save(S); render(); };
+window.openPaste = side => { S.pasteSide = side; S.paste = null; S.pasteNote = ""; S.pasteNoteSide = ""; save(S); render(); };
 window.closePaste = () => { S.pasteSide = ""; S.paste = null; save(S); render(); };
 window.readRoster = side => {
   const el = document.getElementById("rosterIn"), text = el ? el.value : "";
@@ -8514,6 +8514,9 @@ window.keepRoster = () => {
   });
   editProfile(side, {players});
   S.pasteSide = ""; S.paste = null;
+  // The note is the card's it was added to: printed under both pits, "Added
+  // 5." sat under a team with nobody on it and read as five men lost.
+  S.pasteNoteSide = side;
   S.pasteNote = `Added ${added}.` + (filled ? ` ${filled} already on the card ${filled===1?"was":"were"} filled in.` : "")
     + (same ? ` ${same} ${same===1?"was":"were"} already logged.` : "");
   save(S); render();
@@ -12163,7 +12166,7 @@ function pit(side,T,label){
     <div class="fld"><label>Tendency · your film read</label>
       <div class="seg">${["Snake","Balanced","Dorito"].map(x=>`<button class="${T.tend===x?"on":""}" onclick="setPitTend('${side}','${x}')">${x}</button>`).join("")}</div>
     </div>
-    <div class="fld"><label>Threat</label><div class="stars">${stars(T.threat,side)}</div></div>
+    <div class="fld"><label>Threat${T.threat ? "" : ` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--dim)">· not scored — tap a star</span>`}</label><div class="stars">${stars(T.threat,side)}</div></div>
     <div class="fld"><label>Notes</label>
       <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
@@ -12209,9 +12212,9 @@ function pit(side,T,label){
         <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <div class="rost__ps">
           <label><span class="note">Wire</span>
-            <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option>${w}</option>`).join("")}</select></label>
+            <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option${w === "Flex" ? " selected" : ""}>${w}</option>`).join("")}</select></label>
           <label><span class="note">Read</span>
-            <input id="sp-note-${side}" placeholder="snake runner" ${onEnter(`addScoutPlayer('${side}')`)}/></label>
+            <input id="sp-note-${side}" placeholder="what he does" ${onEnter(`addScoutPlayer('${side}')`)}/></label>
         </div>
       </div>
       <div class="toggles">
@@ -12219,7 +12222,7 @@ function pit(side,T,label){
         <button class="btn btn--quiet" onclick="openPaste('${side}')">Paste a roster</button>
       </div>
       ${S.pasteSide === side ? pasteBox(side) : ""}
-      ${S.pasteNote && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
+      ${S.pasteNote && S.pasteNoteSide === side && S.pasteSide !== side ? `<p class="note" style="color:var(--accent-lit)">${esc(S.pasteNote)}</p>` : ""}
     </div>`}
   </div>`;
 }
