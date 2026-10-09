@@ -2853,7 +2853,7 @@ window.setMercy = n => {
     const sc = matchScore(), lead = Math.abs(sc.us - sc.them);
     if(lead > want){ flash(`The lead is already ${lead}, so a mercy at ${want} would have ended it before now. Mercy at ${lead} or more.`); return; }
   }
-  patchMatch({mercy: want}); S.matchState = derivedState(); save(S); render();
+  patchMatch({mercy: want}); S.matchState = derivedState(); if(matchOver()) S.clockEnd = 0; save(S); render();
 };
 function matchById(mid){ return (S.matches || []).find(x => x.id === (mid || S.matchId)) || null; }
 function matchOver(mid){
@@ -2891,7 +2891,9 @@ window.timeUp = how => {
     else patchMatch({ot: true, raceWas: m.raceTo || 0, raceTo: sc.us + 1, otFrom: S.point || 1});
   }
   else patchMatch({timeUp: true});
-  S.matchState = derivedState(); save(S); render();
+  // A horn that ends the match ends the clock between points: there is no
+  // next point for it to count down to.
+  S.matchState = derivedState(); if(matchOver()) S.clockEnd = 0; save(S); render();
 };
 // What match point reads as. On his own sheet it is yours, against you or
 // both ways; on a watched game it is the team's, because neither side is him.
@@ -2999,7 +3001,7 @@ window.setRaceTo = n => {
       flash(`The score is already ${sc.us}–${sc.them}, so a race to ${want} would have ended before now. Race to ${least} or more.`); return;
     }
   }
-  patchMatch({raceTo: want}); S.matchState = derivedState(); save(S); render();
+  patchMatch({raceTo: want}); S.matchState = derivedState(); if(matchOver()) S.clockEnd = 0; save(S); render();
 };
 /* Ends. Your five break from one end of the field and the other team from the
  * other, and which end is yours changes — at the half, or every point,
@@ -4956,6 +4958,7 @@ window.readCopyFile = input => {
 const POD = {W: 360, H: 560, hopperMax: 20, podsMax: 5};
 let pod = null;          // the running game, or null
 let podTaps = [];        // the taps on the name that open it
+let podBuzzed = 0;       // the break clock that last stopped a game: once a buzzer, across opens
 function podRng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 let podRand = Math.random;
 const POD_BUNKERS = [
@@ -5049,7 +5052,8 @@ function podStep(g, dt){
   }
 }
 function podOver(g){
-  if(g.score > (S.podBest || 0)){ S.podBest = g.score; g.best = true; save(S); }
+  // "A new best" only when it was kept: a full phone refuses the write.
+  if(g.score > (S.podBest || 0)){ S.podBest = g.score; save(S); g.best = !_storeFail; }
 }
 function podTapAt(g, x, y){
   if(!g || g.phase !== "play") return;
@@ -5112,7 +5116,7 @@ function podDraw(){
   ctx.fillStyle = "#efedeb"; ctx.font = "800 15px system-ui, sans-serif"; ctx.textAlign = "left";
   ctx.fillText(`OUT ${g.score}`, 14, 26);
   ctx.textAlign = "right"; ctx.fillStyle = "#8d9092"; ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillText(`BEST ${S.podBest || 0} · LEVEL ${g.level}`, POD.W - 14, 26);
+  ctx.fillText(`BEST ${Math.max(S.podBest || 0, g.score)} · LEVEL ${g.level}`, POD.W - 14, 26);
   // The hopper, along the bottom.
   ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
   ctx.fillStyle = g.reload ? "#8d9092" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
@@ -5124,12 +5128,18 @@ function podDraw(){
     ctx.fillText(g.phase === "out" ? "YOU'RE OUT" : g.phase === "paused" ? "PAUSED" : "POD WARS", POD.W / 2, 210);
     ctx.font = "600 14px system-ui, sans-serif"; ctx.fillStyle = "#8d9092";
     const lines = g.phase === "out" ? [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]
-      : g.phase === "paused" ? [...(S.clockEnd && clockLeft() === 0 ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]
+      : g.phase === "paused" ? [...(g.buzz ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]
       : ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."];
     lines.forEach((l, i) => ctx.fillText(l, POD.W / 2, 248 + i * 22));
   }
   const tuck = document.getElementById("pod-tuck"), re = document.getElementById("pod-pod"), go = document.getElementById("pod-go");
-  if(tuck) tuck.classList.toggle("on", !!g.tucked);
+  if(tuck){ tuck.classList.toggle("on", !!g.tucked); if(tuck.getAttribute("aria-pressed") !== String(!!g.tucked)) tuck.setAttribute("aria-pressed", String(!!g.tucked)); }
+  // What the canvas shows, said: the field is a picture to a screen reader.
+  const label = `Pod Wars field: tap their men to shoot. ${g.score} out, best ${Math.max(S.podBest || 0, g.score)}, level ${g.level}, ${g.hopper} in the hopper.`;
+  if(cv.getAttribute("aria-label") !== label) cv.setAttribute("aria-label", label);
+  const say = document.getElementById("pod-say"),
+        line = g.phase === "out" ? `You're out. ${g.why || ""} ${g.score} out${g.best ? ", a new best" : ""}.` : g.phase === "paused" ? `Paused.${g.buzz ? " The break clock is out." : ""}` : "";
+  if(say && say.textContent !== line) say.textContent = line;
   // Pod says when it cannot load: nothing to load, loading already, or a full hopper.
   if(re){ re.textContent = `Pod · ${g.pods}`; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
   if(go){ go.hidden = g.phase === "play"; go.textContent = g.phase === "out" ? "Play again" : g.phase === "paused" ? "Resume" : "Play"; }
@@ -5144,7 +5154,7 @@ function podLoop(now){
   // the game stops instead, so the buzzer finds him on the sideline.
   // Once a buzzer: Resume after it plays on, rather than stopping again every
   // frame while the clock sits at zero behind a header he cannot reach.
-  if(pod.g.phase === "play" && S.clockEnd && clockLeft() === 0 && pod.buzzed !== S.clockEnd){ pod.buzzed = S.clockEnd; pod.g.phase = "paused"; pod.g.held = false; }
+  if(pod.g.phase === "play" && S.clockEnd && clockLeft() === 0 && podBuzzed !== S.clockEnd){ podBuzzed = S.clockEnd; pod.g.phase = "paused"; pod.g.held = false; pod.g.buzz = true; }
   podDraw();
   pod.raf = pod.g.phase === "play" ? requestAnimationFrame(podLoop) : 0;
 }
@@ -5185,8 +5195,9 @@ window.podWars = {
       #podwars .pod-clock .clock--out{color:#e5252a}
     </style>
     <div class="pod-top"><b>POD WARS</b><span>${S.clockEnd ? `<span class="pod-clock">BREAK <span class="${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock>${mmss(clockLeft())}</span></span>` : ""}</span><button type="button" id="pod-close">Close</button></div>
-    <div id="pod-stage"><canvas id="pod-canvas" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
-    <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck">Tuck</button></div>`;
+    <div id="pod-stage"><canvas id="pod-canvas" role="img" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
+    <p id="pod-say" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0"></p>
+    <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck" aria-pressed="false">Tuck</button></div>`;
     // A dialog in fact as well as in name: the app underneath takes no focus,
     // no tap and no key while it is up, and focus goes back where it was.
     const back = document.activeElement;
@@ -5219,12 +5230,15 @@ window.podWars = {
   play(){
     if(!pod || pod.g.phase === "play") return;
     if(pod.g.phase !== "paused") pod.g = podFresh();
-    pod.g.phase = "play"; pod.last = 0;
+    pod.g.phase = "play"; pod.g.buzz = false; pod.last = 0;
     cancelAnimationFrame(pod.raf); pod.raf = requestAnimationFrame(podLoop);
     // Play hides itself; focus goes to Tuck rather than falling to the page.
     if(pod.el.contains(document.activeElement) || document.activeElement === document.body){ const t = pod.el.querySelector("#pod-tuck"); if(t) t.focus(); }
   },
-  pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0; podDraw(); } },
+  pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0;
+    // Hidden is the last moment the game is sure to run: the system may close
+    // the app from here, so a best is kept now, the way Close keeps it.
+    podOver(pod.g); podDraw(); } },
   close(){
     if(!pod) return;
     cancelAnimationFrame(pod.raf);
@@ -5236,6 +5250,7 @@ window.podWars = {
     window.removeEventListener("resize", podFit);
     window.removeEventListener("keydown", podKey, true); window.removeEventListener("keyup", podKey, true);
     if(back && back.isConnected && back.focus) try{ back.focus(); }catch(e){}
+    if(_storeFail) render();   // a best the phone refused to keep says so under it
   },
   // For the suite: a seeded game it can step by hand.
   seed(n){ podRand = n === undefined ? Math.random : podRng(n); },
@@ -5251,7 +5266,9 @@ function podKey(ev){
   if(!pod) return;
   ev.stopPropagation();
   if(ev.key === "Escape" && ev.type === "keydown"){ ev.preventDefault(); window.podWars.close(); return; }
-  if(ev.key === " " || ev.key === "ArrowDown"){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
+  // Space presses the button it is on, as anywhere; it is Tuck only on Tuck or on no button.
+  const onButton = ev.target instanceof HTMLButtonElement && ev.target.id !== "pod-tuck";
+  if(ev.key === "ArrowDown" || (ev.key === " " && !onButton)){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
   if((ev.key === "r" || ev.key === "R") && ev.type === "keydown") podReload(pod.g);
 }
 // Seven taps on the name, each within a second and a half of the last.
@@ -6652,7 +6669,15 @@ function profileOf(name){
  */
 function pitOf(side){
   const name = ((S[side] || {}).name) || "";
-  return {name, named: !!name, pts: name ? teamMeta(name).pts : undefined, ...profileOf(name)};
+  // A team nobody scored reads as a dash, never as a guess: the default three
+  // stars and "Balanced" are what the profile starts from, not his read. Every
+  // screen reads a pit through here; the stored profile is never changed.
+  const pr = profileOf(name);
+  return {name, named: !!name, pts: name ? teamMeta(name).pts : undefined, ...pr,
+          threat: pr.unscored ? 0 : pr.threat,
+          // A read is a tendency he set, one the event data carried, or a word
+          // other than the Balanced every profile starts from.
+          tendKnown: !pr.unscored || !!pr.tendSet || !!(name && teamMeta(name).tend) || pr.tend !== "Balanced"};
 }
 const pitNamed = side => !!((S[side] || {}).name);
 // What to print for a pit. Never a team the coach did not pick: the caller says
@@ -7979,7 +8004,7 @@ function playbook(){
     <div class="call__meta">
       ${picked ? pips(m.aggr, m.aggr>=4?"Aggressive":m.aggr<=1?"Patient":"Balanced") : ""}
       ${(curMatch()||{}).watch ? `<span class="vs">watching <b>${esc(matchLabel(curMatch()).split(" · ")[0])}</b> · this is your own board</span>`
-        : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b> · reads <b>${esc(opp.tend)}</b></span>`
+        : opp.named?`<span class="vs">vs <b>${esc(opp.name)}</b>${opp.tendKnown ? ` · reads <b>${esc(opp.tend)}</b>` : ""}</span>`
         :`<button class="vs vs--go" onclick="set({tab:'scout',scoutTab:'matchup',more:null})">Who are you playing? Pick them on Scout ›</button>`}
     </div>
   </div>
@@ -9173,7 +9198,10 @@ function tally(){
   const named = id => { const b = bl.find(x=>x.id===shownBunker(id)); return b?esc(callOf(b)):esc(id); };
   const seen = id => { const b = bl.find(x=>x.id===id); return b?esc(callOf(b)):esc(id); };
   const best = value[0], worst = value[value.length-1];
-  const netColour = n => n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)";
+  // Their net is theirs: a bunker where they lose points is good news for him.
+  const netColour = n => { n = valueSide === "them" ? -n : n; return n>0 ? "var(--ok)" : n<0 ? "var(--warn)" : "var(--dim)"; };
+  const bestWord = valueSide === "them" ? "Where they win most" : "Best bunker", worstWord = valueSide === "them" ? "Where they lose most" : "Costing you";
+  const bestColour = valueSide === "them" ? "var(--warn)" : "var(--ok)", worstColour = valueSide === "them" ? "var(--ok)" : "var(--warn)";
   const valueSeg = `<div class="seg">
       <button class="${valueSide==="us"?"on":""}" onclick="set({tallyValue:'us'})">Your five</button>
       <button class="${valueSide==="them"?"on":""}" onclick="set({tallyValue:'them'})">Theirs</button>
@@ -9195,8 +9223,8 @@ function tally(){
   const valueTable = `<div class="tblwrap"><table class="tbl">
       <thead><tr><th>Bunker</th><th>Breaks</th><th>Made it</th><th>Net pts</th></tr></thead>
       <tbody>${value.map(valueRow).join("")}</tbody></table></div>
-    ${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
-    ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}. Rethink this break, or who runs it.</p>` : ""}
+    ${best && best.net > 0 ? `<p class="note" style="color:${bestColour}">${bestWord}: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
+    ${worst && worst.net < 0 ? `<p class="note" style="color:${worstColour}">${worstWord}: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.${valueSide === "us" ? " Rethink this break, or who runs it." : ""}</p>` : ""}
     <p class="note">Every match on ${esc(curLayout().name)}${S.evenOnly?", even points only":""}. Net is points won minus lost on the points a man broke there; a point with no winner logged counts for neither.${(S.matches||[]).some(m => m.layout === S.layoutKey && (m.swapEnds || m.end === "right")) ? " A break from the far end is counted on the bunker it is from your own end, so one job is one row whichever end it was run from; the rings on the field and the names in the rows are the end you break from now." : ""}</p>`;
   /* The two steps of the break chart: where each man went, then what
      happened to each. The strip says which step he is on and how many men
@@ -9475,8 +9503,8 @@ function tally(){
     matchLabel(curMatch()))}
 
   ${sec("Where the points come from", value.length && !S.tallyValueOpen
-      ? `${valueSeg}${unevenBlock}${best && best.net > 0 ? `<p class="note" style="color:var(--ok)">Best bunker: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
-         ${worst && worst.net < 0 ? `<p class="note" style="color:var(--warn)">Costing you: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.</p>` : ""}
+      ? `${valueSeg}${unevenBlock}${best && best.net > 0 ? `<p class="note" style="color:${bestColour}">${bestWord}: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
+         ${worst && worst.net < 0 ? `<p class="note" style="color:${worstColour}">${worstWord}: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.</p>` : ""}
          <button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:true})">Every bunker · ${value.length} ${value.length === 1 ? "row" : "rows"}</button>`
       : valueSeg + unevenBlock + (value.length ? valueTable + `<button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:false})">Fold the table</button>` : valueEmpty), curLayout().name)}
 
@@ -11055,7 +11083,7 @@ function pitLine(side, T, label){
   return `<button class="pitline pitline--${side === "left" ? "l" : "r"}" onclick="set({pitOpen:${jsq(side)}})" aria-expanded="false">
     <span class="pitline__side">${label}</span>
     <span class="pitline__name">${T.named ? esc(T.name) : "Nobody yet"}</span>
-    <span class="pitline__read">${T.named ? esc(T.tend || "—") + (T.threat ? " · " + "★".repeat(Math.max(0, Math.min(5, T.threat))) : "") : "optional"}</span>
+    <span class="pitline__read">${T.named ? (T.tendKnown ? esc(T.tend || "—") : "—") + (T.threat ? " · " + "★".repeat(Math.max(0, Math.min(5, T.threat))) : "") : "optional"}</span>
     <span class="pitline__go">Open ▾</span>
   </button>`;
 }
@@ -11342,7 +11370,11 @@ function scoutAnticipate(){
     const shooter = (sh => sh && pitOnSheet(side) ? `<div class="kv__row"><span class="kv__k">Their shooter</span><span class="kv__v">${sh}</span></div>` : "")(shooterLine(side))
       + (mv => mv ? `<div class="kv__row"><span class="kv__k">After the break</span><span class="kv__v">${mv}</span></div>` : "")(movesLine(T.name))
       + roleLine(T.name);
-    return [`${counted}<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>`, tells, counter, rows + lately, shooter];
+    // A team nobody has read on film and nothing logged against has no read:
+    // the Balanced card would be the app guessing.
+    if(!T.tendKnown && !total)
+      return [`No film read yet — set their Tendency on Matchup, or log the breaks you see on Breakouts.`, "—", "—", rows + lately, shooter];
+    return [`${counted}${T.tendKnown ? `<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>` : ""}`, T.tendKnown ? tells : "—", T.tendKnown ? counter : "—", rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
@@ -11589,7 +11621,7 @@ function scoutCounter(){
           has two named sides here. */""}
     <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>${/s$/i.test(R.name || "") ? "'" : "'s"} ${read
         ? `<b style="color:var(--ink)">${esc(callName(read.call))}</b> — ${read.n} of ${read.of} ${esc(read.basis)}${read.alt ? `, ${esc(callName(read.alt[0]))} ${read.alt[1]}` : ""} —`
-        : `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read ? ` Film read: ${esc(R.tend)}.` : ""}</p>
+        : R.tendKnown ? `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,` : `next break (no film read yet),`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read && R.tendKnown ? ` Film read: ${esc(R.tend)}.` : ""}</p>
     ${(()=>{const f=breakFreq("right"), n=f.reduce((a,[,c])=>a+c,0);
       // Out of the calls named: a five with no call is never counted as one.
       return f.length?`<p class="note">You have named their call ${n} time${n===1?"":"s"} — most often

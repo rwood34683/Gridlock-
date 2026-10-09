@@ -17,7 +17,12 @@ const URL = process.env.APP_URL || "http://localhost:5173/";
 const results = [];
 let group = "";
 const G = name => { group = name; };
-const check = (name, pass, detail) => results.push({ group, name, pass: !!pass, detail });
+// A check that returns `ok || JSON.stringify({...})` hands back its detail on a
+// failure: a string is truthy, so without this every one of them passed.
+const check = (name, pass, detail) => {
+  const said = typeof pass === "string" && /^([{[]|failed:|status: )/.test(pass);
+  results.push({ group, name, pass: !said && !!pass, detail: said ? pass : detail });
+};
 
 const ROSTER = [
   { name: "Reyes", num: 7, p: "snake MW", s: "GP" }, { name: "Okafor", num: 3, p: "MT 50", s: "C lane" },
@@ -4255,6 +4260,33 @@ const ROSTER = [
     S.podBest = best0;
     return kept && best;
   }));
+  check("Pod Wars: hidden keeps the best, BEST moves with the score, and Space presses the button it is on", await ev(() => {
+    const best0 = S.podBest; S.podBest = 0;
+    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.score = 3; window.podWars.step(16);
+    const label = document.getElementById("pod-canvas").getAttribute("aria-label");
+    const live = /best 3/.test(label) && document.getElementById("pod-canvas").getAttribute("role") === "img";
+    window.podWars.pause();
+    const kept = S.podBest === 3 && /Paused/.test(document.getElementById("pod-say").textContent);
+    const tuckSays = document.getElementById("pod-tuck").getAttribute("aria-pressed") === "false";
+    const close = document.getElementById("pod-close"); close.focus();
+    close.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+    const held = !!(pod && pod.g.held);
+    if(pod) window.podWars.close();
+    S.podBest = best0;
+    return live && kept && tuckSays && !held || JSON.stringify({ live, kept, tuckSays, held, label });
+  }));
+  check("Pod Wars: the buzzer stops a game once — not again on the next open — and only the buzzer's pause names the clock", await ev(() => {
+    S.clockEnd = Date.now() - 1;
+    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    const first = window.podWars.state().phase === "paused" && window.podWars.state().buzz === true;
+    window.podWars.close();
+    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    const again = window.podWars.state().phase === "play";
+    window.podWars.pause();
+    const quiet = !window.podWars.state().buzz;
+    window.podWars.close(); S.clockEnd = 0;
+    return first && again && quiet || JSON.stringify({ first, again, quiet });
+  }));
   check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
@@ -4500,11 +4532,11 @@ const ROSTER = [
     S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "them" }, ...(S.results || [])];
     window.set({ point: 3, tab: "more", more: "matches" });
     const root = document.getElementById("root");
-    const line = /point 3[^·]*· 2 logged/.test(root.textContent);
+    const line = /point 3 (· [^·]+ )*· 2 logged/.test(root.textContent.replace(/\s+/g, " ")), seen = (root.textContent.match(/This match[\s\S]{0,400}/) || [""])[0].replace(/\s+/g, " ");
     const badge = [...root.querySelectorAll(".assign")].some(a => /on now/.test(a.textContent) && a.querySelector(".assign__n").textContent.trim() === "2");
     S.results = S.results.filter(r => r.m !== mid);
     window.set({ right: { name: "Dynasty" }, tab: "tally" }); window.newMatch();
-    return line && badge || JSON.stringify({ line, badge });
+    return line && badge || JSON.stringify({ line, badge, seen });
   }));
   check("a man renamed on this phone and still under his old name on the other phone's sheet lands on him — no second man on the squad — and a new man added under the old name is a new man", await ev(() => {
     window.confirm = () => true;
@@ -4603,6 +4635,7 @@ const ROSTER = [
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
     const mid = S.matchId;
+    window.setRaceTo(0); window.setMercy(0);   // a new sheet carries the last one's format
     S.results = [{ m: mid, pt: 1, won: "us" }, { m: mid, pt: 2, won: "us" }, { m: mid, pt: 3, won: "them" }, { m: mid, pt: 4, won: "them" }, { m: mid, pt: 5, won: "us" }, ...(S.results || [])];
     window.set({ point: 6 });
     window.setRaceTo(2);
@@ -4746,7 +4779,7 @@ const ROSTER = [
     window.set({ tab: "scout", scoutTab: "counter", left: { name: "Impact" }, right: { name: "Dynasty" }, pitOpen: null });
     window.playPit(); window.newMatch();
     const t = document.getElementById("root").textContent;
-    return /Against Dynasty's likely/.test(t) && !/Impact against/.test(t) && /you are/.test(t);
+    return /Against Dynasty's (likely|next break)/.test(t) && !/Impact against/.test(t) && /you are/.test(t);
   }));
   check("Matchup's threat bar does not stand the watched team in for you", await ev(() => {
     window.set({ tab: "scout", scoutTab: "matchup", left: { name: "Impact" }, right: { name: "Dynasty" }, pitOpen: null });
@@ -9733,6 +9766,27 @@ const ROSTER = [
     const before = mpBefore("mp4", 6, "us"), during = mpBefore("mp4", 8, "us");
     Object.assign(S, keep);
     return before === false && during !== undefined;
+  }));
+  G("Match day");
+  const unread = await ev(() => {
+    const snap = JSON.stringify(S);
+    setPitTeam("left", ""); setPitTeam("right", "Journey Nobody");
+    const p = pitOf("right");
+    window.set({ tab: "scout", scoutTab: "anticipate" });
+    const txt = document.getElementById("root").textContent;
+    Object.keys(S).forEach(k => delete S[k]); Object.assign(S, JSON.parse(snap)); window.set({});
+    return [p.threat, p.tendKnown, txt.includes("No film read yet"), txt.includes("Balanced wire to wire")].join();
+  });
+  check("journey: a team nobody has read gets no threat and no film read", unread === "0,false,true,false", unread);
+  check("journey: the horn that ends the match stops the clock between points", await ev(() => {
+    const snap = JSON.stringify(S);
+    setPitTeam("right", "Journey Clock");
+    S.results = [...S.results, { m: S.matchId, pt: S.point || 1, won: "us" }];
+    S.clockEnd = Date.now() + 60000;
+    timeUp();
+    const stopped = S.clockEnd === 0 && matchOver();
+    Object.keys(S).forEach(k => delete S[k]); Object.assign(S, JSON.parse(snap)); window.set({});
+    return stopped;
   }));
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
