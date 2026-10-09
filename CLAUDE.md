@@ -1832,9 +1832,25 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   the snake, and the builder took a second tap on a bunker as "take him off".
   A tap on the field only ever places now — on a bunker that already has a man
   it puts the next man beside him, two at most (`PLAY_DOUBLE`) — and a man
-  comes off by **Take off** on his own row (`playOff`). The two run to two
-  spots seven feet apart (`breakPaths`) and the builder's squares sit side by
-  side (`fiveSquares`), or one dot hides the other.
+  comes off by **Take off** on his own row (`playOff`). Where the two stand is
+  `doubleSpots`: an end each along the bunker's long side, kept inside it and a
+  foot clear of every other bunker — spread across a thin snake beam, each man
+  stood in the open, and against a touching neighbour the router gave up and
+  drew a straight line through the field. Too short for two, the second stacks
+  behind the first; failing that they share the middle. `routeClear` ignores a
+  box the run ends inside, as it ignores the one it starts in, and the suite
+  doubles every bunker on all three fields and pins what clips. The wire count
+  reads the bunker, not the shifted spot.
+- Let a blank sheet stay against the team the right pit had first. Picking
+  X-Factor and then Houston left an empty sheet on X-Factor, so the pit card
+  said Houston while Tally charted Houston's men under X-Factor.
+  `adoptPitAsOpponent` moves any sheet with nothing on it to the right pit;
+  one team holds one pit (`otherPitHas`); a roster note belongs to the team it
+  was added to (`pasteNoteTeam`); an unread tendency lights no segment; a man
+  nobody scored has no stars; names off the league's page are not film; and a
+  watched game draws the home side's logged call, never his.
+- Leave overtime standing on a score that was taken back. Back a point past
+  `otFrom` puts the race back, and a race tapped in overtime is refused.
 - Hand two classes one code. A class code is what a kid types to find the
   sheet; four random characters collide rarely, and when they did the second
   class could never be signed in to. `freeClassCode()` draws until the code
@@ -2238,7 +2254,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   hold your end to tuck (`podH2HDown` / `podH2HUp`, one finger a hold), paint
   slow enough to dodge, a trade scores nobody, first to three. Neither touches
   `S.podBest` (`g.noBest`), and the names (`podNames`) live only while the app
-  is open. The game's keys stand aside in a name box.
+  is open. The game's keys stand aside in a name box. A duel deals from
+  numbered streams (`g.deal`, `podDealt`), one per spawn tick and one per drop,
+  drawn whether or not a man can stand: one shared stream ran out of step the
+  moment one player shot a man the other did not. Its level runs on the clock,
+  not the score. On a phone on its side the picker and the names stand beside
+  the field. Focus goes to Tuck where it shows, else the field, and to Play when
+  the game stops; the buzzer's pause says so in head to head too.
 - Return a check's detail as its result. `check()` took `ok ||
   JSON.stringify({...})` as a pass, because a string is truthy: thirty-two
   checks could never fail, and two had been failing unseen. A returned
