@@ -55,6 +55,8 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
   console.log("the transform");
   const t = brand.transformText('Gridlock-backup.json GridlockVoiceParser gridlock://class/X window.gridlockKeep "gridlock.coach.v2"', gridlock, grindx);
   check("renames the display word and the deep link only", t === 'Grind X-backup.json GridlockVoiceParser grindx://class/X window.gridlockKeep "gridlock.coach.v2"', t);
+  const co = brand.transformText('&copy; 2026 <span data-company>Gridlock PB LLC</span> · Gridlock Coach', gridlock, grindx);
+  check("keeps the company's legal name in every build", co === '&copy; 2026 <span data-company>Gridlock PB LLC</span> · Grind X Coach', co);
   const identity = brand.stage(gridlock, brands);
   check("the default brand stages as the source, byte for byte", [...identity.web].every(([rel, buf]) => buf.equals(fs.readFileSync(path.join(WEB, rel)))) && !brand.selfCheck(identity).length);
   const staged = brand.stage(grindx, brands);
@@ -147,10 +149,14 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
   console.log("the built variant");
   const built = brand.build("grindx");
   const out = built.out;
-  const rd = rel => fs.readFileSync(path.join(out, rel), "utf8");
+  // The company's legal name is the same in every build, so the name checks read past it.
+  const LEGAL = /<span data-company>[^<]*<\/span>/g;
+  const raw = rel => fs.readFileSync(path.join(out, rel), "utf8");
+  const rd = rel => raw(rel).replace(LEGAL, "");
   check("builds to dist/brand/grindx", out.endsWith(path.join("dist", "brand", "grindx")) && fs.existsSync(path.join(out, "app/index.html")) && fs.existsSync(path.join(out, "GrindX.html")));
   check("the built app never shows the default name", !OTHER.test(rd("app/index.html")) && !OTHER.test(rd("app/native.js")) && !OTHER.test(rd("app/manifest.webmanifest")) && !OTHER.test(rd("GrindX.html")));
   check("the built site never shows the default name", !OTHER.test(rd("index.html")) && !OTHER.test(rd("support.html")) && !OTHER.test(rd("privacy.html")));
+  check("the built site still names the company that owns it", ["index.html", "support.html", "privacy.html"].every(f => raw(f).includes("<span data-company>Gridlock PB LLC</span>")));
   check("the deep link is grindx://", rd("app/index.html").includes('"grindx://class/"') && !rd("app/index.html").includes("gridlock://"));
   check("the marker names the brand", brand.markerOf(rd("app/index.html")) === "grindx");
   check("the service-worker cache namespace is untouched", /const VERSION = "gridlock-[0-9a-f]{16}";/.test(rd("app/sw.js")) && rd("app/sw.js").includes('"gridlock:"'));
@@ -190,7 +196,7 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
 
   console.log("the Lockdown build");
   {
-    const lb = brand.build("lockdown"), lo = lb.out, lrd = rel => fs.readFileSync(path.join(lo, rel), "utf8");
+    const lb = brand.build("lockdown"), lo = lb.out, lrd = rel => fs.readFileSync(path.join(lo, rel), "utf8").replace(LEGAL, "");
     const others = /\bGridlock\b(?!VoiceParser)|\bGrind X\b/;
     check("builds to dist/brand/lockdown with its own standalone file", lo.endsWith(path.join("dist", "brand", "lockdown")) && fs.existsSync(path.join(lo, "app/index.html")) && fs.existsSync(path.join(lo, "Lockdown.html")));
     check("the Lockdown app and site never show another build's name", ["app/index.html", "app/native.js", "app/manifest.webmanifest", "Lockdown.html", "index.html", "support.html", "privacy.html"].every(f => !others.test(lrd(f))));

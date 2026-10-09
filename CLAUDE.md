@@ -49,6 +49,11 @@ leaves the `logo-*` files out (`ships()` in `scripts/brand.js`) and refuses
 itself if a `data-logo` survives. It is screened (`mix-blend-mode:screen`) so
 its black drops out over the red glow on the welcome page; the service worker
 caches it when it is there and never fails without it.
+The company is **Gridlock PB LLC**, and its legal name is the same in every
+build: the site writes it once as `<span data-company>Gridlock PB LLC</span>`,
+`transformText` passes over that span, and the stray-name checks read past it
+— a variant that printed "Grind X PB LLC" would be a company that does not
+exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
