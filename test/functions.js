@@ -1504,7 +1504,7 @@ const ROSTER = [
   }));
   check("a player carries his own threat", await ev(() => {
     window.setScoutThreat("right", 0, 5);
-    return pitOf("right").players[0].threat === 5 && pitOf("right").players[1].threat === 3;
+    return pitOf("right").players[0].threat === 5 && !pitOf("right").players[1].threat;
   }));
 
   // The bug this replaced: the read followed the slot, so tapping another team
@@ -1582,8 +1582,8 @@ const ROSTER = [
     pitOf("right").players.every(m => m.from === "published")));
   check("the card says how many came off a roster rather than off film",
     /off a published roster/i.test(await page.locator(".pit--r").innerText()));
-  check("a published man carries no threat read, just the seed", await ev(() =>
-    pitOf("right").players.every(m => m.threat === 3 && m.note === "" && m.wire === "Flex")));
+  check("a published man carries no threat read — unscored, not three stars nobody gave", await ev(() =>
+    pitOf("right").players.every(m => !m.threat && m.note === "" && m.wire === "Flex")));
   check("adding it twice does not double the roster", await ev(() => {
     window.addPublished("right");
     return pitOf("right").players.length === 5;
@@ -1640,8 +1640,8 @@ const ROSTER = [
   check("a paste is capped so one bad screenshot cannot flood the sheet", await parse(
     Array.from({ length: 60 }, (_, i) => (i + 1) + " Man " + String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(97 + i % 26)).join("\n")).then(r =>
     r.found.length === 40));
-  check("threat starts unscored at three, the same as a typed player", await parse("12 Greenspan").then(r =>
-    r.found[0].threat === 3));
+  check("threat starts unscored, the same as a typed player", await parse("12 Greenspan").then(r =>
+    !r.found[0].threat));
 
   // The fixture below is not typed by hand. It is what a real OCR engine
   // (tesseract) actually returned from a phone-resolution screenshot of a
@@ -2510,7 +2510,7 @@ const ROSTER = [
   }));
 
   check("an answer to their call is written against the team", await ev(() => {
-    window.set({ tab: "scout", scoutTab: "counter", right: { name: "Rejects" } });
+    window.set({ tab: "scout", scoutTab: "counter", left: { name: "" }, right: { name: "Rejects" } });
     window.setAnswer("right", "snake", "flood");
     const kept = S.scout["Rejects"].answers.snake === "flood";
     window.setPitTeam("right", "Blast Camp");
@@ -3663,7 +3663,7 @@ const ROSTER = [
     const mp = /to 2/.test(root.textContent) && /Match point/.test(root.textContent);
     window.endPoint("us");
     const btns = [...root.querySelectorAll(".btn")].map(b => b.textContent.trim());
-    const over = /final/.test(root.textContent) && !btns.includes("We won it") && btns.some(b => /Match over — We won 2–0/.test(b));
+    const over = /final/.test(root.textContent) && !btns.includes("We won it") && btns.some(b => /Match over — you won 2–0/.test(b));
     window.set({ quick: false });
     return mp && over;
   }));
@@ -4336,6 +4336,19 @@ const ROSTER = [
     const kept = S.podBest === 7;
     window.podWars.close(); S.podBest = best0;
     return kit && hit && round && tucked && trade && down && up && won && kept || JSON.stringify({ kit, hit, round, tucked, trade, down, up, won, kept, why: st.why, score: st.score });
+  }));
+  check("Pod Wars duel: a man dealt is the same man whoever shoots what, the level runs on the clock, and the side count follows a finished duel", await ev(() => {
+    window.podWars.open(); window.podWars.seed(9); window.podWars.mode("duel"); window.podWars.per(1);
+    const turn = shoot => { window.podWars.play(); const seen = {};
+      for(let t = 0; t < 400; t++){ pod.g.enemies.forEach(e => { seen[e.dealt] = [e.side, e.num].join(); if(shoot) { pod.g.score++; pod.g.enemies = pod.g.enemies.filter(x => x !== e); } }); window.podWars.tuck(true); window.podWars.step(16); }
+      const lv = pod.g.level; pod.g.phase = "out"; window.podWars.step(16); return { seen, lv }; };
+    const a = turn(false), b = turn(true);
+    const both = Object.keys(a.seen).filter(k => k in b.seen), same = both.length >= 3 && both.every(k => a.seen[k] === b.seen[k]);
+    const clock = a.lv === b.lv;
+    window.podWars.per(4);
+    const per = document.querySelector('#podwars [data-per="4"]').getAttribute("aria-pressed") === "true";
+    window.podWars.close(); window.podWars.seed();
+    return same && clock && per || JSON.stringify({ both: both.length, same, clock, per, a: a.lv, b: b.lv });
   }));
   check("Pod Wars: a team's name takes a space — the game's keys stand aside while one is typed", await ev(() => {
     window.podWars.open(); window.podWars.mode("duel");
@@ -9857,6 +9870,64 @@ const ROSTER = [
       && document.getElementById("sp-wire-right").value === "Flex";
     Object.assign(S, was); window.set({});
     return ok || JSON.stringify({ n: pits.length, right: right.slice(0, 300) });
+  }));
+  check("overtime goes with the point it began on, a race is refused in overtime, and four on says so", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Overlap FC" } }); window.playPit(); window.newMatch();
+    window.setRaceTo(4); ["us", "them", "us", "them"].forEach(w => window.endPoint(w));
+    window.timeUp();                                   // level 2–2: overtime, race to 3
+    const ot = inOvertime() && raceTo() === 3;
+    window.setRaceTo(7); const held = raceTo() === 3 && /overtime/.test(S.flash || "");
+    window.backPoint();                                // point 4 taken back: 2–1, no longer level
+    const back = !inOvertime() && raceTo() === 4;
+    window.endPoint("us"); const notOver = !matchOver();
+    S.results = S.results.filter(r => r.m !== S.matchId);
+    window.set({ right: { name: "Dynasty" } }); window.newMatch();
+    return ot && held && back && notOver || JSON.stringify({ ot, held, back, notOver, race: raceTo() });
+  }));
+  check("Log this call with nobody picked takes him to the gate and says so; + Yours from the quick log closes it", await ev(() => {
+    window.newMatch(); window.set({ right: { name: "" }, tab: "playbook" });
+    S.matches = S.matches.map(m => m.id === S.matchId ? {...m, vs: ""} : m); S.callPicked = true; window.set({});
+    window.logCall();
+    const gate = S.tab === "tally" && /other team first/.test(S.flash || "");
+    window.set({ quick: true, quickPick: true }); window.newPlay();
+    const open = !S.quick && S.tab === "playbook" && !!S.building;
+    window.cancelPlay(); window.set({ right: { name: "Dynasty" } }); window.playPit();
+    return gate && open || JSON.stringify({ gate, open, tab: S.tab, flash: S.flash });
+  }));
+  check("Scout: a blank sheet follows the right pit, one team holds one pit, and a man nobody scored has no stars", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "matchup", left: { name: "" }, right: { name: "" } }); window.newMatch();
+    window.setPitTeam("right", "San Antonio X-Factor"); window.setPitTeam("right", "Houston Heat");
+    const follows = matchVs() === "Houston Heat";
+    window.setPitTeam("left", "Houston Heat");
+    const one = !pitNamed("left") && /already in the right pit/.test(S.flash || "");
+    window.set({ tab: "scout", scoutTab: "matchup" });
+    document.getElementById("sp-num-right").value = "42"; window.addScoutPlayer("right");
+    const man = (pitOf("right").players || []).find(p => String(p.num) === "42");
+    return follows && one && !!man && !man.threat || JSON.stringify({ follows, one, man });
+  }));
+  check("a doubled bunker's two men stand clear of every other bunker and run round them — on all three fields", await ev(() => {
+    const was = { plays: S.plays, layoutKey: S.layoutKey }, bad = {};
+    for(const lk of ["lso", "tby", "mwo"]){
+      if(!LAYOUTS[lk]) continue;
+      const L = LAYOUTS[lk], boxes = b => bunkerBoxes(b).map(q => ({ x: q.x, y: q.y, hw: q.w / 2, hh: q.h / 2 }));
+      for(const b of L.bunkers){
+        const others = L.bunkers.filter(x => x.id !== b.id).slice(0, 3).map(x => x.id), k = "my:dbl" + b.id;
+        S.plays = [{ k, name: "D" + b.id, plants: { [lk]: [b.id, b.id, ...others] }, read: "", aggr: 3, at: 1 }];
+        dropPathCache();
+        for(const p of breakPaths(lk, k).slice(0, 2)){
+          const pts = [p.from, ...p.via, p.to];
+          for(let i = 0; i < pts.length - 1; i++) for(const o of L.bunkers){ if(o === b) continue;
+            for(const q of boxes(o)){ if(Math.abs(p.from[0] - q.x) <= q.hw && Math.abs(p.from[1] - q.y) <= q.hh) continue;
+              if(segHitsBox(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], q.x, q.y, q.hw, q.hh)) (bad[lk] = bad[lk] || new Set()).add(b.id); } }
+        }
+      }
+    }
+    Object.assign(S, was); dropPathCache();
+    const list = lk => [...(bad[lk] || [])].sort().join(",");
+    // Midwest's deep snake and the wedges its snake overlaps clip with one man too.
+    const ok = !list("lso") && !list("tby") && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id));
+    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo") });
   }));
   G("Match day");
   const unread = await ev(() => {
