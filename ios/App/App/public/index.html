@@ -1160,9 +1160,11 @@ function breakPaths(layoutKey, scriptKey){
   // A play of his own has only the fives he built. With none here it draws
   // nothing — the "not built here" gate says so — never the balanced break's
   // shape under his play's name, which is a five nobody planted.
-  if(!plants || !layout) return isMine(scriptKey) ? [] : fallback;
+  // Nor does a field he built: the old typed shapes were drawn for a measured
+  // field, and on his they end on open ground.
+  if(!plants || !layout) return isMine(scriptKey) || (layout && layout.mine) ? [] : fallback;
   const targets = plants.map(id => layout.bunkers.find(b => b.id === id));
-  if(targets.some(t => !t)) return isMine(scriptKey) ? [] : fallback;   // layout changed under us
+  if(targets.some(t => !t)) return isMine(scriptKey) || layout.mine ? [] : fallback;   // layout changed under us
 
   // All five break from the station at the centre of their own back line —
   // that is where an Xball point starts, not spread across the whole width.
@@ -1291,6 +1293,9 @@ function smoothD(pts, sx, sy){
   for(let i = 1; i < P.length - 1; i++){
     const a = P[i - 1], b = P[i], c = P[i + 1];
     const la = Math.hypot(b[0]-a[0], b[1]-a[1]), lc = Math.hypot(c[0]-b[0], c[1]-b[1]);
+    // Two corners on one spot (both dragged to the field's edge) have no leg
+    // between them to round: 0/0 wrote NaN into the path and cut the run off.
+    if(!la || !lc){ d += `L${b[0].toFixed(1)} ${b[1].toFixed(1)}`; continue; }
     const r = Math.min(R, la / 3, lc / 3);
     const p1 = [b[0] + (a[0]-b[0]) * r / la, b[1] + (a[1]-b[1]) * r / la];
     const p2 = [b[0] + (c[0]-b[0]) * r / lc, b[1] + (c[1]-b[1]) * r / lc];
@@ -7921,6 +7926,12 @@ function playbook(){
         field. This one was written somewhere else, so the app will not guess where your snake
         runner goes here.</p>
       <button class="btn btn--block" onclick="buildPlay('${key}')">Build it on this field</button>
+    </div>` : picked && !isMine(key) && curLayout().mine && !(BREAK_PLANTS[S.layoutKey] || {})[key] ? `<div class="gate">
+      <span class="gate__tag">Not on this field</span>
+      <h3 class="gate__name">${esc(callName(key))} has no five on ${esc(curLayout().name)}</h3>
+      <p class="lede">The bunkers you placed do not give this call the shape it is written for, so
+        the app will not guess where your men go. Make it yours and tap the five bunkers they plant on.</p>
+      <button class="btn btn--block" onclick="copyPlay(${jsq(key)})">Make it yours here</button>
     </div>` : ""}
   <div class="field-wrap" data-live>${fieldSVG({edit:S.editPath})}</div>
 
@@ -8153,7 +8164,7 @@ const REP_TARGET = 2000;
 function repState(){ return S.rep || {log:[]}; }
 // The drill draws a call; a play of his that is not built on this field has
 // nothing to draw, so it is not asked here — the picker still offers it.
-const repKeys = () => pickKeys().filter(k => !isMine(k) || myPlants(k));
+const repKeys = () => pickKeys().filter(k => (BREAK_PLANTS[S.layoutKey] || {})[k] || myPlants(k));
 window.startRep = () => {
   const keys = repKeys();
   // Nothing to draw is nothing to drill: every call he runs is one of his own
