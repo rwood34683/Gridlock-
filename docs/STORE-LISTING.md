@@ -18,6 +18,8 @@ This is editable release copy for the supplied local app, not confirmation of a 
 
 | Field | Draft value |
 |---|---|
+| Seller / developer | Gridlock PB LLC |
+| Copyright | © 2026 Gridlock PB LLC |
 | App name | Gridlock Coach |
 | Bundle / application ID | `com.upra.gridlock.coach` |
 | Version | `1.0.0` |

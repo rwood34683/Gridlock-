@@ -72,8 +72,8 @@ Built and off. Turning it on costs more than the code.
 
 ### What to do
 
-1. Clear 10DLC with Twilio (or your provider) under **United Paintball Referee
-   Association LLC** and its EIN.
+1. Clear 10DLC with Twilio (or your provider) under **Gridlock PB LLC**
+   and its EIN.
 2. Stand up two endpoints. **Rate limit both**, per IP and per number, and
    refuse country codes you do not sell into.
    - `POST /verify/start`  → `{ok, said}`
