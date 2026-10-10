@@ -1955,7 +1955,7 @@ const defaultState = () => ({
   messages:[],
   tally:[],
   breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
-  tallySel:null, tallyDraft:null, tallyStep:"place", tallyEdit:null, tallyPlace:"", tallyLast:"", tallyRead:"", tallyValue:"us",
+  tallySel:null, tallyDraft:null, tallyStep:"record", tallyMode:"record", tallyEdit:null, tallyPlace:"", tallyLast:"", tallyRead:"", tallyValue:"us",
   calls:[],                       // what you actually called, for self-scout
   pbView:null,                    // null | "cards" | "rep" — Playbook's chips
   rep:{running:false, ask:null, at:0, log:[]},   // the recognition drill
@@ -2756,7 +2756,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
-  s.tallySel = null; s.tallyDraft = null; s.tallyStep = "place"; s.tallyEdit = null; s.tallyPlace = "";
+  s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
@@ -3802,7 +3802,7 @@ function set(patch){
   // of their bunkers tapped on Lone Star logged as Tampa's Wg#2, and an open
   // breakout sheet wrote its man to the other field's bunker.
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
-    patch = {theirPick: [], tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: "place",
+    patch = {theirPick: [], tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
              moveFrom: null, moveTo: null, callPick: null, walkPick: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
@@ -9111,7 +9111,7 @@ window.tallyTap = at => {
   // Step one is where each man went, and nothing else: a tap puts a man on
   // the bunker and the next tap is the next man. What happened to each is
   // step two, once the five are down.
-  if((S.tallyStep || "place") === "place") return placeAt(b);
+  if(S.tallyStep === "place") return placeAt(b);
   // Step two: a man placed on this bunker and not yet told opens; anywhere
   // else is one more man, and his sheet opens on the bunker the way it always
   // did — two men can break to one bunker. A man already told is reopened
@@ -9213,6 +9213,7 @@ window.editBreakout = id => {
 window.tallyStepTo = step => {
   S.tallySel = null; S.tallyDraft = null; S.tallyEdit = null; S.tallyPickFor = null;
   S.tallyStep = step === "record" ? "record" : "place";
+  S.tallyMode = S.tallyStep;   // how he charts is his, and every point after starts that way
   const next = S.tallyStep === "record" && tellBacklog()[0];
   if(next) return editBreakout(next.id);
   save(S); render();
@@ -9609,7 +9610,7 @@ function breakoutSheet(){
     ${q("How did he get in?")}
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
-    ${q("Shooting which way?")}
+    ${q("Facing and shooting which way?")}
     ${/* The arrows read on the end the field shows; the value kept is the
           field's own lane, so the story's "shooting up the field" is true
           from either end. */""}
@@ -9739,12 +9740,12 @@ function tally(){
   const placedBy = side => rowsPt.filter(r => r.side === side).length;
   const watched = !!(curMatch()||{}).watch;
   const stepStrip = `<div class="seg seg--wrap" aria-label="Break chart step">
-      <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">1 · Where they went</button>
-      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
+      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">Tap &amp; tell each man${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
+      <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">Place all first</button>
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
-      ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off."
-      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
+      ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off. Then Tap &amp; tell gives each man his details."
+      : "Tap the bunker a man broke to and his sheet opens: who, how he got in, made it or shot, which way he faced and shot, at what, where he moved, his route. Men you placed first open in turn."}</p>
     ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
   // a man of theirs who broke deep into your half is still theirs. Under the
@@ -10258,9 +10259,10 @@ window.nextPoint = () => {
 };
 function clearPointScratch(){
   S.theirPick = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
-  // A new point starts on placing the five again, and by half: Theirs set
-  // for one man who broke deep is not the next point's whole break.
-  S.tallyStep = "place"; S.tallyEdit = null; S.tallyPlace = "";
+  // A new point starts the way he charts — telling each man as he taps, or
+  // placing all of them first — and by half: Theirs set for one man who
+  // broke deep is not the next point's whole break.
+  S.tallyStep = S.tallyMode === "place" ? "place" : "record"; S.tallyEdit = null; S.tallyPlace = "";
 }
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
@@ -10850,7 +10852,7 @@ function scout(){
   const view=S.scoutTab||"matchup";
   // Nine sub-tabs is a wall. Five carry the day; the rest sit under More and open
   // on their own if you land on one. Editing PRIMARY is how you reorder them.
-  const PRIMARY = ["matchup","breakouts","counter","games","board"];
+  const PRIMARY = ["matchup","breakouts","arrival","counter","games","board"];
   const extraTabs = SCOUT_TABS.filter(([k]) => !PRIMARY.includes(k));
   const showExtra = S.scoutNavMore || extraTabs.some(([k]) => k === view);
   const navBtn = ([k,n]) => `<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`;

@@ -2128,10 +2128,10 @@ const ROSTER = [
     window.loadPit("Rejects");
     return /No points scored or outs logged against Miami Effect/.test(txt);
   }));
-  check("Scout opens on five sub-tabs plus More, not nine", await ev(() => {
+  check("Scout opens on six sub-tabs plus More, How did they get there? among them", await ev(() => {
     window.set({ tab:"scout", scoutTab:"matchup", scoutNavMore:false });
     const bar = [...document.querySelectorAll('.seg--wrap[aria-label=\"Scout views\"] button')].map(b => b.textContent.trim());
-    return bar.length === 6 && bar[5].startsWith("More")
+    return bar.length === 7 && bar[6].startsWith("More") && bar.includes("How did they get there?")
       && !bar.includes("Voice log") && !bar.includes("Anticipate");
   }));
   check("the field controls fold behind Overlays by default, no Layers name clash", await ev(() => {
@@ -6547,7 +6547,7 @@ const ROSTER = [
     while(S.tallyEdit) window.logBreakout();
     const allTold = pointRows().every(r => !r.todo) && /recorded/.test(S.flash || "");
     window.nextPoint();
-    const freshPoint = S.tallyStep === "place" && !S.tallyEdit;
+    const freshPoint = S.tallyStep === "record" && !S.tallyEdit;   // a new point opens on Tap & tell
     const flags = { noSheet, capped, tookOff, theirsByHalf, listed, opened, told, outBack, allTold, freshPoint };
     Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
@@ -6619,7 +6619,7 @@ const ROSTER = [
     window.tallyStepTo("record"); window.setDraft({ player: "Reyes", alive: true }); window.logBreakout(); window.tallyDone();
     window.endPoint("us");
     const root = document.getElementById("root");
-    const owed = /Point 1 · 2 still to tell/.test(root.textContent) && /2 · What happened · 2 to tell/.test(root.textContent);
+    const owed = /Point 1 · 2 still to tell/.test(root.textContent) && /Tap & tell each man · 2 to tell/.test(root.textContent);
     window.tallyStepTo("record");
     const opened = (S.breakouts.find(r => r.id === S.tallyEdit) || {}).pt === 1 && /point 1 · man 2 of 3/.test((document.getElementById("tally-sheet") || {}).textContent || "");
     window.setDraft({ player: "Dill", alive: false }); window.logBreakout();
@@ -9695,7 +9695,7 @@ const ROSTER = [
       penOpen:S.penOpen, gameOpen:S.gameOpen, gameNew:S.gameNew, gamePaste:S.gamePaste,
       quick:S.quick, quickPick:S.quickPick,
       copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText, building:S.building,
-      tallyStep:S.tallyStep === "place" ? "" : S.tallyStep, tallyEdit:S.tallyEdit, tallyPlace:S.tallyPlace,
+      tallyStep:S.tallyStep === "record" ? "" : S.tallyStep, tallyEdit:S.tallyEdit, tallyPlace:S.tallyPlace,
       tallyValueOpen:S.tallyValueOpen, tallyAllBreaks:S.tallyAllBreaks, tallyAllOuts:S.tallyAllOuts, sightAll:S.sightAll, keptAll:S.keptAll,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
