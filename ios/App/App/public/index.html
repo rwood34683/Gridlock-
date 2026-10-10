@@ -1037,6 +1037,20 @@ const BREAK_PLANTS = {
     trade:    ["Wg#2","MW#3","T#3","C#4","MD#1"],
     contain:  ["GP#1","MD#2","T#3","SB#3","Br#2"],
     lock:     ["Br#5","SB#3","T#3","Br#2","T#1"]
+  },
+  ujt: {
+    hold:     ["T#13","T#6","T#3","SD#1","GB#1"],
+    base:     ["Ck#1","T#6","C#4","C#1","MD#4"],
+    snake:    ["SB#13","Ck#1","C#6","C#7","C#1"],
+    flood:    ["MD#1","MD#2","MD#4","C#1","T#3"],
+    blitz:    ["SB#13","C#6","C#3","C#1","MD#1"],
+    conserve: ["GB#3","T#7","T#3","SD#1","GB#1"],
+    counter:  ["C#4","SB#3","MD#4","T#7","SD#1"],
+    split:    ["SB#9","T#6","MD#2","C#1","GP#1"],
+    tower:    ["SB#1","T#3","T#6","SD#1","GB#3"],
+    trade:    ["MW#1","T#6","C#4","C#1","MD#2"],
+    contain:  ["MW#3","MD#2","T#3","T#7","SD#1"],
+    lock:     ["GB#3","T#7","T#3","SD#1","GB#1"]
   }
 };
 
@@ -1478,6 +1492,39 @@ const LSO = [
   {id:"MD#5",n:"MD",x:66.7,y:106.8,t:"tridown",w:6.69,h:6.11,c:"r"},{id:"MD#6",n:"MD",x:83.4,y:106.8,t:"tridown",w:6.69,h:6.11,c:"r"}
 ];
 
+// Digitized from the USXBL JT Championship 2D on its printed 10-ft grid.
+// Written by tools/emit_usxbl_jt.py — do not hand-edit.
+const UJT = [
+  {id:"MD#1",n:"MD",x:75.0,y:13.4,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"GB#1",n:"GB",x:26.2,y:15.5,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"GB#2",n:"GB",x:123.7,y:15.5,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"MD#2",n:"MD",x:56.2,y:16.7,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#3",n:"MD",x:93.8,y:16.7,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:39.9,y:23.9,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#5",n:"MD",x:110.1,y:23.9,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#6",n:"MD",x:75.0,y:30.0,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"T#1",n:"T",x:10.9,y:32.2,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#2",n:"T",x:139.0,y:32.2,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"C#1",n:"C",x:59.5,y:37.7,t:"ball",w:4.11,h:4.27,c:"r"},{id:"C#2",n:"C",x:90.5,y:37.7,t:"ball",w:4.11,h:4.27,c:"r"},
+  {id:"SD#1",n:"SD",x:27.0,y:39.8,t:"dorito",w:5.21,h:4.53,c:"r"},{id:"SD#2",n:"SD",x:123.0,y:39.8,t:"dorito",w:5.21,h:4.53,c:"r"},
+  {id:"T#3",n:"T",x:41.7,y:47.1,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#4",n:"T",x:108.3,y:47.1,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"C#3",n:"C",x:74.9,y:47.6,t:"ball",w:4.27,h:4.11,c:"r"},{id:"SB#1",n:"SB",x:74.8,y:54.8,t:"beam",w:9.68,h:1.49,c:"r",a:88.9},
+  {id:"GP#1",n:"GP",x:14.0,y:59.9,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},{id:"C#4",n:"C",x:57.7,y:59.9,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"Br#1",n:"Br",x:-1.1,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},{id:"C#5",n:"C",x:92.3,y:60.0,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"Br#2",n:"Br",x:151.2,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},{id:"GP#2",n:"GP",x:136.1,y:60.1,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},
+  {id:"SB#2",n:"SB",x:75.2,y:65.5,t:"beam",w:9.68,h:1.49,c:"r",a:89.5},{id:"T#5",n:"T",x:111.0,y:69.9,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#6",n:"T",x:39.1,y:70.0,t:"temple",w:4.82,h:4.69,c:"r"},{id:"C#6",n:"C",x:74.9,y:72.8,t:"ball",w:4.11,h:4.27,c:"r"},
+  {id:"T#7",n:"T",x:26.8,y:80.4,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#8",n:"T",x:123.2,y:80.4,t:"temple",w:4.69,h:4.82,c:"r"},
+  {id:"C#7",n:"C",x:61.1,y:81.9,t:"ball",w:4.11,h:4.27,c:"r"},{id:"C#8",n:"C",x:89.1,y:81.9,t:"ball",w:4.11,h:4.27,c:"r"},
+  {id:"T#9",n:"T",x:11.1,y:88.1,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#10",n:"T",x:138.8,y:88.1,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"SB#3",n:"SB",x:42.0,y:91.1,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#4",n:"SB",x:108.1,y:91.1,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"MW#1",n:"MW",x:49.1,y:94.4,t:"mw",w:1.93,h:7.07,c:"r"},{id:"MW#2",n:"MW",x:100.8,y:94.4,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"SB#5",n:"SB",x:69.5,y:97.4,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#6",n:"SB",x:80.3,y:97.4,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"MW#3",n:"MW",x:62.5,y:100.7,t:"mw",w:1.93,h:7.07,c:"r"},{id:"MW#4",n:"MW",x:87.5,y:100.7,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"GB#3",n:"GB",x:21.6,y:106.3,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"GB#4",n:"GB",x:128.2,y:106.3,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"SB#7",n:"SB",x:30.4,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#8",n:"SB",x:40.6,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#9",n:"SB",x:51.3,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#10",n:"SB",x:98.6,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#11",n:"SB",x:109.3,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#12",n:"SB",x:119.5,y:109.7,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#13",n:"SB",x:62.1,y:109.8,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#14",n:"SB",x:87.9,y:109.8,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"Ck#1",n:"Ck",x:49.6,y:113.5,t:"tridown",w:4.15,h:4.05,c:"r"},{id:"Ck#2",n:"Ck",x:100.4,y:113.5,t:"tridown",w:4.15,h:4.05,c:"r"},
+  {id:"T#11",n:"T",x:65.6,y:114.1,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#12",n:"T",x:84.4,y:114.1,t:"temple",w:4.69,h:4.82,c:"r"},
+  {id:"T#13",n:"T",x:35.8,y:114.4,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#14",n:"T",x:114.2,y:114.4,t:"temple",w:4.69,h:4.82,c:"r"}
+];
 const LAYOUTS = {
   lso: {name:"NXL Lone Star Open · Garland", key:"lso", bunkers:LSO,
         source:"Measured off the official NXL field map, on its printed 10-ft grid. "
@@ -1492,7 +1539,13 @@ const LAYOUTS = {
         // walked Tampa should drag them where they belong — Edit path saves it.
         plantsFrom:"rule"},
   mwo: {name:"NXL Midwest Open · Cincinnati", key:"mwo", bunkers:MWO,
-        source:"Measured off the official NXL field map, on its printed 10-ft grid."}
+        source:"Measured off the official NXL field map, on its printed 10-ft grid."},
+  // The map prints no bunker labels, so every name is the kind of inflatable
+  // read off its shape and measured size; layouts/events says which.
+  ujt: {name:"USXBL JT Championship", key:"ujt", bunkers:UJT,
+        source:"Measured off the field map the coach sent, on its printed 10-ft grid. "
+             + "The map names no bunkers; each is named for its kind.",
+        plantsFrom:"rule"}
 };
 const BREAKS = {
   // Ordered as a coach turns the dial: patient at the left, the point has
