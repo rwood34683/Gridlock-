@@ -7,3 +7,4 @@
    public site that carries the registered name — "powered by UPRA" is a brand,
    not a company, and an abbreviation is not what Sunbiz has on file. */
 .footer small{display:block;margin-top:4px;opacity:.62;font-size:12px;letter-spacing:.01em}
+/* Every link a thumb reaches is a 44 px target, and a page with no screenshot (a variant build) gives the copy the whole row. */.footer a,.text-link{display:inline-flex;align-items:center;min-height:44px}.header nav>a:not(.button){display:flex;align-items:center;min-height:44px}@media(max-width:720px){.header nav>a:not(.button){display:none}}.brand{min-height:44px}.hero:not(:has(.hero-screen)){grid-template-columns:1fr}

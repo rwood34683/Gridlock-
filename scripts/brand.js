@@ -106,11 +106,19 @@ function swapText(text, from, to) {
     .replace(/<img\b[^>]*\bdata-logo\b[^>]*>/g, tag => {
       const alt = (/\balt="([^"]*)"/.exec(tag) || [, to.short])[1];
       return `<span class="brand-logo brand-logo--word">${alt}</span>`;
-    });
+    })
+    // The site's screenshots are captures of the default build, its name in
+    // the app's header: a variant's page showing them under "Actual app
+    // capture" was another build's name on its own site. A variant leaves
+    // them out (ships), and the hero figure and the tool cards' pictures go
+    // with them.
+    .replace(/<figure class="hero-screen">[\s\S]*?<\/figure>/g, "")
+    .replace(/<img\b[^>]*\bsrc="img\/shots\/[^"]*"[^>]*>/g, "");
 }
-// Files that belong to the default brand alone: its logo. Another build leaves
+// Files that belong to the default brand alone: its logo, and the
+// screenshots and social card that show it. Another build leaves
 // them out, and every comparison of a build against the source skips them.
-const BRAND_ONLY = /(^|\/)logo-[a-z0-9]+\.(?:jpg|png|webp|svg)$/;
+const BRAND_ONLY = /(^|\/)logo-[a-z0-9]+\.(?:jpg|png|webp|svg)$|(^|\/)img\/shots\/|(^|\/)img\/og\.png$/;
 function ships(rel, toKey, brands = loadBrands()) {
   return toKey === defaultBrand(brands).key || !BRAND_ONLY.test(rel);
 }
