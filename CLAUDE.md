@@ -509,7 +509,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     tap on the field is a man on that bunker (`placeAt`), yours or theirs by
     the half it lands in unless **By half / Your five / Theirs** says
     otherwise, capped at what the side started the point with
-    (`startUp`), and a second tap on a man not yet told takes him off. He is
+    (`startUp`), and a second tap on a bunker puts a second man on it (✕ in the list takes one off). He is
     an ordinary breakout row from that tap, carrying `todo`. **2 · What
     happened** (`tallyStepTo`) opens the first man still to tell in the same
     sheet as before (`editBreakout`); Save writes over his row by id and
@@ -661,6 +661,16 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     its card, a sighting tapped and not recorded does not survive a relaunch,
     a repeat merge says nothing new without counting rows it moved again, and
     a variant's site leaves the default build's screenshots out (`ships`).
+
+45. ~~Two or three on one bunker, everywhere.~~ Done — the owner asked for
+    more than one man on a bunker on Scout, and anywhere else the same tap
+    lives. A second tap on a bunker is a second man on it: Scout › Breakouts'
+    five (`theirPicking`, a × per man under the field, `dropTheirPick`), Tally's
+    step one (`placeAt`; the ✕ in the list takes a man off) and the play
+    builder, now three a bunker (`PLAY_DOUBLE`). Every man draws as his own
+    square — `fiveSquares` puts three or more in a row across the bunker, Tally
+    steps each marker along — and a third man in a play runs to the bunker's
+    middle (`doubleSpots`). Where they plant counts a bunker once a man.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -1866,7 +1876,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Keep a play's five on five different bunkers. A coach doubles up home, or
   the snake, and the builder took a second tap on a bunker as "take him off".
   A tap on the field only ever places now — on a bunker that already has a man
-  it puts the next man beside him, two at most (`PLAY_DOUBLE`) — and a man
+  it puts the next man beside him, three at most (`PLAY_DOUBLE`; a third stands at the middle, between the two ends) — and a man
   comes off by **Take off** on his own row (`playOff`). Where the two stand is
   `doubleSpots`: an end each along the bunker's long side, kept inside it and a
   foot clear of every other bunker — spread across a thin snake beam, each man
