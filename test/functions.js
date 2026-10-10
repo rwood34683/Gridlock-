@@ -6547,7 +6547,7 @@ const ROSTER = [
     while(S.tallyEdit) window.logBreakout();
     const allTold = pointRows().every(r => !r.todo) && /recorded/.test(S.flash || "");
     window.nextPoint();
-    const freshPoint = S.tallyStep === "record" && !S.tallyEdit;   // a new point opens on Tap & tell
+    const freshPoint = S.tallyStep === "record" && !S.tallyEdit;   // a new point opens on 2 · What happened, the details
     const flags = { noSheet, capped, tookOff, theirsByHalf, listed, opened, told, outBack, allTold, freshPoint };
     Object.assign(S, keep); window.set({ tallyStep: "place", tallySel: null, tallyDraft: null, tallyEdit: null, flash: "" });
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(x => !flags[x]).join(", ");
@@ -6619,7 +6619,7 @@ const ROSTER = [
     window.tallyStepTo("record"); window.setDraft({ player: "Reyes", alive: true }); window.logBreakout(); window.tallyDone();
     window.endPoint("us");
     const root = document.getElementById("root");
-    const owed = /Point 1 · 2 still to tell/.test(root.textContent) && /Tap & tell each man · 2 to tell/.test(root.textContent);
+    const owed = /Point 1 · 2 still to tell/.test(root.textContent) && /2 · What happened · 2 to tell/.test(root.textContent);
     window.tallyStepTo("record");
     const opened = (S.breakouts.find(r => r.id === S.tallyEdit) || {}).pt === 1 && /point 1 · man 2 of 3/.test((document.getElementById("tally-sheet") || {}).textContent || "");
     window.setDraft({ player: "Dill", alive: false }); window.logBreakout();

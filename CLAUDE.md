@@ -510,7 +510,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     the half it lands in unless **By half / Your five / Theirs** says
     otherwise, capped at what the side started the point with
     (`startUp`), and a second tap on a bunker puts a second man on it (✕ in the list takes one off). He is
-    an ordinary breakout row from that tap, carrying `todo`. (The owner later asked for the details back on every tap: Tally opens on **Tap & tell each man**, `S.tallyMode` remembers his choice, and **Place all first** is the two-step chart.) **2 · What
+    an ordinary breakout row from that tap, carrying `todo`. (The owner later asked for the details back on every tap: Tally opens on **2 · What happened**, so a tap opens the man's details, and `S.tallyMode` remembers the step he last chose.) **2 · What
     happened** (`tallyStepTo`) opens the first man still to tell in the same
     sheet as before (`editBreakout`); Save writes over his row by id and
     opens the next, and a field tap on any other bunker still charts one more

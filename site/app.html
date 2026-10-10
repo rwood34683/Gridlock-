@@ -10364,7 +10364,7 @@ function breakoutSheet(){
     ${q("How did he get in?")}
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
-    ${q("Facing and shooting which way?")}
+    ${q("Shooting which way?")}
     ${/* The arrows read on the end the field shows; the value kept is the
           field's own lane, so the story's "shooting up the field" is true
           from either end. */""}
@@ -10494,12 +10494,12 @@ function tally(){
   const placedBy = side => rowsPt.filter(r => r.side === side).length;
   const watched = !!(curMatch()||{}).watch;
   const stepStrip = `<div class="seg seg--wrap" aria-label="Break chart step">
-      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">Tap &amp; tell each man${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
-      <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">Place all first</button>
+      <button class="${step === "place" ? "on" : ""}" onclick="tallyStepTo('place')">1 · Where they went</button>
+      <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
-      ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off. Then Tap &amp; tell gives each man his details."
-      : "Tap the bunker a man broke to and his sheet opens: who, how he got in, made it or shot, which way he faced and shot, at what, where he moved, his route. Men you placed first open in turn."}</p>
+      ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off."
+      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
     ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
   // a man of theirs who broke deep into your half is still theirs. Under the
