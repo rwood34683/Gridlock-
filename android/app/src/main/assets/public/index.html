@@ -1688,7 +1688,7 @@ const DIVISIONS = [
    footer under it, so the app says what the read covers rather than pretending
    it has the whole event. */
 const SCHEDULE = {
-  event:"NXL Lone Star Open", div:"Pro X-Ball", field:"NXL Pro",
+  event:"NXL Lone Star Open", div:"Pro X-Ball", field:"NXL Pro", layout:"lso",
   read:"PBLeagues · NXL Lone Star Open · Pro X-Ball · Fri 18 – Sat 19 Sep · read 13 Sep 2026",
   covers:"Friday and Saturday. Sunday was not on the page that was read.",
   games:[
@@ -1756,12 +1756,23 @@ function allGames(){
   // A league row's id is the game itself — day, clock, the two teams — not
   // its place in the list: the rows he took off were remembered by index, so
   // a re-read that added a Sunday game above them hid the wrong games.
-  const seeded = SCHEDULE.games.map(g => ({...g, id:"sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a), seed:true}));
+  const seeded = SCHEDULE.games.map(g => ({...g, layout: SCHEDULE.layout, id:"sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a), seed:true}));
   const mine = (Array.isArray(S.games) ? S.games : []).filter(g => g && g.id);
   return [...seeded, ...mine].filter(g => !gone.has(g.id))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
 function gameById(id){ return allGames().find(g => g.id === id) || null; }
+// The field a game is played on: the league's rows are the event's field, and
+// one he added is the field he was on when he added it. A game opened from
+// another field took that field, and its fives were charted on the wrong bunkers.
+const gameField = g => (g && g.layout && LAYOUTS[g.layout]) ? g.layout : (LAYOUTS[SCHEDULE.layout] ? SCHEDULE.layout : S.layoutKey);
+// Off to the game's field before its sheet opens, and say so.
+function toGameField(g){
+  const lk = gameField(g);
+  if(lk === S.layoutKey) return "";
+  window.pickEvent(lk);
+  return ` On ${LAYOUTS[lk].name} — the field this game is on.`;
+}
 
 function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "pro")) || DIVISIONS[0]; }
 function addedTeams(id){ return (S.teams || {})[id] || []; }
@@ -2763,6 +2774,10 @@ function clearScratch(s = S){
   s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.pasteNoteTeam = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
   s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false;
+  // A sighting or shot bunker tapped on How did they get there and not yet
+  // recorded came back after a relaunch, one tap on Record from being logged
+  // as the next sighting. The pit, the team and the sheet stay; the taps go.
+  if(s.arrival && typeof s.arrival === "object") s.arrival = {...s.arrival, sightingBunker: "", shotAt: "", notice: ""};
 }
 clearScratch();
 // The board used to be one flat list; it is per event now. Fold an old drawing
@@ -3073,6 +3088,7 @@ window.setMatchVs = name => {
     S.scout = book;
   }
   patchMatch({vs: to});
+  if(foldName(pitName("left", "")) === foldName(to)) S.left = {name: ""};   // one team, one pit
   S.right = {...(S.right || {}), name: to};
   save(S); flash(`This sheet is against ${to} now — every out, call and read on it moved with it.`);
 };
@@ -3918,6 +3934,9 @@ window.editPlayer = (i, field, value) => {
 function renamePlayer(from, to){
   const re = (rows, key, side) => (rows || []).map(r => r && r[key] === from && (!side || r.side === side) ? {...r, [key]: to} : r);
   S.tally = re(S.tally, "name", "us");
+  // An out of theirs carries the man of his who shot it: left behind, the
+  // log read "by Reyes" for a man now called Reyes Jr and the By box was blank.
+  S.tally = re(S.tally, "by", "them");
   S.breakouts = re(S.breakouts, "player", "us");
   S.assessments = re(S.assessments, "who");
   S.moves = re(S.moves, "who");
@@ -4769,7 +4788,7 @@ window.loadCopy = mode => {
                 && (S.roster || []).length && (d.roster || []).length;
   const clashSaid = clash ? ` — heads up, that copy is squad ${d.teamCode} and this phone is ${S.teamCode}.` : "";
   S.copyStatus = (mode === "replace" ? "Replaced with " : "Merged in ") + (sheetId ? "a sheet · " : "") + copySummary(d) + clashSaid;
-  const statusHead = S.copyStatus;
+  const statusHead = S.copyStatus, countNotes = [];
   // A merge says what is new on this phone, not what was in the file: a sheet
   // both phones already held read "Merged in 2 sheets · 7 outs · 7 breakouts"
   // when one breakout was new, and a coach syncing twice could not tell
@@ -5008,9 +5027,12 @@ window.loadCopy = mode => {
     if(renumbered.length) S.copyStatus += ` · a play named like a call here was renamed: ${renumbered.join(", ")}`;
     let aligned = 0;
     shared.forEach(id => { aligned += alignSheet(id); });
-    if(aligned) S.copyStatus += ` · ${aligned} ${aligned === 1 ? "row" : "rows"} the other phone had under another team moved to the team the sheet is against here`;
+    // Said only when the merge brought something: on a second sync the same
+    // rows come in, are moved and folded again, and "nothing new · 3 rows
+    // moved · 5 things kept once" read as if something had happened.
+    if(aligned) countNotes.push(` · ${aligned} ${aligned === 1 ? "row" : "rows"} the other phone had under another team moved to the team the sheet is against here`);
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
-    if(dupes) S.copyStatus += ` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`;
+    if(dupes) countNotes.push(` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`);
     clashes.forEach((pts, id) => {
       const m = matchById(id); const list = [...new Set(pts)].sort((a, b) => a - b);
       S.copyStatus += ` · the phones disagree on who won point${list.length === 1 ? "" : "s"} ${list.join(", ")}${sheetId === id ? "" : ` on the sheet ${m ? matchLabel(m) : ""}`} — this phone's result kept; fix it on the sheet if it was the other`;
@@ -5030,6 +5052,7 @@ window.loadCopy = mode => {
     const after = sizeOf(), delta = {};
     COPY_COUNTED.forEach(k => { const n = after[k] - sizeBefore[k]; if(n > 0) delta[k] = Array(n).fill(0); });
     const said = Object.keys(delta).length ? `new here: ${copySummary(delta)}` : "nothing new — this phone already had all of it";
+    if(Object.keys(delta).length) S.copyStatus += countNotes.join("");
     S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
   }
   copyDraft = "";
@@ -5700,6 +5723,7 @@ window.addEventListener("blur", () => window.podWars.pause());
 // Pointer events, not mouse: the same code has to work under a thumb. The SVG
 // is scaled by its viewBox, so every position is converted through the screen
 // matrix rather than assumed.
+const FIELD_SIDE = 14;
 function fieldFeet(svg, ev){
   const pt = svg.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
@@ -5970,7 +5994,7 @@ function walkOverlay(){
 window.addCode = () => {
   const word = clean(rosterVal("cdWord").trim()).slice(0, 32);
   if(!word){ flash("Type the code word first."); return; }
-  const means = clean(rosterVal("cdMeans").trim());
+  const means = clean(rosterVal("cdMeans").trim()).slice(0, 600);
   // A word typed again is the same word: a code is a lookup for the player who
   // joined last week, and "Rocket", "rocket" and " Rocket " were three rows.
   // Retyping it updates what it means rather than adding a second one.
@@ -6123,6 +6147,10 @@ window.setCall = () => {
   const nm = clean(document.getElementById('bcName').value.trim());
   const who = (document.getElementById('bcWho') || {}).value || "";
   if(!id){ flash("Tap the bunker first."); return; }
+  // An empty box takes a word off; with no word on the bunker there is
+  // nothing to take off, and the tap used to do nothing at all.
+  const had = who ? ((((S.playerCalls || {})[S.layoutKey] || {})[who] || {})[id]) : (((S.bunkerCalls || {})[S.layoutKey] || {})[id]);
+  if(!nm && !had){ flash("Type the call first."); return; }
   if(who) return setPlayerCall(who, id, nm);
   const other = bunkerWordTaken(nm, id);
   if(other){ flash(`${nm} is already ${other} on this field. Two bunkers cannot share a word.`); return; }
@@ -6528,14 +6556,25 @@ function bunkerLabels(list, sx, sy){
   list.forEach(b => {
     const s = bunkerSize(b, sx, sy), x = b.x*sx, y = b.y*sy;
     const box = {n: b.n, nm: callOf(b), x0:x-s.h, x1:x+s.h, y0:y-s.v, y1:y+s.v, area:s.h*s.v};
-    const near = groups.find(g => g.n === box.n && g.nm === box.nm
-      && g.x0 <= box.x1 + 1.5 && box.x0 <= g.x1 + 1.5
-      && g.y0 <= box.y1 + 1.5 && box.y0 <= g.y1 + 1.5);
-    if(!near){ groups.push(box); return; }
-    near.x0 = Math.min(near.x0, box.x0); near.x1 = Math.max(near.x1, box.x1);
-    near.y0 = Math.min(near.y0, box.y0); near.y1 = Math.max(near.y1, box.y1);
-    near.area += box.area;
+    groups.push(box);
   });
+  // Touching means within a foot and a quarter: the USXBL JT's snake beams
+  // stand 1.1 ft apart, and at 1.5 px the snake read "SB" five times over
+  // the bunkers behind it. Merged until nothing more joins, because a chain
+  // of beams met in the wrong order left two groups that touch.
+  const GAP = 1.25 * sx, near = (a, b) => a.n === b.n && a.nm === b.nm
+    && a.x0 <= b.x1 + GAP && b.x0 <= a.x1 + GAP && a.y0 <= b.y1 + GAP && b.y0 <= a.y1 + GAP;
+  for(let joined = true; joined;){
+    joined = false;
+    for(let i = 0; i < groups.length && !joined; i++) for(let j = i + 1; j < groups.length; j++){
+      const a = groups[i], b = groups[j];
+      if(!near(a, b)) continue;
+      a.x0 = Math.min(a.x0, b.x0); a.x1 = Math.max(a.x1, b.x1);
+      a.y0 = Math.min(a.y0, b.y0); a.y1 = Math.max(a.y1, b.y1);
+      a.area += b.area; groups.splice(j, 1); joined = true; break;
+    }
+  }
+  const H = 120 * sy;
 
   const placed = [];
   const hits = a => placed.some(b =>
@@ -6546,7 +6585,9 @@ function bunkerLabels(list, sx, sy){
     const x = (g.x0+g.x1)/2, w = g.nm.length*CH + 1, h = FS;
     const below = {cx:x, cy:g.y1 + FS*0.9, w, h};
     const above = {cx:x, cy:g.y0 - FS*0.4, w, h};
-    const spot = !hits(below) ? below : (!hits(above) ? above : null);
+    // A label under a bunker on the bottom row sat on the field's border.
+    const inside = a => a.cy + FS*0.35 <= H - 1 && a.cy - FS*0.65 >= 1;
+    const spot = inside(below) && !hits(below) ? below : (inside(above) && !hits(above) ? above : null);
     if(!spot) return "";                       // no room — the shape still reads
     placed.push(spot);
     return `<text x="${spot.cx.toFixed(1)}" y="${(spot.cy+FS*0.35).toFixed(1)}" text-anchor="middle" font-size="${FS}" font-weight="600" fill="#d7dbdc" stroke="#0b0c0d" stroke-width="2.3" paint-order="stroke" stroke-linejoin="round">${esc(g.nm)}</text>`;
@@ -6636,6 +6677,8 @@ function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
   const W=300,H=240,sx=W/150,sy=H/120;
   const M=18;                                  // margin for the side labels
+  // and room at either end for a bunker standing on the end line, its rings
+  // and the bar that marks your end, drawn outside it rather than over it.
   const br = curBreak();
   const brPaths = displayPaths();
   const t = opts.static?1:S.t;
@@ -6794,8 +6837,12 @@ function fieldSVG(opts={}, runnersOnly){
   }
 
   const bunks = layout.bunkers.map(b=>`<g class="bnk" data-b="${b.id}">${bunkerShape(b,sx,sy)}</g>`).join("");
+  // The tap surface covers the margin too: the USXBL JT's Br stand on the end
+  // lines, half behind the field, and a tap on the half you can see landed
+  // outside a field-sized surface and did nothing. fieldFeet clamps a tap in
+  // the margin to the field, and the nearest bunker wins as anywhere else.
   const pick = opts.pick
-    ? `<rect data-pick="1" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>` : "";
+    ? `<rect data-pick="1" x="${-FIELD_SIDE}" y="${-M}" width="${W + FIELD_SIDE * 2}" height="${H + M * 2}" fill="transparent"/>` : "";
 
   // Movement draws each logged rotation as an arrow between two footprints.
   let moveArrows = "";
@@ -6981,7 +7028,7 @@ function fieldSVG(opts={}, runnersOnly){
 
   if(runnersOnly) return paths;
 
-  return `<svg class="field" viewBox="-8 ${-M} ${W+16} ${H+M*2}">
+  return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}">
     <defs>
       <!-- The official map paints every bunker red or blue; both are sampled
            from it. They sit a step darker than the wires (#e5342f / #3d8bff)
@@ -7005,7 +7052,7 @@ function fieldSVG(opts={}, runnersOnly){
       </filter>
     </defs>
 
-    <rect x="-8" y="${-M}" width="${W+16}" height="${H+M*2}" fill="#0b0c0d"/>
+    <rect x="${-FIELD_SIDE}" y="${-M}" width="${W+FIELD_SIDE*2}" height="${H+M*2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#0c0d0e"/>`:"").join("")}
     <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1" opacity=".9"/>
@@ -7032,7 +7079,7 @@ function fieldSVG(opts={}, runnersOnly){
     ${their}
     ${opts.overlay || ""}
     ${/* Your end, in your colour: a bar down the end line your five break from. */""}
-    ${opts.noEnds ? "" : `<rect data-end="${ourEnd()}" x="${ourEnd() === "left" ? 0 : (W - 2.5).toFixed(1)}" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>`}
+    ${opts.noEnds ? "" : `<rect data-end="${ourEnd()}" x="${ourEnd() === "left" ? (2.5 - FIELD_SIDE).toFixed(1) : (W + FIELD_SIDE - 5).toFixed(1)}" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>`}
     ${pick}
     ${aimHandle}
 
@@ -8255,7 +8302,10 @@ window.sendReset = async () => {
 window.doAuth = async () => {
   const email = document.getElementById("em").value.trim();
   const pass = document.getElementById("pw").value;
-  const say = m => { S.authSaid = m; save(S); render(); };
+  // The redraw that shows a refusal rebuilt the box empty, so a coach who
+  // mistyped his password typed his email again too. The email stays; the
+  // password is his to type again.
+  const say = m => { S.authSaid = m; save(S); render(); const e = document.getElementById("em"); if(e && !e.value) e.value = email; };
   if(!email || pass.length < 6) return say("An email, and a password of six characters or more.");
   if(!(window.crypto && crypto.subtle))
     return say("This address is not a secure one, so the phone will not hash a password here. "
@@ -8692,6 +8742,12 @@ function repState(){ return S.rep || {log:[]}; }
 // The drill draws a call; a play of his that is not built on this field has
 // nothing to draw, so it is not asked here — the picker still offers it.
 const repKeys = () => pickKeys().filter(k => (BREAK_PLANTS[S.layoutKey] || {})[k] || myPlants(k));
+// Two calls that plant the same five on this field draw the same picture —
+// Conserve and Lock on the USXBL JT, or a play of his copied from one of the
+// twelve — and nothing on the field can tell them apart. Naming either is
+// reading the field right.
+const repFive = k => { const f = myPlants(k) || (BREAK_PLANTS[S.layoutKey] || {})[k]; return Array.isArray(f) ? [...f].sort().join("|") : ""; };
+const repSame = (a, b) => a === b || (!!repFive(a) && repFive(a) === repFive(b));
 window.startRep = () => {
   const keys = repKeys();
   // Nothing to draw is nothing to drill: every call he runs is one of his own
@@ -8711,7 +8767,7 @@ window.answerRep = key => {
   const ms = Date.now() - r.at;
   const keys = repKeys().filter(k => k !== r.ask);
   const next = keys.length ? keys[Math.floor(Math.random()*keys.length)] : r.ask;
-  S.rep = {...r, log:[{ask:r.ask, said:key, ms, right:key === r.ask}, ...r.log],
+  S.rep = {...r, log:[{ask:r.ask, said:key, ms, right:repSame(key, r.ask)}, ...r.log],
            ask: next, at: Date.now()};
   S.script = next; S.t = 1;
   save(S); render();
@@ -10373,18 +10429,25 @@ window.watchGame = id => {
   const g = gameById(id); if(!g || !gameGuard()) return;
   // The schedule's spelling of a team is the board's team.
   const h = boardTeam(g.h), a = boardTeam(g.a);
+  const moved = toGameField(g);
   S.left  = {...(S.left  || {}), name: h};
   S.right = {...(S.right || {}), name: a};
-  openSheet({vs: a, watch: true, home: h, away: a,
+  openSheet({vs: a, watch: true, home: h, away: a, game: g.id,
              when: `${dayName(g.d)} · ${clockName(g.t)}`, bracket: g.g || ""});
   set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
+  if(moved) flash(moved.trim());
 };
 window.playGame = (id, which) => {
   const g = gameById(id); if(!g || !gameGuard()) return;
   const them = boardTeam(which === "home" ? g.h : g.a);
+  const moved = toGameField(g);
+  // One team, one pit: watched as the home side a minute ago, he is who you
+  // play now, and the left pit lets him go.
+  if(foldName(pitName("left", "")) === foldName(them)) S.left = {name: ""};
   S.right = {...(S.right || {}), name: them};
-  openSheet({vs: them});
+  openSheet({vs: them, game: g.id});
   set({tab:"tally", more:null, gameOpen:null});
+  if(moved) flash(moved.trim());
 };
 /* Taking a row off. The league's own rows are never edited in place — they are
    a record of what was read — so one he does not want is remembered as taken
@@ -10428,7 +10491,7 @@ window.saveGame = () => {
   const t = clockOf(n.t || "09:00");
   if(!t) return flash(`"${(n.t || "").trim()}" is not a time. Type it like 13:45 or 1:45 PM.`);
   const row = {id: gameId(), d: n.d || SCHEDULE.games[0].d, t,
-               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim()};
+               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim(), layout: S.layoutKey};
   const had = gameOnList(row);
   if(had) return flash(`${had.h} v ${had.a} is already on the list at ${clockName(had.t)}.`);
   S.games = [...(S.games || []), row];
@@ -10442,8 +10505,11 @@ window.saveGame = () => {
  * it read is shown back as ordinary rows he can take off one by one, because a
  * parser that silently mis-reads a schedule is worse than typing ten games.
  */
+// The words a league prints in its division and field columns — never a team.
+const SCH_DIV = /^(?:(?:NXL|USXBL|PSP|WCPPL|MAPL|CFOA|NCPA|Pro|Semi[- ]?Pro|D[1-6]|Div(?:ision)?\s*\d|Xball|X-?Ball|Race\s*to\s*\d+|\d+[- ]?Man|Rookie|Novice|Amateur|Open|Masters?|Juniors?|Youth|Women'?s|Collegiate|College|Pit\s*\d+)[\s\-]*)+$/i;
 function parseSchedule(text){
   const out = [];
+  let skipped = 0;
   let day = SCHEDULE.games[0].d;
   const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
   (text || "").split(/\r?\n/).forEach(raw => {
@@ -10470,15 +10536,26 @@ function parseSchedule(text){
       if(dm && setDay(mon(dm[2]), dm[1])) return;
       return;
     }
-    let h = +clock[1];
-    const ap = (clock[3] || "").toLowerCase();
-    if(ap === "pm" && h < 12) h += 12;
-    if(ap === "am" && h === 12) h = 0;
-    const t = String(h).padStart(2, "0") + ":" + clock[2];
+    // The clock through the same door a typed game goes through: "25:99" is
+    // not a time, and a line carrying one is not a game.
+    const t = clockOf(`${clock[1]}:${clock[2]}${clock[3] ? " " + clock[3] : ""}`);
+    if(!t){ skipped++; return; }
+    // A date on the same line, ahead of the clock — "Sat Sep 19 9:00 AM",
+    // "9/19 9:00", "2026-09-19 09:00" — is the game's day, not a team: it was
+    // read as the home side and the real home side as the away one.
+    let pre = line.slice(0, clock.index);
+    const preIso = /(\d{4})-(\d{2})-(\d{2})/.exec(pre);
+    const preMd = /\b([A-Za-z]{3,9})\.? (\d{1,2})\b/.exec(pre);
+    const preDm = /\b(\d{1,2}) ([A-Za-z]{3,9})\b/.exec(pre);
+    const preNum = /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(pre);
+    if(preIso){ day = `${preIso[1]}-${preIso[2]}-${preIso[3]}`; pre = pre.replace(preIso[0], " "); }
+    else if(preMd && mon(preMd[1]) >= 0){ setDay(mon(preMd[1]), preMd[2]); pre = pre.replace(preMd[0], " "); }
+    else if(preDm && mon(preDm[2]) >= 0){ setDay(mon(preDm[2]), preDm[1]); pre = pre.replace(preDm[0], " "); }
+    else if(preNum && +preNum[1] >= 1 && +preNum[1] <= 12){ setDay(+preNum[1] - 1, preNum[2]); pre = pre.replace(preNum[0], " "); }
     // Whatever is left once the clock is cut out, split on the usual separators.
     // A weekday before the clock ("Sat 10:40 …") is not a team; it is taken off
     // the front only, so Sun Devils keep their name after it.
-    const rest = line.slice(0, clock.index).replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|$)/ig, " ")
+    const rest = pre.replace(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|$)/ig, " ")
       + " | " + line.slice(clock.index + clock[0].length);
     // The bracket tag, the row's own "Division:" / "Field:" labels and stray
     // punctuation all ride along on a copied table row. A team name is what is
@@ -10494,8 +10571,10 @@ function parseSchedule(text){
     // the two teams are what is left, joined by " - ".
     // A field column after the teams — "Field 2", "(F3)", "Pit 1" — is not
     // part of a team's name.
+    // The field cell is league and division words and "- Pit N", within one
+    // cell: it ran across tabs and spaces before, and took both teams with it.
     const clean = rest
-      .replace(/[\w.'&/]+(?:\s+[\w.'&/]+)*\s+-\s+Pit\s*\d+/ig, " | ")
+      .replace(/(?:\b(?:NXL|USXBL|PSP|WCPPL|MAPL|CFOA|NCPA|Pro|Semi[- ]?Pro|D[1-6]|Div(?:ision)?[ ]*\d|Xball|Rookie|Novice|Amateur|Open|Masters?|Juniors?|Youth|Collegiate|College)[ ]+)*-[ ]+Pit[ ]*\d+/ig, " | ")
       .replace(/\(?\b(?:Field|Pit|F)\s*\d+\)?/ig, " ")
       .replace(/\bPro\s*X-?Ball(?:\u2122|\(TM\))?/ig, " ")
       .replace(/\b[A-D]?\s*Prelims?\b|\bQuarters?\b|\bSemis?\b|\bFinals?\b/ig, " ");
@@ -10503,19 +10582,21 @@ function parseSchedule(text){
     // The space is what tells "Seattle Uprising - Houston Heat" apart from "X-Factor".
     const bits = clean.split(/\s+[-\u2013\u2014]\s+|\s*(?:\||,|\bvs?\.?(?=\s)|\bv\.?(?=\s)|\t)\s*/i)
       .map(strip)
-      .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x));
-    if(bits.length < 2 || foldName(bits[0]) === foldName(bits[1])) return;   // a team against itself is a mis-read line
+      .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x) && !SCH_DIV.test(x));
+    if(bits.length < 2 || foldName(bits[0]) === foldName(bits[1])){ skipped++; return; }   // a team against itself is a mis-read line
     const g = (/\b([A-D]) ?Prelims?\b/i.exec(line) || [])[1] || "";
     out.push({id: gameId() + out.length, d: day, t, h: bits[0].slice(0, 40),
-              a: bits[1].slice(0, 40), g: g.toUpperCase()});
+              a: bits[1].slice(0, 40), g: g.toUpperCase(), layout: S.layoutKey});
   });
+  out.skipped = skipped;
   return out;
 }
 window.readSchedule = () => {
   const rows = parseSchedule(S.gamePaste || "");
   if(!rows.length)
     return flash("Nothing in that looked like a game. One game a line, with a time and both teams — "
-               + "for example: 9:00 AM  Dynasty vs Impact");
+               + "for example: 9:00 AM  Dynasty vs Impact"
+               + (rows.skipped ? ` ${rows.skipped} ${rows.skipped === 1 ? "line had" : "lines had"} a time but no two teams, or a time that is not one.` : ""));
   // Pasted twice, or a page that overlaps the one before: a row already on
   // the list is left as it is and counted, not added again.
   const fresh = [];
@@ -10523,7 +10604,8 @@ window.readSchedule = () => {
   const already = rows.length - fresh.length;
   S.games = [...(S.games || []), ...fresh];
   set({gamePaste: "", gameOpen: null});
-  flash(`Added ${fresh.length} ${fresh.length === 1 ? "game" : "games"}.${already ? ` ${already} ${already === 1 ? "was" : "were"} already on the list.` : ""}`);
+  flash(`Added ${fresh.length} ${fresh.length === 1 ? "game" : "games"}.${already ? ` ${already} ${already === 1 ? "was" : "were"} already on the list.` : ""}`
+    + (rows.skipped ? ` ${rows.skipped} ${rows.skipped === 1 ? "line was" : "lines were"} left out — a time but no two teams, or a time that is not one.` : ""));
 };
 
 // An old sheet is worth reading, and worth adding to when you tallied a point
@@ -12367,13 +12449,15 @@ function classesPage(){
 
   ${sec("Your classes", staffed()?`
       <div class="fld"><label>New class title</label>
-        <input value="${esc(S.newClassTitle)}" placeholder="Friday clinic" aria-label="Class title" onchange="S.newClassTitle=this.value;save(S)" ${onEnter("S.newClassTitle=this.value;save(S);makeClass()")}/></div>
+        <input value="${esc(S.newClassTitle)}" maxlength="40" placeholder="Friday clinic" aria-label="Class title" onchange="S.newClassTitle=this.value;save(S)" ${onEnter("S.newClassTitle=this.value;save(S);makeClass()")}/></div>
       <button class="btn btn--block" onclick="makeClass()">Create class</button>
       ${(S.classes||[]).length?(S.classes).map(c=>{
         const r=S.responses.filter(x=>x.code===c.code);
         return `<div class="panel">
           <div style="display:flex;align-items:center;gap:12px">
-            <h3 class="panel__title grow">${esc(c.title)}</h3>
+            <input class="panel__title grow" value="${esc(c.title)}" maxlength="40" aria-label="Class title for ${esc(c.title)}"
+              style="background:transparent;border:0;border-bottom:1px solid var(--line);padding:4px 0;min-width:0"
+              onchange="setClass(${jsq(c.code)}, 'title', this.value)" ${onEnter("this.blur()")}/>
             <span class="tag ${c.open?"tag--paid":""}">${c.open?"OPEN":"CLOSED"}</span>
           </div>
           <div class="joinrow">
@@ -12435,7 +12519,11 @@ function freeClassCode(){
 window.makeClass = () => {
   if(!staffed()) return;
   const code = freeClassCode();
-  S.classes=[{id:code,code,title:S.newClassTitle||"Clinic",open:true,when:"",notes:""},...S.classes];
+  // The title is typed like any other box: cleaned and capped, and the box
+  // empties so a second Create is not the same class again.
+  const title = clean(String(S.newClassTitle || "").trim()).slice(0, 40) || "Clinic";
+  S.classes=[{id:code,code,title,open:true,when:"",notes:""},...S.classes];
+  S.newClassTitle = "";
   save(S); render();
 };
 /* A class is a session, not a title. When it starts, what to bring, and whether
@@ -12445,6 +12533,7 @@ window.makeClass = () => {
 window.setClass = (code, key, val) => {
   // A class with no title is a code and nothing else on the card the kids read; the old one stays.
   if(key === "title" && !String(val || "").trim()){ flash("A class needs a title — kept the old one."); render(); return; }
+  if(key === "title") val = clean(String(val).trim()).slice(0, 40);
   S.classes = S.classes.map(c => c.code===code ? {...c, [key]: val} : c);
   // The notes and the start time are typed and the next tap is Share or
   // Close sign-ins on the same card; a redraw on blur rebuilt that button
@@ -12832,7 +12921,7 @@ const HELP = {
     how:["Tap the man — the five on the point come first — tap a score, write the reason.",
          "After the point, never during it.",
          "Averages are his season; the list under them is this match."]},
-  "more/codes": {t:"Codes", w:"Your code words for this event.",
+  "more/codes": {t:"Codes", w:"Your code words — the same on every field.",
     how:["Write the word and what it means.",
          "Kept on the phone, shared with the squad by you, not by the app."]},
   "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
@@ -12881,7 +12970,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
-  ["My event's field isn't in the app.", "The NXL fields in this build are measured off the league's official maps; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
+  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, and the USXBL JT Championship's off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
@@ -13165,7 +13254,7 @@ const MORE_GROUPS=[
     ["lineups","Lineups","Who is on this point"],
     ["team","Team","Roster, numbers and positions"],
     ["assess","Assess","Grade a player after the point"],
-    ["codes","Codes","Your code words for this event"],
+    ["codes","Codes","Your code words, every event"],
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["Running the day",[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
@@ -13224,7 +13313,7 @@ function moreBody(k){
           ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
-        <textarea id="wkNote" placeholder="Snake mouth is hot. GP first off the tape."></textarea></div>
+        <textarea id="wkNote" maxlength="240" placeholder="Snake mouth is hot. GP first off the tape."></textarea></div>
       <button class="btn btn--block" onclick="addWalk()">Add note</button>`, layoutName)
     + sec("On the walk", notes.length
       ? `<div class="assigns">${notes.map((n,i)=>`<div class="assign">
@@ -13290,7 +13379,13 @@ function moreBody(k){
     // or his own sheet against either of them. A schedule he has half worked
     // through should say so on the row, not make him open each one to find out.
     const same = (a, b) => foldName(a) === foldName(b);
-    const had = g => (S.matches || []).filter(m => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a)))
+    // A sheet opened from a row carries its game; an older one is matched by
+    // the teams, on the game's field, on the game's day — by name alone, one
+    // game of Houston's on Lone Star claimed every row Houston was in.
+    const dayOf = at => { const t = new Date(at); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+    const named = (m, g) => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a));
+    const had = g => (S.matches || []).filter(m => m.game ? m.game === g.id
+        : named(m, g) && (m.layout || "lso") === gameField(g) && dayOf(m.at) === g.d)
       .filter(m => !sheetEmpty(m))
       .sort((a, b) => a.at - b.at)
       .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
@@ -13482,7 +13577,7 @@ function moreBody(k){
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker${S.callPick ? " · tapped on the field below" : " · or tap it on the field below"}</span>
           <select id="bcId" onchange="set({callPick:this.value||null})"><option value=""${S.callPick?"":" selected"}>Tap the field</option>${list.map(b=>`<option value="${esc(b.id)}"${S.callPick===b.id?" selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
-          <input id="bcName" placeholder="Home" value="${esc(S.bcName || "")}" oninput="S.bcName=this.value"/></label>
+          <input id="bcName" placeholder="Home" value="${esc(S.bcName || "")}" oninput="S.bcName=this.value" ${onEnter("setCall()")}/></label>
       </div>
       <div class="fld"><label>Who calls it that</label>
         ${/* Kept as he picks: a tap on the field redraws, and the box and the
@@ -13687,13 +13782,16 @@ function moreBody(k){
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Word</span>
           <input id="cdWord" placeholder="Buzzer" ${onEnter("addCode()")}/></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Means</span>
-          <input id="cdMeans" placeholder="Go on the horn" ${onEnter("addCode()")}/></label>
+          <input id="cdMeans" maxlength="600" placeholder="Go on the horn" ${onEnter("addCode()")}/></label>
       </div>
       <button class="btn btn--block" onclick="addCode()">Add code word</button>`,
-      codes.length?codes.length+(codes.length===1?" word":" words"):layoutName)
-    + sec("Bunker codes", `<p class="lede">What the letters on the field mean. This is the key the
-      NXL prints in the corner of the official map, not our shorthand — so a player who has read a
-      layout anywhere else already knows it.</p>
+      codes.length?codes.length+(codes.length===1?" word":" words"):"Every event")
+    + sec("Bunker codes", `<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
+      ? `This field's map prints no names, so each bunker here is named for the kind of inflatable it is,
+      in the key the NXL prints in the corner of its maps — so a player who has read a layout anywhere
+      else already knows it.`
+      : `This is the key the NXL prints in the corner of the official map, not our shorthand — so a
+      player who has read a layout anywhere else already knows it.`}</p>
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th>Code</th><th>Bunker</th><th>On this field</th></tr></thead>
         <tbody>${BUNKER_CODE.map(([c,full])=>{
@@ -13721,7 +13819,7 @@ function moreBody(k){
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
       :`<div class="empty">No messages yet.</div>`)
     + `<div class="btnrow"><input id="md" maxlength="280" aria-label="Note for the squad" placeholder="Note for the squad" class="grow" ${onEnter("sendMsg()")}/>
-       <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+" notes");
+       <button class="btn" onclick="sendMsg()">Keep</button></div>`, (S.messages||[]).length+((S.messages||[]).length===1?" note":" notes"));
   if(k==="classes") return classesPage();
   if(k==="league") return leaguePage();
   if(k==="plan") return planPage();
@@ -13792,7 +13890,7 @@ function moreBody(k){
         <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Keep building</button>
       </div>`).join("")}</div>
     ${fieldBuilder()}
-    <p class="note">The NXL fields come with the app and update with a new release. A field you build is
+    <p class="note">The measured fields come with the app and update with a new release. A field you build is
       yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
@@ -14115,9 +14213,37 @@ window.wbWipe  = () => {
 // A quick non-blocking message, where the app used to throw a system alert.
 // Auto-clears; tap to dismiss. Validation belongs on screen, not in a modal.
 let _flashT = 0;
+// A refusal changes nothing in the season, and a box he typed in but never
+// left (a kid's sign-in, a member's phone, a code's meaning) is not in S: the
+// redraw that shows the message blanked every one of them. When the season is
+// as it was, what he typed is laid back into the same boxes after the redraw —
+// only where the redraw put back the box's own default, so a value the app
+// changed on purpose stands.
+function typedBoxes(){
+  const out = [], root = document.getElementById("root");
+  if(!root) return out;
+  root.querySelectorAll("input[id],textarea[id],select[id]").forEach(el => {
+    if(el.type === "checkbox" || el.type === "radio"){ if(el.checked !== el.defaultChecked) out.push({id: el.id, checked: el.checked, def: el.defaultChecked}); }
+    else if(el.tagName === "SELECT"){ const d = [...el.options].findIndex(o => o.defaultSelected); if(el.selectedIndex !== Math.max(0, d)) out.push({id: el.id, value: el.value, def: Math.max(0, d)}); }
+    else if(el.type !== "file" && el.value !== el.defaultValue) out.push({id: el.id, value: el.value, def: el.defaultValue});
+  });
+  return out;
+}
+function retype(boxes){
+  boxes.forEach(b => {
+    const el = document.getElementById(b.id);
+    if(!el) return;
+    if("checked" in b){ if(el.defaultChecked === b.def && el.checked === el.defaultChecked) el.checked = b.checked; }
+    else if(el.tagName === "SELECT"){ const d = Math.max(0, [...el.options].findIndex(o => o.defaultSelected)); if(d === b.def && el.selectedIndex === d && [...el.options].some(o => o.value === b.value)) el.value = b.value; }
+    else if(el.defaultValue === b.def && el.value === el.defaultValue) el.value = b.value;
+  });
+}
 window.flash = msg => {
+  const same = _lastSeason !== null && seasonText(S) === _lastSeason;
+  const boxes = same ? typedBoxes() : [];
   S.flash = String(msg || "");
   save(S); render();
+  if(boxes.length) retype(boxes);
   clearTimeout(_flashT);
   // The message goes away on its own, but not by redrawing the screen: a
   // coach who tapped Add with the box empty, read "Type the note first." and

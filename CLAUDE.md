@@ -640,6 +640,28 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     same five, because every back bunker is one you shoot from; the suite pins
     that pair. `docs/LAYOUTS.md` has the method.
 
+44. ~~The sixth pass.~~ Done — four readers walked Matches and the schedule,
+    the four fields, More and the site. **A schedule game is on a field**: a
+    row carries `layout` (the event's, `SCHEDULE.layout`), `toGameField()`
+    moves him onto it when he watches or plays it and says so, the sheet is
+    stamped with `game`, and a row pairs only with sheets on its own day and
+    field. A paste reads a date ahead of the clock, drops a Pit or division
+    cell (`SCH_DIV`) and says how many lines it skipped. **A refusal keeps what
+    he typed**: `flash()` lays every box he typed in back after the redraw when
+    the season did not change (`typedBoxes` / `retype`), so a kid's sign-in, a
+    member's phone or a code's meaning is not blanked by "Type the name first";
+    sign-in keeps the email. **The USXBL JT**: the tap surface and the viewBox
+    reach `FIELD_SIDE` past the end lines, so a Br standing on one takes a tap
+    and is not clipped, and the bar marking your end is drawn outside it;
+    same-code labels merge within a foot and a quarter, transitively, and keep
+    off the border; the Rep drill counts either of two calls with the same five
+    on this field as right (`repSame`); Codes says this map prints no names.
+    And: a rename moves the outs a man shot (`by`), Save call with an empty box
+    says so and Return saves, a class title is cleaned, capped and editable on
+    its card, a sighting tapped and not recorded does not survive a relaunch,
+    a repeat merge says nothing new without counting rows it moved again, and
+    a variant's site leaves the default build's screenshots out (`ships`).
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

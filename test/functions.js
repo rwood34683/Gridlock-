@@ -5219,11 +5219,14 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(5); window.setBreakClock(90); window.endPoint("us");
     window.newMatch();                                   // an empty sheet, race 5 carried
     const empty = S.matchId, kept = S.matches.length;
-    const g = allGames()[0]; window.playGame(g.id, "home");
+    // A game on the field the suite is on, so opening it moves nobody to another event.
+    const g = { id: "t-fmt", d: SCHEDULE.games[0].d, t: "08:00", h: allGames()[0].h, a: allGames()[0].a, g: "", layout: S.layoutKey };
+    S.games = [...(S.games || []), g]; window.playGame(g.id, "home");
     const played = raceTo() === 5 && breakClock() === 90 && !S.matches.some(m => m.id === empty) && S.matches.length === kept && (curMatch() || {}).vs === g.h;
     window.newMatch(); const empty2 = S.matchId;        // empty again
     window.watchGame(g.id);
     const watched = !!(curMatch() || {}).watch && raceTo() === 5 && !S.matches.some(m => m.id === empty2) && S.point === 1;
+    S.games = (S.games || []).filter(x => x.id !== "t-fmt");
     return played && watched;
   }));
   check("Anticipate reads the team's tendency and the calls you counted, never a fixed line per pit", await ev(() => {
@@ -5825,6 +5828,7 @@ const ROSTER = [
     return seen.length >= 3 && short.length === 0;
   }));
   check("a schedule row says what you already have on that game: watched with the score, or you played with the result", await ev(() => {
+    const lkWas = S.layoutKey;
     window.confirm = () => true;
     const g = allGames()[0]; if (!g) return false;
     window.watchGame(g.id); window.logTheirBreak("right", "blitz", []); window.endPoint("us");
@@ -5835,9 +5839,11 @@ const ROSTER = [
     window.set({ tab: "more", more: "schedule", gameOpen: null });
     const played = new RegExp("you played " + g.a + "( · game \\d+)? · 1–0 · you won").test(rowOf()) && /watched( · game \d+)? · 1–0/.test(rowOf());
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    if(S.layoutKey !== lkWas){ window.set({ layoutKey: lkWas, tab: "tally", left: { name: "" }, right: { name: "Dynasty" } }); window.newMatch(); }
     return watched && played;
   }));
   const schedName = await ev(() => {
+    const lkWas = S.layoutKey;
     window.confirm = () => true;
     const board = teamsHere()[0].name, lower = board.toLowerCase();
     const before = teamsHere().length, did = divisionOf().id;
@@ -5859,10 +5865,12 @@ const ROSTER = [
     S.teams = {...(S.teams || {}), [did]: addedTeams(did).filter(t => t.name !== "Fresh Eleven Sched")};
     const bk = {...(S.scout || {})}; delete bk["Fresh Eleven Sched"]; S.scout = bk;
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    if(S.layoutKey !== lkWas){ window.set({ layoutKey: lkWas, tab: "tally", left: { name: "" }, right: { name: "Dynasty" } }); window.newMatch(); }
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("a schedule row's team is the team on the board: We play and Watch fold the spelling onto the board's, add a team it never had, and the row still pairs the sheet", schedName === true, schedName);
   const reopenPit = await ev(() => {
+    const lkWas = S.layoutKey;
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
     const a = S.matchId; window.markOut("them", "#3"); window.endPoint("us");
@@ -5877,6 +5885,7 @@ const ROSTER = [
     const watched = pitOf("left").name === g.h && pitOf("right").name === g.a && pitOnSheet("left") && pitOnSheet("right");
     const flags = { own, watched };
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    if(S.layoutKey !== lkWas){ window.set({ layoutKey: lkWas, tab: "tally", left: { name: "" }, right: { name: "Dynasty" } }); window.newMatch(); }
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("opening a kept sheet brings its opponent into the pit — the home and away sides for a watched game", reopenPit === true, reopenPit);
@@ -6366,6 +6375,7 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
   check("a sheet with only their five on it, or only a score, is kept and New match asks first", await ev(() => {
+    const lkWas = S.layoutKey;
     let asked = 0; window.confirm = () => { asked++; return true; };
     window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
     const first = S.matchId, bl = curLayout().bunkers;
@@ -6387,6 +6397,7 @@ const ROSTER = [
     const flags = { sized, keptFive, keptScore, replaced, schedAsks };
     editProfile("right", { breaks: theirBreaks("right").filter(b => b.m !== first) });
     window.set({ tab: "tally", right: { name: "Dynasty" }, flash: "" }); window.newMatch();
+    if(S.layoutKey !== lkWas){ window.set({ layoutKey: lkWas, tab: "tally", left: { name: "" }, right: { name: "Dynasty" } }); window.newMatch(); }
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   }));
   check("Rep with nothing to drill says so instead of doing nothing", await ev(() => {
@@ -6783,7 +6794,7 @@ const ROSTER = [
     window.setClass("GL-THUMB", "notes", "Meet at the pit gate");
     const notesKept = document.contains(share) && S.classes.find(c => c.code === "GL-THUMB").notes === "Meet at the pit gate";
     window.setClass("GL-THUMB", "title", "Thumb clinic two");
-    const titleDrawn = /Thumb clinic two/.test(document.getElementById("root").innerText);
+    const titleDrawn = [...document.querySelectorAll("#root input")].some(x => x.value === "Thumb clinic two");
     S.classes = classesWere;
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch(); window.set({ tab: "more", more: "matches" });
     const nm = [...document.querySelectorAll("#root button")].find(b => /New match/.test(b.textContent)); if(!nm) return "no new match";
@@ -7310,7 +7321,9 @@ const ROSTER = [
     window.set({ tab: "scout", scoutTab: "games", right: { name: "Rejects" } });
     const chips = [...document.querySelectorAll("#root .seg button")].some(x => new RegExp("game " + nB).test(x.textContent));
     // And the schedule row's "what you already have" line, which lists both sheets.
-    S.games = [...(S.games || []), { id: "t-nth", d: SCHEDULE.games[0].d, t: "09:00", h: "Rejects", a: "Houston Heat", g: "" }];
+    // A schedule row pairs with the sheets played on its day and field, so the game is today's.
+    const today = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`)(new Date(a.at));
+    S.games = [...(S.games || []), { id: "t-nth", d: today, t: "09:00", h: "Rejects", a: "Houston Heat", g: "", layout: "lso" }];
     window.set({ tab: "more", more: "schedule" }); const st = document.getElementById("root").innerText;
     // One sheet a line, "you played Rejects" said once on the first and the later games numbered under it.
     const sched = /you played Rejects · game \d/.test(st) && new RegExp("\ngame " + nB + " · ").test(st);
@@ -9957,6 +9970,149 @@ const ROSTER = [
     const stopped = S.clockEnd === 0 && matchOver();
     Object.keys(S).forEach(k => delete S[k]); Object.assign(S, JSON.parse(snap)); window.set({});
     return stopped;
+  }));
+  G("Fields, schedule and boxes");
+  check("a pasted schedule reads a date ahead of the clock, drops a Pit or division cell, and counts what it skipped", await ev(() => {
+    const rows = parseSchedule([
+      "Sat Sep 19 9:00 AM Dynasty vs Impact",
+      "10:40 AM San Diego Dynasty - Tampa Bay Damage NXL Pro - Pit 1",
+      "25:99 Dynasty vs Impact",
+      "Sat 10:40 AM\tD3 Xball\tUSXBL D3 - Pit 2\tTeam A\tTeam B"].join("\n"));
+    const at = (h, a) => rows.find(r => r.h === h && r.a === a);
+    const dated = at("Dynasty", "Impact") && /-09-19$/.test(at("Dynasty", "Impact").d) && at("Dynasty", "Impact").t === "09:00";
+    const pit = !!at("San Diego Dynasty", "Tampa Bay Damage");
+    const tabbed = !!at("Team A", "Team B");
+    return (rows.length === 3 && dated && pit && tabbed && rows.skipped === 1) || JSON.stringify({ rows, skipped: rows.skipped });
+  }));
+  check("a schedule game on another field opens on that field and says so, and the team leaves the left pit for the right", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", left: { name: "Dynasty" }, right: { name: "Rejects" } });
+    S.games = [...(S.games || []), { id: "t-away-field", d: SCHEDULE.games[0].d, t: "08:00", h: "Dynasty", a: "Rejects", g: "", layout: "tby" }];
+    window.playGame("t-away-field", "home");
+    const moved = S.layoutKey === "tby" && (curMatch() || {}).layout === "tby" && (curMatch() || {}).game === "t-away-field";
+    const said = /the field this game is on/.test(S.flash);
+    const pits = pitName("right", "") === "Dynasty" && pitName("left", "") === "";
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (moved && said && pits) || JSON.stringify({ moved, said, pits, flash: S.flash });
+  }));
+  check("a schedule row pairs only with sheets on its day and field, not every sheet against the team", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.set({ layoutKey: "lso", tab: "tally", left: { name: "" }, right: { name: "Pairing Probe" } }); window.newMatch(); window.endPoint("us");
+    S.games = [...(S.games || []), { id: "t-pair-other-day", d: "2020-01-04", t: "08:00", h: "Pairing Probe", a: "Nobody Here", g: "", layout: "lso" }];
+    window.set({ tab: "more", more: "schedule", gameOpen: null });
+    const row = [...document.querySelectorAll("#root .assign")].map(e => e.textContent.replace(/\s+/g, " ")).find(x => x.includes("Pairing Probe v Nobody Here")) || "";
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (!!row && !/you played/.test(row)) || row || "no row";
+  }));
+  check("Rep on a field where two calls plant the same five counts either name as right", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.pickEvent("ujt"); window.set({ offPlays: [], onlyMine: false }); window.startRep();
+    S.rep.ask = "lock"; S.script = "lock"; window.answerRep("conserve");
+    const same = S.rep.log[0].right === true;
+    S.rep.ask = "lock"; S.script = "lock"; window.answerRep("blitz");
+    const other = S.rep.log[0].right === false;
+    window.stopRep(); (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return same && other;
+  }));
+  check("a bunker standing on the end line takes a tap on the half drawn outside the field, and the end bar is drawn beside it", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.pickEvent("ujt"); window.set({ tab: "sightlines", sightFrom: null, sightPick: "from" });
+    const svg = document.querySelector("#root svg.field"), br = curLayout().bunkers.find(b => b.id === "Br#2");
+    const pt = svg.createSVGPoint(); pt.x = br.x * 2 + 2; pt.y = br.y * 2;
+    const sc = pt.matrixTransform(svg.getScreenCTM());
+    const hit = document.elementFromPoint(sc.x, sc.y);
+    const onSurface = !!(hit && hit.closest("[data-pick]"));
+    if(hit) hit.dispatchEvent(new PointerEvent("pointerdown", { clientX: sc.x, clientY: sc.y, bubbles: true, pointerId: 1 }));
+    const picked = S.sightFrom === "Br#2";
+    window.set({ tab: "playbook" });
+    const bar = document.querySelector("#root svg.field rect[data-end]");
+    const vb = (document.querySelector("#root svg.field").getAttribute("viewBox") || "").split(" ").map(Number);
+    const barOut = !!bar && (+bar.getAttribute("x") + +bar.getAttribute("width") <= -6 || +bar.getAttribute("x") >= 306) && +bar.getAttribute("x") >= vb[0];
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (onSurface && picked && barOut) || JSON.stringify({ onSurface, picked, barOut, vb });
+  }));
+  check("bunker names on the USXBL JT read the snake once and stay off the field's border", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.pickEvent("ujt"); window.set({ tab: "sightlines" });
+    const texts = [...document.querySelectorAll("#root svg.field text")].filter(t => /^[A-Z][A-Za-z]?$/.test(t.textContent.trim()));
+    // Seven separate snake pieces stand on this field (two runs, a pair and four singles); each run reads once.
+    const sbs = texts.filter(t => t.textContent.trim() === "SB").map(t => [+t.getAttribute("x"), +t.getAttribute("y")]);
+    const sb = sbs.length, crowded = sbs.some((a, i) => sbs.some((b, j) => j > i && Math.abs(a[0] - b[0]) < 30 && Math.abs(a[1] - b[1]) < 8));
+    const inside = texts.every(t => +t.getAttribute("y") <= 240 && +t.getAttribute("y") >= 0);
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (texts.length > 5 && sb >= 1 && sb <= 7 && !crowded && inside) || JSON.stringify({ n: texts.length, sbs, inside });
+  }));
+  check("Codes on a field whose map prints no names does not say the letters are printed on it", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.pickEvent("ujt"); window.set({ tab: "more", more: "codes" });
+    const t = document.getElementById("root").textContent.replace(/\s+/g, " ");
+    const ujt = /prints no names/.test(t) && !/This is the key the NXL prints/.test(t);
+    window.pickEvent("lso"); window.set({ tab: "more", more: "codes" });
+    const lso = /This is the key the NXL prints/.test(document.getElementById("root").textContent.replace(/\s+/g, " "));
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ujt && lso;
+  }));
+  check("a refusal keeps what was typed in the boxes beside the empty one", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.set({ tab: "more", more: "codes" });
+    document.getElementById("cdWord").value = ""; document.getElementById("cdMeans").value = "Go on the horn";
+    window.addCode();
+    const code = document.getElementById("cdMeans").value === "Go on the horn" && /Type the code word first/.test(S.flash);
+    window.set({ tab: "more", more: "team" });
+    const num = document.getElementById("rNum"), nm = document.getElementById("rName");
+    let team = true;
+    if(num && nm){ nm.value = ""; num.value = "42"; window.addPlayer(); team = document.getElementById("rNum").value === "42"; }
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (code && team) || JSON.stringify({ code, team, flash: S.flash });
+  }));
+  check("renaming a man moves the outs he shot onto his new name", await ev(() => {
+    const snap = JSON.stringify(S);
+    S.tally = [{ pt: 1, side: "them", name: "#9", by: "Reyes", m: S.matchId, at: 1 }, ...(S.tally || [])];
+    renamePlayer("Reyes", "Reyes Jr");
+    const moved = S.tally[0].by === "Reyes Jr";
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return moved;
+  }));
+  check("Save call with an empty box on a bunker with no call says so, and Return in the box saves", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.set({ tab: "more", more: "team", flash: "", bcName: "" });
+    const id = curLayout().bunkers[0].id, sel = document.getElementById("bcId");
+    if(!sel) { (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({})); return "no bunker picker"; }
+    if(![...sel.options].some(o => o.value === id)) sel.add(new Option(id, id));
+    sel.value = id; document.getElementById("bcName").value = "";
+    const calls = JSON.stringify(S.bunkerCalls || {}); window.setCall();
+    const said = /Type the call first/.test(S.flash) && JSON.stringify(S.bunkerCalls || {}) === calls;
+    const enter = /setCall\(\)/.test(document.getElementById("bcName").getAttribute("onkeydown") || "");
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (said && enter) || JSON.stringify({ said, enter, flash: S.flash });
+  }));
+  check("a class title is cleaned, capped and editable on its card, and the box empties after Create", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.set({ tab: "more", more: "classes", newClassTitle: "  Firday clinic " + "x".repeat(60) });
+    window.makeClass();
+    const c = S.classes[0], made = c.title.length <= 40 && c.title.startsWith("Firday clinic") && S.newClassTitle === "";
+    const box = [...document.querySelectorAll("#root input")].find(x => x.value === c.title);
+    window.setClass(c.code, "title", "Friday clinic");
+    const renamed = S.classes[0].title === "Friday clinic";
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (made && !!box && renamed) || JSON.stringify({ made, box: !!box, renamed, t: c.title });
+  }));
+  check("a sighting tapped and not recorded does not survive a relaunch; the pit and the team do", await ev(() => {
+    const o = { arrival: { team: "Rejects", side: "right", sightingBunker: "C#1", shotAt: "SD#1", notice: "x", startBunker: "MD#1" } };
+    clearScratch(o);
+    return o.arrival.team === "Rejects" && o.arrival.sightingBunker === "" && o.arrival.shotAt === "" && o.arrival.notice === "" && o.arrival.startBunker === "MD#1";
+  }));
+  const siteFields = (/<b>(\d+)<\/b><span>Fields, measured/.exec(fs.readFileSync(path.join(__dirname, "..", "site", "index.html"), "utf8")) || [])[1];
+  const appFields = await ev(() => Object.keys(LAYOUTS).length);
+  check("the landing page counts the fields the app carries", +siteFields === appFields, `site says ${siteFields}, the app has ${appFields}`);
+  check("one kept note reads as one note", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.set({ tab: "more", more: "messages", messages: [{ who: "Coach", text: "Bring paint", at: 1 }] });
+    const t = document.getElementById("root").textContent;
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return /1 note(?!s)/.test(t) && !/(^|[^0-9])1 notes/.test(t);
   }));
   G("House rules");
   const html = await ev(() => document.documentElement.outerHTML);
