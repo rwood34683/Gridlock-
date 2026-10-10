@@ -9,7 +9,8 @@ JSON per event, and the official published stills that are the ground truth.
 **Bunker coordinates are never invented.** An event ships with `bunkers: []` and
 `coordinate_status: "official_image_only"` until someone digitizes it from an
 official labeled 2D. Three events have one: the Midwest Open, the Tampa Bay
-Open and the Lone Star Open.
+Open and the Lone Star Open. A fourth, the USXBL JT Championship, was measured
+off the 2D the coach sent; see below.
 
 | Event | Status | Coordinates | Bunkers |
 |---|---|---|---|
@@ -20,6 +21,7 @@ Open and the Lone Star Open.
 | wcppl_2026_defy_opener | published | `official_image_only` | 0 |
 | mvps_2026_spring_skirmish | published | `official_image_only` | 0 |
 | usxbl_2026_practice | practice only | `official_image_only` | 0 |
+| usxbl_2026_jt_championship | published | `grid_digitized` | 58 |
 | nxl_2026_lone_star | published | `grid_digitized` | 58 |
 | nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
 
@@ -35,6 +37,40 @@ the official 2D); without a map, or over anything else, it is neutral grey.
 The map is stretched to the field's edges and is a guide only — it never
 moves or sizes a bunker. It never enters this pack: it lives in the coach's season and rides
 in Save a copy.
+
+## How the USXBL JT Championship was digitized
+
+Source: `layouts/images/usxbl_2026_jt_championship_2d.jpg` (1440 × 1131), the 2D
+field map the coach sent on 10 Oct 2026, with two 3D renders beside it. Run it with:
+
+```bash
+python3 tools/digitize_usxbl_jt.py              # measures -> tools/out/usxbl_jt_measured.json
+PYTHONPATH=tools python3 tools/emit_usxbl_jt.py  # writes the event JSON + tools/out/ujt_layout.js
+node tools/plants.js --write                     # plants the twelve calls on it
+```
+
+The method is the NXL one. Three things differ, and all three are in the tool:
+
+- **A white sheet.** Paint is red, and every cap and shaded face is printed near
+  black, so the footprint is red plus near-black. The grid, the watermark under
+  the field and the axis labels are mid-grey and reach neither test. The grid is
+  16 × 13 rules, 8.8933 px/ft on x and 8.8917 px/ft on y.
+- **No printed labels.** Every name is the kind of inflatable read off its drawn
+  shape and measured size against `layouts/bunkers.json`: the cubes are T, the
+  corner blocks GB, the balls C, the uprights on the end lines Br, the segmented
+  uprights MW, the dome under the snake Ck. Footprints still come from the book,
+  and each bunker keeps what this map drew in `drawn_w_ft` / `drawn_h_ft`.
+- **Touching bunkers are split where the drawing joins them.** Beam joints are
+  the brightness dips along each beam's lit band (35.3, 46.0 and 56.7 ft on the
+  left snake, their mirrors on the right, 60.2 ft on the centre beam). The bridge
+  is split at the centre line, where its joint is drawn. The one dip off it, at
+  70.3 ft, is the watermark under the beam and has no mirror.
+
+The mirror check: 26 pairs, axis 74.99 ft, sd 0.05 ft. The six unpaired bunkers
+stand on the centre line. The two Br stand on the end lines, half behind the
+field, and are kept where the map draws them. On this field Conserve and Lock
+plant the same five: Lock leans toward the bunkers you shoot from, and here every
+back bunker is one. The suite pins that pair by name.
 
 ## How the Midwest Open was digitized
 

@@ -60,6 +60,7 @@ Import these 2026 paintball layouts into Gridlock Coach (or any field visualizer
 - wcppl_2026_defy_opener
 - mvps_2026_spring_skirmish   (same map family as Tampa Bay)
 - usxbl_2026_practice
+- usxbl_2026_jt_championship  (digitized; supplied by the coach)
 - nxl_2026_lone_star          (unreleased as of 2026-09-06)
 - nxl_2026_world_cup          (unreleased)
 - mvps_2026_southeastern_championship  (drops 2026-09-09)

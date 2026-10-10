@@ -627,6 +627,19 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     after), not what was in the file — "Merged in a sheet — new here: 1
     breakout", or "nothing new" on a second sync.
 
+43. ~~A USXBL field.~~ Done — the coach sent the USXBL JT Championship map,
+    a 2D on a printed 10-ft grid and two 3D renders, and it is the fourth
+    measured field (`ujt`, `UJT`). `tools/digitize_usxbl_jt.py` measures it the
+    NXL way on a white sheet: red paint plus the near-black caps, beams split at
+    the brightness dips along their lit band, the bridge at the centre line.
+    The map prints no labels, so each bunker is named for the kind of
+    inflatable its shape and measured size say it is, and the event file says
+    so; footprints still come from the book. Mirror check 26 pairs, axis
+    74.99 ft, sd 0.05. The two Br stand on the end lines, half behind the
+    field, where the map draws them. On this field Conserve and Lock plant the
+    same five, because every back bunker is one you shoot from; the suite pins
+    that pair. `docs/LAYOUTS.md` has the method.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
