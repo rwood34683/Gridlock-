@@ -6522,8 +6522,14 @@ const ROSTER = [
     const noSheet = !S.tallySel && pointRows().length === 5 && pointRows().every(r => r.todo && r.side === "us");
     window.tallyTap([ours[5].x, ours[5].y]);
     const capped = pointRows().length === 5 && /all 5 placed/.test(S.flash || "");
-    window.tallyTap([ours[4].x, ours[4].y]);
-    const tookOff = pointRows().length === 4 && /Taken off/.test(S.flash || "");
+    // A man comes off by his ✕; a second tap on a bunker is a second man on it.
+    window.undoBreakout(pointRows().find(r => r.bunker === ours[4].id).id);
+    window.tallyTap([ours[3].x, ours[3].y]);
+    const doubled = pointRows().length === 5 && pointRows().filter(r => r.bunker === ours[3].id).length === 2
+      && document.querySelectorAll("#tally-map .tally-man").length === 5
+      && new Set([...document.querySelectorAll("#tally-map .tally-man rect")].map(r => r.getAttribute("x") + "," + r.getAttribute("y"))).size === 5;
+    window.undoBreakout(pointRows().find(r => r.bunker === ours[3].id).id);
+    const tookOff = pointRows().length === 4 && doubled;
     theirs.slice(0, 2).forEach(b => window.tallyTap([b.x, b.y]));
     const theirsByHalf = pointRows().filter(r => r.side === "them").length === 2;
     const root = document.getElementById("root");
@@ -6556,13 +6562,13 @@ const ROSTER = [
     const f1 = theirFiveLogged("right");
     const fed = !!f1 && f1.tallied && JSON.stringify(f1.plants) === JSON.stringify(theirs.map(b => b.id))
       && theirs.every(b => plantCounts("right").some(([id]) => id === frameId(b.id, S.matchId, S.point)));
-    window.tallyTap([theirs[2].x, theirs[2].y]);
+    window.undoBreakout(pointRows().filter(r => r.side === "them" && r.bunker === theirs[2].id).pop().id);   // his ✕ takes a man off
     const inStep = JSON.stringify((theirFiveLogged("right") || {}).plants) === JSON.stringify(theirs.slice(0, 2).map(b => b.id));
     window.logTheirBreak("right", "blitz");
     const named = (theirFiveLogged("right") || {}).script === "blitz" && (theirFiveLogged("right") || {}).tallied === true;
     window.tallyTap([theirs[2].x, theirs[2].y]);
     const stillInStep = (theirFiveLogged("right") || {}).plants.length === 3 && (theirFiveLogged("right") || {}).script === "blitz";
-    window.tallyTap([theirs[0].x, theirs[0].y]); window.tallyTap([theirs[1].x, theirs[1].y]); window.tallyTap([theirs[2].x, theirs[2].y]);
+    window.undoBreakout(pointRows().filter(r => r.side === "them" && r.bunker === theirs[0].id).pop().id); window.undoBreakout(pointRows().filter(r => r.side === "them" && r.bunker === theirs[1].id).pop().id); window.undoBreakout(pointRows().filter(r => r.side === "them" && r.bunker === theirs[2].id).pop().id);
     const emptied = !(theirFiveLogged("right") || {}).plants && theirBreaks("right").some(b => b.m === S.matchId && b.pt === S.point && b.script === "blitz");
     window.nextPoint();
     S.theirPick = bl.filter(b => b.x > 90).slice(5, 10).map(b => b.id); window.logTheirFive("right");
@@ -8431,12 +8437,26 @@ const ROSTER = [
     svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return (S.theirPick || [])[0] === b.id;
   }));
-  check("tapping it again takes it out", await ev(() => {
-    const svg = document.querySelector("#their-map svg.field");
-    const b = curLayout().bunkers[4];
-    const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
-    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
-    return (S.theirPick || []).length === 0;
+  check("tapping it again puts a second man there, a third makes three, and each draws as its own square", await ev(() => {
+    const tap = () => { const svg = document.querySelector("#their-map svg.field"), b = curLayout().bunkers[4];
+      const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
+      svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); };
+    const id = curLayout().bunkers[4].id;
+    tap(); const two = (S.theirPick || []).length === 2 && S.theirPick.every(x => x === id);
+    tap(); const three = S.theirPick.length === 3 && S.theirPick.every(x => x === id);
+    const sq = [...document.querySelectorAll("#their-map .their-five rect[stroke]")].map(r => r.getAttribute("x") + "," + r.getAttribute("y"));
+    const apart = sq.length === 3 && new Set(sq).size === 3;
+    return (two && three && apart) || JSON.stringify({ pick: S.theirPick, sq });
+  }));
+  check("a placed man comes off by his own button, and the rest keep their bunkers", await ev(() => {
+    const id = curLayout().bunkers[4].id, other = curLayout().bunkers[9].id;
+    window.set({ theirPick: [id, other, id] });
+    const btns = [...document.querySelectorAll('#root [aria-label="Placed men"] button')];
+    if(btns.length !== 3) return "buttons: " + btns.length;
+    btns[1].click();
+    const ok = S.theirPick.length === 2 && S.theirPick.every(x => x === id);
+    window.set({ theirPick: [] });
+    return ok || JSON.stringify(S.theirPick);
   }));
   check("no more than five go on the field", await ev(() => {
     const ids = curLayout().bunkers.slice(0,5).map(b=>b.id);
@@ -8445,7 +8465,17 @@ const ROSTER = [
     const b = curLayout().bunkers[7];
     const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
     svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
-    return S.theirPick.length === 5 && !S.theirPick.includes(b.id);
+    return S.theirPick.length === 5 && !S.theirPick.includes(b.id) && /All five are placed/.test(S.flash);
+  }));
+  check("a five with two men on one bunker logs both and counts the bunker twice", await ev(() => {
+    const bl = curLayout().bunkers, ids = [bl[4].id, bl[4].id, bl[5].id, bl[6].id, bl[7].id];
+    const was = theirBreaks("right"), pickWas = S.theirPick;
+    window.set({ theirPick: ids });
+    const drawn = (document.querySelector("#their-map").innerHTML.match(/class="their-five"/g) || []).length === 5;
+    window.logTheirFive("right");
+    const b = theirBreaks("right")[0], logged = Array.isArray(b.plants) && b.plants.filter(x => x === bl[4].id).length === 2;
+    editProfile("right", { breaks: was }); window.set({ theirPick: pickWas });
+    return (logged && drawn) || JSON.stringify({ plants: b.plants, drawn });
   }));
   check("the picked five draw as numbered squares before anything is logged", await ev(() =>
     (document.querySelector("#their-map").innerHTML.match(/class="their-five"/g) || []).length === 5));
@@ -9860,14 +9890,15 @@ const ROSTER = [
     return before === false && during !== undefined;
   }));
   G("Doubled up");
-  check("a play can double up any bunker: a second tap puts the next man beside the first, a third is refused, Take off frees one, and the two run to two spots", await ev(() => {
+  check("a play can double up any bunker: a second tap puts the next man beside the first, a fourth is refused, Take off frees one, and the two run to two spots", await ev(() => {
     const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building };
     const bl = curLayout().bunkers, home = bl.filter(b => b.x < 20).sort((a, c) => Math.abs(a.y - 60) - Math.abs(c.y - 60))[0], gp = bl[5], third = bl[8];
     window.set({ tab: "playbook", building: { name: "Dbl Check", plants: [], read: "", aggr: 3, layout: S.layoutKey } });
-    [home.id, home.id, home.id].forEach(id => window.playPick(id));
-    const two = S.building.plants.filter(x => x === home.id).length === 2 && /Two men is the most/.test(S.flash || "");
-    window.playOff(1);
-    const off = S.building.plants[0] === null && S.building.plants[1] === home.id;
+    [home.id, home.id, home.id, home.id].forEach(id => window.playPick(id));
+    const two = S.building.plants.filter(x => x === home.id).length === 3 && /Three men is the most/.test(S.flash || "");
+    window.playOff(1); window.playOff(3);
+    const off = S.building.plants[0] === null && S.building.plants[1] === home.id && S.building.plants[2] === null;
+    window.set({ building: { ...S.building, plants: [home.id, null, null, null, null] } });
     [home.id, gp.id, gp.id, third.id].forEach(id => window.playPick(id));
     const rows = document.getElementById("root").textContent;
     const said = /doubled up with 2/.test(rows) && document.querySelectorAll('[aria-label="Take man 1 off"]').length === 1;
@@ -9879,6 +9910,25 @@ const ROSTER = [
     const copyOk = !copyDataError({ plays: [customPlay(k)] });
     Object.assign(S, was); dropPathCache(); window.set({});
     return two && off && said && !!k && apart && copyOk || JSON.stringify({ two, off, said, k, ends, copyOk });
+  }));
+  check("three men on one bunker run to three spots of their own on every measured field", await ev(() => {
+    const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building, layoutKey: S.layoutKey };
+    const out = {};
+    for(const lk of ["lso", "tby", "mwo", "ujt"]){
+      window.pickEvent(lk);
+      const bl = curLayout().bunkers, big = bl.filter(b => b.x > 20 && b.x < 70).sort((a, c) => (c.w || 0) * (c.h || 0) - (a.w || 0) * (a.h || 0))[0];
+      const rest = bl.filter(b => b.id !== big.id && b.x > 20 && b.x < 70).slice(0, 2).map(b => b.id);
+      window.set({ tab: "playbook", building: { name: "Triple " + lk, plants: [], read: "", aggr: 3, layout: lk } });
+      [big.id, big.id, big.id, ...rest].forEach(id => window.playPick(id));
+      window.savePlay();
+      const k = Object.keys(allPlays()).find(x => allPlays()[x].name === "Triple " + lk);
+      window.set({ script: k });
+      const ends = currentPaths().map(p => p.to.join());
+      out[lk] = ends.length === 5 && new Set(ends.slice(0, 3)).size === 3;
+      S.plays = (S.plays || []).filter(p => p.k !== k);
+    }
+    Object.assign(S, was); dropPathCache(); window.pickEvent(was.layoutKey); window.set({});
+    return Object.values(out).every(Boolean) || JSON.stringify(out);
   }));
   check("a roster added to one pit says so under that pit only, and an unscored threat says to tap a star", await ev(() => {
     const was = { scout: S.scout, left: S.left, right: S.right };

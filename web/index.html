@@ -1193,12 +1193,15 @@ function doubleSpots(b, n, all){
   // one is pressed against the next, and a run there cuts the corner.
   const clear = q => q[0] >= 1 && !(all || []).some(o => o !== b && bunkerBoxes(o).some(x =>
     Math.abs(q[0] - x.x) <= x.w / 2 + 1 && Math.abs(q[1] - x.y) <= x.h / 2 + 1));
+  // A third man stands between the two, at the middle of the bunker.
+  const three = pair => n > 2 ? [pair[0], [b.x, b.y], pair[1]] : pair;
   for(let s = Math.min(3.5, long / 2 - 0.5); s >= 1.5; s -= 0.5){
     const pair = [[b.x - dir[0] * s, b.y - dir[1] * s], [b.x + dir[0] * s, b.y + dir[1] * s]];
-    if(pair.every(clear)) return pair;
+    if(pair.every(clear)) return three(pair);
   }
-  const back = [b.x - (w / 2 + 3), b.y];
-  return clear(back) ? [[b.x, b.y], back] : [[b.x, b.y], [b.x, b.y]];
+  const back = [b.x - (w / 2 + 3), b.y], back2 = [b.x - (w / 2 + 6), b.y];
+  if(!clear(back)) return Array(Math.min(n, 3)).fill([b.x, b.y]);
+  return n > 2 ? [[b.x, b.y], back, clear(back2) ? back2 : back] : [[b.x, b.y], back];
 }
 function breakPaths(layoutKey, scriptKey){
   // Only a layout with no plants ever sees this. The five that were written
@@ -3473,16 +3476,16 @@ window.cancelPlay = () => set({building: null});
 // bunker tapped fills it, so moving man 3 is two taps and 4 and 5 stay 4 and
 // 5 — they used to slide up and his Face, Shot and job went with the slot.
 // Any bunker can be doubled up: a tap on one that already has a man puts the
-// next man there with him, two at most. So a tap on the field only ever
+// next man there with him, three at most. So a tap on the field only ever
 // places, and a man comes off by the Take off on his own row.
-const PLAY_DOUBLE = 2;
+const PLAY_DOUBLE = 3;   // two or three on one bunker: a doubled home, a stacked snake
 window.playPick = id => {
   const b = S.building; if(!b) return;
   const five = [...(b.plants || [])];
   while(five.length < 5) five.push(null);
   const open = five.indexOf(null);
   if(open < 0){ flash("All five are placed. Take one off on his row first."); return; }
-  if(five.filter(x => x === id).length >= PLAY_DOUBLE){ flash(`Two men is the most on one bunker. Men ${five.map((x, i) => x === id ? i + 1 : 0).filter(Boolean).join(" and ")} are already there.`); return; }
+  if(five.filter(x => x === id).length >= PLAY_DOUBLE){ flash(`Three men is the most on one bunker. Men ${five.map((x, i) => x === id ? i + 1 : 0).filter(Boolean).join(", ")} are already there.`); return; }
   five[open] = id;
   set({building: {...b, plants: five}});
 };
@@ -7678,10 +7681,12 @@ function fiveSquares(ids, sx, sy, colour){
   return (ids || []).map((id, i) => {
     const b = bl.find(x => x.id === id); if(!b) return "";
     const r = 6.2, k = (ids || []).slice(0, i).filter(x => x === id).length, n = many(id);
-    const at = doubleSpots(b, n, bl)[k];
+    // Two men take the bunker's two spots; three or more stand in a row across
+    // its middle, a square apart, so every one of them can be read.
+    const spots = n > 2 ? null : doubleSpots(b, n, bl), at = spots ? spots[k] : [b.x, b.y];
     // Where the two share the middle of a small bunker, the squares still sit apart.
-    const same = n > 1 && doubleSpots(b, n, bl).every(q => q[0] === b.x && q[1] === b.y);
-    const x = at[0]*sx + (same ? (k - 0.5) * (r * 2 + 1.5) : 0), y = at[1]*sy;
+    const same = n > 2 || (n > 1 && spots.every(q => q[0] === b.x && q[1] === b.y));
+    const x = at[0]*sx + (same ? (k - (n - 1) / 2) * (r * 2 + 1.5) : 0), y = at[1]*sy;
     return `<g class="their-five" opacity=".95">`
       + `<rect x="${(x-r-0.6).toFixed(1)}" y="${(y-r-0.6).toFixed(1)}" width="${(r*2+1.2).toFixed(1)}" height="${(r*2+1.2).toFixed(1)}" rx="2.4" fill="#000" opacity=".55"/>`
       + `<rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" height="${(r*2).toFixed(1)}" rx="2" fill="${colour}" stroke="#efedeb" stroke-width="1.3"/>`
@@ -7702,8 +7707,11 @@ function fiveSquares(ids, sx, sy, colour){
   });
 })();
 
-// Tap the field on Breakouts: a bunker goes into the five, tapping it again
-// takes it out. Nothing is logged until the button says so.
+// Tap the field on Breakouts: a bunker goes into the five. Tapping one that
+// already has a man puts the next man there too — they double the snake, or
+// three sit on it — and a man comes off by his own × under the field or Undo
+// last. Nothing is logged until the button says so.
+window.dropTheirPick = i => set({theirPick: (S.theirPick || []).filter((_, k) => k !== i)});
 (function theirPicking(){
   document.addEventListener("pointerdown", ev => {
     if(S.tab !== "scout" || S.scoutTab !== "breakouts") return;
@@ -7713,8 +7721,8 @@ function fiveSquares(ids, sx, sy, colour){
     ev.preventDefault();
     const b = bunkerAt(fieldFeet(svg, ev)); if(!b) return;
     const cur = S.theirPick || [];
-    if(cur.includes(b.id)) set({theirPick: cur.filter(x => x !== b.id)});
-    else if(cur.length < 5) set({theirPick: [...cur, b.id]});
+    if(cur.length >= 5){ flash("All five are placed. Take one off with its × under the field, or Undo last."); return; }
+    set({theirPick: [...cur, b.id]});
   });
 })();
 window.unlogTheirBreak = (side, i) => {
@@ -8807,10 +8815,10 @@ function playBuilder(){
     <div class="field-wrap" id="build-map">${fieldSVG({static:true, pick:true, noPaths:true, names:true,
       overlay: fiveSquares(five, 2, 2, "#e5342f")})}</div>
     <div class="assigns">${[1,2,3,4,5].map(n => {
-      const id = five[n-1], mate = id ? five.findIndex((x, i) => x === id && i !== n - 1) : -1;
+      const id = five[n-1], mates = id ? five.map((x, i) => x === id && i !== n - 1 ? i + 1 : 0).filter(Boolean) : [];
       return `<div class="assign">
       <span class="assign__n"${id ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
-      <span class="assign__body"><span class="assign__job">${id ? esc(nameOf(id)) : "tap his bunker"}</span>${mate >= 0 ? `<span class="assign__who">doubled up with ${mate + 1}</span>` : ""}</span>
+      <span class="assign__body"><span class="assign__job">${id ? esc(nameOf(id)) : "tap his bunker"}</span>${mates.length ? `<span class="assign__who">doubled up with ${mates.join(" and ")}</span>` : ""}</span>
       ${id ? `<span class="assign__ctl"><button class="btn btn--quiet" onclick="playOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
     </div>`; }).join("")}</div>
     <div class="fld"><label for="pl-read">The read, in your words</label>
@@ -9171,18 +9179,10 @@ function syncTallyFive(mid, pt){
 function placeAt(b){
   const pt = sheetPoint(), side = S.tallyPlace || sideOfBunker(b, pt);
   const rows = pointRows();
-  // A second tap on a man placed and not yet told is a double tap or the
-  // wrong bunker: it takes him off, and says so.
-  const again = rows.filter(r => r.side === side && r.bunker === b.id && r.todo).pop();
-  if(again){
-    S.breakouts = (S.breakouts || []).filter(r => r !== again);
-    if(S.tallyLast === again.id) S.tallyLast = "";
-    syncTallyFive(again.m, again.pt);
-    flash(`Taken off ${bunkerLabel(b.id)}.`);
-    return;
-  }
+  // A second tap on a bunker is a second man on it: they double the snake,
+  // or three sit on it. A man comes off by his ✕ in the list under the field.
   const cap = startUp(side, S.matchId, pt), n = rows.filter(r => r.side === side).length;
-  if(n >= cap){ flash(`${placeSideWord(side)}: all ${cap} placed. Tap one again to take him off, or go on to 2 · What happened.`); return; }
+  if(n >= cap){ flash(`${placeSideWord(side)}: all ${cap} placed. Take one off with his ✕ under the field, or go on to 2 · What happened.`); return; }
   const at = Date.now();
   const row = {id:"b"+at.toString(36)+Math.random().toString(36).slice(2,9),
     m:S.matchId, pt, layout:S.layoutKey, at, side, bunker:b.id,
@@ -9513,11 +9513,15 @@ function tallyOverlay(){
     return g;
   };
 
+  const onBunker = {};
   breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).forEach(r => {
     const b = byId[r.bunker]; if(!b) return;
     // The run first, so the marker for the man sits on top of his own line.
     out += routeSVG(routeOf(r), b, r, false);
-    const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1, y = b.y*sy - s2.v + 1;
+    // Two or three men on one bunker each get a marker, a step along from
+    // the last, not one square drawn over another.
+    const k = onBunker[b.id] = (onBunker[b.id] || 0) + 1;
+    const s2 = bunkerSize(b, sx, sy), x = b.x*sx + s2.h - 1 - (k - 1) * 10.5, y = b.y*sy - s2.v + 1;
     const col = r.side === "them" ? "#3d8bff" : "#e5342f";
     out += `<g class="tally-man"><rect x="${(x-4.5).toFixed(1)}" y="${(y-4.5).toFixed(1)}" width="9" height="9" rx="2" fill="${col}" stroke="#efedeb" stroke-width="1"/>`
          + (r.alive === false ? `<text x="${x.toFixed(1)}" y="${(y+2.7).toFixed(1)}" text-anchor="middle" font-size="7.5" font-weight="900" fill="#fff">✕</text>` : "")
@@ -9739,7 +9743,7 @@ function tally(){
       <button class="${step === "record" ? "on" : ""}" onclick="tallyStepTo('record')">2 · What happened${tellBacklog().length ? ` · ${tellBacklog().length} to tell` : ""}</button>
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
-      ? "Off the buzzer, tap the bunker each man broke to — one tap a man. Tap one again to take him off."
+      ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off."
       : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
     ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
@@ -11928,8 +11932,8 @@ function scoutBreakouts(){
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
       ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[]})">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
-  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order.
-      No names needed — those can come later on How did they get there?</p>
+  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order —
+      two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>
     <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     <div class="btnrow">
       <button class="btn" onclick="logTheirFive('${side}')">Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}</button>
@@ -11937,8 +11941,10 @@ function scoutBreakouts(){
       <button class="btn btn--quiet" onclick="set({theirPick:[]})"${picked.length?'':' disabled'}>Clear</button>
     </div>
     <p class="note" role="status">${picked.length
-      ? `${picked.length} of 5 placed: ${picked.map(id=>esc(label(id))).join(", ")}. Log the five on their own, or tap a named call below to log it with them.`
-      : `Nothing placed yet. Tap a bunker; tap it again to take it out.`}</p>`,
+      ? `${picked.length} of 5 placed. Log the five on their own, or tap a named call below to log it with them.`
+      : `Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.`}</p>
+    ${picked.length ? `<div class="seg" style="flex-wrap:wrap" aria-label="Placed men">${picked.map((id, i) =>
+      `<button onclick="dropTheirPick(${i})" aria-label="Take man ${i + 1} off ${esc(label(id))}">${i + 1} · ${esc(label(id))} ×</button>`).join("")}</div>` : ""}`,
     R.name)
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
@@ -12811,7 +12817,7 @@ const HELP = {
          "Name it. The clock holds you to two seconds.",
          "Under two seconds means you are calling it, not reading it."]},
   tally: {t:"Tally", w:"The break chart and the point sheet.",
-    how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Tap one again to take him off.",
+    how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Two men on one bunker is two taps; the ✕ beside a man in the list takes him off.",
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
          "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
          "When the point ends tap We won it or They won it. That is the score.",
@@ -12836,6 +12842,7 @@ const HELP = {
     watch:"A team nobody has scored reads as a dash. The app never guesses a number."},
   "scout/breakouts": {t:"Breakouts", w:"Where their five went, without needing names.",
     how:["Tap the field where each of their five ended up, up to five, any order.",
+         "Two or three on one bunker: tap it once for each man. A man comes off with his × under the field.",
          "Log their five. If you know the call, log that with it.",
          "Where they plant counts bunkers across every five you have logged.",
          "A call is tied to the point only when this team is on the sheet. Off the sheet it counts for the season, and the screen says so with one tap to start the right match."]},
