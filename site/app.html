@@ -8424,8 +8424,45 @@ window.logTheirBreak = (side, script, plants) => {
     if(!entry.plants && Array.isArray(was.plants) && was.plants.length){ entry.plants = was.plants; if(was.tallied) entry.tallied = true; }
   }
   editProfile(side, {breaks: [entry, ...theirBreaks(side).filter(b => b !== was)]});
+  // Each man of a five logged on this point is a man to tell, as one placed
+  // on Tally is: how he got there, which way he was shooting, at what, where
+  // he moved. One row a man, only where the point has fewer already.
+  if(picked.length && entry.pt) placeFiveMen(side === "left" ? "us" : "them", entry.m, entry.pt, picked);
   if(picked.length) S.theirPick = [];
   save(S); render();
+};
+function placeFiveMen(rowSide, mid, pt, ids){
+  const m = matchById(mid); if(!m) return;
+  if(rowSide === "us" && !m.watch) return;   // the left pit is his five only on a watched game
+  const here = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === pt && r.side === rowSide);
+  const have = {}; here.forEach(r => { have[r.bunker] = (have[r.bunker] || 0) + 1; });
+  const want = {}, add = [];
+  ids.forEach(id => { want[id] = (want[id] || 0) + 1; if(want[id] > (have[id] || 0)) add.push(id); });
+  const room = Math.max(0, startUp(rowSide, mid, pt) - here.length);
+  const now = Date.now();
+  const rows = add.slice(0, room).map((id, i) => ({id: "b" + (now + i).toString(36) + Math.random().toString(36).slice(2, 9),
+    m: mid, pt, layout: m.layout || S.layoutKey, at: now + i, side: rowSide, bunker: id,
+    player: "", alive: null, shotFrom: "", entry: "", dir: null, shootAt: "", delayed: false, movedTo: "", movedDelayed: false,
+    routeType: "", route: [], vs: m.watch ? (m.away || m.vs || "") : (m.vs || ""), script: "", todo: true}));
+  if(rows.length) S.breakouts = [...rows, ...(S.breakouts || [])];
+}
+// The men charted on a bunker for one team on this field — the details a
+// coach told about each one, from Tally or from Scout's five.
+function menOnBunker(side, fid){
+  const team = pitOf(side).name; if(!team) return [];
+  return (S.breakouts || []).filter(r => {
+    if(!r || r.layout !== S.layoutKey) return false;
+    const m = matchById(r.m); if(!m) return false;
+    const t = r.side === "them" ? (m.watch ? (m.away || m.vs) : m.vs) : (m.watch ? m.home : "");
+    return t && foldName(t) === foldName(team) && teamFrame(r.bunker, r.m, r.pt, team) === fid;
+  }).sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+// Open one man's details on the sheet he was charted on.
+window.openManDetails = id => {
+  const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
+  if(r.m !== S.matchId) openMatchNow(r.m);
+  S.tab = "tally";
+  editBreakout(id);
 };
 window.logTheirFive = side => {
   if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
@@ -8501,6 +8538,16 @@ window.dropTheirPick = i => set({theirPick: (S.theirPick || []).filter((_, k) =>
   });
 })();
 window.unlogTheirBreak = (side, i) => {
+  // The men that five put on the point go with it, while nobody has told them.
+  const gone = theirBreaks(side)[i];
+  if(gone && gone.pt && Array.isArray(gone.plants)){
+    const left = [...gone.plants], rowSide = side === "left" ? "us" : "them";
+    S.breakouts = (S.breakouts || []).filter(r => {
+      if(!(r && r.todo && r.m === gone.m && r.pt === gone.pt && r.side === rowSide)) return true;
+      const k = left.indexOf(r.bunker); if(k < 0) return true;
+      left.splice(k, 1); return false;
+    });
+  }
   editProfile(side, {breaks: theirBreaks(side).filter((_,k) => k !== i)});
   render();
 };
@@ -12757,7 +12804,9 @@ function scoutBreakouts(){
   + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([fid,n])=>{ const id = shownTeamBunker(fid, R.name); return `<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${n}</span>
         <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${(fives => { const inN = fives.filter(b => b.plants.some(x => teamFrame(x, b.m, b.pt, R.name) === fid)).length;
-          return `${inN} of ${fives.length} logged fives here${n > inN ? ` · ${n} men` : ""}`; })(seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)))}</span></span>
+          return `${inN} of ${fives.length} logged fives here${n > inN ? ` · ${n} men` : ""}`; })(seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)))}</span>
+        ${(men => men.length ? `<span style="display:grid;gap:4px;margin-top:6px">${men.slice(0, 6).map(r => `<button class="btn btn--quiet" style="justify-content:flex-start;text-align:left;min-height:44px" onclick="openManDetails(${jsq(r.id)})">
+            <span>Point ${r.pt}${r.m !== S.matchId ? ` · ${esc(matchLabel(matchById(r.m)))}` : ""} · ${r.todo ? `<span style="color:var(--warn)">add his details →</span>` : esc(describeBreakout(r))}</span></button>`).join("")}${men.length > 6 ? `<span class="note">and ${men.length - 6} more</span>` : ""}</span>` : "")(menOnBunker(side, fid))}</span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
       `${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged here`) : "")

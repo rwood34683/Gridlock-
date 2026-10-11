@@ -671,6 +671,10 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     square — `fiveSquares` puts three or more in a row across the bunker, Tally
     steps each marker along — and a third man in a play runs to the bunker's
     middle (`doubleSpots`). Where they plant counts a bunker once a man.
+    Their five logged on Scout puts a man to tell on each bunker of the point
+    (`placeFiveMen`), and *Where they plant* lists every man charted on each
+    bunker with his details, one tap to tell or change them on Tally
+    (`menOnBunker`, `openManDetails`).
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
