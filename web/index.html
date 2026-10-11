@@ -8844,7 +8844,6 @@ function playbook(){
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
-  ${S.building ? `<div id="play-builder">${playBuilder()}</div>` : ""}
   ${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
@@ -8917,6 +8916,9 @@ function playbook(){
       or a lane with no bunker named, a gap he holds — and Lane 2 is his secondary, drawn dashed. Both travel with him down the path. Go is when
       he leaves: on the buzzer, a delay, or the app's timing.</p>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}
+  ${/* The builder stands under Direct the five: the owner wants the five
+        directed first and the play being written below it. */""}
+  ${S.building ? `<div id="play-builder">${playBuilder()}</div>` : ""}
 
   ${(()=>{ const ss = selfScout();
     return sec("What you have called", ss.n
