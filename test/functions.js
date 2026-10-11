@@ -8638,6 +8638,34 @@ const ROSTER = [
     return ids.length > 0 && ids.every(id => curLayout().bunkers.find(b => b.id === id).x > 75);
   }));
   check("the pad shows the lane he was shooting", await ev(() => document.querySelector("#tally-sheet .pad button.on").textContent === "↑"));
+  // A fat thumb between points: one tap back, one man over, one answer off —
+  // never the whole point.
+  check("Undo takes the last tap back, Clear starts the man over, and Undo brings that back", await ev(() => {
+    const before = JSON.stringify(S.tallyDraft);
+    window.setDraft({ alive: true });
+    const changed = S.tallyDraft.alive === true;
+    window.undoDraft();
+    const undone = JSON.stringify(S.tallyDraft) === before;
+    window.clearDraft();
+    const cleared = !S.tallyDraft.player && S.tallyDraft.alive == null && S.tallyDraft.dir == null && !S.tallyDraft.entry;
+    window.undoDraft();
+    const back = JSON.stringify(S.tallyDraft) === before;
+    const t = document.getElementById("tally-sheet").textContent;
+    const btns = /↶ Undo/.test(t) && /Clear all/.test(t);
+    return changed && undone && cleared && back && btns || JSON.stringify({ changed, undone, cleared, back, btns });
+  }));
+  check("one answer clears on its own with its ✕", await ev(() => {
+    const far = curLayout().bunkers.find(b => b.x > 100).id;
+    window.setDraft({ shootAt: far });
+    const btn = document.querySelector('#tally-sheet [aria-label="Clear shooting at"]');
+    if(!btn) return "no clear button";
+    btn.click();
+    const ok = !S.tallyDraft.shootAt && S.tallyDraft.alive === false && S.tallyDraft.player === "Reyes";
+    window.undoDraft();
+    const back = S.tallyDraft.shootAt === far;
+    window.setDraft({ shootAt: "" });
+    return ok && back || JSON.stringify({ ok, back });
+  }));
   await ev(() => { window.byIdAll = () =>
     Object.fromEntries(curLayout().bunkers.map(b => [b.id, b])); });
   // Tracing is gone: a tap on the field does one thing, which is pick the
@@ -8702,6 +8730,23 @@ const ROSTER = [
   check("a copy with a bad breakout is refused by name", await ev(() => {
     const d = JSON.parse(copyPayload("all")).data; d.breakouts = [{id:"x", m:"m", layout:"l", bunker:"b", side:"nobody", pt:1, at:1}];
     return copyDataError(d) === "breakouts";
+  }));
+  check("a logged man can be fixed or undone right where he was logged, and closing says nothing was kept", await ev(() => {
+    window.set({ tallySel:null, tallyDraft:null, tallyEdit:null, breakouts:[], tally:[], flash:"" });
+    const b = curLayout().bunkers.find(x => x.x < 60);
+    window.selectBunker(b.id); window.setDraft({ side:"us", player:"Reyes", alive:true }); window.logBreakout();
+    const row = S.breakouts[0];
+    const root = document.getElementById("root");
+    const offered = [...root.querySelectorAll("button")].some(x => x.textContent.trim() === "Fix it")
+      && [...root.querySelectorAll("button")].some(x => x.textContent.trim() === "Fix");
+    window.editBreakout(row.id); window.setDraft({ alive:false });
+    window.tallyDone();
+    const kept = S.breakouts[0].alive === true && /not saved/.test(S.flash);
+    window.selectBunker(b.id); window.setDraft({ player:"Reyes" }); window.tallyDone();
+    const notLogged = S.breakouts.length === 1 && /not logged/.test(S.flash);
+    window.editBreakout(row.id); window.setDraft({ alive:false }); window.logBreakout();
+    const fixed = S.breakouts.length === 1 && S.breakouts[0].id === row.id && S.breakouts[0].alive === false;
+    return offered && kept && notLogged && fixed || JSON.stringify({ offered, kept, notLogged, fixed });
   }));
   await ev(() => window.set({ tallySel:null, tallyDraft:null, breakouts:[], results:[], point:1 }));
 

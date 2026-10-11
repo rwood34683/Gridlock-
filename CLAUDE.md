@@ -691,6 +691,16 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     `sideSize()`), so `startUp()` and their numbered men follow it; plays,
     Lineups and the five on the sheet stay five.
 
+47. ~~Fat fingers.~~ Done — the owner said a mis-tap on the breakout sheet
+    meant logging it or starting over. Every `setDraft` keeps the answer it
+    replaced (`_draftHist`, keyed on the man on the sheet, never saved), so
+    **↶ Undo** in the sticky bar takes back the last tap and **Clear all**
+    starts that man over (Undo brings it back); Shooting at, Moved to and
+    Shot from each carry a ✕. **Done** says "not logged" / "not saved" when
+    it closes a sheet with changes. A logged man gets **Fix it** and **Undo**
+    on the Logged line under the field and **Fix** in Breakouts, which open
+    him with his answers through `editBreakout`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

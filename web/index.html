@@ -9159,7 +9159,32 @@ function nearestBunker(at){
 // Which pit a man breaking to this bunker came from: yours run from the left,
 // and a bunker past the fifty is somebody else's plant. One tap says otherwise.
 const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
-window.setDraft = patch => set({tallyDraft: {...draft(), ...patch}});
+/* Every answer on the breakout sheet is one tap, and a thumb between points
+ * misses. Each change keeps the answer it replaced, so Undo takes back the
+ * last tap and Clear starts this man over — never the whole point. Kept for
+ * the man on the sheet only (his row, else his bunker) and never saved. */
+let _draftHist = {key: "", list: []};
+const draftKey = () => (S.tallyEdit || "") + "|" + (S.tallySel || "");
+function keepDraft(){
+  if(_draftHist.key !== draftKey()) _draftHist = {key: draftKey(), list: []};
+  _draftHist.list.push(JSON.stringify(draft()));
+  if(_draftHist.list.length > 40) _draftHist.list.shift();
+}
+const draftChanged = () => _draftHist.key === draftKey() && _draftHist.list.length > 0;
+window.setDraft = patch => { keepDraft(); set({tallyDraft: {...draft(), ...patch}}); };
+window.undoDraft = () => {
+  if(!draftChanged()){ flash("Nothing to undo on this man yet."); return; }
+  set({tallyDraft: JSON.parse(_draftHist.list.pop()), tallyPickFor: null});
+};
+window.clearDraft = () => {
+  const d = draft();
+  if(!Object.keys(d).some(k => !["side","sideSet"].includes(k) && d[k] !== "" && d[k] != null && d[k] !== false && !(Array.isArray(d[k]) && !d[k].length))){
+    flash("Nothing to clear yet."); return;
+  }
+  keepDraft();
+  set({tallyDraft: d.sideSet ? {side: d.side, sideSet: true} : {}, tallyPickFor: null});
+  flash("Cleared — start this man over. Undo puts it back.");
+};
 window.selectBunker = id => {
   const b = curLayout().bunkers.find(x => x.id === id); if(!b) return;
   const d = draft(), same = S.tallySel === id;
@@ -9439,7 +9464,14 @@ window.playPit = () => {
   if(!matchVs()) return newMatch();
   S.tallyNudge = false; save(S); render();
 };
-window.tallyDone = () => set({tallySel:null, tallyDraft:null, tallyPickFor:null, tallyEdit:null});
+window.tallyDone = () => {
+  // Closing is how a man is left unlogged; it says so, so a closed sheet is
+  // never mistaken for a logged one, or a changed answer for a saved one.
+  const said = !draftChanged() ? "" : S.tallyEdit ? "Closed — not saved. His earlier answers stand." : "Closed — not logged.";
+  _draftHist = {key: "", list: []};
+  set({tallySel:null, tallyDraft:null, tallyPickFor:null, tallyEdit:null});
+  if(said) flash(said);
+};
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
@@ -9527,6 +9559,7 @@ window.logBreakout = () => {
   if(row.alive === false && row.player)
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v))});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
+  _draftHist = {key: "", list: []};
   S.tallyLast = row.id;
   S.tallySel = null; S.tallyEdit = null; S.tallyPickFor = null;
   // Step two walks the men he placed: Save opens the next one still to tell.
@@ -9798,7 +9831,10 @@ function breakoutSheet(){
     ${seg([[d.alive === true, "Made it", `setDraft({alive:${d.alive === true ? "null" : "true"}})`],
            [d.alive === false, "Shot on the break", `setDraft({alive:${d.alive === false ? "null" : "false"}})`]])}
     ${d.alive === false ? `<div class="fld"><label>Shot from</label>
-      <select onchange="setDraft({shotFrom:this.value})">${opts(far, d.shotFrom)}</select></div>` : ""}
+      <div class="btnrow" style="align-items:center">
+        <select style="flex:1 1 auto" onchange="setDraft({shotFrom:this.value})">${opts(far, d.shotFrom)}</select>
+        ${d.shotFrom ? `<button class="btn btn--quiet" aria-label="Clear shot from" onclick="setDraft({shotFrom:''})">✕</button>` : ""}
+      </div></div>` : ""}
     ${q("How did he get in?")}
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
@@ -9816,6 +9852,7 @@ function breakoutSheet(){
       <div class="btnrow" style="align-items:center">
         <select style="flex:1 1 auto" onchange="setDraft({shootAt:this.value})" aria-label="Shooting at which bunker">${opts(others, d.shootAt)}</select>
         <button class="btn btn--quiet ${S.tallyPickFor === "shootAt" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "shootAt" ? "null" : "'shootAt'"}})">${S.tallyPickFor === "shootAt" ? "Tap the bunker…" : "Tap the field"}</button>
+        ${d.shootAt ? `<button class="btn btn--quiet" aria-label="Clear shooting at" onclick="setDraft({shootAt:''})">✕</button>` : ""}
       </div></div>
     ${q("Timing")}
     ${seg([[!!d.delayed, d.delayed ? "✓ Delayed break" : "Delayed break", `setDraft({delayed:${!d.delayed}})`]])}
@@ -9824,13 +9861,17 @@ function breakoutSheet(){
       <div class="btnrow" style="align-items:center">
         <select style="flex:1 1 auto" onchange="setDraft({movedTo:this.value})" aria-label="Moved to which bunker">${opts(others, d.movedTo)}</select>
         <button class="btn btn--quiet ${S.tallyPickFor === "movedTo" ? "on" : ""}" onclick="set({tallyPickFor:${S.tallyPickFor === "movedTo" ? "null" : "'movedTo'"}})">${S.tallyPickFor === "movedTo" ? "Tap the bunker…" : "Tap the field"}</button>
+        ${d.movedTo ? `<button class="btn btn--quiet" aria-label="Clear moved to" onclick="setDraft({movedTo:'',movedDelayed:false})">✕</button>` : ""}
       </div></div>
     ${d.movedTo ? seg([[!!d.movedDelayed, d.movedDelayed ? "✓ Delayed move" : "Delayed move", `setDraft({movedDelayed:${!d.movedDelayed}})`]]) : ""}
     ${q("Route")}
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
     ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
-    <div class="tsheet__act"><button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; ${S.tallyEdit ? (more ? "Save · next man" : "Save") : "Log this breakout"}</button></div>
+    <div class="tsheet__act"><div class="btnrow" style="flex-wrap:nowrap;margin-bottom:var(--s2)">
+      <button class="btn btn--quiet grow" onclick="undoDraft()" aria-label="Undo the last tap on this man">↶ Undo</button>
+      <button class="btn btn--quiet grow" onclick="clearDraft()" aria-label="Clear this man's answers">Clear all</button></div>
+      <button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; ${S.tallyEdit ? (more ? "Save · next man" : "Save") : "Log this breakout"}</button></div>
   </div>`;
 }
 
@@ -10018,7 +10059,9 @@ function tally(){
     ${stepStrip}
     <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
     ${endsChip()}
-    ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<p class="note" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
+    ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>
+        <button class="btn btn--quiet" onclick="editBreakout(${jsq(last.id)})">Fix it</button>
+        <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
 
   ${sec("Point sheet", `
@@ -10204,6 +10247,7 @@ function tally(){
         <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${r.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(describeBreakout(r))}</span>
         <span class="assign__who">${r.side==="us"?"your player":esc(r.vs||matchVs()||"theirs")}${r.layout!==S.layoutKey?" · another field":""}</span></span>
+        ${r.layout === S.layoutKey ? `<button class="btn btn--quiet" onclick="editBreakout(${jsq(r.id)})">Fix</button>` : ""}
         <button class="btn btn--danger" onclick="undoBreakout(${jsq(r.id)})">Undo</button>
       </div>`).join("")}
     </div>${!S.tallyAllBreaks
@@ -13181,6 +13225,7 @@ const HELP_Q = [
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, and the USXBL JT Championship's off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
+  ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
