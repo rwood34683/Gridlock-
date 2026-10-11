@@ -6432,7 +6432,7 @@ const ROSTER = [
       && /Make it yours/.test(document.getElementById("root").textContent);
     // move man 3: take him off, tap another bunker — 4 and 5 stay put
     const spare = curLayout().bunkers.find(x => !orig.includes(x.id)).id;
-    window.playOff(3); window.playPick(spare);
+    window.playManOff(3); window.playPick(spare);
     const slotKept = S.building.plants[2] === spare && S.building.plants[3] === orig[3] && S.building.plants[4] === orig[4];
     // the app's name is refused, his is kept
     window.setPlayField("name", "Snake Stack"); window.set({ flash: "" }); window.savePlay();
@@ -9896,7 +9896,7 @@ const ROSTER = [
     window.set({ tab: "playbook", building: { name: "Dbl Check", plants: [], read: "", aggr: 3, layout: S.layoutKey } });
     [home.id, home.id, home.id, home.id].forEach(id => window.playPick(id));
     const two = S.building.plants.filter(x => x === home.id).length === 3 && /Three men is the most/.test(S.flash || "");
-    window.playOff(1); window.playOff(3);
+    document.querySelector('[aria-label="Take man 1 off"]').click(); window.playManOff(3);
     const off = S.building.plants[0] === null && S.building.plants[1] === home.id && S.building.plants[2] === null;
     window.set({ building: { ...S.building, plants: [home.id, null, null, null, null] } });
     [home.id, gp.id, gp.id, third.id].forEach(id => window.playPick(id));
@@ -10157,6 +10157,83 @@ const ROSTER = [
   const siteFields = (/<b>(\d+)<\/b><span>Fields, measured/.exec(fs.readFileSync(path.join(__dirname, "..", "site", "index.html"), "utf8")) || [])[1];
   const appFields = await ev(() => Object.keys(LAYOUTS).length);
   check("the landing page counts the fields the app carries", +siteFields === appFields, `site says ${siteFields}, the app has ${appFields}`);
+  check("two men placed on one bunker stay two when the second is told with the first one's name, and the chip says it is taken", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
+    const b = curLayout().bunkers.filter(x => x.x < 60)[3];
+    window.tallyStepTo("place"); window.tallyTap([b.x, b.y]); window.tallyTap([b.x, b.y]);
+    window.tallyStepTo("record"); window.setDraft({ player: "A", alive: false }); window.logBreakout();
+    const takenShown = /A · /.test(document.getElementById("root").textContent) || [...document.querySelectorAll("#root button")].some(x => /^A\b/.test(x.textContent.trim()) && /MD|·/.test(x.textContent));
+    window.setDraft({ player: "A", alive: true }); window.logBreakout();
+    const two = pointRows().filter(r => r.bunker === b.id).length === 2 && /already the man on/.test(S.flash);
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return two || JSON.stringify({ rows: pointRows().length, flash: S.flash, takenShown });
+  }));
+  check("a man told shot on the break is held to the men the side started with, like a tapped out", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
+    window.addPen("them", 2);
+    ["#1", "#2", "#3"].forEach(n => window.markOut("them", n));
+    const b = curLayout().bunkers.filter(x => x.x > 90)[2];
+    window.tallyStepTo("record"); window.tallyTap([b.x, b.y]);
+    window.setDraft({ side: "them", sideSet: true, player: "#4", alive: false }); window.logBreakout();
+    const outs = (S.tally || []).filter(o => o && o.m === S.matchId && o.side === "them").length;
+    const ok = outs === 3 && /all 3 are out/.test(S.flash);
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ok || JSON.stringify({ outs, flash: S.flash });
+  }));
+  check("three men on any bunker of any field stand on three different spots", await ev(() => {
+    const bad = [];
+    Object.entries(LAYOUTS).forEach(([lk, L]) => (L.bunkers || []).forEach(b => {
+      const sp = doubleSpots(b, 3, L.bunkers).map(q => q.map(v => v.toFixed(2)).join());
+      if(new Set(sp).size !== 3) bad.push(lk + ":" + b.id);
+    }));
+    return bad.length === 0 || JSON.stringify(bad.slice(0, 12));
+  }));
+  check("Take off on a man's row in the play builder takes him off", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.set({ tab: "playbook" }); window.copyPlay("snake");
+    const before = S.building.plants.slice();
+    const btn = document.querySelector('[aria-label="Take man 2 off"]'); if(!btn) { (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({})); return "no button"; }
+    btn.click();
+    const ok = S.building.plants[1] === null && S.building.plants[0] === before[0];
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ok;
+  }));
+  check("the ghost five keeps a doubled bunker as two men", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.setPitTeam("right", teamsHere()[0].name);
+    const bl = curLayout().bunkers.filter(b => b.x > 90), d = bl[0].id, five = [d, d, bl[1].id, bl[2].id, bl[3].id];
+    editProfile("right", { breaks: [0, 1, 2].map(i => ({ script: "", layout: S.layoutKey, at: i + 1, plants: five })) });
+    const g = likelyPlants("right");
+    const ok = g.top.length === 5 && g.top.filter(([id]) => id === d).length === 2;
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ok || JSON.stringify(g.top);
+  }));
+  check("a destination tapped after a sighting is the bunker Record uses", await ev(() => {
+    const snap = JSON.stringify(S);
+    S.arrival = { ...(S.arrival || {}), pick: "destination", sightingBunker: "SD#1", destination: "" };
+    const id = curLayout().bunkers[7].id;
+    window.pickArrivalBunker(id);
+    const ok = S.arrival.destination === id && !S.arrival.sightingBunker;
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ok || JSON.stringify(S.arrival);
+  }));
+  check("Scout's five is held to the men a penalised side started with", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch(); window.addPen("them", 2);
+    const ids = curLayout().bunkers.filter(b => b.x > 90).slice(0, 3).map(b => b.id);
+    window.set({ tab: "scout", scoutTab: "breakouts", theirPick: ids });
+    const svg = document.querySelector("#their-map svg.field"), b = curLayout().bunkers.filter(x => x.x > 90)[5];
+    const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    const ok = S.theirPick.length === 3 && /All 3/.test(S.flash);
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return ok || JSON.stringify({ pick: S.theirPick, flash: S.flash });
+  }));
   check("one kept note reads as one note", await ev(() => {
     const snap = JSON.stringify(S);
     window.set({ tab: "more", more: "messages", messages: [{ who: "Coach", text: "Bring paint", at: 1 }] });

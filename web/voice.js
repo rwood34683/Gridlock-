@@ -7,7 +7,7 @@ const voiceKinds = {out:"Eliminated",move:"Position / move",hit:"Hit reported",n
 function voiceContext(){
   const v=S.voice || {}, side=v.side === "left" ? "left" : "right", pit=pitOf(side);
   return {side,team:v.team || (pit.named ? pit.name : "Unidentified opponent"),named:!!(v.team || pit.named),player:v.player || "auto",
-    layout:S.layoutKey,m:S.matchId,pt:S.point || 1,language:v.language || "en-US"};
+    layout:S.layoutKey,m:S.matchId,pt:(typeof sheetPoint === "function" ? sheetPoint() : (S.point || 1)),language:v.language || "en-US"};
 }
 // The team as a value to carry across a change: the one the coach named, or
 // nothing. The placeholder is never written anywhere as if he had picked it.
