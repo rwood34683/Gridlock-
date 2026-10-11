@@ -61,6 +61,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 - Coach-simple copy. Short labels. No developer jargon in the UI.
 - Dark stadium look. Black `#0b0c0d` ground, red `#ad1515` fills, `#e5252a` for small
   accents, off-white `#efedeb` type. Not cartoon. Not a golf course.
+  Secondary type is red, not grey (`--mute` `#ff5a52`, `--dim` `#f04a44`):
+  the owner could not read grey in the sun. What is chosen — the tab, a
+  segment — reads white.
 - A bunker type is one inflatable. Footprints come from `layouts/bunkers.json`,
   positions from the event's own official map. Never hand-size a bunker.
 - The field is the same dark ground, not green turf. Bunkers carry the red and blue
