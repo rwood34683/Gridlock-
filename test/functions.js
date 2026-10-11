@@ -6380,7 +6380,7 @@ const ROSTER = [
     window.set({ tab: "tally", right: { name: "Rejects" }, flash: "" }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);
     const first = S.matchId, bl = curLayout().bunkers;
     window.logTheirBreak("right", "", bl.slice(0, 5).map(b => b.id));   // their five, nothing of his
-    const sized = sheetSize(curMatch()) === 1 && !sheetEmpty(curMatch());
+    const sized = sheetSize(curMatch()) >= 1 && !sheetEmpty(curMatch());   // the five and the five men it puts on the point
     asked = 0; window.newMatch();
     const keptFive = asked === 1 && (S.matches || []).some(m => m.id === first) && S.matchId !== first
       && theirBreaks("right").some(b => b.m === first && Array.isArray(b.plants));
@@ -10233,6 +10233,28 @@ const ROSTER = [
     const ok = S.theirPick.length === 3 && /All 3/.test(S.flash);
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
     return ok || JSON.stringify({ pick: S.theirPick, flash: S.flash });
+  }));
+  check("each man of their five logged on Scout is listed under Where they plant, and opens his details on Tally", await ev(() => {
+    const snap = JSON.stringify(S);
+    window.confirm = () => true;
+    window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
+    const bl = curLayout().bunkers.filter(b => b.x > 90), d = bl[0].id, five = [d, d, bl[1].id, bl[2].id, bl[3].id];
+    window.set({ tab: "scout", scoutTab: "breakouts", theirPick: five }); window.logTheirFive("right");
+    const rows = (S.breakouts || []).filter(r => r.m === S.matchId && r.side === "them");
+    const five5 = rows.length === 5 && rows.filter(r => r.bunker === d).length === 2 && rows.every(r => r.todo);
+    window.set({});
+    const btns = [...document.querySelectorAll("#root button")].filter(b => /add his details/.test(b.textContent));
+    const listed = btns.length === 5;
+    if(btns[0]) btns[0].click();
+    const opened = S.tab === "tally" && !!S.tallyEdit && rows.some(r => r.id === S.tallyEdit);
+    window.setDraft({ alive: true, shootAt: curLayout().bunkers[2].id }); window.logBreakout();
+    window.set({ tab: "scout", scoutTab: "breakouts" });
+    const told = /made it/.test(document.getElementById("root").textContent);
+    // Taking the five off takes the untold men with it.
+    window.unlogTheirBreak("right", 0);
+    const left = (S.breakouts || []).filter(r => r.m === S.matchId && r.side === "them").length;
+    (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
+    return (five5 && listed && opened && told && left === 1) || JSON.stringify({ five5, listed, opened, told, left });
   }));
   check("one kept note reads as one note", await ev(() => {
     const snap = JSON.stringify(S);
