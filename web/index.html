@@ -3031,6 +3031,110 @@ function overWord(mid, us, them){
  * scratch — a relaunch never resumes yesterday's countdown. */
 function breakClock(m){ m = m === undefined ? curMatch() : m; return m && m.breakClock > 0 ? m.breakClock : 0; }
 window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({breakClock: n || null}); if(!n) S.clockEnd = 0; save(S); render(); };
+/* The format, asked once after sign-in rather than on the point sheet: the
+ * division, how many a side, the race, the mercy and the clock between points.
+ * Every new sheet starts with it (openSheet), and an answer given here goes on
+ * the sheet he is on too. The division is a label — the app carries no
+ * league's numbers — so nothing is preset by division; he answers each one.
+ * Saved answers keep a whole format under a name, one tap to use again. */
+const FMT_DIVS = ["Pro","Semi-Pro","Division 1","Division 2","Division 3","Division 4","Division 5","Women's","Masters","Collegiate","Juniors","Other"];
+const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
+const FMT_KEYS = ["div","game","raceTo","mercy","clock"];
+function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
+// Men a side on a sheet: its own count, else five.
+function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number(m.size) : 0; return n > 0 && n <= 10 ? n : 5; }
+const fmtGame = id => FMT_GAMES.find(g => g[0] === id) || null;
+function fmtSummary(f = fmt()){
+  const g = fmtGame(f.game);
+  const bits = [f.div, g && g[1],
+    f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 ? "no race" : "",
+    f.mercy > 0 ? `mercy ${f.mercy}` : "",
+    f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
+  return bits.join(" · ");
+}
+// The size goes on the sheet he is on only while nothing is charted on it:
+// men already placed were placed against the count the sheet had.
+function fmtSize(id){
+  const g = fmtGame(id), m = curMatch(); if(!g || !m) return;
+  if(sideSize(m) === g[2]){ patchMatch({game: id}); return; }
+  if(sheetSize(m) > 0){ flash(`This sheet keeps ${sideSize(m)} a side — the next sheet starts with ${g[2]}.`); return; }
+  patchMatch({game: id, size: g[2]});
+}
+window.setFmt = (k, v) => {
+  if(!FMT_KEYS.includes(k)) return;
+  if(k === "div" || k === "game") v = String(v || "");
+  else v = Number(v) > 0 ? Number(v) : 0;
+  S.fmt = {...fmt(), [k]: v};
+  const m = curMatch();
+  if(k === "div"){ if(m) patchMatch({div: v}); save(S); render(); return; }
+  if(k === "game"){ fmtSize(v); save(S); render(); return; }
+  if(k === "raceTo") return window.setRaceTo(v);
+  if(k === "mercy") return window.setMercy(v);
+  if(k === "clock") return window.setBreakClock(v);
+};
+window.fmtDone = () => set({fmtAsk:false, fmtDone:true});
+window.saveFmt = () => {
+  const el = document.getElementById("fmtName"), f = fmt();
+  if(!FMT_KEYS.some(k => f[k] !== undefined && f[k] !== "")){ flash("Answer the questions first, then save them."); return; }
+  const typed = clean(((el && el.value) || "").trim()).slice(0, 40);
+  const name = typed || fmtSummary(f).slice(0, 40) || "My format";
+  const kept = FMT_KEYS.reduce((o, k) => (f[k] !== undefined ? {...o, [k]: f[k]} : o), {});
+  const list = Array.isArray(S.fmts) ? S.fmts : [];
+  const hit = list.find(x => foldName(x.name) === foldName(name));
+  S.fmts = hit ? list.map(x => x === hit ? {...x, ...kept, name: hit.name} : x)
+               : [...list, {id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, ...kept}];
+  save(S); flash(hit ? `Updated ${hit.name}.` : `Saved as ${name}.`);
+};
+window.useFmt = id => {
+  const p = (S.fmts || []).find(x => x.id === id); if(!p) return;
+  S.fmt = FMT_KEYS.reduce((o, k) => (p[k] !== undefined ? {...o, [k]: p[k]} : o), {});
+  const f = S.fmt, m = curMatch();
+  if(m && f.div !== undefined) patchMatch({div: f.div});
+  if(f.game) fmtSize(f.game);
+  // The sheet takes what it can: a race or a mercy the score has already
+  // passed is refused for this sheet and says so; the next sheet has it.
+  const msgs = [];
+  if(f.raceTo !== undefined){ S.flash = ""; window.setRaceTo(f.raceTo); if(S.flash) msgs.push(S.flash); }
+  if(f.mercy !== undefined){ S.flash = ""; window.setMercy(f.mercy); if(S.flash) msgs.push(S.flash); }
+  if(f.clock !== undefined) window.setBreakClock(f.clock);
+  save(S); flash(msgs.length ? msgs.join(" ") : `Using ${p.name}.`);
+};
+window.dropFmt = id => {
+  const p = (S.fmts || []).find(x => x.id === id); if(!p) return;
+  if(!confirm(`Delete the saved format ${p.name}?`)) return;
+  S.fmts = S.fmts.filter(x => x.id !== id); save(S); render();
+};
+function fmtPage(first){
+  const f = fmt(), m = curMatch();
+  // What shows lit is his answer, else what the sheet he is on already has.
+  const race = f.raceTo !== undefined ? f.raceTo : raceTo(), mer = f.mercy !== undefined ? f.mercy : mercy(),
+        clk = f.clock !== undefined ? f.clock : breakClock();
+  const saved = Array.isArray(S.fmts) ? S.fmts : [];
+  return sec(first ? "Your format" : "Format", `
+    <p class="lede">${first ? "Answer these once and every new sheet starts with them. Change them any time under More › Format."
+                            : "Every new sheet starts with these. An answer here goes on the sheet you are on too."}</p>
+    ${saved.length ? `<p class="note">Saved answers</p><div class="list">${saved.map(p => `
+      <div class="list__row" style="cursor:default">
+        <span class="list__body"><span class="list__name">${esc(p.name)}</span><span class="list__desc">${esc(fmtSummary(p) || "—")}</span></span>
+        <button class="btn btn--quiet" onclick="useFmt(${jsq(p.id)})">Use</button>
+        <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
+      </div>`).join("")}</div>` : ""}
+    <p class="note" style="margin-top:var(--s3)">Division:</p>
+    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}</button>`).join("")}</div>
+    <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
+    <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
+    <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
+    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>
+    <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
+    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points</button>`).join("")}</div>
+    <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${[45,60,90,120].map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}</button>`).join("")}</div>
+    <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>
+      <div class="btnrow"><input id="fmtName" class="grow" maxlength="40" placeholder="${esc(fmtSummary(f) || "e.g. D3 X-Ball")}" aria-label="Name for these answers" ${onEnter("saveFmt()")}>
+      <button class="btn btn--quiet" onclick="saveFmt()">Save</button></div></div>
+    ${first ? `<button class="btn btn--block" style="margin-top:var(--s4)" onclick="fmtDone()">Done — start coaching</button>` : ""}
+  `);
+}
 window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; _buzzed = false; render(); } };
 window.stopBreakClock = () => { S.clockEnd = 0; render(); };
 const clockLeft = () => Math.max(0, Math.ceil(((S.clockEnd || 0) - Date.now()) / 1000));
@@ -4550,6 +4654,8 @@ function copyDataError(data){
     blasts:list(row), blastTo:list(str), messages:list(str),
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
     matchId:str, matchState:str, teamCode:str, division:str,
+    // The format he answered, and the ones he saved under a name.
+    fmt:row, fmts:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
   };
   // These names can modify object prototypes when maps are copied or assigned.
   const unsafe = (v, depth = 0) => depth > 40 || (v && typeof v === "object" && Object.entries(v).some(([k, x]) =>
@@ -8289,7 +8395,7 @@ window.appleSignIn = async () => {
     writeAccount({kind: "apple", sub: who.sub,
                   email: who.email || kept.email || "",
                   name: who.name || kept.name || ""});
-    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: ""});
+    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone});
   }catch(err){ set({authSaid: "Apple could not be reached. Nothing has changed."}); }
 };
 function phoneDone(){
@@ -8405,7 +8511,7 @@ window.doAuth = async () => {
                     hash: await hashPass(pass, salt),
                     cloud: true, uid: (r.user && r.user.id) || acc.uid || ""});
       localStorage.removeItem("gridlock.staff");
-      return set({entered: true, role: "staff", email, mode: null, authSaid: ""});
+      return set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
     }
     // A refusal is his to see. A network failure is not, and must never be the
     // reason a coach cannot get into his own app between points.
@@ -8422,12 +8528,12 @@ window.doAuth = async () => {
     const salt = newSalt();
     writeAccount({email, salt, hash: await hashPass(pass, salt)});
     localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
-    set({entered:true, role:"staff", email, mode:null});
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
   if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
-    set({entered:true, role:"staff", email, mode:null});
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
@@ -8439,7 +8545,7 @@ window.doAuth = async () => {
     const salt = newSalt();
     writeAccount({email, salt, hash: await hashPass(pass, salt)});
     localStorage.removeItem("gridlock.staff");
-    set({entered:true, role:"staff", email, mode:null});
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
   // Three different failures used to read as one accusing line. Which of them
@@ -9955,20 +10061,14 @@ function tally(){
       return n ? `<p class="note">${n} call${n===1?"":"s"} logged on this sheet. Playbook counts how
         predictable you have been on this field.</p>` : "";
     })()}
-    ${/* The format: first to N. A standalone segment like the call picker above,
-          because a segment squeezed into a button row came out 32 px tall and
-          every target on a sideline is 44. */""}
-    <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
-    <div class="seg seg--wrap" aria-label="Race to"><button class="${raceTo() === 1 ? "on" : ""}" onclick="setRaceTo(1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${raceTo() === n ? "on" : ""}" onclick="setRaceTo(${n})">Race to ${n}</button>`).join("")}<button class="${raceTo() ? "" : "on"}" onclick="setRaceTo(0)">No race</button></div>
-    ${/* The mercy rule: divisional X-Ball ends the match at a set lead as
-          well as on the clock. The lead is the division's rule — set it,
-          never shipped. */""}
-    <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
-    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mercy() ? "" : "on"}" onclick="setMercy(0)">Off</button>${[3,4,5].map(n => `<button class="${mercy() === n ? "on" : ""}" onclick="setMercy(${n})">${n} points</button>`).join("")}</div>
-    ${/* The clock between points is the one clock the coach runs. The length
-          is the event's rule — set it, never shipped. */""}
-    <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
-    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${breakClock() ? "" : "on"}" onclick="setBreakClock(0)">Off</button>${[45,60,90,120].map(n => `<button class="${breakClock() === n ? "on" : ""}" onclick="setBreakClock(${n})">${mmss(n)}</button>`).join("")}</div>
+    ${/* The format is asked after sign-in and kept under More › Format; the
+          sheet only says what it is playing to, with one tap to change it. */""}
+    <div class="btnrow" style="margin-top:var(--s3);align-items:center">
+      <p class="note grow" style="margin:0">Format: ${esc([(curMatch()||{}).div, (fmtGame((curMatch()||{}).game)||[])[1] || (sideSize() !== 5 ? sideSize() + " a side" : ""),
+        raceTo() === 1 ? "one point" : raceTo() ? "race to " + raceTo() : "no race",
+        mercy() ? "mercy " + mercy() : "", breakClock() ? mmss(breakClock()) + " between points" : ""].filter(Boolean).join(" · "))}</p>
+      <button class="btn btn--quiet" onclick="set({tab:'more',more:'format'})">Change the format</button>
+    </div>
     ${breakClock() ? `<div class="btnrow" style="align-items:center">
         ${S.clockEnd ? `<span class="score-chip clock-chip grow ${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock style="justify-content:center;font-size:var(--t-lg)">${mmss(clockLeft())}</span>
                        <button class="btn btn--quiet" onclick="stopBreakClock()">Stop</button>`
@@ -10233,7 +10333,7 @@ function pensFor(mid, pt){
 function startUp(side, mid, pt){
   const cost = pensFor(mid || S.matchId, pt || sheetPoint())
     .filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0);
-  return Math.max(1, 5 - cost);
+  return Math.max(1, sideSize(matchById(mid || S.matchId)) - cost);
 }
 // An even point is one nobody was short on. It is the only kind a bunker can be
 // fairly judged on, which is what the Even-only switch is for.
@@ -10282,12 +10382,12 @@ window.dropPen = id => { S.pens = (S.pens || []).filter(p => p.id !== id); save(
  * numbers fill the rest; nothing logged and it is the five numbers it was. */
 function theirNames(){
   const m = curMatch();
-  if(m && m.watch) return ["1","2","3","4","5"].map(n => "#" + n);
+  if(m && m.watch) return Array.from({length: sideSize(m)}, (_, i) => "#" + (i + 1));
   const men = (pitNamed("right") && matchVs() === pitOf("right").name ? pitOf("right").players : []) || [];
   const named = men.map(theirTag).filter(Boolean);
   const used = new Set(named);
   let n = 1;
-  while(named.length < 5){ const tag = "#" + n++; if(!used.has(tag)) named.push(tag); }
+  while(named.length < sideSize(m)){ const tag = "#" + n++; if(!used.has(tag)) named.push(tag); }
   return named;
 }
 function outRow(side, name, extra = {}){
@@ -10475,10 +10575,16 @@ function openSheet(fields){
       S.lineups = kept;
     }
   }
+  // The format he answered after sign-in leads; a question he left open
+  // carries over from the sheet before, as it always did.
+  const f = fmt(), g = fmtGame(f.game), has = k => f[k] !== undefined;
   S.matches = [{id, at: Date.now(), layout: S.layoutKey,
-                raceTo: cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
-                breakClock: cur && cur.breakClock > 0 ? cur.breakClock : null,
-                mercy: cur && cur.mercy > 0 ? cur.mercy : null,
+                raceTo: has("raceTo") ? (f.raceTo || null) : cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
+                breakClock: has("clock") ? (f.clock || null) : cur && cur.breakClock > 0 ? cur.breakClock : null,
+                mercy: has("mercy") ? (f.mercy || null) : cur && cur.mercy > 0 ? cur.mercy : null,
+                size: g ? g[2] : cur && cur.size > 0 ? cur.size : null,
+                game: g ? g[0] : cur && cur.game ? cur.game : null,
+                div: f.div ? f.div : cur && cur.div ? cur.div : null,
                 end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds),
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
@@ -12913,7 +13019,7 @@ const HELP = {
          "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
-         "Race to is your format — first to 2, 4, 5 or 7, or One point for 5-man. The sheet calls match point and match over for you.",
+         "Your format — division, how many a side, race, mercy and clock — is asked after you sign in and kept under More › Format. The sheet calls match point and match over for you.",
          "Who's on, above your five, is where you rotate: tap a man off, tap a man on. The five stands until you change it, point after point.",
          "Clock between points is the one clock you run. Set it to what your event gives you and it starts itself when a point is scored; it rides in the header on every tab.",
          "Time's up is for when the official's match clock runs out: ahead, the match ends at this score; level, you say whether that is a tie or goes to overtime.",
@@ -13015,6 +13121,11 @@ const HELP = {
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
+  "more/format": {t:"Format", w:"Your division and match format — asked once after you sign in.",
+    how:["Pick the division, how many a side — X-Ball, 5-man, 3-man, 7-man or 10-man — the race, the mercy and the clock between points.",
+         "Every new sheet starts with these, and an answer here goes on the sheet you are on too.",
+         "Nothing is preset by division: the numbers are your event's rule, so you answer each one.",
+         "Save these answers keeps the whole format under a name. Use puts it back with one tap."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Tap the man — the five on the point come first — tap a score, write the reason.",
          "After the point, never during it.",
@@ -13064,12 +13175,12 @@ const HELP_Q = [
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
-  ["How many points wins it?", "Race to, on the point sheet in Tally: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
+  ["How many points wins it?", "Race to, under More › Format: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
-  ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to on the point sheet and it counts itself. A game you watched is not in it."],
+  ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, and the USXBL JT Championship's off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
-  ["How long between points?", "Set Clock between points on the point sheet — 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
+  ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
@@ -13091,7 +13202,7 @@ const HELP_Q = [
   ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
-  ["Our matches are on a clock with a mercy rule.", "Set both on the point sheet. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
+  ["Our matches are on a clock with a mercy rule.", "Set both under More › Format. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
   ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — placed on Tally or logged on Scout › Breakouts for this point, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
   ["What does each of their men do off the buzzer?", "Scout › Anticipate, By wire off the buzzer: every man of theirs you charted on Tally, sorted by the wire of the bunker he broke to, and what he did there — stop, run (a Moved to), shoot (a lane or target ticked) or run & shoot. A count of what you told the sheet, with how many charted on each wire; a man placed and not yet told is not counted."],
@@ -13356,6 +13467,7 @@ const MORE_GROUPS=[
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["Running the day",[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["format","Format","Division, how many a side, race, mercy and clock"],
     ["matches","Matches","Every sheet you have kept"],
     ["classes","Classes","Clinic sign-in sheet, on this phone"],
     ["league","League","Groups and ops blasts"]]],
@@ -13393,6 +13505,7 @@ function moreBody(k){
     </div>`).join("")}</div>`;
 
   if(k==="wb") return whiteboardPage();
+  if(k==="format") return fmtPage(false);
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
@@ -13605,7 +13718,7 @@ function moreBody(k){
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>
       ${sheetSize(curMatch()) || matchVs() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2);color:var(--warn)" onclick="delSheet(${jsq(S.matchId)})">Delete this sheet</button>` : ""}`, matchLabel(curMatch()))
-    + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to on the point sheet and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
+    + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to under More › Format and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
     // The last dozen sheets, the one on now and any with men still to tell;
     // forty sheets of rows rebuilt on every tap was most of what this screen
     // cost, and the old ones are one tap away.
@@ -14049,7 +14162,9 @@ window.sendMsg = () => {
 function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
   const blocked = gateKey();
-  const page = blocked ? upgradePanel(blocked)
+  // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
+  const asking = !!S.fmtAsk;
+  const page = asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
                        : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
@@ -14103,7 +14218,7 @@ function shell(){
     <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
-    <nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>
+    ${asking ? "" : `<nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
     ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;

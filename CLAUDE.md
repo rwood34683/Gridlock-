@@ -676,6 +676,21 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     bunker with his details, one tap to tell or change them on Tally
     (`menOnBunker`, `openManDetails`).
 
+46. ~~The format, first.~~ Done — the owner asked for the format questions at
+    the start rather than on Tally, with the answers kept. Sign-in sets
+    `fmtAsk` until the coach taps Done, and the shell shows `fmtPage(true)`
+    with no tabs: division (`FMT_DIVS`, Pro down to Division 5, Women's,
+    Masters, Collegiate, Juniors), how many a side (`FMT_GAMES`: X-Ball,
+    5-, 3-, 7-, 10-man), race, mercy and the clock between points. The
+    division is a label and nothing is preset by it — the numbers are the
+    event's rule. Answers live in `S.fmt`, go on the sheet he is on through
+    the existing setters, and `openSheet` starts every new sheet with them;
+    **Save these answers** keeps a format under a name (`S.fmts`, Use · ✕).
+    More › Format is the same screen later; Tally keeps one line and
+    **Change the format**. Men a side rides on the match (`size`,
+    `sideSize()`), so `startUp()` and their numbered men follow it; plays,
+    Lineups and the five on the sheet stay five.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
