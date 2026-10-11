@@ -332,7 +332,7 @@ const ROSTER = [
     return ok;
   }));
   await ev(() => { delete window.gridlockCloud; delete window.__net;
-    localStorage.clear(); window.set({ entered: true, role: "staff", mode: null, authSaid: "" }); });
+    localStorage.clear(); window.set({ entered: true, role: "staff", mode: null, authSaid: "", fmtAsk: false }); });
 
   /* ------------------------------------------- opt-in League sync (the one exception) */
   // The season only ever leaves the phone because the coach turned it on, and
@@ -453,7 +453,7 @@ const ROSTER = [
     await window.doAuth();
     return /signs in with Apple/.test(S.authSaid) && !/does not match/.test(S.authSaid);
   }));
-  await ev(() => window.set({ entered: true, role: "staff", mode: null, tab: "more", more: "nexus" }));
+  await ev(() => window.set({ entered: true, role: "staff", mode: null, tab: "more", more: "nexus", fmtAsk: false }));
   check("the phone step appears where a backend exists", await ev(() =>
     /Verify your phone/.test(document.getElementById("root").innerText)));
   check("a short number is refused before anything is sent", await ev(async () => {
@@ -501,6 +501,36 @@ const ROSTER = [
   const stored = await ev(() => JSON.parse(localStorage.getItem("gridlock.staff.v2") || "{}"));
   check("password is not stored in the clear", !JSON.stringify(stored).includes("sideline1"));
   check("salt and hash are both stored", !!stored.salt && !!stored.hash && stored.hash.length === 64);
+  // The format is asked straight after sign-in, on its own screen, not on Tally.
+  check("format: asked after sign-in, before the tabs", await ev(() => {
+    const root = document.getElementById("root"), txt = root.textContent;
+    return S.fmtAsk === true && /Your format/.test(txt) && /Division/.test(txt) && /10-man/.test(txt)
+      && /Semi-Pro/.test(txt) && /Division 5/.test(txt) && !root.querySelector("nav.tabs");
+  }));
+  check("format: answers land on the sheet, save under a name and come back", await ev(() => {
+    window.setFmt("div", "Division 3"); window.setFmt("game", "3"); window.setFmt("raceTo", 4);
+    window.setFmt("mercy", 3); window.setFmt("clock", 45);
+    const m = curMatch();
+    const onSheet = m.div === "Division 3" && m.size === 3 && m.raceTo === 4 && m.mercy === 3 && m.breakClock === 45
+      && startUp("us", m.id, 1) === 3;
+    document.getElementById("fmtName").value = "D3 three-man";
+    window.saveFmt();
+    const saved = (S.fmts || []).length === 1 && S.fmts[0].name === "D3 three-man" && S.fmts[0].game === "3";
+    window.setFmt("game", "10"); window.setFmt("raceTo", 0);
+    window.useFmt(S.fmts[0].id);
+    const back = S.fmt.game === "3" && S.fmt.raceTo === 4 && curMatch().raceTo === 4;
+    window.fmtDone();
+    const done = !S.fmtAsk && S.fmtDone && !!document.querySelector("#root nav.tabs");
+    window.set({ tab: "tally" });
+    const tally = document.getElementById("root").innerText;
+    const moved = !/Mercy rule — the match ends/.test(tally) && /Change the format/.test(tally) && /race to 4/.test(tally);
+    const id = window.newMatch ? (window.newMatch(), curMatch()) : null;
+    const carried = id && id.size === 3 && id.raceTo === 4 && id.breakClock === 45 && id.div === "Division 3";
+    S.fmt = {}; S.fmts = []; S.matches = S.matches.map(x => ({...x, size: null, game: null, div: null, raceTo: null, mercy: null, breakClock: null}));
+    window.set({ tab: "playbook" });
+    return onSheet && saved && back && done && moved && carried
+      || JSON.stringify({ onSheet, saved, back, done, moved, carried });
+  }));
   await ev(() => window.set({ entered: false, mode: "login" })); await page.waitForTimeout(80);
   await page.fill("#em", "coach@team.com"); await page.fill("#pw", "wrongpass");
   await ev(async () => { await window.doAuth(); }); await page.waitForTimeout(120);
@@ -1992,6 +2022,13 @@ const ROSTER = [
   await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
   await page.evaluate(async () => { await window.doAuth(); });
   await page.waitForTimeout(350);
+  // A new phone answers the format first; Done is the way to the field.
+  check("first run: the format comes first, and Done opens the app", await ev(() => {
+    const asked = S.fmtAsk === true && /Your format/.test(document.getElementById("root").textContent);
+    window.fmtDone();
+    return asked && !S.fmtAsk && S.fmtDone === true;
+  }));
+  await page.waitForTimeout(150);
   check("the field is on screen without scrolling", await ev(() => {
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
     return f.top < window.innerHeight * 0.55 && f.top > 0;
@@ -3508,7 +3545,7 @@ const ROSTER = [
   check("5-man is one point a game: the first result ends the sheet", await ev(() => {
     window.newMatch(); window.setRaceTo(1);
     const root = document.getElementById("root");
-    const offered = /One point · 5-man/.test(root.textContent);
+    const offered = /One point · 5-man/.test(fmtPage(false));   // asked under More › Format now
     window.endPoint("them");
     return offered && raceTo() === 1 && matchOver() === "them" && /Match over — they won 0–1/.test(root.textContent);
   }));
@@ -5276,7 +5313,7 @@ const ROSTER = [
   check("the clock between points offers 45 seconds and a penalty can take four men", await ev(() => {
     window.set({ tab: "tally", right: { name: "Dynasty" }, penOpen: true });
     const t = document.getElementById("root").textContent;
-    const forty = [...document.querySelectorAll("#root .seg button")].some(b => b.textContent.trim() === "0:45");
+    const forty = />0:45</.test(fmtPage(false));   // the clock is asked under More › Format
     const four = [...document.querySelectorAll("#root .assign__ctl button")].filter(b => b.textContent.trim() === "4").length === 2;
     window.set({ penOpen: false });
     return forty && four && /one-for-one is two men off/.test(t);
@@ -8253,7 +8290,7 @@ const ROSTER = [
     }));
 
     check("on device, Nexus says there is a second copy", await (async () => {
-      await evN(() => window.set({ tab: "more", more: "nexus" }));
+      await evN(() => window.set({ tab: "more", more: "nexus", fmtAsk: false }));
       return await evN(() => window.gridlockDurable === true
         && /second copy in the phone's own storage/.test(document.getElementById("root").textContent));
     })());

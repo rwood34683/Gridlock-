@@ -19,6 +19,8 @@ const { launchOptions } = require("../scripts/browser.js");
     await page.fill("#em", "coach@team.com");
     await page.fill("#pw", "sideline1");
     await page.evaluate(async () => { await window.doAuth(); });
+    // The format is asked first after sign-in; Done opens the app.
+    await page.getByRole("button", { name: "Done — start coaching", exact: true }).click();
     await page.evaluate(async () => {
       if (!("serviceWorker" in navigator)) throw new Error("Service worker API unavailable");
       await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error("Offline installation timed out")), 15000))]);
