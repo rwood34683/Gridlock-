@@ -3317,7 +3317,8 @@ function mirrorDirect(d){
   if(!d) return d;
   const out = {...d};
   if(d.face != null) out.face = ((180 - d.face) % 360 + 360) % 360;
-  if(d.shot){ const lane = shotLane(d.shot); out.shot = lane !== null ? "@" + (((180 - lane) % 360 + 360) % 360) : mirrorBunkerId(d.shot); }
+  // The secondary lane turns with the field exactly as the primary does.
+  ["shot", "shot2"].forEach(f => { if(d[f]){ const lane = shotLane(d[f]); out[f] = lane !== null ? "@" + (((180 - lane) % 360 + 360) % 360) : mirrorBunkerId(d[f]); } });
   return out;
 }
 // The break as drawn: the routed paths, turned round when your five break from
@@ -6824,16 +6825,19 @@ function fieldSVG(opts={}, runnersOnly){
       travel = Math.atan2(p.to[1]-p.from[1], p.to[0]-p.from[0]);
     const d = offset===0 ? (p.mirrored ? mirrorDirect(directOf(p.id)) : directOf(p.id)) : {};
 
-    if(S.shotOn){
-      let ang = travel, len = 26, mark = "";
-      const lane = shotLane(d.shot);
+    // The primary lane is drawn always — with nothing set it is the lane he is
+    // running. The secondary is drawn only when one is set, narrower and with
+    // a dashed edge, so the first lane still leads the eye.
+    const laneCone = (val, second) => {
+      let ang = travel, len = second ? 22 : 26, mark = "";
+      const lane = shotLane(val);
       if(lane !== null){
         // A lane the coach pointed, with no bunker named. The spec asks for
         // this as well as a target: a man can be told to hold a gap.
         ang = lane * Math.PI / 180;
-        len = 34;
-      } else if(d.shot){
-        const tb = layout.bunkers.find(x=>x.id===d.shot);
+        len = second ? 28 : 34;
+      } else if(val){
+        const tb = layout.bunkers.find(x=>x.id===val);
         if(tb){
           const tx=tb.x*sx, ty=tb.y*sy;
           ang = Math.atan2(ty-cy, tx-cx);
@@ -6856,13 +6860,17 @@ function fieldSVG(opts={}, runnersOnly){
       // as one white scribble. It is a real wedge now, and the hard line down
       // the middle is drawn only when the coach has named the bunker: that is
       // the difference between "he is covering this" and "he is laning that".
-      const sp=0.22, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
+      const sp=second?0.16:0.22, P=(o,l)=>`${(cx+Math.cos(ang+o)*l).toFixed(1)},${(cy+Math.sin(ang+o)*l).toFixed(1)}`;
       const tip=P(0,len).split(",");
-      const named = !!d.shot && lane === null;
-      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity="${named?".22":".3"}" stroke="#000" stroke-width=".8" stroke-opacity=".5"/>`;
-      if(d.shot) out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>`
-           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`;
+      const named = !!val && lane === null;
+      out += `<polygon points="${cx.toFixed(1)},${cy.toFixed(1)} ${P(-sp,len)} ${P(sp,len)}" fill="#fff" opacity="${second?".14":named?".22":".3"}" stroke="${second?"#fff":"#000"}" stroke-width="${second?".9":".8"}" stroke-opacity=".5"${second?` stroke-dasharray="2 2"`:""}/>`;
+      if(val) out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#000" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>`
+           + `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tip[0]}" y2="${tip[1]}" stroke="#fff" stroke-width="${second?"1.4":"2"}" stroke-linecap="round"${second?` stroke-dasharray="3 2"`:""}/>`;
       out += mark;
+    };
+    if(S.shotOn){
+      laneCone(d.shot, false);
+      if(d.shot2) laneCone(d.shot2, true);
     }
 
     if(S.faceOn){
@@ -8850,7 +8858,9 @@ function playbook(){
         const shotId=d.shot&&shotLane(d.shot)===null?shownBunker(d.shot):d.shot;
         const shotB=shotId?bl.find(b=>b.id===shotId):null;   // null when it is a lane
         const role=d.role||"P";
-        const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id;
+        const shot2Id=d.shot2&&shotLane(d.shot2)===null?shownBunker(d.shot2):d.shot2;
+        const shot2B=shot2Id?bl.find(b=>b.id===shot2Id):null;
+        const open=S.pad==="face:"+pth.id, openShot=S.pad==="shot:"+pth.id, openShot2=S.pad==="shot2:"+pth.id;
         const openJob=S.pad==="job:"+pth.id, myJob=(((S.jobCalls||{})[key]||{})[pth.id]||"").trim();
         const openGo=S.pad==="go:"+pth.id, go=goOf(pth.id);
         return `<div class="assign" style="flex-wrap:wrap">
@@ -8865,7 +8875,8 @@ function playbook(){
               <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?seenGlyph(d.face):"Face"}</button>
-            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')" aria-label="Primary lane"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${d.shot2?"on":""}" onclick="openPad('shot2','${pth.id}')" aria-label="Secondary lane"><i></i>${shotLane(d.shot2)!==null?"2 "+seenGlyph(shotLane(d.shot2)):shot2B?"2 · "+esc(callOf(shot2B)):"Lane 2"}</button>
             <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
             <button class="tgl ${go?"on":""}" onclick="openPad('go','${pth.id}')" aria-label="When he goes: ${go==="buzzer"?"on the buzzer":go==="delay"?"delay":"the app times it"}"><i></i>${go==="buzzer"?"Buzzer":go==="delay"?"Delay":"Go"}</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
@@ -8887,22 +8898,23 @@ function playbook(){
             <p class="note">What you shout for this job in ${esc(callName(key))}. It is the same job on
               every field, so this follows the call, not the layout. Leave it blank for the app's.</p>
           </div>`:""}
-          ${openShot?`<div style="flex-basis:100%">
-            <select onchange="setDirect('${pth.id}','shot',ownShot(this.value))">
-              <option value="">Lane he is running — no fixed target</option>
+          ${[["shot",openShot,shotId,"Primary lane","Lane he is running — no fixed target"],["shot2",openShot2,shot2Id,"Secondary lane","No secondary lane"]].map(([f,isOpen,sel,title,none])=>!isOpen?"":`<div style="flex-basis:100%">
+            <label class="note" for="lane-${f}-${pth.id}" style="display:block;margin-bottom:4px"><b>${title}</b></label>
+            <select id="lane-${f}-${pth.id}" onchange="setDirect('${pth.id}','${f}',ownShot(this.value))">
+              <option value="">${none}</option>
               <optgroup label="A lane, no bunker named">
-                ${FACE_PAD.filter(f=>f[1]!==null).map(([g,deg])=>
-                  `<option value="@${deg}" ${d.shot===("@"+deg)?"selected":""}>${seenGlyph(deg)} ${esc(LANE_NAME[deg])}</option>`).join("")}
+                ${FACE_PAD.filter(x=>x[1]!==null).map(([g,deg])=>
+                  `<option value="@${deg}" ${d[f]===("@"+deg)?"selected":""}>${seenGlyph(deg)} ${esc(LANE_NAME[deg])}</option>`).join("")}
               </optgroup>
               <optgroup label="A bunker on this field">
-                ${bl.map(b=>`<option value="${esc(b.id)}" ${shotId===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+                ${bl.map(b=>`<option value="${esc(b.id)}" ${sel===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
               </optgroup>
-            </select></div>`:""}
+            </select></div>`).join("")}
         </div>`;
       }).join("")}
     </div>
-    <p class="note">Face sets which way he points. Shot is the bunker he lanes, or a lane
-      with no bunker named — a gap he holds. Both travel with him down the path. Go is when
+    <p class="note">Face sets which way he points. Shot is his primary lane — the bunker he lanes,
+      or a lane with no bunker named, a gap he holds — and Lane 2 is his secondary, drawn dashed. Both travel with him down the path. Go is when
       he leaves: on the buzzer, a delay, or the app's timing.</p>
     <p class="aid"><b>A training aid, not a prediction.</b> Officials govern the live call.</p>`)}
 
@@ -8951,6 +8963,7 @@ function cardLines(){
     // is handed. A lane's name is the field's ("up-field, snake side") and is
     // the same from either end.
     const shotB = d.shot && lane === null ? curLayout().bunkers.find(b => b.id === shownBunker(d.shot)) : null;
+    const lane2 = shotLane(d.shot2), shot2B = d.shot2 && lane2 === null ? curLayout().bunkers.find(b => b.id === shownBunker(d.shot2)) : null;
     // His card is the app speaking to him, so it uses his word for the bunker
     // where he has one. The field keeps the team's.
     const mine = who && who.name;
@@ -8967,14 +8980,15 @@ function cardLines(){
             bunker: callOf(curLayout().bunkers.find(b => b.id === plant) || {n: "—"}, mine),
             role: d.role === "S" ? "Secondary" : "Primary", go: goWord(p),
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
-            shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running"};
+            shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running",
+            shot2: lane2 !== null ? LANE_NAME[lane2] : shot2B ? callOf(shot2B, mine) : ""};
   });
 }
 window.shareCards = () => {
   if(!callSet()) return flash("Pick the call first — a card is one man's job on it.");
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? manTag(c.who) : "(no name)"}\n`
-        + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}`
+        + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}${c.shot2 ? `, then ${c.shot2}` : ""}`
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   handOff("Gridlock cards", t);
 };
@@ -9104,6 +9118,7 @@ function cardsView(){
           <span class="tag">${esc(c.go)}</span>
           <span class="tag">faces ${esc(c.face)}</span>
           <span class="tag">lanes ${esc(c.shot)}</span>
+          ${c.shot2 ? `<span class="tag">then ${esc(c.shot2)}</span>` : ""}
           ${c.clear ? `<span class="tag" style="${c.clear.length ? "color:var(--ink)" : "color:var(--dim)"}">${c.clear.length ? `clear on ${esc(c.clear.join(", "))}` : "no clear lane on their five"}</span>` : ""}
           ${c.onHim ? `<span class="tag" style="color:var(--warn);border-color:var(--warn)">lane on ${esc(c.onHim)}</span>` : ""}
         </span>
@@ -13142,7 +13157,7 @@ const HELP = {
   playbook: {t:"Playbook", w:"The call, drawn on the real field.",
     how:["Tap a break to pick it. The five paths redraw on the event layout.",
          "Play break runs it, so you can watch who leaves first.",
-         "Face and Shot set where each man looks and what he lanes.",
+         "Face and Shot set where each man looks and what he lanes. Lane 2 adds a secondary lane, drawn dashed beside the first.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "The twelve are named your way, and + Yours under the field writes a play of your own. Team lists them all; name them once and every screen uses your word.",
          "A play of your own writes a thirteenth: name it, tap the bunker each of the five plants on, and the app draws the runs.",

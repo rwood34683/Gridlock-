@@ -714,6 +714,14 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     this point. How did they get there gives each sighting **Move here** (to
     the bunker selected) and **✕ Remove**, and each shot a ✕.
 
+48. ~~Primary and secondary lanes.~~ Done — Playbook's Direct the five had one
+    Shot a man. **Shot** is his primary lane and **Lane 2** (`shot2` on the
+    same `S.direct` row) his secondary: the same picker — a lane with no
+    bunker named, or a bunker on this field — each headed for which it is.
+    `laneCone()` draws the primary as before and the secondary narrower with a
+    dashed edge, only when one is set; `mirrorDirect` turns both with the
+    field; the card and the share text read "lanes X, then Y".
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

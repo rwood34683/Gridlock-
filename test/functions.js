@@ -2799,6 +2799,20 @@ const ROSTER = [
     return ran;
   }));
   await seed({ tab: "playbook", t: 1, faceOn: true, shotOn: true });
+  check("a man takes a primary and a secondary lane: both drawn, the second dashed, both on his card and turned with the field", await ev(() => {
+    const p = currentPaths()[0], far = curLayout().bunkers.filter(b => b.x > 90)[2].id;
+    const dashed = () => document.querySelectorAll('#root .field-wrap svg.field polygon[stroke-dasharray]').length;
+    const before = dashed();
+    window.setDirect(p.id, "shot", far); window.setDirect(p.id, "shot2", "@0");
+    const drawn = dashed() === before + 1;
+    window.openPad("shot2", p.id);
+    const picker = /Secondary lane/.test(document.getElementById("root").textContent) && !!document.getElementById("lane-shot2-" + p.id);
+    const card = cardLines()[0].shot2 === LANE_NAME[0];
+    const turned = mirrorDirect(directOf(p.id)).shot2 === "@180";
+    window.setDirect(p.id, "shot2", ""); window.setDirect(p.id, "shot", "");
+    const gone = !directOf(p.id).shot2 && dashed() === before;
+    return drawn && picker && card && turned && gone || JSON.stringify({ drawn, picker, card, turned, gone, before });
+  }));
   check("every one of the five carries a face and a lane", await ev(() => {
     const f = document.querySelectorAll("svg.field polyline[stroke='#fff']").length;
     const c = document.querySelectorAll("svg.field polygon[fill='#fff']").length;
