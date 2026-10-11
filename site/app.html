@@ -1470,7 +1470,7 @@ const voiceKinds = {out:"Eliminated",move:"Position / move",hit:"Hit reported",n
 function voiceContext(){
   const v=S.voice || {}, side=v.side === "left" ? "left" : "right", pit=pitOf(side);
   return {side,team:v.team || (pit.named ? pit.name : "Unidentified opponent"),named:!!(v.team || pit.named),player:v.player || "auto",
-    layout:S.layoutKey,m:S.matchId,pt:S.point || 1,language:v.language || "en-US"};
+    layout:S.layoutKey,m:S.matchId,pt:(typeof sheetPoint === "function" ? sheetPoint() : (S.point || 1)),language:v.language || "en-US"};
 }
 // The team as a value to carry across a change: the one the coach named, or
 // nothing. The placeholder is never written anywhere as if he had picked it.
@@ -1954,8 +1954,13 @@ function doubleSpots(b, n, all){
     if(pair.every(clear)) return three(pair);
   }
   const back = [b.x - (w / 2 + 3), b.y], back2 = [b.x - (w / 2 + 6), b.y];
-  if(!clear(back)) return Array(Math.min(n, 3)).fill([b.x, b.y]);
-  return n > 2 ? [[b.x, b.y], back, clear(back2) ? back2 : back] : [[b.x, b.y], back];
+  // Three men never share one spot, or one of them is drawn under another:
+  // a step to the side of the bunker, kept inside it.
+  const side = [-dir[1], dir[0]], step = k => [b.x + side[0] * k, b.y + side[1] * k];
+  if(!clear(back)) return n > 2 ? [step(-1.5), [b.x, b.y], step(1.5)] : Array(Math.min(n, 3)).fill([b.x, b.y]);
+  if(n <= 2) return [[b.x, b.y], back];
+  const third = [back2, [back[0] + side[0] * 2.5, back[1] + side[1] * 2.5], [back[0] - side[0] * 2.5, back[1] - side[1] * 2.5]].find(clear) || step(1.5);
+  return [[b.x, b.y], back, third];
 }
 function breakPaths(layoutKey, scriptKey){
   // Only a layout with no plants ever sees this. The five that were written
@@ -4243,7 +4248,7 @@ window.playPick = id => {
   five[open] = id;
   set({building: {...b, plants: five}});
 };
-window.playOff = n => {
+window.playManOff = n => {
   const b = S.building; if(!b) return;
   const five = [...(b.plants || [])];
   while(five.length < 5) five.push(null);
@@ -5553,7 +5558,7 @@ window.loadCopy = mode => {
   // A man told on the other phone replaces this phone's untold row and adds
   // none, so breakouts count the told ones: "nothing new" was not true.
   const sizeOf = () => { const o = {}; COPY_COUNTED.forEach(k => { const v = S[k]; o[k] = v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; });
-    o.breakouts += (S.breakouts || []).filter(r => r && !r.todo).length; return o; };
+    o.told = (S.breakouts || []).filter(r => r && !r.todo).length; return o; };
   const sizeBefore = sizeOf();
   // What just loaded is a copy, so the season has one as of now — the nudge
   // must not open on a restored phone saying none was ever made.
@@ -5807,7 +5812,11 @@ window.loadCopy = mode => {
   }
   if(mode !== "replace"){
     const after = sizeOf(), delta = {};
-    COPY_COUNTED.forEach(k => { const n = after[k] - sizeBefore[k]; if(n > 0) delta[k] = Array(n).fill(0); });
+    COPY_COUNTED.forEach(k => {
+      // A new told row is one breakout, and so is a told row replacing an
+      // untold one; counting rows plus told rows said 28 for 14.
+      const n = k === "breakouts" ? Math.max(after[k] - sizeBefore[k], after.told - sizeBefore.told) : after[k] - sizeBefore[k];
+      if(n > 0) delta[k] = Array(n).fill(0); });
     const said = Object.keys(delta).length ? `new here: ${copySummary(delta)}` : "nothing new — this phone already had all of it";
     if(Object.keys(delta).length) S.copyStatus += countNotes.join("");
     S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
@@ -7743,14 +7752,20 @@ function fieldSVG(opts={}, runnersOnly){
   // and until it is, a ghost of where they have planted most. These are the
   // break, not a layer: they show whenever their side of the field is shown,
   // not only behind the Their five overlay, which places the men he named.
+  // On a watched game the home side's five is charted too, on the left pit:
+  // drawn whenever the home side or both are shown.
+  if(opts.homeFive){ const h = theirFiveLogged("left"); if(h) their += fiveSquares(h.plants, sx, sy, "#e5342f"); }
   if(opts.their || opts.theirFive){
     const five = theirFiveLogged("right");
     if(five) their += fiveSquares(five.plants, sx, sy, "#3d8bff");
     else if(pitNamed("right")){
       const rd = nextRead("right"), g = likelyPlants("right", rd && !rd.thin ? rd.call : null);
+      const ghostSeen = {};
       if(g.n >= 2) their += g.top.map(([id, n]) => {
         const b = layout.bunkers.find(x => x.id === shownBunker(id)); if(!b) return "";
-        const x = b.x * sx, y = b.y * sy, r = 6.2;
+        // A doubled bunker carries two ghosts side by side, not one over the other.
+        const many = g.top.filter(([x]) => x === id).length, k = (ghostSeen[id] = (ghostSeen[id] || 0) + 1) - 1;
+        const r = 6.2, x = b.x * sx + (k - (many - 1) / 2) * (r * 2 + 1.5), y = b.y * sy;
         return `<g class="ghost-plant" opacity=".7"><rect x="${(x-r).toFixed(1)}" y="${(y-r).toFixed(1)}" width="${(r*2).toFixed(1)}" height="${(r*2).toFixed(1)}" rx="2" fill="none" stroke="#3d8bff" stroke-width="1.3" stroke-dasharray="2.2 1.6"/>`
              + `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" text-anchor="middle" font-size="7" fill="#3d8bff" font-weight="800">${n}</text></g>`;
       }).join("");
@@ -8340,9 +8355,11 @@ function likelyPlants(side = "right", call){
   const rows = theirBreaks(side).filter(b => Array.isArray(b.plants) && b.plants.length && (!b.layout || b.layout === S.layoutKey));
   const under = call ? rows.filter(b => b.script === call) : [];
   const use = under.length >= 2 ? under : rows, team = pitOf(side).name;
-  const c = new Map(); use.forEach(b => b.plants.forEach(id => { const k = teamFrame(id, b.m, b.pt, team); c.set(k, (c.get(k) || 0) + 1); }));
+  // Counted per man, not per bunker: a five that doubles MD is two men on MD,
+  // and counting MD once dropped the second man from the ghost.
+  const c = new Map(); use.forEach(b => { const seen = {}; b.plants.forEach(id => { const f = teamFrame(id, b.m, b.pt, team), k = f + "|" + (seen[f] = (seen[f] || 0) + 1); c.set(k, (c.get(k) || 0) + 1); }); });
   // Frame ids: a caller that draws or names them on the field goes through shownBunker().
-  return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)};
+  return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => [k.slice(0, k.lastIndexOf("|")), n])};
 }
 /* Your record with a call against a team on this field: the calls you logged,
  * joined with who won the point. The Counter ranks on this first and falls
@@ -8475,7 +8492,11 @@ window.dropTheirPick = i => set({theirPick: (S.theirPick || []).filter((_, k) =>
     ev.preventDefault();
     const b = bunkerAt(fieldFeet(svg, ev)); if(!b) return;
     const cur = S.theirPick || [];
-    if(cur.length >= 5){ flash("All five are placed. Take one off with its × under the field, or Undo last."); return; }
+    // A side short-handed by a penalty broke with fewer than five: held to
+    // what it started the point with, as Tally's placing is.
+    const sd = (curMatch()||{}).watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
+    const cap = pitOnSheet(sd) ? Math.min(5, startUp(sd === "left" ? "us" : "them", S.matchId, sheetPoint())) : 5;
+    if(cur.length >= cap){ flash(`${cap === 5 ? "All five are" : `All ${cap} they started with are`} placed. Take one off with its × under the field, or Undo last.`); return; }
     set({theirPick: [...cur, b.id]});
   });
 })();
@@ -9573,7 +9594,7 @@ function playBuilder(){
       return `<div class="assign">
       <span class="assign__n"${id ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
       <span class="assign__body"><span class="assign__job">${id ? esc(nameOf(id)) : "tap his bunker"}</span>${mates.length ? `<span class="assign__who">doubled up with ${mates.join(" and ")}</span>` : ""}</span>
-      ${id ? `<span class="assign__ctl"><button class="btn btn--quiet" onclick="playOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
+      ${id ? `<span class="assign__ctl"><button class="btn btn--quiet" onclick="playManOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
     </div>`; }).join("")}</div>
     <div class="fld"><label for="pl-read">The read, in your words</label>
       <input id="pl-read" value="${esc(b.read || "")}" maxlength="140"
@@ -10056,7 +10077,9 @@ window.logBreakout = () => {
   // already on another bunker this point is the wrong name picked — not the
   // coach charting the same man again. Replacing there took the other placed
   // man off the field without a word.
-  if(editing && was && was.bunker !== b.id){
+  // Two men can be placed on one bunker, so the name may already be the
+  // other man there: telling a placed man never replaces another row.
+  if(editing && was){
     flash(`${row.player} is already the man on ${bunkerLabel(was.bunker)} this point — pick who this one is, or No name.`);
     return;
   }
@@ -10069,6 +10092,15 @@ window.logBreakout = () => {
       flash(`${placeSideWord(side)}: all ${cap} are charted on point ${pt}. Open one from the list to change him, or take him off first.`);
       return;
     }
+  }
+  // A man told shot is an out, and a side has no more men out on a point
+  // than it started it with — the same cap a tapped out is held to.
+  const outOf0 = (o, nm) => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side && o.name === nm;
+  if(row.alive === false && row.player && !(S.tally || []).some(o => outOf0(o, row.player))){
+    const outCap = startUp(side, row.m, pt);
+    const outs = (S.tally || []).filter(o => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side
+      && !(editing && editing.player && o.name === editing.player)).length;
+    if(outs >= outCap){ flash(`${placeSideWord(side)}: all ${outCap} are out on point ${pt}. Tap one back in first.`); return; }
   }
   // What the Log added to his out — how and by whom — and when it first
   // happened ride over to the out written again below.
@@ -10173,6 +10205,13 @@ function teamFrame(id, mid, pt, team){
 }
 // The bunker to draw for a frame id, on the end the field shows now.
 const shownBunker = id => ourEnd() === "right" ? mirrorBunkerId(id) : id;
+// The same for a count made in teamFrame(): watched as the home side on the
+// sheet shown now, a team's frame is mirrored, and mirroring again puts the
+// row back on the bunker they actually stood in.
+function shownTeamBunker(id, team){
+  const m = curMatch();
+  return shownBunker(m && m.watch && team && foldName(m.home || "") === foldName(team) ? mirrorBunkerId(id) : id);
+}
 function bunkerValue(side, evenOnly){
   const won = new Map((S.results || []).filter(r => r && r.m).map(r => [r.m + "|" + r.pt, r.won]));
   const by = {};
@@ -10351,7 +10390,7 @@ function breakoutSheet(){
     ${(() => {
       // A name already charted on another bunker this point says where, so
       // the coach sees the man is taken before he picks him twice.
-      const taken = n => breakoutsHere().find(r => r.pt === rowPt && r.side === side && r.player === n && r.id !== S.tallyEdit && r.bunker !== b.id);
+      const taken = n => breakoutsHere().find(r => r.pt === rowPt && r.side === side && r.player === n && r.id !== S.tallyEdit && (S.tallyEdit || r.bunker !== b.id));
       return seg([[!d.player, "No name", "setDraft({player:''})"],
         ...names.map(n => { const t = taken(n);
           return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `setDraft({player:${jsq(n)}})`]; })]);
@@ -11684,7 +11723,7 @@ function scout(){
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
-    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", homeFive:!!(curMatch()||{}).watch && (S.scoutShow||"them")!=="them", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
             a left-pit team on that side of the field. */""}
@@ -11958,7 +11997,7 @@ function theirMoves(team, layout = S.layoutKey){
 }
 function movesLine(team, max = 3){
   const mv = theirMoves(team); if(!mv.length) return "";
-  const name = id => bunkerLabel(shownBunker(id));
+  const name = id => bunkerLabel(shownTeamBunker(id, team));
   const total = mv.reduce((n, m) => n + m.n, 0);
   return mv.slice(0, max).map(m => `<b>${esc(name(m.from))} → ${esc(name(m.to))}</b> ${m.n}${m.who ? ` (${esc(m.who)} ${m.whoN})` : ""}`).join(" · ") + ` — ${total} rotation${total === 1 ? "" : "s"} seen`;
 }
@@ -12124,7 +12163,7 @@ window.arrivalDetailsToggle = element => {
 };
 window.pickArrivalBunker = id => {
   if(!curLayout().bunkers.some(b=>b.id===id)) return;
-  setArrival((S.arrival || {}).pick === "sighting" ? {sightingBunker:id} : {destination:id});
+  setArrival((S.arrival || {}).pick === "sighting" ? {sightingBunker:id} : {destination:id, sightingBunker:""});   // the bunker tapped last is the one Record uses
 };
 window.logArrivalSighting = () => {
   const a = S.arrival || {}, id = a.sightingBunker || a.destination;
@@ -12350,12 +12389,12 @@ function scoutArrival(){
   + (mv => sec(`Their rotations · ${esc(curLayout().name)}`, mv.length ? `<p class="lede">Where <b>${esc(c.team)}</b> have been seen to move after the break on this field, all matches, all points — the next sighting of the same man on the same point, counted.</p>
       <div class="assigns">${mv.slice(0, 8).map(m => `<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${m.n}</span>
-        <span class="assign__body"><span class="assign__job">${esc(bunkerLabel(shownBunker(m.from)))} → ${esc(bunkerLabel(shownBunker(m.to)))}</span>
+        <span class="assign__body"><span class="assign__job">${esc(bunkerLabel(shownTeamBunker(m.from, c.team)))} → ${esc(bunkerLabel(shownTeamBunker(m.to, c.team)))}</span>
         <span class="assign__who">${m.who ? `${esc(m.who)} ${m.whoN} of ${m.n}` : `${m.n} seen`}</span></span>
       </div>`).join("")}</div>
       <p class="aid"><b>A count, not a prediction.</b> It says where they have moved when you were watching.</p>` : `<div class="empty">No rotations seen yet for ${esc(c.team)} on this field. Two sightings of the same man on a point make one.</div>`))(theirMoves(c.team, c.layout))
   + (lanes => sec(`Their lanes · ${esc(curLayout().name)}`,lanes.length ? `<p class="lede">Every lane <b>${esc(c.team)}</b> has been seen to shoot on this field, all matches, all points — counted from what you logged.</p>
-      <ol class="arrival-narrative">${lanes.slice(0,8).map(l=>`<li><b>${esc(label(shownBunker(l.from)))} → ${esc(label(shownBunker(l.to)))}</b> <span class="tag">${l.n}×</span></li>`).join("")}</ol>${lanes.length>8?`<p class="note">Showing the eight most seen of ${lanes.length}.</p>`:""}
+      <ol class="arrival-narrative">${lanes.slice(0,8).map(l=>`<li><b>${esc(label(shownTeamBunker(l.from, c.team)))} → ${esc(label(shownTeamBunker(l.to, c.team)))}</b> <span class="tag">${l.n}×</span></li>`).join("")}</ol>${lanes.length>8?`<p class="note">Showing the eight most seen of ${lanes.length}.</p>`:""}
       <p class="aid"><b>A count, not a prediction.</b> It says where they have shot from and at when you were watching. Officials govern the live call.</p>` : `<div class="empty">Nothing logged yet for ${esc(c.team)} on this field. Shots you record above build this up through the match.</div>`))(teamLanes(c.team,c.layout))
   + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">Nothing seen yet for this player on this field, match and point. Until you add what you saw, the route is only what the field allows.</div>`);
 }
@@ -12715,9 +12754,10 @@ function scoutBreakouts(){
           counts for the season on ${esc(curLayout().name)} and never against a point.</p>
           ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet" onclick="newMatch()">Start a match vs ${esc(R.name)}</button>`}</div>`}`,
     R.name)
-  + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([fid,n])=>{ const id = shownBunker(fid); return `<div class="assign">
+  + (plants.length ? sec("Where they plant", `<div class="assigns">${plants.slice(0,8).map(([fid,n])=>{ const id = shownTeamBunker(fid, R.name); return `<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${n}</span>
-        <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${n} of ${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged fives here</span></span>
+        <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${(fives => { const inN = fives.filter(b => b.plants.some(x => teamFrame(x, b.m, b.pt, R.name) === fid)).length;
+          return `${inN} of ${fives.length} logged fives here${n > inN ? ` · ${n} men` : ""}`; })(seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)))}</span></span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
       `${seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)).length} logged here`) : "")
