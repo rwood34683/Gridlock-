@@ -5715,6 +5715,55 @@ const ROSTER = [
     S.tally = keepT; S.arrivalSightings = keepS; editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return ring && said && off;
   }));
+  // Scout gets the breakout sheet's corrections: undo a tap, clear the five,
+  // fix a five already logged on the point it was logged on.
+  check("Scout's five: Undo takes the last tap, Clear all comes back, Fix rewrites the logged five", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, pitOpen: null, theirPick: [], theirFix: null });
+    window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
+    editProfile("right", { breaks: [] }); S.breakouts = [];
+    const bl = curLayout().bunkers.filter(b => b.x > 80), ids = bl.slice(0, 4).map(b => b.id);
+    setPick([ids[0]]); setPick([ids[0], ids[1]]); window.undoTheirPick();
+    const undone = S.theirPick.length === 1 && S.theirPick[0] === ids[0];
+    window.clearTheirPick(); const cleared = S.theirPick.length === 0;
+    window.undoTheirPick(); const back = S.theirPick.length === 1;
+    setPick([ids[0], ids[1], ids[2]]); window.logTheirFive("right");
+    const row = theirBreaks("right")[0], pt = row.pt, root = document.getElementById("root");
+    const offered = [...root.querySelectorAll("button")].some(b => b.textContent.trim() === "Fix it")
+      && [...root.querySelectorAll("button")].some(b => b.textContent.trim() === "Fix");
+    const menBefore = S.breakouts.filter(r => r.m === S.matchId && r.pt === pt && r.side === "them").length;
+    window.fixTheirFive("right", row.at);
+    const loaded = S.theirPick.join() === row.plants.join() && /Save the five/.test(root.textContent);
+    window.logTheirBreak("right", "snake"); const blocked = /Save the five you are fixing/.test(S.flash) && !theirBreaks("right")[0].script;
+    window.dropTheirPick(2); setPick([...S.theirPick, ids[3]]); window.logTheirFive("right");
+    const fixed = theirBreaks("right").length === 1 && theirBreaks("right")[0].plants.join() === [ids[0], ids[1], ids[3]].join()
+      && theirBreaks("right")[0].pt === pt && !S.theirFix;
+    const men = S.breakouts.filter(r => r.m === S.matchId && r.pt === pt && r.side === "them");
+    const menOk = menBefore === 3 && men.length === 3 && men.some(r => r.bunker === ids[3]) && !men.some(r => r.bunker === ids[2]);
+    window.unlogTheirAt("right", theirBreaks("right")[0].at);
+    const undoneLog = theirBreaks("right").length === 0;
+    editProfile("right", { breaks: [] }); S.breakouts = []; window.set({ theirPick: [], theirFix: null });
+    return undone && cleared && back && offered && loaded && blocked && fixed && menOk && undoneLog
+      || JSON.stringify({ undone, cleared, back, offered, loaded, blocked, fixed, menOk, menBefore, n: men.length, undoneLog });
+  }));
+  check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
+    const keepS = S.arrivalSightings, keepH = S.arrivalShots;
+    const bl = curLayout().bunkers;
+    window.undoArrivalSighting(); const said = /No sighting recorded/.test(S.arrival.notice || "");
+    window.pickArrivalBunker(bl[3].id); window.logArrivalSighting();
+    window.pickArrivalBunker(bl[5].id); window.logArrivalSighting();
+    const rows = arrivalSightings(); if(rows.length !== 2) return "sightings: " + rows.length;
+    window.pickArrivalBunker(bl[8].id); window.fixArrivalSighting(rows[0].id);
+    const moved = arrivalSightings()[0].bunker === bl[8].id && arrivalSightings()[1].bunker === bl[5].id;
+    window.dropArrivalSighting(rows[1].id); const dropped = arrivalSightings().length === 1;
+    window.set({ arrival: { ...S.arrival, shotAt: bl[20].id } }); window.logArrivalShot();
+    const shot = arrivalShots()[0]; window.dropArrivalShot(shot.id); const shotGone = arrivalShots().length === 0;
+    const btns = [...document.querySelectorAll("#root button")].filter(b => /Undo last (sighting|shot)|Clear this point/.test(b.textContent));
+    const live = btns.length === 3 && btns.every(b => !b.disabled);
+    S.arrivalSightings = keepS; S.arrivalShots = keepH; window.set({ tab: "playbook" });
+    return said && moved && dropped && shotGone && live || JSON.stringify({ said, moved, dropped, shotGone, live });
+  }));
   check("on the point sheet the read sits above Change the call and the lanes sit below it", await ev(() => {
     window.confirm = () => true;
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch(); window.setRaceTo(0); window.setMercy(0);

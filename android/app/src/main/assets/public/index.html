@@ -1994,7 +1994,7 @@ const defaultState = () => ({
   assessments:[],
   sightFrom:null, sightTo:null, sightPick:"from",
   sightAim:null,                  // feet; where he would actually put the paint, dragged off the bunker
-  theirPick:[],                   // up to five bunkers tapped for the opponent's break, before it is logged
+  theirPick:[], theirFix:null, theirLast:0,                 // up to five bunkers tapped for the opponent's break, before it is logged
   walkNotes:"",                   // legacy free-text; migrated into walk[] on load
   walk:{},                        // per layout: [{where, note, at}]
   codeWords:"",                   // legacy free-text; migrated into codes[] on load
@@ -2766,7 +2766,7 @@ function clearScratch(s = S){
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false;
-  s.theirPick = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
+  s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
   s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
@@ -3911,7 +3911,7 @@ function set(patch){
   // of their bunkers tapped on Lone Star logged as Tampa's Wg#2, and an open
   // breakout sheet wrote its man to the other field's bunker.
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
-    patch = {theirPick: [], tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
+    patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
              moveFrom: null, moveTo: null, callPick: null, walkPick: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
@@ -7756,6 +7756,9 @@ function sheetEmpty(m){
     && !Object.values(S.scout || {}).some(p => (p.breaks || []).some(b => b && b.m === m.id));
 }
 window.logTheirBreak = (side, script, plants) => {
+  // A five being fixed belongs to the point it was logged on; a call tapped
+  // now would log it on this point instead.
+  if(S.theirFix && !Array.isArray(plants)){ flash("Save the five you are fixing first, or Cancel the fix."); return; }
   // On a field the open sheet is not on, what they run is still worth
   // counting: it lands as a season row on this field, never on that sheet's point.
   const off = !!sheetField();
@@ -7779,8 +7782,12 @@ window.logTheirBreak = (side, script, plants) => {
   // Each man of a five logged on this point is a man to tell, as one placed
   // on Tally is: how he got there, which way he was shooting, at what, where
   // he moved. One row a man, only where the point has fewer already.
-  if(picked.length && entry.pt) placeFiveMen(side === "left" ? "us" : "them", entry.m, entry.pt, picked);
-  if(picked.length) S.theirPick = [];
+  if(picked.length && entry.pt){
+    if(was && Array.isArray(was.plants) && was.plants.length) trimFiveMen(side === "left" ? "us" : "them", entry.m, entry.pt, picked);
+    placeFiveMen(side === "left" ? "us" : "them", entry.m, entry.pt, picked);
+  }
+  if(picked.length){ S.theirPick = []; _pickHist = []; }
+  S.theirLast = entry.at;
   save(S); render();
 };
 function placeFiveMen(rowSide, mid, pt, ids){
@@ -7818,6 +7825,21 @@ window.openManDetails = id => {
 };
 window.logTheirFive = side => {
   if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
+  const fix = S.theirFix && S.theirFix.side === side ? theirBreaks(side).find(b => b && b.at === S.theirFix.at) : null;
+  if(fix){
+    const plants = S.theirPick.slice(0, 5);
+    if(fix.pt && fix.m){
+      const rowSide = side === "left" ? "us" : "them";
+      trimFiveMen(rowSide, fix.m, fix.pt, plants);
+      placeFiveMen(rowSide, fix.m, fix.pt, plants);
+    }
+    const row = {...fix, plants}; delete row.tallied;
+    editProfile(side, {breaks: theirBreaks(side).map(b => b === fix ? row : b)});
+    _pickHist = []; S.theirPick = []; S.theirFix = null; S.theirLast = row.at;
+    flash(fix.pt ? `Point ${fix.pt}'s five fixed.` : "That five is fixed.");
+    return;
+  }
+  _pickHist = [];
   logTheirBreak(side, "", S.theirPick);
 };
 // The logged five for the point being looked at, if any.
@@ -7871,7 +7893,47 @@ function fiveSquares(ids, sx, sy, colour){
 // already has a man puts the next man there too — they double the snake, or
 // three sit on it — and a man comes off by his own × under the field or Undo
 // last. Nothing is logged until the button says so.
-window.dropTheirPick = i => set({theirPick: (S.theirPick || []).filter((_, k) => k !== i)});
+/* The same corrections the breakout sheet has: every change to the five
+ * being placed keeps the five it replaced, so Undo takes back the last tap —
+ * a man placed, a × or a Clear — and never the whole five. Never saved. */
+var _pickHist = [];   // var: the launch's clearScratch empties it before this line runs
+function setPick(list, extra = {}){
+  _pickHist.push([...(S.theirPick || [])]);
+  if(_pickHist.length > 40) _pickHist.shift();
+  set({theirPick: list, ...extra});
+}
+window.dropTheirPick = i => setPick((S.theirPick || []).filter((_, k) => k !== i));
+window.undoTheirPick = () => {
+  if(!_pickHist.length){ flash("Nothing to undo on this five yet."); return; }
+  set({theirPick: _pickHist.pop()});
+};
+window.clearTheirPick = () => {
+  if(!(S.theirPick || []).length){ flash(S.theirFix ? "Nothing placed — tap the field, or Cancel the fix." : "Nothing placed yet."); return; }
+  setPick([]); flash("Cleared — tap the field again. Undo puts them back.");
+};
+// Fix a five already logged: its men go back on the field to change, and
+// Save writes over that row, on the point it was logged on.
+window.fixTheirFive = (side, at) => {
+  const b = theirBreaks(side).find(x => x && x.at === at); if(!b) return;
+  if(b.layout && b.layout !== S.layoutKey){ flash(`That five was logged on ${(LAYOUTS[b.layout] || {}).name || "another field"}.`); return; }
+  _pickHist = [];
+  set({theirPick: [...(b.plants || [])], theirFix: {side, at}});
+  const map = document.getElementById("their-map"), main = document.querySelector(".main");
+  if(map && main) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+};
+window.cancelTheirFix = () => { _pickHist = []; set({theirFix: null, theirPick: []}); flash("Not changed — the five stands as it was logged."); };
+// Untold men a five put on its point, beyond what the new five keeps there.
+function trimFiveMen(rowSide, mid, pt, ids){
+  const want = {}; ids.forEach(id => { want[id] = (want[id] || 0) + 1; });
+  const here = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === pt && r.side === rowSide);
+  const told = {}; here.filter(r => !r.todo).forEach(r => { told[r.bunker] = (told[r.bunker] || 0) + 1; });
+  const used = {};
+  S.breakouts = (S.breakouts || []).filter(r => {
+    if(!(r && r.todo && here.includes(r))) return true;
+    used[r.bunker] = (used[r.bunker] || 0) + 1;
+    return used[r.bunker] <= Math.max(0, (want[r.bunker] || 0) - (told[r.bunker] || 0));
+  });
+}
 (function theirPicking(){
   document.addEventListener("pointerdown", ev => {
     if(S.tab !== "scout" || S.scoutTab !== "breakouts") return;
@@ -7886,7 +7948,7 @@ window.dropTheirPick = i => set({theirPick: (S.theirPick || []).filter((_, k) =>
     const sd = (curMatch()||{}).watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
     const cap = pitOnSheet(sd) ? Math.min(5, startUp(sd === "left" ? "us" : "them", S.matchId, sheetPoint())) : 5;
     if(cur.length >= cap){ flash(`${cap === 5 ? "All five are" : `All ${cap} they started with are`} placed. Take one off with its × under the field, or Undo last.`); return; }
-    set({theirPick: [...cur, b.id]});
+    setPick([...cur, b.id]);
   });
 })();
 window.unlogTheirBreak = (side, i) => {
@@ -7901,8 +7963,11 @@ window.unlogTheirBreak = (side, i) => {
     });
   }
   editProfile(side, {breaks: theirBreaks(side).filter((_,k) => k !== i)});
-  render();
+  if(gone && S.theirLast === gone.at) S.theirLast = 0;
+  if(gone && S.theirFix && S.theirFix.at === gone.at){ S.theirFix = null; S.theirPick = []; }
+  save(S); render();
 };
+window.unlogTheirAt = (side, at) => { const i = theirBreaks(side).findIndex(b => b && b.at === at); if(i >= 0) unlogTheirBreak(side, i); };
 
 /* ---- the opponent library: they run X, we run Y --------------------------
  *
@@ -10488,7 +10553,7 @@ window.nextPoint = () => {
   S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
 };
 function clearPointScratch(){
-  S.theirPick = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
+  S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
   // placing all of them first — and by half: Theirs set for one man who
   // broke deep is not the next point's whole break.
@@ -11638,7 +11703,7 @@ window.logArrivalSighting = () => {
 };
 window.undoArrivalSighting = () => {
   const rows = arrivalSightings(), last = rows[rows.length-1];
-  if(!last) return;
+  if(!last){ S.arrival = {...(S.arrival || {}),notice:"No sighting recorded on this point to undo."}; render(); return; }
   S.arrivalSightings = S.arrivalSightings.filter(o=>o.id!==last.id);
   stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:"Last sighting removed."}; save(S); render();
 };
@@ -11681,13 +11746,33 @@ window.logArrivalShot = () => {
 };
 window.undoArrivalShot = () => {
   const shots = arrivalShots(), last = shots[shots.length-1];
-  if(!last) return;
+  if(!last){ S.arrival = {...(S.arrival || {}),notice:"No shot recorded on this point to undo."}; render(); return; }
   S.arrivalShots = S.arrivalShots.filter(o=>o.id!==last.id);
   S.arrival = {...(S.arrival || {}),notice:"Last shot removed. A sighting it placed stays — undo that separately if it was wrong."}; save(S); render();
 };
+// One wrong row, not the last one: take it off, or move it to the bunker
+// selected on the field now. The order of the others stands.
+window.dropArrivalSighting = id => {
+  const o = (S.arrivalSightings || []).find(x => x && x.id === id); if(!o) return;
+  S.arrivalSightings = S.arrivalSightings.filter(x => x !== o);
+  stopArrivalPlayback(true); S.arrival = {...(S.arrival || {}),notice:`Sighting at ${bunkerLabel(o.bunker)} removed.`}; save(S); render();
+};
+window.fixArrivalSighting = id => {
+  const a = S.arrival || {}, to = a.sightingBunker || a.destination;
+  const o = (S.arrivalSightings || []).find(x => x && x.id === id); if(!o) return;
+  if(!curLayout().bunkers.some(b => b.id === to)){ S.arrival = {...a,notice:"Tap the right bunker on the field first, then Move here on the wrong sighting."}; render(); return; }
+  if(to === o.bunker){ S.arrival = {...a,notice:"That sighting is already on the bunker selected. Tap the right one on the field first."}; render(); return; }
+  S.arrivalSightings = S.arrivalSightings.map(x => x === o ? {...x, bunker: to} : x);
+  stopArrivalPlayback(true); S.arrival = {...a,notice:`Sighting moved from ${bunkerLabel(o.bunker)} to ${bunkerLabel(to)}.`}; save(S); render();
+};
+window.dropArrivalShot = id => {
+  const o = (S.arrivalShots || []).find(x => x && x.id === id); if(!o) return;
+  S.arrivalShots = S.arrivalShots.filter(x => x !== o);
+  S.arrival = {...(S.arrival || {}),notice:`Shot from ${bunkerLabel(o.from)} at ${bunkerLabel(o.to)} removed.`}; save(S); render();
+};
 window.resetArrivalSightings = () => {
   const rows = arrivalSightings(), shots = arrivalShots();
-  if(!rows.length && !shots.length) return;
+  if(!rows.length && !shots.length){ S.arrival = {...(S.arrival || {}),notice:"Nothing recorded on this point to clear."}; render(); return; }
   const what = [rows.length ? `${rows.length} sighting${rows.length===1?"":"s"}` : "", shots.length ? `${shots.length} shot${shots.length===1?"":"s"}` : ""].filter(Boolean).join(" and ");
   if(!confirm(`Clear ${what} for this opponent, match and point?`)) return;
   const ids = new Set(rows.map(o=>o.id)), hids = new Set(shots.map(o=>o.id));
@@ -11818,17 +11903,18 @@ function scoutArrival(){
     ${/* Record is never disabled: the handler says what is missing ("Choose a
           bunker before recording a sighting"), and a greyed button says nothing. */""}
     <div class="btnrow"><button class="btn" onclick="logArrivalSighting()">Record sighting</button>
-      <button class="btn btn--quiet" onclick="undoArrivalSighting()"${sightings.length?'':' disabled'}>Undo last sighting</button>
-      <button class="btn btn--quiet" onclick="resetArrivalSightings()"${sightings.length||shots.length?'':' disabled'}>Clear this point</button></div>
+      <button class="btn btn--quiet" onclick="undoArrivalSighting()">Undo last sighting</button>
+      <button class="btn btn--quiet" onclick="resetArrivalSightings()">Clear this point</button></div>
     <div class="fld"><label for="arrival-shot">Shooting at</label><select id="arrival-shot" onchange="setArrival({shotAt:this.value})"><option value="">${options.sightingBunker||options.destination?'From '+esc(label(options.sightingBunker||options.destination))+' — choose where the paint went':'Choose the bunker they were at first'}</option>${bunkerOptions(a.shotAt||"")}</select></div>
     <div class="btnrow"><button class="btn" onclick="logArrivalShot()">Record shot</button>
-      <button class="btn btn--quiet" onclick="undoArrivalShot()"${shots.length?'':' disabled'}>Undo last shot</button></div>
+      <button class="btn btn--quiet" onclick="undoArrivalShot()">Undo last shot</button></div>
     <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there. Everything belongs only to this team, player, field, match and point.')}</p>`)
   + sec("Possible route",`${route ? `<p class="aid"><b>Inferred route, not confirmed movement.</b> Green numbered squares are your recorded sightings. The dashed amber line is one possible connection; the ? bunker is selected, not yet observed. The white marker demonstrates travel, with no measured timing.</p>
       <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Possible leg ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
       <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
     : `<div class="empty">${esc(result.warning)}</div>`}`)
-  + sec(`Shots seen · ${shots.length}`,shots.length ? `<ol class="arrival-narrative">${shots.map((o,i)=>`<li><b>${i+1}. From ${esc(label(o.from))} at ${esc(label(o.to))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · white line on the field</span></li>`).join("")}</ol>` : `<div class="empty">No shots recorded for this player on this point. Pick the bunker he was at, then the one he was shooting at.</div>`)
+  + sec(`Shots seen · ${shots.length}`,shots.length ? `<ol class="arrival-narrative">${shots.map((o,i)=>`<li><b>${i+1}. From ${esc(label(o.from))} at ${esc(label(o.to))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · white line on the field</span>
+        <span class="btnrow" style="margin-top:4px"><button class="btn btn--quiet" onclick="dropArrivalShot(${jsq(o.id)})" aria-label="Remove shot ${i+1}">✕ Remove</button></span></li>`).join("")}</ol>` : `<div class="empty">No shots recorded for this player on this point. Pick the bunker he was at, then the one he was shooting at.</div>`)
   + (mv => sec(`Their rotations · ${esc(curLayout().name)}`, mv.length ? `<p class="lede">Where <b>${esc(c.team)}</b> have been seen to move after the break on this field, all matches, all points — the next sighting of the same man on the same point, counted.</p>
       <div class="assigns">${mv.slice(0, 8).map(m => `<div class="assign">
         <span class="assign__n" style="background:var(--blue)">${m.n}</span>
@@ -11839,7 +11925,9 @@ function scoutArrival(){
   + (lanes => sec(`Their lanes · ${esc(curLayout().name)}`,lanes.length ? `<p class="lede">Every lane <b>${esc(c.team)}</b> has been seen to shoot on this field, all matches, all points — counted from what you logged.</p>
       <ol class="arrival-narrative">${lanes.slice(0,8).map(l=>`<li><b>${esc(label(shownTeamBunker(l.from, c.team)))} → ${esc(label(shownTeamBunker(l.to, c.team)))}</b> <span class="tag">${l.n}×</span></li>`).join("")}</ol>${lanes.length>8?`<p class="note">Showing the eight most seen of ${lanes.length}.</p>`:""}
       <p class="aid"><b>A count, not a prediction.</b> It says where they have shot from and at when you were watching. Officials govern the live call.</p>` : `<div class="empty">Nothing logged yet for ${esc(c.team)} on this field. Shots you record above build this up through the match.</div>`))(teamLanes(c.team,c.layout))
-  + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">Nothing seen yet for this player on this field, match and point. Until you add what you saw, the route is only what the field allows.</div>`);
+  + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span>
+        <span class="btnrow" style="margin-top:4px"><button class="btn btn--quiet" onclick="fixArrivalSighting(${jsq(o.id)})" aria-label="Move sighting ${i+1} to the bunker selected">Move here</button>
+        <button class="btn btn--quiet" onclick="dropArrivalSighting(${jsq(o.id)})" aria-label="Remove sighting ${i+1}">✕ Remove</button></span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">Nothing seen yet for this player on this field, match and point. Until you add what you saw, the route is only what the field allows.</div>`);
 }
 document.addEventListener("click",ev=>{
   if(S.tab!=="scout" || S.scoutTab!=="arrival") return;
@@ -12164,28 +12252,34 @@ function scoutBreakouts(){
   // watching both teams are on that field, so a switch says whose five this is.
   const watch = !!(curMatch()||{}).watch, side = watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
   const R=pitOf(side), seen=theirBreaks(side), freq=breakFreq(side);
+  const fixing = S.theirFix && S.theirFix.side === side ? seen.find(b => b && b.at === S.theirFix.at) || null : null;
   const named=seen.filter(b=>b.script), total=named.length, picked=S.theirPick||[], pt=sheetPoint();
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
   const plants=plantCounts(side);
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
-      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[]})">${esc(pitOf(sd).name)}</button>`).join("")}
+      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[],theirFix:null})">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
   return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order —
       two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>
     <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
+    ${fixing ? `<p class="warn">Fixing ${fixing.pt ? `point ${fixing.pt}'s five` : "a five logged for the season"}. Tap a man's × to take him off, tap the field to put one on, then Save.</p>` : ""}
     <div class="btnrow">
-      <button class="btn" onclick="logTheirFive('${side}')">Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}</button>
-      <button class="btn btn--quiet" onclick="set({theirPick:(S.theirPick||[]).slice(0,-1)})"${picked.length?'':' disabled'}>Undo last</button>
-      <button class="btn btn--quiet" onclick="set({theirPick:[]})"${picked.length?'':' disabled'}>Clear</button>
+      <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}`}</button>
+      <button class="btn btn--quiet" onclick="undoTheirPick()" aria-label="Undo the last tap on this five">↶ Undo</button>
+      <button class="btn btn--quiet" onclick="clearTheirPick()" aria-label="Clear the men placed">Clear all</button>
+      ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
     </div>
+    ${(lastFive => lastFive && !fixing && !picked.length ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${lastFive.script ? esc(callName(lastFive.script)) + " · " : ""}${lastFive.pt ? `point ${lastFive.pt}` : "season"}${lastFive.plants ? ` · ${lastFive.plants.map(id => esc(label(id))).join(", ")}` : ""}</b>.</p>
+        ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${lastFive.at})">Fix it</button>` : ""}
+        <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${lastFive.at})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
     <p class="note" role="status">${picked.length
-      ? `${picked.length} of 5 placed. Log the five on their own, or tap a named call below to log it with them.`
+      ? fixing ? `${picked.length} placed. Save the five when it is right.` : `${picked.length} of 5 placed. Log the five on their own, or tap a named call below to log it with them.`
       : `Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.`}</p>
     ${picked.length ? `<div class="seg" style="flex-wrap:wrap" aria-label="Placed men">${picked.map((id, i) =>
       `<button onclick="dropTheirPick(${i})" aria-label="Take man ${i + 1} off ${esc(label(id))}">${i + 1} · ${esc(label(id))} ×</button>`).join("")}</div>` : ""}`,
     R.name)
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
-      film; this is the count behind it.${picked.length?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
+      film; this is the count behind it.${picked.length&&!fixing?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
       ${(now => Object.entries(allPlays()).map(([k,v])=>`<button class="${now===k?"on":""}" aria-pressed="${now===k}" onclick="logTheirBreak('${side}','${k}')">${esc(callName(k))}</button>`).join(""))(
         // The call already logged for this point is lit, or a tap reads as nothing.
@@ -12222,6 +12316,7 @@ function scoutBreakouts(){
         <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt || "·"}</span>
         <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
         <span class="assign__who">${b.pt ? `point ${b.pt}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
+        ${b.plants && b.plants.length && (!b.layout || b.layout === S.layoutKey) ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${b.at})">Fix</button>` : ""}
         <button class="btn btn--danger" onclick="unlogTheirBreak('${side}',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
@@ -13226,6 +13321,7 @@ const HELP_Q = [
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, and the USXBL JT Championship's off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
+  ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],

@@ -700,6 +700,16 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     it closes a sheet with changes. A logged man gets **Fix it** and **Undo**
     on the Logged line under the field and **Fix** in Breakouts, which open
     him with his answers through `editBreakout`.
+    Scout has the same: every change to their five being placed goes through
+    `setPick`, which keeps the five it replaced (`_pickHist`, never saved), so
+    **↶ Undo** takes back the last tap — a man placed, a ×, a Clear all — and
+    neither button is ever disabled. A logged five has **Fix it** on the
+    Logged line and **Fix** in As you saw it (`fixTheirFive`, `S.theirFix`
+    scratch): its men go back on the field, Save writes over that row on the
+    point it was logged on and `trimFiveMen` takes off the untold men it no
+    longer has, and a call tapped mid-fix is refused rather than logged on
+    this point. How did they get there gives each sighting **Move here** (to
+    the bunker selected) and **✕ Remove**, and each shot a ✕.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
