@@ -6930,6 +6930,16 @@ function fiveFor(pt){
   const line = lineupAt(pt), roster = S.roster || [];
   return [0,1,2,3,4].map(i => (line[i] && playerNamed(line[i])) || (line.length ? null : roster[i]) || null);
 }
+// The men a side puts on the field on this sheet's format: the five cut to
+// three on a 3-man sheet, and on a 7- or 10-man sheet the five with the next
+// men off the roster after them — Tally listed five whatever the format, so a
+// 3-man sheet showed two men nobody could tap out and a 7-man sheet hid two.
+function sideMen(pt){
+  const n = sideSize(), five = fiveFor(pt).filter(Boolean);
+  if(n <= five.length) return five.slice(0, n);
+  const on = new Set(five.map(p => p.name));
+  return [...five, ...(S.roster || []).filter(p => p && !on.has(p.name))].slice(0, n);
+}
 // Who is on the point, as names, whether the five came from a lineup or the roster.
 const onPoint = pt => fiveFor(pt).filter(Boolean).map(p => p.name);
 /* Rotation, where the point is scored. Tap a man who is on and he comes off;
@@ -10636,7 +10646,7 @@ function breakoutSheet(){
   const edRow = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
   const rowPt = edRow ? edRow.pt : pt;
   const side = d.side || sideOfBunker(b, rowPt);
-  const mine = fiveFor(rowPt).filter(Boolean).map(p => p.name);
+  const mine = sideMen(rowPt).map(p => p.name);
   // On a watched game "us" is the home side, not his five: neither side is
   // his to name from his roster, so both are numbers, and the toggle names
   // the two teams. A home man filed as Reyes would land in Reyes's own read.
@@ -10727,7 +10737,7 @@ function tally(){
   const pt=sheetPoint();
   const sc=matchScore(), was=resultFor(pt);
   const bl=curLayout().bunkers;
-  const mine=fiveFor(pt).filter(Boolean);
+  const mine=sideMen(pt);
   // The sheet, the counts and the log are this match's. A season of outs under
   // a point number that starts again every game is not a point sheet.
   const outs=rowsHere(S.tally);
@@ -10997,9 +11007,9 @@ function tally(){
          <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'breakouts'})">Open Scout</button>
        </div>` : ""}
     <div class="who2">
-      ${col("us", (curMatch()||{}).watch ? "Your five · not on this field"
-              : mine.length?"Your five":"Your five · no names yet", "var(--red)",
-            mine.length?mine.map(p=>p.name):["1","2","3","4","5"])}
+      ${(yw => col("us", (curMatch()||{}).watch ? `${yw} · not on this field`
+              : mine.length?yw:`${yw} · no names yet`, "var(--red)",
+            mine.length?mine.map(p=>p.name):Array.from({length:sideSize()},(_,i)=>String(i+1))))(sideSize()===5?"Your five":`Your ${sideSize()}`)}
       ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",theirNames())}
     </div>
     <p class="note" style="max-width:56ch">Right read or wrong read, then who won it. That is the whole score, and it
@@ -14803,7 +14813,7 @@ function moreBody(k){
     // The man is tapped, the five on the point first and the bench after, the
     // way Assess does it — a dropdown of nine asked him to find the man he was
     // looking at.
-    const on=onPoint(sheetPoint()), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const on=sideMen(sheetPoint()).map(p=>p.name), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
     const chip=n=>`<button class="${S.moveWho===n?"on":""}" onclick="movePick(${jsq(n)})">${esc(n)}</button>`;
     const who=!roster.length
       ? `<div class="empty">No roster yet. Add your squad, then log who moved.
@@ -14873,7 +14883,7 @@ function moreBody(k){
     if(nobodyToPlay()) return sec("Assess", noOpponentNote("a grade"));
     const all=S.assessments||[];
     const here=rowsHere(all);
-    const pt=sheetPoint(), on=onPoint(pt), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
+    const pt=sheetPoint(), on=sideMen(pt).map(p=>p.name), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
     const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${g.score}`:""}</button>`; };
     const names=[...new Set(all.map(a=>a.who))];
     const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
