@@ -2810,9 +2810,10 @@ const ROSTER = [
     const picker = /Secondary lane/.test(document.getElementById("root").textContent) && !!document.getElementById("lane-shot2-" + p.id);
     const card = cardLines()[0].shot2 === LANE_NAME[0];
     const turned = mirrorDirect(directOf(p.id)).shot2 === "@180";
+    window.setDirect(p.id, "shot2", far); const same = directOf(p.id).shot2 === "@0" && /already his primary lane/.test(S.flash);
     window.setDirect(p.id, "shot2", ""); window.setDirect(p.id, "shot", "");
     const gone = !directOf(p.id).shot2 && dashed() === before;
-    return drawn && picker && card && turned && gone || JSON.stringify({ drawn, picker, card, turned, gone, before });
+    return drawn && picker && card && turned && same && gone || JSON.stringify({ drawn, picker, card, turned, same, gone, before });
   }));
   check("every one of the five carries a face and a lane", await ev(() => {
     const f = document.querySelectorAll("svg.field polyline[stroke='#fff']").length;

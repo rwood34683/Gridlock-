@@ -7089,6 +7089,10 @@ window.setDirect = (id, field, value) => {
   const all = {...(S.direct || {})};
   const k = directKey(id);
   const cur = {...(all[k] || {})};
+  // A secondary lane is a second lane: the same lane twice is one lane drawn twice.
+  if(value && ((field === "shot2" && value === cur.shot) || (field === "shot" && value === cur.shot2))){
+    flash(field === "shot2" ? "That is already his primary lane — pick a different one for Lane 2." : "That is already his Lane 2 — clear it there first, or pick a different primary."); return;
+  }
   if(value === null || value === "") delete cur[field]; else cur[field] = value;
   all[k] = cur;
   S.direct = all;
