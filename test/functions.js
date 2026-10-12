@@ -505,7 +505,8 @@ const ROSTER = [
   check("format: asked after sign-in, before the tabs", await ev(() => {
     const root = document.getElementById("root"), txt = root.textContent;
     return S.fmtAsk === true && /Your format/.test(txt) && /Division/.test(txt) && /10-man/.test(txt)
-      && /Semi-Pro/.test(txt) && /Division 5/.test(txt) && !root.querySelector("nav.tabs");
+      && /Semi-Pro/.test(txt) && /Division 5/.test(txt) && !root.querySelector("nav.tabs")
+      && !root.querySelector(".help-btn, .ctx__call, .ctx__ev");   // no header doors that open nothing
   }));
   check("format: answers land on the sheet, save under a name and come back", await ev(() => {
     window.setFmt("div", "Division 3"); window.setFmt("game", "3"); window.setFmt("raceTo", 4);
@@ -2809,9 +2810,10 @@ const ROSTER = [
     const picker = /Secondary lane/.test(document.getElementById("root").textContent) && !!document.getElementById("lane-shot2-" + p.id);
     const card = cardLines()[0].shot2 === LANE_NAME[0];
     const turned = mirrorDirect(directOf(p.id)).shot2 === "@180";
+    window.setDirect(p.id, "shot2", far); const same = directOf(p.id).shot2 === "@0" && /already his primary lane/.test(S.flash);
     window.setDirect(p.id, "shot2", ""); window.setDirect(p.id, "shot", "");
     const gone = !directOf(p.id).shot2 && dashed() === before;
-    return drawn && picker && card && turned && gone || JSON.stringify({ drawn, picker, card, turned, gone, before });
+    return drawn && picker && card && turned && same && gone || JSON.stringify({ drawn, picker, card, turned, same, gone, before });
   }));
   check("every one of the five carries a face and a lane", await ev(() => {
     const f = document.querySelectorAll("svg.field polyline[stroke='#fff']").length;
