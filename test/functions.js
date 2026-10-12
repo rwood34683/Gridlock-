@@ -5845,6 +5845,56 @@ const ROSTER = [
     patchMatch({ size: null }); window.set({ theirPick: [] });
     return seven && logged && three || JSON.stringify({ seven, logged, three });
   }));
+  check("format: a 7-man five moves across whole, the ghost is the side's size, a penalty never empties a 3-man side, and a merge never puts more men on a point than started it", await ev(() => {
+    window.confirm = () => true; const keep = S.roster;
+    window.set({ tab: "tally", right: { name: "" }, roster: "M1,M2,M3,M4,M5,M6,M7,M8,M9".split(",").map((x, i) => ({ name: x, num: i + 1, p: "GP", s: "snake" })) });
+    window.newMatch(); patchMatch({ size: 7 }); window.swapOn("M7"); window.swapOn("M9");
+    window.set({ right: { name: "Format FC" } }); window.newMatch(); patchMatch({ size: 7 });
+    const side = sideMen(1).map(p => p.name), whole = side.includes("M9") && !side.includes("M7");
+    S.lineups = {}; window.set({ roster: keep });
+    patchMatch({ size: 3 });
+    const bl = curLayout().bunkers.filter(b => b.x > 80);
+    S.point = 1; [0, 3, 6, 9].forEach(i => { setPick([bl[i].id, bl[i + 1].id, bl[i + 2].id]); window.logTheirFive("right"); window.nextPoint(); });
+    const ghost = likelyPlants("right").top.length === 3;
+    window.togglePen(); const btns = [...document.querySelectorAll('#root [aria-label$="off"]')].filter(b => /^\d+ m[ae]n off$/.test(b.getAttribute("aria-label"))).length;
+    window.addPen("them", 3); const refused = /leaves nobody/.test(S.flash || "") && startUp("them", S.matchId, S.point) === 3;
+    const mid = S.matchId, pt = S.point, mine = curLayout().bunkers.filter(b => b.x > 80);
+    S.breakouts = (S.breakouts || []).filter(r => r.m !== mid);
+    S.breakouts = [0, 1, 2].map(i => ({ id: "fa" + i, m: mid, pt, layout: S.layoutKey, side: "them", bunker: mine[i].id, todo: true, at: i })).concat(S.breakouts);
+    const sent = JSON.parse(sheetPayload(mid));
+    sent.data.breakouts = [10, 11, 12].map(i => ({ id: "fb" + i, m: mid, pt, layout: S.layoutKey, side: "them", bunker: mine[i].id, todo: true, at: i }));
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const onPt = S.breakouts.filter(r => r.m === mid && r.pt === pt && r.side === "them").length;
+    S.breakouts = S.breakouts.filter(r => r.m !== mid); S.pens = []; editProfile("right", { breaks: [] });
+    window.set({ copySheet: null, copyStatus: "", penOpen: false, right: { name: "Dynasty" } }); patchMatch({ size: null }); window.newMatch();
+    return whole && ghost && btns === 4 && refused && onPt === 3 || JSON.stringify({ whole, side, ghost, btns, refused, onPt });
+  }));
+  check("review: the quick log's read has its Call button, Undo follows a new man to another bunker, a man under Where they plant on another sheet says it moved you, and a format's name is cut on a word", await ev(() => {
+    window.confirm = () => true;
+    window.set({ tab: "tally", right: { name: "Quick FC" }, theirPick: [], theirFix: null }); window.newMatch();
+    const keys = Object.keys(BREAKS);
+    for(let p = 1; p <= 4; p++){ window.set({ script: keys[1] }); window.logCall(); window.logTheirBreak("right", keys[2]); window.endPoint("us"); }
+    window.set({ script: keys[0] }); window.openQuick();
+    const callBtn = document.querySelectorAll(".qlog .read-line__go").length === 1;
+    window.closeQuick(); window.set({ tab: "tally", tallyStep: "tell" });
+    const bl = curLayout().bunkers;
+    window.selectBunker(bl[30].id); window.setDraft({ alive: false }); window.setDraft({ delayed: true });
+    window.selectBunker(bl[31].id); window.undoDraft(); const undone = S.tallyDraft.alive === false && !S.tallyDraft.delayed;
+    window.tallyDone(); const said = /not logged/.test(S.flash || "");
+    const first = S.matchId;
+    window.set({ tab: "tally", tallyStep: "place" }); placeAt(bl.filter(b => b.x > 80)[0]);
+    const row = S.breakouts.find(r => r.m === first && r.todo);
+    window.newMatch(); window.openManDetails(row.id);
+    const moved = S.matchId === first && /Opened .* to tell him/.test(S.flash || "");
+    window.tallyDone();
+    S.fmt = { game: "7", raceTo: 4, mercy: 3, breakClock: 45 }; window.set({ tab: "more", more: "format" });
+    window.saveFmt(); const nm = (S.fmts[0] || {}).name || "", cut = nm.length <= 40 && !/betwe$|\bbe$/.test(nm) && / · /.test(nm);
+    S.fmts = []; S.fmt = {}; S.breakouts = S.breakouts.filter(r => r.m !== first); S.calls = (S.calls || []).filter(c => c.m !== first);
+    S.results = (S.results || []).filter(r => r.m !== first); editProfile("right", { breaks: [] });
+    window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
+    return callBtn && undone && said && moved && cut || JSON.stringify({ callBtn, undone, said, moved, nm });
+  }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
     const keepS = S.arrivalSightings, keepH = S.arrivalShots;
@@ -9167,9 +9217,10 @@ const ROSTER = [
     /\b3\b/.test(document.getElementById("root").innerText)
     && startUp("us", S.matchId, 2) - (S.tally || []).filter(o => o.m === S.matchId
         && o.pt === 2 && o.side === "us").length === 3));
-  check("nobody is ever put below one man", await ev(() => {
-    window.addPen("us", 3); window.addPen("us", 3);
-    return startUp("us", S.matchId, 2) === 1;
+  check("nobody is ever put below one man, and the refusal says so", await ev(() => {
+    window.addPen("us", 3); const refused = /leaves nobody/.test(S.flash || "") && startUp("us", S.matchId, 2) === 3;
+    window.addPen("us", 2);
+    return refused && startUp("us", S.matchId, 2) === 1;
   }));
   check("undoing it puts the point back to five", await ev(() => {
     (S.pens || []).filter(p => p.pt === 2).slice(0, 2).forEach(p => window.dropPen(p.id));
