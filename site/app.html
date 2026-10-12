@@ -3848,10 +3848,10 @@ window.useFmt = id => {
   S.fmt = FMT_KEYS.reduce((o, k) => (p[k] !== undefined ? {...o, [k]: p[k]} : o), {});
   const f = S.fmt, m = curMatch();
   if(m && f.div !== undefined) patchMatch({div: f.div});
-  if(f.game) fmtSize(f.game);
-  // The sheet takes what it can: a race or a mercy the score has already
-  // passed is refused for this sheet and says so; the next sheet has it.
+  // The sheet takes what it can: a size, a race or a mercy this sheet can no
+  // longer take is refused for it and says so; the next sheet has it.
   const msgs = [];
+  if(f.game){ S.flash = ""; fmtSize(f.game); if(S.flash) msgs.push(S.flash); }
   if(f.raceTo !== undefined){ S.flash = ""; window.setRaceTo(f.raceTo); if(S.flash) msgs.push(S.flash); }
   if(f.mercy !== undefined){ S.flash = ""; window.setMercy(f.mercy); if(S.flash) msgs.push(S.flash); }
   if(f.clock !== undefined) window.setBreakClock(f.clock);
@@ -4669,6 +4669,12 @@ function set(patch){
   // Every half-done pick is a bunker id, and ids repeat across fields: three
   // of their bunkers tapped on Lone Star logged as Tampa's Wg#2, and an open
   // breakout sheet wrote its man to the other field's bunker.
+  if("layoutKey" in patch && patch.layoutKey !== S.layoutKey){ _pickHist = []; _draftHist = {key: "", list: []}; }
+  // A fix belongs to the team it was opened on: another team in the right
+  // pit leaves it, and the men picked for it, behind.
+  if("right" in patch && foldName((patch.right || {}).name) !== foldName((S.right || {}).name) && S.theirFix && S.theirFix.side === "right"){
+    patch = {theirFix: null, theirPick: [], ...patch}; _pickHist = [];
+  }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
              moveFrom: null, moveTo: null, callPick: null, walkPick: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
@@ -5117,7 +5123,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts"];
 // Messages ride too: the Messages screen says a note travels in a squad copy,
 // and it did not.
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams","messages"];
@@ -5219,6 +5225,8 @@ const SAME = {
   // assistant's phone replaced his plays with theirs, and a full copy
   // replaced his penalties, timeouts and added games.
   plays:       p => p.k,
+  // A saved format is known by its name, as he gave it.
+  fmts:        f => foldName(f.name),
   offPlays:    k => String(k),
   // One day, one clock, the same two teams is one game, whatever id each phone gave it.
   games:       g => [g.d, g.t, foldName(g.h), foldName(g.a)].join("|"),
@@ -5694,7 +5702,7 @@ window.loadCopy = mode => {
   // off are his own choices, not records: an assistant's copy merged in used
   // to swap his pits for theirs, turn off the calls they do not run and hide
   // the schedule rows they did not want.
-  const HERE = ["teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
+  const HERE = ["fmt", "teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   // Who won a point is the one thing two phones can disagree on outright. The
@@ -6958,8 +6966,14 @@ window.swapOn = name => {
   // The side is as many men as the format plays — three, five, seven, ten —
   // and the slots past it (a 3-man sheet's four and five) are left as they are.
   const n = sideSize(), width = Math.max(5, n);
-  const line = [...lineupAt(pt)];
-  if(!line.slice(0, n).some(Boolean)) sideMen(pt).forEach((p, i) => { line[i] = p.name; });
+  // Seeded from the side on screen whenever the written five does not reach
+  // the format's count: a five written on Lineups on a 7-man sheet is five
+  // slots, and working on it took the wrong man off and dropped the filler.
+  let line = [...lineupAt(pt)];
+  if(line.length < n || !line.slice(0, n).some(Boolean)){
+    const side = sideMen(pt).map(p => p.name);
+    line = [...side, ...line.slice(side.length).map(x => side.includes(x) ? "" : x)];
+  }
   while(line.length < width) line.push("");
   const at = line.slice(0, n).indexOf(name);
   if(at >= 0) line[at] = "";
@@ -8090,6 +8104,10 @@ window.playNamed = () => {
 };
 window.setPitTeam = (side, name) => {
   if(otherPitHas(side, name)){ flash(`${name} is already in the ${otherPitHas(side, name)} pit.`); render(); return; }
+  // A five being fixed, or picked, belongs to the team that was in the pit.
+  if(foldName(name) !== foldName((S[side] || {}).name)){
+    if(S.theirFix && S.theirFix.side === side){ S.theirFix = null; S.theirPick = []; _pickHist = []; }
+  }
   S[side] = {...(S[side] || {}), name: name || ""};
   if(side === "right"){ adoptPitAsOpponent(); if(matchVs()) S.tallyNudge = false; }
   save(S); render();
@@ -8548,7 +8566,12 @@ function sheetEmpty(m){
 window.logTheirBreak = (side, script, plants) => {
   // A five being fixed belongs to the point it was logged on; a call tapped
   // now would log it on this point instead.
-  if(S.theirFix && !Array.isArray(plants)){ flash("Save the five you are fixing first, or Cancel the fix."); return; }
+  if(S.theirFix && !Array.isArray(plants)){
+    // A fix whose row is gone — the pit took another team, the row was taken
+    // off — is no fix: it is dropped rather than blocking every call.
+    if(theirBreaks(S.theirFix.side).some(b => b && b.at === S.theirFix.at)){ flash("Save the five you are fixing first, or Cancel the fix."); return; }
+    S.theirFix = null; S.theirPick = []; _pickHist = [];
+  }
   // On a field the open sheet is not on, what they run is still worth
   // counting: it lands as a season row on this field, never on that sheet's point.
   const off = !!sheetField();
@@ -8617,6 +8640,11 @@ window.openManDetails = id => {
 window.logTheirFive = side => {
   if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
   const fix = S.theirFix && S.theirFix.side === side ? theirBreaks(side).find(b => b && b.at === S.theirFix.at) : null;
+  if(S.theirFix && !fix){
+    S.theirFix = null; S.theirPick = []; _pickHist = [];
+    flash("The five you were fixing is not on this team any more — nothing was saved. Tap the field to start this five again.");
+    return;
+  }
   if(fix){
     const plants = S.theirPick.slice(0, sideSize(matchById(fix.m) || undefined));
     if(fix.pt && fix.m){
@@ -10031,7 +10059,7 @@ const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) 
  * misses. Each change keeps the answer it replaced, so Undo takes back the
  * last tap and Clear starts this man over — never the whole point. Kept for
  * the man on the sheet only (his row, else his bunker) and never saved. */
-let _draftHist = {key: "", list: []};
+var _draftHist = {key: "", list: []};   // var: an early set() may reach it first
 const draftKey = () => (S.tallyEdit || "") + "|" + (S.tallySel || "");
 function keepDraft(){
   if(_draftHist.key !== draftKey()) _draftHist = {key: draftKey(), list: []};
@@ -11356,7 +11384,7 @@ window.nextPoint = () => {
   S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
 };
 function clearPointScratch(){
-  S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
+  S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
   // placing all of them first — and by half: Theirs set for one man who
   // broke deep is not the next point's whole break.
@@ -13060,7 +13088,7 @@ function scoutBreakouts(){
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
   const plants=plantCounts(side);
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
-      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[],theirFix:null})">${esc(pitOf(sd).name)}</button>`).join("")}
+      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="_pickHist=[];set({scoutSide:'${sd}',theirPick:[],theirFix:null})">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
   return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
       two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>

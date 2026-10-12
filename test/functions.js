@@ -5773,6 +5773,48 @@ const ROSTER = [
     patchMatch({ size: null }); window.set({ roster: keep });
     return three && seven || JSON.stringify({ three, seven, txt: read() });
   }));
+  check("review: Who's on on a 7-man sheet over a written five takes the man tapped, keeps the side", await ev(() => {
+    window.confirm = () => true; const keep = S.roster;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, roster: "P1,P2,P3,P4,P5,P6,P7,P8,P9".split(",").map((x, i) => ({ name: x, num: i + 1, p: "GP", s: "snake" })) });
+    window.newMatch(); window.set({ tab: "tally" }); patchMatch({ size: 7 }); window.setSlot(0, "P1");
+    const side = () => sideMen(sheetPoint()).map(p => p.name);
+    window.swapOn("P7"); const off = side().length === 6 && !side().includes("P7") && side().includes("P6");
+    window.swapOn("P8"); const on = side().length === 7 && side().includes("P8") && side().includes("P6");
+    S.lineups = {}; patchMatch({ size: null }); window.set({ roster: keep });
+    return off && on || JSON.stringify({ off, on, side: side() });
+  }));
+  check("review: an event change or a new point leaves no Undo behind on Scout's five or the breakout sheet", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, theirPick: [], theirFix: null });
+    window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
+    const was = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== was);
+    const bl = curLayout().bunkers; setPick([bl[40].id]); setPick([bl[40].id, bl[41].id]);
+    window.pickEvent(other); window.undoTheirPick(); const pickClean = !(S.theirPick || []).length;
+    window.pickEvent(was); window.set({ tab: "tally" });
+    window.selectBunker(curLayout().bunkers[3].id); window.setDraft({ player: "#1", alive: false });
+    window.nextPoint(); window.selectBunker(curLayout().bunkers[3].id); window.undoDraft();
+    const draftClean = !S.tallyDraft.player && /Nothing to undo/.test(S.flash);
+    window.tallyDone();
+    return pickClean && draftClean || JSON.stringify({ pickClean, draftClean, d: S.tallyDraft });
+  }));
+  check("review: a fix left behind by another team in the pit never blocks a call or saves the old five", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Rejects" }, theirPick: [], theirFix: null });
+    window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
+    const bl = curLayout().bunkers.filter(b => b.x > 80); setPick([bl[0].id, bl[1].id]); window.logTheirFive("right");
+    window.fixTheirFive("right", theirBreaks("right")[0].at);
+    window.setPitTeam("right", "Dynasty");
+    const dropped = !S.theirFix && !(S.theirPick || []).length;
+    window.logTheirBreak("right", "blitz"); const logged = theirBreaks("right").some(b => b.script === "blitz");
+    editProfile("right", { breaks: [] }); window.setPitTeam("right", "Rejects"); editProfile("right", { breaks: [] }); S.breakouts = [];
+    return dropped && logged || JSON.stringify({ dropped, logged });
+  }));
+  check("review: saved formats travel in a copy, and Use says when the sheet keeps its size", await ev(() => {
+    S.fmts = [{ id: "fq1", name: "Ten", game: "10" }];
+    const d = readCopy(copyPayload("all")); const travels = !d.error && (d.payload.data.fmts || []).length === 1;
+    window.set({ right: { name: "Dynasty" } }); window.newMatch(); window.endPoint("us");
+    window.useFmt("fq1"); const said = /keeps 5 a side/.test(S.flash) && sideSize() === 5;
+    S.fmts = []; S.fmt = {};
+    return travels && said || JSON.stringify({ travels, said, flash: S.flash });
+  }));
   check("Who's on and a penalty count the format's side, not five", await ev(() => {
     window.confirm = () => true;
     const keep = S.roster;
