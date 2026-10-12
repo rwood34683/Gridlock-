@@ -647,7 +647,7 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     the four fields, More and the site. **A schedule game is on a field**: a
     row carries `layout` (the event's, `SCHEDULE.layout`), `toGameField()`
     moves him onto it when he watches or plays it and says so, the sheet is
-    stamped with `game`, and a row pairs only with sheets on its own day and
+    stamped with `sched` (the schedule game; `game` is the format), and a row pairs only with sheets on its own day and
     field. A paste reads a date ahead of the clock, drops a Pit or division
     cell (`SCH_DIV`) and says how many lines it skipped. **A refusal keeps what
     he typed**: `flash()` lays every box he typed in back after the redraw when
