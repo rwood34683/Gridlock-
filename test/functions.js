@@ -9812,6 +9812,22 @@ const ROSTER = [
      Help — a coach on a sideline has no signal and nobody to ask
      -------------------------------------------------------------------- */
   G("Help");
+  // A button's spoken name carries the words written on it, or voice control
+  // cannot find "Clear all" when VoiceOver calls it something else.
+  check("every labelled button's spoken name carries its visible words", await ev(() => {
+    const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+    const bad = [];
+    [{ tab: "playbook" }, { tab: "tally" }, { tab: "scout", scoutTab: "breakouts" }, { tab: "more", more: "team" }, { tab: "more", more: "format" }].forEach(sc => {
+      window.set(sc);
+      if(sc.tab === "tally" && matchVs()) window.selectBunker(curLayout().bunkers[3].id);
+      document.querySelectorAll("#root button[aria-label]").forEach(b => {
+        const vis = norm(b.innerText), lab = norm(b.getAttribute("aria-label"));
+        if(vis.length > 1 && !lab.includes(vis)) bad.push(b.innerText.trim() + " → " + b.getAttribute("aria-label"));
+      });
+    });
+    window.tallyDone(); window.set({ tab: "playbook" });
+    return !bad.length || JSON.stringify(bad.slice(0, 5));
+  }));
   check("every screen in the app has a help entry", await ev(() => {
     const want = ["playbook","playbook/cards","playbook/rep","tally","sightlines",
       ...SCOUT_TABS.map(([k]) => "scout/" + k),
