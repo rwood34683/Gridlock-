@@ -5451,7 +5451,7 @@ const ROSTER = [
     const add = (w, m) => { document.getElementById("cdWord").value = w; document.getElementById("cdMeans").value = m; window.addCode(); };
     add("Rocket", "snake stack"); add("rocket", "snake stack, runner on the buzzer"); add(" Rocket ", "");
     const codes = S.codes || [];
-    return codes.length === 1 && codes[0].word === "Rocket" && codes[0].means === "snake stack, runner on the buzzer" && /Rocket updated/.test(document.getElementById("root").textContent);
+    return codes.length === 1 && codes[0].word === "Rocket" && codes[0].means === "snake stack, runner on the buzzer" && /Rocket is already on the list/.test(document.getElementById("root").textContent);
   }));
   check("the next point is read from the spot you are in, with your best answer, on the sheet, the quick log and Playbook", await ev(() => {
     window.confirm = () => true;
@@ -5894,6 +5894,27 @@ const ROSTER = [
     S.results = (S.results || []).filter(r => r.m !== first); editProfile("right", { breaks: [] });
     window.set({ tab: "tally", right: { name: "Dynasty" } }); window.newMatch();
     return callBtn && undone && said && moved && cut || JSON.stringify({ callBtn, undone, said, moved, nm });
+  }));
+  check("review: a merge counts groups, members, code words and walk notes, folds a group and a member by name; Sunday's rows land on Sunday; a Counter answer to a turned-off play stays", await ev(() => {
+    window.confirm = () => true;
+    const keep = { groups: S.groups, codes: S.codes, walk: S.walk, offPlays: S.offPlays };
+    S.groups = [{ id: "gA", name: "Pit crew", members: [{ name: "Sam", phone: "555-0100" }] }]; S.codes = []; S.walk = {};
+    const sent = JSON.parse(copyPayload("all"));
+    sent.data.groups = [{ id: "gB", name: "pit crew", members: [{ name: "sam", phone: "(555) 0100" }, { name: "Lee", phone: "555-0101" }] }];
+    sent.data.codes = [{ word: "Rocket", means: "snake" }];
+    window.set({ tab: "more", more: "nexus" });
+    document.getElementById("copyIn").value = JSON.stringify(sent); window.loadCopy("merge");
+    const g = S.groups, folded = g.length === 1 && g[0].id === "gA" && g[0].name === "Pit crew" && g[0].members.length === 2;
+    const counted = /new here: .*1 group member.*1 code word/.test(S.copyStatus || "");
+    const rows = parseSchedule("Sat 10:00 Alpha vs Bravo\nSun 11:00 Charlie vs Delta");
+    const days = rows.rows ? rows.rows.map(r => r.d) : rows.map(r => r.d);
+    const sunday = days.length === 2 && days[0] !== days[1] && new Date(days[1] + "T12:00:00").getDay() === 0;
+    window.set({ tab: "scout", scoutTab: "counter", right: { name: "Dynasty" } });
+    window.setAnswer("right", "blitz", "flood"); S.offPlays = ["flood"]; window.set({ tab: "scout", scoutTab: "counter" });
+    const sel = [...document.querySelectorAll("#root select")].find(x => /when they run/.test(x.getAttribute("aria-label") || "") && x.value === "flood");
+    const stays = !!sel && /turned off/.test(sel.selectedOptions[0].textContent);
+    window.setAnswer("right", "blitz", ""); Object.assign(S, keep); window.set({ copyStatus: "" });
+    return folded && counted && sunday && stays || JSON.stringify({ folded, g, counted, status: S.copyStatus, days, stays });
   }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
@@ -7246,7 +7267,7 @@ const ROSTER = [
     const kept = asked.length === 1 && /1 out · 1 grade/.test(asked[0]) && /nothing logged is deleted/i.test(asked[0]) && i() >= 0;
     window.confirm = q => { asked.push(q); return true; };
     window.delPlayer(i());
-    const gone = i() < 0 && (S.tally || []).some(o => o && o.m === m && o.name === "Gone Soon") && /off the squad\. The 1 out · 1 grade stay/.test(S.flash || "");
+    const gone = i() < 0 && (S.tally || []).some(o => o && o.m === m && o.name === "Gone Soon") && /off the squad\. What is logged stays under his name \(1 out · 1 grade\)/.test(S.flash || "");
     window.delPlayer(S.roster.findIndex(p => p.name === "Never Played"));
     const quiet = asked.length === 2 && !S.roster.some(p => p.name === "Never Played") && /Never Played is off the squad\.$/.test(S.flash || "");
     // Their man on the pit card.
@@ -7259,7 +7280,7 @@ const ROSTER = [
     const theirKept = asked.length === 3 && /#77 Seen Once has 1 sighting/.test(asked[2]) && j() >= 0;
     window.confirm = q => { asked.push(q); return true; };
     window.delScoutPlayer("right", j());
-    const theirGone = j() < 0 && (S.arrivalSightings || []).some(x => x.id === "s-del") && /off the card\. The 1 sighting stay/.test(S.flash || "");
+    const theirGone = j() < 0 && (S.arrivalSightings || []).some(x => x.id === "s-del") && /off the card\. What is logged stays \(1 sighting\)/.test(S.flash || "");
     const flags = { kept, gone, quiet, theirKept, theirGone };
     S.arrivalSightings = (S.arrivalSightings || []).filter(x => x.id !== "s-del");
     S.tally = (S.tally || []).filter(o => !(o && o.m === m && o.name === "Gone Soon")); S.assessments = (S.assessments || []).filter(a => !(a && a.m === m));
