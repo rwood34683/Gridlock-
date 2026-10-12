@@ -2607,7 +2607,7 @@ window.delTeam = name => {
   const id = divisionOf().id, has = teamHas(name);
   if(has.any && !confirm(`${name} has ${has.text}. Take them off the board? Nothing logged is deleted — typing the name again puts them back with all of it.`)) return;
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== name)};
-  save(S); flash(has.any ? `${name} is off the board. The ${has.text} stay — type the name again to put them back.` : `${name} is off the board.`);
+  save(S); flash(has.any ? `${name} is off the board. What is logged against them stays (${has.text}) — type the name again to put them back.` : `${name} is off the board.`);
 };
 // A team typed at the Tally gate between points is typed fast — "Houston
 // Heet" — and everything that point logged is keyed on the spelling: the
@@ -4890,7 +4890,7 @@ window.delPlayer = i => {
     });
     S.lineups = lines;
   }
-  save(S); flash(has.any ? `${gone} is off the squad. The ${has.text} stay under his name.` : gone ? `${gone} is off the squad.` : "");
+  save(S); flash(has.any ? `${gone} is off the squad. What is logged stays under his name (${has.text}).` : gone ? `${gone} is off the squad.` : "");
 };
 
 /* QR, byte mode, error correction level M, versions 1 to 3.
@@ -5183,16 +5183,22 @@ function sheetPayload(id){
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 // The lists copySummary() names, so a merge can count what it added.
-const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents"];
+const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents","groups","codes","blasts","fmts","fields"];
 function copySummary(d){
-  const n = (k, f) => { const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
+  const n = (k, f) => {
+    // A walk is notes kept per field, and members sit inside their groups.
+    if(k === "walk" && d.walk && !Array.isArray(d.walk)) return Object.values(d.walk).reduce((t, l) => t + (Array.isArray(l) ? l.length : 0), 0);
+    if(k === "members" && !d.members) return (Array.isArray(d.groups) ? d.groups : []).reduce((t, g) => t + ((g && g.members) || []).length, 0);
+    const v = d[k]; return v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; };
   // The sheets and the score lead: a season of forty points with no out
   // tallied used to read as "6 players", which is a copy a coach deletes.
   const bits = [[n("matches"), "sheet"], [n("results"), "point scored"], [n("roster"), "player"], [n("plays"), "play of yours"],
                 [n("scout"), "team scouted"], [n("calls"), "call logged"], [n("tally"), "out"], [n("breakouts"), "breakout"],
                 [n("pens"), "penalty"], [n("timeouts"), "timeout"], [n("games"), "game added"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"]];
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"],
+                [n("groups"), "group"], [n("members"), "group member"], [n("codes"), "code word"], [n("walk"), "walk note"],
+                [n("blasts"), "blast"], [n("fmts"), "saved format"], [n("fields"), "field of yours"]];
   return bits.filter(b => b[0])
              .map(b => { const [k, w] = b; if(k === 1) return `1 ${w}`;
                          // the plural goes on the noun, not the tail: teams scouted, points scored, plays of yours
@@ -5217,7 +5223,8 @@ const SAME = {
   responses:   r => [r.code, (r.name || "").toLowerCase()].join("|"),
   matches:     m => m.id,
   results:     r => [r.m, r.pt].join("|"),
-  groups:      g => g.id,
+  // A group is known by its name, the way groupHas() keeps one name one group.
+  groups:      g => foldName(g.name),
   blasts:      b => [b.at, b.body].join("|"),
   blastTo:     id => id,
   codes:       c => (c.word || "").toLowerCase(),
@@ -5248,7 +5255,8 @@ function mergeMapValue(mine, incoming, trail){
       : trail[0] === "walk" ? x => [x.where, x.note, x.at].join("|")
       : end === "players" ? x => String(x.num || x.name || "").toLowerCase()
       : end === "breaks" ? x => [x.pt, x.script, x.at].join("|")
-      : end === "members" ? x => [x.name, x.phone || x.email || ""].join("|").toLowerCase()
+      // One name in a group is one person, as addMem keeps it.
+      : end === "members" ? x => foldName(x.name)
       : null;
     // A lineup and a drawn path are one value a key: this phone's stands, the
     // way this phone's row wins everywhere else. Two phones sending at once
@@ -5285,8 +5293,8 @@ function mergeInto(cur, incoming){
         seen.add(id); return true;
       })];
       if(k === "groups") out[k] = out[k].map(g => {
-        const added = v.find(x => x.id === g.id);
-        return added ? mergeMapValue(g, added, [k]) : g;
+        const added = v.find(x => x.id === g.id || foldName(x.name) === foldName(g.name));
+        return added ? {...mergeMapValue(g, added, [k]), id: g.id, name: g.name} : g;
       });
     } else if(Array.isArray(v)){
       out[k] = v;
@@ -5690,7 +5698,11 @@ window.loadCopy = mode => {
   // A man told on the other phone replaces this phone's untold row and adds
   // none, so breakouts count the told ones: "nothing new" was not true.
   const sizeOf = () => { const o = {}; COPY_COUNTED.forEach(k => { const v = S[k]; o[k] = v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0; });
-    o.told = (S.breakouts || []).filter(r => r && !r.todo).length; return o; };
+    o.told = (S.breakouts || []).filter(r => r && !r.todo).length;
+    // Held inside a group and inside a field's walk, so counted on their own.
+    o.members = (S.groups || []).reduce((n, g) => n + ((g && g.members) || []).length, 0);
+    o.walk = Object.values(S.walk || {}).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0);
+    return o; };
   const sizeBefore = sizeOf();
   // What just loaded is a copy, so the season has one as of now — the nudge
   // must not open on a restored phone saying none was ever made.
@@ -5944,7 +5956,7 @@ window.loadCopy = mode => {
   }
   if(mode !== "replace"){
     const after = sizeOf(), delta = {};
-    COPY_COUNTED.forEach(k => {
+    COPY_COUNTED.concat(["members", "walk"]).forEach(k => {
       // A new told row is one breakout, and so is a told row replacing an
       // untold one; counting rows plus told rows said 28 for 14.
       const n = k === "breakouts" ? Math.max(after[k] - sizeBefore[k], after.told - sizeBefore.told) : after[k] - sizeBefore[k];
@@ -6766,7 +6778,9 @@ function sampleStroke(pts, from, to){
       const p = currentPaths().find(x => x.id === drag.id);
       if(!p) return;
       const now = posAt(p, S.t);
-      const deg = Math.round(Math.atan2(at[1]-now[1], at[0]-now[0]) * 180 / Math.PI);
+      // Snapped to the eight the Face pad offers: a raw 29 had no arrow, no
+      // name on his card and no lit button on the pad.
+      const snap = Math.round(Math.atan2(at[1]-now[1], at[0]-now[0]) * 180 / Math.PI / 45) * 45, deg = snap <= -180 ? 180 : snap;
       if(Math.abs(deg - (directOf(drag.id).face ?? 999)) < 1) return;
       const all = {...(S.direct || {})};
       all[directKey(drag.id)] = {...(all[directKey(drag.id)] || {}), face: deg};
@@ -6898,7 +6912,8 @@ window.addCode = () => {
   // Retyping it updates what it means rather than adding a second one.
   const i = (S.codes || []).findIndex(c => foldName(c.word) === foldName(word));
   if(i >= 0){
-    const list = [...S.codes]; list[i] = {...list[i], means: means || list[i].means};
+    if(!means || means === S.codes[i].means){ flash(`${S.codes[i].word} is already on the list${means ? " with that meaning" : ""}.`); return; }
+    const list = [...S.codes]; list[i] = {...list[i], means};
     S.codes = list; flash(`${list[i].word} updated.`); save(S); render(); return;
   }
   S.codes = [...(S.codes || []), {word, means}];
@@ -7068,7 +7083,7 @@ function jobWordTaken(word, exceptId, script = S.script){
 }
 window.setCall = () => {
   const id = document.getElementById('bcId').value;
-  const nm = clean(document.getElementById('bcName').value.trim());
+  const nm = clean(document.getElementById('bcName').value.trim()).slice(0, 24);
   const who = (document.getElementById('bcWho') || {}).value || "";
   if(!id){ flash("Tap the bunker first."); return; }
   // An empty box takes a word off; with no word on the bunker there is
@@ -7689,7 +7704,7 @@ function fieldSVG(opts={}, runnersOnly){
            + `<polyline points="${pts}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${colour}" stroke="#fff" stroke-width="1.4"${offset===0&&opts.edit?` class="aim" data-aim="${p.id}"`:""}/>`
-         + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700">${p.id+offset}</text>`;
+         + `<text x="${cx.toFixed(1)}" y="${(cy+2.6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="700" pointer-events="none">${p.id+offset}</text>`;
     return out;
   }).join("");
 
@@ -8722,7 +8737,7 @@ function fiveSquares(ids, sx, sy, colour){
     const svg = surface.closest("svg.field"); if(!svg) return;
     ev.preventDefault();
     const b = bunkerAt(fieldFeet(svg, ev)); if(!b) return;
-    window.playPick(b.id);
+    window.playPick(shownBunker(b.id));
   });
 })();
 
@@ -9045,7 +9060,7 @@ window.delScoutPlayer = (side, i) => {
   const has = theirManHas(p), who = theirTag(p) || "This man";
   if(has.any && !confirm(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`)) return;
   editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
-  flash(has.any ? `${who} is off the card. The ${has.text} stay.` : `${who} is off the card.`);
+  flash(has.any ? `${who} is off the card. What is logged stays (${has.text}).` : `${who} is off the card.`);
 };
 
 function stars(n, key){
@@ -9879,7 +9894,9 @@ function repScore(){
    are picked on it. */
 function playBuilder(){
   const b = S.building, five = b.plants || [], list = curLayout().bunkers;
-  const nameOf = id => { const x = list.find(v => v.id === id); return x ? callOf(x) + " · " + x.id : id; };
+  // Plants are kept in the left-end frame; broken from the right end the
+  // builder draws and names the twin he actually sees, and a tap goes back.
+  const nameOf = fid => { const id = shownBunker(fid), x = list.find(v => v.id === id); return x ? callOf(x) + " · " + x.id : id; };
   const taken = callTaken((b.name || "").trim(), b.k);
   const placed = five.filter(Boolean).length;
   const ready = (b.name || "").trim() && placed === 5 && !taken;
@@ -9898,7 +9915,7 @@ function playBuilder(){
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
         onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
     <div class="field-wrap" id="build-map">${fieldSVG({static:true, pick:true, noPaths:true, names:true,
-      overlay: fiveSquares(five, 2, 2, "#e5342f")})}</div>
+      overlay: fiveSquares(five.map(id => id && shownBunker(id)), 2, 2, "#e5342f")})}</div>
     <div class="assigns">${[1,2,3,4,5].map(n => {
       const id = five[n-1], mates = id ? five.map((x, i) => x === id && i !== n - 1 ? i + 1 : 0).filter(Boolean) : [];
       return `<div class="assign">
@@ -11693,11 +11710,23 @@ function parseSchedule(text){
       day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       return true;
     };
+    // A weekday with no date ("Sun 11:00 …", or "Sunday" on a line of its own)
+    // is the day of that name nearest the one being read: a page's Sunday rows
+    // landed under Saturday.
+    const WD = ["sun","mon","tue","wed","thu","fri","sat"];
+    const byWeekday = txt => {
+      const w = /^\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|,|$)/i.exec(txt); if(!w) return false;
+      const want = WD.indexOf(w[1].toLowerCase()), base = new Date(day + "T12:00:00");
+      for(let k = -3; k <= 3; k++){ const d = new Date(base); d.setDate(base.getDate() + k);
+        if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; return true; } }
+      return false;
+    };
     const clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
     if(!clock){
       if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; return; }
       if(md && setDay(mon(md[1]), md[2])) return;
       if(dm && setDay(mon(dm[2]), dm[1])) return;
+      if(line.length <= 12) byWeekday(line);
       return;
     }
     // The clock through the same door a typed game goes through: "25:99" is
@@ -11716,6 +11745,7 @@ function parseSchedule(text){
     else if(preMd && mon(preMd[1]) >= 0){ setDay(mon(preMd[1]), preMd[2]); pre = pre.replace(preMd[0], " "); }
     else if(preDm && mon(preDm[2]) >= 0){ setDay(mon(preDm[2]), preDm[1]); pre = pre.replace(preDm[0], " "); }
     else if(preNum && +preNum[1] >= 1 && +preNum[1] <= 12){ setDay(+preNum[1] - 1, preNum[2]); pre = pre.replace(preNum[0], " "); }
+    else byWeekday(pre);
     // Whatever is left once the clock is cut out, split on the usual separators.
     // A weekday before the clock ("Sat 10:40 …") is not a team; it is taken off
     // the front only, so Sun Devils keep their name after it.
@@ -13385,6 +13415,7 @@ function scoutCounter(){
             <span class="assign__ctl" style="flex-basis:100%">
               <select onchange="setAnswer('right','${k}',this.value)" aria-label="We call, when they run ${esc(callName(k))}">
                 <option value="">— no answer written down —</option>
+                ${a[k] && !pickPlays()[a[k]] ? `<option value="${esc(a[k])}" selected>we call ${esc(callName(a[k]))} · ${allPlays()[a[k]] ? "turned off" : "deleted"}</option>` : ""}
                 ${Object.entries(pickPlays()).map(([j,v])=>`<option value="${j}" ${a[k]===j?"selected":""}>we call ${esc(callName(j))}</option>`).join("")}
               </select>
             </span>
@@ -14647,13 +14678,13 @@ function moreBody(k){
              [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
                n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
          <div class="fld"><label>Time · 24-hour, like 13:45</label>
-           <input value="${esc(n.t)}" maxlength="8" onchange="setGameField('t',this.value)"/></div>
+           <input value="${esc(n.t)}" maxlength="8" onchange="setGameField('t',this.value)" ${onEnter(`setGameField('t',this.value);saveGame()`)}/></div>
          <div class="fld"><label>Home · takes the red pit</label>
-           <input value="${esc(n.h)}" maxlength="40" onchange="setGameField('h',this.value)"/></div>
+           <input value="${esc(n.h)}" maxlength="40" onchange="setGameField('h',this.value)" ${onEnter(`setGameField('h',this.value);saveGame()`)}/></div>
          <div class="fld"><label>Away · takes the blue pit</label>
-           <input value="${esc(n.a)}" maxlength="40" onchange="setGameField('a',this.value)"/></div>
+           <input value="${esc(n.a)}" maxlength="40" onchange="setGameField('a',this.value)" ${onEnter(`setGameField('a',this.value);saveGame()`)}/></div>
          <div class="fld"><label>Bracket · optional</label>
-           <input value="${esc(n.g)}" maxlength="4" onchange="setGameField('g',this.value)"/></div>
+           <input value="${esc(n.g)}" maxlength="4" onchange="setGameField('g',this.value)" ${onEnter(`setGameField('g',this.value);saveGame()`)}/></div>
          <div class="btnrow">
            <button class="btn grow" onclick="saveGame()">Add it</button>
            <button class="btn btn--quiet" onclick="set({gameNew:null})">Cancel</button>
@@ -14784,7 +14815,7 @@ function moreBody(k){
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Bunker${S.callPick ? " · tapped on the field below" : " · or tap it on the field below"}</span>
           <select id="bcId" onchange="set({callPick:this.value||null})"><option value=""${S.callPick?"":" selected"}>Tap the field</option>${list.map(b=>`<option value="${esc(b.id)}"${S.callPick===b.id?" selected":""}>${esc(b.n)} · ${esc(b.id)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Call it</span>
-          <input id="bcName" placeholder="Home" value="${esc(S.bcName || "")}" oninput="S.bcName=this.value" ${onEnter("setCall()")}/></label>
+          <input id="bcName" placeholder="Home" maxlength="24" value="${esc(S.bcName || "")}" oninput="S.bcName=this.value" ${onEnter("setCall()")}/></label>
       </div>
       <div class="fld"><label>Who calls it that</label>
         ${/* Kept as he picks: a tap on the field redraws, and the box and the
