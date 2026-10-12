@@ -6935,7 +6935,13 @@ function fiveFor(pt){
 // men off the roster after them — Tally listed five whatever the format, so a
 // 3-man sheet showed two men nobody could tap out and a 7-man sheet hid two.
 function sideMen(pt){
-  const n = sideSize(), five = fiveFor(pt).filter(Boolean);
+  const n = sideSize(), line = lineupAt(pt);
+  // A five written past five on a 7- or 10-man sheet is the side as he wrote it.
+  if(n > 5 && line.length >= n) return line.slice(0, n).map(x => x && playerNamed(x)).filter(Boolean);
+  // On a 3-man sheet the side is the first three slots, gaps and all, so a
+  // man taken off with Who's on stays off.
+  if(n < 5 && line.length) return line.slice(0, n).map(x => x && playerNamed(x)).filter(Boolean);
+  const five = fiveFor(pt).filter(Boolean);
   if(n <= five.length) return five.slice(0, n);
   const on = new Set(five.map(p => p.name));
   return [...five, ...(S.roster || []).filter(p => p && !on.has(p.name))].slice(0, n);
@@ -6949,17 +6955,21 @@ const onPoint = pt => fiveFor(pt).filter(Boolean).map(p => p.name);
 window.swapOn = name => {
   if(sheetField()){ sheetOver(); return; }   // a sheet on another field takes nothing
   const pt = sheetPoint();
+  // The side is as many men as the format plays — three, five, seven, ten —
+  // and the slots past it (a 3-man sheet's four and five) are left as they are.
+  const n = sideSize(), width = Math.max(5, n);
   const line = [...lineupAt(pt)];
-  while(line.length < 5) line.push("");
-  if(!line.some(Boolean)) onPoint(pt).forEach((n, i) => { line[i] = n; });
-  const at = line.indexOf(name);
+  if(!line.slice(0, n).some(Boolean)) sideMen(pt).forEach((p, i) => { line[i] = p.name; });
+  while(line.length < width) line.push("");
+  const at = line.slice(0, n).indexOf(name);
   if(at >= 0) line[at] = "";
   else {
-    const free = line.indexOf("");
-    if(free < 0){ flash("Five are on. Take a man off first."); return; }
+    const free = line.slice(0, n).indexOf("");
+    if(free < 0){ flash(`${n === 5 ? "Five" : n} are on. Take a man off first.`); return; }
+    const was = line.indexOf(name); if(was >= n) line[was] = "";
     line[free] = name;
   }
-  S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line.slice(0, 5)};
+  S.lineups = {...(S.lineups || {}), [lineKey(pt)]: line.slice(0, width)};
   save(S); render();
 };
 window.setSlot = (i, name) => {
@@ -10220,7 +10230,7 @@ function syncTallyFive(mid, pt){
   pairs.forEach(([side, team]) => {
     if(!team) return;
     const ids = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === pt && r.side === side && r.layout === m.layout)
-      .sort((a, b) => a.at - b.at).map(r => r.bunker).slice(0, 5);
+      .sort((a, b) => a.at - b.at).map(r => r.bunker).slice(0, sideSize(m));
     const prof = profileOf(team), breaks = prof.breaks || [];
     const was = breaks.find(b => b && b.m === mid && b.pt === pt);
     if(was && Array.isArray(was.plants) && was.plants.length && !was.tallied) return;
@@ -10756,7 +10766,7 @@ function tally(){
   // Rotation lives on the point sheet when there is anyone to rotate. Nine men
   // and a sheet that could only name the first five is how a coach ends up
   // tallying an out against a man who was in the pit.
-  const rotate = roster.length > 5 && !(curMatch()||{}).watch ? `
+  const rotate = roster.length > sideSize() && !(curMatch()||{}).watch ? `
     <button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3);flex-direction:column;gap:0" onclick="set({whoOn:!S.whoOn})">${
       S.whoOn ? "Done" : `Who's on <small style="display:block;font-size:11px;opacity:.75">${bench.length} on the bench</small>`}</button>
     ${S.whoOn ? `<p class="note">Tap a man to take him off or put him on. The five stands until you change it.</p>
@@ -11261,7 +11271,7 @@ window.addPen = (side, cost) => {
   // men than are already charted or tallied out on it: four placed on point 1
   // and then a three-man penalty was a side that broke four from two.
   const pt = S.point || 1, c = +cost || 1;
-  const left = Math.max(1, 5 - pensFor(S.matchId, pt).filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0) - c);
+  const left = Math.max(1, sideSize() - pensFor(S.matchId, pt).filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0) - c);
   const on = rows => (rows || []).filter(r => r && r.m === S.matchId && r.pt === pt && r.side === side).length;
   const there = Math.max(on(S.breakouts), on(S.tally));
   if(there > left){ flash(`${there} ${side === "us" ? "of yours" : "of theirs"} ${there === 1 ? "is" : "are"} already on point ${pt}'s chart, and that penalty leaves ${left}. Take the extra men off the chart first.`); return; }

@@ -5773,6 +5773,23 @@ const ROSTER = [
     patchMatch({ size: null }); window.set({ roster: keep });
     return three && seven || JSON.stringify({ three, seven, txt: read() });
   }));
+  check("Who's on and a penalty count the format's side, not five", await ev(() => {
+    window.confirm = () => true;
+    const keep = S.roster;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, roster: "Reyes,Dill,Cruz,Lee,Park,Nash,Ortiz,Bell".split(",").map((x, i) => ({ name: x, num: i + 1, p: "GP", s: "snake" })) });
+    window.newMatch(); window.set({ tab: "tally" });
+    const side = () => sideMen(sheetPoint()).map(p => p.name).join(",");
+    patchMatch({ size: 3 }); window.swapOn("Reyes"); window.swapOn("Nash");
+    const three = side() === "Nash,Dill,Cruz";
+    S.lineups = {}; patchMatch({ size: 7 }); window.swapOn("Lee"); window.swapOn("Bell");
+    const seven = side().split(",").length === 7 && side().includes("Bell") && !side().includes("Lee");
+    const bl = curLayout().bunkers.filter(b => b.x < 60);
+    for(let i = 0; i < 6; i++) placeAt(bl[i]);
+    window.addPen("us", 1); const penOk = pensFor(S.matchId, sheetPoint()).length === 1;   // six placed, seven less one is six
+    window.addPen("us", 1); const refused = pensFor(S.matchId, sheetPoint()).length === 1 && /already on point/.test(S.flash);
+    S.lineups = {}; S.pens = []; S.breakouts = []; patchMatch({ size: null }); window.set({ roster: keep });
+    return three && seven && penOk && refused || JSON.stringify({ three, seven, penOk, refused });
+  }));
   check("a 7-man sheet takes seven of theirs on Scout, a 3-man sheet three", await ev(() => {
     window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, theirPick: [], theirFix: null });
     window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
