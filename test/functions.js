@@ -505,7 +505,8 @@ const ROSTER = [
   check("format: asked after sign-in, before the tabs", await ev(() => {
     const root = document.getElementById("root"), txt = root.textContent;
     return S.fmtAsk === true && /Your format/.test(txt) && /Division/.test(txt) && /10-man/.test(txt)
-      && /Semi-Pro/.test(txt) && /Division 5/.test(txt) && !root.querySelector("nav.tabs");
+      && /Semi-Pro/.test(txt) && /Division 5/.test(txt) && !root.querySelector("nav.tabs")
+      && !root.querySelector(".help-btn, .ctx__call, .ctx__ev");   // no header doors that open nothing
   }));
   check("format: answers land on the sheet, save under a name and come back", await ev(() => {
     window.setFmt("div", "Division 3"); window.setFmt("game", "3"); window.setFmt("raceTo", 4);

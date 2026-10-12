@@ -15124,18 +15124,21 @@ function shell(){
       <div class="hdr__top">
         <div class="brand" onclick="podTap()">${logoMark()}<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
-        ${clockChip()}${line}
-        <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>
+        ${/* The format screen is one job and stands until Done, so the header's
+              doors — the score, help, the event and the call — would be taps
+              that open nothing behind it. They wait for Done. */""}
+        ${asking ? "" : `${clockChip()}${line}
+        <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>`}
         <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
       </div>
-      <div class="ctx">
+      ${asking ? "" : `<div class="ctx">
         <span class="ctx__line">${Object.keys(LAYOUTS).length>1
           ? `<button class="ctx__ev" onclick="set({evPick:!S.evPick})" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`
           : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
-      </div>
-      ${S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
+      </div>`}
+      ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
         Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${esc(l.name)}</button>`).join("")}</div>` : ""}
     </header>
     <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
