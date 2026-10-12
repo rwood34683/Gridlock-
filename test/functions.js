@@ -5762,6 +5762,17 @@ const ROSTER = [
     return undone && cleared && back && offered && loaded && blocked && fixed && menOk && undoneLog
       || JSON.stringify({ undone, cleared, back, offered, loaded, blocked, fixed, menOk, menBefore, n: men.length, undoneLog });
   }));
+  check("Tally lists your side at the format's size: three on a 3-man sheet, seven on a 7-man", await ev(() => {
+    window.confirm = () => true;
+    const keep = S.roster;
+    window.set({ tab: "tally", right: { name: "Dynasty" }, roster: "Reyes,Dill,Cruz,Lee,Park,Nash,Ortiz,Bell".split(",").map((x, i) => ({ name: x, num: i + 1, p: "GP", s: "snake" })) });
+    window.newMatch(); window.set({ tab: "tally" });
+    const read = () => { const r = document.getElementById("root").innerText; const i = r.search(/YOUR (FIVE|\d+) ·/i); return r.slice(i, i + 200); };
+    patchMatch({ size: 3 }); window.set({}); const three = /YOUR 3 · 3 UP/i.test(read()) && !/\bLee\b/.test(read().split(/DYNASTY/i)[0]);
+    patchMatch({ size: 7 }); window.set({}); const seven = /YOUR 7 · 7 UP/i.test(read()) && /Ortiz/.test(read());
+    patchMatch({ size: null }); window.set({ roster: keep });
+    return three && seven || JSON.stringify({ three, seven, txt: read() });
+  }));
   check("a 7-man sheet takes seven of theirs on Scout, a 3-man sheet three", await ev(() => {
     window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, theirPick: [], theirFix: null });
     window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
