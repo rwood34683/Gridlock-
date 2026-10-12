@@ -13038,12 +13038,12 @@ function scoutBreakouts(){
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
       ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="set({scoutSide:'${sd}',theirPick:[],theirFix:null})">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
-  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} five ended up, in any order —
+  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
       two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>
     <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     ${fixing ? `<p class="warn">Fixing ${fixing.pt ? `point ${fixing.pt}'s five` : "a five logged for the season"}. Tap a man's × to take him off, tap the field to put one on, then Save.</p>` : ""}
     <div class="btnrow">
-      <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(R.name)}'s` : "their"} five · point ${pt}`}</button>
+      <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} · point ${pt}`}</button>
       <button class="btn btn--quiet" onclick="undoTheirPick()" aria-label="Undo the last tap on this five">↶ Undo</button>
       <button class="btn btn--quiet" onclick="clearTheirPick()" aria-label="Clear the men placed">Clear all</button>
       ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
@@ -13935,6 +13935,7 @@ const HELP = {
     how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Two men on one bunker is two taps; the ✕ beside a man in the list takes him off.",
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
          "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
+         "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
          "Your format — division, how many a side, race, mercy and clock — is asked after you sign in and kept under More › Format. The sheet calls match point and match over for you.",
@@ -13956,10 +13957,12 @@ const HELP = {
          "The break above draws their most-logged call in blue and yours in red."],
     watch:"A team nobody has scored reads as a dash. The app never guesses a number."},
   "scout/breakouts": {t:"Breakouts", w:"Where their five went, without needing names.",
-    how:["Tap the field where each of their five ended up, up to five, any order.",
+    how:["Tap the field where each of their men ended up, any order — as many as a side plays on your format.",
          "Two or three on one bunker: tap it once for each man. A man comes off with his × under the field.",
+         "Tapped the wrong bunker? ↶ Undo takes back the last tap, Clear all empties the field, and Undo brings it back.",
          "Log their five. If you know the call, log that with it.",
-         "Where they plant counts bunkers across every five you have logged.",
+         "Logged one wrong? Fix it under the field, or Fix in As you saw it, puts that five back on the field to change; Save writes over it on its own point.",
+         "Where they plant counts bunkers across every five you have logged, and lists each man charted there — tap one to add or change his details.",
          "A call is tied to the point only when this team is on the sheet. Off the sheet it counts for the season, and the screen says so with one tap to start the right match."]},
   "scout/anticipate": {t:"Anticipate", w:"How to read a break before it happens.",
     how:["The tells to watch in the set: a body cheating a wire, a gun already up.",
