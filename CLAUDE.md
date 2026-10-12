@@ -691,8 +691,8 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     **Save these answers** keeps a format under a name (`S.fmts`, Use · ✕).
     More › Format is the same screen later; Tally keeps one line and
     **Change the format**. Men a side rides on the match (`size`,
-    `sideSize()`), so `startUp()` and their numbered men follow it; plays,
-    Lineups and the five on the sheet stay five.
+    `sideSize()`), so `startUp()`, their numbered men and his own side on the point sheet (`sideMen`) follow it; plays,
+    Lineups and the cards stay five.
 
 47. ~~Fat fingers.~~ Done — the owner said a mis-tap on the breakout sheet
     meant logging it or starting over. Every `setDraft` keeps the answer it

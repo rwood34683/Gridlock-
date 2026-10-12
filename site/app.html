@@ -3835,7 +3835,9 @@ window.saveFmt = () => {
   const el = document.getElementById("fmtName"), f = fmt();
   if(!FMT_KEYS.some(k => f[k] !== undefined && f[k] !== "")){ flash("Answer the questions first, then save them."); return; }
   const typed = clean(((el && el.value) || "").trim()).slice(0, 40);
-  const name = typed || fmtSummary(f).slice(0, 40) || "My format";
+  // An untyped name is the summary, cut at a " · " rather than mid-word.
+  const short = fmtSummary(f).split(" · ").reduce((t, part) => !t ? part : (t + " · " + part).length <= 40 ? t + " · " + part : t, "").slice(0, 40);
+  const name = typed || short || "My format";
   const kept = FMT_KEYS.reduce((o, k) => (f[k] !== undefined ? {...o, [k]: f[k]} : o), {});
   const list = Array.isArray(S.fmts) ? S.fmts : [];
   const hit = list.find(x => foldName(x.name) === foldName(name));
@@ -5589,6 +5591,17 @@ function overlapRows(shared, mineBefore){
     const key = bk(r), n = (tookB.get(key) || 0) + 1; tookB.set(key, n);
     if(n <= (haveB.get(key) || 0)){ dupes++; return false; }
     return true;
+  });
+  // And on different bunkers: three placed here and three there on a 3-man
+  // point were six. An untold row from the other phone goes in only while the
+  // side is under what it started the point with (startUp); a told one always.
+  const pk = r => [r.m, r.pt, r.side].join("|"), onPt = new Map();
+  const bump = r => onPt.set(pk(r), (onPt.get(pk(r)) || 0) + 1);
+  (S.breakouts || []).forEach(r => { if(r && shared.includes(r.m) && (mineB.has(rowKey(r)) || r.player)) bump(r); });
+  S.breakouts = (S.breakouts || []).filter(r => {
+    if(!r || mineB.has(rowKey(r)) || !shared.includes(r.m) || r.player) return true;
+    if((onPt.get(pk(r)) || 0) >= startUp(r.side, r.m, r.pt)){ dupes++; return false; }
+    bump(r); return true;
   });
   return dupes;
 }
@@ -8367,7 +8380,7 @@ function readLine(compact){
       <button class="btn btn--quiet read-line__go" onclick="setPitTeam('right',${jsq(matchVs())})">Put ${esc(matchVs())} in the pit</button></p>`;
   const r = nextRead("right"); if(!r) return "";
   const them = esc(pitOf("right").name);
-  if(r.thin) return compact ? "" : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Breakouts and the read builds itself.
+  if(r.thin) return compact ? `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>` : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Breakouts and the read builds itself.
       <button class="btn btn--quiet read-line__go" onclick="set({tab:'scout',scoutTab:'breakouts',more:null})">Breakouts ›</button></p>`;
   const a = bestAnswer(r.call);
   const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
@@ -8382,7 +8395,7 @@ function readLine(compact){
     r.lately ? `Lately <b>${esc(callName(r.lately.call))}</b> — ${r.lately.n} of their last ${r.lately.of}. They may have changed.` : "",
     tell ? `Your tell: you have called <b>${esc(callName(tell.call))}</b> ${tell.n} of ${tell.of} times ${tell.state} against them — they have seen it.` : ""
   ].filter(Boolean).join(" ");
-  return `<p class="note read-line"><b>Read:</b> ${them} ${basis} <b>${esc(callName(r.call))}</b> — ${r.n} of ${r.of}${r.alt ? `, then ${esc(callName(r.alt[0]))} ${r.alt[1]}` : ""}.${answer}${compact ? "" : btn}</p>`
+  return `<p class="note read-line"><b>Read:</b> ${them} ${basis} <b>${esc(callName(r.call))}</b> — ${r.n} of ${r.of}${r.alt ? `, then ${esc(callName(r.alt[0]))} ${r.alt[1]}` : ""}.${answer}${btn}</p>`
     + (warn ? `<p class="note read-line read-line--warn">${warn}</p>` : "");
 }
 /* Who is usually in a bunker: the man of theirs sighted there most on this
@@ -8505,7 +8518,7 @@ function shooterLine(side = "right"){
 function lanesLine(){
   if(!callSet() || nobodyToPlay() || (curMatch() || {}).watch || !pitOnSheet("right")) return "";
   const t = theirFiveNow(); const l = breakLanes(S.script, t); if(!l) return "";
-  const five = t.basis === "logged" ? "the five they logged on this point" : `the five they usually plant${t.n ? ` (${t.n} logged fives)` : ""}`;
+  const n5 = sideSize() === 5 ? "five" : sideSize(), five = t.basis === "logged" ? `the ${n5} they logged on this point` : `the ${n5} they usually plant${t.n ? ` (${t.n} logged fives)` : ""}`;
   return `<p class="note read-line"><b>Lanes off the break:</b> on ${esc(breakName())} against ${five}, ${l.onThem} of your ${l.mine} have a clear lane on one of theirs and ${l.onYou} of their ${l.theirs} have one on you. Counted off ${esc(curLayout().name)}, leaning out either side of the bunker.</p>${(sh => sh ? `<p class="note read-line"><b>Their shooter:</b> ${sh}</p>` : "")(shooterLine())}`;
 }
 /* Where their five have planted most, as a ghost of the five until the real
@@ -8519,7 +8532,7 @@ function likelyPlants(side = "right", call){
   // and counting MD once dropped the second man from the ghost.
   const c = new Map(); use.forEach(b => { const seen = {}; b.plants.forEach(id => { const f = teamFrame(id, b.m, b.pt, team), k = f + "|" + (seen[f] = (seen[f] || 0) + 1); c.set(k, (c.get(k) || 0) + 1); }); });
   // Frame ids: a caller that draws or names them on the field goes through shownBunker().
-  return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => [k.slice(0, k.lastIndexOf("|")), n])};
+  return {n: use.length, under: use === under && !!call, top: [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, sideSize()).map(([k, n]) => [k.slice(0, k.lastIndexOf("|")), n])};
 }
 /* Your record with a call against a team on this field: the calls you logged,
  * joined with who won the point. The Counter ranks on this first and falls
@@ -8633,9 +8646,14 @@ function menOnBunker(side, fid){
 // Open one man's details on the sheet he was charted on.
 window.openManDetails = id => {
   const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
-  if(r.m !== S.matchId) openMatchNow(r.m);
+  // He is on another sheet: telling this man opens his, the way Matches does,
+  // and says so — a quiet move put the next We won it on the old sheet.
+  const was = r.m !== S.matchId ? curMatch() : null;
+  if(was && !entitled("team")) return set({tab:"more", more:"plan", billingSaid:""});
+  if(was) openMatchNow(r.m);
   S.tab = "tally";
   editBreakout(id);
+  if(was) flash(`Opened ${matchLabel(matchById(r.m))} to tell him. You were on ${matchLabel(was)} — Matches takes you back.`);
 };
 window.logTheirFive = side => {
   if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
@@ -10058,9 +10076,11 @@ const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) 
 /* Every answer on the breakout sheet is one tap, and a thumb between points
  * misses. Each change keeps the answer it replaced, so Undo takes back the
  * last tap and Clear starts this man over — never the whole point. Kept for
- * the man on the sheet only (his row, else his bunker) and never saved. */
+ * the man on the sheet only (his row, else the new man) and never saved. */
 var _draftHist = {key: "", list: []};   // var: an early set() may reach it first
-const draftKey = () => (S.tallyEdit || "") + "|" + (S.tallySel || "");
+// A new man's answers move with him when another bunker is tapped (selectBunker),
+// so his Undo does too: the key is the man, not the bunker.
+const draftKey = () => S.tallyEdit || "new";
 function keepDraft(){
   if(_draftHist.key !== draftKey()) _draftHist = {key: draftKey(), list: []};
   _draftHist.list.push(JSON.stringify(draft()));
@@ -10212,6 +10232,9 @@ window.tallyTap = at => {
   // did — two men can break to one bunker. A man already told is reopened
   // from the list under the field.
   const r = pointRows().find(x => x.bunker === b.id && x.todo);
+  // Opening him drops what the man in hand was told, so ask first.
+  if(r && draftChanged() && S.tallyEdit !== r.id
+     && !confirm(`${S.tallyEdit ? "Your changes to the man you were on are not saved" : "The man you were on is not logged"}. Leave him and tell the man on ${bunkerLabel(b.id)}?`)) return;
   if(r) return editBreakout(r.id);
   // One more man is a new row. With a placed man's sheet open, the draft and
   // tallyEdit were his: Save moved him onto this bunker with his answers and
@@ -11087,7 +11110,7 @@ function tally(){
             <span class="assign__who">men off for point ${pt}</span></span>
             <span class="assign__ctl">
               ${/* A one-digit label left these 41 px wide, under the 44 a gloved thumb needs. */""}
-              ${[1,2,3,4].map(c => `<button class="btn btn--quiet" style="min-width:48px" aria-label="${c} ${c === 1 ? "man" : "men"} off" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
+              ${[1,2,3,4].filter(c => c < sideSize()).map(c => `<button class="btn btn--quiet" style="min-width:48px" aria-label="${c} ${c === 1 ? "man" : "men"} off" onclick="addPen('${sd}',${c})">${c}</button>`).join("")}
             </span>
           </div>`).join("")}
         </div>` : ""}
@@ -11299,7 +11322,10 @@ window.addPen = (side, cost) => {
   // men than are already charted or tallied out on it: four placed on point 1
   // and then a three-man penalty was a side that broke four from two.
   const pt = S.point || 1, c = +cost || 1;
-  const left = Math.max(1, sideSize() - pensFor(S.matchId, pt).filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0) - c);
+  const off = pensFor(S.matchId, pt).filter(p => p.side === side).reduce((n, p) => n + (+p.cost || 0), 0);
+  // A side of three cannot sit four: the penalties on a point leave one man at least.
+  if(sideSize() - off - c < 1){ flash(`${side === "us" ? "You have" : "They have"} ${sideSize()} a side${off ? ` and ${off} off already` : ""} — a ${c}-man penalty leaves nobody on the field.`); return; }
+  const left = sideSize() - off - c;
   const on = rows => (rows || []).filter(r => r && r.m === S.matchId && r.pt === pt && r.side === side).length;
   const there = Math.max(on(S.breakouts), on(S.tally));
   if(there > left){ flash(`${there} ${side === "us" ? "of yours" : "of theirs"} ${there === 1 ? "is" : "are"} already on point ${pt}'s chart, and that penalty leaves ${left}. Take the extra men off the chart first.`); return; }
@@ -11511,7 +11537,7 @@ function openSheet(fields){
     if(keys.length){
       const standing = lineupAt(lastPoint(blank), blank);
       const kept = {...S.lineups}; keys.forEach(k => { delete kept[k]; });
-      if(standing.some(Boolean)) kept[lineKey(1, id)] = standing.slice(0, 5);
+      if(standing.some(Boolean)) kept[lineKey(1, id)] = standing.slice(0, Math.max(5, sideSize(cur)));
       S.lineups = kept;
     }
   }
