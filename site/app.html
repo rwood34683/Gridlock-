@@ -9654,8 +9654,8 @@ function playbook(){
               <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?seenGlyph(d.face):"Face"}</button>
-            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')" aria-label="Primary lane"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
-            <button class="tgl ${d.shot2?"on":""}" onclick="openPad('shot2','${pth.id}')" aria-label="Secondary lane"><i></i>${shotLane(d.shot2)!==null?"2 "+seenGlyph(shotLane(d.shot2)):shot2B?"2 · "+esc(callOf(shot2B)):"Lane 2"}</button>
+            <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')" aria-label="Shot — primary lane${shotLane(d.shot)!==null?": "+seenSay(shotLane(d.shot)):shotB?": "+esc(callOf(shotB)):""}"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
+            <button class="tgl ${d.shot2?"on":""}" onclick="openPad('shot2','${pth.id}')" aria-label="Lane 2 — secondary lane${shotLane(d.shot2)!==null?": "+seenSay(shotLane(d.shot2)):shot2B?": "+esc(callOf(shot2B)):""}"><i></i>${shotLane(d.shot2)!==null?"2 "+seenGlyph(shotLane(d.shot2)):shot2B?"2 · "+esc(callOf(shot2B)):"Lane 2"}</button>
             <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
             <button class="tgl ${go?"on":""}" onclick="openPad('go','${pth.id}')" aria-label="When he goes: ${go==="buzzer"?"on the buzzer":go==="delay"?"delay":"the app times it"}"><i></i>${go==="buzzer"?"Buzzer":go==="delay"?"Delay":"Go"}</button>
             ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
@@ -10737,8 +10737,8 @@ function breakoutSheet(){
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
     ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
     <div class="tsheet__act"><div class="btnrow" style="flex-wrap:nowrap;margin-bottom:var(--s2)">
-      <button class="btn btn--quiet grow" onclick="undoDraft()" aria-label="Undo the last tap on this man">↶ Undo</button>
-      <button class="btn btn--quiet grow" onclick="clearDraft()" aria-label="Clear this man's answers">Clear all</button></div>
+      <button class="btn btn--quiet grow" onclick="undoDraft()" aria-label="Undo — the last tap on this man">↶ Undo</button>
+      <button class="btn btn--quiet grow" onclick="clearDraft()" aria-label="Clear all — this man's answers">Clear all</button></div>
       <button class="btn btn--lg btn--block" onclick="logBreakout()">✓&nbsp; ${S.tallyEdit ? (more ? "Save · next man" : "Save") : "Log this breakout"}</button></div>
   </div>`;
 }
@@ -13068,8 +13068,8 @@ function scoutBreakouts(){
     ${fixing ? `<p class="warn">Fixing ${fixing.pt ? `point ${fixing.pt}'s five` : "a five logged for the season"}. Tap a man's × to take him off, tap the field to put one on, then Save.</p>` : ""}
     <div class="btnrow">
       <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} · point ${pt}`}</button>
-      <button class="btn btn--quiet" onclick="undoTheirPick()" aria-label="Undo the last tap on this five">↶ Undo</button>
-      <button class="btn btn--quiet" onclick="clearTheirPick()" aria-label="Clear the men placed">Clear all</button>
+      <button class="btn btn--quiet" onclick="undoTheirPick()" aria-label="Undo — the last tap on this five">↶ Undo</button>
+      <button class="btn btn--quiet" onclick="clearTheirPick()" aria-label="Clear all — the men placed">Clear all</button>
       ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
     </div>
     ${(lastFive => lastFive && !fixing && !picked.length ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${lastFive.script ? esc(callName(lastFive.script)) + " · " : ""}${lastFive.pt ? `point ${lastFive.pt}` : "season"}${lastFive.plants ? ` · ${lastFive.plants.map(id => esc(label(id))).join(", ")}` : ""}</b>.</p>
@@ -14445,11 +14445,6 @@ function moreCount(k){
 function moreBody(k){
   const layoutName=curLayout().name;
   const roster=S.roster||[];
-  const rosterList=`<div class="assigns">${roster.map(p=>`<div class="assign">
-      <span class="assign__n" style="background:var(--panel-2);color:var(--ink)">${p.num}</span>
-      <span class="assign__body"><span class="assign__job">${esc(p.name)}</span>
-      <span class="assign__who">P ${esc(p.p)} · S ${esc(p.s)}</span></span>
-    </div>`).join("")}</div>`;
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
@@ -14787,7 +14782,7 @@ function moreBody(k){
       <div class="assigns">${Object.keys(BREAKS).map(x => `<div class="assign">
         <button class="tgl ${runsPlay(x) ? "on" : ""}" onclick="toggleRun('${x}')"
           aria-pressed="${runsPlay(x)}"
-          aria-label="We run ${esc(BREAKS[x].name)}"><i></i>Run it</button>
+          aria-label="Run it: ${esc(callName(x))}"><i></i>Run it</button>
         <span class="assign__body">
           <input id="brc-${x}" value="${esc((mine[x] || "").trim())}" maxlength="28"
             placeholder="${esc(allPlays()[x].name)}" onchange="setBreakCall('${x}')"
@@ -15309,8 +15304,8 @@ function whiteboardPage(){
       <button class="wb-tool ${wb.tool==="o"?"on":""}" onclick="wbTool('o')" aria-label="O mark">◯</button>
       <button class="wb-tool wb-tool--txt ${wb.tool==="erase"?"on":""}" onclick="wbTool('erase')">Erase</button>
       <span class="grow"></span>
-      <button class="btn btn--quiet" onclick="wbUndo()"${wbMarks().length?"":" disabled"}>Undo</button>
-      <button class="btn btn--danger" onclick="wbWipe()"${wbMarks().length?"":" disabled"}>Wipe</button>
+      <button class="btn btn--quiet" onclick="wbUndo()">Undo</button>
+      <button class="btn btn--danger" onclick="wbWipe()">Wipe</button>
     </div>
     <div class="toggles">
       <button class="tgl ${wb.field?"on":""}" onclick="wbField(true)"><i></i>Field</button>
@@ -15321,11 +15316,12 @@ function whiteboardPage(){
 window.wbTool  = t => set({wb: {...wbState(), tool: t}});
 window.wbColor = c => set({wb: {...wbState(), color: c, tool: "pen"}});
 window.wbField = on => set({wb: {...wbState(), field: !!on}});
-window.wbUndo  = () => set({wb: withWbMarks(wbMarks().slice(0, -1))});
+// Live buttons that say why, never greyed out in silence.
+window.wbUndo  = () => { if(!wbMarks().length) return flash("Nothing drawn on this board yet."); set({wb: withWbMarks(wbMarks().slice(0, -1))}); };
 // Wipe takes every mark on this field's board, and Undo cannot bring them
 // back, so it asks first the way every other delete in here does.
 window.wbWipe  = () => {
-  const n = wbMarks().length; if(!n) return;
+  const n = wbMarks().length; if(!n) return flash("Nothing drawn on this board yet.");
   if(!confirm(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`)) return;
   set({wb: withWbMarks([])});
 };
