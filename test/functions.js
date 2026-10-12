@@ -5760,6 +5760,19 @@ const ROSTER = [
     return undone && cleared && back && offered && loaded && blocked && fixed && menOk && undoneLog
       || JSON.stringify({ undone, cleared, back, offered, loaded, blocked, fixed, menOk, menBefore, n: men.length, undoneLog });
   }));
+  check("a 7-man sheet takes seven of theirs on Scout, a 3-man sheet three", await ev(() => {
+    window.set({ tab: "scout", scoutTab: "breakouts", right: { name: "Dynasty" }, theirPick: [], theirFix: null });
+    window.newMatch(); window.set({ tab: "scout", scoutTab: "breakouts" });
+    const ids = curLayout().bunkers.filter(b => b.x > 80).slice(0, 8).map(b => b.id);
+    const tapAll = () => ids.forEach(id => { const cur = S.theirPick || []; const full = sideSize();
+      const cap = pitOnSheet("right") ? Math.min(full, startUp("them", S.matchId, sheetPoint())) : full; if(cur.length < cap) setPick([...cur, id]); });
+    patchMatch({ size: 7 }); tapAll(); const seven = S.theirPick.length === 7;
+    window.logTheirFive("right"); const logged = theirBreaks("right")[0].plants.length === 7;
+    editProfile("right", { breaks: [] }); S.breakouts = []; window.set({ theirPick: [] });
+    patchMatch({ size: 3 }); tapAll(); const three = S.theirPick.length === 3;
+    patchMatch({ size: null }); window.set({ theirPick: [] });
+    return seven && logged && three || JSON.stringify({ seven, logged, three });
+  }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
     const keepS = S.arrivalSightings, keepH = S.arrivalShots;
@@ -8844,6 +8857,14 @@ const ROSTER = [
   }
   /* --------------------------------------------------- a play he wrote himself */
   G("A play of your own");
+  check("the builder's five read on one line: the bunker beside Take off, never crushed", await ev(() => {
+    window.set({ tab: "playbook", building: null }); window.newPlay();
+    const bl = curLayout().bunkers; [3, 3, 10].forEach(i => window.playPick(bl[i].id));
+    const rows = [...document.querySelectorAll("#play-builder .assign")].filter(a => a.querySelector(".assign__ctl"));
+    const ok = rows.length === 3 && rows.every(a => a.querySelector(".assign__body").getBoundingClientRect().width > 120);
+    window.cancelPlay();
+    return ok || JSON.stringify(rows.map(a => Math.round(a.querySelector(".assign__body").getBoundingClientRect().width)));
+  }));
   await seed({ tab: "playbook", layoutKey: "lso", script: "snake", right: { name: "Rejects" } });
   check("the app ships with twelve", await ev(() => playKeys().length === 12));
   check("a coach with no play of his own is nudged to + Yours, once", await ev(() => {
