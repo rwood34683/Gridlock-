@@ -8528,7 +8528,8 @@ window.logTheirBreak = (side, script, plants) => {
   // On a field the open sheet is not on, what they run is still worth
   // counting: it lands as a season row on this field, never on that sheet's point.
   const off = !!sheetField();
-  const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0,5);
+  // As many as a side has on this format: three on a 3-man sheet, ten on a 10-man.
+  const picked = (Array.isArray(plants) ? plants : (S.theirPick || [])).slice(0, sideSize());
   // Stamped with the point only when this team is on the sheet; otherwise it
   // is a season row — counted in what they run, never joined to a score.
   if(side === "right" && !off && !(curMatch()||{}).watch) adoptPitOnLog();   // an empty sheet takes this team's name as the first row lands
@@ -8593,7 +8594,7 @@ window.logTheirFive = side => {
   if(!(S.theirPick || []).length){ flash("Tap the field where their five ended up first."); return; }
   const fix = S.theirFix && S.theirFix.side === side ? theirBreaks(side).find(b => b && b.at === S.theirFix.at) : null;
   if(fix){
-    const plants = S.theirPick.slice(0, 5);
+    const plants = S.theirPick.slice(0, sideSize(matchById(fix.m) || undefined));
     if(fix.pt && fix.m){
       const rowSide = side === "left" ? "us" : "them";
       trimFiveMen(rowSide, fix.m, fix.pt, plants);
@@ -8712,8 +8713,9 @@ function trimFiveMen(rowSide, mid, pt, ids){
     // A side short-handed by a penalty broke with fewer than five: held to
     // what it started the point with, as Tally's placing is.
     const sd = (curMatch()||{}).watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
-    const cap = pitOnSheet(sd) ? Math.min(5, startUp(sd === "left" ? "us" : "them", S.matchId, sheetPoint())) : 5;
-    if(cur.length >= cap){ flash(`${cap === 5 ? "All five are" : `All ${cap} they started with are`} placed. Take one off with its × under the field, or Undo last.`); return; }
+    const full = sideSize();
+    const cap = pitOnSheet(sd) ? Math.min(full, startUp(sd === "left" ? "us" : "them", S.matchId, sheetPoint())) : full;
+    if(cur.length >= cap){ flash(`${cap === 5 && full === 5 ? "All five are" : cap === full ? `All ${cap} are` : `All ${cap} they started with are`} placed. Take one off with its × under the field, or Undo.`); return; }
     setPick([...cur, b.id]);
   });
 })();
@@ -9832,7 +9834,9 @@ function playBuilder(){
       return `<div class="assign">
       <span class="assign__n"${id ? "" : ` style="background:var(--panel-2);color:var(--dim)"`}>${n}</span>
       <span class="assign__body"><span class="assign__job">${id ? esc(nameOf(id)) : "tap his bunker"}</span>${mates.length ? `<span class="assign__who">doubled up with ${mates.join(" and ")}</span>` : ""}</span>
-      ${id ? `<span class="assign__ctl"><button class="btn btn--quiet" onclick="playManOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
+      ${/* One button beside the bunker, not a row of controls: the 100% basis
+            every other row's controls take crushed the name to nothing. */""}
+      ${id ? `<span class="assign__ctl" style="flex:0 0 auto"><button class="btn btn--quiet" onclick="playManOff(${n})" aria-label="Take man ${n} off">Take off</button></span>` : ""}
     </div>`; }).join("")}</div>
     <div class="fld"><label for="pl-read">The read, in your words</label>
       <input id="pl-read" value="${esc(b.read || "")}" maxlength="140"
@@ -13048,7 +13052,7 @@ function scoutBreakouts(){
         ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${lastFive.at})">Fix it</button>` : ""}
         <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${lastFive.at})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
     <p class="note" role="status">${picked.length
-      ? fixing ? `${picked.length} placed. Save the five when it is right.` : `${picked.length} of 5 placed. Log the five on their own, or tap a named call below to log it with them.`
+      ? fixing ? `${picked.length} placed. Save the five when it is right.` : `${picked.length} of ${sideSize()} placed. Log the five on their own, or tap a named call below to log it with them.`
       : `Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.`}</p>
     ${picked.length ? `<div class="seg" style="flex-wrap:wrap" aria-label="Placed men">${picked.map((id, i) =>
       `<button onclick="dropTheirPick(${i})" aria-label="Take man ${i + 1} off ${esc(label(id))}">${i + 1} · ${esc(label(id))} ×</button>`).join("")}</div>` : ""}`,
