@@ -5962,6 +5962,16 @@ const ROSTER = [
     window.setRaceTo(0); window.set({ layoutKey: L0, right: { name: "Dynasty" } }); window.newMatch();
     return onWin && kept && stamped && clean || JSON.stringify({ onWin, sp: sheetPoint(), before, on, fifth, off, stamped, clean });
   }));
+  check("Codes draws the field above the key, and any field can be read there without leaving the event", await ev(() => {
+    const keep = S.layoutKey, other = Object.keys(LAYOUTS).find(k => k !== keep);
+    window.set({ tab: "more", more: "codes" });
+    const root = () => document.getElementById("root");
+    const drawn = !!root().querySelector(".field-wrap svg.field");
+    window.set({ codesField: other });
+    const read = root().textContent.includes(LAYOUTS[other].name) && S.layoutKey === keep;
+    window.set({ codesField: null });
+    return drawn && read || JSON.stringify({ drawn, read });
+  }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
     const keepS = S.arrivalSightings, keepH = S.arrivalShots;
