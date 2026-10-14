@@ -1983,7 +1983,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false,
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false, codesField:null,
   plays:[], building:null,
   pens:[],                 // penalties, as the official called them and the coach recorded them
   timeouts:[],             // the one timeout a team gets a match, and the point it was taken on
@@ -2769,7 +2769,7 @@ function clearScratch(s = S){
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
-  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false;
+  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null;
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
   s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
@@ -14317,12 +14317,24 @@ function moreBody(k){
       </div>
       <button class="btn btn--block" onclick="addCode()">Add code word</button>`,
       codes.length?codes.length+(codes.length===1?" word":" words"):"Every event")
-    + sec("Bunker codes", `<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
+    + (() => {
+    // Any field's key can be read here — this event's or another — without
+    // moving the app off the event he is at: the section is drawn with that
+    // field as the layout, and the event is put straight back.
+    const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
+    const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
+      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}})">${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
+    S.layoutKey = ck;
+    try {
+    return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
       ? `This field's map prints no names, so each bunker here is named for the kind of inflatable it is,
       in the key the NXL prints in the corner of its maps — so a player who has read a layout anywhere
       else already knows it.`
       : `This is the key the NXL prints in the corner of the official map, not our shorthand — so a
       player who has read a layout anywhere else already knows it.`}</p>
+      ${/* The field the codes are read off, labelled, above the key. */""}
+      <p class="note" style="margin:0">${esc(curLayout().name)}</p>
+      <div class="field-wrap">${fieldSVG({static:true, noPaths:true, names:true})}</div>
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th>Code</th><th>Bunker</th><th>On this field</th></tr></thead>
         <tbody>${BUNKER_CODE.map(([c,full])=>{
@@ -14336,6 +14348,8 @@ function moreBody(k){
         code everywhere in the app; the code is still what the map says.
         <button class="btn btn--quiet read-line__go" onclick="set({more:'team'})">Open Team</button></p>`,
       `${BUNKER_CODE.filter(([c])=>codeCount(c)).length} of ${BUNKER_CODE.length} here`);
+    } finally { S.layoutKey = keep; }
+    })();
   }
   if(k==="messages") return sec("Messages",
     // Every other list here can be undone — a walk note, a code word, a grade,
