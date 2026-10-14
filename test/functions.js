@@ -5969,8 +5969,14 @@ const ROSTER = [
     const drawn = !!root().querySelector(".field-wrap svg.field");
     window.set({ codesField: other });
     const read = root().textContent.includes(LAYOUTS[other].name) && S.layoutKey === keep;
-    window.set({ codesField: null });
-    return drawn && read || JSON.stringify({ drawn, read });
+    window.set({ codesField: null, codePick: "SB#3", codeName: "" });
+    window.codePreview("Rocket");
+    const live = /Rocket/.test(root().querySelector("#codes-map").textContent) && !((S.bunkerCalls || {})[keep] || {})["SB#3"];
+    document.getElementById("codeName").value = "Snake 1"; window.codeCall();
+    const named = ((S.bunkerCalls || {})[keep] || {})["SB#3"] === "Snake 1" && /Snake 1/.test(root().querySelector("#codes-map").textContent);
+    window.codeCall(true); const back = !((S.bunkerCalls || {})[keep] || {})["SB#3"];
+    window.set({ codePick: null });
+    return drawn && read && live && named && back || JSON.stringify({ drawn, read, live, named, back });
   }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
