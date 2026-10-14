@@ -5974,9 +5974,15 @@ const ROSTER = [
     const live = /Rocket/.test(root().querySelector("#codes-map").textContent) && !((S.bunkerCalls || {})[keep] || {})["SB#3"];
     document.getElementById("codeName").value = "Snake 1"; window.codeCall();
     const named = ((S.bunkerCalls || {})[keep] || {})["SB#3"] === "Snake 1" && /Snake 1/.test(root().querySelector("#codes-map").textContent);
+    const listed = /Your names on this field/.test(root().textContent) && /Snake 1/.test(root().textContent);
     window.codeCall(true); const back = !((S.bunkerCalls || {})[keep] || {})["SB#3"];
+    const man = (S.roster || []).find(p => p.name);
+    let own = true;
+    if(man){ window.set({ codePick: "SB#3", codeWho: man.name }); document.getElementById("codeName").value = "Dog";
+      window.codeCall(); own = ((((S.playerCalls || {})[keep] || {})[man.name]) || {})["SB#3"] === "Dog" && !((S.bunkerCalls || {})[keep] || {})["SB#3"];
+      window.clearPlayerCall(man.name, "SB#3", keep); window.set({ codeWho: "" }); }
     window.set({ codePick: null });
-    return drawn && read && live && named && back || JSON.stringify({ drawn, read, live, named, back });
+    return drawn && read && live && named && listed && back && own || JSON.stringify({ drawn, read, live, named, listed, back, own });
   }));
   check("How did they get there: one wrong sighting moves or comes off, a shot comes off, and an empty Undo says so", await ev(() => {
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" } });
@@ -7507,8 +7513,9 @@ const ROSTER = [
     const sched = S.tab === "more" && S.more === "schedule";
     window.set({ tab: "more", more: "stats" }); const b = btn(/Log a rotation/); if (b) b.click();
     const mv = S.more === "movement";
-    window.set({ more: "codes" }); const c = btn(/Open Team/); if (c) c.click();
-    const team = S.more === "team";
+    // Codes names its bunkers in place now, so it sends nobody to Team.
+    window.set({ more: "codes" }); const c = !btn(/Open Team/) && /Your names on this field/.test(document.getElementById("root").textContent);
+    const team = true;
     window.set({ tab: "tally", roster: keep.roster, right: keep.right, left: keep.left, tally: keep.tally, moves: keep.moves, breakouts: keep.breakouts });
     return !!a && sched && !!b && mv && !!c && team;
   }));
