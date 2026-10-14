@@ -2737,7 +2737,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false, codesField:null,
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false, codesField:null, codePick:null, codeName:"",
   plays:[], building:null,
   pens:[],                 // penalties, as the official called them and the coach recorded them
   timeouts:[],             // the one timeout a team gets a match, and the point it was taken on
@@ -3523,7 +3523,7 @@ function clearScratch(s = S){
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
-  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null;
+  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
   s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
@@ -7074,6 +7074,64 @@ window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; 
     callTap(fieldFeet(svg, ev));
   });
 })();
+// Codes: tap a labelled bunker and give it the team's own name right there,
+// on whichever field the Codes picker is reading. The same store and the same
+// one-word-one-bunker rule as Team › Bunker calls.
+const codesKey = () => LAYOUTS[S.codesField] ? S.codesField : S.layoutKey;
+const onCodesField = fn => { const keep = S.layoutKey; S.layoutKey = codesKey(); try { return fn(); } finally { S.layoutKey = keep; } };
+(function codeTapping(){
+  document.addEventListener("pointerdown", ev => {
+    if(S.tab !== "more" || S.more !== "codes") return;
+    const surface = ev.target.closest("#codes-map [data-pick]");
+    if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    const b = onCodesField(() => nearestBunker(fieldFeet(svg, ev)));
+    if(!b) return;
+    S.codePick = b.id; S.codeName = ((S.bunkerCalls || {})[codesKey()] || {})[b.id] || ""; render();
+    const el = document.getElementById("codeName"); if(el){ el.focus(); el.select(); }
+  });
+})();
+window.codeCall = clear => {
+  const lk = codesKey(), id = S.codePick;
+  if(!id){ flash("Tap a bunker on the field first."); return; }
+  const el = document.getElementById("codeName");
+  const nm = clear ? "" : clean(((el && el.value) || "").trim()).slice(0, 24);
+  const had = ((S.bunkerCalls || {})[lk] || {})[id];
+  if(!nm && !had){ flash("Type a name first."); return; }
+  const other = nm && onCodesField(() => bunkerWordTaken(nm, id));
+  if(other){ flash(`${nm} is already ${other} on this field. Two bunkers cannot share a word.`); return; }
+  const all = {...(S.bunkerCalls || {})}, layer = {...(all[lk] || {})};
+  if(nm) layer[id] = nm; else delete layer[id];
+  all[lk] = layer; S.bunkerCalls = all;
+  S.codeName = nm;
+  save(S); render();
+  flash(nm ? `${id} is ${nm} now.` : `${id} is back to its code.`);
+};
+// The field under Codes, with the name being typed already on the bunker:
+// each keystroke redraws the field alone (never the box he is typing in), so
+// the label above reads what he is writing before he saves it. Nothing is kept
+// until Save name — the preview is laid over the calls for the one draw.
+function codesFieldSVG(){
+  const id = S.codePick, held = S.bunkerCalls;
+  if(id){
+    const lk = S.layoutKey, layer = {...((held || {})[lk] || {})}, v = clean(String(S.codeName || "").trim()).slice(0, 24);
+    if(v) layer[id] = v; else delete layer[id];
+    S.bunkerCalls = {...(held || {}), [lk]: layer};
+  }
+  try { return fieldSVG({static:true, noPaths:true, names:true, pick:true, overlay:codePickOverlay()}); }
+  finally { S.bunkerCalls = held; }
+}
+window.codePreview = v => {
+  S.codeName = v;
+  const el = document.getElementById("codes-map");
+  if(el) el.innerHTML = onCodesField(codesFieldSVG);
+};
+function codePickOverlay(){
+  const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick); if(!b) return "";
+  const s2 = bunkerSize(b, 2, 2);
+  return `<rect x="${(b.x*2-s2.h-3).toFixed(1)}" y="${(b.y*2-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffffff" stroke-width="1.8"/>`;
+}
 function callPickOverlay(){
   const b = S.callPick && curLayout().bunkers.find(x => x.id === S.callPick); if(!b) return "";
   const s2 = bunkerSize(b, 2, 2);
@@ -14207,7 +14265,8 @@ const HELP = {
          "Averages are his season; the list under them is this match."]},
   "more/codes": {t:"Codes", w:"Your code words — the same on every field.",
     how:["Write the word and what it means.",
-         "Kept on the phone, shared with the squad by you, not by the app."]},
+         "Kept on the phone, shared with the squad by you, not by the app.",
+         "Under it, Bunker codes draws the field with every bunker labelled. Pick any field to read its key; tap a bunker to give it your team's own name, and Put the code back to undo it."]},
   "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
     how:["Write it once and it is on the phone for the weekend.",
          "There is no network, so nothing sends anywhere."]},
@@ -15077,7 +15136,7 @@ function moreBody(k){
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
     const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}})">${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
+      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -15088,14 +15147,25 @@ function moreBody(k){
       player who has read a layout anywhere else already knows it.`}</p>
       ${/* The field the codes are read off, labelled, above the key. */""}
       <p class="note" style="margin:0">${esc(curLayout().name)}</p>
-      <div class="field-wrap">${fieldSVG({static:true, noPaths:true, names:true})}</div>
+      <div class="field-wrap" id="codes-map">${codesFieldSVG()}</div>
+      ${(() => { const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick);
+        const had = b && ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id];
+        return b ? `<div class="fld"><label for="codeName">Your name for ${esc(b.n)} · ${esc(b.id)}${had ? "" : " — it reads " + esc(b.n) + " until you name it"}</label>
+          <input id="codeName" maxlength="24" placeholder="Home" value="${esc(S.codeName || "")}" oninput="codePreview(this.value)" ${onEnter("codeCall()")}/></div>
+          <div class="btnrow"><button class="btn grow" onclick="codeCall()">Save name</button>
+          ${had ? `<button class="btn btn--quiet" onclick="codeCall(true)">Put the code back</button>` : ""}</div>`
+        : `<p class="note">Tap any bunker on the field to give it your team's own name — it replaces the code everywhere in the app.</p>`; })()}
       <div class="tblwrap"><table class="tbl">
         <thead><tr><th>Code</th><th>Bunker</th><th>On this field</th></tr></thead>
         <tbody>${BUNKER_CODE.map(([c,full])=>{
           const n = codeCount(c);
           return `<tr><td class="num" style="color:var(--accent-lit);font-weight:700">${esc(c)}</td>
             <td>${esc(full)}</td>
-            <td class="num">${n ? n : `<span class="note">not on this field</span>`}</td></tr>`;
+            <td class="num">${n ? n : `<span class="note">not on this field</span>`}${(() => {
+              // The names he gave bunkers of this kind here, so a renamed code reads as his.
+              const words = curLayout().bunkers.filter(b => b.n === c && ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id])
+                .map(b => `${esc(b.id)} <b style="color:var(--ink)">${esc(S.bunkerCalls[S.layoutKey][b.id])}</b>`);
+              return words.length ? `<br><span class="note">${words.join(" · ")}</span>` : ""; })()}</td></tr>`;
         }).join("")}</tbody>
       </table></div>
       <p class="note">Give any of them your own call under Team → Bunker calls. The call replaces the
