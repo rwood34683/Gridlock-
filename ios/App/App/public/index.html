@@ -1983,7 +1983,7 @@ const defaultState = () => ({
   replayPt:null, replayStep:null,
   bunkerCalls:{}, playerCalls:{}, breakCalls:{}, jobCalls:{}, teamCode:"",
   billing:{plan:"free", exp:0, source:"", at:0}, preview:false, billingSaid:"", promoTour:false,
-  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false, codesField:null, codePick:null, codeName:"",
+  authSaid:"", verifyPhone:"", verifySent:false, verifySaid:"", pbPick:false, evPick:false, codesField:null, codePick:null, codeName:"", codeWho:"",
   plays:[], building:null,
   pens:[],                 // penalties, as the official called them and the coach recorded them
   timeouts:[],             // the one timeout a team gets a match, and the point it was taken on
@@ -2769,7 +2769,7 @@ function clearScratch(s = S){
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
-  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = "";
+  s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
   s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
@@ -6334,7 +6334,9 @@ const onCodesField = fn => { const keep = S.layoutKey; S.layoutKey = codesKey();
     ev.preventDefault();
     const b = onCodesField(() => nearestBunker(fieldFeet(svg, ev)));
     if(!b) return;
-    S.codePick = b.id; S.codeName = ((S.bunkerCalls || {})[codesKey()] || {})[b.id] || ""; render();
+    S.codePick = b.id;
+    S.codeName = (S.codeWho ? ((((S.playerCalls || {})[codesKey()] || {})[S.codeWho]) || {})[b.id] : ((S.bunkerCalls || {})[codesKey()] || {})[b.id]) || "";
+    render();
     const el = document.getElementById("codeName"); if(el){ el.focus(); el.select(); }
   });
 })();
@@ -6343,6 +6345,15 @@ window.codeCall = clear => {
   if(!id){ flash("Tap a bunker on the field first."); return; }
   const el = document.getElementById("codeName");
   const nm = clear ? "" : clean(((el && el.value) || "").trim()).slice(0, 24);
+  // One player's own word: on his card only, never on the field.
+  const who = S.codeWho && (S.roster || []).some(p => p.name === S.codeWho) ? S.codeWho : "";
+  if(who){
+    const hadMine = ((((S.playerCalls || {})[lk] || {})[who]) || {})[id];
+    if(!nm && !hadMine){ flash("Type a name first."); return; }
+    setPlayerCall(who, id, nm, lk);
+    if(!/already/.test(S.flash || "")) flash(nm ? `${id} is ${nm} to ${who}.` : `${who}'s word for ${id} is gone.`);
+    return;
+  }
   const had = ((S.bunkerCalls || {})[lk] || {})[id];
   if(!nm && !had){ flash("Type a name first."); return; }
   const other = nm && onCodesField(() => bunkerWordTaken(nm, id));
@@ -6360,7 +6371,7 @@ window.codeCall = clear => {
 // until Save name — the preview is laid over the calls for the one draw.
 function codesFieldSVG(){
   const id = S.codePick, held = S.bunkerCalls;
-  if(id){
+  if(id && !S.codeWho){
     const lk = S.layoutKey, layer = {...((held || {})[lk] || {})}, v = clean(String(S.codeName || "").trim()).slice(0, 24);
     if(v) layer[id] = v; else delete layer[id];
     S.bunkerCalls = {...(held || {}), [lk]: layer};
@@ -6417,16 +6428,16 @@ window.setCall = () => {
   S.bcName = "";
   S.bunkerCalls = all; save(S); render();
 };
-window.clearCall = id => {
+window.clearCall = (id, lk = S.layoutKey) => {
   const all = {...(S.bunkerCalls || {})};
-  const layer = {...(all[S.layoutKey] || {})};
+  const layer = {...(all[lk] || {})};
   delete layer[id];
-  all[S.layoutKey] = layer;
+  all[lk] = layer;
   S.bunkerCalls = all; save(S); render();
 };
-window.setPlayerCall = (who, id, nm) => {
+window.setPlayerCall = (who, id, nm, lk = S.layoutKey) => {
   const all = {...(S.playerCalls || {})};
-  const layer = {...(all[S.layoutKey] || {})};
+  const layer = {...(all[lk] || {})};
   const mine = {...(layer[who] || {})};
   // His own word is his alone, but one man cannot call two bunkers on one
   // field by the same word either — it is the word he shouts for a place.
@@ -6434,10 +6445,10 @@ window.setPlayerCall = (who, id, nm) => {
   if(other){ flash(`${nm} is already ${who}'s word for ${esc(other)} on this field.`); return; }
   if(nm) mine[id] = nm; else delete mine[id];
   if(Object.keys(mine).length) layer[who] = mine; else delete layer[who];
-  all[S.layoutKey] = layer;
+  all[lk] = layer;
   S.bcName = ""; S.playerCalls = all; save(S); render();
 };
-window.clearPlayerCall = (who, id) => setPlayerCall(who, id, "");
+window.clearPlayerCall = (who, id, lk) => setPlayerCall(who, id, "", lk);
 
 /* The squad code.
  *
@@ -14395,9 +14406,12 @@ function moreBody(k){
       <p class="note" style="margin:0">${esc(curLayout().name)}</p>
       <div class="field-wrap" id="codes-map">${codesFieldSVG()}</div>
       ${(() => { const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick);
-        const had = b && ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id];
+        const had = b && (S.codeWho ? ((((S.playerCalls || {})[S.layoutKey] || {})[S.codeWho]) || {})[b.id] : ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id]);
         return b ? `<div class="fld"><label for="codeName">Your name for ${esc(b.n)} · ${esc(b.id)}${had ? "" : " — it reads " + esc(b.n) + " until you name it"}</label>
           <input id="codeName" maxlength="24" placeholder="Home" value="${esc(S.codeName || "")}" oninput="codePreview(this.value)" ${onEnter("codeCall()")}/></div>
+          ${(S.roster || []).some(p => p.name) ? `<div class="fld"><label for="codeWho">Who calls it that</label>
+            <select id="codeWho" onchange="S.codeWho=this.value; S.codeName=(this.value ? ((((S.playerCalls||{})[codesKey()]||{})[this.value])||{})[S.codePick] : ((S.bunkerCalls||{})[codesKey()]||{})[S.codePick]) || ''; render()"><option value="">The whole team — shows on the field</option>
+            ${S.roster.filter(p => p.name).map(p => `<option value="${esc(p.name)}"${S.codeWho === p.name ? " selected" : ""}>${esc(p.name)} only — on his card</option>`).join("")}</select></div>` : ""}
           <div class="btnrow"><button class="btn grow" onclick="codeCall()">Save name</button>
           ${had ? `<button class="btn btn--quiet" onclick="codeCall(true)">Put the code back</button>` : ""}</div>`
         : `<p class="note">Tap any bunker on the field to give it your team's own name — it replaces the code everywhere in the app.</p>`; })()}
@@ -14414,9 +14428,21 @@ function moreBody(k){
               return words.length ? `<br><span class="note">${words.join(" · ")}</span>` : ""; })()}</td></tr>`;
         }).join("")}</tbody>
       </table></div>
-      <p class="note">Give any of them your own call under Team → Bunker calls. The call replaces the
-        code everywhere in the app; the code is still what the map says.
-        <button class="btn btn--quiet read-line__go" onclick="set({more:'team'})">Open Team</button></p>`,
+      ${(() => {
+        // The names given on this field, the team's and each player's own, with
+        // Clear on each — the same list Team › Bunker calls keeps, here beside the key.
+        const lk = S.layoutKey, list = curLayout().bunkers, team = (S.bunkerCalls || {})[lk] || {};
+        const rows = Object.keys(team).filter(id => team[id]).map(id => ["", id, team[id]])
+          .concat(Object.entries((S.playerCalls || {})[lk] || {}).flatMap(([who, m]) => Object.entries(m || {}).map(([id, w]) => [who, id, w])));
+        const tag = id => { const b = list.find(x => x.id === id); return b ? b.n + " · " + b.id : id; };
+        return `<h3 class="panel__title" style="margin-top:var(--s4)">Your names on this field</h3>
+          ${rows.length ? `<div class="assigns">${rows.map(([who, id, w]) => `<div class="assign"><span class="assign__body">
+            <span class="assign__job">${esc(w)}</span>
+            <span class="assign__who">${esc(tag(id))}${who ? " · " + esc(who) + " only" : " · the whole team"}</span></span>
+            <button class="btn btn--danger" onclick="${who ? `clearPlayerCall(${jsq(who)},${jsq(id)},${jsq(lk)})` : `clearCall(${jsq(id)},${jsq(lk)})`}">Clear</button></div>`).join("")}</div>`
+            : `<div class="empty">None yet — tap a bunker on the field above to name it.</div>`}
+          <p class="note">The team's name replaces the code everywhere in the app; a player's own word shows on his card only. The code is still what the map says.</p>`;
+      })()}`,
       `${BUNKER_CODE.filter(([c])=>codeCount(c)).length} of ${BUNKER_CODE.length} here`);
     } finally { S.layoutKey = keep; }
     })();
