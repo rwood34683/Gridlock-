@@ -2278,15 +2278,26 @@ const ROSTER = [
   // so a second one is the first real test that any of it was general.
   G("Tampa Bay");
   check("every layout that ships says where it came from", await ev(() =>
-    Object.keys(LAYOUTS).length === 4 &&
+    Object.keys(LAYOUTS).length === 5 &&
     ["lso", "tby", "mwo"].every(k => /official NXL field map/.test(LAYOUTS[k].source)) &&
     /field map the coach sent/.test(LAYOUTS.ujt.source) &&
+    /3D render the coach sent/.test(LAYOUTS.ugp.source) &&
     Object.values(LAYOUTS).every(l => /printed 10-ft grid/.test(l.source))));
   check("the event becomes a picker once there is more than one to pick", await ev(() => {
     window.set({ tab: "playbook" });
     return !!document.querySelector("button.ctx__ev");
   }));
   check("Tampa carries its own 57 bunkers", await ev(() => LAYOUTS.tby.bunkers.length === 57));
+  check("the USXBL GP field carries 57 bunkers, on the field, one id each, mirrored across the fifty, with its logo where the event is picked", await ev(() => {
+    const L = LAYOUTS.ugp, bl = L.bunkers;
+    const on = bl.every(b => b.x > -2 && b.x < 152 && b.y > 0 && b.y < 120);
+    const ids = new Set(bl.map(b => b.id)).size === bl.length;
+    const twin = bl.every(b => Math.abs(b.x - 75) < 0.2 || bl.some(o => o !== b && o.n === b.n && Math.abs(o.x + b.x - 150) < 0.25 && Math.abs(o.y - b.y) < 0.25));
+    window.set({ tab: "playbook", evPick: true });
+    const logo = !!document.querySelector('.evpick img.evlogo[alt*="GP Championships"]');
+    window.set({ evPick: false });
+    return bl.length === 57 && on && ids && twin && logo || JSON.stringify({ n: bl.length, on, ids, twin, logo });
+  }));
   check("every one of them is on the field", await ev(() =>
     LAYOUTS.tby.bunkers.every(b => b.x > 0 && b.x < 150 && b.y > 0 && b.y < 120)));
   check("no two bunkers share an id", await ev(() =>
@@ -2762,11 +2773,14 @@ const ROSTER = [
   // On the USXBL field every back bunker is one you shoot from, so Lock's lean
   // toward those changes nothing and it plants as Conserve does. That is the
   // rule's honest answer there, pinned by name so no other pair can join it.
-  check("the twelve are twelve different calls on every field — Conserve and Lock coincide on the USXBL field alone", await ev(() =>
+  // The GP field's base and trade land on one five the same way: its back
+  // bunkers are few and every one of them is somewhere you shoot from.
+  check("the twelve are twelve different calls on every field — Conserve and Lock coincide on the USXBL JT field, Base and Trade on the GP field, and nowhere else", await ev(() =>
     Object.entries(BREAK_PLANTS).every(([k, f]) => {
-      const fives = Object.entries(f).filter(([c]) => !(k === "ujt" && c === "lock")).map(([, p]) => [...p].sort().join());
+      const fives = Object.entries(f).filter(([c]) => !(k === "ujt" && c === "lock") && !(k === "ugp" && c === "trade")).map(([, p]) => [...p].sort().join());
       return new Set(fives).size === fives.length;
-    }) && [...BREAK_PLANTS.ujt.lock].sort().join() === [...BREAK_PLANTS.ujt.conserve].sort().join()));
+    }) && [...BREAK_PLANTS.ujt.lock].sort().join() === [...BREAK_PLANTS.ujt.conserve].sort().join()
+       && [...BREAK_PLANTS.ugp.trade].sort().join() === [...BREAK_PLANTS.ugp.base].sort().join()));
   check("every call reads differently in a coach's words", await ev(() => {
     const reads = Object.keys(BREAKS).map(k => breakMeta(k).read);
     return new Set(reads).size === reads.length && reads.every(r => r && r.length > 30);
@@ -10309,7 +10323,7 @@ const ROSTER = [
   check("three men on one bunker run to three spots of their own on every measured field", await ev(() => {
     const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building, layoutKey: S.layoutKey };
     const out = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp"]){
       window.pickEvent(lk);
       const bl = curLayout().bunkers, big = bl.filter(b => b.x > 20 && b.x < 70).sort((a, c) => (c.w || 0) * (c.h || 0) - (a.w || 0) * (a.h || 0))[0];
       const rest = bl.filter(b => b.id !== big.id && b.x > 20 && b.x < 70).slice(0, 2).map(b => b.id);
@@ -10374,7 +10388,7 @@ const ROSTER = [
   }));
   check("a doubled bunker's two men stand clear of every other bunker and run round them — on every field", await ev(() => {
     const was = { plays: S.plays, layoutKey: S.layoutKey }, bad = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp"]){
       if(!LAYOUTS[lk]) continue;
       const L = LAYOUTS[lk], boxes = b => bunkerBoxes(b).map(q => ({ x: q.x, y: q.y, hw: q.w / 2, hh: q.h / 2 }));
       for(const b of L.bunkers){
@@ -10392,8 +10406,11 @@ const ROSTER = [
     Object.assign(S, was); dropPathCache();
     const list = lk => [...(bad[lk] || [])].sort().join(",");
     // Midwest's deep snake and the wedges its snake overlaps clip with one man too.
-    const ok = !list("lso") && !list("tby") && !list("ujt") && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id));
-    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt") });
+    // So does the GP field's snake, where the W-topped uprights stand across
+    // the beam and the centre wedge sits in the gap between two beams.
+    const ok = !list("lso") && !list("tby") && !list("ujt") && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id))
+      && [...(bad.ugp || [])].every(id => ["SB#4", "SB#7", "SB#11", "SD#1"].includes(id));
+    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt"), ugp: list("ugp") });
   }));
   G("Match day");
   const unread = await ev(() => {

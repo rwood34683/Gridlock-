@@ -22,6 +22,7 @@ off the 2D the coach sent; see below.
 | mvps_2026_spring_skirmish | published | `official_image_only` | 0 |
 | usxbl_2026_practice | practice only | `official_image_only` | 0 |
 | usxbl_2026_jt_championship | published | `grid_digitized` | 58 |
+| usxbl_2026_gp_championship | published | `grid_digitized` (3D render) | 57 |
 | nxl_2026_lone_star | published | `grid_digitized` | 58 |
 | nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
 
@@ -37,6 +38,38 @@ the official 2D); without a map, or over anything else, it is neutral grey.
 The map is stretched to the field's edges and is a guide only — it never
 moves or sizes a bunker. It never enters this pack: it lives in the coach's season and rides
 in Save a copy.
+
+## How the USXBL GP Championships was digitized
+
+Paintball Fit, Waxahachie TX, 17–18 Oct 2026 (in memoriam Greg Pauley). The
+coach sent no 2D: two 3D renders and the event poster, kept as
+`layouts/images/usxbl_2026_gp_championship_{3d,iso,poster}.jpg`. The poster's
+badge is the event's mark in the app (`web/event-usxbl-gp.jpg`, `EVENT_LOGO`),
+beside its name wherever the event is picked or listed; it ships in every
+build, because it is the league's and not the brand's.
+
+```bash
+python3 tools/digitize_usxbl_gp.py              # measures -> tools/out/usxbl_gp_measured.json
+PYTHONPATH=tools python3 tools/emit_usxbl_gp.py  # writes the event JSON + tools/out/ugp_layout.js
+node tools/plants.js --write                     # plants the twelve calls on it
+```
+
+- **The grid is on the turf.** The end-on render prints the 10-ft grid,
+  numbered across the width under the near end line and up the length on the
+  dorito side. Rows read on the centre line and width lines read across two
+  rows give 27 points, and a plane homography fitted to them by DLT lands each
+  within 0.93 px.
+- **A render shows a bunker standing up.** Each one is read where its paint
+  meets the turf nearest the camera — the near edge of its footprint, raised a
+  little where the edge leans.
+- **The mirror cancels both.** The field is mirrored across the 50, and a
+  bunker and its twin are read the same way, so the shared offset drops out:
+  centre = (near − far + 150) / 2. Centre-line bunkers sit on x = 75.
+- **No labels, and not NXL inflatables.** Each is named for the nearest
+  standard kind by shape (the event JSON lists which), and sized from the book.
+  The black caps are shade, not paint, so every bunker is red with no detail.
+- Base and Trade plant the same five here, the way Conserve and Lock do on the
+  JT field; the suite pins the pair.
 
 ## How the USXBL JT Championship was digitized
 
