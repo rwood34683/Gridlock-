@@ -169,9 +169,13 @@ button.ctx__ev b{color:var(--mute)}
 .ctx__t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ctx__car{flex:none;color:var(--accent-lit);font-style:normal;font-size:10px}
 .evpick{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 0 var(--s3)}
+.evlogo{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;margin-right:8px}
+.evlogo--row{width:48px;height:48px;margin-right:0}
+.evlogo--lg{width:120px;height:120px;margin:0 auto var(--s3);display:block}
 .evpick button{
   min-height:44px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);
   background:none;color:var(--ink);font:inherit;font-size:var(--t-sm);font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;
 }
 .evpick button.on{border-color:var(--accent);background:var(--accent)}
 
@@ -1055,6 +1059,20 @@ const BREAK_PLANTS = {
     trade:    ["MW#1","T#6","C#4","C#1","MD#2"],
     contain:  ["MW#3","MD#2","T#3","T#7","SD#1"],
     lock:     ["GB#3","T#7","T#3","SD#1","GB#1"]
+  },
+  ugp: {
+    hold:     ["SB#3","MT#3","GW#1","T#1","MD#5"],
+    base:     ["Tr#3","MT#3","GW#1","Wg#1","MD#3"],
+    snake:    ["T#5","SB#6","GB#2","Tr#1","Wg#1"],
+    flood:    ["MD#1","MD#3","MD#5","Wg#1","GW#1"],
+    blitz:    ["T#5","GB#2","GB#1","MT#2","MD#1"],
+    conserve: ["MW#3","T#3","GP#1","T#1","MD#5"],
+    counter:  ["C#3","SB#5","MD#3","MT#3","Wg#1"],
+    split:    ["SB#6","MT#3","MD#1","Wg#1","GP#1"],
+    tower:    ["GB#1","GW#1","MT#3","Wg#1","SB#3"],
+    trade:    ["Tr#3","MT#3","GW#1","Wg#1","MD#3"],
+    contain:  ["SB#7","MD#1","GP#1","T#3","T#1"],
+    lock:     ["MW#3","MT#3","GP#1","T#1","MD#5"]
   }
 };
 
@@ -1537,6 +1555,39 @@ const UJT = [
   {id:"T#11",n:"T",x:65.6,y:114.1,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#12",n:"T",x:84.4,y:114.1,t:"temple",w:4.69,h:4.82,c:"r"},
   {id:"T#13",n:"T",x:35.8,y:114.4,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#14",n:"T",x:114.2,y:114.4,t:"temple",w:4.69,h:4.82,c:"r"}
 ];
+// Digitized from the USXBL GP Championship 3D render on its printed 10-ft grid.
+// Written by tools/emit_usxbl_gp.py — do not hand-edit.
+const UGP = [
+  {id:"C#1",n:"C",x:11.6,y:12.0,t:"ball",w:4.27,h:4.11,c:"r"},{id:"C#2",n:"C",x:138.4,y:12.0,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"MD#1",n:"MD",x:62.4,y:14.9,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:87.6,y:14.9,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#3",n:"MD",x:46.1,y:16.2,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:103.9,y:16.2,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MT#1",n:"MT",x:75.0,y:19.6,t:"temple",w:4.98,h:4.95,c:"r"},{id:"MD#5",n:"MD",x:29.8,y:20.1,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#6",n:"MD",x:120.2,y:20.1,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MT#2",n:"MT",x:75.0,y:32.5,t:"temple",w:4.98,h:4.95,c:"r"},
+  {id:"Wg#1",n:"Wg",x:39.7,y:32.6,t:"bar",w:3.05,h:7.3,c:"r"},{id:"Wg#2",n:"Wg",x:110.3,y:32.6,t:"bar",w:3.05,h:7.3,c:"r"},
+  {id:"T#1",n:"T",x:19.8,y:37.6,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#2",n:"T",x:130.2,y:37.6,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"GW#1",n:"GW",x:50.0,y:47.0,t:"gwing",w:5.34,h:5.66,c:"r"},{id:"GW#2",n:"GW",x:100.0,y:47.0,t:"gwing",w:5.34,h:5.66,c:"r"},
+  {id:"GB#1",n:"GB",x:75.0,y:49.6,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"C#3",n:"C",x:60.2,y:59.9,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"C#4",n:"C",x:89.8,y:59.9,t:"ball",w:4.27,h:4.11,c:"r"},{id:"Br#1",n:"Br",x:0.3,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},
+  {id:"GP#1",n:"GP",x:14.9,y:60.0,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},{id:"GP#2",n:"GP",x:135.1,y:60.0,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},
+  {id:"Br#2",n:"Br",x:149.7,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},{id:"MT#3",n:"MT",x:37.4,y:70.0,t:"temple",w:4.98,h:4.95,c:"r"},
+  {id:"MT#4",n:"MT",x:112.6,y:70.0,t:"temple",w:4.98,h:4.95,c:"r"},{id:"GB#2",n:"GB",x:75.0,y:70.2,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"Tr#1",n:"Tr",x:59.9,y:80.1,t:"ball",w:3.63,h:3.57,c:"r"},{id:"Tr#2",n:"Tr",x:90.1,y:80.1,t:"ball",w:3.63,h:3.57,c:"r"},
+  {id:"T#3",n:"T",x:21.7,y:82.5,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#4",n:"T",x:128.3,y:82.5,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"Tr#3",n:"Tr",x:48.5,y:88.7,t:"ball",w:3.63,h:3.57,c:"r"},{id:"Tr#4",n:"Tr",x:101.5,y:88.7,t:"ball",w:3.63,h:3.57,c:"r"},
+  {id:"SB#1",n:"SB",x:68.9,y:91.8,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#2",n:"SB",x:81.1,y:91.8,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SD#1",n:"SD",x:75.0,y:95.0,t:"tridown",w:4.53,h:5.21,c:"r"},{id:"SB#3",n:"SB",x:31.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#4",n:"SB",x:39.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#5",n:"SB",x:48.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#6",n:"SB",x:57.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#7",n:"SB",x:65.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#8",n:"SB",x:84.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#9",n:"SB",x:93.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#10",n:"SB",x:101.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#11",n:"SB",x:110.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#12",n:"SB",x:119.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#13",n:"SB",x:15.1,y:102.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#14",n:"SB",x:134.9,y:102.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"MW#1",n:"MW",x:38.8,y:103.1,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"MW#2",n:"MW",x:111.2,y:103.1,t:"mw",w:1.93,h:7.07,c:"r"},{id:"T#5",n:"T",x:58.0,y:103.6,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#6",n:"T",x:92.0,y:103.6,t:"temple",w:4.82,h:4.69,c:"r"},{id:"MW#3",n:"MW",x:20.3,y:107.6,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"MW#4",n:"MW",x:129.7,y:107.6,t:"mw",w:1.93,h:7.07,c:"r"},{id:"SB#15",n:"SB",x:70.8,y:108.2,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#16",n:"SB",x:79.2,y:108.2,t:"beam",w:9.68,h:1.49,c:"r"},{id:"T#7",n:"T",x:66.5,y:111.5,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#8",n:"T",x:83.5,y:111.5,t:"temple",w:4.82,h:4.69,c:"r"}
+];
 const LAYOUTS = {
   lso: {name:"NXL Lone Star Open · Garland", key:"lso", bunkers:LSO,
         source:"Measured off the official NXL field map, on its printed 10-ft grid. "
@@ -1557,8 +1608,22 @@ const LAYOUTS = {
   ujt: {name:"USXBL JT Championship", key:"ujt", bunkers:UJT,
         source:"Measured off the field map the coach sent, on its printed 10-ft grid. "
              + "The map names no bunkers; each is named for its kind.",
+        plantsFrom:"rule"},
+  // No 2D came with it: measured off the 3D render's printed grid, each bunker
+  // paired with its twin across the 50; layouts/events says how.
+  ugp: {name:"USXBL GP Championships · Waxahachie", key:"ugp", bunkers:UGP,
+        source:"Measured off the 3D render the coach sent, on its printed 10-ft grid. "
+             + "The render names no bunkers; each is named for its kind.",
         plantsFrom:"rule"}
 };
+// An event's own mark, where the coach sent one, beside its name wherever the
+// event is picked or listed. Written out whole so the one-file build can inline
+// the picture; it ships in every build, because the event is the league's, not
+// the brand's.
+const EVENT_LOGO = {
+  ugp: '<img class="evlogo" src="event-usxbl-gp.jpg" alt="USXBL GP Championships, in memoriam Greg Pauley" width="360" height="360" decoding="async"/>',
+};
+const evLogo = (k, cls) => EVENT_LOGO[k] ? (cls ? EVENT_LOGO[k].replace('class="evlogo"', `class="evlogo ${cls}"`) : EVENT_LOGO[k]) : "";
 const BREAKS = {
   // Ordered as a coach turns the dial: patient at the left, the point has
   // to end early at the right. breakMeta carries the aggression behind it.
@@ -13570,7 +13635,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
-  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, and the USXBL JT Championship's off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
+  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, and the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
   ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
@@ -14393,7 +14458,7 @@ function moreBody(k){
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
     const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
+      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${evLogo(k)}${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -14403,7 +14468,7 @@ function moreBody(k){
       : `This is the key the NXL prints in the corner of the official map, not our shorthand — so a
       player who has read a layout anywhere else already knows it.`}</p>
       ${/* The field the codes are read off, labelled, above the key. */""}
-      <p class="note" style="margin:0">${esc(curLayout().name)}</p>
+      ${evLogo(S.layoutKey, "evlogo--lg")}<p class="note" style="margin:0">${esc(curLayout().name)}</p>
       <div class="field-wrap" id="codes-map">${codesFieldSVG()}</div>
       ${(() => { const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick);
         const had = b && (S.codeWho ? ((((S.playerCalls || {})[S.layoutKey] || {})[S.codeWho]) || {})[b.id] : ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id]);
@@ -14514,6 +14579,7 @@ function moreBody(k){
       all follow it.</p>
     <div class="assigns">${Object.values(LAYOUTS).map(L=>`
       <div class="assign" style="flex-wrap:wrap">
+        ${evLogo(L.key, "evlogo--row")}
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
         <span class="assign__who">${L.bunkers.length} bunkers${L.mine ? ` · built by you · ${Object.keys(BREAK_PLANTS[L.key] || {}).length} of ${Object.keys(PLANT_SHAPES).length} calls plant here${Object.keys(BREAK_PLANTS[L.key] || {}).length < Object.keys(PLANT_SHAPES).length ? " — more bunkers on the left half plant the rest" : ""}` : ""}</span></span>
         ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`
@@ -14646,7 +14712,7 @@ function shell(){
           : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
       </div>`}
       ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
-        Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${esc(l.name)}</button>`).join("")}</div>` : ""}
+        Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${evLogo(k)}${esc(l.name)}</button>`).join("")}</div>` : ""}
     </header>
     <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>

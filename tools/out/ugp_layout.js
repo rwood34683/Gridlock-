@@ -1,0 +1,33 @@
+// Digitized from the USXBL GP Championship 3D render on its printed 10-ft grid.
+// Written by tools/emit_usxbl_gp.py — do not hand-edit.
+const UGP = [
+  {id:"C#1",n:"C",x:11.6,y:12.0,t:"ball",w:4.27,h:4.11,c:"r"},{id:"C#2",n:"C",x:138.4,y:12.0,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"MD#1",n:"MD",x:62.4,y:14.9,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:87.6,y:14.9,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#3",n:"MD",x:46.1,y:16.2,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:103.9,y:16.2,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MT#1",n:"MT",x:75.0,y:19.6,t:"temple",w:4.98,h:4.95,c:"r"},{id:"MD#5",n:"MD",x:29.8,y:20.1,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#6",n:"MD",x:120.2,y:20.1,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MT#2",n:"MT",x:75.0,y:32.5,t:"temple",w:4.98,h:4.95,c:"r"},
+  {id:"Wg#1",n:"Wg",x:39.7,y:32.6,t:"bar",w:3.05,h:7.3,c:"r"},{id:"Wg#2",n:"Wg",x:110.3,y:32.6,t:"bar",w:3.05,h:7.3,c:"r"},
+  {id:"T#1",n:"T",x:19.8,y:37.6,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#2",n:"T",x:130.2,y:37.6,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"GW#1",n:"GW",x:50.0,y:47.0,t:"gwing",w:5.34,h:5.66,c:"r"},{id:"GW#2",n:"GW",x:100.0,y:47.0,t:"gwing",w:5.34,h:5.66,c:"r"},
+  {id:"GB#1",n:"GB",x:75.0,y:49.6,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"C#3",n:"C",x:60.2,y:59.9,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"C#4",n:"C",x:89.8,y:59.9,t:"ball",w:4.27,h:4.11,c:"r"},{id:"Br#1",n:"Br",x:0.3,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},
+  {id:"GP#1",n:"GP",x:14.9,y:60.0,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},{id:"GP#2",n:"GP",x:135.1,y:60.0,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},
+  {id:"Br#2",n:"Br",x:149.7,y:60.0,t:"can",w:3.54,h:8.04,c:"r"},{id:"MT#3",n:"MT",x:37.4,y:70.0,t:"temple",w:4.98,h:4.95,c:"r"},
+  {id:"MT#4",n:"MT",x:112.6,y:70.0,t:"temple",w:4.98,h:4.95,c:"r"},{id:"GB#2",n:"GB",x:75.0,y:70.2,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"Tr#1",n:"Tr",x:59.9,y:80.1,t:"ball",w:3.63,h:3.57,c:"r"},{id:"Tr#2",n:"Tr",x:90.1,y:80.1,t:"ball",w:3.63,h:3.57,c:"r"},
+  {id:"T#3",n:"T",x:21.7,y:82.5,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#4",n:"T",x:128.3,y:82.5,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"Tr#3",n:"Tr",x:48.5,y:88.7,t:"ball",w:3.63,h:3.57,c:"r"},{id:"Tr#4",n:"Tr",x:101.5,y:88.7,t:"ball",w:3.63,h:3.57,c:"r"},
+  {id:"SB#1",n:"SB",x:68.9,y:91.8,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#2",n:"SB",x:81.1,y:91.8,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SD#1",n:"SD",x:75.0,y:95.0,t:"tridown",w:4.53,h:5.21,c:"r"},{id:"SB#3",n:"SB",x:31.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#4",n:"SB",x:39.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#5",n:"SB",x:48.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#6",n:"SB",x:57.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#7",n:"SB",x:65.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#8",n:"SB",x:84.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#9",n:"SB",x:93.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#10",n:"SB",x:101.7,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#11",n:"SB",x:110.3,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#12",n:"SB",x:119.0,y:100.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#13",n:"SB",x:15.1,y:102.0,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#14",n:"SB",x:134.9,y:102.0,t:"beam",w:9.68,h:1.49,c:"r"},{id:"MW#1",n:"MW",x:38.8,y:103.1,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"MW#2",n:"MW",x:111.2,y:103.1,t:"mw",w:1.93,h:7.07,c:"r"},{id:"T#5",n:"T",x:58.0,y:103.6,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#6",n:"T",x:92.0,y:103.6,t:"temple",w:4.82,h:4.69,c:"r"},{id:"MW#3",n:"MW",x:20.3,y:107.6,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"MW#4",n:"MW",x:129.7,y:107.6,t:"mw",w:1.93,h:7.07,c:"r"},{id:"SB#15",n:"SB",x:70.8,y:108.2,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#16",n:"SB",x:79.2,y:108.2,t:"beam",w:9.68,h:1.49,c:"r"},{id:"T#7",n:"T",x:66.5,y:111.5,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#8",n:"T",x:83.5,y:111.5,t:"temple",w:4.82,h:4.69,c:"r"}
+];

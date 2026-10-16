@@ -722,6 +722,18 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     dashed edge, only when one is set; `mirrorDirect` turns both with the
     field; the card and the share text read "lanes X, then Y".
 
+49. ~~The USXBL GP Championships.~~ Done — Paintball Fit, Waxahachie TX, the
+    fifth measured field (`ugp`, `UGP`). The coach sent two 3D renders and the
+    poster, no 2D, so `tools/digitize_usxbl_gp.py` measures the end-on render
+    through the 10-ft grid printed on its turf (a homography, 0.93 px worst),
+    reads each bunker where it meets the turf nearest the camera, and averages
+    each with its twin across the 50 so the offset of reading a standing bunker
+    cancels. Names are the nearest standard kind; sizes are the book's. The
+    poster's badge is the event's mark (`EVENT_LOGO`, `evLogo()`,
+    `web/event-usxbl-gp.jpg`) in the event picker, Nexus › Events and Codes —
+    not a `logo-*` file, so every build ships it. Base and Trade plant one five
+    here; the suite pins it. `docs/LAYOUTS.md` has the method.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
