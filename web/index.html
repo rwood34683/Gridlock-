@@ -169,9 +169,13 @@ button.ctx__ev b{color:var(--mute)}
 .ctx__t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ctx__car{flex:none;color:var(--accent-lit);font-style:normal;font-size:10px}
 .evpick{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 0 var(--s3)}
-.evlogo{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;margin-right:8px}
-.evlogo--row{width:48px;height:48px;margin-right:0}
-.evlogo--lg{width:120px;height:120px;margin:0 auto var(--s3);display:block}
+.evlogo{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;margin-right:8px}
+.evlogo--row{width:52px;height:52px;margin-right:0}
+.evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
+.evhead > div{min-width:0}
+.evhead b{display:block;color:var(--ink);font-size:var(--t-md);line-height:1.25}
+.evhead .note{display:block;margin:4px 0 0}
+.evlogo--lg{width:84px;height:84px;margin:0}
 .evpick button{
   min-height:44px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);
   background:none;color:var(--ink);font:inherit;font-size:var(--t-sm);font-weight:700;cursor:pointer;
@@ -1612,6 +1616,7 @@ const LAYOUTS = {
   // No 2D came with it: measured off the 3D render's printed grid, each bunker
   // paired with its twin across the 50; layouts/events says how.
   ugp: {name:"USXBL GP Championships · Waxahachie", key:"ugp", bunkers:UGP,
+        when:"17–18 Oct 2026 · Paintball Fit, Waxahachie TX · in memoriam Greg Pauley",
         source:"Measured off the 3D render the coach sent, on its printed 10-ft grid. "
              + "The render names no bunkers; each is named for its kind.",
         plantsFrom:"rule"}
@@ -1621,7 +1626,7 @@ const LAYOUTS = {
 // the picture; it ships in every build, because the event is the league's, not
 // the brand's.
 const EVENT_LOGO = {
-  ugp: '<img class="evlogo" src="event-usxbl-gp.jpg" alt="USXBL GP Championships, in memoriam Greg Pauley" width="360" height="360" decoding="async"/>',
+  ugp: '<img class="evlogo" src="event-usxbl-gp.jpg" alt="USXBL GP Championships, in memoriam Greg Pauley" width="320" height="320" decoding="async"/>',
 };
 const evLogo = (k, cls) => EVENT_LOGO[k] ? (cls ? EVENT_LOGO[k].replace('class="evlogo"', `class="evlogo ${cls}"`) : EVENT_LOGO[k]) : "";
 const BREAKS = {
@@ -14458,7 +14463,7 @@ function moreBody(k){
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
     const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${evLogo(k)}${esc(l.name)}${k === keep ? " · this event" : ""}</button>`).join("")}</div></div>` : "";
+      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${evLogo(k)}${esc(l.name)}${k === keep ? " · here" : ""}</button>`).join("")}</div></div>` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -14468,7 +14473,8 @@ function moreBody(k){
       : `This is the key the NXL prints in the corner of the official map, not our shorthand — so a
       player who has read a layout anywhere else already knows it.`}</p>
       ${/* The field the codes are read off, labelled, above the key. */""}
-      ${evLogo(S.layoutKey, "evlogo--lg")}<p class="note" style="margin:0">${esc(curLayout().name)}</p>
+      ${EVENT_LOGO[S.layoutKey] ? `<div class="evhead">${evLogo(S.layoutKey, "evlogo--lg")}<div><b>${esc(curLayout().name)}</b>${curLayout().when ? `<span class="note">${esc(curLayout().when)}</span>` : ""}</div></div>`
+        : `<p class="note" style="margin:0">${esc(curLayout().name)}</p>`}
       <div class="field-wrap" id="codes-map">${codesFieldSVG()}</div>
       ${(() => { const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick);
         const had = b && (S.codeWho ? ((((S.playerCalls || {})[S.layoutKey] || {})[S.codeWho]) || {})[b.id] : ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id]);
