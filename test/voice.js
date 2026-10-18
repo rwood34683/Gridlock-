@@ -354,7 +354,11 @@ async function unsupportedRecognition(browser, url) {
         scout: {"No speech engine": {players: [{num: "7", name: "Alex"}]}}});
     });
     await page.waitForFunction(() => _voiceUI.availability && !_voiceUI.availability.available);
-    assert(await page.getByRole("button", {name: "Start listening", exact: true}).isDisabled(), "Unavailable recognition disables microphone start");
+    const start = page.getByRole("button", {name: "Start listening", exact: true});
+    assert(!(await start.isDisabled()), "Start listening stays live with no speech engine, so the tap can say why");
+    await start.click();
+    assert(/unavailable on this device/i.test(await page.locator("#voice-status").innerText()), "Start listening with no engine says to type it instead");
+    assert.equal(await page.evaluate(() => !!_voiceUI.session), false, "and starts no session");
     assert(/dictation is unavailable/i.test(await page.locator("main").innerText()), "Unsupported browser explains the text fallback");
     await page.locator("#voice-manual").fill("Alex is out");
     await page.getByRole("button", {name: "Record text", exact: true}).click();
@@ -363,7 +367,7 @@ async function unsupportedRecognition(browser, url) {
     assert.equal(rows[0].source, "typed");
     assert.equal(rows[0].player, "number:7");
     assert.deepEqual(errors, [], "Unsupported speech does not cause browser errors");
-    console.log("PASS voice unsupported-engine fallback: microphone disabled, explanation visible, typed event parsed and saved.");
+    console.log("PASS voice unsupported-engine fallback: Start listening explains itself, explanation visible, typed event parsed and saved.");
   } finally { await context.close(); }
 }
 

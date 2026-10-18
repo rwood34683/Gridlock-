@@ -882,9 +882,10 @@ const ROSTER = [
   await seed({ tab: "more", more: "assess" });
   check("Save grade waits until a man and a score are tapped, and says which is missing", await ev(() => {
     const btn = () => [...document.querySelectorAll("#root .btn")].find(b => /Tap the man|Tap a score|Save grade/.test(b.textContent));
-    const a = btn().disabled && /Tap the man/.test(btn().textContent);
+    // Live the whole time — a greyed-out button is silence; the tap says what is missing.
+    const a = !btn().disabled && /Tap the man/.test(btn().textContent);
     window.assessPick("Reyes");
-    const b = btn().disabled && /Tap a score/.test(btn().textContent);
+    const b = !btn().disabled && /Tap a score/.test(btn().textContent);
     window.assessScore(4);
     const c = !btn().disabled && /Save grade · Reyes · 4/.test(btn().textContent);
     return a && b && c;
@@ -3810,6 +3811,37 @@ const ROSTER = [
     const h = chip.getBoundingClientRect().height;      // measured before the click rebuilds the screen
     chip.click();
     return S.tab === "tally" && h >= 44;
+  }));
+  check("on Tally the score chip takes him to the point sheet, not nowhere", await ev(async () => {
+    window.set({ tab: "tally" });
+    const m = document.querySelector(".main"); if(m) m.scrollTop = 0; scrollTo(0, 0);
+    const sheet = document.getElementById("point-sheet");
+    const before = sheet.getBoundingClientRect().top;
+    document.querySelector("#root .hdr .score-chip--go").click();
+    await new Promise(r => setTimeout(r, 900));
+    const after = document.getElementById("point-sheet").getBoundingClientRect().top;
+    return S.tab === "tally" && (before < 120 || after < before) || JSON.stringify({ before, after });
+  }));
+  check("every button on every screen does something: none is greyed out, each has a handler", await ev(() => {
+    const screens = [["playbook"], ["tally"], ["sightlines"], ...SCOUT_VIEWS.map(v => ["scout", null, v]),
+      ["more", null], ...MORE_GROUPS.flatMap(([, rows]) => rows.map(r => ["more", r[0]]))];
+    const bad = [];
+    for(const [tab, more, sv] of screens){
+      window.set({ tab, more: more || null, ...(sv ? { scoutTab: sv } : {}) });
+      document.querySelectorAll("#root button").forEach(b => {
+        const live = b.getAttribute("onclick") || b.type === "submit" || b.onclick || [...b.attributes].some(a => /^data-/.test(a.name));
+        if(b.disabled || !live) bad.push(`${tab}/${more || sv || ""}: ${b.textContent.trim().slice(0, 30)}`);
+      });
+    }
+    window.set({ tab: "playbook", more: null, scoutTab: "matchup" });
+    return bad.length === 0 || JSON.stringify(bad.slice(0, 8));
+  }));
+  check("Help asked from the help screen goes to the top of its card", await ev(async () => {
+    window.set({ tab: "more", more: "help" });
+    const m = document.querySelector(".main"); if(m) m.scrollTop = 400; scrollTo(0, 400);
+    window.openHelp();
+    await new Promise(r => setTimeout(r, 120));
+    return (m ? document.querySelector(".main").scrollTop : 0) === 0 && scrollY === 0;
   }));
   check("one point, one call: logging again on the same point replaces, never doubles", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.set({ script: "snake" });

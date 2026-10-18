@@ -68,6 +68,14 @@ function checkVoiceAvailability(){
 }
 window.startVoiceLog = async () => {
   if(_voiceUI.session) return;
+  // Live even where there is no dictation, so the tap says why rather than
+  // sitting greyed out: a button that does nothing reads as a broken one.
+  const can=_voiceUI.availability;
+  if(!can || !can.available){
+    _voiceUI.status=!can ? "Still checking whether this device can take dictation — try again in a moment, or type it below."
+      : "Dictation is unavailable on this device. Type the observation below and tap Record text.";
+    render(); return;
+  }
   const context=voiceContext(), token=++_voiceUI.generation;
   // Nobody in the pit, or a sheet on another field: the same door the
   // sightings read, because every event here becomes one.
@@ -217,7 +225,7 @@ function scoutVoice(){
     <p class="note">Example: “Number seven is out.” For locations, use a unique bunker call from your field. Pause briefly between observations. Select one player to say “he moved to…” without repeating their name.</p>
     <details><summary>Bunker calls for this field</summary><p class="note">Shared names need an exact ID or a unique team call. Set your own calls in Playbook.</p><p class="note">${voiceBunkers(c.layout).map(b=>esc([...new Set([b.id,...b.aliases])].join(" / "))).join(" · ")}</p></details>
     <div class="voice-live" id="voice-live" data-listening="${active}"><p id="voice-status" class="voice-status" role="status">${esc(_voiceUI.status || "Ready to record")}</p><p id="voice-partial" class="voice-partial" aria-live="off">${esc(_voiceUI.partial || "Completed phrases are saved automatically.")}</p>
-      <div class="voice-tools">${active ? `<button class="btn" onclick="stopVoiceLog()">Stop listening</button>` : `<button class="btn" onclick="startVoiceLog()"${!available || !available.available?' disabled':''}>Start listening</button>`}</div>
+      <div class="voice-tools">${active ? `<button class="btn" onclick="stopVoiceLog()">Stop listening</button>` : `<button class="btn${!available || !available.available ? " btn--quiet" : ""}" onclick="startVoiceLog()">Start listening</button>`}</div>
       <p class="note">${!available ? "Checking dictation support…" : !available.available ? "Dictation is unavailable in this browser or device. You can still record text below." : available.engine==='native' ? "Uses your device’s speech recognition service. Native transcripts appear when each phrase is finalized." : "Uses this browser’s speech recognition service; live words appear here before they are finalized."}</p>
       <p class="note">Starting asks for microphone access. Your device or browser’s speech provider may process audio online and require internet. Gridlock saves text locally and does not keep audio. Leaving this screen or changing context stops listening.</p>
     </div>
