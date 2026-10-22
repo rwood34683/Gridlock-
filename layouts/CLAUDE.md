@@ -64,7 +64,7 @@ Import these 2026 paintball layouts into Gridlock Coach (or any field visualizer
 - nxl_2026_lone_star          (unreleased as of 2026-09-06)
 - nxl_2026_world_cup          (unreleased)
 - mvps_2026_southeastern_championship  (drops 2026-09-09)
-- wcppl_2026_championship     (unreleased)
+- wcppl_2026_championship     (digitized; supplied by the coach)
 
 ## Loader
 

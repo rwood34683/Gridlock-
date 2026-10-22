@@ -2279,9 +2279,10 @@ const ROSTER = [
   // so a second one is the first real test that any of it was general.
   G("Tampa Bay");
   check("every layout that ships says where it came from", await ev(() =>
-    Object.keys(LAYOUTS).length === 5 &&
+    Object.keys(LAYOUTS).length === 6 &&
     ["lso", "tby", "mwo"].every(k => /official NXL field map/.test(LAYOUTS[k].source)) &&
     /field map the coach sent/.test(LAYOUTS.ujt.source) &&
+    /field map the coach sent/.test(LAYOUTS.wch.source) &&
     /3D render the coach sent/.test(LAYOUTS.ugp.source) &&
     Object.values(LAYOUTS).every(l => /printed 10-ft grid/.test(l.source))));
   check("the event becomes a picker once there is more than one to pick", await ev(() => {
@@ -2298,6 +2299,17 @@ const ROSTER = [
     const logo = !!document.querySelector('.evpick img.evlogo[alt*="GP Championships"]');
     window.set({ evPick: false });
     return bl.length === 57 && on && ids && twin && logo || JSON.stringify({ n: bl.length, on, ids, twin, logo });
+  }));
+  check("the WCPPL Championship carries 56 bunkers, on the field, one id each, mirrored across the fifty, snake at the top of the frame", await ev(() => {
+    const L = LAYOUTS.wch, bl = L.bunkers;
+    const on = bl.every(b => b.x > -2 && b.x < 152 && b.y > 0 && b.y < 120);
+    const ids = new Set(bl.map(b => b.id)).size === bl.length;
+    const twin = bl.every(b => Math.abs(b.x - 75) < 0.2 || bl.some(o => o !== b && o.n === b.n && Math.abs(o.x + b.x - 150) < 0.4 && Math.abs(o.y - b.y) < 0.4));
+    // The sheet prints the snake along the top; turned over, the snake's
+    // uprights stand at +y and the dorito wire's wedges at the low edge.
+    const frame = bl.filter(b => b.n === "MW").every(b => b.y > 95) && bl.filter(b => b.n === "MD" && b.y < 20).length === 6;
+    const planted = Object.values(BREAK_PLANTS.wch).every(f => f.length === 5 && f.every(id => bl.some(b => b.id === id)));
+    return bl.length === 56 && on && ids && twin && frame && planted && /Chino/.test(L.name) || JSON.stringify({ n: bl.length, on, ids, twin, frame, planted });
   }));
   check("every one of them is on the field", await ev(() =>
     LAYOUTS.tby.bunkers.every(b => b.x > 0 && b.x < 150 && b.y > 0 && b.y < 120)));
@@ -10355,7 +10367,7 @@ const ROSTER = [
   check("three men on one bunker run to three spots of their own on every measured field", await ev(() => {
     const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building, layoutKey: S.layoutKey };
     const out = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch"]){
       window.pickEvent(lk);
       const bl = curLayout().bunkers, big = bl.filter(b => b.x > 20 && b.x < 70).sort((a, c) => (c.w || 0) * (c.h || 0) - (a.w || 0) * (a.h || 0))[0];
       const rest = bl.filter(b => b.id !== big.id && b.x > 20 && b.x < 70).slice(0, 2).map(b => b.id);
@@ -10420,7 +10432,7 @@ const ROSTER = [
   }));
   check("a doubled bunker's two men stand clear of every other bunker and run round them — on every field", await ev(() => {
     const was = { plays: S.plays, layoutKey: S.layoutKey }, bad = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch"]){
       if(!LAYOUTS[lk]) continue;
       const L = LAYOUTS[lk], boxes = b => bunkerBoxes(b).map(q => ({ x: q.x, y: q.y, hw: q.w / 2, hh: q.h / 2 }));
       for(const b of L.bunkers){
@@ -10440,9 +10452,11 @@ const ROSTER = [
     // Midwest's deep snake and the wedges its snake overlaps clip with one man too.
     // So does the GP field's snake, where the W-topped uprights stand across
     // the beam and the centre wedge sits in the gap between two beams.
-    const ok = !list("lso") && !list("tby") && !list("ujt") && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id))
+    // And the WCPPL field's two capped beams, where the wedge sits on the beam
+    // the men are doubled on.
+    const ok = !list("lso") && !list("tby") && !list("ujt") && [...(bad.wch || [])].every(id => ["SB#3", "SB#6"].includes(id)) && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id))
       && [...(bad.ugp || [])].every(id => ["SB#4", "SB#7", "SB#11", "SD#1"].includes(id));
-    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt"), ugp: list("ugp") });
+    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt"), ugp: list("ugp"), wch: list("wch") });
   }));
   G("Match day");
   const unread = await ev(() => {

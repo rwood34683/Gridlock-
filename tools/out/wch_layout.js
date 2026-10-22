@@ -1,0 +1,32 @@
+// Digitized from the WCPPL 2026 Championship 2D on its printed 10-ft grid.
+// Written by tools/emit_wcppl_championship.py — do not hand-edit.
+const WCH = [
+  {id:"Br#1",n:"Br",x:10.5,y:11.2,t:"can",w:8.04,h:3.54,c:"r"},{id:"Br#2",n:"Br",x:139.4,y:11.2,t:"can",w:8.04,h:3.54,c:"r"},
+  {id:"MD#1",n:"MD",x:46.3,y:13.6,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:64.1,y:13.6,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#3",n:"MD",x:85.9,y:13.6,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:103.8,y:13.6,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"SD#1",n:"SD",x:75.0,y:14.5,t:"dorito",w:4.53,h:5.21,c:"r"},{id:"SB#1",n:"SB",x:60.3,y:18.3,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#2",n:"SB",x:70.2,y:18.3,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#3",n:"SB",x:79.7,y:18.3,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#4",n:"SB",x:89.7,y:18.3,t:"beam",w:9.68,h:1.49,c:"r"},{id:"MD#5",n:"MD",x:29.8,y:19.9,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#6",n:"MD",x:120.2,y:19.9,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"C#1",n:"C",x:102.9,y:29.1,t:"ball",w:4.11,h:4.27,c:"r"},
+  {id:"C#2",n:"C",x:47.1,y:29.2,t:"ball",w:4.11,h:4.27,c:"r"},{id:"MD#7",n:"MD",x:16.6,y:29.9,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#8",n:"MD",x:133.5,y:29.9,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"C#3",n:"C",x:60.4,y:37.8,t:"ball",w:4.11,h:4.27,c:"r"},
+  {id:"C#4",n:"C",x:89.6,y:37.8,t:"ball",w:4.11,h:4.27,c:"r"},{id:"T#1",n:"T",x:29.0,y:39.9,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#2",n:"T",x:120.9,y:39.9,t:"temple",w:4.82,h:4.69,c:"r"},{id:"GB#1",n:"GB",x:75.1,y:49.4,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"C#5",n:"C",x:102.7,y:49.7,t:"ball",w:4.27,h:4.11,c:"r"},{id:"C#6",n:"C",x:47.2,y:49.8,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"GP#1",n:"GP",x:19.7,y:59.7,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},{id:"GP#2",n:"GP",x:130.2,y:59.7,t:"plus",w:11.31,h:11.09,c:"r",a:45.0,k:4.02},
+  {id:"Br#3",n:"Br",x:-1.1,y:59.9,t:"can",w:3.54,h:8.04,c:"r"},{id:"Br#4",n:"Br",x:151.2,y:59.9,t:"can",w:3.54,h:8.04,c:"r"},
+  {id:"T#3",n:"T",x:68.1,y:60.0,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#4",n:"T",x:81.8,y:60.0,t:"temple",w:4.69,h:4.82,c:"r"},
+  {id:"C#7",n:"C",x:109.3,y:70.3,t:"ball",w:4.27,h:4.11,c:"r"},{id:"C#8",n:"C",x:40.7,y:70.4,t:"ball",w:4.27,h:4.11,c:"r"},
+  {id:"GB#2",n:"GB",x:74.9,y:70.7,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"T#5",n:"T",x:26.9,y:80.4,t:"temple",w:4.82,h:4.69,c:"r"},
+  {id:"T#6",n:"T",x:123.1,y:80.4,t:"temple",w:4.82,h:4.69,c:"r"},{id:"T#7",n:"T",x:57.1,y:82.8,t:"temple",w:4.69,h:4.82,c:"r"},
+  {id:"T#8",n:"T",x:92.9,y:82.8,t:"temple",w:4.69,h:4.82,c:"r"},{id:"SB#5",n:"SB",x:69.9,y:91.4,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#6",n:"SB",x:80.0,y:91.4,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SD#2",n:"SD",x:74.9,y:95.1,t:"tridown",w:4.53,h:5.21,c:"r"},
+  {id:"SB#7",n:"SB",x:29.5,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#8",n:"SB",x:40.2,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#9",n:"SB",x:50.8,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#10",n:"SB",x:61.6,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#11",n:"SB",x:88.3,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#12",n:"SB",x:99.1,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#13",n:"SB",x:109.7,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#14",n:"SB",x:120.4,y:99.6,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"GB#3",n:"GB",x:15.6,y:101.2,t:"gbrick",w:4.76,h:10.09,c:"r"},{id:"GB#4",n:"GB",x:134.4,y:101.2,t:"gbrick",w:4.76,h:10.09,c:"r"},
+  {id:"T#9",n:"T",x:36.3,y:104.1,t:"temple",w:4.69,h:4.82,c:"r"},{id:"T#10",n:"T",x:113.6,y:104.1,t:"temple",w:4.69,h:4.82,c:"r"},
+  {id:"MW#1",n:"MW",x:48.4,y:105.3,t:"mw",w:1.93,h:7.07,c:"r"},{id:"MW#2",n:"MW",x:65.3,y:105.3,t:"mw",w:1.93,h:7.07,c:"r"},
+  {id:"MW#3",n:"MW",x:84.6,y:105.3,t:"mw",w:1.93,h:7.07,c:"r"},{id:"MW#4",n:"MW",x:101.5,y:105.3,t:"mw",w:1.93,h:7.07,c:"r"}
+];
