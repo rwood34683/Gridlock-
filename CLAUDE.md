@@ -741,7 +741,9 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     difference: the sheet prints the snake along the top, so every window is
     read in the sheet's own frame and turned over (`y = 120 - y`). Mirror check
     26 pairs, axis 74.98 ft, sd 0.03. The event file already held the date and
-    venue; it now holds the 56 bunkers. `docs/LAYOUTS.md` has the method.
+    venue; it now holds the 56 bunkers. The championship medal off the
+    event poster is its mark (`EVENT_LOGO.wch`, `web/event-wcppl-champ.jpg`),
+    shown wherever the GP badge is. `docs/LAYOUTS.md` has the method.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

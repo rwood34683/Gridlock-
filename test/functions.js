@@ -2300,7 +2300,7 @@ const ROSTER = [
     window.set({ evPick: false });
     return bl.length === 57 && on && ids && twin && logo || JSON.stringify({ n: bl.length, on, ids, twin, logo });
   }));
-  check("the WCPPL Championship carries 56 bunkers, on the field, one id each, mirrored across the fifty, snake at the top of the frame", await ev(() => {
+  check("the WCPPL Championship carries 56 bunkers, on the field, one id each, mirrored across the fifty, snake at the top of the frame, with its logo where the event is picked", await ev(() => {
     const L = LAYOUTS.wch, bl = L.bunkers;
     const on = bl.every(b => b.x > -2 && b.x < 152 && b.y > 0 && b.y < 120);
     const ids = new Set(bl.map(b => b.id)).size === bl.length;
@@ -2309,7 +2309,10 @@ const ROSTER = [
     // uprights stand at +y and the dorito wire's wedges at the low edge.
     const frame = bl.filter(b => b.n === "MW").every(b => b.y > 95) && bl.filter(b => b.n === "MD" && b.y < 20).length === 6;
     const planted = Object.values(BREAK_PLANTS.wch).every(f => f.length === 5 && f.every(id => bl.some(b => b.id === id)));
-    return bl.length === 56 && on && ids && twin && frame && planted && /Chino/.test(L.name) || JSON.stringify({ n: bl.length, on, ids, twin, frame, planted });
+    window.set({ tab: "playbook", evPick: true });
+    const logo = !!document.querySelector('.evpick img.evlogo[alt*="WCPPL Championships"]');
+    window.set({ evPick: false });
+    return bl.length === 56 && on && ids && twin && frame && planted && logo && /Chino/.test(L.name) || JSON.stringify({ n: bl.length, on, ids, twin, frame, planted, logo });
   }));
   check("every one of them is on the field", await ev(() =>
     LAYOUTS.tby.bunkers.every(b => b.x > 0 && b.x < 150 && b.y > 0 && b.y < 120)));

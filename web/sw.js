@@ -1,10 +1,10 @@
 /* Cache only the public app shell. Season data stays in the app's own storage. */
 "use strict";
-const VERSION = "gridlock-shell-v6";
+const VERSION = "gridlock-shell-v7";
 const SCOPE = self.registration.scope;
 const PREFIX = "gridlock:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;
-const FILES = ["index.html", "native.js", "offline.js", "voice-parser.js", "speech.js", "voice.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "event-usxbl-gp.jpg", "apple-touch-icon.png"];
+const FILES = ["index.html", "native.js", "offline.js", "voice-parser.js", "speech.js", "voice.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "event-usxbl-gp.jpg", "event-wcppl-champ.jpg", "apple-touch-icon.png"];
 // The logo ships in one build only, so it is cached when it is there and its
 // absence never fails the install.
 const OPTIONAL = ["logo-gridlock.jpg"];
