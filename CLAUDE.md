@@ -734,6 +734,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     not a `logo-*` file, so every build ships it. Base and Trade plant one five
     here; the suite pins it. `docs/LAYOUTS.md` has the method.
 
+50. ~~The WCPPL Championship.~~ Done — the season finale at SC Village, Chino CA,
+    23–25 Oct, is the sixth measured field (`wch`, `WCH`). The coach sent the 2D
+    on its printed 10-ft grid and two 3D renders, and it is the JT map's white
+    sheet. `tools/digitize_wcppl_championship.py` reads it the same way. One
+    difference: the sheet prints the snake along the top, so every window is
+    read in the sheet's own frame and turned over (`y = 120 - y`). Mirror check
+    26 pairs, axis 74.98 ft, sd 0.03. The event file already held the date and
+    venue; it now holds the 56 bunkers. `docs/LAYOUTS.md` has the method.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

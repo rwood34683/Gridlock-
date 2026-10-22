@@ -9,8 +9,9 @@ JSON per event, and the official published stills that are the ground truth.
 **Bunker coordinates are never invented.** An event ships with `bunkers: []` and
 `coordinate_status: "official_image_only"` until someone digitizes it from an
 official labeled 2D. Three events have one: the Midwest Open, the Tampa Bay
-Open and the Lone Star Open. A fourth, the USXBL JT Championship, was measured
-off the 2D the coach sent; see below.
+Open and the Lone Star Open. The USXBL JT Championship and the WCPPL
+Championship were measured off the 2Ds their coaches sent, and the USXBL GP
+Championships off a 3D render; see below.
 
 | Event | Status | Coordinates | Bunkers |
 |---|---|---|---|
@@ -24,7 +25,8 @@ off the 2D the coach sent; see below.
 | usxbl_2026_jt_championship | published | `grid_digitized` | 58 |
 | usxbl_2026_gp_championship | published | `grid_digitized` (3D render) | 57 |
 | nxl_2026_lone_star | published | `grid_digitized` | 58 |
-| nxl_2026_world_cup, wcppl_2026_championship, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
+| wcppl_2026_championship | published | `grid_digitized` | 56 |
+| nxl_2026_world_cup, mvps_2026_southeastern_championship | unreleased | `none` | 0 |
 
 ## A field the coach builds
 
@@ -38,6 +40,49 @@ the official 2D); without a map, or over anything else, it is neutral grey.
 The map is stretched to the field's edges and is a guide only — it never
 moves or sizes a bunker. It never enters this pack: it lives in the coach's season and rides
 in Save a copy.
+
+## How the WCPPL Championship was digitized
+
+Source: `layouts/images/wcppl_2026_championship_2d.jpg` (1440 × 1144), the 2D
+field map the coach sent on 22 Oct 2026 for the season finale at SC Village,
+Chino (23–25 Oct), with two 3D renders beside it. Run it with:
+
+```bash
+python3 tools/digitize_wcppl_championship.py              # -> tools/out/wcppl_champ_measured.json
+PYTHONPATH=tools python3 tools/emit_wcppl_championship.py  # the event JSON + tools/out/wch_layout.js
+node tools/plants.js --write                               # plants the twelve calls on it
+```
+
+It is the same white sheet as the JT map, read the same way. Two things differ:
+
+- **The sheet is printed upside down to the app.** The snake runs along the top
+  and the numbers count down the left edge. Every window is read in the sheet's
+  own frame and turned over at the end (`y = 120 - y`), so the snake lands at
+  +y like every other field. The field is mirrored left to right, so nothing
+  else turns.
+- **What touches.**
+  - The snake's four sections split at the darker joints along the lit band:
+    34.9, 45.5 and 56.2 ft on the left, and their mirrors on the right.
+  - The cube and the two mini-Ws standing on the snake split at the beam's top
+    edge.
+  - The centre beam splits at the centre line, with its pointed cap above it.
+  - The dorito beam splits at 65.5, 75.0 and 84.5 ft, with its two wedges and
+    its cap below it.
+
+The grid is 16 × 13 rules, 9.0 px/ft both ways. The names follow the JT map:
+
+- the cubes are T;
+- the corner blocks and the two stepped centre blocks are GB;
+- the balls and small cans are C;
+- the pyramids and wedges are MD;
+- the two beam caps are SD;
+- the end-line uprights and the angled corner blocks are Br.
+
+The corner Br are drawn square, because only a beam is drawn at its angle.
+
+The mirror check: 26 pairs, axis 74.98 ft, sd 0.03 ft. The four unpaired
+bunkers stand on the centre line. A man doubled on either capped beam clips
+the cap, as on the GP field, and the suite pins those two by name.
 
 ## How the USXBL GP Championships was digitized
 
