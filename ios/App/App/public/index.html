@@ -396,6 +396,20 @@ select{appearance:none;-webkit-appearance:none;padding-right:var(--s5);
 .aim{cursor:grab}
 svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+/* Walk's sticky notes: paper on the field, beside the bunker they are about. */
+.walk-map{position:relative}
+.wstick{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;overflow:auto;-webkit-overflow-scrolling:touch;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}
+.wstick__head{display:flex;align-items:center;gap:8px;background:#0b0c0d;border:1px solid var(--line);border-radius:8px;padding:0 0 0 10px;color:var(--ink);font-size:13px}
+.wstick__head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wstick__head span{color:var(--mute);font-size:12px;white-space:nowrap;flex:1}
+.wstick__x{min-width:44px;min-height:44px;background:none;border:0;color:var(--ink);font-size:16px;cursor:pointer}
+.wstick__pad{display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px}
+.wnote{background:#efedeb;color:#0b0c0d;border-top:5px solid #ad1515;border-radius:2px 2px 6px 6px;padding:8px 10px 6px;transform:rotate(var(--tilt,0deg))}
+.wnote__text{margin:0;font-size:14px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
+.wnote__when{display:block;margin-top:4px;font-size:11px;color:#5c0f0d;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.wnote--empty{background:#1a1b1d;color:var(--ink);border-top-color:#5c0f0d}
+.wnote--empty .wnote__text{font-weight:500}
 .arrival-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
 .arrival-grid .fld{min-width:0}
 .arrival-grid select,.arrival-grid input{width:100%;min-width:0;min-height:48px}
@@ -2896,7 +2910,7 @@ function clearScratch(s = S){
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
-  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -4062,7 +4076,7 @@ function set(patch){
   }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
-             moveFrom: null, moveTo: null, callPick: null, walkPick: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
+             moveFrom: null, moveTo: null, callPick: null, walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -6261,8 +6275,8 @@ function walkRender(focus){
   const el = document.getElementById("wkNote");
   if(el){ el.value = typed; if(focus) el.focus(); }
 }
-window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); walkRender(true); } };
-window.walkSelect = v => { S.walkPick = v; walkRender(false); };
+window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
+window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
 (function walkTapping(){
   document.addEventListener("pointerdown", ev => {
     if(S.tab !== "more" || S.more !== "walk") return;
@@ -6283,6 +6297,45 @@ function walkOverlay(){
   }
   return out;
 }
+
+/* The notes on the bunker he has tapped, stuck to the field beside it like a
+ * pad of sticky notes, so the walk reads where it was written. They sit on
+ * their own layer over the field, not inside it: an SVG's text shrinks with a
+ * phone-sized field and a sticky note has to be read in the sun. The layer is
+ * placed after each draw (`placeWalkStickies`), and a tap on it is not a tap
+ * on the field, so it never picks the bunker under the paper. */
+function walkStickies(){
+  const b = walkPickedBunker();
+  if(!b || S.walkShut === b.id) return "";
+  const mine = walkNotes().filter(n => n && String(n.where || "").split(" · ").pop() === b.id);
+  const day = t => t ? new Date(t).toLocaleDateString([], {month: "short", day: "numeric"}) : "";
+  const notes = mine.length
+    ? mine.map((n, i) => `<div class="wnote" style="--tilt:${i % 2 ? 1.2 : -1.2}deg"><p class="wnote__text">${esc(n.note)}</p>${n.at ? `<span class="wnote__when">${esc(day(n.at))}</span>` : ""}</div>`).join("")
+    : `<div class="wnote wnote--empty" style="--tilt:-1deg"><p class="wnote__text">No notes on ${esc(callOf(b))} yet. Type one below and tap Add note.</p></div>`;
+  return `<div class="wstick" id="walk-stickies" data-b="${esc(b.id)}" role="group" aria-label="${esc(`Notes on ${callOf(b)}`)}">
+    <div class="wstick__head"><b>${esc(callOf(b))}</b><span>${mine.length ? mine.length + (mine.length === 1 ? " note" : " notes") : "no notes"}</span>
+      <button type="button" class="wstick__x" aria-label="Close the notes" onclick="set({walkShut:${jsq(b.id)}})">✕</button></div>
+    <div class="wstick__pad">${notes}</div></div>`;
+}
+// Beside the bunker, on the side with room, held inside the field.
+function placeWalkStickies(){
+  const el = document.getElementById("walk-stickies"), wrap = document.getElementById("walk-map");
+  const svg = wrap && wrap.querySelector("svg.field"), b = el && curLayout().bunkers.find(x => x.id === el.dataset.b);
+  if(!el || !svg || !b || !svg.getScreenCTM) return;
+  const ctm = svg.getScreenCTM(); if(!ctm) return;
+  const pt = svg.createSVGPoint(); pt.x = b.x * 2; pt.y = b.y * 2;
+  const at = pt.matrixTransform(ctm), box = wrap.getBoundingClientRect();
+  const x = at.x - box.left, y = at.y - box.top, gap = 16, pad = 6;
+  const w = Math.min(240, Math.max(150, box.width * 0.46));
+  el.style.width = w + "px";
+  el.style.maxHeight = (box.height - pad * 2) + "px";
+  const h = el.offsetHeight;
+  const right = x < box.width / 2;   // toward the middle of the field, away from the near end
+  el.style.left = Math.max(pad, Math.min(box.width - w - pad, right ? x + gap : x - gap - w)) + "px";
+  el.style.top = Math.max(pad, Math.min(box.height - h - pad, y - h / 2)) + "px";
+  el.dataset.side = right ? "right" : "left";
+}
+addEventListener("resize", () => { if(S.tab === "more" && S.more === "walk") placeWalkStickies(); });
 
 // ---- code words: the word, and what it means, because a list of words is
 // no use to the player who joined last week ----
@@ -13610,6 +13663,7 @@ const HELP = {
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
          "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
+         "Tap a bunker and its notes pop up beside it on the field, like sticky notes; ✕ puts them away, and tapping the bunker again brings them back.",
          "Notes are kept per field, so they follow the event."]},
   "more/movement": {t:"Movement", w:"Bunker to bunker after the break.",
     how:["Tap the man — the five on the point come first — then the bunker he left and the bunker he went to.",
@@ -14035,8 +14089,8 @@ function moreBody(k){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
       noticed it on. Notes stay with this field.</p>
-      <div class="field-wrap" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}</div>
-      <p class="note">Tap the bunker the note is about${notes.length?" — a dot marks one that already has a note":""}, or pick a wire below.</p>
+      <div class="field-wrap walk-map" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}${walkStickies()}</div>
+      <p class="note">Tap a bunker to see its notes${notes.length?" — a dot marks one that already has a note":""}, and add one below. Or pick a wire.</p>
       ${/* Standing on a bunker, what the field already knows about it: the
             lanes from here off the measured layout, where their five have
             planted on it and where you have lost men at it — so the walk is
@@ -15111,6 +15165,7 @@ function render(){
   const next = document.querySelector(".main");
   if(next && screen === _where) next.scrollTop = at;
   _where = screen;
+  if(S.tab === "more" && S.more === "walk") placeWalkStickies();
 }
 render();
 </script>
