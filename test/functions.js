@@ -5034,6 +5034,39 @@ const ROSTER = [
     window.set({ walk: {} });
     return sel.endsWith(" · " + b.id) && ring && kept && n && n.where.endsWith(" · " + b.id) && n.note === "Half typed" && dot && cleared;
   }));
+  check("Walk: a tapped bunker's notes pop up beside it like sticky notes, inside the field, and close", await ev(() => {
+    const bl = curLayout().bunkers, b = bl.find(x => x.x < 40) || bl[0], other = bl.find(x => x.x > 110) || bl[1];
+    const where = walkWhereOf(b);
+    window.set({ tab: "more", more: "walk", walkPick: null, walkShut: null,
+      walk: { [S.layoutKey]: [{ where, note: "Snake mouth is hot", at: Date.now() }, { where, note: "Lane to the GP from the left edge", at: Date.now() - 1 }, { where: "Snake wire", note: "wire note", at: 1 }] } });
+    const none = !document.getElementById("walk-stickies");
+    window.walkTap([b.x, b.y]);
+    const el = document.getElementById("walk-stickies"), wrap = document.getElementById("walk-map");
+    const notes = el ? [...el.querySelectorAll(".wnote__text")].map(n => n.textContent) : [];
+    const r = el && el.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    const inside = r && r.left >= w.left - 1 && r.right <= w.right + 1 && r.top >= w.top - 1 && r.bottom <= w.bottom + 1;
+    // beside the bunker, on the side with room: a left-half bunker's notes sit to its right
+    const svg = wrap.querySelector("svg.field"), pt = svg.createSVGPoint(); pt.x = b.x * 2; pt.y = b.y * 2;
+    const bx = pt.matrixTransform(svg.getScreenCTM()).x, beside = r && r.left > bx;
+    // a tap on the paper is not a tap on the field
+    const was = S.walkPick;
+    el.querySelector(".wnote").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+    const held = S.walkPick === was;
+    // the other side of the field puts them on the other side
+    window.walkTap([other.x, other.y]);
+    const empty = /No notes on/.test((document.getElementById("walk-stickies") || {}).textContent || "");
+    const r2 = document.getElementById("walk-stickies").getBoundingClientRect();
+    const svg2 = document.querySelector("#walk-map svg.field"), pt2 = svg2.createSVGPoint(); pt2.x = other.x * 2; pt2.y = other.y * 2;
+    const ox = pt2.matrixTransform(svg2.getScreenCTM()).x;
+    const flipped = r2.right < ox;
+    document.querySelector("#walk-stickies .wstick__x").click();
+    const shut = !document.getElementById("walk-stickies") && !!S.walkPick;
+    window.walkTap([other.x, other.y]);
+    const back = !!document.getElementById("walk-stickies");
+    window.set({ walk: {}, walkPick: null, walkShut: null });
+    const ok = none && notes.length === 2 && notes[0] === "Snake mouth is hot" && inside && beside && held && empty && flipped && shut && back;
+    return ok || JSON.stringify({ none, notes, inside, beside, held, empty, flipped, shut, back });
+  }));
   check("Walk: picking a wire in the box rings nothing and survives the re-render", await ev(() => {
     window.set({ tab: "more", more: "walk", walkPick: null });
     window.walkSelect("Snake wire");

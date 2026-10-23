@@ -1290,6 +1290,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   tagged, their shooter by name — with a count of how many are clear from
   where he stands, because fifty-seven rows in digitiser order is not an
   answer to "can I see them from here".
+  And a tapped bunker's notes stand beside it on the field like a pad of
+  sticky notes (`walkStickies`). They are paper (`#efedeb` under a red strip)
+  on an HTML layer over the field, not SVG text, because SVG text shrinks
+  with a phone-sized field. `placeWalkStickies()` runs after each draw and on
+  resize, putting them toward the middle of the field and inside it. A tap on
+  the paper is not a tap on the field. ✕ puts them away (`walkShut`, scratch),
+  and tapping the bunker again brings them back.
 - Tap Add with the box empty and have nothing happen. Seven Add and Keep
   buttons returned in silence on an empty box — team, pit man, group, player,
   code word, squad note, walk note — and a coach whose thumb missed the box
