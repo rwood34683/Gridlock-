@@ -8680,7 +8680,10 @@ function hasAccount(){
 function authForm(){
   if(S.mode!=="create" && S.mode!=="login") return "";
   const make = S.mode === "create";
-  return `<div class="panel">
+  // A real form with the fields the phone looks for, so iOS and Android offer
+  // the saved password (Face ID / Keychain) and to save a new one, and the
+  // email box never capitalises its first letter or autocorrects.
+  return `<form class="panel" method="post" action="#" novalidate onsubmit="event.preventDefault();doAuth()">
     <h3 class="panel__title">${make?"Create an account":"Sign in"}</h3>
     ${/* This said "coaching a match needs none", which stopped being true the
            moment the promo required one. It now says what the account actually
@@ -8696,18 +8699,18 @@ function authForm(){
       : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
          about you or your team ever leaves the device.`}</p>
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
-    <div class="fld"><label for="em">Email</label><input id="em" type="email" placeholder="coach@team.com" ${onEnter("doAuth()")}/></div>
-    <div class="fld"><label for="pw">Password</label><input id="pw" type="password" placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
+    <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${onEnter("doAuth()")}/></div>
+    <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
-      <button class="btn grow" onclick="doAuth()">${make?"Create account":"Sign in"}</button>
-      <button class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
+      <button type="submit" class="btn grow">${make?"Create account":"Sign in"}</button>
+      <button type="button" class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
     </div>
-    <button class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
+    <button type="button" class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     ${window.gridlockCloud && !make
-      ? `<button class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
+      ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
     <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
-  </div>`;
+  </form>`;
 }
 // The staff password never touches storage in the clear. It is salted and
 // hashed with the platform's own crypto, and only the hash is kept — so a

@@ -1107,6 +1107,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   says the season is **not** kept inside the account: it is a separate store,
   so making a new account loses nothing that was logged, and Nexus › Save a
   copy is how a season actually moves between phones.
+  And the two boxes are the ones the phone knows how to fill. They sit in a
+  real `<form>`, submitted once by the Sign in button or by Return. The email
+  is `autocomplete="username"` and never autocapitalises or autocorrects. The
+  password is `current-password` on Sign in and `new-password` on Create, so
+  Keychain and Face ID offer the saved one and save a new one. Every other
+  button in the form is `type="button"`.
 - Tell a coach an account is optional. The auth panel said "Coaching a match
   needs none", which stopped being true the moment the promo required one. It
   says what the account actually is instead: a lock on this phone, with no
