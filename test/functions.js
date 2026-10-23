@@ -196,6 +196,28 @@ const ROSTER = [
     await ev(() => !/Coaching a match needs none/.test(document.getElementById("root").innerText)));
   check("it says what the account actually is instead",
     await ev(() => /lives on this phone and nowhere else/i.test(document.getElementById("root").innerText)));
+  check("the sign-in boxes are the ones the phone fills: email never capitalised, the saved password offered, a new one saved", await ev(() => {
+    const read = mode => { window.set({ mode, authSaid: "", entered: false });
+      const em = document.getElementById("em"), pw = document.getElementById("pw"), f = em && em.form;
+      return { form: !!f && f === pw.form, user: em.autocomplete, cap: em.getAttribute("autocapitalize"), fix: em.getAttribute("autocorrect"),
+        pass: pw.autocomplete, submit: !!f && [...f.querySelectorAll('button[type="submit"]')].length === 1,
+        others: !!f && [...f.querySelectorAll("button")].filter(b => b.type !== "submit").every(b => b.type === "button") };
+    };
+    const a = read("login"), b = read("create");
+    window.set({ mode: null });
+    const ok = [a, b].every(x => x.form && x.user === "username" && x.cap === "none" && x.fix === "off" && x.submit && x.others)
+      && a.pass === "current-password" && b.pass === "new-password";
+    return ok || JSON.stringify({ a, b });
+  }));
+  check("Sign in from the keyboard's Return and from the button both go through the form once", await ev(async () => {
+    window.set({ mode: "login", authSaid: "", entered: false });
+    let n = 0; const was = window.doAuth; window.doAuth = async () => { n++; };
+    document.getElementById("em").value = "x@y.com"; document.getElementById("pw").value = "abcdef1";
+    document.querySelector('#root form button[type="submit"]').click();
+    document.getElementById("pw").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    window.doAuth = was; window.set({ mode: null });
+    return n === 2 || "status: " + n;
+  }));
   await ev(() => window.set({ mode: null }));
 
   /* ------------------------------------------------- what "I already have one" does */
