@@ -764,6 +764,15 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     a preference) and adds his own (`S.calKinds`, in a full copy, merged by
     id); a kind he removes leaves its events on the calendar as Other.
 
+52. ~~Who entered the WCPPL Championship.~~ Done — the coach sent eight
+    overlapping screenshots of the event's PBLeagues registration page, "All
+    Divisions", read 24 Oct 2026. Six divisions sit on the board beside the
+    Lone Star pro list, sourced like it (`src:"reg"`, every one Payment
+    Accepted, so `reg:"PAID"`): Premier X-Ball 15, Division 3 X-Ball 25,
+    Division 4 X-Ball 41, Division 5 X-Ball 21, Division 6 3v3 36, Pump Open
+    5v5 11 (`wc-prem` … `wc-pump`). Names are the page's own spelling; a name
+    entered in two divisions is one team to the app. No scores, no tendency.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
