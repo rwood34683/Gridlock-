@@ -5034,6 +5034,44 @@ const ROSTER = [
     window.set({ walk: {} });
     return sel.endsWith(" · " + b.id) && ring && kept && n && n.where.endsWith(" · " + b.id) && n.note === "Half typed" && dot && cleared;
   }));
+  check("Schedule: a calendar with month, week, day and list views, Today, arrows, Create and Calendars dropdowns", await ev(() => {
+    window.set({ tab: "more", more: "schedule", calAt: "2026-10-24", calDay: null, calView: "month", calHide: [], calEvents: [], calMenu: null, calNew: null });
+    const root = document.getElementById("root");
+    const cells = root.querySelectorAll("#cal-grid [data-day]").length;
+    const oct = /October 2026/.test(root.querySelector(".cal-title").textContent);
+    const chip = /WCPPL/.test(root.querySelector('#cal-grid [data-day="2026-10-24"]').textContent);
+    window.calStep(1); const nov = /November 2026/.test(root.querySelector(".cal-title").textContent);
+    window.calStep(-1); window.calSetView("week"); const week = root.querySelectorAll("#cal-grid [data-day]").length === 7;
+    window.calSetView("day"); const day = !root.querySelector("#cal-grid");
+    window.calSetView("agenda"); const list = /WCPPL Championship/.test(root.textContent);
+    window.calSetView("month");
+    document.querySelector('#cal-grid [data-day="2026-10-23"]').click();
+    const picked = S.calDay === "2026-10-23" && /Friday, Oct 23/.test(document.getElementById("cal-day").textContent);
+    window.calToggle("fields"); const hid = !/WCPPL/.test(document.querySelector('#cal-grid [data-day="2026-10-24"]').textContent);
+    window.calToggle("fields");
+    window.set({ calMenu: "create" }); const menu = root.querySelectorAll(".cal-menu button").length === 6;
+    window.calCreate("practice");
+    window.calField("title", "Snake drills"); window.calField("t", "9am"); window.calField("end", "8:00");
+    window.calSave(); const refused = S.calEvents.length === 0 && /ends before/.test(document.body.innerText);
+    window.calField("end", "11:30"); window.calSave();
+    const e = S.calEvents[0];
+    const saved = e && e.title === "Snake drills" && e.t === "09:00" && e.end === "11:30" && e.d === "2026-10-23";
+    const shown = /Snake drills/.test(document.querySelector('#cal-grid [data-day="2026-10-23"]').textContent);
+    window.calEdit(e.id); window.calField("title", "Snake and dorito drills"); window.calSave();
+    const edited = S.calEvents.length === 1 && S.calEvents[0].title === "Snake and dorito drills";
+    const ok0 = window.confirm; window.confirm = () => true; window.calDrop(e.id); window.confirm = ok0;
+    const gone = S.calEvents.length === 0;
+    const dead = [...root.querySelectorAll("button")].filter(b => b.disabled || !(b.onclick || b.getAttribute("onclick") || b.type === "submit")).length;
+    window.set({ calView: "month", calDay: null });
+    return (cells === 35 || cells === 42) && oct && chip && nov && week && day && list && picked && hid && menu && refused && saved && shown && edited && gone && dead === 0
+      || JSON.stringify({cells, oct, chip, nov, week, day, list, picked, hid, menu, refused, saved, shown, edited, gone, dead});
+  }));
+  check("Schedule: calendar events ride in a copy and merge by id", await ev(() => {
+    const keeps = KEEP_ALL.includes("calEvents") && typeof SAME.calEvents === "function";
+    const good = copyDataError({ calEvents: [{ id: "ce1abc", d: "2026-10-23", title: "Travel", kind: "travel", t: "", end: "", where: "", notes: "" }] });
+    const bad = copyDataError({ calEvents: [{ id: "ce1abc", d: "Oct 23", title: "Travel" }] });
+    return keeps && !good && !!bad || JSON.stringify({keeps, good, bad});
+  }));
   check("Walk: a tapped bunker's notes pop up beside it like sticky notes, inside the field, and close", await ev(() => {
     const bl = curLayout().bunkers, b = bl.find(x => x.x < 40) || bl[0], other = bl.find(x => x.x > 110) || bl[1];
     const where = walkWhereOf(b);
