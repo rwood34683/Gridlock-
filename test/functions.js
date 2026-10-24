@@ -743,6 +743,13 @@ const ROSTER = [
   check("every break is ranked", await ev(() =>
     counterRank("Snake", "Even").length === Object.keys(BREAKS).length));
   check("the board lists a real division of teams", await ev(() => teamsHere().length >= 11));
+  check("the WCPPL Championship entry is on the board, every division whole and sourced", await ev(() => {
+    const want = {"wc-prem":15,"wc-d3":25,"wc-d4":41,"wc-d5":21,"wc-d6":36,"wc-pump":11};
+    const got = {}; Object.keys(want).forEach(id => { const d = DIVISIONS.find(x => x.id === id); got[id] = d ? d.teams.length : 0; });
+    const sourced = Object.keys(want).every(id => { const d = DIVISIONS.find(x => x.id === id); return d && /PBLeagues · WCPPL Championship/.test(d.read) && d.teams.every(t => t.src === "reg" && t.reg === "PAID" && t.pts == null && t.tend == null); });
+    const found = anyTeam("desert edge red") && anyTeam("TJBastards") && anyTeam("the halloween crooks");
+    return JSON.stringify(got) === JSON.stringify(want) && sourced && !!found || JSON.stringify({got, sourced, found: !!found});
+  }));
   check("every division on offer has teams in it", await ev(() =>
     DIVISIONS.every(d => divisionTeams(d.id).length >= 11)));
   check("both pits draw on one field", await ev(() => {
