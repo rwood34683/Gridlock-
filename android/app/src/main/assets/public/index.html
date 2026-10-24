@@ -4616,7 +4616,7 @@ const SCOUT_VIEWS = ["matchup","breakouts","anticipate","counter","layers","game
 function fixScreen(){
   if(!TABS.includes(S.tab)) S.tab = "playbook";
   if(!SCOUT_VIEWS.includes(S.scoutTab || "matchup")) S.scoutTab = "matchup";
-  if(S.more && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
+  if(S.more && !MORE_HIDDEN[S.more] && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
 }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 /* The class deep link is the one door that is not the account, and it opens
@@ -14640,15 +14640,18 @@ const MORE_GROUPS=[
   ["Running the day",[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
-    ["matches","Matches","Every sheet you have kept"],
-    ["classes","Classes","Clinic sign-in sheet, on this phone"],
-    ["league","League","Groups and ops blasts"]]],
+    ["matches","Matches","Every sheet you have kept"]]],
   ["Device",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
-    ["help","Help","What every screen does, and the usual questions"],
-    ["nexus","Nexus","Account, tutorial and privacy"]]]
+    ["help","Help","What every screen does, and the usual questions"]]],
+  // Nexus is where admin and staff sign in, and where the season is backed up.
+  ["Admin",[
+    ["nexus","Nexus","Admin and staff sign-in, backup and privacy"]]]
 ];
-const MORE_TITLES=Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
+// Off the menu at the owner's call, still reachable: a class deep link opens
+// Classes on a signed-in phone, so the screens stay and only the rows go.
+const MORE_HIDDEN = {classes:"Classes", league:"League"};
+const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
 function morePage(){
   if(!S.more){
