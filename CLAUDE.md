@@ -745,6 +745,19 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     event poster is its mark (`EVENT_LOGO.wch`, `web/event-wcppl-champ.jpg`),
     shown wherever the GP badge is. `docs/LAYOUTS.md` has the method.
 
+51. ~~A calendar on the schedule.~~ Done — the owner asked for Google Calendar
+    under Schedule, options and drop-downs included. `calendarSec()` sits above
+    the game list: **+ Create ▾** (a game opens the typed-game form on that day;
+    practice, field walk, meeting, travel and other open `#cal-new`), **Today**,
+    ‹ ›, **Month / Week / Day / Schedule ▾** and **Calendars ▾** — the league's
+    games, the ones he added, his sheets, the event days (`LAYOUTS[k].days`) and
+    his own events, each its own colour, hidden through `calHide`. Day cells are
+    `div[role=button]` with one delegated listener, because a 44 px button seven
+    across does not fit a phone; a tapped day opens full-size rows under the grid
+    (`calItemRow`) that watch, play, open the sheet or go to the field. His
+    events are `S.calEvents`, in a full copy and merged by id; `calView` and
+    `calHide` are his preferences, the rest is scratch. Nothing is fetched.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

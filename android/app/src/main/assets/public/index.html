@@ -398,6 +398,47 @@ svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 /* Walk's sticky notes: paper on the field, beside the bunker they are about. */
 .walk-map{position:relative}
+/* The calendar on Schedule: a phone's calendar in the stadium colours. */
+.cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+.cal-bar__l,.cal-bar__r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cal-bar__r{margin-left:auto}
+.cal-title{flex:1 1 160px;margin:0;font-size:20px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-arrow{min-width:44px;padding:0;font-size:20px}
+.cal-create{background:var(--fill,#ad1515);color:#fff;border-color:transparent}
+.cal-anchor{position:relative;display:inline-flex}
+.cal-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:200px;background:#141516;border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 10px 24px rgba(0,0,0,.6);display:flex;flex-direction:column}
+.cal-menu--r{left:auto;right:0}
+.cal-menu button{min-height:44px;text-align:left;background:none;border:0;border-radius:8px;color:var(--ink);font:inherit;font-size:15px;padding:0 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.cal-menu button:hover,.cal-menu button:focus-visible{background:#1f2022}
+.cal-shade{position:fixed;inset:0;z-index:15;background:transparent;border:0;cursor:default}
+.cal-box{width:16px;height:16px;border:2px solid var(--c);border-radius:3px;flex:none}
+.cal-box.is-on{background:var(--c)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0b0c0d}
+.cal-wd{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:center;padding:6px 2px;border-bottom:1px solid var(--line)}
+.cal-wd b{display:block;color:var(--ink);font-size:15px;letter-spacing:0}
+.cal-cell{min-height:72px;padding:4px 3px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px;cursor:pointer;min-width:0;outline-offset:-2px}
+.cal-cell:nth-child(7n+7){border-right:0}
+.cal-grid--week .cal-cell{min-height:220px}
+.cal-cell.is-out{opacity:.45}
+.cal-cell.is-pick{background:#1a1b1d;box-shadow:inset 0 0 0 2px #efedeb}
+.cal-num{font-size:12px;color:var(--ink);font-weight:700;align-self:center;min-width:24px;height:24px;line-height:24px;text-align:center;border-radius:12px}
+.cal-cell.is-today .cal-num{background:#ad1515;color:#fff}
+.cal-chip{display:block;font-size:11px;line-height:1.3;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);padding-left:3px}
+.cal-chip em{font-style:normal;color:var(--mute)}
+.cal-chip--all{background:color-mix(in srgb,var(--c) 30%,transparent);border-left:0;padding:0 3px;border-radius:3px}
+.cal-more{font-size:11px;color:var(--mute);padding-left:3px}
+.cal-day{margin-top:10px}
+.cal-day h4{margin:6px 0;color:var(--ink);font-size:15px}
+.cal-item{border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#111213}
+.cal-item__head{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;background:none;border:0;color:var(--ink);font:inherit;text-align:left;padding:6px 12px;cursor:pointer}
+.cal-item__when{flex:none;width:68px;font-size:12px;color:var(--mute)}
+.cal-item__what{display:flex;flex-direction:column;min-width:0}
+.cal-item__what b{overflow-wrap:anywhere}
+.cal-item__what span{font-size:12px;color:var(--mute)}
+.cal-item__ctl{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 10px}
+.cal-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;vertical-align:middle;margin-right:4px}
+.cal-legend{margin-top:10px}
+@container main (max-width:420px){.cal-cell{min-height:58px}.cal-chip{font-size:10px}.cal-chip em{display:none}.cal-title{font-size:17px;flex-basis:100%;order:-1}}
 .wstick{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;overflow:auto;-webkit-overflow-scrolling:touch;
   filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}
 .wstick__head{display:flex;align-items:center;gap:8px;background:#0b0c0d;border:1px solid var(--line);border-radius:8px;padding:0 0 0 10px;color:var(--ink);font-size:13px}
@@ -1677,6 +1718,7 @@ const LAYOUTS = {
   // paired with its twin across the 50; layouts/events says how.
   ugp: {name:"USXBL GP Championships · Waxahachie", key:"ugp", bunkers:UGP,
         when:"17–18 Oct 2026 · Paintball Fit, Waxahachie TX · in memoriam Greg Pauley",
+        days:["2026-10-17","2026-10-18"],
         source:"Measured off the 3D render the coach sent, on its printed 10-ft grid. "
              + "The render names no bunkers; each is named for its kind.",
         plantsFrom:"rule"},
@@ -1684,6 +1726,7 @@ const LAYOUTS = {
   // in its own frame and turned over; layouts/events says how.
   wch: {name:"WCPPL Championship · Chino", key:"wch", bunkers:WCH,
         when:"23–25 Oct 2026 · SC Village, Chino CA",
+        days:["2026-10-23","2026-10-24","2026-10-25"],
         source:"Measured off the field map the coach sent, on its printed 10-ft grid. "
              + "The map names no bunkers; each is named for its kind.",
         plantsFrom:"rule"}
@@ -1922,6 +1965,245 @@ function toGameField(g){
   if(lk === S.layoutKey) return "";
   window.pickEvent(lk);
   return ` On ${LAYOUTS[lk].name} — the field this game is on.`;
+}
+
+/* ---- the calendar: the schedule laid out the way a phone's calendar is ----
+ * One calendar for everything with a day on it: the league's games, the games
+ * he added, the sheets he kept, the days an event is on, and anything of his
+ * own — a practice, a field walk, a meeting. Each is a calendar he can show or
+ * hide, the way a phone's calendar has them. Nothing here is fetched; every
+ * row is one the app already holds or he typed. The day cells are one tap
+ * surface each, not a row of buttons: seven columns on a 320 px phone is 41 px
+ * a column, under the 44 a finger needs, so a tap on a day opens that day
+ * under the grid, where every item is a full-size row. */
+const CAL_KINDS = [["practice", "Practice"], ["walk", "Field walk"], ["meeting", "Team meeting"], ["travel", "Travel"], ["other", "Other"]];
+const CAL_VIEWS = [["month", "Month"], ["week", "Week"], ["day", "Day"], ["agenda", "Schedule"]];
+const CALS = [
+  {id: "league", name: "League schedule", color: "#ad1515"},
+  {id: "mine",   name: "Games you added", color: "#e5342f"},
+  {id: "sheets", name: "Your sheets",     color: "#efedeb"},
+  {id: "fields", name: "Event days",      color: "#8d9092"},
+  {id: "events", name: "Your events",     color: "#e0a33a"}];
+const isoDay = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const dayDate = iso => new Date(iso + "T12:00:00");
+const addDays = (iso, n) => { const d = dayDate(iso); d.setDate(d.getDate() + n); return isoDay(d); };
+const todayIso = () => isoDay(Date.now());
+const calView = () => CAL_VIEWS.some(([k]) => k === S.calView) ? S.calView : "month";
+const calShown = id => !(Array.isArray(S.calHide) ? S.calHide : []).includes(id);
+const calAt = () => /^\d{4}-\d{2}-\d{2}$/.test(S.calAt || "") ? S.calAt : todayIso();
+// The days an event is on: the league schedule's own days, and the dates an
+// event's field carries.
+function eventDays(){
+  const out = [];
+  const sched = [...new Set(SCHEDULE.games.map(g => g.d))];
+  if(LAYOUTS[SCHEDULE.layout]) sched.forEach(d => out.push({d, lk: SCHEDULE.layout}));
+  Object.entries(LAYOUTS).forEach(([lk, L]) => (L.days || []).forEach(d => { if(!out.some(o => o.d === d && o.lk === lk)) out.push({d, lk}); }));
+  return out;
+}
+function calItems(){
+  const items = [];
+  allGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
+    title: `${g.h} v ${g.a}`, sub: g.g ? g.g + " Prelims" : "", game: g}));
+  (S.matches || []).filter(m => m && m.at && !sheetEmpty(m)).forEach(m => {
+    const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
+    const t = new Date(m.at);
+    items.push({id: "m|" + m.id, cal: "sheets", d: isoDay(m.at), t: `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`,
+      title: (m.watch ? `${m.home || "Home"} v ${m.away || "Away"} · watched` : `vs ${m.vs || "no opponent"}`) + score,
+      sub: !m.watch && matchOver(m.id) ? overWord(m.id) : (LAYOUTS[m.layout] || {}).name || "", match: m});
+  });
+  eventDays().forEach(o => items.push({id: "f|" + o.lk + "|" + o.d, cal: "fields", d: o.d, t: "", allDay: true,
+    title: LAYOUTS[o.lk].name, sub: LAYOUTS[o.lk].when || "", lk: o.lk}));
+  (Array.isArray(S.calEvents) ? S.calEvents : []).filter(e => e && e.id && e.d).forEach(e => items.push({id: "e|" + e.id, cal: "events",
+    d: e.d, t: e.t || "", allDay: !e.t, title: e.title || (CAL_KINDS.find(([k]) => k === e.kind) || [, "Event"])[1],
+    sub: [(CAL_KINDS.find(([k]) => k === e.kind) || [, ""])[1], e.end ? "until " + clockName(e.end) : "", e.where || ""].filter(Boolean).join(" · "), ev: e}));
+  return items.filter(i => calShown(i.cal))
+    .sort((a, b) => a.d.localeCompare(b.d) || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || (a.t || "").localeCompare(b.t || "") || a.title.localeCompare(b.title));
+}
+const calColor = id => (CALS.find(c => c.id === id) || CALS[0]).color;
+const shortClock = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ""); if(!m) return ""; const h = +m[1]; return ((h + 11) % 12 + 1) + (m[2] === "00" ? "" : ":" + m[2]) + (h < 12 ? "a" : "p"); };
+// The first day the grid shows, and how many: a month is the weeks it touches,
+// Sunday first as the phone's calendar has it; a week is seven days.
+function calRange(){
+  const at = dayDate(calAt()), v = calView();
+  if(v === "week"){ const s = new Date(at); s.setDate(at.getDate() - at.getDay()); return {from: isoDay(s), days: 7}; }
+  if(v === "day") return {from: calAt(), days: 1};
+  if(v === "agenda") return {from: calAt(), days: 45};
+  const first = new Date(at.getFullYear(), at.getMonth(), 1, 12), s = new Date(first); s.setDate(1 - first.getDay());
+  const last = new Date(at.getFullYear(), at.getMonth() + 1, 0, 12);
+  return {from: isoDay(s), days: Math.ceil((first.getDay() + last.getDate()) / 7) * 7};
+}
+function calTitle(){
+  const at = dayDate(calAt()), v = calView();
+  if(v === "day") return at.toLocaleDateString([], {weekday: "long", month: "long", day: "numeric", year: "numeric"});
+  if(v === "week"){
+    const r = calRange(), a = dayDate(r.from), b = dayDate(addDays(r.from, 6));
+    return a.getMonth() === b.getMonth() ? `${a.toLocaleDateString([], {month: "long"})} ${a.getDate()}–${b.getDate()}, ${b.getFullYear()}`
+      : `${a.toLocaleDateString([], {month: "short", day: "numeric"})} – ${b.toLocaleDateString([], {month: "short", day: "numeric", year: "numeric"})}`;
+  }
+  return at.toLocaleDateString([], {month: "long", year: "numeric"});
+}
+window.calStep = dir => {
+  const v = calView(), at = dayDate(calAt());
+  if(v === "month"){ const d = new Date(at.getFullYear(), at.getMonth() + dir, 1, 12); set({calAt: isoDay(d), calMenu: null, calOpen: null}); return; }
+  set({calAt: addDays(calAt(), (v === "week" ? 7 : v === "agenda" ? 30 : 1) * dir), calMenu: null, calOpen: null});
+};
+window.calToday = () => set({calAt: todayIso(), calDay: todayIso(), calMenu: null, calOpen: null});
+window.calSetView = v => set({calView: v, calMenu: null, calOpen: null, ...(v === "day" && S.calDay ? {calAt: S.calDay} : {})});
+window.calToggle = id => {
+  const hide = new Set(Array.isArray(S.calHide) ? S.calHide : []);
+  hide.has(id) ? hide.delete(id) : hide.add(id);
+  set({calHide: [...hide]});
+};
+window.calPickDay = iso => {
+  set({calDay: iso, calOpen: null, calMenu: null});
+  requestAnimationFrame(() => { const el = document.getElementById("cal-day"); if(el) el.scrollIntoView({behavior: "smooth", block: "nearest"}); });
+};
+// One tap surface a day: the cells are not buttons, so a finger-sized row is
+// what each item gets under the grid.
+(function calTapping(){
+  const hit = ev => { const c = ev.target.closest("#cal-grid [data-day]"); return c ? c.dataset.day : null; };
+  document.addEventListener("click", ev => { const d = hit(ev); if(d) calPickDay(d); });
+  document.addEventListener("keydown", ev => { if(ev.key !== "Enter" && ev.key !== " ") return; const d = hit(ev); if(d){ ev.preventDefault(); calPickDay(d); } });
+})();
+window.calCreate = kind => {
+  const d = S.calDay || calAt();
+  if(kind === "game"){
+    set({gameNew: {d, t: "09:00", h: "", a: "", g: ""}, calMenu: null});
+    requestAnimationFrame(() => { const el = document.getElementById("game-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); });
+    return;
+  }
+  set({calNew: {id: null, kind, title: "", d, t: "", end: "", where: "", notes: ""}, calMenu: null});
+  requestAnimationFrame(() => { const el = document.getElementById("cal-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); });
+};
+// The boxes write without a redraw: the next tap is Save, and a redraw on blur
+// rebuilds the button under the thumb.
+window.calField = (k, v) => { S.calNew = {...(S.calNew || {}), [k]: clean(String(v)).slice(0, k === "notes" ? 400 : 60)}; save(S); };
+window.calSave = () => {
+  const n = S.calNew; if(!n) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(n.d || "")){ flash("Pick the day first."); return; }
+  const t = n.t ? clockOf(n.t) : "", end = n.end ? clockOf(n.end) : "";
+  if(n.t && !t){ flash("That start is not a time — try 9:00 or 1:30 PM."); return; }
+  if(n.end && !end){ flash("That end is not a time — try 10:30 or 2:00 PM."); return; }
+  if(end && !t){ flash("Give it a start time before an end."); return; }
+  if(t && end && end <= t){ flash("It ends before it starts."); return; }
+  const kindName = (CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1];
+  const row = {id: n.id || ("ce" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)), kind: n.kind || "other",
+    title: (n.title || "").trim() || kindName, d: n.d, t, end, where: (n.where || "").trim(), notes: (n.notes || "").trim(), at: Date.now()};
+  const list = (Array.isArray(S.calEvents) ? S.calEvents : []).filter(e => e && e.id !== row.id);
+  S.calEvents = [...list, row];
+  S.calNew = null; S.calDay = row.d; S.calAt = row.d; S.calOpen = "e|" + row.id;
+  if(!calShown("events")) S.calHide = S.calHide.filter(x => x !== "events");
+  flash(`${row.title} is on ${dayName(row.d)}${t ? " at " + clockName(t) : ""}.`);
+  save(S); render();
+};
+window.calEdit = id => { const e = (S.calEvents || []).find(x => x.id === id); if(e) { set({calNew: {...e}}); requestAnimationFrame(() => { const el = document.getElementById("cal-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); }); } };
+window.calDrop = id => {
+  const e = (S.calEvents || []).find(x => x.id === id); if(!e) return;
+  if(!confirm(`Take ${e.title} on ${dayName(e.d)} off the calendar? It is not kept anywhere else.`)) return;
+  S.calEvents = S.calEvents.filter(x => x.id !== id); S.calOpen = null;
+  flash(`${e.title} is off the calendar.`); save(S); render();
+};
+function calItemRow(i){
+  const open = S.calOpen === i.id, ctl = [];
+  if(open && i.game){
+    ctl.push(`<button class="btn grow" onclick="watchGame(${jsq(i.game.id)})">Watch this game</button>`,
+      `<button class="btn btn--quiet grow" onclick="playGame(${jsq(i.game.id)},'home')">We play ${esc(i.game.h)}</button>`,
+      `<button class="btn btn--quiet grow" onclick="playGame(${jsq(i.game.id)},'away')">We play ${esc(i.game.a)}</button>`);
+  }
+  if(open && i.match) ctl.push(`<button class="btn grow" onclick="openMatch(${jsq(i.match.id)})">Open this sheet</button>`);
+  if(open && i.lk) ctl.push(i.lk === S.layoutKey ? `<span class="note" style="margin:0">You are on this field.</span>`
+    : `<button class="btn grow" onclick="pickEvent(${jsq(i.lk)})">Go to this field</button>`);
+  if(open && i.ev){
+    if(i.ev.notes) ctl.unshift(`<p class="note" style="flex-basis:100%;margin:0">${esc(i.ev.notes)}</p>`);
+    ctl.push(`<button class="btn btn--quiet grow" onclick="calEdit(${jsq(i.ev.id)})">Edit</button>`,
+      `<button class="btn btn--danger" onclick="calDrop(${jsq(i.ev.id)})">Delete</button>`);
+  }
+  return `<div class="cal-item${open ? " is-open" : ""}">
+    <button type="button" class="cal-item__head" aria-expanded="${open}" onclick="set({calOpen:${open ? "null" : jsq(i.id)}})">
+      <i class="cal-dot" style="background:${calColor(i.cal)}"></i>
+      <span class="cal-item__when">${i.allDay ? "All day" : esc(clockName(i.t))}</span>
+      <span class="cal-item__what"><b>${esc(i.title)}</b>${i.sub ? `<span>${esc(i.sub)}</span>` : ""}</span>
+    </button>
+    ${ctl.length ? `<div class="cal-item__ctl">${ctl.join("")}</div>` : ""}
+  </div>`;
+}
+function calMenu(){
+  const m = S.calMenu;
+  if(m === "create") return `<div class="cal-menu" role="menu" aria-label="Create">
+      <button type="button" role="menuitem" onclick="calCreate('game')">A game</button>
+      ${CAL_KINDS.map(([k, n]) => `<button type="button" role="menuitem" onclick="calCreate('${k}')">${esc(n)}</button>`).join("")}</div>`;
+  if(m === "view") return `<div class="cal-menu cal-menu--r" role="menu" aria-label="View">
+      ${CAL_VIEWS.map(([k, n]) => `<button type="button" role="menuitemradio" aria-checked="${calView() === k}" onclick="calSetView('${k}')">${calView() === k ? "✓ " : ""}${esc(n)}</button>`).join("")}</div>`;
+  if(m === "cals") return `<div class="cal-menu cal-menu--r" role="menu" aria-label="Calendars">
+      ${CALS.map(c => `<button type="button" role="menuitemcheckbox" aria-checked="${calShown(c.id)}" onclick="calToggle('${c.id}')">
+        <i class="cal-box${calShown(c.id) ? " is-on" : ""}" style="--c:${c.color}"></i>${esc(c.name)}</button>`).join("")}</div>`;
+  return "";
+}
+function calendarSec(){
+  const v = calView(), r = calRange(), items = calItems(), today = todayIso(), at = dayDate(calAt());
+  const byDay = {}; items.forEach(i => { (byDay[i.d] = byDay[i.d] || []).push(i); });
+  const days = Array.from({length: r.days}, (_, n) => addDays(r.from, n));
+  const pick = S.calDay;
+  const menuBtn = (id, label, cls) => `<button type="button" class="btn btn--quiet cal-drop${cls ? " " + cls : ""}" aria-haspopup="menu" aria-expanded="${S.calMenu === id}" onclick="set({calMenu:${S.calMenu === id ? "null" : `'${id}'`}})">${label} ▾</button>`;
+  const bar = `<div class="cal-bar">
+      <div class="cal-bar__l">
+        <span class="cal-anchor">${menuBtn("create", "+ Create", "cal-create")}${S.calMenu === "create" ? calMenu() : ""}</span>
+        <button type="button" class="btn btn--quiet" onclick="calToday()">Today</button>
+        <button type="button" class="btn btn--quiet cal-arrow" aria-label="Back" onclick="calStep(-1)">‹</button>
+        <button type="button" class="btn btn--quiet cal-arrow" aria-label="Forward" onclick="calStep(1)">›</button>
+      </div>
+      <h3 class="cal-title">${esc(calTitle())}</h3>
+      <div class="cal-bar__r">
+        <span class="cal-anchor">${menuBtn("view", esc((CAL_VIEWS.find(([k]) => k === v) || [, "Month"])[1]))}${S.calMenu === "view" ? calMenu() : ""}</span>
+        <span class="cal-anchor">${menuBtn("cals", "Calendars")}${S.calMenu === "cals" ? calMenu() : ""}</span>
+      </div>
+    </div>${S.calMenu ? `<button type="button" class="cal-shade" aria-label="Close the menu" onclick="set({calMenu:null})"></button>` : ""}`;
+  const cell = d => {
+    const list = byDay[d] || [], dt = dayDate(d), out = v === "month" && dt.getMonth() !== at.getMonth();
+    const max = v === "week" ? 8 : 3;
+    const chips = list.slice(0, max).map(i => `<span class="cal-chip${i.allDay ? " cal-chip--all" : ""}" style="--c:${calColor(i.cal)}">${i.allDay ? "" : `<em>${esc(shortClock(i.t))}</em> `}${esc(i.title)}</span>`).join("");
+    const more = list.length > max ? `<span class="cal-more">+${list.length - max} more</span>` : "";
+    const label = `${dt.toLocaleDateString([], {weekday: "long", month: "long", day: "numeric"})}${list.length ? ` · ${list.length} on it` : ""}`;
+    return `<div class="cal-cell${out ? " is-out" : ""}${d === today ? " is-today" : ""}${d === pick ? " is-pick" : ""}" data-day="${d}" role="button" tabindex="0" aria-label="${esc(label)}">
+      <span class="cal-num">${dt.getDate() === 1 && v === "month" ? dt.toLocaleDateString([], {month: "short"}) + " " : ""}${dt.getDate()}</span>${chips}${more}</div>`;
+  };
+  let body = "";
+  if(v === "month" || v === "week"){
+    body = `<div class="cal-grid cal-grid--${v}" id="cal-grid" role="grid" aria-label="${esc(calTitle())}">
+      ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((w, i) => `<span class="cal-wd">${v === "week" ? `${w} <b>${dayDate(days[i]).getDate()}</b>` : w}</span>`).join("")}
+      ${days.map(cell).join("")}</div>`;
+  }
+  // The day he tapped, or the day the Day view is on, with every item a row.
+  const dayList = d => {
+    const list = byDay[d] || [];
+    return `<div class="cal-day" id="cal-day"><h4>${esc(dayName(d))}${d === today ? " · today" : ""}</h4>
+      ${list.length ? list.map(calItemRow).join("") : `<p class="empty" style="margin:0">Nothing on this day. <b>+ Create</b> puts something on it.</p>`}</div>`;
+  };
+  if(v === "day") body = dayList(calAt());
+  else if(v === "agenda"){
+    const ahead = days.filter(d => (byDay[d] || []).length);
+    body = ahead.length ? ahead.map(d => `<div class="cal-day"><h4>${esc(dayName(d))}${d === today ? " · today" : ""}</h4>${byDay[d].map(calItemRow).join("")}</div>`).join("")
+      : `<p class="empty">Nothing in the next ${r.days} days. › moves on a month, or <b>+ Create</b> puts something on.</p>`;
+  } else if(pick && days.includes(pick)) body += dayList(pick);
+  else body += `<p class="note">Tap a day to see what is on it.</p>`;
+  const n = S.calNew;
+  const form = n ? `<div class="panel" id="cal-new" style="margin-top:var(--s3)">
+      <h3 class="panel__title">${n.id ? "Edit" : "New"} · ${esc((CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1])}</h3>
+      <div class="fld"><label for="cal-kind">What</label><select id="cal-kind" onchange="calField('kind',this.value)">${CAL_KINDS.map(([k, nm]) => `<option value="${k}"${n.kind === k ? " selected" : ""}>${esc(nm)}</option>`).join("")}</select></div>
+      <div class="fld"><label for="cal-t1">Title</label><input id="cal-t1" maxlength="60" value="${esc(n.title || "")}" placeholder="${esc((CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1])}" onchange="calField('title',this.value)" ${onEnter("calField('title',this.value);calSave()")}/></div>
+      <div class="fld"><label for="cal-d">Day</label><input id="cal-d" type="date" value="${esc(n.d || "")}" onchange="calField('d',this.value)"/></div>
+      <div class="btnrow">
+        <div class="fld grow"><label for="cal-s">Starts · leave empty for all day</label><input id="cal-s" type="time" value="${esc(n.t || "")}" onchange="calField('t',this.value)"/></div>
+        <div class="fld grow"><label for="cal-e">Ends</label><input id="cal-e" type="time" value="${esc(n.end || "")}" onchange="calField('end',this.value)"/></div>
+      </div>
+      <div class="fld"><label for="cal-w">Where · optional</label><input id="cal-w" maxlength="60" value="${esc(n.where || "")}" onchange="calField('where',this.value)" ${onEnter("calField('where',this.value);calSave()")}/></div>
+      <div class="fld"><label for="cal-n">Notes · optional</label><textarea id="cal-n" maxlength="400" onchange="calField('notes',this.value)">${esc(n.notes || "")}</textarea></div>
+      <div class="btnrow"><button type="button" class="btn grow" onclick="calSave()">Save</button><button type="button" class="btn btn--quiet" onclick="set({calNew:null})">Cancel</button></div>
+    </div>` : "";
+  const shown = CALS.filter(c => calShown(c.id));
+  return sec("Calendar", bar + body + form
+    + `<p class="note cal-legend">${shown.length ? shown.map(c => `<i class="cal-dot" style="background:${c.color}"></i>${esc(c.name)}`).join(" &nbsp; ") : "Every calendar is hidden — Calendars ▾ shows them again."}</p>`,
+    items.length + (items.length === 1 ? " thing on it" : " things on it"));
 }
 
 function divisionOf(){ return DIVISIONS.find(d => d.id === (S.division || "pro")) || DIVISIONS[0]; }
@@ -2910,7 +3192,7 @@ function clearScratch(s = S){
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
-  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -4522,7 +4804,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents"];
 // Messages ride too: the Messages screen says a note travels in a squad copy,
 // and it did not.
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams","messages"];
@@ -4637,6 +4919,7 @@ const SAME = {
   // One day, one clock, the same two teams is one game, whatever id each phone gave it.
   games:       g => [g.d, g.t, foldName(g.h), foldName(g.a)].join("|"),
   gamesOff:    id => String(id),
+  calEvents:   e => e.id,
   pens:        p => p.id,
   timeouts:    t => t.id,
   fields:      f => f.key,
@@ -4830,6 +5113,7 @@ function copyDataError(data){
     matchId:str, matchState:str, teamCode:str, division:str,
     // The format he answered, and the ones he saved under a name.
     fmt:row, fmts:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
+    calEvents:list(v => row(v) && str(v.id) && token(v.id) && str(v.d) && /^\d{4}-\d{2}-\d{2}$/.test(v.d) && str(v.title)),
   };
   // These names can modify object prototypes when maps are copied or assigned.
   const unsafe = (v, depth = 0) => depth > 40 || (v && typeof v === "object" && Object.entries(v).some(([k, x]) =>
@@ -13687,7 +13971,8 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
+    how:["The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
+         "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
@@ -14214,7 +14499,7 @@ function moreBody(k){
         </span>` : ""}
       </div>`;
     };
-    return sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
+    return calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
         teams in the pits and opens a sheet that counts against them and never against you — it is how
         you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
         the two is across the tape.</p>
@@ -14227,7 +14512,7 @@ function moreBody(k){
         games.filter(g => g.d === d).map(row).join("")}</div>`,
         games.filter(g => g.d === d).length + " games")).join("")
     + sec("Add a game", n
-      ? `<div class="fld"><label>Day</label>
+      ? `<div id="game-new"></div><div class="fld"><label>Day</label>
            <select onchange="setGameField('d',this.value)">${
              [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
                n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
