@@ -438,6 +438,10 @@ svg.field [data-leg]{cursor:copy}
 .cal-item__ctl{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 10px}
 .cal-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;vertical-align:middle;margin-right:4px}
 .cal-legend{margin-top:10px}
+.cal-run{margin:0 0 var(--s3)}
+.cal-menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.cal-kinds .rost__row{display:flex;gap:8px;align-items:center;margin:0 0 8px}
+.cal-kinds .rost__row input{flex:1;min-width:0}
 @container main (max-width:420px){.cal-cell{min-height:58px}.cal-chip{font-size:10px}.cal-chip em{display:none}.cal-title{font-size:17px;flex-basis:100%;order:-1}}
 .wstick{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;overflow:auto;-webkit-overflow-scrolling:touch;
   filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))}
@@ -1977,6 +1981,19 @@ function toGameField(g){
  * a column, under the 44 a finger needs, so a tap on a day opens that day
  * under the grid, where every item is a full-size row. */
 const CAL_KINDS = [["practice", "Practice"], ["walk", "Field walk"], ["meeting", "Team meeting"], ["travel", "Travel"], ["other", "Other"]];
+// The Create list is his: his own kinds (S.calKinds, {id, name}) follow the
+// built-ins, and a built-in he never uses can be hidden (S.calKindsOff). A
+// hidden or removed kind still names the events already on the calendar.
+function calKindsMine(){ return (Array.isArray(S.calKinds) ? S.calKinds : []).filter(k => k && k.id && k.name); }
+function calKinds(){
+  const off = Array.isArray(S.calKindsOff) ? S.calKindsOff : [];
+  return [...CAL_KINDS.filter(([k]) => !off.includes(k)), ...calKindsMine().map(k => [k.id, k.name])];
+}
+function calKindName(k, fallback){
+  const b = CAL_KINDS.find(([x]) => x === k); if(b) return b[1];
+  const m = calKindsMine().find(x => x.id === k); if(m) return m.name;
+  return fallback === undefined ? "Event" : fallback;
+}
 const CAL_VIEWS = [["month", "Month"], ["week", "Week"], ["day", "Day"], ["agenda", "Schedule"]];
 const CALS = [
   {id: "league", name: "League schedule", color: "#ad1515"},
@@ -2000,6 +2017,19 @@ function eventDays(){
   Object.entries(LAYOUTS).forEach(([lk, L]) => (L.days || []).forEach(d => { if(!out.some(o => o.d === d && o.lk === lk)) out.push({d, lk}); }));
   return out;
 }
+// The days an event of his runs over, first to last. A last day before the
+// first, or none, is the one day; a run is held to a month.
+const CAL_SPAN_MAX = 31;
+function calSpan(e){
+  const out = [e.d];
+  if(!e.d2 || !/^\d{4}-\d{2}-\d{2}$/.test(e.d2) || e.d2 <= e.d) return out;
+  while(out.length < CAL_SPAN_MAX){ const n = addDays(out[out.length - 1], 1); if(n > e.d2) break; out.push(n); }
+  return out;
+}
+function calSpanName(e){
+  const sp = calSpan(e);
+  return sp.length > 1 ? `${dayName(sp[0])} – ${dayName(sp[sp.length - 1])}` : dayName(e.d);
+}
 function calItems(){
   const items = [];
   allGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
@@ -2013,9 +2043,15 @@ function calItems(){
   });
   eventDays().forEach(o => items.push({id: "f|" + o.lk + "|" + o.d, cal: "fields", d: o.d, t: "", allDay: true,
     title: LAYOUTS[o.lk].name, sub: LAYOUTS[o.lk].when || "", lk: o.lk}));
-  (Array.isArray(S.calEvents) ? S.calEvents : []).filter(e => e && e.id && e.d).forEach(e => items.push({id: "e|" + e.id, cal: "events",
-    d: e.d, t: e.t || "", allDay: !e.t, title: e.title || (CAL_KINDS.find(([k]) => k === e.kind) || [, "Event"])[1],
-    sub: [(CAL_KINDS.find(([k]) => k === e.kind) || [, ""])[1], e.end ? "until " + clockName(e.end) : "", e.where || ""].filter(Boolean).join(" · "), ev: e}));
+  // One event can run over several days in a row: it sits on each of them,
+  // and every one of those rows opens the same event.
+  (Array.isArray(S.calEvents) ? S.calEvents : []).filter(e => e && e.id && e.d).forEach(e => {
+    const span = calSpan(e);
+    span.forEach((d, k) => items.push({id: "e|" + e.id + "|" + d, cal: "events",
+      d, t: e.t || "", allDay: !e.t, title: e.title || calKindName(e.kind),
+      sub: [span.length > 1 ? `Day ${k + 1} of ${span.length} · ${calSpanName(e)}` : "", calKindName(e.kind, ""),
+        e.end ? "until " + clockName(e.end) : "", e.where || ""].filter(Boolean).join(" · "), ev: e}));
+  });
   return items.filter(i => calShown(i.cal))
     .sort((a, b) => a.d.localeCompare(b.d) || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || (a.t || "").localeCompare(b.t || "") || a.title.localeCompare(b.title));
 }
@@ -2077,7 +2113,72 @@ window.calCreate = kind => {
 };
 // The boxes write without a redraw: the next tap is Save, and a redraw on blur
 // rebuilds the button under the thumb.
-window.calField = (k, v) => { S.calNew = {...(S.calNew || {}), [k]: clean(String(v)).slice(0, k === "notes" ? 400 : 60)}; save(S); };
+window.calField = (k, v) => {
+  const was = S.calNew || {};
+  S.calNew = {...was, [k]: clean(String(v)).slice(0, k === "notes" ? 400 : 60)};
+  // A new first day moves the whole run with it, so 3 days stays 3 days.
+  if(k === "d" && was.d && was.d2 && was.d2 > was.d && S.calNew.d){
+    const len = calSpan(was).length; S.calNew.d2 = addDays(S.calNew.d, len - 1);
+    const box = document.getElementById("cal-d2"); if(box) box.value = S.calNew.d2;
+  }
+  save(S);
+};
+// Customize the Create list: add his own kinds, rename or remove them, hide a built-in.
+window.calCustomOpen = () => {
+  set({calMenu: null, calCustom: true});
+  requestAnimationFrame(() => { const el = document.getElementById("cal-custom"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); });
+};
+window.calKindAdd = () => {
+  const box = document.getElementById("cal-kind-new"), name = clean(box ? box.value : "").trim().slice(0, 30);
+  if(!name){ flash("Type the name of the new kind first — Clinic, Fundraiser, Film night."); return; }
+  const taken = [...CAL_KINDS.map(([, n]) => n), ...calKindsMine().map(k => k.name)].find(n => foldName(n) === foldName(name));
+  if(taken){ flash(`${taken} is already on the list.`); return; }
+  S.calKinds = [...calKindsMine(), {id: "ck" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name}];
+  flash(`${name} is on the + Create list.`); save(S); render();
+};
+// Saves without a redraw: the next tap is usually the button beside the box.
+window.calKindRename = (id, v) => {
+  const name = clean(String(v || "")).trim().slice(0, 30), k = calKindsMine().find(x => x.id === id); if(!k) return;
+  if(!name){ flash("A kind needs a name — Remove takes it off the list."); render(); return; }
+  const taken = [...CAL_KINDS.map(([, n]) => n), ...calKindsMine().filter(x => x.id !== id).map(x => x.name)].find(n => foldName(n) === foldName(name));
+  if(taken){ flash(`${taken} is already on the list.`); render(); return; }
+  S.calKinds = calKindsMine().map(x => x.id === id ? {...x, name} : x); save(S);
+};
+window.calKindDrop = id => {
+  const k = calKindsMine().find(x => x.id === id); if(!k) return;
+  const used = (S.calEvents || []).filter(e => e && e.kind === id).length;
+  if(used && !confirm(`Take ${k.name} off the + Create list? The ${used} on the calendar stay, as Other.`)) return;
+  S.calEvents = (S.calEvents || []).map(e => e && e.kind === id ? {...e, kind: "other"} : e);
+  S.calKinds = calKindsMine().filter(x => x.id !== id);
+  flash(`${k.name} is off the list.`); save(S); render();
+};
+window.calKindShow = k => {
+  const off = Array.isArray(S.calKindsOff) ? S.calKindsOff : [];
+  if(!off.includes(k) && calKinds().length <= 1){ flash("Keep one kind on the list — add your own before hiding this one."); return; }
+  set({calKindsOff: off.includes(k) ? off.filter(x => x !== k) : [...off, k]});
+};
+function calCustomPanel(){
+  if(!S.calCustom) return "";
+  const off = Array.isArray(S.calKindsOff) ? S.calKindsOff : [];
+  return `<div class="panel cal-kinds" id="cal-custom" style="margin-top:var(--s3)">
+    <h3 class="panel__title">Customize + Create</h3>
+    <p class="note" style="margin-top:0">A game is always there. Hide what you never use, and add your own.</p>
+    ${CAL_KINDS.map(([k, n]) => `<div class="rost__row"><span style="flex:1">${esc(n)}${off.includes(k) ? " · hidden" : ""}</span>
+      <button type="button" class="btn btn--quiet" aria-pressed="${!off.includes(k)}" onclick="calKindShow('${k}')">${off.includes(k) ? "Show" : "Hide"}</button></div>`).join("")}
+    ${calKindsMine().map(k => `<div class="rost__row"><input aria-label="Name of ${esc(k.name)}" maxlength="30" value="${esc(k.name)}" onchange="calKindRename(${jsq(k.id)},this.value)"/>
+      <button type="button" class="btn btn--danger" onclick="calKindDrop(${jsq(k.id)})">Remove</button></div>`).join("")}
+    <div class="rost__row"><input id="cal-kind-new" maxlength="30" placeholder="Your own — Clinic, Fundraiser" aria-label="New kind" ${onEnter("calKindAdd()")}/>
+      <button type="button" class="btn" onclick="calKindAdd()">Add</button></div>
+    <div class="btnrow"><button type="button" class="btn btn--quiet grow" onclick="set({calCustom:null})">Done</button></div>
+  </div>`;
+}
+// How many days, in one tap: the last day is that many on from the first.
+window.calRun = k => {
+  const n = S.calNew; if(!n) return;
+  if(!n.d){ flash("Pick the first day, then how many days."); return; }
+  const d2 = k > 1 ? addDays(n.d, k - 1) : "";
+  set({calNew: {...n, d2}});
+};
 window.calSave = () => {
   const n = S.calNew; if(!n) return;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(n.d || "")){ flash("Pick the day first."); return; }
@@ -2086,20 +2187,24 @@ window.calSave = () => {
   if(n.end && !end){ flash("That end is not a time — try 10:30 or 2:00 PM."); return; }
   if(end && !t){ flash("Give it a start time before an end."); return; }
   if(t && end && end <= t){ flash("It ends before it starts."); return; }
-  const kindName = (CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1];
+  const d2 = n.d2 && n.d2 !== n.d ? n.d2 : "";
+  if(d2 && !/^\d{4}-\d{2}-\d{2}$/.test(d2)){ flash("Pick the last day from the calendar box."); return; }
+  if(d2 && d2 < n.d){ flash("The last day is before the first day."); return; }
+  if(d2 && calSpan({d: n.d, d2}).slice(-1)[0] !== d2){ flash(`One event can run ${CAL_SPAN_MAX} days at most — split it in two.`); return; }
+  const kindName = calKindName(n.kind);
   const row = {id: n.id || ("ce" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)), kind: n.kind || "other",
-    title: (n.title || "").trim() || kindName, d: n.d, t, end, where: (n.where || "").trim(), notes: (n.notes || "").trim(), at: Date.now()};
+    title: (n.title || "").trim() || kindName, d: n.d, d2, t, end, where: (n.where || "").trim(), notes: (n.notes || "").trim(), at: Date.now()};
   const list = (Array.isArray(S.calEvents) ? S.calEvents : []).filter(e => e && e.id !== row.id);
   S.calEvents = [...list, row];
-  S.calNew = null; S.calDay = row.d; S.calAt = row.d; S.calOpen = "e|" + row.id;
+  S.calNew = null; S.calDay = row.d; S.calAt = row.d; S.calOpen = "e|" + row.id + "|" + row.d;
   if(!calShown("events")) S.calHide = S.calHide.filter(x => x !== "events");
-  flash(`${row.title} is on ${dayName(row.d)}${t ? " at " + clockName(t) : ""}.`);
+  flash(`${row.title} is on ${calSpanName(row)}${t ? " at " + clockName(t) + (d2 ? " each day" : "") : ""}.`);
   save(S); render();
 };
 window.calEdit = id => { const e = (S.calEvents || []).find(x => x.id === id); if(e) { set({calNew: {...e}}); requestAnimationFrame(() => { const el = document.getElementById("cal-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); }); } };
 window.calDrop = id => {
   const e = (S.calEvents || []).find(x => x.id === id); if(!e) return;
-  if(!confirm(`Take ${e.title} on ${dayName(e.d)} off the calendar? It is not kept anywhere else.`)) return;
+  if(!confirm(`Take ${e.title} on ${calSpanName(e)} off the calendar${calSpan(e).length > 1 ? " — every day of it" : ""}? It is not kept anywhere else.`)) return;
   S.calEvents = S.calEvents.filter(x => x.id !== id); S.calOpen = null;
   flash(`${e.title} is off the calendar.`); save(S); render();
 };
@@ -2131,7 +2236,8 @@ function calMenu(){
   const m = S.calMenu;
   if(m === "create") return `<div class="cal-menu" role="menu" aria-label="Create">
       <button type="button" role="menuitem" onclick="calCreate('game')">A game</button>
-      ${CAL_KINDS.map(([k, n]) => `<button type="button" role="menuitem" onclick="calCreate('${k}')">${esc(n)}</button>`).join("")}</div>`;
+      ${calKinds().map(([k, n]) => `<button type="button" role="menuitem" onclick="calCreate(${jsq(k)})">${esc(n)}</button>`).join("")}
+      <hr/><button type="button" role="menuitem" onclick="calCustomOpen()">✎ Customize this list</button></div>`;
   if(m === "view") return `<div class="cal-menu cal-menu--r" role="menu" aria-label="View">
       ${CAL_VIEWS.map(([k, n]) => `<button type="button" role="menuitemradio" aria-checked="${calView() === k}" onclick="calSetView('${k}')">${calView() === k ? "✓ " : ""}${esc(n)}</button>`).join("")}</div>`;
   if(m === "cals") return `<div class="cal-menu cal-menu--r" role="menu" aria-label="Calendars">
@@ -2188,12 +2294,19 @@ function calendarSec(){
   else body += `<p class="note">Tap a day to see what is on it.</p>`;
   const n = S.calNew;
   const form = n ? `<div class="panel" id="cal-new" style="margin-top:var(--s3)">
-      <h3 class="panel__title">${n.id ? "Edit" : "New"} · ${esc((CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1])}</h3>
-      <div class="fld"><label for="cal-kind">What</label><select id="cal-kind" onchange="calField('kind',this.value)">${CAL_KINDS.map(([k, nm]) => `<option value="${k}"${n.kind === k ? " selected" : ""}>${esc(nm)}</option>`).join("")}</select></div>
-      <div class="fld"><label for="cal-t1">Title</label><input id="cal-t1" maxlength="60" value="${esc(n.title || "")}" placeholder="${esc((CAL_KINDS.find(([k]) => k === n.kind) || [, "Event"])[1])}" onchange="calField('title',this.value)" ${onEnter("calField('title',this.value);calSave()")}/></div>
-      <div class="fld"><label for="cal-d">Day</label><input id="cal-d" type="date" value="${esc(n.d || "")}" onchange="calField('d',this.value)"/></div>
+      <h3 class="panel__title">${n.id ? "Edit" : "New"} · ${esc(calKindName(n.kind))}</h3>
+      <div class="fld"><label for="cal-kind">What</label><select id="cal-kind" onchange="calField('kind',this.value)">${[...calKinds(), ...(calKinds().some(([k]) => k === n.kind) ? [] : [[n.kind || "other", calKindName(n.kind)]])].map(([k, nm]) => `<option value="${esc(k)}"${n.kind === k ? " selected" : ""}>${esc(nm)}</option>`).join("")}</select></div>
+      <div class="fld"><label for="cal-t1">Title</label><input id="cal-t1" maxlength="60" value="${esc(n.title || "")}" placeholder="${esc(calKindName(n.kind))}" onchange="calField('title',this.value)" ${onEnter("calField('title',this.value);calSave()")}/></div>
       <div class="btnrow">
-        <div class="fld grow"><label for="cal-s">Starts · leave empty for all day</label><input id="cal-s" type="time" value="${esc(n.t || "")}" onchange="calField('t',this.value)"/></div>
+        <div class="fld grow"><label for="cal-d">${n.d2 && n.d2 !== n.d ? "First day" : "Day"}</label><input id="cal-d" type="date" value="${esc(n.d || "")}" onchange="calField('d',this.value)"/></div>
+        <div class="fld grow"><label for="cal-d2">Last day · optional</label><input id="cal-d2" type="date" value="${esc(n.d2 || "")}" min="${esc(n.d || "")}" onchange="calField('d2',this.value)"/></div>
+      </div>
+      <div class="seg seg--wrap cal-run" role="group" aria-label="How many days">${[1, 2, 3, 4, 5, 7].map(k => {
+        const cur = n.d ? calSpan({d: n.d, d2: n.d2}).length : 1;
+        return `<button type="button" class="${cur === k ? "on" : ""}" aria-pressed="${cur === k}" onclick="calRun(${k})">${k === 1 ? "1 day" : k + " days"}</button>`;
+      }).join("")}</div>
+      <div class="btnrow">
+        <div class="fld grow"><label for="cal-s">${n.d2 && n.d2 !== n.d ? "Starts each day" : "Starts"} · blank for all day</label><input id="cal-s" type="time" value="${esc(n.t || "")}" onchange="calField('t',this.value)"/></div>
         <div class="fld grow"><label for="cal-e">Ends</label><input id="cal-e" type="time" value="${esc(n.end || "")}" onchange="calField('end',this.value)"/></div>
       </div>
       <div class="fld"><label for="cal-w">Where · optional</label><input id="cal-w" maxlength="60" value="${esc(n.where || "")}" onchange="calField('where',this.value)" ${onEnter("calField('where',this.value);calSave()")}/></div>
@@ -2201,7 +2314,7 @@ function calendarSec(){
       <div class="btnrow"><button type="button" class="btn grow" onclick="calSave()">Save</button><button type="button" class="btn btn--quiet" onclick="set({calNew:null})">Cancel</button></div>
     </div>` : "";
   const shown = CALS.filter(c => calShown(c.id));
-  return sec("Calendar", bar + body + form
+  return sec("Calendar", bar + calCustomPanel() + body + form
     + `<p class="note cal-legend">${shown.length ? shown.map(c => `<i class="cal-dot" style="background:${c.color}"></i>${esc(c.name)}`).join(" &nbsp; ") : "Every calendar is hidden — Calendars ▾ shows them again."}</p>`,
     items.length + (items.length === 1 ? " thing on it" : " things on it"));
 }
@@ -3192,7 +3305,7 @@ function clearScratch(s = S){
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
-  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -4804,7 +4917,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds"];
 // Messages ride too: the Messages screen says a note travels in a squad copy,
 // and it did not.
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams","messages"];
@@ -4920,6 +5033,7 @@ const SAME = {
   games:       g => [g.d, g.t, foldName(g.h), foldName(g.a)].join("|"),
   gamesOff:    id => String(id),
   calEvents:   e => e.id,
+  calKinds:    k => k.id,
   pens:        p => p.id,
   timeouts:    t => t.id,
   fields:      f => f.key,
@@ -5113,7 +5227,9 @@ function copyDataError(data){
     matchId:str, matchState:str, teamCode:str, division:str,
     // The format he answered, and the ones he saved under a name.
     fmt:row, fmts:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
-    calEvents:list(v => row(v) && str(v.id) && token(v.id) && str(v.d) && /^\d{4}-\d{2}-\d{2}$/.test(v.d) && str(v.title)),
+    calKinds:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
+    calEvents:list(v => row(v) && str(v.id) && token(v.id) && str(v.d) && /^\d{4}-\d{2}-\d{2}$/.test(v.d) && str(v.title)
+      && (v.d2 === undefined || v.d2 === "" || (str(v.d2) && /^\d{4}-\d{2}-\d{2}$/.test(v.d2)))),
   };
   // These names can modify object prototypes when maps are copied or assigned.
   const unsafe = (v, depth = 0) => depth > 40 || (v && typeof v === "object" && Object.entries(v).some(([k, x]) =>
@@ -13971,7 +14087,7 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
+    how:["The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",

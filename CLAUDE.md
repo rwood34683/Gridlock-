@@ -757,6 +757,12 @@ More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Clas
     (`calItemRow`) that watch, play, open the sheet or go to the field. His
     events are `S.calEvents`, in a full copy and merged by id; `calView` and
     `calHide` are his preferences, the rest is scratch. Nothing is fetched.
+    One event runs over several days in a row: a **Last day** (`d2`) or the
+    1 · 2 · 3 · 4 · 5 · 7 days chips (`calRun`), and `calSpan(e)` puts it on
+    each day ("Day 2 of 3"); moving the first day moves the run. **✎ Customize
+    this list** at the foot of + Create hides a built-in kind (`calKindsOff`,
+    a preference) and adds his own (`S.calKinds`, in a full copy, merged by
+    id); a kind he removes leaves its events on the calendar as Other.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
