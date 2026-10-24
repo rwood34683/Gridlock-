@@ -95,7 +95,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Walk, Lineups, Movement, Assess, Codes, Bunker stats, Team, Messages, Classes, League, Nexus.
+More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Plan, Help · and under **Admin**, Nexus — where admin and staff sign in, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
