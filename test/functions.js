@@ -5049,7 +5049,7 @@ const ROSTER = [
     const picked = S.calDay === "2026-10-23" && /Friday, Oct 23/.test(document.getElementById("cal-day").textContent);
     window.calToggle("fields"); const hid = !/WCPPL/.test(document.querySelector('#cal-grid [data-day="2026-10-24"]').textContent);
     window.calToggle("fields");
-    window.set({ calMenu: "create" }); const menu = root.querySelectorAll(".cal-menu button").length === 6;
+    window.set({ calMenu: "create" }); const menu = root.querySelectorAll(".cal-menu button").length === 7;
     window.calCreate("practice");
     window.calField("title", "Snake drills"); window.calField("t", "9am"); window.calField("end", "8:00");
     window.calSave(); const refused = S.calEvents.length === 0 && /ends before/.test(document.body.innerText);
@@ -5065,6 +5065,37 @@ const ROSTER = [
     window.set({ calView: "month", calDay: null });
     return (cells === 35 || cells === 42) && oct && chip && nov && week && day && list && picked && hid && menu && refused && saved && shown && edited && gone && dead === 0
       || JSON.stringify({cells, oct, chip, nov, week, day, list, picked, hid, menu, refused, saved, shown, edited, gone, dead});
+  }));
+  check("Schedule: one event runs over several days, and + Create takes his own kinds", await ev(() => {
+    window.set({ tab: "more", more: "schedule", calAt: "2026-11-01", calDay: null, calView: "month", calHide: [], calEvents: [], calKinds: [], calKindsOff: [], calMenu: null, calNew: null, calCustom: null });
+    const root = document.getElementById("root");
+    window.calCustomOpen();
+    document.getElementById("cal-kind-new").value = "Clinic"; window.calKindAdd();
+    document.getElementById("cal-kind-new").value = "clinic "; window.calKindAdd();
+    const one = S.calKinds.length === 1 && S.calKinds[0].name === "Clinic";
+    window.calKindShow("walk");
+    window.set({ calCustom: null, calMenu: "create" });
+    const menu = [...root.querySelectorAll(".cal-menu button")].map(b => b.textContent.trim());
+    const listed = menu.includes("Clinic") && !menu.includes("Field walk") && menu.some(t => /Customize/.test(t));
+    const ck = S.calKinds[0].id;
+    window.calPickDay("2026-11-11"); window.calCreate(ck); window.calField("title", "WC All Day"); window.calRun(3);
+    window.calField("d", "2026-11-12");
+    const moved = S.calNew.d2 === "2026-11-14";
+    window.calField("d", "2026-11-11"); window.calField("d2", "2026-11-10"); window.calSave();
+    const refused = S.calEvents.length === 0;
+    window.calRun(3); window.calSave();
+    const e = S.calEvents[0];
+    const saved = e && e.d === "2026-11-11" && e.d2 === "2026-11-13" && e.kind === ck;
+    const chips = [...root.querySelectorAll("#cal-grid [data-day]")].filter(c => /WC All Day/.test(c.textContent)).map(c => c.dataset.day);
+    window.calPickDay("2026-11-12");
+    const day = /Day 2 of 3/.test(document.getElementById("cal-day").textContent) && /Clinic/.test(document.getElementById("cal-day").textContent);
+    const ok0 = window.confirm; window.confirm = () => true; window.calKindDrop(ck); window.confirm = ok0;
+    const kept = S.calEvents.length === 1 && S.calEvents[0].kind === "other" && S.calKinds.length === 0;
+    const schema = !copyDataError({ calKinds: [{ id: "ck1", name: "Clinic" }], calEvents: [{ id: "ce1", d: "2026-11-11", d2: "2026-11-13", title: "x" }] })
+      && !!copyDataError({ calEvents: [{ id: "ce1", d: "2026-11-11", d2: "Nov 13", title: "x" }] });
+    window.set({ calEvents: [], calKindsOff: [], calDay: null });
+    return one && listed && moved && refused && saved && chips.join() === "2026-11-11,2026-11-12,2026-11-13" && day && kept && schema
+      || JSON.stringify({one, listed, menu, moved, refused, saved, chips, day, kept, schema});
   }));
   check("Schedule: calendar events ride in a copy and merge by id", await ev(() => {
     const keeps = KEEP_ALL.includes("calEvents") && typeof SAME.calEvents === "function";
