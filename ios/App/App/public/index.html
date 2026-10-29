@@ -4616,7 +4616,7 @@ const SCOUT_VIEWS = ["matchup","breakouts","anticipate","counter","layers","game
 function fixScreen(){
   if(!TABS.includes(S.tab)) S.tab = "playbook";
   if(!SCOUT_VIEWS.includes(S.scoutTab || "matchup")) S.scoutTab = "matchup";
-  if(S.more && !MORE_HIDDEN[S.more] && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
+  if(S.more && !Object.prototype.hasOwnProperty.call(MORE_HIDDEN, S.more) && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
 }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 /* The class deep link is the one door that is not the account, and it opens
@@ -9307,6 +9307,7 @@ function promo(){
       <button class="btn btn--quiet btn--block" onclick="set({promoTour: !S.promoTour})">${
         S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
     </div>
+    ${S.authSaid ? `<p class="warn" role="status">${esc(S.authSaid)}</p>` : ""}
     ${S.promoTour ? tourPanel() : ""}
     <p class="note">Gridlock System · powered by UPRA</p>`}
   </div>`;
@@ -9314,8 +9315,8 @@ function promo(){
 // Whether this phone already carries a staff account, so the sign-in line
 // opens the right half of the form instead of the wrong one.
 function hasAccount(){
-  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "null");
-       return !!(a && a.email); }catch(e){ return false; }
+  const a = readAccount();
+  return !!(a.email || a.sub);
 }
 function authForm(){
   if(S.mode!=="create" && S.mode!=="login") return "";
@@ -9356,6 +9357,24 @@ function authForm(){
 // hashed with the platform's own crypto, and only the hash is kept — so a
 // shared or stolen phone does not hand over the password itself.
 const STAFF_KEY = "gridlock.staff.v2";
+let _authAttempt = 0;
+const ACCOUNT_SAVE_SAID = "This phone could not save your sign-in. Free some space, then try again. Your season has not been removed.";
+function accountRecord(text, legacy = false){
+  let a;
+  try{ a = JSON.parse(text); }catch(e){ return {}; }
+  if(!a || typeof a !== "object" || Array.isArray(a)) return {};
+  for(const key of ["email", "salt", "hash", "kind", "sub", "name", "phone", "uid", "pass"])
+    if(a[key] != null && typeof a[key] !== "string") return {};
+  if(legacy ? a.email && a.pass :
+     (a.kind === "apple" && a.sub) || (a.email && a.salt && a.hash)) return a;
+  return {};
+}
+function readAccount(key = STAFF_KEY){
+  try{ return accountRecord(localStorage.getItem(key), key !== STAFF_KEY); }catch(e){ return {}; }
+}
+function dropLegacyAccount(){
+  try{ localStorage.removeItem("gridlock.staff"); }catch(e){}
+}
 async function hashPass(pass, saltHex){
   const enc = new TextEncoder().encode(saltHex + "|" + pass);
   const buf = await crypto.subtle.digest("SHA-256", enc);
@@ -9370,19 +9389,21 @@ function newSalt(){
  * season coming back on a phone the coach can no longer sign in to is half a
  * rescue — creating a class and sending a blast are both gated on it. */
 function writeAccount(acc){
-  const text = JSON.stringify(acc);
-  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
-  if(window.gridlockKeep) try{ window.gridlockKeep(text, STAFF_KEY); }catch(e){}
+  let text;
+  try{
+    text = JSON.stringify(acc);
+    localStorage.setItem(STAFF_KEY, text);
+    if(localStorage.getItem(STAFF_KEY) !== text) return false;
+  }catch(e){ return false; }
+  if(window.gridlockKeep) try{ Promise.resolve(window.gridlockKeep(text, STAFF_KEY)).catch(() => {}); }catch(e){}
+  return true;
 }
 window.gridlockRestoreAccount = text => {
-  let have = null;
-  try{ have = JSON.parse(localStorage.getItem(STAFF_KEY) || "null"); }catch(e){}
-  if(have && have.email) return false;              // this phone has one already
-  let d = null;
-  try{ d = JSON.parse(text); }catch(e){ return false; }
-  if(!d || !(d.email || d.sub) || !(d.hash || d.kind === "apple")) return false;
-  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
-  return true;
+  const have = readAccount();
+  if(have.email || have.sub) return false;          // this phone has one already
+  const d = accountRecord(text);
+  if(!(d.email || d.sub)) return false;
+  return writeAccount(d);
 };
 
 /* ============================================================
@@ -9412,22 +9433,24 @@ window.gridlockRestoreAccount = text => {
 window.appleSignIn = async () => {
   const a = window.gridlockApple;
   if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
+  const attempt = ++_authAttempt;
+  ++_syncEpoch; S.syncOn = false;
   set({authSaid: "Asking Apple…"});
   try{
     const who = await a.signIn();
+    if(attempt !== _authAttempt) return;
     if(!who || !who.sub) return set({authSaid: "Apple did not return a sign-in. Nothing has changed."});
     // An Apple account keeps no password: there is nothing to hash, and the
     // stable id is the thing that identifies him on the next launch.
-    const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
-    writeAccount({kind: "apple", sub: who.sub,
-                  email: who.email || kept.email || "",
-                  name: who.name || kept.name || ""});
+    const prior = readAccount(), kept = prior.sub === who.sub ? prior : {};
+    if(!writeAccount({kind: "apple", sub: who.sub,
+                     email: who.email || kept.email || "",
+                     name: who.name || kept.name || ""})) return set({authSaid: ACCOUNT_SAVE_SAID});
     set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone});
-  }catch(err){ set({authSaid: "Apple could not be reached. Nothing has changed."}); }
+  }catch(err){ if(attempt === _authAttempt) set({authSaid: "Apple could not be reached. Nothing has changed."}); }
 };
 function phoneDone(){
-  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); return a.phone || ""; }
-  catch(e){ return ""; }
+  return readAccount().phone || "";
 }
 window.startVerify = async () => {
   const v = window.gridlockVerify;
@@ -9449,8 +9472,9 @@ window.checkVerify = async () => {
   try{
     const r = await v.check(S.verifyPhone || "", code);
     if(r && r.ok){
-      const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
-      writeAccount({...kept, phone: S.verifyPhone || "", phoneAt: Date.now()});
+      const kept = readAccount();
+      if(!(kept.email || kept.sub) || !writeAccount({...kept, phone: S.verifyPhone || "", phoneAt: Date.now()}))
+        return set({verifySaid: "This phone could not save the verified number. Free some space, then try again."});
       set({verifySent: false, verifySaid: "", verifyPhone: ""});
     } else set({verifySaid: (r && r.said) || "That code does not match. Ask for a new one if it has expired."});
   }catch(e){ set({verifySaid: "The code could not be checked. Nothing has changed."}); }
@@ -9519,8 +9543,9 @@ window.doAuth = async () => {
   if(!(window.crypto && crypto.subtle))
     return say("This address is not a secure one, so the phone will not hash a password here. "
              + "Use the installed app, or open this on the same machine at localhost.");
-  let acc = {};
-  try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
+  const attempt = ++_authAttempt, creating = S.mode === "create";
+  ++_syncEpoch; S.syncOn = false;
+  const acc = readAccount();
 
   /* The server first where there is one, and the phone whenever it cannot be
      reached. A successful cloud sign-in writes the local account too, so the
@@ -9530,14 +9555,17 @@ window.doAuth = async () => {
     say("Checking…");
     let r = null;
     try{
-      r = S.mode === "create" ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
+      r = creating ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
     }catch(e){ r = {offline: true}; }
+    if(attempt !== _authAttempt) return;
     if(r && r.ok){
-      const salt = newSalt();
-      writeAccount({...(acc.kind === "apple" ? acc : {}), email, salt,
-                    hash: await hashPass(pass, salt),
-                    cloud: true, uid: (r.user && r.user.id) || acc.uid || ""});
-      localStorage.removeItem("gridlock.staff");
+      const salt = newSalt(), hash = await hashPass(pass, salt);
+      if(attempt !== _authAttempt) return;
+      if(!writeAccount({email, salt, hash, cloud: true, uid: (r.user && r.user.id) || ""})){
+        try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+        return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
+      }
+      dropLegacyAccount();
       return set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
     }
     // A refusal is his to see. A network failure is not, and must never be the
@@ -9546,32 +9574,35 @@ window.doAuth = async () => {
     S.authSaid = "";
   }
 
-  if(S.mode === "create"){
+  if(creating){
     // Creating over an account that is already here is how a coach who meant to
     // sign in loses the one he had — nothing else on the phone can get it back.
     if(acc.email && acc.email !== email &&
        !confirm(`This phone already has ${acc.email}. A new account replaces that sign-in and `
               + `there is no way back to it. Your season is kept separately and is not touched. Continue?`)) return;
-    const salt = newSalt();
-    writeAccount({email, salt, hash: await hashPass(pass, salt)});
-    localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt) return;
+    if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
+    dropLegacyAccount();   // only after the replacement is safely stored
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
   if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
+    if(attempt !== _authAttempt) return;
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
   // An account made before hashing is upgraded on the next correct sign-in
   // rather than locking the coach out of his own phone.
-  let old = {};
-  try{ old = JSON.parse(localStorage.getItem("gridlock.staff") || "{}"); }catch(e){}
+  if(attempt !== _authAttempt) return;
+  const old = readAccount("gridlock.staff");
   if(old.email === email && old.pass === pass){
-    const salt = newSalt();
-    writeAccount({email, salt, hash: await hashPass(pass, salt)});
-    localStorage.removeItem("gridlock.staff");
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt) return;
+    if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
+    dropLegacyAccount();
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
@@ -9614,52 +9645,85 @@ const canSync = () => !!(window.gridlockCloud && window.gridlockCloud.pushSeason
 function syncLabel(){
   return String(S.syncLabel || pitName("left", "") || S.teamCode || S.email || "Coach").slice(0, 60);
 }
-let _lastAutoSync = 0;
+let _lastAutoSync = 0, _syncEpoch = 0;
+let _syncTail = Promise.resolve(), _syncDeleting = false;
+const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting;
+function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
+function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
+function queueSeasonPush(t){
+  const label = syncLabel(), payload = copyPayload("all");
+  const pending = _syncTail.then(() => {
+    if(!sameSync(t) || !syncAllowed()) return {ok:false};
+    return t.cloud.pushSeason(label, payload);
+  });
+  _syncTail = pending.catch(() => {});
+  return pending;
+}
+window.staffSignOut = () => {
+  ++_authAttempt; ++_syncEpoch;
+  S.syncOn = false;                            // pause before save can auto-send
+  const cloud = window.gridlockCloud;
+  try{ if(cloud && cloud.signOut) Promise.resolve(cloud.signOut()).catch(() => {}); }catch(e){}
+  set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:""});
+};
 function maybeSync(){
-  if(!S.syncOn || !canSync()) return;
+  if(!syncAllowed()) return;
   const now = Date.now();
-  if(now - _lastAutoSync < 90000) return;         // at most once a minute and a half
+  if(now - _lastAutoSync < 90000) return;
   _lastAutoSync = now;
-  const payload = copyPayload("all");
-  Promise.resolve().then(() => window.gridlockCloud.pushSeason(syncLabel(), payload))
-    .then(r => { if(r && r.ok) S.syncAt = Date.now(); })   // persists on the next save
-    .catch(() => {});
+  const t = syncTicket();
+  queueSeasonPush(t).then(r => {
+    if(sameSync(t) && syncAllowed() && r && r.ok === true) S.syncAt = Date.now();
+  }).catch(() => {});
 }
 window.syncNow = async () => {
-  if(!canSync()) return;
-  const say = m => set({syncSaid: m});
-  say("Sending your season to your league…");
+  if(!syncAllowed()) return;
+  const t = syncTicket();
   _lastAutoSync = Date.now();
+  set({syncSaid: "Sending your season to your league…"});
   let r = null;
-  try{ r = await window.gridlockCloud.pushSeason(syncLabel(), copyPayload("all")); }
-  catch(e){ r = {ok:false, offline:true}; }
-  if(r && r.ok) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
+  try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
+  if(!sameSync(t) || !syncAllowed()) return;
+  if(r && r.ok === true) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
   if(r && r.offline) return set({syncSaid: "No signal — it will go up on its own once you have bars. Your season is safe on the phone."});
   set({syncSaid: (r && r.said) || "That could not be sent. Nothing has changed."});
 };
 window.toggleSync = () => {
+  if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
+  if(!S.entered || S.role !== "staff" || !canSync()) return;
+  ++_syncEpoch;
   if(S.syncOn) return set({syncOn: false,
     syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
-  // Claim the throttle window so the save() below does not also auto-fire; the
-  // explicit syncNow() is the one push, and it gives him a result to read.
   _lastAutoSync = Date.now();
   S.syncOn = true; save(S); render();
   syncNow();
 };
 window.deleteSynced = async () => {
+  if(_syncDeleting) return;
   const cloud = window.gridlockCloud;
-  const say = m => set({syncSaid: m});
-  // Only say it was removed when the league said so: with no adapter, or no
-  // signal, it said removed while everything sent was still there.
-  if(!cloud || !cloud.deleteSeason)
-    return set({syncOn: false, syncAt: null, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+  if(!cloud || !cloud.deleteSeason){
+    ++_syncEpoch;
+    return set({syncOn: false, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+  }
   if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
-  say("Removing what you sent…");
-  try{ const r = await cloud.deleteSeason();
-    if(r && r.offline) return set({syncOn: false, syncAt: null, syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
-    if(r && r.ok === false) return set({syncSaid: r.said || "That could not be removed. Try again with a signal."});
-  }catch(e){ return set({syncSaid: "Could not reach your league to remove it. Try again with a signal."}); }
-  set({syncOn: false, syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+  ++_syncEpoch;
+  const t = syncTicket();
+  _syncDeleting = true;
+  set({syncOn: false, syncSaid: "Removing what you sent…"});
+  try{
+    // Wait for an already-dispatched upload; DELETE must land after it.
+    await _syncTail;
+    if(!sameSync(t)) return;
+    const r = await cloud.deleteSeason();
+    if(!sameSync(t)) return;
+    if(r && r.ok === true)
+      return set({syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+    if(r && r.offline)
+      return set({syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
+    set({syncSaid: (r && r.said) || "Removal was not confirmed. League sync is off. Tap Remove to try again."});
+  }catch(e){
+    if(sameSync(t)) set({syncSaid: "Could not reach your league to remove it. League sync is off. Tap Remove to try again."});
+  }finally{ _syncDeleting = false; }
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
 
@@ -15272,7 +15336,7 @@ function moreBody(k){
       or the screen goes off, so it does not run your battery down in a pocket.</p>`:""}
     ${verifyBlock()}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
-    <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
+    <button class="btn btn--ghost btn--block" onclick="staffSignOut()">Staff sign out</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + (canSync() ? sec("League sync", `<p class="lede">Send this season to your league's admin, so the whole year across every coach
       is in one place. This is the one thing that leaves your phone — and only because you turn it on.</p>
@@ -15287,9 +15351,9 @@ function moreBody(k){
     </div>
     ${S.syncOn ? `<div class="toggles">
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
-        <button class="btn btn--danger" onclick="deleteSynced()">Stop and delete what I sent</button>
       </div>
       <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}It also goes up on its own as you log, once you have signal.</p>` : ""}
+    <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
     ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
     S.syncOn ? "On" : "Off") : "")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the

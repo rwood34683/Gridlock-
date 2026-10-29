@@ -2430,3 +2430,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   checks could never fail, and two had been failing unseen. A returned
   `{…}`, `[…]`, `failed:` or `status:` string is a failure now, with the
   string as its detail.
+
+- Report an account save or cloud removal as successful before it is confirmed. Staff
+  credentials must be validated objects and a replacement must be saved before the
+  legacy record is removed. Staff sign-out pauses sync and invalidates pending auth
+  and upload results. The optional cloud adapter discards stale refresh/sign-in
+  responses; deletion cancels queued uploads, waits for dispatched uploads, and
+  needs an authenticated server success. Failed removal keeps a visible retry.
+  `test/account-sync.js` and `test/cloud-session.js` hold these failure cases.

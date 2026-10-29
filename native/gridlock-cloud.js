@@ -33,24 +33,40 @@
  */
 (function () {
   "use strict";
-
   var CFG = window.GRIDLOCK_CLOUD || null;
   var SESSION_KEY = "grindx.cloud.session";
   var OFFLINE = { ok: false, offline: true };
+  var generation = 0, seasonVersion = 0;
+  var loaded = false, currentSession = null, refreshing = null;
+  var seasonTail = Promise.resolve(), deleting = false;
 
   function said(msg) { return { ok: false, said: msg }; }
   function cfg() { return CFG; }
-
+  function cancelled() { return said("Your sign-in changed. Sign in again before sending or removing a season."); }
   window.gridlockCloudConfigure = function (url, anonKey) {
+    ++generation;
+    if (CFG && (CFG.url !== url || CFG.anonKey !== anonKey)) writeSession(null);
     CFG = { url: url, anonKey: anonKey };
     install();
   };
-
   function readSession() {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (e) { return null; }
+    if (!loaded) {
+      loaded = true;
+      try {
+        var s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+        if (s && typeof s.access_token === "string" && s.user && typeof s.user.id === "string") currentSession = s;
+      } catch (e) {}
+    }
+    return currentSession;
   }
   function writeSession(s) {
-    try { s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    loaded = true;
+    currentSession = null;                     // failed storage never keeps a live session
+    try {
+      s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY);
+      currentSession = s;
+      return true;
+    } catch (e) { return false; }
   }
   function sessionFrom(body) {
     return {
@@ -65,10 +81,6 @@
     return (body && (body.msg || body.error_description || body.error_message || body.error || body.message))
       || "That was refused by the server.";
   }
-
-  // One call to Supabase (GoTrue or PostgREST). A thrown fetch is the network
-  // being down — that comes back as {net:false} and the callers turn it into
-  // offline. Anything the server answered is a real result.
   async function call(path, opts, token) {
     var c = cfg();
     if (!c || !c.url || !c.anonKey) return { net: false };
@@ -87,36 +99,59 @@
     return { net: true, ok: res.ok, status: res.status, body: body };
   }
 
-  // A valid access token, refreshing it first if it is within a minute of
-  // expiry. With no signal the refresh cannot happen; we return what we have and
-  // let RLS refuse if it is truly stale — offline is never a locked door here.
+  // Share a refresh, and accept its result only in the session that asked for it.
   async function token() {
     var s = readSession();
     if (!s) return null;
     if (s.expires_at && Date.now() < s.expires_at - 60000) return s.access_token;
-    var r = await call("/auth/v1/token?grant_type=refresh_token", {
-      method: "POST", body: JSON.stringify({ refresh_token: s.refresh_token }),
-    });
-    if (r.net && r.ok && r.body && r.body.access_token) {
-      var ns = sessionFrom(r.body); writeSession(ns); return ns.access_token;
-    }
-    return s.access_token;
+    var g = generation;
+    if (refreshing && refreshing.generation === g) return refreshing.promise;
+    var work = (async function () {
+      var r = await call("/auth/v1/token?grant_type=refresh_token", {
+        method: "POST", body: JSON.stringify({ refresh_token: s.refresh_token }),
+      });
+      if (g !== generation || readSession() !== s) return null;
+      if (r.net && r.ok && r.body && r.body.access_token) {
+        var ns = sessionFrom(r.body);
+        if (!ns.user || ns.user.id !== s.user.id || !writeSession(ns)) return null;
+        return ns.access_token;
+      }
+      // Offline: the old token may still work, but only for the same session.
+      return s.access_token;
+    })();
+    var entry = { generation: g, promise: work };
+    refreshing = entry;
+    try { return await work; }
+    finally { if (refreshing === entry) refreshing = null; }
   }
-
+  function beginAuth() { ++generation; writeSession(null); return generation; }
+  function queueSeason(work) {
+    var pending = seasonTail.then(work);
+    seasonTail = pending.catch(function () {});
+    return pending;
+  }
   var api = {
     async signUp(email, pass) {
+      var g = beginAuth();
       var r = await call("/auth/v1/signup", { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
+      if (g !== generation) return cancelled();
       if (!r.net) return OFFLINE;
       if (!r.ok) return said(authError(r.body));
-      if (r.body && r.body.access_token) writeSession(sessionFrom(r.body));
+      if (r.body && r.body.access_token && !writeSession(sessionFrom(r.body)))
+        return said("This phone could not save your sign-in. Free some space and sign in again.");
       var u = (r.body && (r.body.user || r.body)) || {};
       return { ok: true, user: { id: u.id, email: u.email } };
     },
     async signIn(email, pass) {
+      var g = beginAuth();
       var r = await call("/auth/v1/token?grant_type=password", { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
+      if (g !== generation) return cancelled();
       if (!r.net) return OFFLINE;
       if (!r.ok) return said(authError(r.body));
-      var s = sessionFrom(r.body); writeSession(s);
+      if (!r.body || !r.body.access_token || !r.body.user || !r.body.user.id)
+        return said("The server did not return a sign-in. Please try again.");
+      var s = sessionFrom(r.body);
+      if (!writeSession(s)) return said("This phone could not save your sign-in. Free some space and try again.");
       return { ok: true, user: s.user };
     },
     async sendReset(email) {
@@ -126,54 +161,57 @@
     },
     signOut() {
       var s = readSession();
+      ++generation; ++seasonVersion;
+      writeSession(null);                       // invalidate before any asynchronous work
       if (s && s.access_token) call("/auth/v1/logout", { method: "POST" }, s.access_token).catch(function () {});
-      writeSession(null);
     },
     session() {
       var s = readSession();
       return s && s.user ? { user: s.user } : null;
     },
-
-    /* ---- opt-in League sync -------------------------------------------- */
-    // One row per coach, keyed on owner and replaced each push, so the admin
-    // reads the coach's latest full season. RLS lets him touch only his own row.
+    // One owner row per coach. Serialize writes so removal is the final request.
     async pushSeason(label, payload) {
-      var t = await token();
-      var s = readSession();
-      if (!t || !(s && s.user && s.user.id)) return said("Sign in before turning on League sync.");
-      var data;
-      try { data = typeof payload === "string" ? JSON.parse(payload) : payload; } catch (e) { data = payload; }
-      var row = {
-        owner: s.user.id,
-        label: String(label || "").slice(0, 60),
-        payload: data,
-        updated_at: new Date().toISOString(),
-      };
-      var r = await call("/rest/v1/seasons?on_conflict=owner", {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(row),
-      }, t);
-      if (!r.net) return OFFLINE;
-      if (!r.ok) return said(authError(r.body) || "Your league would not accept it.");
-      return { ok: true };
+      if (deleting) return said("Wait for removal to finish before sending again.");
+      var g = generation, v = seasonVersion;
+      return queueSeason(async function () {
+        if (g !== generation || v !== seasonVersion) return cancelled();
+        var t = await token(), s = readSession();
+        if (g !== generation || v !== seasonVersion) return cancelled();
+        if (!t || !(s && s.user && s.user.id)) return said("Sign in before turning on League sync.");
+        var data;
+        try { data = typeof payload === "string" ? JSON.parse(payload) : payload; } catch (e) { data = payload; }
+        var row = { owner: s.user.id, label: String(label || "").slice(0, 60), payload: data, updated_at: new Date().toISOString() };
+        var r = await call("/rest/v1/seasons?on_conflict=owner", {
+          method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row),
+        }, t);
+        if (g !== generation || v !== seasonVersion) return cancelled();
+        if (!r.net) return OFFLINE;
+        if (!r.ok) return said(authError(r.body) || "Your league would not accept it.");
+        return { ok: true };
+      });
     },
     async deleteSeason() {
-      var t = await token();
-      var s = readSession();
-      if (!t || !(s && s.user && s.user.id)) return { ok: true };   // nothing of his is up
-      var r = await call("/rest/v1/seasons?owner=eq." + encodeURIComponent(s.user.id), { method: "DELETE" }, t);
-      if (!r.net) return OFFLINE;
-      if (!r.ok) return said("Your league would not remove it.");
-      return { ok: true };
+      if (deleting) return said("Removal is already in progress.");
+      deleting = true;
+      var g = generation;
+      ++seasonVersion;                          // queued uploads are obsolete
+      try {
+        return await queueSeason(async function () {
+          if (g !== generation) return cancelled();
+          var t = await token(), s = readSession();
+          if (g !== generation) return cancelled();
+          if (!t || !(s && s.user && s.user.id)) return said("Sign in before removing what you sent.");
+          // This runs after any upload already sent, so it cannot recreate the row.
+          var r = await call("/rest/v1/seasons?owner=eq." + encodeURIComponent(s.user.id), { method: "DELETE" }, t);
+          if (g !== generation) return cancelled();
+          if (!r.net) return OFFLINE;
+          if (!r.ok) return said("Your league would not remove it.");
+          return { ok: true };
+        });
+      } finally { deleting = false; }
     },
   };
-
-  // Expose it only when configured, so including the file without a project URL
-  // and key leaves the app in its no-cloud state.
   function install() { if (cfg() && cfg().url && cfg().anonKey) window.gridlockCloud = api; }
   install();
-
-  // Also usable outside a browser (the test harness) via module.exports.
   if (typeof module !== "undefined" && module.exports) module.exports = { api: api, configure: window.gridlockCloudConfigure };
 })();

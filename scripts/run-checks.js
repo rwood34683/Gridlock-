@@ -11,6 +11,7 @@ const SUITES = {
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",
   "voice-parser": "test/voice-parser.js", voice: "test/voice.js", "speech-native": "test/speech-native.js",
   admin: "test/admin.js", cloud: "test/cloud-adapter.js", "cloud-build": "test/cloud-build.js",
+  "cloud-session": "test/cloud-session.js", "account-sync": "test/account-sync.js",
   billing: "test/billing-adapter.js", brands: "test/brands.js"
 };
 async function main() {
@@ -24,7 +25,7 @@ async function main() {
   process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
     let url = process.env.APP_URL;
-    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native"].includes(name));
+    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native", "cloud-session"].includes(name));
     if (!url && needsBrowser) {
       server = createServer();
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
@@ -44,3 +45,4 @@ async function main() {
   } finally { cleanup(); process.removeListener("SIGINT", onSignal); process.removeListener("SIGTERM", onSignal); }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });
+
