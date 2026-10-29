@@ -37,7 +37,7 @@
   var SESSION_KEY = "grindx.cloud.session";
   var OFFLINE = { ok: false, offline: true };
   var generation = 0, seasonVersion = 0;
-  var loaded = false, currentSession = null, refreshing = null;
+  var loaded = false, currentSession = null, sessionText = null, refreshing = null;
   var seasonTail = Promise.resolve(), deleting = false;
 
   function said(msg) { return { ok: false, said: msg }; }
@@ -50,23 +50,32 @@
     install();
   };
   function readSession() {
-    if (!loaded) {
-      loaded = true;
-      try {
-        var s = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    try {
+      var text = localStorage.getItem(SESSION_KEY);
+      if (!loaded || text !== sessionText) {
+        if (loaded) ++generation;               // another tab changed the session
+        loaded = true; sessionText = text; currentSession = null;
+        var s = JSON.parse(text || "null");
         if (s && typeof s.access_token === "string" && s.user && typeof s.user.id === "string") currentSession = s;
-      } catch (e) {}
-    }
+      }
+    } catch (e) {}
     return currentSession;
   }
   function writeSession(s) {
     loaded = true;
     currentSession = null;                     // failed storage never keeps a live session
     try {
-      s ? localStorage.setItem(SESSION_KEY, JSON.stringify(s)) : localStorage.removeItem(SESSION_KEY);
+      var text = s ? JSON.stringify(s) : null;
+      s ? localStorage.setItem(SESSION_KEY, text) : localStorage.removeItem(SESSION_KEY);
+      sessionText = localStorage.getItem(SESSION_KEY);
+      if (sessionText !== text) return false;
       currentSession = s;
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      // Do not reload a credential whose removal this tab could not persist.
+      try { sessionText = localStorage.getItem(SESSION_KEY); } catch (ignored) {}
+      return false;
+    }
   }
   function sessionFrom(body) {
     return {

@@ -64,6 +64,27 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
     assert.equal((await pending).ok, false);
     assert.equal(s.api.session().user.id, "new");
   });
+  for (const changedTo of [null, "new"]) {
+    await check("another tab's session change cancels a pending refresh: " + changedTo, async () => {
+      const gate = deferred(), s = setup(url => url.includes("refresh_token") ? gate.promise : response(), true);
+      const pending = s.api.pushSeason("old season", {}); await tick();
+      if (changedTo) s.data.set(KEY, JSON.stringify({...credentials(changedTo), expires_at:Date.now() + 3600000}));
+      else s.data.delete(KEY);
+      gate.resolve(response(credentials("old")));
+      assert.equal((await pending).ok, false);
+      assert.equal(s.api.session()?.user.id || null, changedTo);
+      assert.equal(s.requests.filter(r => r.url.includes("/rest/")).length, 0);
+    });
+  }
+  await check("sign-out remains effective in this tab when storage removal fails", async () => {
+    const s = setup(() => response(credentials("old")));
+    await s.api.signIn("old@example.test", "password");
+    s.localStorage.removeItem = () => { throw Error("storage denied"); };
+    s.api.signOut();
+    assert.equal(s.api.session(), null);
+    assert.equal((await s.api.pushSeason("test", {})).ok, false);
+    assert.equal(s.requests.filter(r => r.url.includes("/rest/")).length, 0);
+  });
   await check("DELETE follows dispatched POST and drops queued uploads", async () => {
     const gate = deferred();
     const s = setup((url, opts) => url.includes("/rest/") && opts.method === "POST" ? gate.promise : response(credentials("old")));
