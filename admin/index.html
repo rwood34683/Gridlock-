@@ -141,11 +141,15 @@ let cloudSeasons = [], users = [], caller = null, token = "", expiresAt = 0;
 let epoch = 0, expiryTimer = null, activeTab = "users", busy = false;
 let userPage = 1, userMore = false, seasonPage = 0, seasonMore = false;
 let status = "", statusError = false;
+let mfaPending = null;
 const pending = new Set();
-const allSeasons = () => seasons.concat(token ? cloudSeasons : []);
+const allSeasons = () => {
+  const cloud=token?cloudSeasons:[];
+  return seasons.filter(s=>!cloud.some(c=>(s.seasonId&&s.seasonId===c.seasonId)||JSON.stringify(s.data)===JSON.stringify(c.data))).concat(cloud);
+};
 
-function load(){ try{ const rows=JSON.parse(localStorage.getItem(LS)); return Array.isArray(rows) ? rows.filter(s=>s&&typeof s==="object").map(s=>parseSeason(JSON.stringify({format:COPY_FORMAT,data:s.data,at:s.at}),s.label)).filter(s=>!s.error) : []; }catch(e){ return []; } }
-function persist(){ try{ localStorage.setItem(LS, JSON.stringify(seasons)); }catch(e){} }
+function load(){ try{ const rows=JSON.parse(localStorage.getItem(LS)); return Array.isArray(rows) ? rows.filter(s=>s&&typeof s==="object").map(s=>parseSeason(JSON.stringify({format:COPY_FORMAT,data:s.data,at:s.at,seasonId:s.seasonId}),s.label)).filter(s=>!s.error) : []; }catch(e){ return []; } }
+function persist(){ try{ localStorage.setItem(LS, JSON.stringify(seasons));return true; }catch(e){status="These imports are only in memory: browser storage is full or unavailable. Keep your original files.";statusError=true;return false;} }
 
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
   ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
@@ -157,6 +161,7 @@ function say(message,error=false){status=message;statusError=error;render();}
 function clearCloud(message="Signed out. Cloud data has been cleared from this page."){
   ++epoch;for(const c of pending)c.abort();pending.clear();clearTimeout(expiryTimer);expiryTimer=null;
   token="";expiresAt=0;caller=null;users=[];cloudSeasons=[];busy=false;userPage=1;userMore=false;seasonPage=0;seasonMore=false;
+  mfaPending=null;
   status=message;statusError=false;render();
 }
 function sessionExpired(){if(token&&Date.now()>=expiresAt){clearCloud("Your admin session expired. Sign in again.");return true;}return false;}
@@ -180,16 +185,20 @@ function parseSeason(text, label){
     });
   }
   clean.breakCalls=Object.create(null);if(data.breakCalls&&typeof data.breakCalls==="object"&&!Array.isArray(data.breakCalls))for(const [key,value]of Object.entries(data.breakCalls))clean.breakCalls[key]=scalar(value);
-  return { id: "s" + Date.now() + Math.random().toString(36).slice(2, 6),
+  return { id: "s" + Date.now() + Math.random().toString(36).slice(2, 6), seasonId:typeof p.seasonId==="string"&&/^[a-f0-9]{32}$/i.test(p.seasonId)?p.seasonId:"",
            label: scalar(label,scalar(p.app,"Season")) || "Season", at: dateValue(p.at),
            scope: scalar(p.scope,"all"), data:clean };
 }
 function addSeason(text, label){
   const s = parseSeason(text, label);
   if(s.error) return s.error;
-  // De-dupe an identical re-drop: same label + same match ids.
-  const sig = x => (x.label || "") + "|" + ((x.data.matches || []).map(m => m.id).join(","));
-  if(seasons.some(x => sig(x) === sig(s))) return null;
+  const sig = x => x.seasonId || (x.label || "") + "|" + ((x.data.matches || []).map(m => m.id).join(","));
+  const index=seasons.findIndex(x=>sig(x)===sig(s));
+  if(index>=0){
+    if(JSON.stringify(seasons[index].data)===JSON.stringify(s.data))return null;
+    if(!confirm("This file contains a revised season already imported here. Replace the older import with these updated results?"))return "The older import was kept.";
+    s.id=seasons[index].id;seasons[index]=s;persist();render();return null;
+  }
   seasons.push(s); persist(); render(); return null;
 }
 window.__adminAdd = (text, label) => addSeason(text, label);   // for the suite
@@ -243,6 +252,7 @@ function render(){
   wire();
 }
 function accountSection(){
+  if(mfaPending)return `<section class="sec panel admin-login"><h1>Verify your admin sign-in</h1><p class="lede" style="margin:12px 0">Use your authenticator app to finish signing in. Users and cloud seasons stay locked until verification.</p>${mfaPending.qr?`<img alt="Scan with your authenticator app" style="display:block;max-width:240px;width:100%;background:white" src="${esc(mfaPending.qr)}"><p class="note" style="overflow-wrap:anywhere;margin:12px 0">Setup key: <code>${esc(mfaPending.secret)}</code></p>`:""}${mfaPending.factorId?`<form id="adminMfa"><div class="fld"><label for="mfaCode">Six-digit authenticator code</label><input id="mfaCode" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></div><button class="btn" ${busy?"disabled":""}>Verify code</button></form>`:`<p class="note" style="margin:12px 0">Add this account to Microsoft Authenticator, Google Authenticator, or another authenticator app.</p><button class="btn" id="mfaEnroll" ${busy?"disabled":""}>Set up authenticator</button>`}<button class="btn btn--quiet" id="signOut" style="margin-top:16px">Cancel sign-in</button></section>`;
   if(token)return `<section class="sec panel"><div class="row"><h2>Administration</h2><span class="badge">Staging</span><button class="btn btn--quiet" id="signOut" style="margin-left:auto">Sign out</button></div><p class="lede" style="margin-top:12px">Signed in as ${esc(caller?.email||"administrator")}. Only seasons coaches choose to sync are available here.</p></section>`;
   return `<section class="sec panel admin-login"><h1>Gridlock administration</h1><p class="lede" style="margin:12px 0 20px">Sign in with your approved Gridlock account to view users, manage plan access, and review uploaded seasons.</p><form id="adminSignIn"><div class="fld"><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="username" required></div><div class="fld"><label for="cloudPass">Password</label><input id="cloudPass" type="password" autocomplete="current-password" required></div><button class="btn" type="submit" ${busy?"disabled":""}>${busy?"Signing in…":"Sign in"}</button></form><p class="note" style="margin-top:12px">Use your Gridlock password. <a href="/">Reset a forgotten password in the app</a>. Signing out clears cloud records from this page.</p></section>`;
 }
@@ -370,7 +380,7 @@ async function request(path,options={}){
 async function api(action,body=null,page=1){
   if(!token||sessionExpired())throw new Error("Sign in again to continue.");
   const current=epoch;
-  const res=await request("/functions/v1/"+CLOUD.fn+(body?"":"?action="+encodeURIComponent(action)+"&page="+page+"&per_page="+(action==="seasons"?100:50)),{
+  const res=await request("/functions/v1/"+CLOUD.fn+(body?"":"?action="+encodeURIComponent(action)+"&page="+page+"&per_page="+(action==="seasons"?5:50)),{
     method:body?"POST":"GET",headers:{apikey:CLOUD.anon,Authorization:"Bearer "+token,"Content-Type":"application/json"},...(body?{body:JSON.stringify({action,...body})}:{})
   });
   if(current!==epoch)throw new Error("Cancelled.");
@@ -391,12 +401,55 @@ async function signIn(){
     const result=await auth.json();if(current!==epoch)return;
     if(typeof result.access_token!=="string"||!Number.isFinite(Number(result.expires_in))||Number(result.expires_in)<=0)throw new Error("Sign-in could not be completed. Try again.");
     token=result.access_token;expiresAt=Date.now()+Math.min(Number(result.expires_in),3600)*1000;
-    const overview=await api("overview");if(current!==epoch)return;
-    if(!Array.isArray(overview.users)||!overview.caller?.email)throw new Error("The admin service returned an unreadable response.");
-    caller=overview.caller;users=overview.users;userPage=1;userMore=overview.has_more===true;activeTab="users";
     expiryTimer=setTimeout(()=>clearCloud("Your admin session expired. Sign in again."),Math.max(0,expiresAt-Date.now()));
-    busy=false;say("Signed in. Admin permissions were verified.");
+    const identity=await api("identity");if(current!==epoch)return;
+    caller=identity.caller;
+    if(identity.mfa_required){
+      const res=await request("/auth/v1/user",{headers:{apikey:CLOUD.anon,Authorization:"Bearer "+token}});
+      const who=await res.json();if(current!==epoch)return;
+      if(!res.ok||!Array.isArray(who?.factors||[]))throw new Error("Authenticator settings could not be loaded.");
+      const factor=(who.factors||[]).find(f=>f.factor_type==="totp"&&f.status==="verified");
+      mfaPending={factorId:factor?.id||"",qr:"",secret:""};busy=false;say("Complete authenticator verification.");return;
+    }
+    await finishAdminLogin(current);
   }catch(e){password="";if(current!==epoch)return;clearCloud(e.name==="AbortError"?"The request timed out. Try again.":e.message||"Could not reach Gridlock. Check your connection.");statusError=true;render();}
+}
+async function finishAdminLogin(current){
+  const overview=await api("overview");if(current!==epoch)return;
+  if(!Array.isArray(overview.users)||!overview.caller?.email)throw new Error("The admin service returned an unreadable response.");
+  caller=overview.caller;users=overview.users;userPage=1;userMore=overview.has_more===true;activeTab="users";
+  mfaPending=null;busy=false;say("Signed in. Admin permissions and authenticator were verified.");
+}
+async function mfaCall(path,body){
+  if(sessionExpired())throw new Error("Sign in again.");
+  const res=await request("/auth/v1"+path,{method:"POST",headers:{apikey:CLOUD.anon,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!res.ok)throw new Error("Authenticator verification was refused. Check the code and try again.");
+  return res.json();
+}
+async function enrollMfa(){
+  if(busy||!mfaPending)return;const current=epoch;busy=true;render();
+  try{
+    const data=await mfaCall("/factors",{factor_type:"totp",friendly_name:"Gridlock Admin "+Date.now(),issuer:"Gridlock"});if(current!==epoch)return;
+    const raw=data.totp?.qr_code;
+    if(typeof data.id!=="string"||typeof raw!=="string"||raw.length>65536||typeof data.totp?.secret!=="string")throw new Error("Authenticator setup could not be read.");
+    const qr=raw.trim().startsWith("<svg")?"data:image/svg+xml,"+encodeURIComponent(raw):/^data:image\/svg\+xml[;,]/.test(raw)?raw:"";
+    if(!qr)throw new Error("Authenticator setup image was not valid.");
+    mfaPending={factorId:data.id,qr,secret:data.totp.secret};status="Scan the code, then enter the six-digit code from your authenticator.";
+  }catch(e){if(current===epoch){status=e.message;statusError=true;}}
+  finally{if(current===epoch){busy=false;render();}}
+}
+async function verifyMfa(){
+  if(busy||!mfaPending)return;const code=document.getElementById("mfaCode")?.value||"";
+  if(!/^\d{6}$/.test(code))return say("Enter the six-digit code from your authenticator.",true);
+  const current=epoch,factor=mfaPending.factorId;busy=true;render();
+  try{
+    const challenge=await mfaCall("/factors/"+encodeURIComponent(factor)+"/challenge",{});if(current!==epoch)return;
+    const verified=await mfaCall("/factors/"+encodeURIComponent(factor)+"/verify",{challenge_id:challenge.id,code});if(current!==epoch)return;
+    if(typeof verified.access_token!=="string"||!Number.isFinite(verified.expires_in)||verified.expires_in<=0)throw new Error("Verification did not return a session.");
+    token=verified.access_token;expiresAt=Date.now()+Math.min(verified.expires_in,3600)*1000;
+    clearTimeout(expiryTimer);expiryTimer=setTimeout(()=>clearCloud("Your admin session expired. Sign in again."),expiresAt-Date.now());
+    await finishAdminLogin(current);
+  }catch(e){if(current===epoch){status=e.message;statusError=true;busy=false;render();}}
 }
 async function loadUsers(page){
   if(busy)return;const current=epoch;busy=true;status="Loading users…";statusError=false;render();
@@ -448,6 +501,7 @@ function wire(){
   const bind=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
   const login=document.getElementById("adminSignIn");if(login)login.onsubmit=e=>{e.preventDefault();signIn();};
   bind("signOut",()=>clearCloud());bind("usersTab",()=>{activeTab="users";render();});bind("seasonsTab",()=>{activeTab="seasons";render();});
+  bind("mfaEnroll",()=>enrollMfa());const mfaForm=document.getElementById("adminMfa");if(mfaForm)mfaForm.onsubmit=e=>{e.preventDefault();verifyMfa();};
   bind("usersPrev",()=>loadUsers(Math.max(1,userPage-1)));bind("usersNext",()=>loadUsers(userPage+1));bind("usersRefresh",()=>loadUsers(userPage));
   bind("cloudSeasons",()=>loadSeasons(false));bind("moreSeasons",()=>loadSeasons(true));
   document.querySelectorAll("form[data-user-index]").forEach(form=>{const i=Number(form.dataset.userIndex);form.onsubmit=e=>{e.preventDefault();savePlan(i);};const plan=document.getElementById("plan-"+i),expiry=document.getElementById("expiry-"+i);plan.onchange=()=>{expiry.disabled=plan.value==="free";if(expiry.disabled)expiry.value="";};});

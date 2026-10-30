@@ -32,12 +32,13 @@ function harness(overrides={}) {
   const factory=(url,key,options)=>{
     state.calls.push(['client',url,key,options]);
     return {
-      auth:{getUser:async token=>{state.calls.push(['getUser',token]);if(state.authThrow)throw Error('internal secret');return {data:{user:state.user},error:state.authError||null};},
+      auth:{getClaims:async()=>({data:{claims:{sub:state.user?.id,aal:state.aal||'aal2'}},error:state.claimsError||null}),getUser:async token=>{state.calls.push(['getUser',token]);if(state.authThrow)throw Error('internal secret');return {data:{user:state.user},error:state.authError||null};},
         admin:{listUsers:async args=>{state.calls.push(['listUsers',args]);return {data:{users:state.users,total:state.total,nextPage:state.nextPage},error:state.listError||null};},
           getUserById:async id=>{state.calls.push(['getUserById',id]);return {data:{user:state.missingTarget?null:{id}},error:null};}}},
+      rpc:async(name,args)=>{state.calls.push(['rpc',name,args]);state.saved={user_id:args.target,plan:args.new_plan,expires_at:args.new_expiry,source:'admin:'+args.actor,updated_at:new Date(NOW).toISOString()};return {data:state.saved,error:state.saveError||null};},
       from:table=>{
         state.calls.push(['from',table]);
-        const chain={select(columns){state.calls.push(['select',columns]);return chain;},
+        const chain={is(column,value){state.calls.push(['is',column,value]);return chain;},select(columns){state.calls.push(['select',columns]);return chain;},
           in(column,values){state.calls.push(['in',column,values]);return chain;},
           order(column,options){state.calls.push(['order',column,options]);return chain;},
           range(from,to){state.calls.push(['range',from,to]);return chain;},
@@ -101,5 +102,8 @@ test('oversized actual body rejected without relying on content-length',async()=
 test('oversized declared content-length rejected',async()=>{const h=harness();assert.equal((await h.request('',{method:'POST',body:payload(),headers:{'content-length':'999999'}})).status,413);noDataCalls(h.state);});
 test('database, auth service, and write failures do not leak internal errors',async()=>{for(const failure of [{listError:{message:'server-secret'}},{dbError:{message:'server-secret'}},{authThrow:true}]){const h=harness(failure);const r=await h.request();assert.equal(r.status,502);assert(!JSON.stringify(r.body).includes('server-secret'));}const h=harness({saveError:{message:'server-secret'}});const r=await h.request('',{method:'POST',body:payload()});assert.equal(r.status,502);assert(!JSON.stringify(r.body).includes('server-secret'));});
 
+test('password-only admin cannot read records or change plans',async()=>{const h=harness({aal:'aal1'});assert.equal((await h.request()).status,403);noDataCalls(h.state);const identity=await h.request('?action=identity');assert.equal(identity.status,200);assert.equal(identity.body.mfa_required,true);assert.equal(identity.body.users,undefined);});
+test('unverified claims fail closed',async()=>{const h=harness({claimsError:{message:'invalid'}});assert.equal((await h.request()).status,401);noDataCalls(h.state);});
+test('plan and durable audit use one service-only RPC',async()=>{const h=harness();await h.request('',{method:'POST',body:payload()});assert.equal(h.state.calls.filter(c=>c[0]==='rpc'&&c[1]==='gridlock_admin_set_entitlement').length,1);});
 for (const [name,run] of checks) { await run(); passed++; console.log('PASS '+name); }
 console.log(`${passed}/${checks.length} admin backend checks passed.`);

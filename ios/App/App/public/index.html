@@ -5117,7 +5117,8 @@ function copyPayload(scope){
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   if(data.fields) data.fields = fieldsOut(data.fields);
-  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
+  if(!S.seasonId) S.seasonId=newSalt();
+  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, seasonId:S.seasonId, scope: scope || "all",
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 /* One sheet, to hand to the coach beside you. Two phones on one match — one
@@ -5651,9 +5652,9 @@ function seasonHere(){
   return (S.matches || []).some(m => m && (loggedSize(m.id) || (S.results || []).some(r => r && r.m === m.id)))
     || (S.roster || []).length > 0 || Object.keys(S.scout || {}).length > 0 || Object.keys(S.plays || {}).length > 0;
 }
-window.loadCopy = mode => {
+window.loadCopy = (mode, suppliedText) => {
   const el = document.getElementById("copyIn");
-  copyDraft = el ? el.value : copyDraft;
+  copyDraft = suppliedText == null ? (el ? el.value : copyDraft) : suppliedText;
   const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
@@ -5953,7 +5954,9 @@ window.loadCopy = mode => {
     S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
   }
   copyDraft = "";
+  if(mode==="replace") S.seasonId=typeof r.payload.seasonId==="string"&&/^[a-f0-9]{32}$/i.test(r.payload.seasonId)?r.payload.seasonId:newSalt();
   S.copyText = ""; save(S); render();
+  return true;
 };
 window.readCopyFile = input => {
   const f = input.files && input.files[0];
@@ -9486,9 +9489,17 @@ function dropLegacyAccount(){
   try{ localStorage.removeItem("gridlock.staff"); }catch(e){}
 }
 async function hashPass(pass, saltHex){
-  const enc = new TextEncoder().encode(saltHex + "|" + pass);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  if(!/^[0-9a-f]{32}$/i.test(saltHex)) throw new Error("Invalid password salt");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const salt = new Uint8Array(saltHex.match(/../g).map(v => parseInt(v,16)));
+  const buf = await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000}, key, 256);
+  return "pbkdf2-sha256$600000$" + [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function verifyAccountPassword(pass, acc){
+  if(acc.hash.startsWith("pbkdf2-sha256$")) return acc.hash === await hashPass(pass, acc.salt);
+  if(!/^[0-9a-f]{64}$/i.test(acc.hash)) return false;
+  const buf = await crypto.subtle.digest("SHA-256",new TextEncoder().encode(acc.salt + "|" + pass));
+  return acc.hash === [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
 function newSalt(){
   return [...crypto.getRandomValues(new Uint8Array(16))]
@@ -9545,7 +9556,7 @@ window.appleSignIn = async () => {
   if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
   const attempt = ++_authAttempt;
   clearAccountGrant();
-  ++_syncEpoch; S.syncOn = false;
+  clearSyncRetry();++_syncEpoch; S.syncOn = false;
   set({authSaid: "Asking Apple…"});
   try{
     const who = await a.signIn();
@@ -9711,8 +9722,13 @@ window.doAuth = async () => {
     return;
   }
 
-  if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
+  if(acc.email === email && acc.salt && await verifyAccountPassword(pass, acc)){
     if(attempt !== _authAttempt) return;
+    if(!acc.hash.startsWith("pbkdf2-sha256$")){
+      const salt = newSalt(), hash = await hashPass(pass,salt);
+      if(attempt !== _authAttempt) return;
+      if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
+    }
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
@@ -9777,6 +9793,12 @@ function syncLabel(){
 }
 let _lastAutoSync = 0, _syncEpoch = 0;
 let _syncTail = Promise.resolve(), _syncDeleting = false;
+let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
+function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
+function syncStatus(data){
+  Object.assign(S,data);_syncStatusWrite=true;
+  try{save(S);}finally{_syncStatusWrite=false;}render();
+}
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting;
 function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
 function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
@@ -9790,6 +9812,7 @@ function queueSeasonPush(t){
   return pending;
 }
 window.staffSignOut = () => {
+  clearSyncRetry();
   ++_authAttempt; ++_syncEpoch;
   clearAccountGrant();
   _recoveryUser = null; _recoveryBusy = false;
@@ -9799,31 +9822,67 @@ window.staffSignOut = () => {
   set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:""});
 };
 function maybeSync(){
-  if(!syncAllowed()) return;
-  const now = Date.now();
-  if(now - _lastAutoSync < 90000) return;
-  _lastAutoSync = now;
-  const t = syncTicket();
-  queueSeasonPush(t).then(r => {
-    if(sameSync(t) && syncAllowed() && r && r.ok === true) S.syncAt = Date.now();
-  }).catch(() => {});
+  if(_syncStatusWrite || !syncAllowed()) return;
+  _syncDirty=true;
+  scheduleSync();
 }
-window.syncNow = async () => {
-  if(!syncAllowed()) return;
+function scheduleSync(delay){
+  if(!syncAllowed() || !_syncDirty || _syncSending) return;
+  clearTimeout(_syncTimer);
+  const t=syncTicket();
+  _syncTimer=setTimeout(()=>{_syncTimer=null;if(sameSync(t)&&syncAllowed()) sendSeason(false);},
+    delay == null ? Math.max(0,90000-(Date.now()-_lastAutoSync)) : delay);
+}
+async function sendSeason(manual){
+  if(!syncAllowed() || _syncSending) return;
   const t = syncTicket();
+  clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
-  set({syncSaid: "Sending your season to your league…"});
+  if(manual) syncStatus({syncSaid:"Sending your season to your league…"});
   let r = null;
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
-  if(!sameSync(t) || !syncAllowed()) return;
-  if(r && r.ok === true) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
-  if(r && r.offline) return set({syncSaid: "No signal — it will go up on its own once you have bars. Your season is safe on the phone."});
-  set({syncSaid: (r && r.said) || "That could not be sent. Nothing has changed."});
+  _syncSending=false;
+  if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
+  if(r && r.ok === true){
+    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Sent to your league."});
+    scheduleSync();return;
+  }
+  if(r && r.conflict){
+    clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
+  }
+  _syncDirty=true;
+  syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."});
+  scheduleSync(90000);
+}
+window.syncNow = () => sendSeason(true);
+window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);}});
+window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
+window.reviewCloudSeason = async () => {
+  const cloud=window.gridlockCloud, attempt=_authAttempt;
+  if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
+  clearSyncRetry();++_syncEpoch;S.syncOn=false;
+  syncStatus({syncSaid:"Loading your cloud copy…"});
+  let r;try{r=await cloud.getSeason();}catch(e){}
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
+  if(!r || !r.ok) return syncStatus({syncSaid:(r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged."});
+  if(r.missing || r.removed){
+    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return syncStatus({syncSaid:"Nothing changed. Sharing stays off."});
+    if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
+    S.syncOn=true;return syncNow();
+  }
+  const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
+  if(checked.error) return syncStatus({syncSaid:"The cloud copy is not a readable season. Your phone is unchanged."});
+  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return syncStatus({syncSaid:"Nothing restored. Your phone is unchanged."});
+  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",JSON.stringify(S));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
+  if(window.loadCopy("replace",raw)!==true) return;
+  if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
+  syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
 };
 window.toggleSync = () => {
   if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
   if(!S.entered || S.role !== "staff" || !canSync()) return;
   ++_syncEpoch;
+  clearSyncRetry();
   if(S.syncOn) return set({syncOn: false,
     syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
   _lastAutoSync = Date.now();
@@ -9838,6 +9897,7 @@ window.deleteSynced = async () => {
     return set({syncOn: false, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
   }
   if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
+  clearSyncRetry();
   ++_syncEpoch;
   const t = syncTicket();
   _syncDeleting = true;
@@ -9858,6 +9918,24 @@ window.deleteSynced = async () => {
   }finally{ _syncDeleting = false; }
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
+let _accountDeleting=false;
+window.deleteCloudAccount = async () => {
+  const cloud=window.gridlockCloud;
+  if(_accountDeleting||!cloud?.deleteAccount)return;
+  const password=document.getElementById("deleteAccountPassword")?.value||"";
+  const phrase=document.getElementById("deleteAccountPhrase")?.value||"";
+  const code=document.getElementById("deleteAccountCode")?.value||"";
+  if(!password||phrase!=="DELETE MY ACCOUNT")return set({syncSaid:"Enter your password and type DELETE MY ACCOUNT. Nothing was deleted."});
+  if(!confirm("Permanently delete this Gridlock account and its cloud season? This cannot be undone. The season saved on this phone stays here; save a copy if you need it."))return;
+  const attempt=++_authAttempt;clearSyncRetry();++_syncEpoch;S.syncOn=false;_accountDeleting=true;
+  syncStatus({syncSaid:"Confirming account deletion…"});
+  let result;try{result=await cloud.deleteAccount(password,phrase,code);}catch(e){}
+  _accountDeleting=false;
+  if(attempt!==_authAttempt||cloud!==window.gridlockCloud)return;
+  if(!result?.ok)return syncStatus({syncSaid:result?.said||"Deletion was not confirmed. Your phone's season is unchanged."});
+  clearAccountGrant();const cleaned=writeAccount({});dropLegacyAccount();
+  set({entered:false,role:"guest",email:"",mode:"login",authSaid:"Your account and its cloud season were deleted. The season on this phone is still here."+(cleaned?"":" This browser could not clear the saved local sign-in; clear it in your browser settings."),syncOn:false,syncAt:null,syncSaid:""});
+};
 
 /* ============================================================
    Playbook — leads with the call, because that is the job
@@ -15482,6 +15560,8 @@ function moreBody(k){
     <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
       your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
       password never does. You can pause it, or delete what you sent, at any time.</p>
+    <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
+    <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
     <div class="fld"><label for="syncLabel">Shown to your league as</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
@@ -15495,6 +15575,7 @@ function moreBody(k){
     <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
     ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
     S.syncOn ? "On" : "Off") : "")
+  + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>

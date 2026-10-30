@@ -90,6 +90,12 @@ export function createAdminHandler(settings: Settings, createClient: ClientFacto
       if (authError || !user || typeof user.id !== "string" || !UUID.test(user.id)) return reply({ error: "Your sign-in is no longer valid. Sign in again." }, 401);
       if (!user.email_confirmed_at || typeof user.email !== "string" || !admins.has(user.id.toLowerCase())) return reply({ error: "This account does not have administrator access." }, 403);
       const caller = { id: user.id, email: user.email };
+      const {data:verified,error:claimsError}=await db.auth.getClaims(match[1]);
+      const claims=verified?.claims;
+      if(claimsError || claims?.sub!==user.id) return reply({error:"Your sign-in could not be verified."},401);
+      const mfaRequired=claims.aal!=="aal2";
+      if(req.method==="GET" && new URL(req.url).searchParams.get("action")==="identity") return reply({caller,mfa_required:mfaRequired});
+      if(mfaRequired) return reply({error:"Verify your authenticator to use administration.",code:"mfa_required"},403);
       if (req.method === "GET") {
         const url = new URL(req.url), paging = pageArgs(url);
         if (!paging) return reply({ error: "Use a positive page and per_page between 1 and 100." }, 400);
@@ -113,10 +119,12 @@ export function createAdminHandler(settings: Settings, createClient: ClientFacto
           })), page, per_page, has_more: hasMore });
         }
         if (action === "seasons") {
+          const size=Math.min(per_page,5),start=(page-1)*size;
           const { data, error } = await db.from("seasons").select("owner,label,payload,updated_at")
-            .order("updated_at", { ascending: false }).order("owner", { ascending: true }).range(offset, offset + per_page);
+            .is("deleted_at",null)
+            .order("updated_at", { ascending: false }).order("owner", { ascending: true }).range(start, start + size);
           if (error || !Array.isArray(data)) return reply({ error: "Uploaded seasons could not be loaded." }, 502);
-          return reply({ caller, seasons: data.slice(0, per_page).map((s: any) => ({ owner: s.owner, label: text(s.label), payload: s.payload, updated_at: text(s.updated_at) })), page, per_page, has_more: data.length > per_page });
+          return reply({ caller, seasons: data.slice(0, size).map((s: any) => ({ owner: s.owner, label: text(s.label), payload: s.payload, updated_at: text(s.updated_at) })), page, per_page:size, has_more: data.length > size });
         }
         return reply({ error: "Unknown administration action." }, 400);
       }
@@ -131,7 +139,7 @@ export function createAdminHandler(settings: Settings, createClient: ClientFacto
       const target = await db.auth.admin.getUserById(body.user_id);
       if (target.error || !target.data?.user) return reply({ error: "That user account was not found." }, 404);
       const record = { user_id: target.data.user.id, plan: body.plan, expires_at: expiresAt, source: "admin:" + user.id, updated_at: new Date(now()).toISOString() };
-      const saved = await db.from("entitlements").upsert(record, { onConflict: "user_id" }).select("user_id,plan,expires_at,source,updated_at").single();
+      const saved = await db.rpc("gridlock_admin_set_entitlement",{actor:user.id,target:record.user_id,new_plan:record.plan,new_expiry:record.expires_at});
       if (saved.error || !saved.data) return reply({ error: "The plan could not be saved. Refresh before retrying." }, 502);
       // Log only the completed administrative change, never a token, email,
       // password, or season payload. Logging failure must not imply the write failed.

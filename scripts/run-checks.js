@@ -15,6 +15,7 @@ const SUITES = {
   "cloud-recovery": "test/cloud-recovery.js", "account-recovery": "test/account-recovery.js", "auth-native": "test/auth-native.js",
   "cloud-build-security": "test/cloud-build-security.js",
   "account-entitlements": "test/account-entitlements.cjs", "admin-handler": "test/admin-handler.mjs", "admin-portal": "test/admin-portal.cjs",
+  "season-safety":"test/season-safety.cjs", "account-deletion":"test/account-deletion.mjs",
   billing: "test/billing-adapter.js", "billing-security": "test/billing-security.js", brands: "test/brands.js"
 };
 async function main() {
@@ -28,7 +29,7 @@ async function main() {
   process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
     let url = process.env.APP_URL;
-    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native", "cloud-session", "cloud-recovery", "auth-native", "cloud-build-security", "billing-security", "account-entitlements", "admin-handler", "admin-portal"].includes(name));
+    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native", "cloud-session", "cloud-recovery", "auth-native", "cloud-build-security", "billing-security", "account-entitlements", "admin-handler", "admin-portal", "season-safety", "account-deletion"].includes(name));
     if (!url && needsBrowser) {
       server = createServer();
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });

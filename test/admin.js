@@ -82,6 +82,7 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
           return reply({ access_token: "fixture-admin-token", expires_in: 3600 });
         }
         if (url.pathname === "/functions/v1/gridlock-admin") {
+          if(url.searchParams.get("action")==="identity")return reply({caller,mfa_required:false});
           if (url.searchParams.get("action") === "overview") return reply({
             caller, users: [{ ...caller, email_confirmed_at: "2026-10-01T00:00:00Z",
               created_at: "2026-10-01T00:00:00Z", last_sign_in_at: "2026-10-29T00:00:00Z",
@@ -107,7 +108,7 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
     await page.locator("#cloudPass").fill("fixture-password");
     await page.locator("#adminSignIn button[type=submit]").click();
     await page.waitForFunction(() => document.getElementById("usersTab") &&
-      document.querySelector("[role=status]").textContent.includes("permissions were verified"));
+      document.querySelector("[role=status]").textContent.includes("permissions and authenticator were verified"));
     check("sign-in verifies admin access before showing the user list",
       await page.locator(".user-card").count() === 1 &&
       await page.locator("#cloudPass").count() === 0);
@@ -134,7 +135,7 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
       const persisted = JSON.stringify(Object.keys(localStorage).map(k => [k, localStorage.getItem(k)]));
       return { coaches: summary.coaches, matches: summary.matches,
         authPost: !!auth && auth.m === "POST",
-        functionAuth: functions.length === 3 && functions.every(r =>
+        functionAuth: functions.length === 4 && functions.every(r =>
           r.h.Authorization === "Bearer fixture-admin-token" && /^sb_publishable_/.test(r.h.apikey)),
         fixedProject: window.__cloudReqs.every(r => new URL(r.u).origin === "https://tldgxtrvbzlnydlysdln.supabase.co"),
         privateInStorage: /Cloud Garland|fixture-admin-token|fixture-password/.test(persisted) };

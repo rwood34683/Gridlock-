@@ -20,7 +20,7 @@ const season = (label = "cloud-only-fixture") => ({ owner: ADMIN, label, updated
 function deferred() { let resolve; return { promise: new Promise(r => { resolve = r; }), resolve: value => resolve(value) }; }
 function harness(seed = []) {
   const fields = new Map(), storage = new Map(seed), requests = [], timers = new Map();
-  let queue = [], timerId = 0;
+  let queue = [], timerId = 0, identityRequiresMfa = false;
   const element = id => {
     if (!fields.has(id)) fields.set(id, { value: "", innerHTML: "", textContent: "", disabled: false,
       addEventListener() {}, classList: { add() {}, remove() {} } });
@@ -33,6 +33,7 @@ function harness(seed = []) {
     AbortController, URL, Date, JSON, Math, Set, Map, Object, Array, String, Number, console, confirm: () => true,
     fetch: async (url, options) => {
       requests.push({ url, options });
+      if(url.includes('action=identity'))return response({caller,mfa_required:identityRequiresMfa});
       const next = queue.shift();
       if (!next) throw Error("Unexpected fixture request");
       return typeof next === "function" ? next(url, options) : next;
@@ -40,7 +41,7 @@ function harness(seed = []) {
   });
   const run = code => vm.runInContext(code, context);
   run(script);
-  return { run, element, storage, requests, timers, enqueue: (...items) => queue.push(...items),
+  return { run, element, storage, requests, timers, requireMfa:()=>{identityRequiresMfa=true;}, enqueue: (...items) => queue.push(...items),
     async login(rows = [user]) { element("cloudEmail").value = caller.email; element("cloudPass").value = "fixture-password"; queue.push(auth(), overview(rows)); await run("signIn()"); },
     rendered: () => element("root").innerHTML,
   };
@@ -62,9 +63,9 @@ check("login verifies backend access and does not persist credentials", async ()
   assert.equal(h.run("token"), "fixture-access-token");
   assert.equal(h.run("users.length"), 1);
   assert.equal(h.storage.size, 0);
-  assert.equal(h.requests.length, 2);
+  assert.equal(h.requests.length, 3);
   assert.equal(h.requests[1].options.headers.Authorization, "Bearer fixture-access-token");
-  assert.match(h.requests[1].url, /action=overview&page=1&per_page=50$/);
+  assert.match(h.requests[2].url, /action=overview&page=1&per_page=50$/);
   assert.equal(h.requests[0].options.cache, "no-store");
   assert.equal(h.requests[0].options.credentials, "omit");
 });
@@ -115,7 +116,7 @@ check("season pagination deduplicates owners and refresh replaces only cloud row
   h.enqueue(response({ caller, seasons: [season("first")], has_more: true })); await h.run("loadSeasons()");
   h.enqueue(response({ caller, seasons: [season("updated")], has_more: false })); await h.run("loadSeasons(true)");
   assert.equal(h.run("cloudSeasons.length"), 1); assert.equal(h.run("cloudSeasons[0].label"), "updated");
-  assert.match(h.requests.at(-1).url, /page=2&per_page=100$/);
+  assert.match(h.requests.at(-1).url, /page=2&per_page=5$/);
   h.enqueue(response({ caller, seasons: [], has_more: false })); await h.run("loadSeasons(false)");
   assert.equal(h.run("cloudSeasons.length"), 0); assert.equal(h.run("seasons.length"), 1);
 });
@@ -178,6 +179,50 @@ check("manual timestamps survive persistence and reload", () => {
   const reloaded = harness([...h.storage]);
   assert.equal(reloaded.run("seasons[0].at"), 1234);
   assert.equal(reloaded.run("seasons[0].label"), "epoch");
+});
+
+check("revised manual import replaces older results after confirmation",async()=>{
+  const h=harness();
+  h.run('addSeason(JSON.stringify({matches:[{id:"m"}],results:[{m:"m",pt:1,won:"us"}]}),"Coach.json")');
+  h.run('addSeason(JSON.stringify({matches:[{id:"m"}],results:[{m:"m",pt:1,won:"us"},{m:"m",pt:2,won:"them"}]}),"Coach.json")');
+  assert.equal(h.run('seasons.length'),1);assert.equal(h.run('summarize(allSeasons()).played'),2);
+});
+check("identical manual and cloud season are not double counted",async()=>{
+  const h=harness();await h.login();const row=season();
+  h.run('addSeason('+JSON.stringify(JSON.stringify(row.payload))+',"manual")');
+  h.enqueue(response({caller,seasons:[row],has_more:false}));await h.run('loadSeasons()');
+  assert.equal(h.run('allSeasons().length'),1);
+});
+async function startMfa(h,factors){
+  h.requireMfa();h.element('cloudEmail').value=caller.email;h.element('cloudPass').value='fixture-password';
+  h.enqueue(auth(),response({id:ADMIN,factors}));await h.run('signIn()');
+}
+check("password-only sign-in waits for MFA before loading users",async()=>{
+  const h=harness();await startMfa(h,[{id:'factor',factor_type:'totp',status:'verified'}]);
+  assert.equal(h.run('users.length'),0);assert.equal(h.run('mfaPending.factorId'),'factor');
+  assert(!h.requests.some(r=>r.url.includes('action=overview')));assert.equal(h.storage.size,0);
+});
+check("valid authenticator exchanges token before loading users",async()=>{
+  const h=harness();await startMfa(h,[{id:'factor',factor_type:'totp',status:'verified'}]);
+  h.element('mfaCode').value='123456';h.enqueue(response({id:'challenge'}),response({access_token:'mfa-fixture',expires_in:3600}),overview());
+  await h.run('verifyMfa()');assert.equal(h.run('token'),'mfa-fixture');assert.equal(h.run('users.length'),1);assert.equal(h.run('mfaPending'),null);assert.equal(h.storage.size,0);
+  assert.equal(h.requests.at(-1).options.headers.Authorization,'Bearer mfa-fixture');
+});
+check("refused authenticator cannot load users",async()=>{
+  const h=harness();await startMfa(h,[{id:'factor',factor_type:'totp',status:'verified'}]);
+  h.element('mfaCode').value='123456';h.enqueue(response({id:'challenge'}),response({},400));await h.run('verifyMfa()');
+  assert.equal(h.run('users.length'),0);assert(h.run('mfaPending'));assert(!h.requests.some(r=>r.url.includes('action=overview')));
+});
+check("authenticator enrollment secrets are in memory only and cleared on logout",async()=>{
+  const h=harness();await startMfa(h,[]);
+  h.enqueue(response({id:'factor',totp:{qr_code:'<svg xmlns="http://www.w3.org/2000/svg"></svg>',secret:'FIXTURE-TOTP-SECRET'}}));await h.run('enrollMfa()');
+  assert(h.rendered().includes('data:image/svg+xml'));assert.equal(h.storage.size,0);h.run('clearCloud()');
+  assert.equal(h.run('mfaPending'),null);assert(!h.rendered().includes('FIXTURE-TOTP-SECRET'));
+});
+check("late authenticator challenge cannot restore a signed-out admin",async()=>{
+  const h=harness();await startMfa(h,[{id:'factor',factor_type:'totp',status:'verified'}]);const gate=deferred();
+  h.element('mfaCode').value='123456';h.enqueue(()=>gate.promise);const pending=h.run('verifyMfa()');await Promise.resolve();h.run('clearCloud()');
+  gate.resolve(response({id:'challenge'}));await pending;assert.equal(h.run('token'),'');assert.equal(h.run('users.length'),0);
 });
 
 (async () => {

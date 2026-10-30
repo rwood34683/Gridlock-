@@ -522,7 +522,7 @@ const ROSTER = [
   check("create account signs the coach in as staff", await ev(() => S.role === "staff" && S.entered));
   const stored = await ev(() => JSON.parse(localStorage.getItem("gridlock.staff.v2") || "{}"));
   check("password is not stored in the clear", !JSON.stringify(stored).includes("sideline1"));
-  check("salt and hash are both stored", !!stored.salt && !!stored.hash && stored.hash.length === 64);
+  check("salt and hash are both stored", !!stored.salt && !!stored.hash && /^pbkdf2-sha256\$600000\$[a-f0-9]{64}$/.test(stored.hash));
   // The format is asked straight after sign-in, on its own screen, not on Tally.
   check("format: asked after sign-in, before the tabs", await ev(() => {
     const root = document.getElementById("root"), txt = root.textContent;
