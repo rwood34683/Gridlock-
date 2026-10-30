@@ -1,139 +1,176 @@
-# The Admin Portal — the season across every coach
+# Gridlock administration
 
-`admin/index.html` is a standalone dashboard. It rolls a whole year up across
-every coach who sends you their season — matches, record, the breaks they
-called, penalties, and a breakdown by event and by opponent.
+`admin/index.html` lists account users, manages their Free, Team or Program
+access, and summarizes season copies. Cloud access goes through
+`supabase/functions/gridlock-admin/index.ts`; a verified account alone does
+not make someone an administrator.
 
-It has **two sources**, and the first works today with nothing to stand up.
+## What administrators can do
 
-## 1. Files — works now, no backend, no privacy change
+- View paginated users, email-confirmation status, last sign-in and account plans.
+- Set a user's plan with no expiry or a future expiry. Free clears the account
+  grant and always has no expiry.
+- Load seasons coaches explicitly chose to upload and review the counted
+  matches, results, calls, penalties, events and opponents.
+- Import copies coaches shared manually, without sending those files anywhere.
 
-Each coach exports from **Nexus › Save a copy** (the app already writes this:
-`{"format":"gridlock.coach.copy", …, "data":{…}}`). They send you the file —
-email, AirDrop, a shared drive, however. You open `admin/index.html` in a
-browser and drop the files in. The reading happens in your browser; nothing is
-uploaded.
+This portal does not invite users, change passwords, ban or delete users, or
+delete cloud seasons. Account recovery uses the coach app. Any account setup
+outside this scope is performed through the project's normal Auth dashboard.
+Administrator access is separate from plan access: giving someone Program
+does not give them the dashboard, and revoking a plan does not remove their
+administrator UUID.
 
-This keeps the app's promise intact: the coach chooses to hand you a copy, the
-same as handing over a clipboard. The privacy notice does not change, because
-nothing leaves a phone except by the coach's own Save-a-copy.
+## Set up the server
 
-Host `admin/index.html` anywhere private (a folder on your machine, an
-access-controlled internal URL). It is a single file with no dependencies.
+1. Use the existing `public.entitlements` table from `docs/SERVER.md` and the
+   `public.seasons` table below. Keep RLS enabled. Coaches may read only their
+   own entitlement and may never write it; they may read, upload and delete
+   only their own season. Do not grant cross-user access to the public key.
+2. Create or identify each administrator's Auth account and have the owner
+   confirm its email. Copy the immutable Auth **user UUID**, not the email,
+   into the function's `ADMIN_USER_IDS` setting. Deleting and recreating an
+   account creates a different UUID and requires a deliberate allowlist change.
+3. Set `ADMIN_ALLOWED_ORIGINS` to the exact HTTPS origin hosting the dashboard.
+   Separate multiple UUIDs or origins with commas. No wildcard origins.
+4. Deploy `gridlock-admin` with gateway JWT verification enabled. The function
+   also verifies the bearer token with `auth.getUser()` on every request and
+   requires a confirmed email and an allowed UUID before accessing any data.
 
-## 2. Cloud collector — the live portal, and what it costs
+```sh
+supabase secrets set ADMIN_USER_IDS="FIRST_AUTH_UUID,SECOND_AUTH_UUID"
+supabase secrets set ADMIN_ALLOWED_ORIGINS="https://YOUR-STAGING-HOST"
+supabase functions deploy gridlock-admin
+```
 
-A live portal means every device **uploads its season** to a store you own, and
-the dashboard reads that store. Understand the trade before you switch it on:
+The platform provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to the
+function. The service key stays on the server. Neither a browser role,
+user-editable metadata, an email matching the owner nor possession of the
+public key authorizes administration. Missing or malformed settings refuse
+all administration requests. Remove a UUID from the allowlist to revoke
+access; each subsequent request checks the configured list.
 
-- **It reverses the app's central promise.** Today the welcome screen and the
-  privacy notice say the season never leaves the phone. A collector means you
-  hold every coach's roster, tallies, *and their scouting on teams they play* —
-  competitive data belonging to teams who play each other — on a machine you
-  own. `docs/SERVER.md`'s "what goes up / what stays" table and the sign-in
-  copy **must change in the same release**, or the app is lying about where the
-  data is. This is a product decision, not a config flag.
-- **Get consent.** A coach must opt in to uploading, in plain words, and be able
-  to turn it off and delete what was sent. "Sync my season to my league" is a
-  switch he throws, not a default.
+The function writes account grants server-side in addition to any existing
+billing webhook. It records the verified administrator UUID in `source` and
+logs a completed plan change with actor, target, plan, expiry and timestamp.
+It does not log credentials, email addresses or season payloads. These platform
+logs are best effort, not a separate permanent audit database.
 
-### The store (Supabase)
+The API accepts only these actions:
 
-One table holds an uploaded season per coach per push:
+| Request | Result |
+|---|---|
+| `GET ?action=overview&page=1&per_page=50` | `caller`, selected `users`, `page`, `per_page`, `has_more` |
+| `GET ?action=seasons&page=1&per_page=100` | `caller`, selected `seasons`, `page`, `per_page`, `has_more` |
+| `POST {action:"set_entitlement",user_id,plan,expires_at}` | Confirmed saved entitlement |
+
+POST uses JSON, a target Auth UUID, one of `free`, `team`, `program`, and
+`expires_at: null` or a valid future UTC ISO timestamp. Unknown fields, unknown
+actions, invalid dates and oversized bodies are refused. Page sizes are at
+most 100. Responses are not cacheable. A request without an Origin still needs
+the same verified administrator token; CORS is an additional browser control.
+
+## Open the portal
+
+Serve `admin/index.html` over HTTPS on the configured origin. Its `CLOUD`
+constant contains only the project URL, public publishable/anon key and
+`gridlock-admin` function name. Change those public settings when using another
+project; never put a service key in this file. Sign in with the approved
+Gridlock account and its normal password.
+
+The portal keeps the password, access token, users and downloaded cloud seasons
+only in memory. It does not retain the refresh token. Sign-out, expiry, or an
+authorization refusal clears cloud records and invalidates pending results.
+The session lasts at most one hour; sign in again to continue. The portal's
+Sign out clears its session on this page; it is not an account-wide logout.
+
+Users are paginated. The Seasons tab loads uploaded seasons explicitly and
+offers Load more when there are more pages. Totals cover only loaded seasons
+and manual imports; they do not imply all coaches have uploaded data.
+
+## Consent and the season store
+
+The default coach build remains offline. A cloud-enabled build offers
+**Nexus > League sync**, off until the coach opts in. It uploads the whole
+season, including competitive scouting data. Coaches can pause uploads and
+delete their uploaded copy. Administrator access does not turn that switch on,
+read phone-only seasons, or change the coach's own-row RLS policies.
+
+Keep the sign-in, Nexus and privacy notice consistent with this capability in
+the same release. `docs/SERVER.md` describes the opt-in exception to the
+default accounts-and-purchases-only behavior.
+
+For a new project, the season schema is:
 
 ```sql
--- One current season per coach, keyed on owner so each push replaces the last.
 create table public.seasons (
-  owner      uuid primary key references auth.users on delete cascade,
-  label      text,                       -- coach or team, for the dashboard
-  payload    jsonb not null,             -- the Save-a-copy JSON, verbatim
+  owner uuid primary key references auth.users on delete cascade,
+  label text,
+  payload jsonb not null,
   updated_at timestamptz not null default now()
 );
 alter table public.seasons enable row level security;
-
--- A coach may touch only his own row. The reference adapter upserts on owner
--- (POST … ?on_conflict=owner, Prefer: resolution=merge-duplicates), so insert
--- and update policies both have to pass, and delete lets him remove what he sent.
 create policy "own insert" on public.seasons
   for insert with check (auth.uid() = owner);
 create policy "own update" on public.seasons
   for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "own read"   on public.seasons
+create policy "own read" on public.seasons
   for select using (auth.uid() = owner);
 create policy "own delete" on public.seasons
   for delete using (auth.uid() = owner);
 ```
 
-The **admin** reads across everyone. Do that with an Edge Function gated to an
-admin allow-list — never by handing the anon key select rights on the whole
-table (that would let any coach read every other coach's season). The reference
-function is written for you: **`supabase/functions/admin-seasons/index.ts`**. It
-verifies the caller's token, checks their email against an allow-list, and only
-then reads `select label, payload from seasons` with the service-role key —
-**server-side, never in a browser**.
+One current season is held per coach; an upload replaces that coach's previous
+copy. `native/gridlock-cloud.js` performs authenticated own-row upserts and
+deletes. `scripts/cloud-build.js` adds this optional adapter and its public
+configuration to a cloud build; canonical `web/index.html` remains fetch-free.
+See `docs/CLOUD-AUTH-SETUP.md` for signup and recovery callback setup.
 
-```bash
-supabase functions deploy admin-seasons
-supabase secrets set ADMIN_EMAILS="you@club.com,partner@club.com"
-# SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected by the
-# platform. Keep verify_jwt ON (the default) so only a real user token gets in.
+## Plan access in the coach app
+
+After verified cloud sign-in or recovery, an authenticated reopen, or
+**More > Plan > Refresh account access**, the adapter reads only the signed-in
+user's entitlement. The app validates its owner, plan and expiry and holds the
+grant in memory for that account. Sign-out and account changes clear it, and
+late replies cannot grant access to another account. Expired or missing grants
+give no paid access; malformed grants are refused.
+
+An account grant supplements store access; it does not overwrite store restore
+results. Setting an account to Free does not cancel a separate store purchase.
+Account-grant changes appear at the next successful refresh, not as a live push.
+Offline entry keeps the existing local-account and store behavior; account
+grants are not serialized into a season, exported copy or durable restore.
+Staging remains fully unlocked while `BILLING_LIVE` is off. These controls do
+not enable billing or introduce new paywalls.
+
+## Manual season copies
+
+A coach can use **Nexus > Save a copy** and share the JSON file directly.
+Drop it into the portal's Import season copies area. Reading happens in the
+browser and does not upload the file. Manual imports remain in this browser
+after sign-out and can be removed with the portal's clear-imports control;
+clearing them does not delete cloud seasons or the original files. They use a
+separate cache from the older portal's mixed-source cache, which is not loaded.
+
+Counts come from what coaches logged, never modeled results. Watched games do
+not count toward a coach's record. Renamed calls use the coach's own words.
+Loading a manual copy and a cloud copy of the same season can count both;
+remove a duplicate manual import before treating the combined totals as a
+record.
+
+## Checks
+
+`npm run check` includes `account-entitlements`, `admin-handler` and
+`admin-portal`. They use mocked services and DOM state, require no browser,
+and send no email or live requests. Run them alone with:
+
+```sh
+node scripts/run-checks.js account-entitlements admin-handler admin-portal
 ```
 
-In the dashboard, expand **Load from the cloud collector**, enter your project
-URL, the anon key, your admin email and password, and the function name
-(`admin-seasons`). It signs you in for a short-lived token, calls the function
-with it, and aggregates what comes back beside any files you dropped in. Your
-password is not saved; the URL, anon key, email and function name are, so you do
-not retype them.
-
-### The upload, from the app
-
-The coach app makes **no `fetch`** — that is why it works in a field with no
-signal, and it must stay that way. Uploading is an **adapter the native shell
-fills in**, and the reference implementation is written for you:
-**`native/gridlock-cloud.js`**. It is deliberately outside `web/`, so it is
-never bundled into the app or `site/app.html` and every suite still proves the
-app has no `fetch`. It fills in the whole `window.gridlockCloud` contract —
-Supabase Auth sign-in plus `pushSeason` / `deleteSeason` against the table above
-— using only the anon key, with offline returns that fall through to the phone.
-
-Ship it only in a cloud-enabled build. **`scripts/cloud-build.js` does the
-wiring** — it copies the app, drops in the adapter and a generated
-`gridlock-config.js`, and loads both before the app boots. The committed `web/`
-is never touched, so the default and offline builds stay fetch-free.
-
-```bash
-GRINDX_SUPABASE_URL=https://YOUR-PROJECT.supabase.co \
-GRINDX_SUPABASE_ANON_KEY=…anon public key… \
-npm run build:cloud
-# → dist/cloud/  — point Capacitor's webDir at it, or serve it as the web build.
-```
-
-The anon key is public by design; the build refuses a service key. Under the
-hood the generated config is just:
-
-```js
-window.GRIDLOCK_CLOUD = { url: "https://YOUR-PROJECT.supabase.co", anonKey: "…anon public key…" };
-// then native/gridlock-cloud.js  (or, at runtime: window.gridlockCloudConfigure(url, anonKey))
-```
-
-With the file absent — every default build — `window.gridlockCloud` is unset,
-League sync does not appear, and the privacy copy stays on "nothing leaves your
-phone." The opt-in toggle and the "delete what I sent" control already live on
-Nexus (`canSync()` gates them), and a push that fails with `offline:true` is
-silent so the coach never notices — the copy on the phone stays the source of
-truth. `test/cloud-adapter.js` (the `cloud` suite) exercises the adapter against
-a mocked Supabase: sign-in, refusal, offline, the upsert payload, and delete.
-
-### Point the dashboard at it
-
-Open `admin/index.html`, expand **Load from the cloud collector**, paste the
-Edge Function URL and the anon key, and Load. It pulls `{label, payload}` rows
-and aggregates them beside any files you dropped in.
-
-## What the dashboard counts
-
-All of it is counted from what coaches logged — nothing is modelled, same
-contract as the app. Games a coach **watched** (a scouting sheet, not one he
-played) never count toward a record. The built-in twelve calls show their
-default names unless the coach renamed them, in which case his word is used.
+The handler test strips its pure TypeScript module through Node's
+`module.stripTypeScriptTypes` before importing it, so it does not depend on
+automatic `.ts` loading. Use Node 22.13 or newer (CI installs current Node 22).
+These checks cover authorization, malformed requests, expired/stale account
+grants and portal session isolation. Browser inspection and live delivery
+testing remain separate validation steps.

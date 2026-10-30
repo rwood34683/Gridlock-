@@ -773,6 +773,28 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     5v5 11 (`wc-prem` … `wc-pump`). Names are the page's own spelling; a name
     entered in two divisions is one team to the app. No scores, no tendency.
 
+53. ~~Administration and account plan access.~~ Done — `admin/index.html`
+    signs in against the configured account service and uses the
+    `gridlock-admin` Edge Function to list users, review seasons coaches chose
+    to upload, and set Free, Team or Program access with an optional expiry.
+    Each request verifies the caller with Auth and checks an immutable UUID
+    allowlist; client roles, email text and metadata never grant admin access.
+    Service credentials stay on the server. The portal has no invite, password,
+    ban, user-delete or season-delete operation. Passwords, tokens, user lists
+    and cloud seasons live only in page memory; sign-out and expiry clear them
+    and invalidate pending replies. Manual imports stay separately in this
+    browser. Coach sync remains opt-in, with own-row policies and its existing
+    delete-upload control; phone-only seasons are never visible to the portal.
+    The coach adapter reads only its authenticated user's entitlement. The app
+    holds that grant in memory, clears it on account changes, and supplements
+    store access without replacing store restores or granting admin rights.
+    Missing/expired grants give no paid access; malformed or foreign rows are
+    refused. Refresh after verified sign-in, recovery, authenticated reopen or
+    More > Plan > Refresh account access. Staging remains fully unlocked while
+    `BILLING_LIVE` is off. `docs/ADMIN-PORTAL.md` covers setup and scope;
+    `test/account-entitlements.cjs`, `test/admin-handler.mjs` and
+    `test/admin-portal.cjs` run in `npm run check` without a browser.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

@@ -1009,6 +1009,7 @@ svg.field [data-pick]{cursor:crosshair}
 .voice-editor{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.voice-editor textarea,#voice-manual{width:100%;min-height:72px}
 .voice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.voice-grid .fld{min-width:0}.voice-grid select{width:100%;min-width:0}
 @media(max-width:420px){.voice-grid{grid-template-columns:1fr}}
+.coach-start{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s3) 0}.coach-start .btn{min-height:56px;white-space:normal;text-align:left;justify-content:flex-start}.coach-terms{margin-top:var(--s3);border-top:1px solid var(--line)}.coach-terms summary{display:flex;align-items:center;min-height:48px;cursor:pointer;color:var(--mute);font-weight:700}.coach-terms .kv{margin-top:var(--s2)}@media(max-width:480px){.coach-start{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -5117,7 +5118,8 @@ function copyPayload(scope){
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   if(data.fields) data.fields = fieldsOut(data.fields);
-  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
+  if(!S.seasonId) S.seasonId=newSalt();
+  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, seasonId:S.seasonId, scope: scope || "all",
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 /* One sheet, to hand to the coach beside you. Two phones on one match — one
@@ -5651,9 +5653,9 @@ function seasonHere(){
   return (S.matches || []).some(m => m && (loggedSize(m.id) || (S.results || []).some(r => r && r.m === m.id)))
     || (S.roster || []).length > 0 || Object.keys(S.scout || {}).length > 0 || Object.keys(S.plays || {}).length > 0;
 }
-window.loadCopy = mode => {
+window.loadCopy = (mode, suppliedText) => {
   const el = document.getElementById("copyIn");
-  copyDraft = el ? el.value : copyDraft;
+  copyDraft = suppliedText == null ? (el ? el.value : copyDraft) : suppliedText;
   const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
@@ -5953,7 +5955,9 @@ window.loadCopy = mode => {
     S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
   }
   copyDraft = "";
+  if(mode==="replace") S.seasonId=typeof r.payload.seasonId==="string"&&/^[a-f0-9]{32}$/i.test(r.payload.seasonId)?r.payload.seasonId:newSalt();
   S.copyText = ""; save(S); render();
+  return true;
 };
 window.readCopyFile = input => {
   const f = input.files && input.files[0];
@@ -9241,7 +9245,8 @@ function tourRows(){
       <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
       <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker each man broke to, then say what happened to each. Then who won the point.</span></div>
       <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — what they run when behind, where their five plant, who has the lanes off the break, and your counter. Counted from what you log, never guessed.</span></div>
-      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
+      <div class="kv__row"><span class="kv__k">Sightlines</span><span class="kv__v">Check shooting lanes between bunkers on this field.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">Your roster, match format, saved matches, account, backups and Help.</span></div>
       <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
     </div>`;
 }
@@ -9249,8 +9254,7 @@ function tourPanel(){
   return `<div class="panel">
     <h3 class="panel__title">How it works</h3>
     ${tourRows()}
-    <p class="note">An account takes a moment and lives on this phone only. There is no server
-      to send it to.</p>
+    <p class="note">${canSync() ? "Sign in with your Gridlock account. Your season stays on this device unless you turn on cloud sharing." : "Your account and saved season stay on this device. Keep a season copy before moving to another phone."}</p>
   </div>`;
 }
 
@@ -9365,8 +9369,45 @@ function authForm(){
 const STAFF_KEY = "gridlock.staff.v2";
 let _authAttempt = 0;
 let _recoveryUser = null, _recoveryBusy = false;
+// Server account grants are separate from store purchases. They stay in memory
+// and can only supplement the same verified account, never a later sign-in.
+let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
+function clearAccountGrant(){ ++_grantAttempt; _accountGrant = null; _grantSaid = ""; }
+function accountGrantPlan(){
+  const g = _accountGrant, cloud = window.gridlockCloud, acc = readAccount();
+  let session = null;
+  try{ session = cloud && cloud.session && cloud.session(); }catch(e){}
+  if(!g || !S.entered || !acc.cloud || !acc.uid || acc.uid !== g.uid ||
+     cloud !== g.cloud || !session || !session.user || session.user.id !== g.uid ||
+     String(S.email).toLowerCase() !== String(acc.email).toLowerCase() ||
+     (g.exp && Date.now() >= g.exp)) return "free";
+  return Object.prototype.hasOwnProperty.call(PLANS, g.plan) ? g.plan : "free";
+}
+async function refreshAccountGrant(cloud = window.gridlockCloud, authAttempt = _authAttempt){
+  clearAccountGrant();
+  const acc = readAccount(), ticket = _grantAttempt;
+  if(!cloud || !cloud.getEntitlement || !S.entered || !acc.cloud || !acc.uid) return;
+  const uid = acc.uid, email = S.email;
+  const same = () => ticket === _grantAttempt && authAttempt === _authAttempt &&
+    cloud === window.gridlockCloud && S.entered && S.email === email && readAccount().uid === uid;
+  _grantSaid = "Checking account access…";
+  try{
+    const r = await cloud.getEntitlement();
+    if(!same()) return;
+    const e = r && r.entitlement;
+    if(r && r.ok && r.user && r.user.id === uid && e &&
+       Object.prototype.hasOwnProperty.call(PLANS, e.plan) && Number.isFinite(e.exp) && e.exp >= 0 &&
+       (!e.exp || e.exp > Date.now())){
+      _accountGrant = {uid, cloud, plan:e.plan, exp:e.exp};
+      _grantSaid = "Account access checked. " + PLAN_NAME[e.plan] + ".";
+    }else _grantSaid = "Account access could not be confirmed. Try again with a signal.";
+  }catch(e){ if(same()) _grantSaid = "Account access could not be checked. Try again with a signal."; }
+  if(same() && S.tab === "more" && S.more === "plan") render();
+}
+window.refreshAccountAccess = () => refreshAccountGrant();
 const ACCOUNT_SAVE_SAID = "This phone could not save your sign-in. Free some space, then try again. Your season has not been removed.";
 window.chooseAuth = mode => {
+  clearAccountGrant();
   ++_authAttempt; _recoveryUser = null; _recoveryBusy = false;
   try{ if(window.gridlockCloud && window.gridlockCloud.cancelRecovery) window.gridlockCloud.cancelRecovery(); }catch(e){}
   set({mode, authSaid:""});
@@ -9386,6 +9427,7 @@ window.gridlockHandleAuthUrl = async raw => {
   const cloud = window.gridlockCloud;
   if(!cloud || !cloud.handleAuthUrl || !cloud.isAuthUrl || !cloud.isAuthUrl(raw)) return false;
   const attempt = ++_authAttempt;
+  clearAccountGrant();
   ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
   set({entered:false, role:"guest", email:"", joinOnly:false, mode:"login", authSaid:"Checking your email link…"});
   let r;
@@ -9426,6 +9468,7 @@ window.completePasswordReset = async () => {
     }
     dropLegacyAccount();
     set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+    refreshAccountGrant(cloud, attempt);
   }catch(e){
     if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
   }
@@ -9447,9 +9490,17 @@ function dropLegacyAccount(){
   try{ localStorage.removeItem("gridlock.staff"); }catch(e){}
 }
 async function hashPass(pass, saltHex){
-  const enc = new TextEncoder().encode(saltHex + "|" + pass);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  if(!/^[0-9a-f]{32}$/i.test(saltHex)) throw new Error("Invalid password salt");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const salt = new Uint8Array(saltHex.match(/../g).map(v => parseInt(v,16)));
+  const buf = await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000}, key, 256);
+  return "pbkdf2-sha256$600000$" + [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function verifyAccountPassword(pass, acc){
+  if(acc.hash.startsWith("pbkdf2-sha256$")) return acc.hash === await hashPass(pass, acc.salt);
+  if(!/^[0-9a-f]{64}$/i.test(acc.hash)) return false;
+  const buf = await crypto.subtle.digest("SHA-256",new TextEncoder().encode(acc.salt + "|" + pass));
+  return acc.hash === [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
 function newSalt(){
   return [...crypto.getRandomValues(new Uint8Array(16))]
@@ -9505,7 +9556,8 @@ window.appleSignIn = async () => {
   const a = window.gridlockApple;
   if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
   const attempt = ++_authAttempt;
-  ++_syncEpoch; S.syncOn = false;
+  clearAccountGrant();
+  clearSyncRetry();++_syncEpoch; S.syncOn = false;
   set({authSaid: "Asking Apple…"});
   try{
     const who = await a.signIn();
@@ -9617,6 +9669,7 @@ window.doAuth = async () => {
     return say("This address is not a secure one, so the phone will not hash a password here. "
              + "Use the installed app, or open this on the same machine at localhost.");
   const attempt = ++_authAttempt, creating = S.mode === "create";
+  clearAccountGrant();
   ++_syncEpoch; S.syncOn = false;
   const acc = readAccount();
   try{
@@ -9645,7 +9698,9 @@ window.doAuth = async () => {
         return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
       }
       dropLegacyAccount();
-      return set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      refreshAccountGrant(cloud, attempt);
+      return;
     }
     // A refusal is his to see. A network failure is not, and must never be the
     // reason a coach cannot get into his own app between points.
@@ -9668,8 +9723,13 @@ window.doAuth = async () => {
     return;
   }
 
-  if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
+  if(acc.email === email && acc.salt && await verifyAccountPassword(pass, acc)){
     if(attempt !== _authAttempt) return;
+    if(!acc.hash.startsWith("pbkdf2-sha256$")){
+      const salt = newSalt(), hash = await hashPass(pass,salt);
+      if(attempt !== _authAttempt) return;
+      if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
+    }
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
@@ -9734,6 +9794,12 @@ function syncLabel(){
 }
 let _lastAutoSync = 0, _syncEpoch = 0;
 let _syncTail = Promise.resolve(), _syncDeleting = false;
+let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
+function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
+function syncStatus(data){
+  Object.assign(S,data);_syncStatusWrite=true;
+  try{save(S);}finally{_syncStatusWrite=false;}render();
+}
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting;
 function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
 function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
@@ -9747,7 +9813,9 @@ function queueSeasonPush(t){
   return pending;
 }
 window.staffSignOut = () => {
+  clearSyncRetry();
   ++_authAttempt; ++_syncEpoch;
+  clearAccountGrant();
   _recoveryUser = null; _recoveryBusy = false;
   S.syncOn = false;                            // pause before save can auto-send
   const cloud = window.gridlockCloud;
@@ -9755,31 +9823,76 @@ window.staffSignOut = () => {
   set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:""});
 };
 function maybeSync(){
-  if(!syncAllowed()) return;
-  const now = Date.now();
-  if(now - _lastAutoSync < 90000) return;
-  _lastAutoSync = now;
-  const t = syncTicket();
-  queueSeasonPush(t).then(r => {
-    if(sameSync(t) && syncAllowed() && r && r.ok === true) S.syncAt = Date.now();
-  }).catch(() => {});
+  if(_syncStatusWrite || !syncAllowed()) return;
+  _syncDirty=true;
+  scheduleSync();
 }
-window.syncNow = async () => {
-  if(!syncAllowed()) return;
+function scheduleSync(delay){
+  if(!syncAllowed() || !_syncDirty || _syncSending) return;
+  clearTimeout(_syncTimer);
+  const t=syncTicket();
+  _syncTimer=setTimeout(()=>{_syncTimer=null;if(sameSync(t)&&syncAllowed()) sendSeason(false);},
+    delay == null ? Math.max(0,90000-(Date.now()-_lastAutoSync)) : delay);
+}
+async function sendSeason(manual){
+  if(!syncAllowed() || _syncSending) return;
   const t = syncTicket();
+  clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
-  set({syncSaid: "Sending your season to your league…"});
+  if(manual) syncStatus({syncSaid:"Sending your season to your league…"});
   let r = null;
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
-  if(!sameSync(t) || !syncAllowed()) return;
-  if(r && r.ok === true) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
-  if(r && r.offline) return set({syncSaid: "No signal — it will go up on its own once you have bars. Your season is safe on the phone."});
-  set({syncSaid: (r && r.said) || "That could not be sent. Nothing has changed."});
+  _syncSending=false;
+  if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
+  if(r && r.ok === true){
+    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Sent to your league."});
+    scheduleSync();return;
+  }
+  if(r && r.conflict){
+    clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
+  }
+  _syncDirty=true;
+  syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."});
+  scheduleSync(90000);
+}
+window.syncNow = () => sendSeason(true);
+window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);}});
+window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
+window.reviewCloudSeason = async () => {
+  const cloud=window.gridlockCloud, attempt=_authAttempt;
+  if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
+  clearSyncRetry();++_syncEpoch;S.syncOn=false;
+  syncStatus({syncSaid:"Loading your cloud copy…"});
+  await _syncTail;
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
+  let r;try{r=await cloud.getSeason();}catch(e){}
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
+  if(!r || !r.ok) return syncStatus({syncSaid:(r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged."});
+  if(r.missing || r.removed){
+    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return syncStatus({syncSaid:"Nothing changed. Sharing stays off."});
+    if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
+    S.syncOn=true;return syncNow();
+  }
+  const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
+  if(checked.error) return syncStatus({syncSaid:"The cloud copy is not a readable season. Your phone is unchanged."});
+  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return syncStatus({syncSaid:"Nothing restored. Your phone is unchanged."});
+  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",copyPayload("all"));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
+  if(window.loadCopy("replace",raw)!==true) return;
+  if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
+  syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
+};
+window.showPreRestoreCopy = () => {
+  try{
+    const raw=localStorage.getItem(STORE_KEY+".before-cloud-restore")||"";
+    if(readCopy(raw).error)return set({syncSaid:"No readable pre-restore season is stored on this phone."});
+    set({copyText:raw,copyStatus:"This is the season kept before cloud restore. Copy this text and save it somewhere safe."});
+  }catch(e){set({syncSaid:"The pre-restore copy could not be opened. Your current season is unchanged."});}
 };
 window.toggleSync = () => {
   if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
   if(!S.entered || S.role !== "staff" || !canSync()) return;
   ++_syncEpoch;
+  clearSyncRetry();
   if(S.syncOn) return set({syncOn: false,
     syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
   _lastAutoSync = Date.now();
@@ -9794,6 +9907,7 @@ window.deleteSynced = async () => {
     return set({syncOn: false, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
   }
   if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
+  clearSyncRetry();
   ++_syncEpoch;
   const t = syncTicket();
   _syncDeleting = true;
@@ -9814,6 +9928,24 @@ window.deleteSynced = async () => {
   }finally{ _syncDeleting = false; }
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
+let _accountDeleting=false;
+window.deleteCloudAccount = async () => {
+  const cloud=window.gridlockCloud;
+  if(_accountDeleting||!cloud?.deleteAccount)return;
+  const password=document.getElementById("deleteAccountPassword")?.value||"";
+  const phrase=document.getElementById("deleteAccountPhrase")?.value||"";
+  const code=document.getElementById("deleteAccountCode")?.value||"";
+  if(!password||phrase!=="DELETE MY ACCOUNT")return set({syncSaid:"Enter your password and type DELETE MY ACCOUNT. Nothing was deleted."});
+  if(!confirm("Permanently delete this Gridlock account and its cloud season? This cannot be undone. The season saved on this phone stays here; save a copy if you need it."))return;
+  const attempt=++_authAttempt;clearSyncRetry();++_syncEpoch;S.syncOn=false;_accountDeleting=true;
+  syncStatus({syncSaid:"Confirming account deletion…"});
+  let result;try{result=await cloud.deleteAccount(password,phrase,code);}catch(e){}
+  _accountDeleting=false;
+  if(attempt!==_authAttempt||cloud!==window.gridlockCloud)return;
+  if(!result?.ok)return syncStatus({syncSaid:result?.said||"Deletion was not confirmed. Your phone's season is unchanged."});
+  clearAccountGrant();const cleaned=writeAccount({});dropLegacyAccount();
+  set({entered:false,role:"guest",email:"",mode:"login",authSaid:"Your account and its cloud season were deleted. The season on this phone is still here."+(cleaned?"":" This browser could not clear the saved local sign-in; clear it in your browser settings."),syncOn:false,syncAt:null,syncSaid:""});
+};
 
 /* ============================================================
    Playbook — leads with the call, because that is the job
@@ -14447,7 +14579,7 @@ const HELP = {
          "Under it, Bunker codes draws the field with every bunker labelled. Pick any field to read its key; tap a bunker to give it your team's own name, and Put the code back to undo it."]},
   "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
     how:["Write it once and it is on the phone for the weekend.",
-         "There is no network, so nothing sends anywhere."]},
+         "These notes do not send a notification. Share them with your squad in a copy from Nexus."]},
   "more/matches": {t:"Matches", w:"Every sheet you have kept.",
     how:["The one in play is at the top with its score.",
          "Open an old one and you land on its last point, so you can still tally something you missed.",
@@ -14475,21 +14607,21 @@ const HELP = {
          "Every field the app carries is listed with where its map came from.",
          "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
-    watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
+    watch:"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
-  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
-  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
+  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
   ["How many points wins it?", "Race to, under More › Format: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
-  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
+  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
@@ -14505,7 +14637,7 @@ const HELP_Q = [
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
-  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. Only the things that talk to somebody else need one: League sync, if you switch it on, and the store when you buy or restore the plan."],
+  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
@@ -14569,8 +14701,7 @@ function verifyBlock(){
       except to the service that sent that code.</p></div>`;
   return `<div class="panel">
     <h3 class="panel__title">Verify your phone</h3>
-    <p class="note">One code, by text. It is the only thing in this app that touches a network, and
-      it is used for nothing but proving the number is yours.</p>
+    <p class="note">One code, by text, to check that the number is yours. A signal is needed to receive it.</p>
     ${S.verifySaid ? `<p class="warn">${esc(S.verifySaid)}</p>` : ""}
     ${S.verifySent ? `<div class="fld"><label for="vcode">The code we sent to ${esc(S.verifyPhone)}</label>
         <input id="vcode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></div>
@@ -14596,6 +14727,10 @@ function planPage(){
         : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
     </div>
     ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, billingLive() ? "" : "not selling yet")
+  + (window.gridlockCloud && window.gridlockCloud.getEntitlement && readAccount().cloud ? sec("Account access", `
+    <p class="note">Access granted to your account is checked when you sign in online. Store purchases stay separate.</p>
+    ${_grantSaid ? `<p class="note" role="status">${esc(_grantSaid)}</p>` : ""}
+    <button class="btn btn--quiet btn--block" onclick="refreshAccountAccess()">Refresh account access</button>`) : "")
   + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire and it does
       not need a signal.</p>
     <div class="kv">
@@ -14604,7 +14739,7 @@ function planPage(){
       ${row("Sightlines", "What any bunker can see, and the dragged lane.")}
       ${row("The field", "Walk notes, Movement, Bunker stats.")}
       ${row("The squad", "Roster, Lineups, your words for every bunker, call and job, Codes, Messages.")}
-      ${row("Save a copy", "Your backup is never behind a wall. There is no server here, so that file is the only thing protecting your season.")}
+      ${row("Save a copy", "Save a backup you control before every event. Cloud sharing keeps one current copy when you turn it on; keep files for older versions.")}
       ${row("The match in play", "Always. A sheet you are on is never locked.")}
     </div>`)
   + sec("Team", `<p class="lede">What you do between events. Priced per season; a season renews
@@ -14636,6 +14771,24 @@ function planPage(){
       S.preview ? "Stop previewing the free plan" : "Show me the free plan"}</button>`, "Staff") : "");
 }
 
+function coachQuickStart(){
+  return sec("Your first match", `<p class="lede">Set up the field and your players before the first point. Each step opens the screen you need.</p>
+    <div class="coach-start" role="group" aria-label="Match-day setup">
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'format',helpFor:''});toMainTop()">1. Check the match format</button>
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'team',helpFor:''});toMainTop()">2. Add your players</button>
+      <button class="btn btn--ghost" onclick="set({tab:'playbook',more:null,evPick:true,helpFor:''});toMainTop()">3. Pick the field and breakout</button>
+      <button class="btn btn--ghost" onclick="set({tab:'tally',more:null,helpFor:''});toMainTop()">4. Open the point sheet</button>
+    </div>
+    <p class="note">Tally starts a new match or continues the one already saved. After your session, keep a backup from More &rsaquo; Nexus &rsaquo; Save a copy.</p>
+    <details class="coach-terms"><summary>Paintball terms, in plain language</summary><div class="kv">
+      <div class="kv__row"><span class="kv__k">Point</span><span class="kv__v">One round, from the starting horn to its result.</span></div>
+      <div class="kv__row"><span class="kv__k">Match</span><span class="kv__v">A game against an opponent. In X-ball, a match contains multiple points.</span></div>
+      <div class="kv__row"><span class="kv__k">Breakout</span><span class="kv__v">The opening route each player runs at the start of a point.</span></div>
+      <div class="kv__row"><span class="kv__k">Bunker</span><span class="kv__v">The cover marked on your field map.</span></div>
+      <div class="kv__row"><span class="kv__k">Lane</span><span class="kv__v">A shooting line between positions on the field.</span></div>
+    </div></details>`, "Quick start");
+}
+
 function helpPage(){
   const here = S.helpFor;
   const order = Object.keys(HELP);
@@ -14643,6 +14796,7 @@ function helpPage(){
       ? `<div class="tip"><span class="grow">Help for the screen you came from.</span>
          <button onclick="set({helpFor:''})">Show all</button></div>` + helpCard(here)
       : "")
+    + (here && HELP[here] ? "" : coachQuickStart())
     + sec("Questions", `<div class="list">${HELP_Q.map(([q, a], i) => `
         <button class="list__row" onclick="set({helpQ: S.helpQ===${i} ? -1 : ${i}})">
           <span class="list__body"><span class="list__name">${esc(q)}</span>
@@ -14712,8 +14866,9 @@ function planOf(){
   if(!billingLive()) return S.preview ? "free" : "program";
   const p = ((S.billing || {}).plan) || "free";
   const exp = (S.billing || {}).exp || 0;
-  if(exp && Date.now() > exp) return "free";
-  return PLANS[p] === undefined ? "free" : p;
+  const storePlan = (exp && Date.now() > exp) || !Object.prototype.hasOwnProperty.call(PLANS, p) ? "free" : p;
+  const accountPlan = accountGrantPlan();
+  return PLANS[accountPlan] > PLANS[storePlan] ? accountPlan : storePlan;
 }
 function entitled(need){ return PLANS[planOf()] >= (PLANS[need] || 0); }
 function gateFor(key){ const need = PAID[key]; return need && !entitled(need) ? need : null; }
@@ -14797,10 +14952,10 @@ const MORE_GROUPS=[
     ["matches","Matches","Every sheet you have kept"]]],
   ["Device",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
-    ["help","Help","What every screen does, and the usual questions"]]],
+    ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
-  ["Admin",[
-    ["nexus","Nexus","Admin and staff sign-in, backup and privacy"]]]
+  ["Account & backups",[
+    ["nexus","Nexus","Your account, cloud sharing, saved copies and privacy"]]]
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
@@ -14965,7 +15120,7 @@ function moreBody(k){
         the two is across the tape.</p>
       <p class="note">${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
       <p class="aid">Read off the league, not worked out here: <b>${esc(SCHEDULE.read)}</b>.
-        ${esc(SCHEDULE.covers)} The app makes no network calls, so it cannot refresh this — re-read it
+        ${esc(SCHEDULE.covers)} This schedule does not refresh automatically. Check it against the league's page
         nearer the event and paste or type anything that moved.</p>`,
       games.length + (games.length === 1 ? " game" : " games"))
     + days.map(d => sec(dayName(d), `<div class="assigns">${
@@ -14999,8 +15154,8 @@ function moreBody(k){
       <button class="btn btn--block" onclick="readSchedule()">Read it</button>
       <p class="note">It is best effort and it does not pretend otherwise: what it reads lands in the
         list above as ordinary rows, so anything it got wrong you take off with one tap.</p>
-      <p class="aid">Nothing is fetched. The app has no network at all — that is why it works on a
-        field with no bars — so a schedule gets in the way you just got it in: pasted, or typed.</p>`);
+      <p class="aid">Schedules are added by pasting or typing. Once saved on this device, they are available
+        at the field without a signal.</p>`);
   }
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
@@ -15101,7 +15256,7 @@ function moreBody(k){
     return sec("Team", editor, roster.length+(roster.length===1?" player":" players"))
     + sec("Squad code", `<p class="lede">Your squad's name for itself. It travels inside a squad copy, so a
       player pasting one on his own phone can see whether he is adding <b>your</b> team or somebody
-      else's. It cannot fetch anything — nothing in this app reaches a network.</p>
+      else's. The code labels a squad copy; it does not download or sync the squad.</p>
       <div class="joinrow"><div>
         <div class="joincode">${esc(squadCode())}</div>
         <p class="note">Read it out with the copy. Nexus → Save a copy is what actually moves the squad.</p>
@@ -15390,8 +15545,8 @@ function moreBody(k){
     // on the phone for the season. And the button said Send, in an app that
     // cannot send: a note is kept here and travels in a squad copy, nothing
     // goes to anyone's phone.
-    `<p class="lede">Notes for the squad. They stay on this phone and travel in a squad copy from Nexus —
-      nothing is sent anywhere, because nothing in this app reaches a network.</p>` +
+    `<p class="lede">Notes for the squad. Adding a note does not send a notification to your players.
+      Share the notes in a squad copy from Nexus. They are also included if you turn on League sync.</p>` +
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map((m,i)=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
@@ -15433,6 +15588,9 @@ function moreBody(k){
     <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
       your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
       password never does. You can pause it, or delete what you sent, at any time.</p>
+    <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
+    <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
+    <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
     <div class="fld"><label for="syncLabel">Shown to your league as</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
@@ -15446,6 +15604,7 @@ function moreBody(k){
     <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
     ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
     S.syncOn ? "On" : "Off") : "")
+  + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>
@@ -15473,8 +15632,8 @@ function moreBody(k){
       yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
-  + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
-      is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
+  + sec("Save a copy", `<p class="lede">${canSync()?"Cloud sharing holds one current copy when you turn it on. A file you save is a backup you own —":"There is no server behind this app, so there is no automatic backup. A copy is a file you own —"}
+      keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>
     <div class="toggles">
       <button class="btn" onclick="saveCopy('all')">Save everything</button>
@@ -15916,6 +16075,7 @@ render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }
 if(window.gridlockCloud && window.gridlockCloud.isAuthUrl && window.gridlockCloud.isAuthUrl(location.href))
   window.gridlockHandleAuthUrl(location.href);
+else if(S.entered) refreshAccountGrant();
 </script>
 <script src="native.js"></script>
 <script src="offline.js"></script>
