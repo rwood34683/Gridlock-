@@ -1009,6 +1009,7 @@ svg.field [data-pick]{cursor:crosshair}
 .voice-editor{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.voice-editor textarea,#voice-manual{width:100%;min-height:72px}
 .voice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.voice-grid .fld{min-width:0}.voice-grid select{width:100%;min-width:0}
 @media(max-width:420px){.voice-grid{grid-template-columns:1fr}}
+.coach-start{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s3) 0}.coach-start .btn{min-height:56px;white-space:normal;text-align:left;justify-content:flex-start}.coach-terms{margin-top:var(--s3);border-top:1px solid var(--line)}.coach-terms summary{display:flex;align-items:center;min-height:48px;cursor:pointer;color:var(--mute);font-weight:700}.coach-terms .kv{margin-top:var(--s2)}@media(max-width:480px){.coach-start{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -9244,7 +9245,8 @@ function tourRows(){
       <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
       <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker each man broke to, then say what happened to each. Then who won the point.</span></div>
       <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — what they run when behind, where their five plant, who has the lanes off the break, and your counter. Counted from what you log, never guessed.</span></div>
-      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
+      <div class="kv__row"><span class="kv__k">Sightlines</span><span class="kv__v">Check shooting lanes between bunkers on this field.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">Your roster, match format, saved matches, account, backups and Help.</span></div>
       <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
     </div>`;
 }
@@ -9252,8 +9254,7 @@ function tourPanel(){
   return `<div class="panel">
     <h3 class="panel__title">How it works</h3>
     ${tourRows()}
-    <p class="note">An account takes a moment and lives on this phone only. There is no server
-      to send it to.</p>
+    <p class="note">${canSync() ? "Sign in with your Gridlock account. Your season stays on this device unless you turn on cloud sharing." : "Your account and saved season stay on this device. Keep a season copy before moving to another phone."}</p>
   </div>`;
 }
 
@@ -14578,7 +14579,7 @@ const HELP = {
          "Under it, Bunker codes draws the field with every bunker labelled. Pick any field to read its key; tap a bunker to give it your team's own name, and Put the code back to undo it."]},
   "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
     how:["Write it once and it is on the phone for the weekend.",
-         "There is no network, so nothing sends anywhere."]},
+         "These notes do not send a notification. Share them with your squad in a copy from Nexus."]},
   "more/matches": {t:"Matches", w:"Every sheet you have kept.",
     how:["The one in play is at the top with its score.",
          "Open an old one and you land on its last point, so you can still tally something you missed.",
@@ -14606,21 +14607,21 @@ const HELP = {
          "Every field the app carries is listed with where its map came from.",
          "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
-    watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
+    watch:"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
-  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
-  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
+  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
   ["How many points wins it?", "Race to, under More › Format: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
-  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
+  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
@@ -14636,7 +14637,7 @@ const HELP_Q = [
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
-  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. Only the things that talk to somebody else need one: League sync, if you switch it on, and the store when you buy or restore the plan."],
+  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
@@ -14700,8 +14701,7 @@ function verifyBlock(){
       except to the service that sent that code.</p></div>`;
   return `<div class="panel">
     <h3 class="panel__title">Verify your phone</h3>
-    <p class="note">One code, by text. It is the only thing in this app that touches a network, and
-      it is used for nothing but proving the number is yours.</p>
+    <p class="note">One code, by text, to check that the number is yours. A signal is needed to receive it.</p>
     ${S.verifySaid ? `<p class="warn">${esc(S.verifySaid)}</p>` : ""}
     ${S.verifySent ? `<div class="fld"><label for="vcode">The code we sent to ${esc(S.verifyPhone)}</label>
         <input id="vcode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></div>
@@ -14739,7 +14739,7 @@ function planPage(){
       ${row("Sightlines", "What any bunker can see, and the dragged lane.")}
       ${row("The field", "Walk notes, Movement, Bunker stats.")}
       ${row("The squad", "Roster, Lineups, your words for every bunker, call and job, Codes, Messages.")}
-      ${row("Save a copy", "Your backup is never behind a wall. There is no server here, so that file is the only thing protecting your season.")}
+      ${row("Save a copy", "Save a backup you control before every event. Cloud sharing keeps one current copy when you turn it on; keep files for older versions.")}
       ${row("The match in play", "Always. A sheet you are on is never locked.")}
     </div>`)
   + sec("Team", `<p class="lede">What you do between events. Priced per season; a season renews
@@ -14771,6 +14771,24 @@ function planPage(){
       S.preview ? "Stop previewing the free plan" : "Show me the free plan"}</button>`, "Staff") : "");
 }
 
+function coachQuickStart(){
+  return sec("Your first match", `<p class="lede">Set up the field and your players before the first point. Each step opens the screen you need.</p>
+    <div class="coach-start" role="group" aria-label="Match-day setup">
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'format',helpFor:''});toMainTop()">1. Check the match format</button>
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'team',helpFor:''});toMainTop()">2. Add your players</button>
+      <button class="btn btn--ghost" onclick="set({tab:'playbook',more:null,evPick:true,helpFor:''});toMainTop()">3. Pick the field and breakout</button>
+      <button class="btn btn--ghost" onclick="set({tab:'tally',more:null,helpFor:''});toMainTop()">4. Open the point sheet</button>
+    </div>
+    <p class="note">Tally starts a new match or continues the one already saved. After your session, keep a backup from More &rsaquo; Nexus &rsaquo; Save a copy.</p>
+    <details class="coach-terms"><summary>Paintball terms, in plain language</summary><div class="kv">
+      <div class="kv__row"><span class="kv__k">Point</span><span class="kv__v">One round, from the starting horn to its result.</span></div>
+      <div class="kv__row"><span class="kv__k">Match</span><span class="kv__v">A game against an opponent. In X-ball, a match contains multiple points.</span></div>
+      <div class="kv__row"><span class="kv__k">Breakout</span><span class="kv__v">The opening route each player runs at the start of a point.</span></div>
+      <div class="kv__row"><span class="kv__k">Bunker</span><span class="kv__v">The cover marked on your field map.</span></div>
+      <div class="kv__row"><span class="kv__k">Lane</span><span class="kv__v">A shooting line between positions on the field.</span></div>
+    </div></details>`, "Quick start");
+}
+
 function helpPage(){
   const here = S.helpFor;
   const order = Object.keys(HELP);
@@ -14778,6 +14796,7 @@ function helpPage(){
       ? `<div class="tip"><span class="grow">Help for the screen you came from.</span>
          <button onclick="set({helpFor:''})">Show all</button></div>` + helpCard(here)
       : "")
+    + (here && HELP[here] ? "" : coachQuickStart())
     + sec("Questions", `<div class="list">${HELP_Q.map(([q, a], i) => `
         <button class="list__row" onclick="set({helpQ: S.helpQ===${i} ? -1 : ${i}})">
           <span class="list__body"><span class="list__name">${esc(q)}</span>
@@ -14933,10 +14952,10 @@ const MORE_GROUPS=[
     ["matches","Matches","Every sheet you have kept"]]],
   ["Device",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
-    ["help","Help","What every screen does, and the usual questions"]]],
+    ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
-  ["Admin",[
-    ["nexus","Nexus","Admin and staff sign-in, backup and privacy"]]]
+  ["Account & backups",[
+    ["nexus","Nexus","Your account, cloud sharing, saved copies and privacy"]]]
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
@@ -15101,7 +15120,7 @@ function moreBody(k){
         the two is across the tape.</p>
       <p class="note">${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
       <p class="aid">Read off the league, not worked out here: <b>${esc(SCHEDULE.read)}</b>.
-        ${esc(SCHEDULE.covers)} The app makes no network calls, so it cannot refresh this — re-read it
+        ${esc(SCHEDULE.covers)} This schedule does not refresh automatically. Check it against the league's page
         nearer the event and paste or type anything that moved.</p>`,
       games.length + (games.length === 1 ? " game" : " games"))
     + days.map(d => sec(dayName(d), `<div class="assigns">${
@@ -15135,8 +15154,8 @@ function moreBody(k){
       <button class="btn btn--block" onclick="readSchedule()">Read it</button>
       <p class="note">It is best effort and it does not pretend otherwise: what it reads lands in the
         list above as ordinary rows, so anything it got wrong you take off with one tap.</p>
-      <p class="aid">Nothing is fetched. The app has no network at all — that is why it works on a
-        field with no bars — so a schedule gets in the way you just got it in: pasted, or typed.</p>`);
+      <p class="aid">Schedules are added by pasting or typing. Once saved on this device, they are available
+        at the field without a signal.</p>`);
   }
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
@@ -15237,7 +15256,7 @@ function moreBody(k){
     return sec("Team", editor, roster.length+(roster.length===1?" player":" players"))
     + sec("Squad code", `<p class="lede">Your squad's name for itself. It travels inside a squad copy, so a
       player pasting one on his own phone can see whether he is adding <b>your</b> team or somebody
-      else's. It cannot fetch anything — nothing in this app reaches a network.</p>
+      else's. The code labels a squad copy; it does not download or sync the squad.</p>
       <div class="joinrow"><div>
         <div class="joincode">${esc(squadCode())}</div>
         <p class="note">Read it out with the copy. Nexus → Save a copy is what actually moves the squad.</p>
@@ -15526,8 +15545,8 @@ function moreBody(k){
     // on the phone for the season. And the button said Send, in an app that
     // cannot send: a note is kept here and travels in a squad copy, nothing
     // goes to anyone's phone.
-    `<p class="lede">Notes for the squad. They stay on this phone and travel in a squad copy from Nexus —
-      nothing is sent anywhere, because nothing in this app reaches a network.</p>` +
+    `<p class="lede">Notes for the squad. Adding a note does not send a notification to your players.
+      Share the notes in a squad copy from Nexus. They are also included if you turn on League sync.</p>` +
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map((m,i)=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`

@@ -24,7 +24,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--t-md)/1.
 body{padding:0 max(16px,env(safe-area-inset-left)) 64px max(16px,env(safe-area-inset-right))}
 h1,h2,h3,p{margin:0}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-a{color:var(--accent-lit)}
+a{color:var(--mute)}
 .wrap{max-width:1080px;margin:0 auto}
 .hdr{position:sticky;top:0;z-index:5;background:#000;border-bottom:1px solid var(--line);
   padding:calc(env(safe-area-inset-top) + 14px) 0 12px;margin:0 calc(-1*max(16px,env(safe-area-inset-left))) var(--s5);
@@ -110,7 +110,7 @@ details.cloud[open] summary{color:var(--ink)}
 <body>
 <header class="hdr"><div class="wrap">
   <div class="brand">Gridlock<small>ADMIN · STAGING</small></div>
-  <span class="hdr__note"><a href="/">Back to Gridlock</a></span>
+  <span class="hdr__note"><a href="/">Open coach app</a></span>
 </div></header>
 
 <main class="wrap" id="root"></main>
@@ -257,13 +257,13 @@ function render(){
 }
 function accountSection(){
   if(mfaPending)return `<section class="sec panel admin-login"><h1>Verify your admin sign-in</h1><p class="lede" style="margin:12px 0">Use your authenticator app to finish signing in. Users and cloud seasons stay locked until verification.</p>${mfaPending.qr?`<img alt="Scan with your authenticator app" style="display:block;max-width:240px;width:100%;background:white" src="${esc(mfaPending.qr)}"><p class="note" style="overflow-wrap:anywhere;margin:12px 0">Setup key: <code>${esc(mfaPending.secret)}</code></p>`:""}${mfaPending.factorId?`<form id="adminMfa"><div class="fld"><label for="mfaCode">Six-digit authenticator code</label><input id="mfaCode" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></div><button class="btn" ${busy?"disabled":""}>Verify code</button></form>`:`<p class="note" style="margin:12px 0">Add this account to Microsoft Authenticator, Google Authenticator, or another authenticator app.</p><button class="btn" id="mfaEnroll" ${busy?"disabled":""}>Set up authenticator</button>`}<button class="btn btn--quiet" id="signOut" style="margin-top:16px">Cancel sign-in</button></section>`;
-  if(token)return `<section class="sec panel"><div class="row"><h2>Administration</h2><span class="badge">Staging</span><button class="btn btn--quiet" id="signOut" style="margin-left:auto">Sign out</button></div><p class="lede" style="margin-top:12px">Signed in as ${esc(caller?.email||"administrator")}. Only seasons coaches choose to sync are available here.</p></section>`;
+  if(token)return `<section class="sec panel"><div class="row"><h1 style="font-size:var(--t-xl)">Administration</h1><span class="badge">Staging</span><button class="btn btn--quiet" id="signOut" style="margin-left:auto">Sign out</button></div><p class="lede" style="margin-top:12px">Signed in as ${esc(caller?.email||"administrator")}. Only seasons coaches choose to sync are available here.</p><p class="note" style="margin-top:8px">Users manages account status and plan access. Seasons opens coaching reports from synced or imported season copies.</p></section>`;
   return `<section class="sec panel admin-login"><h1>Gridlock administration</h1><p class="lede" style="margin:12px 0 20px">Sign in with your approved Gridlock account to view users, manage plan access, and review uploaded seasons.</p><form id="adminSignIn"><div class="fld"><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="username" required></div><div class="fld"><label for="cloudPass">Password</label><input id="cloudPass" type="password" autocomplete="current-password" required></div><button class="btn" type="submit" ${busy?"disabled":""}>${busy?"Signing in…":"Sign in"}</button></form><p class="note" style="margin-top:12px">Use your Gridlock password. <a href="/">Reset a forgotten password in the app</a>. Signing out clears cloud records from this page.</p></section>`;
 }
 function usersSection(){
-  return `<section class="sec"><div class="sec__head"><h2>Users</h2><span class="sec__note">Page ${userPage} · ${users.length} shown</span></div><p class="lede" style="margin-bottom:16px">All features are currently unlocked during staging testing. Plan changes are saved to the selected account.</p><div class="user-list">${users.map((u,i)=>{
+  return `<section class="sec"><div class="sec__head"><h2>Users</h2><span class="sec__note">Page ${userPage} · ${users.length} shown</span></div><p class="lede" style="margin-bottom:16px">All coaching features are unlocked for beta testing. Saving a plan updates that account; it does not charge the tester or grant administrator access.</p><div class="user-list">${users.map((u,i)=>{
     const plan=["free","team","program"].includes(u.entitlement?.plan)?u.entitlement.plan:"free";
-    return `<article class="panel user-card"><div class="row"><h3>${esc(u.email||"No email address")}</h3><span class="badge">${u.email_confirmed_at?"Email confirmed":"Awaiting confirmation"}</span></div><div class="user-meta"><span>Created ${esc(dateText(u.created_at))}</span><span>Last sign-in ${esc(dateText(u.last_sign_in_at))}</span><span>Expires ${esc(u.entitlement?.expires_at?dateText(u.entitlement.expires_at):"No expiry")}</span></div><form class="plan-form" data-user-index="${i}"><div class="fld"><label for="plan-${i}">Plan</label><select id="plan-${i}" ${busy?"disabled":""}>${["free","team","program"].map(p=>`<option value="${p}" ${p===plan?"selected":""}>${p[0].toUpperCase()+p.slice(1)}</option>`).join("")}</select></div><div class="fld"><label for="expiry-${i}">Expires (optional, local time)</label><input id="expiry-${i}" type="datetime-local" value="${esc(localDate(u.entitlement?.expires_at))}" ${plan==="free"||busy?"disabled":""}></div><button class="btn btn--ghost" type="submit" ${busy?"disabled":""}>Save plan</button></form></article>`;
+    return `<article class="panel user-card"><div class="row"><h3>${esc(u.email||"No email address")}</h3><span class="badge">${u.email_confirmed_at?"Email confirmed":"Awaiting confirmation"}</span></div><div class="user-meta"><span>Created ${esc(dateText(u.created_at))}</span><span>Last sign-in ${esc(u.last_sign_in_at?dateText(u.last_sign_in_at):"Not signed in yet")}</span><span>Plan expiry ${esc(u.entitlement?.expires_at?dateText(u.entitlement.expires_at):"No expiry")}</span></div><form class="plan-form" data-user-index="${i}"><div class="fld"><label for="plan-${i}">Plan</label><select id="plan-${i}" ${busy?"disabled":""}>${["free","team","program"].map(p=>`<option value="${p}" ${p===plan?"selected":""}>${p[0].toUpperCase()+p.slice(1)}</option>`).join("")}</select></div><div class="fld"><label for="expiry-${i}">Expires (optional, local time)</label><input id="expiry-${i}" type="datetime-local" value="${esc(localDate(u.entitlement?.expires_at))}" ${plan==="free"||busy?"disabled":""}></div><button class="btn btn--ghost" type="submit" ${busy?"disabled":""}>Save plan</button></form></article>`;
   }).join("")||`<div class="empty">No users on this page.</div>`}</div><div class="section-actions"><button class="btn btn--quiet" id="usersPrev" ${userPage<=1||busy?"disabled":""}>Previous</button><button class="btn btn--quiet" id="usersNext" ${!userMore||busy?"disabled":""}>Next</button><button class="btn btn--quiet" id="usersRefresh" ${busy?"disabled":""}>Refresh users</button></div></section>`;
 }
 function sourceSection(){
@@ -272,7 +272,7 @@ function sourceSection(){
     ${token?`<div class="panel" style="margin-bottom:20px"><h3>Cloud-synced seasons</h3><p class="lede">${cloudSeasons.length} uploaded season${cloudSeasons.length===1?"":"s"} loaded. These records are held only while you are signed in. Coaches control uploads from League sync.</p><div class="section-actions"><button class="btn btn--ghost" id="cloudSeasons" ${busy?"disabled":""}>${seasonPage?"Refresh synced seasons":"Load synced seasons"}</button>${seasonMore?`<button class="btn btn--quiet" id="moreSeasons" ${busy?"disabled":""}>Load more seasons</button>`:""}</div>${seasonMore?`<p class="note" style="margin-top:12px">More seasons are available. The totals below cover loaded seasons only.</p>`:""}${cloudSeasons.length?`<div class="seasons">${cloudSeasons.map(s=>`<div class="season"><strong style="overflow-wrap:anywhere">${esc(s.label)}</strong><span class="season__meta">Updated ${esc(dateText(s.at))} · ${s.data.matches.length} matches</span><span class="badge">Cloud</span></div>`).join("")}</div>`:""}</div>`:""}
     <div class="drop" id="drop">
       <h3>Import season copies</h3>
-      <p class="lede">Each coach sends you their file from <b>Nexus &rsaquo; Save a copy</b>. Drop them in, or
+      <p class="lede">Each coach sends you their file from <b>More &rsaquo; Nexus &rsaquo; Save a copy</b>. Drop them in, or
         <label style="color:var(--accent-lit);cursor:pointer;text-decoration:underline">choose files<input type="file" id="file" accept="application/json,.json" multiple></label>.
         Imported files stay in this browser and remain available after sign-out.</p>
     </div>
@@ -289,16 +289,16 @@ function seasonRow(s){
 }
 function emptyState(){
   return `<div class="empty">Nothing loaded yet. Drop one or more season copies above to see the year across every coach —
-    matches, record, the breaks they called, penalties, and a breakdown by event and by team.</div>`;
+    matches, points won and lost, breakout calls, penalties, and a breakdown by event and by team.</div>`;
 }
 function dashboard(){
   const g = summarize(allSeasons());
   const pct = g.played ? Math.round(100 * g.wins / g.played) : 0;
   const tiles = [
-    ["Coaches", g.coaches, "seasons loaded"],
+    ["Season copies", g.coaches, "loaded from coaches"],
     ["Events", g.events, "fields played"],
     ["Matches", g.matches, "not counting games watched"],
-    ["Record", `<span class="win">${g.wins}</span><i>–</i><span class="loss">${g.losses}</span>`, g.played ? pct + "% of points won" : "no points scored yet"],
+    ["Point record", `<span class="win">${g.wins}</span><i>–</i><span class="loss">${g.losses}</span>`, g.played ? pct + "% of points won" : "no points scored yet"],
     ["Breaks logged", g.breaks, "calls charted"],
     ["Penalties", g.penalties, "recorded against a side"],
   ];
@@ -310,6 +310,7 @@ function dashboard(){
   return `
   <section class="sec">
     <div class="sec__head"><span class="sec__eyebrow">Loaded seasons</span></div>
+    <p class="lede" style="margin-bottom:16px">Each W–L figure below counts points won and lost. Games watched are excluded. Reports cover the season copies loaded on this page.</p>
     <div class="tiles">${tiles.map(([k,v,s]) => `<div class="tile"><div class="tile__k">${k}</div>
       <div class="tile__v">${v}</div><div class="tile__sub">${esc(s)}</div></div>`).join("")}</div>
   </section>
@@ -328,7 +329,7 @@ function dashboard(){
   <section class="sec">
     <div class="sec__head"><span class="sec__eyebrow">By event</span></div>
     <div class="tblwrap"><table>
-      <thead><tr><th>Event</th><th class="num">Matches</th><th class="num">Record</th><th class="num">Breaks</th><th class="num">Penalties</th></tr></thead>
+      <thead><tr><th>Event</th><th class="num">Matches</th><th class="num">Points W–L</th><th class="num">Breaks</th><th class="num">Penalties</th></tr></thead>
       <tbody>${eventRows.map(([k,e]) => `<tr><td>${esc(layoutName(k))}</td>
         <td class="num">${e.matches}</td>
         <td class="num"><span class="win">${e.wins}</span>–<span class="loss">${e.losses}</span></td>
@@ -337,9 +338,9 @@ function dashboard(){
   </section>
 
   <section class="sec">
-    <div class="sec__head"><span class="sec__eyebrow">Record by opponent</span></div>
+    <div class="sec__head"><span class="sec__eyebrow">Points by opponent</span></div>
     <div class="tblwrap"><table>
-      <thead><tr><th>Team</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Points</th></tr></thead>
+      <thead><tr><th>Team</th><th class="num">Points won</th><th class="num">Points lost</th><th class="num">Points played</th></tr></thead>
       <tbody>${teamRows.map(([name,t]) => `<tr><td>${esc(name)}</td>
         <td class="num win">${t.wins}</td><td class="num loss">${t.losses}</td>
         <td class="num">${t.wins+t.losses}</td></tr>`).join("") || `<tr><td colspan="4" class="note">No opponents recorded yet.</td></tr>`}</tbody>
@@ -349,7 +350,7 @@ function dashboard(){
   <section class="sec">
     <div class="sec__head"><span class="sec__eyebrow">By coach</span></div>
     <div class="tblwrap"><table>
-      <thead><tr><th>Coach / team</th><th class="num">Matches</th><th class="num">Record</th><th class="num">Breaks</th></tr></thead>
+      <thead><tr><th>Coach / team</th><th class="num">Matches</th><th class="num">Points W–L</th><th class="num">Breaks</th></tr></thead>
       <tbody>${g.byCoach.map(c => `<tr><td>${esc(c.label)}</td><td class="num">${c.matches}</td>
         <td class="num"><span class="win">${c.wins}</span>–<span class="loss">${c.losses}</span></td>
         <td class="num">${c.breaks}</td></tr>`).join("")}</tbody>
