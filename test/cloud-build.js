@@ -14,7 +14,7 @@ function check(name, cond, extra) {
   else { console.log("  FAIL  " + name + (extra ? "  — " + extra : "")); process.exitCode = 1; }
 }
 
-const CFG = { url: "https://demo-project.supabase.co", anonKey: "anon-public-key-xyz" };
+const CFG = { url: "https://demo-project.supabase.co", anonKey: "sb_publishable_abcdefghijklmnopqrstuvwxyz" };
 const OUT = path.resolve(__dirname, "..", "dist", "cloud-test");
 
 (async () => {

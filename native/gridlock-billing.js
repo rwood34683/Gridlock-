@@ -48,9 +48,16 @@
     var has = false, exp = 0, lifetime = false;
     CFG.entitlements.forEach(function (id) {
       var e = active[id];
-      if (e) {
+      if (e && typeof e === "object" && !Array.isArray(e)) {
+        // A malformed or already-expired date is not a lifetime grant. Only
+        // the store's explicit missing/null expiry means non-expiring access.
+        var expires = null;
+        if (e.expirationDate != null) {
+          expires = typeof e.expirationDate === "string" ? Date.parse(e.expirationDate) : NaN;
+          if (!Number.isFinite(expires) || expires <= Date.now()) return;
+        }
         has = true;
-        if (e.expirationDate) exp = Math.max(exp, Date.parse(e.expirationDate) || 0);
+        if (expires !== null) exp = Math.max(exp, expires);
         else lifetime = true;
       }
     });
@@ -125,3 +132,4 @@
 
   if (typeof module !== "undefined" && module.exports) module.exports = { api: api, fromInfo: fromInfo };
 })();
+
