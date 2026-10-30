@@ -15,6 +15,8 @@ function check(name, cond, extra) {
 }
 
 const MOCK = `
+// These store receipts belong to a fixed test season, independent of run date.
+Date.now = () => Date.parse("2026-09-01T00:00:00Z");
 window.__purchased = null; window.__cancel = false; window.__restoreActive = {};
 window.gridlockPurchases = {
   async getOfferings(){ return { current: { availablePackages: [
@@ -92,3 +94,4 @@ window.gridlockPurchases = {
     console.log(`\nBilling adapter: ${passed} checks passed.`);
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
+
