@@ -39,14 +39,16 @@
   var generation = 0, seasonVersion = 0;
   var loaded = false, currentSession = null, sessionText = null, refreshing = null;
   var seasonTail = Promise.resolve(), deleting = false;
+  var recoverySession = null, updatingPassword = false;
 
   function said(msg) { return { ok: false, said: msg }; }
   function cfg() { return CFG; }
   function cancelled() { return said("Your sign-in changed. Sign in again before sending or removing a season."); }
-  window.gridlockCloudConfigure = function (url, anonKey) {
+  window.gridlockCloudConfigure = function (url, anonKey, redirectTo) {
     ++generation;
+    recoverySession = null;
     if (CFG && (CFG.url !== url || CFG.anonKey !== anonKey)) writeSession(null);
-    CFG = { url: url, anonKey: anonKey };
+    CFG = { url: url, anonKey: anonKey, redirectTo: redirectTo };
     install();
   };
   function readSession() {
@@ -90,6 +92,45 @@
     return (body && (body.msg || body.error_description || body.error_message || body.error || body.message))
       || "That was refused by the server.";
   }
+  // Keep the callback on this build's exact screen; never forward credentials
+  // to a destination supplied by the email URL itself.
+  function redirectUrl() {
+    var c = cfg(), target = c && c.redirectTo;
+    var explicit = !!target;
+    if (!target && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+      target = "gridlock://auth/callback";
+    if (!target && window.location) target = window.location.href;
+    try {
+      var u = new URL(target);
+      if (u.username || u.password) return null;
+      if (explicit && (u.search || u.hash || /[\s\\]/.test(target))) return null;
+      if (u.protocol !== "https:" && !(u.protocol === "http:" && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) &&
+          !(/^(gridlock|grindx|lockdown):$/.test(u.protocol) && u.host === "auth" && u.pathname === "/callback")) return null;
+      u.search = ""; u.hash = "";
+      return u.href;
+    } catch (e) { return null; }
+  }
+  function authPath(path) {
+    var redirect = redirectUrl();
+    return path + (redirect ? "?redirect_to=" + encodeURIComponent(redirect) : "");
+  }
+  function authUrl(raw) {
+    try {
+      var u = new URL(raw), target = redirectUrl();
+      if (!target || u.username || u.password) return null;
+      var base = new URL(u.href); base.hash = ""; base.search = "";
+      if (base.href !== target) return null;
+      var p = new URLSearchParams(u.hash.slice(1));
+      if (!p.has("access_token") && !p.has("error") && !p.has("error_code")) return null;
+      return { url: u, params: p };
+    } catch (e) { return null; }
+  }
+  function clearAuthFragment(u) {
+    try {
+      if (window.location && window.location.href === u.href && window.history)
+        window.history.replaceState(null, "", u.pathname + u.search);
+    } catch (e) {}
+  }
   async function call(path, opts, token) {
     var c = cfg();
     if (!c || !c.url || !c.anonKey) return { net: false };
@@ -125,6 +166,10 @@
         if (!ns.user || ns.user.id !== s.user.id || !writeSession(ns)) return null;
         return ns.access_token;
       }
+      if (r.net && [400, 401, 403].includes(r.status)) {
+        ++generation; writeSession(null);
+        return null;
+      }
       // Offline: the old token may still work, but only for the same session.
       return s.access_token;
     })();
@@ -133,7 +178,7 @@
     try { return await work; }
     finally { if (refreshing === entry) refreshing = null; }
   }
-  function beginAuth() { ++generation; writeSession(null); return generation; }
+  function beginAuth() { ++generation; recoverySession = null; writeSession(null); return generation; }
   function queueSeason(work) {
     var pending = seasonTail.then(work);
     seasonTail = pending.catch(function () {});
@@ -142,18 +187,22 @@
   var api = {
     async signUp(email, pass) {
       var g = beginAuth();
-      var r = await call("/auth/v1/signup", { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
+      var r = await call(authPath("/auth/v1/signup"), { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
+      readSession();
       if (g !== generation) return cancelled();
       if (!r.net) return OFFLINE;
       if (!r.ok) return said(authError(r.body));
-      if (r.body && r.body.access_token && !writeSession(sessionFrom(r.body)))
-        return said("This phone could not save your sign-in. Free some space and sign in again.");
       var u = (r.body && (r.body.user || r.body)) || {};
+      if (!u.id || typeof u.email !== "string") return said("The server did not return an account. Please try again.");
+      if (!r.body.access_token) return { ok: true, pendingConfirmation: true };
+      if (!writeSession(sessionFrom(r.body)))
+        return said("This phone could not save your sign-in. Free some space and sign in again.");
       return { ok: true, user: { id: u.id, email: u.email } };
     },
     async signIn(email, pass) {
       var g = beginAuth();
       var r = await call("/auth/v1/token?grant_type=password", { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
+      readSession();
       if (g !== generation) return cancelled();
       if (!r.net) return OFFLINE;
       if (!r.ok) return said(authError(r.body));
@@ -164,13 +213,57 @@
       return { ok: true, user: s.user };
     },
     async sendReset(email) {
-      var r = await call("/auth/v1/recover", { method: "POST", body: JSON.stringify({ email: email }) });
+      var r = await call(authPath("/auth/v1/recover"), { method: "POST", body: JSON.stringify({ email: email }) });
       if (!r.net) return OFFLINE;
       return r.ok ? { ok: true } : said(authError(r.body));
+    },
+    isAuthUrl(raw) { return !!authUrl(raw); },
+    async handleAuthUrl(raw) {
+      var link = authUrl(raw);
+      if (!link) return null;
+      clearAuthFragment(link.url); // remove bearer tokens before any await or redraw
+      var g = beginAuth(), p = link.params;
+      if (p.has("error") || p.has("error_code")) return said("That email link has expired or was refused. Ask for a new one.");
+      var type = p.get("type"), access = p.get("access_token"), refresh = p.get("refresh_token");
+      if (!["signup", "recovery", "invite"].includes(type) || !access || !refresh)
+        return said("That email link is incomplete. Ask for a new one.");
+      // An email, ID or expiry embedded in the link is not proof of identity.
+      var r = await call("/auth/v1/user", {}, access);
+      readSession();
+      if (g !== generation) return cancelled();
+      if (!r.net) return said("The account server could not be reached. Open the email link again when you are online.");
+      if (!r.ok || !r.body || typeof r.body.id !== "string" || typeof r.body.email !== "string")
+        return said("That email link has expired or was refused. Ask for a new one.");
+      var seconds = Number(p.get("expires_in"));
+      if (!Number.isFinite(seconds) || seconds <= 0) seconds = 3600;
+      var s = sessionFrom({access_token: access, refresh_token: refresh, expires_in: Math.min(seconds, 3600), user: r.body});
+      if (type === "signup") return { ok: true, confirmed: true, user: s.user };
+      recoverySession = s;
+      return { ok: true, recovery: true, user: s.user };
+    },
+    cancelRecovery() { ++generation; recoverySession = null; },
+    async updatePassword(pass) {
+      if (updatingPassword) return said("Your password is already being saved.");
+      var s = recoverySession, g = generation;
+      if (!s || Date.now() >= s.expires_at) { recoverySession = null; return said("Open a fresh password-reset link from your email first."); }
+      if (typeof pass !== "string" || pass.length < 6) return said("Use a password of six characters or more.");
+      updatingPassword = true;
+      try {
+        var r = await call("/auth/v1/user", { method: "PUT", body: JSON.stringify({password: pass}) }, s.access_token);
+        readSession();
+        if (g !== generation || recoverySession !== s) return cancelled();
+        if (!r.net) return OFFLINE;
+        if (!r.ok) return said(authError(r.body));
+        if (!r.body || r.body.id !== s.user.id) return said("The server did not confirm your password change. Sign in to check it.");
+        recoverySession = null;
+        if (!writeSession(s)) return said("Your password was changed, but this phone could not save your sign-in. Sign in with the new password.");
+        return { ok: true, user: s.user };
+      } finally { updatingPassword = false; }
     },
     signOut() {
       var s = readSession();
       ++generation; ++seasonVersion;
+      recoverySession = null;
       writeSession(null);                       // invalidate before any asynchronous work
       if (s && s.access_token) call("/auth/v1/logout", { method: "POST" }, s.access_token).catch(function () {});
     },

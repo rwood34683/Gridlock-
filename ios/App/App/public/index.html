@@ -5350,13 +5350,16 @@ function copyDataError(data){
       num:v => str(v)||num(v), plant:strings})),
       // A logged break may carry the five bunkers they were seen at. That list
       // is the one non-scalar on the row; a copy with it in was being refused.
-      breaks:list(v => record(v, {plants:list(str)}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
+      breaks:list(v => record(v, {plants:list(str), at:num, pt:num}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
       answers:strings})),
     teams:map(list(nameRow)),
     playGone:strings,
     left:v => row(v) && (v.name === undefined || str(v.name)),
     right:v => row(v) && (v.name === undefined || str(v.name)),
-    tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
+    tally:list(v => str(v) || row(v) && record(v, {pt:num, at:num})),
+    calls:list(v => row(v) && record(v, {pt:num, at:num})),
+    moves:list(v => row(v) && record(v, {pt:num, at:num})),
+    assessments:list(v => row(v) && record(v, {pt:num, at:num, score:v => Number.isInteger(v) && v >= 1 && v <= 5})),
     // A breakout is the one row with a list in it — the route he ran, up to
     // five points in feet. Everything else on it is a scalar.
     breakouts:list(v => record(v, {route:list(p => row(p) && num(p.x) && num(p.y))})
@@ -9269,7 +9272,7 @@ function promo(){
       <div class="promo__name">${logoMark()}</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
-    ${S.mode === "create" || S.mode === "login" ? "" : `
+    ${["create", "login", "recovery"].includes(S.mode) ? "" : `
     <div style="display:flex;flex-direction:column;gap:12px">
       <p class="promo__tag">Call the break.<br/>Chart the point.<br/>Know what worked.</p>
       <ul class="promo__does">
@@ -9282,7 +9285,7 @@ function promo(){
            Appended below, it sat under three buttons and the footer — off the
            fold on a phone, with six buttons and two ways to do one thing all
            on screen at once. One screen, one job. */""}
-    ${S.mode === "create" || S.mode === "login" ? authForm() + `
+    ${["create", "login", "recovery"].includes(S.mode) ? authForm() + `
       <p class="note">Gridlock System · powered by UPRA</p>
     </div>` : `
     <div class="stack">
@@ -9319,6 +9322,7 @@ function hasAccount(){
   return !!(a.email || a.sub);
 }
 function authForm(){
+  if(S.mode === "recovery") return recoveryForm();
   if(S.mode!=="create" && S.mode!=="login") return "";
   const make = S.mode === "create";
   // A real form with the fields the phone looks for, so iOS and Android offer
@@ -9344,13 +9348,15 @@ function authForm(){
     <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
       <button type="submit" class="btn grow">${make?"Create account":"Sign in"}</button>
-      <button type="button" class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
+      <button type="button" class="btn btn--ghost" onclick="chooseAuth(null)">Back</button>
     </div>
-    <button type="button" class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
+    <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('${make?"login":"create"}')">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     ${window.gridlockCloud && !make
       ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
-    <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
+    <p class="note">${window.gridlockCloud
+      ? "Your password is checked by the account server. A salted hash is also kept on this phone for sign-in without a signal."
+      : "Kept on this phone only, salted and hashed. There is no server to send it to."}</p>
   </form>`;
 }
 // The staff password never touches storage in the clear. It is salted and
@@ -9358,7 +9364,72 @@ function authForm(){
 // shared or stolen phone does not hand over the password itself.
 const STAFF_KEY = "gridlock.staff.v2";
 let _authAttempt = 0;
+let _recoveryUser = null, _recoveryBusy = false;
 const ACCOUNT_SAVE_SAID = "This phone could not save your sign-in. Free some space, then try again. Your season has not been removed.";
+window.chooseAuth = mode => {
+  ++_authAttempt; _recoveryUser = null; _recoveryBusy = false;
+  try{ if(window.gridlockCloud && window.gridlockCloud.cancelRecovery) window.gridlockCloud.cancelRecovery(); }catch(e){}
+  set({mode, authSaid:""});
+};
+function recoveryForm(){
+  return `<form class="panel" method="post" action="#" novalidate onsubmit="event.preventDefault();completePasswordReset()">
+    <h3 class="panel__title">Choose a new password</h3>
+    <p class="note">${_recoveryUser ? "Set the password for your account. Your season stays on this phone." : "Open a fresh password link from your email before setting a password."}</p>
+    ${S.authSaid ? `<p class="warn" role="status">${esc(S.authSaid)}</p>` : ""}
+    ${_recoveryUser ? `<div class="fld"><label for="newpw">New password</label><input id="newpw" name="new-password" type="password" autocomplete="new-password" minlength="6"/></div>
+    <div class="fld"><label for="confirmpw">Confirm password</label><input id="confirmpw" name="confirm-password" type="password" autocomplete="new-password" minlength="6"/></div>
+    <button type="submit" class="btn btn--block" ${_recoveryBusy ? "disabled" : ""}>${_recoveryBusy ? "Saving…" : "Save password"}</button>` : ""}
+    <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('login')">Back to sign in</button>
+  </form>`;
+}
+window.gridlockHandleAuthUrl = async raw => {
+  const cloud = window.gridlockCloud;
+  if(!cloud || !cloud.handleAuthUrl || !cloud.isAuthUrl || !cloud.isAuthUrl(raw)) return false;
+  const attempt = ++_authAttempt;
+  ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
+  set({entered:false, role:"guest", email:"", joinOnly:false, mode:"login", authSaid:"Checking your email link…"});
+  let r;
+  try{ r = await cloud.handleAuthUrl(raw); }
+  catch(e){ r = {ok:false, said:"That link could not be checked. Open it again with a signal, or request a new link."}; }
+  if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return true;
+  if(r && r.ok && r.recovery && r.user && r.user.id && r.user.email){
+    _recoveryUser = {id:r.user.id, email:r.user.email};
+    set({mode:"recovery", authSaid:""});
+  }else{
+    set({mode:"login", authSaid:r && r.ok && r.confirmed
+      ? "Your email is confirmed. Sign in to continue."
+      : (r && r.said) || "That link is no longer usable. Request a new password link, then open the newest email."});
+  }
+  return true;
+};
+window.completePasswordReset = async () => {
+  const cloud = window.gridlockCloud, user = _recoveryUser;
+  if(_recoveryBusy) return;
+  if(!user || !cloud || !cloud.updatePassword) return set({authSaid:"Open a fresh password link from your email first."});
+  const pass = (document.getElementById("newpw") || {}).value || "";
+  const again = (document.getElementById("confirmpw") || {}).value || "";
+  if(pass.length < 6) return set({authSaid:"Use a password of six characters or more."});
+  if(pass !== again) return set({authSaid:"The two passwords do not match. Type them again."});
+  const attempt = ++_authAttempt;
+  _recoveryBusy = true; set({authSaid:"Saving your password…"});
+  try{
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    const r = await cloud.updatePassword(pass);
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    if(!r || !r.ok){ _recoveryBusy = false; return set({authSaid:(r && r.said) || "The password was not saved. Try again with a signal."}); }
+    _recoveryUser = null; _recoveryBusy = false;
+    if(!writeAccount({email:user.email, salt, hash, cloud:true, uid:user.id})){
+      try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+      if(attempt !== _authAttempt) return;
+      return set({mode:"login", authSaid:ACCOUNT_SAVE_SAID + " Your new password was accepted; sign in with it when you retry."});
+    }
+    dropLegacyAccount();
+    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+  }catch(e){
+    if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
+  }
+};
 function accountRecord(text, legacy = false){
   let a;
   try{ a = JSON.parse(text); }catch(e){ return {}; }
@@ -9524,17 +9595,19 @@ window.sendReset = async () => {
   const say = m => set({authSaid: m});
   if(!cloud || !cloud.sendReset) return say("There is no account server on this build to reset from.");
   if(!email) return say("Type the email first, then ask for the link.");
+  const attempt = ++_authAttempt;
   say("Sending…");
   try{
     const r = await cloud.sendReset(email);
-    say(r && r.ok ? "Check that inbox — the link is good for an hour."
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    say(r && r.ok ? "Check that inbox for the newest password link. If it has expired, ask for another."
                   : (r && r.said) || "That could not be sent. Nothing has changed.");
-  }catch(e){ say("The account server could not be reached. Nothing has changed."); }
+  }catch(e){ if(attempt === _authAttempt) say("The account server could not be reached. Nothing has changed."); }
 };
 
 window.doAuth = async () => {
-  const email = document.getElementById("em").value.trim();
-  const pass = document.getElementById("pw").value;
+  const email = ((document.getElementById("em") || {}).value || "").trim();
+  const pass = (document.getElementById("pw") || {}).value || "";
   // The redraw that shows a refusal rebuilt the box empty, so a coach who
   // mistyped his password typed his email again too. The email stays; the
   // password is his to type again.
@@ -9546,6 +9619,7 @@ window.doAuth = async () => {
   const attempt = ++_authAttempt, creating = S.mode === "create";
   ++_syncEpoch; S.syncOn = false;
   const acc = readAccount();
+  try{
 
   /* The server first where there is one, and the phone whenever it cannot be
      reached. A successful cloud sign-in writes the local account too, so the
@@ -9558,11 +9632,16 @@ window.doAuth = async () => {
       r = creating ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
     }catch(e){ r = {offline: true}; }
     if(attempt !== _authAttempt) return;
+    if(r && r.ok && r.pendingConfirmation){
+      S.mode = "login";
+      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation.");
+    }
     if(r && r.ok){
       const salt = newSalt(), hash = await hashPass(pass, salt);
       if(attempt !== _authAttempt) return;
       if(!writeAccount({email, salt, hash, cloud: true, uid: (r.user && r.user.id) || ""})){
         try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+        if(attempt !== _authAttempt) return;
         return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
       }
       dropLegacyAccount();
@@ -9571,6 +9650,7 @@ window.doAuth = async () => {
     // A refusal is his to see. A network failure is not, and must never be the
     // reason a coach cannot get into his own app between points.
     if(r && !r.offline) return say(r.said || "That was refused by the account server.");
+    if(creating) return say("The account server could not be reached. Connect to the internet, then create your account again.");
     S.authSaid = "";
   }
 
@@ -9615,6 +9695,8 @@ window.doAuth = async () => {
   if(acc.kind === "apple")
     return say("This phone signs in with Apple. Use the Sign in with Apple button rather than a "
              + "password — there is no password on this account to get wrong.");
+  if(!acc.email && !old.email && window.gridlockCloud)
+    return say("This phone has no saved sign-in and the account server could not be reached. Connect to the internet, then sign in again.");
   if(!acc.email && !old.email)
     return say("This phone has never had an account on it. There is no server to look yours up on — "
              + "make one here with the same email. Nothing you have logged is kept inside an account, "
@@ -9629,6 +9711,11 @@ window.doAuth = async () => {
     : "That password does not match. There is nowhere to reset it from, because nothing about the "
       + "account leaves this phone. Making a new account with the same email replaces the password "
       + "and leaves your season exactly where it is.");
+  }catch(e){
+    if(attempt !== _authAttempt) return;
+    try{ if(window.gridlockCloud && window.gridlockCloud.signOut) await window.gridlockCloud.signOut(); }catch(ignore){}
+    if(attempt === _authAttempt) say("This phone could not securely save or check your sign-in. Try again. Your season has not been removed.");
+  }
 };
 
 /* ============================================================
@@ -9661,6 +9748,7 @@ function queueSeasonPush(t){
 }
 window.staffSignOut = () => {
   ++_authAttempt; ++_syncEpoch;
+  _recoveryUser = null; _recoveryBusy = false;
   S.syncOn = false;                            // pause before save can auto-send
   const cloud = window.gridlockCloud;
   try{ if(cloud && cloud.signOut) Promise.resolve(cloud.signOut()).catch(() => {}); }catch(e){}
@@ -13343,8 +13431,8 @@ function scoutBreakouts(){
       ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
     </div>
     ${(lastFive => lastFive && !fixing && !picked.length ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${lastFive.script ? esc(callName(lastFive.script)) + " · " : ""}${lastFive.pt ? `point ${lastFive.pt}` : "season"}${lastFive.plants ? ` · ${lastFive.plants.map(id => esc(label(id))).join(", ")}` : ""}</b>.</p>
-        ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${lastFive.at})">Fix it</button>` : ""}
-        <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${lastFive.at})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
+        ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${Number.isFinite(lastFive.at) ? lastFive.at : "null"})">Fix it</button>` : ""}
+        <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${Number.isFinite(lastFive.at) ? lastFive.at : "null"})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
     <p class="note" role="status">${picked.length
       ? fixing ? `${picked.length} placed. Save the five when it is right.` : `${picked.length} of ${sideSize()} placed. Log the five on their own, or tap a named call below to log it with them.`
       : `Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.`}</p>
@@ -13386,10 +13474,10 @@ function scoutBreakouts(){
       : `<div class="empty">Nothing logged on ${esc(R.name)} yet. Tap their call above the moment you read it.</div>`,
       total?total+" seen":"")
   + (seen.length?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
-        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt || "·"}</span>
+        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc(b.pt || "·")}</span>
         <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
-        <span class="assign__who">${b.pt ? `point ${b.pt}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
-        ${b.plants && b.plants.length && (!b.layout || b.layout === S.layoutKey) ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${b.at})">Fix</button>` : ""}
+        <span class="assign__who">${b.pt ? `point ${esc(b.pt)}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
+        ${b.plants && b.plants.length && (!b.layout || b.layout === S.layoutKey) ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${Number.isFinite(b.at) ? b.at : "null"})">Fix</button>` : ""}
         <button class="btn btn--danger" onclick="unlogTheirBreak('${side}',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
@@ -14664,8 +14752,10 @@ window.restorePlan = async () => {
   set({billingSaid: "Asking the store what you own…"});
   try{
     const got = await b.restore();
-    if(got && got.plan && got.plan !== "free"){ window.gridlockEntitle(got); set({billingSaid: ""}); }
-    else set({billingSaid: "The store has no purchase on this Apple ID. If you bought on another account, sign in with that one."});
+    if(got && got.plan && Object.prototype.hasOwnProperty.call(PLANS, got.plan)){
+      window.gridlockEntitle(got);
+      set({billingSaid:got.plan === "free" ? "The store has no active purchase on this account. If you bought on another account, sign in with that one." : ""});
+    } else set({billingSaid: "The store did not confirm your purchases. Try Restore again with a signal."});
   }catch(err){ set({billingSaid: "The store could not be reached. Nothing has changed."}); }
 };
 
@@ -15183,7 +15273,7 @@ function moreBody(k){
     const all=S.assessments||[];
     const here=rowsHere(all);
     const pt=sheetPoint(), on=sideMen(pt).map(p=>p.name), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
-    const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${g.score}`:""}</button>`; };
+    const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${esc(g.score)}`:""}</button>`; };
     const names=[...new Set(all.map(a=>a.who))];
     const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
     const ready=!!(S.asWho&&S.asScore);
@@ -15207,9 +15297,9 @@ function moreBody(k){
     // number, so it is this match's.
     + (here.length?sec("Grades", `<div class="assigns">
         ${here.slice(0,30).map(a=>`<div class="assign">
-          <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${a.score}</span>
+          <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${esc(a.score)}</span>
           <span class="assign__body"><span class="assign__job">${esc(a.who)}</span>
-          <span class="assign__who">Point ${a.pt}${a.note?" · "+esc(a.note):""}</span></span>
+          <span class="assign__who">Point ${esc(a.pt)}${a.note?" · "+esc(a.note):""}</span></span>
           <button class="btn btn--danger" onclick="undoAssess(${(S.assessments||[]).indexOf(a)})">Undo</button>
         </div>`).join("")}</div>`, matchLabel(curMatch()))
       : sec("Grades", `<div class="empty">No grades on this sheet yet.</div>`));
@@ -15823,6 +15913,9 @@ function render(){
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
 }
 render();
+if(S.mode === "recovery"){ S.mode = "login"; render(); }
+if(window.gridlockCloud && window.gridlockCloud.isAuthUrl && window.gridlockCloud.isAuthUrl(location.href))
+  window.gridlockHandleAuthUrl(location.href);
 </script>
 <script src="native.js"></script>
 <script src="offline.js"></script>

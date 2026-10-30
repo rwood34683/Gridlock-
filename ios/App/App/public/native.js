@@ -205,15 +205,23 @@
     var m = /(?:class\/|[?&]c=)([A-Za-z0-9-]+)/.exec(url);
     return m ? m[1].toUpperCase() : null;
   }
+  function openAppUrl(url) {
+    var cloud = window.gridlockCloud;
+    if (cloud && cloud.isAuthUrl && cloud.isAuthUrl(url) && window.gridlockHandleAuthUrl) {
+      Promise.resolve(window.gridlockHandleAuthUrl(url)).catch(function () {});
+      return;
+    }
+    openJoinCode(codeFromUrl(url));
+  }
 
   if (P.App) {
     // appUrlOpen covers a running app. A link that launches a stopped app is
     // delivered separately, and otherwise its class code never reaches the UI.
     if (P.App.getLaunchUrl) P.App.getLaunchUrl().then(function (event) {
-      openJoinCode(codeFromUrl(event && event.url));
+      openAppUrl(event && event.url);
     }).catch(function () {});
     P.App.addListener("appUrlOpen", function (event) {
-      openJoinCode(codeFromUrl(event && event.url));
+      openAppUrl(event && event.url);
     });
 
     /* Backgrounding is the last moment anything here is guaranteed to run, and
@@ -230,7 +238,7 @@
         P.App.exitApp();
         return;
       }
-      if (S.mode) return window.set({ mode: null });
+      if (S.mode) return window.chooseAuth ? window.chooseAuth(null) : window.set({ mode: null });
       if (S.pbView) return window.set({ pbView: null });
       if (S.pad) return window.set({ pad: null });
       if (S.tab === "more" && S.more) return window.set({ more: null });
@@ -239,3 +247,4 @@
     });
   }
 })();
+

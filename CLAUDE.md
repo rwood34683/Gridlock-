@@ -2438,3 +2438,24 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   responses; deletion cancels queued uploads, waits for dispatched uploads, and
   needs an authenticated server success. Failed removal keeps a visible retry.
   `test/account-sync.js` and `test/cloud-session.js` hold these failure cases.
+
+- Treat a confirmation-required signup as a completed sign-in. Wait for a real
+  session; confirm-email links return to sign-in. Recovery and invitation links
+  must be checked by the account server before showing the new-password form.
+  Keep recovery credentials only in the adapter's memory, remove them from the
+  address bar immediately, and cancel pending results on navigation or sign-out.
+  Web, cold native launches and running native apps use the same callback UI.
+  `test/cloud-recovery.js`, `test/account-recovery.js` and `test/auth-native.js`
+  exercise these paths without sending real emails.
+- Trust imported scalar values as HTML or executable handler arguments. Grades,
+  point numbers and timestamps are typed at the copy boundary, displayed text
+  is escaped, and handler numbers are normalized. A valid free-plan restore
+  replaces an old paid cache just as a paid restore does. Malformed or expired
+  store expiration dates never mean lifetime access; only a missing/null expiry
+  does. `test/billing-security.js` pins those cases.
+- Let a cloud build accept a secret/service-role key, overwrite source folders,
+  or reuse an offline cache after its adapter or public configuration changed.
+  Accept public keys only, restrict cloud output to a child of dist, and hash
+  the complete public bundle. Email callbacks require the exact deployed URL
+  in Supabase's redirect allowlist; see docs/CLOUD-AUTH-SETUP.md.
+

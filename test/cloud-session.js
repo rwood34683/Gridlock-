@@ -136,6 +136,12 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
     assert.equal((await s.api.signIn("old@example.test", "password")).ok, false);
     assert.equal(s.api.session(), null);
   });
+  await check("a revoked refresh token clears the session instead of sending stale credentials", async () => {
+    const s = setup(() => response({msg: "Refresh token revoked"}, 400), true);
+    assert.equal((await s.api.pushSeason("test", {})).ok, false);
+    assert.equal(s.api.session(), null); assert.equal(s.data.has(KEY), false);
+    assert.equal(s.requests.filter(r => r.url.includes("/rest/")).length, 0);
+  });
   await check("malformed stored sessions are treated as signed out", async () => {
     for (const value of ["null", "[]", "true", '"text"', '{"user":null}', '{"access_token":{},"user":{"id":"x"}}']) {
       const s = setup(() => response()); s.data.set(KEY, value);
