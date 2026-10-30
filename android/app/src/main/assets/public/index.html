@@ -9365,8 +9365,45 @@ function authForm(){
 const STAFF_KEY = "gridlock.staff.v2";
 let _authAttempt = 0;
 let _recoveryUser = null, _recoveryBusy = false;
+// Server account grants are separate from store purchases. They stay in memory
+// and can only supplement the same verified account, never a later sign-in.
+let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
+function clearAccountGrant(){ ++_grantAttempt; _accountGrant = null; _grantSaid = ""; }
+function accountGrantPlan(){
+  const g = _accountGrant, cloud = window.gridlockCloud, acc = readAccount();
+  let session = null;
+  try{ session = cloud && cloud.session && cloud.session(); }catch(e){}
+  if(!g || !S.entered || !acc.cloud || !acc.uid || acc.uid !== g.uid ||
+     cloud !== g.cloud || !session || !session.user || session.user.id !== g.uid ||
+     String(S.email).toLowerCase() !== String(acc.email).toLowerCase() ||
+     (g.exp && Date.now() >= g.exp)) return "free";
+  return Object.prototype.hasOwnProperty.call(PLANS, g.plan) ? g.plan : "free";
+}
+async function refreshAccountGrant(cloud = window.gridlockCloud, authAttempt = _authAttempt){
+  clearAccountGrant();
+  const acc = readAccount(), ticket = _grantAttempt;
+  if(!cloud || !cloud.getEntitlement || !S.entered || !acc.cloud || !acc.uid) return;
+  const uid = acc.uid, email = S.email;
+  const same = () => ticket === _grantAttempt && authAttempt === _authAttempt &&
+    cloud === window.gridlockCloud && S.entered && S.email === email && readAccount().uid === uid;
+  _grantSaid = "Checking account access…";
+  try{
+    const r = await cloud.getEntitlement();
+    if(!same()) return;
+    const e = r && r.entitlement;
+    if(r && r.ok && r.user && r.user.id === uid && e &&
+       Object.prototype.hasOwnProperty.call(PLANS, e.plan) && Number.isFinite(e.exp) && e.exp >= 0 &&
+       (!e.exp || e.exp > Date.now())){
+      _accountGrant = {uid, cloud, plan:e.plan, exp:e.exp};
+      _grantSaid = "Account access checked. " + PLAN_NAME[e.plan] + ".";
+    }else _grantSaid = "Account access could not be confirmed. Try again with a signal.";
+  }catch(e){ if(same()) _grantSaid = "Account access could not be checked. Try again with a signal."; }
+  if(same() && S.tab === "more" && S.more === "plan") render();
+}
+window.refreshAccountAccess = () => refreshAccountGrant();
 const ACCOUNT_SAVE_SAID = "This phone could not save your sign-in. Free some space, then try again. Your season has not been removed.";
 window.chooseAuth = mode => {
+  clearAccountGrant();
   ++_authAttempt; _recoveryUser = null; _recoveryBusy = false;
   try{ if(window.gridlockCloud && window.gridlockCloud.cancelRecovery) window.gridlockCloud.cancelRecovery(); }catch(e){}
   set({mode, authSaid:""});
@@ -9386,6 +9423,7 @@ window.gridlockHandleAuthUrl = async raw => {
   const cloud = window.gridlockCloud;
   if(!cloud || !cloud.handleAuthUrl || !cloud.isAuthUrl || !cloud.isAuthUrl(raw)) return false;
   const attempt = ++_authAttempt;
+  clearAccountGrant();
   ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
   set({entered:false, role:"guest", email:"", joinOnly:false, mode:"login", authSaid:"Checking your email link…"});
   let r;
@@ -9426,6 +9464,7 @@ window.completePasswordReset = async () => {
     }
     dropLegacyAccount();
     set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+    refreshAccountGrant(cloud, attempt);
   }catch(e){
     if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
   }
@@ -9505,6 +9544,7 @@ window.appleSignIn = async () => {
   const a = window.gridlockApple;
   if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
   const attempt = ++_authAttempt;
+  clearAccountGrant();
   ++_syncEpoch; S.syncOn = false;
   set({authSaid: "Asking Apple…"});
   try{
@@ -9617,6 +9657,7 @@ window.doAuth = async () => {
     return say("This address is not a secure one, so the phone will not hash a password here. "
              + "Use the installed app, or open this on the same machine at localhost.");
   const attempt = ++_authAttempt, creating = S.mode === "create";
+  clearAccountGrant();
   ++_syncEpoch; S.syncOn = false;
   const acc = readAccount();
   try{
@@ -9645,7 +9686,9 @@ window.doAuth = async () => {
         return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
       }
       dropLegacyAccount();
-      return set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      refreshAccountGrant(cloud, attempt);
+      return;
     }
     // A refusal is his to see. A network failure is not, and must never be the
     // reason a coach cannot get into his own app between points.
@@ -9748,6 +9791,7 @@ function queueSeasonPush(t){
 }
 window.staffSignOut = () => {
   ++_authAttempt; ++_syncEpoch;
+  clearAccountGrant();
   _recoveryUser = null; _recoveryBusy = false;
   S.syncOn = false;                            // pause before save can auto-send
   const cloud = window.gridlockCloud;
@@ -14596,6 +14640,10 @@ function planPage(){
         : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
     </div>
     ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, billingLive() ? "" : "not selling yet")
+  + (window.gridlockCloud && window.gridlockCloud.getEntitlement && readAccount().cloud ? sec("Account access", `
+    <p class="note">Access granted to your account is checked when you sign in online. Store purchases stay separate.</p>
+    ${_grantSaid ? `<p class="note" role="status">${esc(_grantSaid)}</p>` : ""}
+    <button class="btn btn--quiet btn--block" onclick="refreshAccountAccess()">Refresh account access</button>`) : "")
   + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire and it does
       not need a signal.</p>
     <div class="kv">
@@ -14712,8 +14760,9 @@ function planOf(){
   if(!billingLive()) return S.preview ? "free" : "program";
   const p = ((S.billing || {}).plan) || "free";
   const exp = (S.billing || {}).exp || 0;
-  if(exp && Date.now() > exp) return "free";
-  return PLANS[p] === undefined ? "free" : p;
+  const storePlan = (exp && Date.now() > exp) || !Object.prototype.hasOwnProperty.call(PLANS, p) ? "free" : p;
+  const accountPlan = accountGrantPlan();
+  return PLANS[accountPlan] > PLANS[storePlan] ? accountPlan : storePlan;
 }
 function entitled(need){ return PLANS[planOf()] >= (PLANS[need] || 0); }
 function gateFor(key){ const need = PAID[key]; return need && !entitled(need) ? need : null; }
@@ -15916,6 +15965,7 @@ render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }
 if(window.gridlockCloud && window.gridlockCloud.isAuthUrl && window.gridlockCloud.isAuthUrl(location.href))
   window.gridlockHandleAuthUrl(location.href);
+else if(S.entered) refreshAccountGrant();
 </script>
 <script src="native.js"></script>
 <script src="offline.js"></script>

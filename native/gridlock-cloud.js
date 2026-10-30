@@ -25,6 +25,7 @@
  *     sendReset(email)           -> {ok, said, offline}
  *     signOut()                  -> void
  *     session()                  -> {user} | null
+ *     getEntitlement()           -> {ok, user, entitlement, said, offline}
  *     pushSeason(label, payload) -> {ok, said, offline}   // opt-in League sync
  *     deleteSeason()             -> {ok, said, offline}
  *
@@ -91,6 +92,15 @@
   function authError(body) {
     return (body && (body.msg || body.error_description || body.error_message || body.error || body.message))
       || "That was refused by the server.";
+  }
+  function entitlementExpiry(value) {
+    if (value === null) return 0;
+    if (typeof value !== "string") return NaN;
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+    if (!m || +m[2] < 1 || +m[2] > 12 || +m[3] < 1 ||
+        +m[3] > new Date(Date.UTC(+m[1], +m[2], 0)).getUTCDate() ||
+        +m[4] > 23 || +m[5] > 59 || +m[6] > 59 || (m[7] && (+m[8] > 23 || +m[9] > 59))) return NaN;
+    return Date.parse(value);
   }
   // Keep the callback on this build's exact screen; never forward credentials
   // to a destination supplied by the email URL itself.
@@ -270,6 +280,29 @@
     session() {
       var s = readSession();
       return s && s.user ? { user: s.user } : null;
+    },
+    // An account grant is read only with that account's verified bearer token.
+    // RLS limits the row too; the explicit owner filter never requests peers.
+    async getEntitlement() {
+      readSession();
+      var g = generation, t = await token(), s = readSession();
+      if (g !== generation) return cancelled();
+      if (!t || !(s && s.user && s.user.id)) return said("Sign in to check your account access.");
+      var id = s.user.id;
+      var r = await call("/rest/v1/entitlements?user_id=eq." + encodeURIComponent(id) + "&select=user_id,plan,expires_at&limit=1", {}, t);
+      var current = readSession();
+      if (g !== generation || !current || current.user.id !== id) return cancelled();
+      if (!r.net) return OFFLINE;
+      if (!r.ok || !Array.isArray(r.body)) return said("Your account access could not be checked. Try again with a signal.");
+      var row = r.body[0], grant = { plan: "free", exp: 0, source: "account" };
+      if (row) {
+        if (row.user_id !== id || !["free", "team", "program"].includes(row.plan))
+          return said("The server returned invalid account access.");
+        var expiry = entitlementExpiry(row.expires_at);
+        if (!Number.isFinite(expiry) || expiry < 0) return said("The server returned invalid account access.");
+        if (row.expires_at === null || expiry > Date.now()) grant = { plan: row.plan, exp: expiry, source: "account" };
+      }
+      return { ok: true, user: s.user, entitlement: grant };
     },
     // One owner row per coach. Serialize writes so removal is the final request.
     async pushSeason(label, payload) {
