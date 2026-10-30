@@ -145,6 +145,52 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
       cloud.authPost && cloud.functionAuth && cloud.fixedProject);
     check("cloud records and credentials are not persisted in browser storage", !cloud.privateInStorage);
 
+    // Check the actual signed-in controls in both orientations. The main app's
+    // device suite does not visit this standalone portal. Inline prose links
+    // (password help and the file chooser label) remain normal running text;
+    // the standalone header link and every form/navigation control need 44px.
+    const adminLayout = () => {
+      const width = window.innerWidth;
+      const controls = [...document.querySelectorAll(
+        "button, select, textarea, input:not([type=hidden]):not([type=file]), .hdr__note a"
+      )].map(el => {
+        const rect = el.getBoundingClientRect();
+        return { rect, label: (el.textContent || el.getAttribute("aria-label") || el.id || el.tagName).trim().slice(0, 45) };
+      }).filter(({ rect }) => rect.width > 0 && rect.height > 0);
+      return {
+        overflow: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - width,
+        small: controls.filter(({ rect }) => Math.ceil(Math.min(rect.width, rect.height)) < 44)
+          .map(({ rect, label }) => `${label}: ${Math.round(rect.width)}x${Math.round(rect.height)}`),
+        outside: controls.filter(({ rect }) => rect.left < -1 || rect.right > width + 1)
+          .map(({ label }) => label),
+        usersReady: !!document.querySelector(".user-card") && !!document.querySelector("form.plan-form select") &&
+          !!document.querySelector("form.plan-form input[type=datetime-local]") &&
+          document.querySelectorAll("[role=tab]").length === 2,
+        importsReady: document.querySelectorAll(".season input[data-id]").length === 2 &&
+          document.querySelectorAll("button[data-drop]").length === 2 && !!document.getElementById("clear") &&
+          !!document.getElementById("cloudSeasons")
+      };
+    };
+    for (const [name, width, height] of [
+      ["phone portrait", 390, 844], ["phone landscape", 844, 390],
+      ["tablet portrait", 768, 1024], ["tablet landscape", 1024, 768]
+    ]) {
+      await page.setViewportSize({ width, height });
+      await page.locator("#usersTab").click();
+      const account = await page.evaluate(adminLayout);
+      check(`${name}: user cards, plan fields and navigation render`, account.usersReady);
+      check(`${name}: user controls stay within the page`, account.overflow <= 1 && account.outside.length === 0,
+        JSON.stringify({ overflow: account.overflow, outside: account.outside }));
+      check(`${name}: user controls have 44px touch targets`, account.small.length === 0, account.small.join("; "));
+      await page.locator("#seasonsTab").click();
+      const imports = await page.evaluate(adminLayout);
+      check(`${name}: season import and cloud controls render`, imports.importsReady);
+      check(`${name}: season controls stay within the page`, imports.overflow <= 1 && imports.outside.length === 0,
+        JSON.stringify({ overflow: imports.overflow, outside: imports.outside }));
+      check(`${name}: season controls have 44px touch targets`, imports.small.length === 0, imports.small.join("; "));
+    }
+    await page.setViewportSize({ width: 1024, height: 900 });
+
     await page.locator("#signOut").click();
     const signedOut = await page.evaluate(() => ({
       summary: window.__adminSummary(), text: document.getElementById("root").innerText,
