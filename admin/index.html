@@ -246,6 +246,10 @@ const CALL_NAMES = { snake:"Snake Stack", blitz:"Blitz", hold:"Hold & Read", con
 /* ---- render -------------------------------------------------------------- */
 function render(){
   const root = document.getElementById("root");
+  if(mfaPending){
+    root.innerHTML=accountSection()+`<p class="status ${statusError?"error":""}" role="status" aria-live="polite">${esc(status)}</p>`+footer();
+    wire();return;
+  }
   root.innerHTML = accountSection() + `<p class="status ${statusError?"error":""}" role="status" aria-live="polite">${esc(status)}</p>`
     + (token ? `<nav class="row admin-tabs" role="tablist" aria-label="Administration"><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="users"}" id="usersTab">Users</button><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="seasons"}" id="seasonsTab">Seasons</button></nav>` : "")
     + (token&&activeTab==="users" ? usersSection() : sourceSection() + (allSeasons().length ? dashboard() : emptyState())) + footer();

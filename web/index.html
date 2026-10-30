@@ -9862,6 +9862,8 @@ window.reviewCloudSeason = async () => {
   if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
   clearSyncRetry();++_syncEpoch;S.syncOn=false;
   syncStatus({syncSaid:"Loading your cloud copy…"});
+  await _syncTail;
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
   let r;try{r=await cloud.getSeason();}catch(e){}
   if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
   if(!r || !r.ok) return syncStatus({syncSaid:(r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged."});
@@ -9873,10 +9875,17 @@ window.reviewCloudSeason = async () => {
   const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
   if(checked.error) return syncStatus({syncSaid:"The cloud copy is not a readable season. Your phone is unchanged."});
   if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return syncStatus({syncSaid:"Nothing restored. Your phone is unchanged."});
-  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",JSON.stringify(S));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
+  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",copyPayload("all"));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
   if(window.loadCopy("replace",raw)!==true) return;
   if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
   syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
+};
+window.showPreRestoreCopy = () => {
+  try{
+    const raw=localStorage.getItem(STORE_KEY+".before-cloud-restore")||"";
+    if(readCopy(raw).error)return set({syncSaid:"No readable pre-restore season is stored on this phone."});
+    set({copyText:raw,copyStatus:"This is the season kept before cloud restore. Copy this text and save it somewhere safe."});
+  }catch(e){set({syncSaid:"The pre-restore copy could not be opened. Your current season is unchanged."});}
 };
 window.toggleSync = () => {
   if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
@@ -15562,6 +15571,7 @@ function moreBody(k){
       password never does. You can pause it, or delete what you sent, at any time.</p>
     <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
     <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
+    <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
     <div class="fld"><label for="syncLabel">Shown to your league as</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
@@ -15603,8 +15613,8 @@ function moreBody(k){
       yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
-  + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
-      is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
+  + sec("Save a copy", `<p class="lede">${canSync()?"Cloud sharing holds one current copy when you turn it on. A file you save is a backup you own —":"There is no server behind this app, so there is no automatic backup. A copy is a file you own —"}
+      keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>
     <div class="toggles">
       <button class="btn" onclick="saveCopy('all')">Save everything</button>

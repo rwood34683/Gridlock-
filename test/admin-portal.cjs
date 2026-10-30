@@ -200,6 +200,7 @@ async function startMfa(h,factors){
 check("password-only sign-in waits for MFA before loading users",async()=>{
   const h=harness();await startMfa(h,[{id:'factor',factor_type:'totp',status:'verified'}]);
   assert.equal(h.run('users.length'),0);assert.equal(h.run('mfaPending.factorId'),'factor');
+  assert(!h.rendered().includes('id="usersTab"'));assert(!h.rendered().includes('id="cloudSeasons"'));
   assert(!h.requests.some(r=>r.url.includes('action=overview')));assert.equal(h.storage.size,0);
 });
 check("valid authenticator exchanges token before loading users",async()=>{

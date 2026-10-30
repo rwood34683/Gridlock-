@@ -187,7 +187,7 @@ const { createServer } = require("../scripts/serve.js");
       assert.deepEqual(await page.evaluate(() => ({entered:S.entered,account:localStorage.getItem(STAFF_KEY),cancel:__cancel})), {entered:false,account:null,cancel:1});
     });
     await check("crypto failure gives feedback without entering or saving an account", async page => {
-      await page.evaluate(() => { crypto.subtle.digest = async () => { throw Error("unavailable"); }; });
+      await page.evaluate(() => { crypto.subtle.deriveBits = async () => { throw Error("unavailable"); }; });
       await auth(page,"create");
       assert.equal(await page.evaluate(() => S.entered || !!localStorage.getItem(STAFF_KEY)), false);
       assert.match(await page.locator("#root").innerText(), /could not securely/);
