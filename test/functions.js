@@ -5149,10 +5149,10 @@ const ROSTER = [
     const ok = document.getElementById("wkWhere").value === "Snake wire" && document.querySelectorAll("#walk-map rect[stroke='#ffffff']").length === 0;
     window.set({ walkPick: null }); return ok;
   }));
-  check("Messages says nothing is sent, and no button claims to send", await ev(() => {
+  check("Messages explains no player notification, and no button claims to send", await ev(() => {
     window.set({ tab: "more", more: "messages" });
     const t = document.querySelector(".main").textContent;
-    return /nothing is sent anywhere/.test(t) && ![...document.querySelectorAll("#root .btn")].some(b => b.textContent.trim() === "Send");
+    return /does not send a notification to your players/.test(t) && /squad copy/.test(t) && /League sync/.test(t) && ![...document.querySelectorAll("#root .btn")].some(b => b.textContent.trim() === "Send");
   }));
   check("every jersey-number box asks the phone for the number keyboard", await ev(() => {
     window.set({ tab: "more", more: "team" });
@@ -9568,7 +9568,7 @@ const ROSTER = [
     return /PBLeagues/.test(t) && /13 Sep 2026/.test(t) && /Sunday/.test(t);
   }));
   check("and never claims it can refresh itself", await ev(() =>
-    /no network|cannot refresh/i.test(document.getElementById("root").innerText)));
+    /does not refresh automatically/i.test(document.getElementById("root").innerText) && /league.s page/i.test(document.getElementById("root").innerText)));
   check("games read in time order inside a day", await ev(() => {
     const fri = allGames().filter(g => g.d === "2026-09-18").map(g => g.t);
     return fri.every((t, i) => i === 0 || fri[i - 1] <= t);
@@ -10242,8 +10242,11 @@ const ROSTER = [
     return gone && !!document.querySelector(".tip");
   }));
   check("Help is in the More menu", await ev(() => {
-    window.set({ tab:"more", more:null });
-    return /What every screen does/.test(document.getElementById("root").textContent);
+    window.set({ tab:"more", more:null, helpFor:"" });
+    const help = [...document.querySelectorAll("#root button")].find(b => b.querySelector(".list__name")?.textContent === "Help");
+    if (!help) return false;
+    help.click();
+    return S.more === "help" && document.querySelectorAll(".coach-start button").length === 4 && /Your first match/.test(document.getElementById("root").textContent);
   }));
   check("the tutorial describes the Tally that actually exists", await ev(() => {
     window.set({ showTutorial:true, tab:"playbook" });
