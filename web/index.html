@@ -2796,8 +2796,9 @@ function load(){
     const parsed = JSON.parse(raw);
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
-    _baseStamp = _head = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
-    delete parsed.prevAt; delete parsed.by;
+    _baseStamp = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
+    _baseId = _head = saveIdOf(raw);
+    delete parsed.prevAt; delete parsed.by; delete parsed.prevId; delete parsed.saveId;
     adoptCallPicked(parsed);
     readHere(parsed, raw);
     return Object.assign(defaultState(), parsed);
@@ -2808,7 +2809,7 @@ function load(){
       _recoveryText = raw;
       try{ localStorage.setItem(RECOVERY_KEY, raw); }catch(ignore){}
     }
-    _baseStamp = _head = storedStamp();
+    _baseStamp = storedStamp(); _baseId = _head = storedId();
     return defaultState();
   }
 }
@@ -2838,7 +2839,7 @@ const HERE_KEY = STORE_KEY + ".here";
  *
  * The check before a write cannot see a write another tab made a moment
  * earlier that has not reached this tab yet: storage between tabs is not one
- * lock. So every save also says which save it built on (`prevAt`) and which
+ * lock. So every save also says which save it built on (`prevId`) and which
  * tab wrote it (`by`), and each tab follows the line of saves it has seen
  * (`_head`). A save from another tab that did not build on this tab's latest
  * is a fork: two tabs wrote at once and one of them was written over. Both
@@ -2848,7 +2849,13 @@ const HERE_KEY = STORE_KEY + ".here";
 const TAB_COPY = STORE_KEY + ".tab.";
 const TAB_LIVE = STORE_KEY + ".live.";
 const TAB_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-var _baseStamp = 0, _head = 0, _headMine = false, _stale = false, _staleSince = 0;
+/* A save is known by its own id, never by its time: two tabs saving in the
+ * same millisecond — or on a clock that does not move — wrote the same
+ * savedAt, and the tab that compared times read the other's save as its own
+ * and kept nothing. `saveId` is this tab's id and a counter; `prevId` is the
+ * save it built on. A season from before ids is known by its savedAt. */
+var _baseStamp = 0, _baseId = "", _head = "", _headMine = false, _stale = false, _staleSince = 0;
+var _saveSeq = 0;
 var _tabCopyAt = 0, _tabCopyFail = "", _tabCopySeason = null, _tabCopyText = null;
 var _snapFail = "", _snapPending = [];
 // A number off the tail of a saved season, without parsing all of it.
@@ -2858,6 +2865,20 @@ function tailNum(t, key){
   return i < 0 ? 0 : (parseInt(t.slice(i + key.length + 3), 10) || 0);
 }
 function storedStamp(){ return tailNum(localStorage.getItem(STORE_KEY), "savedAt"); }
+function tailStr(t, key){
+  if(!t) return "";
+  const i = t.lastIndexOf('"' + key + '":"');
+  if(i < 0) return "";
+  const from = i + key.length + 4, to = t.indexOf('"', from);
+  return to < 0 ? "" : t.slice(from, to);
+}
+function saveIdOf(t){
+  const id = tailStr(t, "saveId");
+  if(id) return id;
+  const at = tailNum(t, "savedAt");
+  return at ? "at:" + at : "";
+}
+function storedId(){ return saveIdOf(localStorage.getItem(STORE_KEY)); }
 function markStale(){
   if(_stale) return;
   _stale = true; _staleSince = Date.now();
@@ -2916,7 +2937,8 @@ function keepSnapshot(text){
   const copy = {format: COPY_FORMAT, v: COPY_VERSION, scope: "all",
                 at: new Date(stamp).toISOString(), app: "Gridlock Coach", data};
   if(typeof d.seasonId === "string" && /^[a-f0-9]{32}$/i.test(d.seasonId)) copy.seasonId = d.seasonId;
-  const out = JSON.stringify(copy, null, 1), key = TAB_COPY + "s" + stamp.toString(36);
+  const out = JSON.stringify(copy, null, 1),
+        key = TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
     if(localStorage.getItem(key) !== out) throw new Error("not read back");
@@ -2985,14 +3007,14 @@ function scratchKeys(){
 }
 function seasonText(s){
   const skip = scratchKeys(), out = {};
-  for(const k of Object.keys(s)) if(k !== "savedAt" && k !== "prevAt" && k !== "by" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
+  for(const k of Object.keys(s)) if(k !== "savedAt" && k !== "prevAt" && k !== "by" && k !== "prevId" && k !== "saveId" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
   return JSON.stringify(out);
 }
 // It names the season it sits on — when it was written and how long it is —
 // so a season written or wiped behind its back is never read through it.
 var _lastLen = 0;
 function saveHere(s){
-  const here = {base: s.savedAt || 0, len: _lastLen};
+  const here = {base: _baseId || "", len: _lastLen};
   NAV_KEYS.forEach(k => { here[k] = s[k] === undefined ? null : s[k]; });
   try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); }catch(e){ storeRefused(e); }
 }
@@ -3011,7 +3033,7 @@ function hereHolds(s){
 function readHere(parsed, raw){
   try{
     const here = JSON.parse(localStorage.getItem(HERE_KEY) || "null");
-    if(!plainRecord(here) || here.base !== parsed.savedAt || here.len !== raw.length) return;
+    if(!plainRecord(here) || here.base !== saveIdOf(raw) || here.len !== raw.length) return;
     NAV_KEYS.forEach(k => { if(here[k] === null || typeof here[k] === "string") parsed[k] = here[k]; });
   }catch(e){}
 }
@@ -3023,8 +3045,8 @@ function save(s){
   if(s === S && !_stale){
     // Nothing stored at all is not newer work: the store was cleared under
     // the app, and the season in memory is the one to put back.
-    let cur = _baseStamp; try{ cur = storedStamp(); }catch(e){}
-    if(cur && cur !== _baseStamp) markStale();
+    let cur = _baseId; try{ cur = storedId(); }catch(e){}
+    if(cur && cur !== _baseId) markStale();
   }
   // Stale: the season and the maps are another tab's now. Only a change of
   // this tab's own is written, and only to its own copy.
@@ -3037,7 +3059,8 @@ function save(s){
   s.savedAt = Math.max(Date.now(), (s === S ? _baseStamp : 0) + 1);
   // Which save this one built on, and which tab wrote it: the line of saves
   // every other tab follows to tell a newer save from a fork.
-  const nav = {prevAt: s === S ? _head : 0, by: TAB_ID, savedAt: s.savedAt};
+  const saveId = TAB_ID + "." + (++_saveSeq).toString(36);
+  const nav = {prevId: s === S ? _head : "", saveId, by: TAB_ID, savedAt: s.savedAt};
   NAV_KEYS.forEach(k => { if(s[k] !== undefined) nav[k] = s[k]; });
   const tail = JSON.stringify(nav);
   const text = season === "{}" ? tail : season.slice(0, -1) + "," + tail.slice(1);
@@ -3045,7 +3068,7 @@ function save(s){
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
   try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
-       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = _head = s.savedAt; _headMine = true; saveHere(s); } }
+       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; _baseId = _head = saveId; _headMine = true; saveHere(s); } }
   catch(e){ storeRefused(e); }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
   if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) mirrorMaps();
@@ -3155,7 +3178,7 @@ window.addEventListener("storage", e => {
     return;
   }
   if(e.key !== STORE_KEY || !e.newValue) return;      // a cleared store is not newer work
-  const s = tailNum(e.newValue, "savedAt"), p = tailNum(e.newValue, "prevAt");
+  const s = saveIdOf(e.newValue), p = tailStr(e.newValue, "prevId");
   if(!s || s === _head) return;
   if(p && p === _head){
     // Built on the save this tab last knew of: newer work, in line.

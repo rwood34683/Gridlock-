@@ -452,6 +452,46 @@ const FIELD = key => ({ key, name: "Test " + key, bunkers: Array.from({ length: 
     await ctx.close();
   });
 
+  await test("two tabs saving on a frozen clock: same savedAt, both edits still kept", async () => {
+    const { ctx, open } = await fresh();
+    const x = await open();
+    await x.evaluate(() => { S.roster = [{ name: "Seed", num: 1 }]; save(S); });
+    const y = await open();
+    const base = await stored(x);
+    // One clock for both tabs, and it does not move.
+    for (const p of [x, y]) await p.evaluate(() => { const t = 1800000000000; Date.now = () => t; window.__hold = true; });
+    await x.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+    const xSave = await stored(x);
+    await y.waitForFunction(() => window.__held.length > 0);
+    await y.evaluate(b => {
+      const get = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (k) { return k === "gridlock.coach.v2" ? b : get.call(this, k); };
+      try { S.roster = [...S.roster, { name: "Y Frozen", num: 2 }]; save(S); }
+      finally { Storage.prototype.getItem = get; }
+    }, base);
+    await x.waitForFunction(() => window.__held.length > 0);
+    const ySave = await stored(x);
+    assert.equal(JSON.parse(xSave).savedAt, JSON.parse(ySave).savedAt, "the two saves carry the same savedAt");
+    assert.notEqual(xSave, ySave, "but they are different saves");
+    assert.equal(JSON.parse(ySave).results.length, 0, "the race happened: Y wrote over X's point");
+    await x.evaluate(() => window.__release());
+    await y.evaluate(() => window.__release());
+    // Everything either tab has kept: the main save and every recovery copy.
+    const kept = await x.evaluate(() => [JSON.parse(localStorage.getItem("gridlock.coach.v2")),
+      ...window.gridlockRecoveryCopies().map(c => JSON.parse(c.text).data)]);
+    assert.ok(kept.some(d => (d.results || []).length === 1), "X's point survives somewhere");
+    assert.ok(kept.some(d => (d.roster || []).some(r => r.name === "Y Frozen")), "Y's edit survives somewhere");
+    for (const p of [x, y]) {
+      const r = await p.evaluate(() => {
+        const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e);
+        return { stale: _stale, warn: e.defaultPrevented };
+      });
+      assert.equal(r.stale, true, "both tabs know");
+      assert.equal(r.warn, false, "and both sides are kept");
+    }
+    await ctx.close();
+  });
+
   await test("a recovery copy deleted from another tab is put back before the tab says it is safe", async () => {
     const { ctx, open } = await fresh();
     const a = await open(), b = await open();

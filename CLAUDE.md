@@ -2291,9 +2291,13 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   per key in `web/native.js`), the mirror is written at once on the way to
   the background, and `beforeunload` warns while anything is still unsaved.
   The check before a write cannot see a write another tab made a moment
-  earlier, so every save also carries the save it built on (`prevAt`) and
-  the tab that wrote it (`by`); each tab follows that line (`_head`), and a
-  write that did not build on this tab's own latest is a fork (`forkSeen`):
+  earlier, so every save also carries its own id (`saveId`, the tab's id and
+  a counter), the save it built on (`prevId`) and the tab that wrote it
+  (`by`); each tab follows that line by id (`_head`, `_baseId`) and never by
+  time — two tabs on one millisecond, or a frozen clock, write the same
+  `savedAt`, and a check by time read the other tab's save as its own. A
+  season from before ids is known as `at:<savedAt>`. A write that did not
+  build on this tab's own latest is a fork (`forkSeen`):
   both tabs go stale, each keeps its own season in its copy, and the other
   tab's save, when the store no longer holds it, is kept as a snapshot copy
   (`keepSnapshot`). "Safe to close" is never remembered: `verifyTabCopy()`
