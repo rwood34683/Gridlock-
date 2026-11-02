@@ -35,6 +35,8 @@
     "site:check": "node scripts/site-check.js",
     "site:artifact": "node scripts/build-artifact-page.js",
     "app:artifact": "node scripts/build-app-artifact.js",
+    "preview:package": "node scripts/package-preview.js",
+    "test:preview": "node scripts/run-checks.js preview",
     "icons": "node brand/generate-assets.js",
     "contact": "node scripts/contact.js",
     "brand": "node scripts/brand.js",
