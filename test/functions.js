@@ -558,7 +558,7 @@ const ROSTER = [
     const want = { "Semi-Pro": [15, 5, 5], "Division 2": [15, 5, 5], "Division 3": [12, 4, 5], "Division 4": [12, 4, 5],
                    "Division 5": [10, 3, 5], "3v3 Amateur": [6, 3, 3], "3v3 Intermediate": [6, 3, 3] };
     window.set({ tab: "more", more: "format" });
-    const listed = JSON.stringify(FMT_DIVS) === JSON.stringify([...Object.keys(want), "Other"]);
+    const listed = JSON.stringify(FMT_DIVS) === JSON.stringify([...Object.keys(want), "Pro", "Masters", "Other"]);
     const bad = [];
     for (const [d, [time, mer, size]] of Object.entries(want)) {
       window.setFmt("div", d);

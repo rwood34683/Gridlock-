@@ -66,3 +66,7 @@ Re-read 8.2 (game times and mercy margins), 9.3.11 (switching ends), 9.3.12
 (break period), 9.7 (timeouts) and 12.1 (what a penalty costs). Those are the
 five places where a change in the rule is a change in the structure. Everything
 else is the official's to apply.
+
+## Named custom formats
+
+Pro and Masters remain visible as custom choices. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.

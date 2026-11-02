@@ -4940,7 +4940,8 @@ const FMT_RULES = {
   "Division 5":       {game:"xball", time:10, mercy:3, split:60},
   "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
   "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
-const FMT_DIVS = [...Object.keys(FMT_RULES), "Other"];
+const FMT_CUSTOM_DIVS = ["Pro", "Masters"];
+const FMT_DIVS = [...Object.keys(FMT_RULES), ...FMT_CUSTOM_DIVS, "Other"];
 const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
 const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
@@ -5004,7 +5005,7 @@ window.saveFmt = () => {
   const kept = FMT_KEYS.reduce((o, k) => (f[k] !== undefined ? {...o, [k]: f[k]} : o), {});
   const list = Array.isArray(S.fmts) ? S.fmts : [];
   const hit = list.find(x => foldName(x.name) === foldName(name));
-  S.fmts = hit ? list.map(x => x === hit ? {...x, ...kept, name: hit.name} : x)
+  S.fmts = hit ? list.map(x => x === hit ? {id: x.id, name: hit.name, ...kept} : x)
                : [...list, {id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, ...kept}];
   save(S); flash(hit ? `Updated ${hit.name}.` : `Saved as ${name}.`);
 };
@@ -5044,12 +5045,12 @@ function fmtPage(first){
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
       </div>`).join("")}</div>` : ""}
     <p class="note" style="margin-top:var(--s3)">Division:</p>
-    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !fmtRule(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !FMT_DIVS.includes(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}${FMT_CUSTOM_DIVS.includes(d) ? " · custom" : ""}</button>`).join("")}</div>
     ${rule ? `<div class="panel" style="margin-top:var(--s3)">
       <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(f.div)}</b> · ${esc(FMT_RULEBOOK)}</p>
       <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3v3 X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
       <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
-    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? "Other — an event this rulebook does not cover: set each answer below." : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
     ${rule ? "" : `<p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
