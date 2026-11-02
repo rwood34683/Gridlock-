@@ -795,6 +795,17 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `test/account-entitlements.cjs`, `test/admin-handler.mjs` and
     `test/admin-portal.cjs` run in `npm run check` without a browser.
 
+54. ~~The World Cup schedule.~~ Done — the coach sent the PBLeagues print
+    schedule for the NXL World Cup (printed 1 Nov 2026) and it replaced Lone
+    Star's read: 78 prelims, Wednesday 11 to Saturday 14 November. Rows carry
+    the field and pit as printed (`f`) and the division where it is not Pro
+    X-Ball (`dv`: Wednesday's Pro slots, two Semi-Pro championship games);
+    `gameSub()` prints them. Names stay as printed — "Red Legion" and "Orlando
+    Red Legion" are two names until somebody says otherwise. The schedule
+    points at `nwc`, which is not measured yet: a game opens on the field the
+    coach is on and `toGameField` says so. `docs/WORLD-CUP-LAYOUT.md` is the
+    runbook for the field once NXL publishes the official 2D.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

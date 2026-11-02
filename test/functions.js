@@ -9560,29 +9560,33 @@ const ROSTER = [
   G("The schedule, and scouting a game you are not in");
   await seed({ tab: "more", more: "schedule", layoutKey: "lso" });
   check("the league's schedule is in the app", await ev(() =>
-    allGames().length === 40 && new Set(allGames().map(g => g.d)).size === 2));
+    allGames().length === 78 && new Set(allGames().map(g => g.d)).size === 4));
   check("every game names two teams, a day and a clock", await ev(() =>
     allGames().every(g => g.h && g.a && g.h !== g.a && /^\d{4}-\d{2}-\d{2}$/.test(g.d)
       && /^\d{2}:\d{2}$/.test(g.t))));
-  check("and every team on it entered this event", await ev(() => {
-    const entered = new Set(DIVISIONS.find(d => d.id === "pro").teams.map(t => t.name));
-    return allGames().every(g => entered.has(g.h) && entered.has(g.a));
-  }));
+  check("and every row says its field and pit, and its division where it is not Pro X-Ball", await ev(() =>
+    allGames().every(g => /^(NXL Pro|Lone Wolf) · Pit [12]$/.test(g.f) && [undefined, "Pro", "Semi-Pro X-Ball championship"].includes(g.dv))
+    && allGames().filter(g => g.dv === "Pro").every(g => g.d === "2026-11-11")
+    && allGames().filter(g => g.dv === "Semi-Pro X-Ball championship").length === 2
+    && /Pro · Lone Wolf · Pit 1 · Prelims/.test(gameSub(allGames().find(g => /Lone Wolf/.test(g.f))))));
   check("it says where it was read and what it covers", await ev(() => {
     const t = document.getElementById("root").innerText;
-    return /PBLeagues/.test(t) && /13 Sep 2026/.test(t) && /Sunday/.test(t);
+    return /PBLeagues/.test(t) && /World Cup/.test(t) && /1 Nov 2026/.test(t) && /Sunday/.test(t);
   }));
   check("and never claims it can refresh itself", await ev(() =>
     /does not refresh automatically/i.test(document.getElementById("root").innerText) && /league.s page/i.test(document.getElementById("root").innerText)));
   check("games read in time order inside a day", await ev(() => {
-    const fri = allGames().filter(g => g.d === "2026-09-18").map(g => g.t);
+    const fri = allGames().filter(g => g.d === "2026-11-11").map(g => g.t);
     return fri.every((t, i) => i === 0 || fri[i - 1] <= t);
   }));
   check("watching a game puts both teams in the pits", await ev(() => {
-    const g = allGames().find(x => x.h === "San Diego Dynasty");
+    const g = allGames().find(x => x.h === "San Diego Dynasty" && x.a === "Los Angeles Ironmen");
     window.watchGame(g.id);
     return (S.left || {}).name === g.h && (S.right || {}).name === g.a;
   }));
+  check("and while the event's field is not in the app, the sheet stays on the field he is on and says so", await ev(() =>
+    !LAYOUTS[SCHEDULE.layout] && curMatch().layout === "lso" && S.layoutKey === "lso"
+    && /World Cup field is not in the app yet, so this sheet is on NXL Lone Star Open/.test(S.flash || "")));
   check("and opens a sheet that says it is watched, not played", await ev(() => {
     const m = curMatch();
     return !!m.watch && m.home === "San Diego Dynasty" && S.point === 1
@@ -9610,7 +9614,7 @@ const ROSTER = [
     const root = () => document.getElementById("root");
     const t0 = root().innerText;
     const labels = /Left pit · the home side/i.test(t0) && /Right pit · the away side/i.test(t0) && !/who you play/i.test(t0);
-    const sw = [...root().querySelectorAll("#root .seg button")].filter(b => /San Diego Dynasty|Royal City Seadogs/.test(b.textContent));
+    const sw = [...root().querySelectorAll("#root .seg button")].filter(b => /San Diego Dynasty|Los Angeles Ironmen/.test(b.textContent));
     const bl = curLayout().bunkers, ids = [2, 8, 15, 21, 29].map(i => bl[i].id);
     const home = sw.find(b => /San Diego Dynasty/.test(b.textContent)); if (home) home.click();
     window.set({ theirPick: ids });
@@ -9619,19 +9623,19 @@ const ROSTER = [
     const logged = theirBreaks("left").length === before + 1 && theirBreaks("left")[0].plants.length === 5 && theirBreaks("left")[0].m === S.matchId;
     window.set({ scoutTab: "matchup" });
     const seg = [...root().querySelectorAll(".seg button")].map(b => b.textContent.trim());
-    const named = seg.includes("San Diego Dynasty") && seg.includes("Royal City Seadogs") && !seg.includes("Yours") && !seg.includes("Theirs");
+    const named = seg.includes("San Diego Dynasty") && seg.includes("Los Angeles Ironmen") && !seg.includes("Yours") && !seg.includes("Theirs");
     window.set({ scoutSide: "right", theirPick: [] });
     return labels && sw.length === 2 && !!btn && logged && named;
   }));
   check("Layers on it names the home and away outs, never yours", await ev(() => {
     window.set({ tab: "scout", scoutTab: "layers" });
     const t = document.getElementById("root").innerText;
-    return /San Diego Dynasty outs · \d/.test(t) && /Royal City Seadogs outs · \d/.test(t) && !/Your outs/.test(t);
+    return /San Diego Dynasty outs · \d/.test(t) && /Los Angeles Ironmen outs · \d/.test(t) && !/Your outs/.test(t);
   }));
   check("Playbook on it says you are watching, not playing, the team in the pit", await ev(() => {
     window.set({ tab: "playbook" });
     const t = document.getElementById("root").innerText;
-    return /watching San Diego Dynasty v Royal City Seadogs/.test(t) && !/vs Royal City Seadogs · reads/.test(t);
+    return /watching San Diego Dynasty v Los Angeles Ironmen/.test(t) && !/vs Los Angeles Ironmen · reads/.test(t);
   }));
   check("the ends chip on it says which team breaks from which end", await ev(() => {
     window.set({ tab: "tally" });
@@ -9640,7 +9644,7 @@ const ROSTER = [
   check("the score on it names the two teams, because neither is you", await ev(() => {
     window.set({ tab: "tally" });
     const t = document.getElementById("root").innerText;
-    return /San Diego Dynasty won it/.test(t) && /Royal City Seadogs won it/.test(t)
+    return /San Diego Dynasty won it/.test(t) && /Los Angeles Ironmen won it/.test(t)
       && !/We won it/.test(t);
   }));
   check("and the sheet says the five in the columns are not on that field", await ev(() =>
@@ -9660,7 +9664,7 @@ const ROSTER = [
     const g = allGames()[0], n = allGames().length;
     window.dropGame(g.id);
     return allGames().length === n - 1 && (S.gamesOff || []).includes(g.id)
-      && SCHEDULE.games.length === 40;
+      && SCHEDULE.games.length === 78;
   }));
   check("a pbleagues print-out pastes clean — field column and X-Factor survive", await ev(() => {
     const rows = parseSchedule(

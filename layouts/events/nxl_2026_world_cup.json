@@ -13,7 +13,7 @@
   "league": "National Xball League",
   "league_code": "NXL",
   "event": "World Cup",
-  "dates": "2026-11",
+  "dates": "2026-11-11/2026-11-14",
   "venue": {
     "name": "TBD",
     "city": "",
@@ -22,7 +22,9 @@
   },
   "status": "unreleased",
   "notes": [
-    "Layout drop scheduled Nov 4 2026."
+    "Layout drop scheduled Nov 4 2026.",
+    "Dates from the PBLeagues print schedule the coach sent (printed 1 Nov 2026): prelims Wed 11 to Sat 14 Nov. Venue not on it.",
+    "The app's schedule points at layout key nwc; docs/WORLD-CUP-LAYOUT.md is how the field goes in once the official 2D is out."
   ],
   "views": [],
   "sources": [],

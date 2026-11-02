@@ -2820,65 +2820,109 @@ const DIVISIONS = [
    Same rule as the pro board: this is the league's fact, not the app's, so it
    carries where it was read and when, and nothing here is from memory. The app
    makes no network calls, so it cannot fetch a schedule and never will — this
-   came in the way the pro board did, as a screenshot from the coach. Anything
-   the league changes after that date arrives the same way, or is typed in on
-   the screen.
+   came in the way the pro board did, from the coach. Anything the league
+   changes after that date arrives the same way, or is typed in on the screen.
 
-   Read 13 September 2026 off the PBLeagues schedule page for the NXL Lone Star
-   Open, Pro X-Ball, on the NXL Pro field: Friday 18 and Saturday 19 September,
-   ten slots a day, two games a slot — C and D Prelims through the morning, A
-   and B from 1:45. The page's own legend says the HOME name takes the red pit
-   and the AWAY name the blue, which is why `h` lands in the left pit and `a` in
-   the right when a game is opened.
+   Read 2 November 2026 off the PBLeagues print schedule for the NXL World Cup
+   (printed 1 Nov 2026, 22:43), which the coach sent as a PDF: prelims from
+   Wednesday 11 to Saturday 14 November. Wednesday is the Pro division in
+   15-minute slots on NXL Pro Pit 1 and Lone Wolf Pit 1; Thursday to Saturday
+   is Pro X-Ball on NXL Pro Pits 1 and 2, an hour a slot; Saturday 7:30 AM
+   carries two Semi-Pro X-Ball championship games. `f` is the field and pit as
+   printed and `dv` the division where it is not Pro X-Ball. Names are the
+   page's own spelling — "Red Legion" and "Orlando Red Legion", "PaintballFIT"
+   and "Texas FIT", "Shock" and "Las Vegas Shock" are printed apart and kept
+   apart; nothing here says they are one team. The page's legend says the HOME
+   name takes the red pit and the AWAY name the blue, which is why `h` lands in
+   the left pit and `a` in the right when a game is opened.
 
-   Sunday is not in it. The screenshot ends at Saturday 5:45 PM with the page
-   footer under it, so the app says what the read covers rather than pretending
-   it has the whole event. */
+   It replaced the Lone Star Open's read, which was September's event; sheets
+   kept from Lone Star stay in Matches. The World Cup field is `nwc`, and until
+   its measured layout is in LAYOUTS a game opens on the field the coach is on
+   and says so (`toGameField`). */
 const SCHEDULE = {
-  event:"NXL Lone Star Open", div:"Pro X-Ball", field:"NXL Pro", layout:"lso",
-  read:"PBLeagues · NXL Lone Star Open · Pro X-Ball · Fri 18 – Sat 19 Sep · read 13 Sep 2026",
-  covers:"Friday and Saturday. Sunday was not on the page that was read.",
+  event:"NXL World Cup", div:"Pro X-Ball", field:"NXL Pro", layout:"nwc",
+  read:"PBLeagues · NXL World Cup · print schedule · Wed 11 – Sat 14 Nov · printed 1 Nov 2026",
+  covers:"Prelims, Wednesday to Saturday 3:30 PM: Pro on Wednesday, Pro X-Ball Thursday to Saturday, and two Semi-Pro championship games Saturday morning. Nothing after Saturday 3:30 PM, and no Sunday, was on the pages read.",
   games:[
-    {d:"2026-09-18", t:"08:00", h:"Seattle Uprising", a:"Houston Heat", g:"C"},
-    {d:"2026-09-18", t:"08:00", h:"San Antonio X-Factor", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-18", t:"09:00", h:"Detroit Infamous", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-18", t:"09:00", h:"CK Hurricanes", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-18", t:"10:00", h:"Tampa Bay Damage", a:"Houston Heat", g:"C"},
-    {d:"2026-09-18", t:"10:00", h:"PaintballFIT", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-18", t:"11:00", h:"Seattle Uprising", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-18", t:"11:00", h:"San Antonio X-Factor", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-18", t:"12:00", h:"Tampa Bay Damage", a:"Detroit Infamous", g:"C"},
-    {d:"2026-09-18", t:"12:00", h:"PaintballFIT", a:"CK Hurricanes", g:"D"},
-    {d:"2026-09-18", t:"13:45", h:"San Diego Dynasty", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-18", t:"13:45", h:"TonTon Arsenal", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-18", t:"14:45", h:"Los Angeles Ironmen", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-18", t:"14:45", h:"Los Angeles Collision", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-18", t:"15:45", h:"Edmonton Impact", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-18", t:"15:45", h:"Red Legion", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-18", t:"16:45", h:"San Diego Dynasty", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-18", t:"16:45", h:"TonTon Arsenal", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-18", t:"17:45", h:"Edmonton Impact", a:"Los Angeles Ironmen", g:"A"},
-    {d:"2026-09-18", t:"17:45", h:"Red Legion", a:"Los Angeles Collision", g:"B"},
-    {d:"2026-09-19", t:"08:00", h:"Houston Heat", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-19", t:"08:00", h:"Chicago Aftershock", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-19", t:"09:00", h:"Seattle Uprising", a:"Detroit Infamous", g:"C"},
-    {d:"2026-09-19", t:"09:00", h:"San Antonio X-Factor", a:"CK Hurricanes", g:"D"},
-    {d:"2026-09-19", t:"10:00", h:"Tampa Bay Damage", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-19", t:"10:00", h:"PaintballFIT", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-19", t:"11:00", h:"Detroit Infamous", a:"Houston Heat", g:"C"},
-    {d:"2026-09-19", t:"11:00", h:"CK Hurricanes", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-19", t:"12:00", h:"Tampa Bay Damage", a:"Seattle Uprising", g:"C"},
-    {d:"2026-09-19", t:"12:00", h:"PaintballFIT", a:"San Antonio X-Factor", g:"D"},
-    {d:"2026-09-19", t:"13:45", h:"Royal City Seadogs", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-19", t:"13:45", h:"Perris ASG Aftermath", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-19", t:"14:45", h:"San Diego Dynasty", a:"Los Angeles Ironmen", g:"A"},
-    {d:"2026-09-19", t:"14:45", h:"TonTon Arsenal", a:"Los Angeles Collision", g:"B"},
-    {d:"2026-09-19", t:"15:45", h:"Edmonton Impact", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-19", t:"15:45", h:"Red Legion", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-19", t:"16:45", h:"Los Angeles Ironmen", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-19", t:"16:45", h:"Los Angeles Collision", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-19", t:"17:45", h:"Edmonton Impact", a:"San Diego Dynasty", g:"A"},
-    {d:"2026-09-19", t:"17:45", h:"Red Legion", a:"TonTon Arsenal", g:"B"},
+    {d:"2026-11-11", t:"07:00", h:"New Jersey Jesters", a:"ZuriCaos", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:15", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:30", h:"New York Wrecking Crew", a:"Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:45", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:00", h:"Chicago Distortion", a:"Aruba Madness", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:00", h:"New Jersey Leverage", a:"ZuriCaos", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:15", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:15", h:"Texas Hurricanes", a:"LTF", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:30", h:"Seattle Uprising", a:"Ranger Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:30", h:"Dallas SUWT", a:"Shock", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:45", h:"San Diego Dynasty", a:"Oregon IKONIK", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:45", h:"Brooklyn Wolfpack", a:"Puerto Rico tppcrew", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:00", h:"Orlando Red Legion", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:00", h:"Texas FIT", a:"Aruba Madness", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:15", h:"San Antonio X-Factor", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:15", h:"Perris ASG Aftermath", a:"ALA Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:30", h:"New Jersey Jesters", a:"New Jersey Leverage", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:30", h:"Los Angeles Collision", a:"Ranger Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:45", h:"Houston Heat", a:"Texas Hurricanes", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:45", h:"Las Vegas Shock", a:"Oregon IKONIK", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:00", h:"New York Wrecking Crew", a:"Dallas SUWT", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:15", h:"Chicago Aftershock", a:"Brooklyn Wolfpack", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:30", h:"Detroit Infamous", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:45", h:"Tampa Bay Damage", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:00", h:"Chicago Distortion", a:"Texas FIT", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:15", h:"Los Angeles Ironmen", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:30", h:"Seattle Uprising", a:"Los Angeles Collision", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:45", h:"San Diego Dynasty", a:"Las Vegas Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"12:00", h:"Detroit Infamous", a:"San Antonio X-Factor", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"12:15", h:"Tampa Bay Damage", a:"Orlando Red Legion", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-12", t:"07:30", h:"Chicago Distortion", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"07:30", h:"New Jersey Leverage", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"08:30", h:"Los Angeles Ironmen", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"08:30", h:"CK Hurricanes", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"09:30", h:"San Diego Dynasty", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"09:30", h:"Seattle Uprising", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"10:30", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"10:30", h:"CK Hurricanes", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"12:30", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"12:30", h:"Atlanta Jungle Cats", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"13:30", h:"Detroit Infamous", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"13:30", h:"San Antonio X-Factor", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"14:30", h:"PaintballFIT", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"14:30", h:"TonTon Arsenal", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"15:30", h:"Detroit Infamous", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"15:30", h:"San Antonio X-Factor", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"07:30", h:"Los Angeles Ironmen", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"07:30", h:"CK Hurricanes", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"08:30", h:"San Diego Dynasty", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"08:30", h:"Seattle Uprising", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"09:30", h:"Red Legion", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"09:30", h:"Edmonton Impact", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"10:30", h:"San Diego Dynasty", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"10:30", h:"Seattle Uprising", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"12:30", h:"PaintballFIT", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"12:30", h:"TonTon Arsenal", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"13:30", h:"Edmonton Impact", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"13:30", h:"Red Legion", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"14:30", h:"PaintballFIT", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"14:30", h:"TonTon Arsenal", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"15:30", h:"Detroit Infamous", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"15:30", h:"San Antonio X-Factor", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"07:30", h:"Blast Camp", a:"Noobies", f:"NXL Pro · Pit 1", dv:"Semi-Pro X-Ball championship"},
+    {d:"2026-11-14", t:"07:30", h:"Preferred mob", a:"Rejects", f:"NXL Pro · Pit 2", dv:"Semi-Pro X-Ball championship"},
+    {d:"2026-11-14", t:"08:30", h:"Los Angeles Collision", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"08:30", h:"Royal City Seadogs", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"09:30", h:"San Diego Dynasty", a:"Los Angeles Ironmen", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"09:30", h:"Seattle Uprising", a:"CK Hurricanes", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"10:30", h:"Los Angeles Collision", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"10:30", h:"Royal City Seadogs", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"12:30", h:"Perris ASG Aftermath", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"12:30", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"13:30", h:"Edmonton Impact", a:"Red Legion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"13:30", h:"Tampa Bay Damage", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"14:30", h:"Perris ASG Aftermath", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"14:30", h:"Chicago Aftershock", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"15:30", h:"PaintballFIT", a:"Detroit Infamous", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"15:30", h:"TonTon Arsenal", a:"San Antonio X-Factor", f:"NXL Pro · Pit 2"},
   ]
 };
 // Days in the order they are played, named the way a coach says them.
@@ -2908,6 +2952,11 @@ function allGames(){
   return [...seeded, ...mine].filter(g => !gone.has(g.id))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
+// What a row says under its two teams: the division where it is not the
+// schedule's own, the field and pit as printed, and the bracket.
+function gameSub(g){
+  return [g.dv || "", g.f || "", g.g ? g.g + " Prelims" : (g.seed ? "Prelims" : "")].filter(Boolean).join(" · ");
+}
 function gameById(id){ return allGames().find(g => g.id === id) || null; }
 // The field a game is played on: the league's rows are the event's field, and
 // one he added is the field he was on when he added it. A game opened from
@@ -2916,7 +2965,10 @@ const gameField = g => (g && g.layout && LAYOUTS[g.layout]) ? g.layout : (LAYOUT
 // Off to the game's field before its sheet opens, and say so.
 function toGameField(g){
   const lk = gameField(g);
-  if(lk === S.layoutKey) return "";
+  // The event's field is not in the app yet: the sheet opens on the field he
+  // is on, and says so, rather than leave him to find out from the bunkers.
+  const missing = g && g.layout && !LAYOUTS[g.layout] ? ` The ${SCHEDULE.event} field is not in the app yet, so this sheet is on ${(LAYOUTS[lk] || {}).name || "the field you are on"}.` : "";
+  if(lk === S.layoutKey) return missing;
   window.pickEvent(lk);
   return ` On ${LAYOUTS[lk].name} — the field this game is on.`;
 }
@@ -2983,7 +3035,7 @@ function calSpanName(e){
 function calItems(){
   const items = [];
   allGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
-    title: `${g.h} v ${g.a}`, sub: g.g ? g.g + " Prelims" : "", game: g}));
+    title: `${g.h} v ${g.a}`, sub: gameSub(g), game: g}));
   (S.matches || []).filter(m => m && m.at && !sheetEmpty(m)).forEach(m => {
     const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
     const t = new Date(m.at);
@@ -16189,8 +16241,8 @@ function moreBody(k){
           esc(clockName(g.t))}</span>
         <span class="assign__body">
           <span class="assign__job">${esc(g.h)} <span style="color:var(--dim)">v</span> ${esc(g.a)}</span>
-          <span class="assign__who">${esc(g.g ? g.g + " Prelims" : "")}${
-            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
+          <span class="assign__who">${esc(gameSub(g))}${
+            gameSub(g) && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
         <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
           isOpen ? "Close" : "Open"}</button>
         ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
