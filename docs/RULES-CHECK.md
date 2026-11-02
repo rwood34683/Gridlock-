@@ -8,9 +8,34 @@ it ends, what a penalty costs, when ends switch. This page walks that structure
 against the rulebook, by section number, so the next reader can check it again
 when the league publishes a new edition.
 
-Every number below is a **setting the coach makes on the point sheet**, never a
-constant the app ships. Divisions differ (8.2), and the app does not know which
-division he is in.
+Every number below is a **setting the coach can change** on the format screen
+and the point sheet. Picking a division under More › Format fills in that
+division's numbers from the rulebook's own tables; he can still change any of
+them, and **Other** (an event this rulebook does not cover) presets nothing.
+
+## The divisions and their numbers (read 2 Nov 2026)
+
+8.1.1 says the X-Ball format is played by **Semi-Pro, D2, D3, D4 and D5**, and
+section 15 adds **3v3 X-Ball** (Amateur and Intermediate). Those seven, plus
+Other, are the whole division list (`FMT_RULES` in `web/index.html`). Pro,
+Division 1, Women's, Masters, Collegiate and Juniors were taken off it: this
+rulebook gives none of them a game time or mercy limit (Masters appears only
+as a roster rule, 4.3.4 and 4.7.6).
+
+| Division | Game time | Mercy lead | Break | Split deck | Overtime | Rule |
+|---|---|---|---|---|---|---|
+| Semi-Pro | 15 min | 5 | 2:00 min | 0:45 | always on a tie (9.12.3) | 8.2, 9.3.12 |
+| Division 2 | 15 min | 5 | 2:00 min | 1:00 | playoffs only (9.12.1) | 8.2, 9.3.12 |
+| Division 3 | 12 min | 4 | 2:00 min | 1:00 | playoffs only | 8.2, 9.3.12 |
+| Division 4 | 12 min | 4 | 2:00 min | 1:00 | playoffs only | 8.2, 9.3.12 |
+| Division 5 | 10 min | 3 | 2:00 min | 1:00 | playoffs only | 8.2, 9.3.12 |
+| 3v3 Amateur | 6 min | 3 | 2:00 min | — | 2-min 1v1 (15.5) | 15.3.1 |
+| 3v3 Intermediate | 6 min | 3 | 2:00 min | — | 2-min 1v1 (15.5) | 15.3.1 |
+
+X-Ball is five a side, 3v3 three. Divisional X-Ball is a game clock and a mercy
+lead, not a race, so a rulebook division sets no race. The game time is shown
+and never run: it is the official's clock (9.3.13), and the coach taps Time's
+up. Race to and how many a side are asked only under Other.
 
 | Rulebook | What it says, structurally | What the app does | State |
 |---|---|---|---|
@@ -41,3 +66,7 @@ Re-read 8.2 (game times and mercy margins), 9.3.11 (switching ends), 9.3.12
 (break period), 9.7 (timeouts) and 12.1 (what a penalty costs). Those are the
 five places where a change in the rule is a change in the structure. Everything
 else is the official's to apply.
+
+## Named custom formats
+
+Pro and Masters remain visible as custom choices. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.

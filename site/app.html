@@ -2820,65 +2820,109 @@ const DIVISIONS = [
    Same rule as the pro board: this is the league's fact, not the app's, so it
    carries where it was read and when, and nothing here is from memory. The app
    makes no network calls, so it cannot fetch a schedule and never will — this
-   came in the way the pro board did, as a screenshot from the coach. Anything
-   the league changes after that date arrives the same way, or is typed in on
-   the screen.
+   came in the way the pro board did, from the coach. Anything the league
+   changes after that date arrives the same way, or is typed in on the screen.
 
-   Read 13 September 2026 off the PBLeagues schedule page for the NXL Lone Star
-   Open, Pro X-Ball, on the NXL Pro field: Friday 18 and Saturday 19 September,
-   ten slots a day, two games a slot — C and D Prelims through the morning, A
-   and B from 1:45. The page's own legend says the HOME name takes the red pit
-   and the AWAY name the blue, which is why `h` lands in the left pit and `a` in
-   the right when a game is opened.
+   Read 2 November 2026 off the PBLeagues print schedule for the NXL World Cup
+   (printed 1 Nov 2026, 22:43), which the coach sent as a PDF: prelims from
+   Wednesday 11 to Saturday 14 November. Wednesday is the Pro division in
+   15-minute slots on NXL Pro Pit 1 and Lone Wolf Pit 1; Thursday to Saturday
+   is Pro X-Ball on NXL Pro Pits 1 and 2, an hour a slot; Saturday 7:30 AM
+   carries two Semi-Pro X-Ball championship games. `f` is the field and pit as
+   printed and `dv` the division where it is not Pro X-Ball. Names are the
+   page's own spelling — "Red Legion" and "Orlando Red Legion", "PaintballFIT"
+   and "Texas FIT", "Shock" and "Las Vegas Shock" are printed apart and kept
+   apart; nothing here says they are one team. The page's legend says the HOME
+   name takes the red pit and the AWAY name the blue, which is why `h` lands in
+   the left pit and `a` in the right when a game is opened.
 
-   Sunday is not in it. The screenshot ends at Saturday 5:45 PM with the page
-   footer under it, so the app says what the read covers rather than pretending
-   it has the whole event. */
+   It replaced the Lone Star Open's read, which was September's event; sheets
+   kept from Lone Star stay in Matches. The World Cup field is `nwc`, and until
+   its measured layout is in LAYOUTS a game opens on the field the coach is on
+   and says so (`toGameField`). */
 const SCHEDULE = {
-  event:"NXL Lone Star Open", div:"Pro X-Ball", field:"NXL Pro", layout:"lso",
-  read:"PBLeagues · NXL Lone Star Open · Pro X-Ball · Fri 18 – Sat 19 Sep · read 13 Sep 2026",
-  covers:"Friday and Saturday. Sunday was not on the page that was read.",
+  event:"NXL World Cup", div:"Pro X-Ball", field:"NXL Pro", layout:"nwc",
+  read:"PBLeagues · NXL World Cup · print schedule · Wed 11 – Sat 14 Nov · printed 1 Nov 2026",
+  covers:"Prelims, Wednesday to Saturday 3:30 PM: Pro on Wednesday, Pro X-Ball Thursday to Saturday, and two Semi-Pro championship games Saturday morning. Nothing after Saturday 3:30 PM, and no Sunday, was on the pages read.",
   games:[
-    {d:"2026-09-18", t:"08:00", h:"Seattle Uprising", a:"Houston Heat", g:"C"},
-    {d:"2026-09-18", t:"08:00", h:"San Antonio X-Factor", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-18", t:"09:00", h:"Detroit Infamous", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-18", t:"09:00", h:"CK Hurricanes", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-18", t:"10:00", h:"Tampa Bay Damage", a:"Houston Heat", g:"C"},
-    {d:"2026-09-18", t:"10:00", h:"PaintballFIT", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-18", t:"11:00", h:"Seattle Uprising", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-18", t:"11:00", h:"San Antonio X-Factor", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-18", t:"12:00", h:"Tampa Bay Damage", a:"Detroit Infamous", g:"C"},
-    {d:"2026-09-18", t:"12:00", h:"PaintballFIT", a:"CK Hurricanes", g:"D"},
-    {d:"2026-09-18", t:"13:45", h:"San Diego Dynasty", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-18", t:"13:45", h:"TonTon Arsenal", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-18", t:"14:45", h:"Los Angeles Ironmen", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-18", t:"14:45", h:"Los Angeles Collision", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-18", t:"15:45", h:"Edmonton Impact", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-18", t:"15:45", h:"Red Legion", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-18", t:"16:45", h:"San Diego Dynasty", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-18", t:"16:45", h:"TonTon Arsenal", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-18", t:"17:45", h:"Edmonton Impact", a:"Los Angeles Ironmen", g:"A"},
-    {d:"2026-09-18", t:"17:45", h:"Red Legion", a:"Los Angeles Collision", g:"B"},
-    {d:"2026-09-19", t:"08:00", h:"Houston Heat", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-19", t:"08:00", h:"Chicago Aftershock", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-19", t:"09:00", h:"Seattle Uprising", a:"Detroit Infamous", g:"C"},
-    {d:"2026-09-19", t:"09:00", h:"San Antonio X-Factor", a:"CK Hurricanes", g:"D"},
-    {d:"2026-09-19", t:"10:00", h:"Tampa Bay Damage", a:"Atlanta Jungle Cats", g:"C"},
-    {d:"2026-09-19", t:"10:00", h:"PaintballFIT", a:"New York Xtreme", g:"D"},
-    {d:"2026-09-19", t:"11:00", h:"Detroit Infamous", a:"Houston Heat", g:"C"},
-    {d:"2026-09-19", t:"11:00", h:"CK Hurricanes", a:"Chicago Aftershock", g:"D"},
-    {d:"2026-09-19", t:"12:00", h:"Tampa Bay Damage", a:"Seattle Uprising", g:"C"},
-    {d:"2026-09-19", t:"12:00", h:"PaintballFIT", a:"San Antonio X-Factor", g:"D"},
-    {d:"2026-09-19", t:"13:45", h:"Royal City Seadogs", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-19", t:"13:45", h:"Perris ASG Aftermath", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-19", t:"14:45", h:"San Diego Dynasty", a:"Los Angeles Ironmen", g:"A"},
-    {d:"2026-09-19", t:"14:45", h:"TonTon Arsenal", a:"Los Angeles Collision", g:"B"},
-    {d:"2026-09-19", t:"15:45", h:"Edmonton Impact", a:"New Jersey Leverage", g:"A"},
-    {d:"2026-09-19", t:"15:45", h:"Red Legion", a:"Chicago Distortion", g:"B"},
-    {d:"2026-09-19", t:"16:45", h:"Los Angeles Ironmen", a:"Royal City Seadogs", g:"A"},
-    {d:"2026-09-19", t:"16:45", h:"Los Angeles Collision", a:"Perris ASG Aftermath", g:"B"},
-    {d:"2026-09-19", t:"17:45", h:"Edmonton Impact", a:"San Diego Dynasty", g:"A"},
-    {d:"2026-09-19", t:"17:45", h:"Red Legion", a:"TonTon Arsenal", g:"B"},
+    {d:"2026-11-11", t:"07:00", h:"New Jersey Jesters", a:"ZuriCaos", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:15", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:30", h:"New York Wrecking Crew", a:"Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"07:45", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:00", h:"Chicago Distortion", a:"Aruba Madness", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:00", h:"New Jersey Leverage", a:"ZuriCaos", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:15", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:15", h:"Texas Hurricanes", a:"LTF", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:30", h:"Seattle Uprising", a:"Ranger Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:30", h:"Dallas SUWT", a:"Shock", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:45", h:"San Diego Dynasty", a:"Oregon IKONIK", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"08:45", h:"Brooklyn Wolfpack", a:"Puerto Rico tppcrew", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:00", h:"Orlando Red Legion", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:00", h:"Texas FIT", a:"Aruba Madness", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:15", h:"San Antonio X-Factor", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:15", h:"Perris ASG Aftermath", a:"ALA Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:30", h:"New Jersey Jesters", a:"New Jersey Leverage", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:30", h:"Los Angeles Collision", a:"Ranger Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:45", h:"Houston Heat", a:"Texas Hurricanes", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"09:45", h:"Las Vegas Shock", a:"Oregon IKONIK", f:"Lone Wolf · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:00", h:"New York Wrecking Crew", a:"Dallas SUWT", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:15", h:"Chicago Aftershock", a:"Brooklyn Wolfpack", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:30", h:"Detroit Infamous", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"10:45", h:"Tampa Bay Damage", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:00", h:"Chicago Distortion", a:"Texas FIT", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:15", h:"Los Angeles Ironmen", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:30", h:"Seattle Uprising", a:"Los Angeles Collision", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"11:45", h:"San Diego Dynasty", a:"Las Vegas Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"12:00", h:"Detroit Infamous", a:"San Antonio X-Factor", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-11", t:"12:15", h:"Tampa Bay Damage", a:"Orlando Red Legion", f:"NXL Pro · Pit 1", dv:"Pro"},
+    {d:"2026-11-12", t:"07:30", h:"Chicago Distortion", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"07:30", h:"New Jersey Leverage", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"08:30", h:"Los Angeles Ironmen", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"08:30", h:"CK Hurricanes", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"09:30", h:"San Diego Dynasty", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"09:30", h:"Seattle Uprising", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"10:30", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"10:30", h:"CK Hurricanes", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"12:30", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"12:30", h:"Atlanta Jungle Cats", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"13:30", h:"Detroit Infamous", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"13:30", h:"San Antonio X-Factor", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"14:30", h:"PaintballFIT", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"14:30", h:"TonTon Arsenal", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-12", t:"15:30", h:"Detroit Infamous", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-12", t:"15:30", h:"San Antonio X-Factor", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"07:30", h:"Los Angeles Ironmen", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"07:30", h:"CK Hurricanes", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"08:30", h:"San Diego Dynasty", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"08:30", h:"Seattle Uprising", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"09:30", h:"Red Legion", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"09:30", h:"Edmonton Impact", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"10:30", h:"San Diego Dynasty", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"10:30", h:"Seattle Uprising", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"12:30", h:"PaintballFIT", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"12:30", h:"TonTon Arsenal", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"13:30", h:"Edmonton Impact", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"13:30", h:"Red Legion", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"14:30", h:"PaintballFIT", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"14:30", h:"TonTon Arsenal", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-13", t:"15:30", h:"Detroit Infamous", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-13", t:"15:30", h:"San Antonio X-Factor", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"07:30", h:"Blast Camp", a:"Noobies", f:"NXL Pro · Pit 1", dv:"Semi-Pro X-Ball championship"},
+    {d:"2026-11-14", t:"07:30", h:"Preferred mob", a:"Rejects", f:"NXL Pro · Pit 2", dv:"Semi-Pro X-Ball championship"},
+    {d:"2026-11-14", t:"08:30", h:"Los Angeles Collision", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"08:30", h:"Royal City Seadogs", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"09:30", h:"San Diego Dynasty", a:"Los Angeles Ironmen", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"09:30", h:"Seattle Uprising", a:"CK Hurricanes", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"10:30", h:"Los Angeles Collision", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"10:30", h:"Royal City Seadogs", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"12:30", h:"Perris ASG Aftermath", a:"LTF", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"12:30", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"13:30", h:"Edmonton Impact", a:"Red Legion", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"13:30", h:"Tampa Bay Damage", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"14:30", h:"Perris ASG Aftermath", a:"Houston Heat", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"14:30", h:"Chicago Aftershock", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
+    {d:"2026-11-14", t:"15:30", h:"PaintballFIT", a:"Detroit Infamous", f:"NXL Pro · Pit 1"},
+    {d:"2026-11-14", t:"15:30", h:"TonTon Arsenal", a:"San Antonio X-Factor", f:"NXL Pro · Pit 2"},
   ]
 };
 // Days in the order they are played, named the way a coach says them.
@@ -2908,6 +2952,11 @@ function allGames(){
   return [...seeded, ...mine].filter(g => !gone.has(g.id))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
+// What a row says under its two teams: the division where it is not the
+// schedule's own, the field and pit as printed, and the bracket.
+function gameSub(g){
+  return [g.dv || "", g.f || "", g.g ? g.g + " Prelims" : (g.seed ? "Prelims" : "")].filter(Boolean).join(" · ");
+}
 function gameById(id){ return allGames().find(g => g.id === id) || null; }
 // The field a game is played on: the league's rows are the event's field, and
 // one he added is the field he was on when he added it. A game opened from
@@ -2916,7 +2965,10 @@ const gameField = g => (g && g.layout && LAYOUTS[g.layout]) ? g.layout : (LAYOUT
 // Off to the game's field before its sheet opens, and say so.
 function toGameField(g){
   const lk = gameField(g);
-  if(lk === S.layoutKey) return "";
+  // The event's field is not in the app yet: the sheet opens on the field he
+  // is on, and says so, rather than leave him to find out from the bunkers.
+  const missing = g && g.layout && !LAYOUTS[g.layout] ? ` The ${SCHEDULE.event} field is not in the app yet, so this sheet is on ${(LAYOUTS[lk] || {}).name || "the field you are on"}.` : "";
+  if(lk === S.layoutKey) return missing;
   window.pickEvent(lk);
   return ` On ${LAYOUTS[lk].name} — the field this game is on.`;
 }
@@ -2983,7 +3035,7 @@ function calSpanName(e){
 function calItems(){
   const items = [];
   allGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
-    title: `${g.h} v ${g.a}`, sub: g.g ? g.g + " Prelims" : "", game: g}));
+    title: `${g.h} v ${g.a}`, sub: gameSub(g), game: g}));
   (S.matches || []).filter(m => m && m.at && !sheetEmpty(m)).forEach(m => {
     const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
     const t = new Date(m.at);
@@ -4865,20 +4917,43 @@ window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({bre
 /* The format, asked once after sign-in rather than on the point sheet: the
  * division, how many a side, the race, the mercy and the clock between points.
  * Every new sheet starts with it (openSheet), and an answer given here goes on
- * the sheet he is on too. The division is a label — the app carries no
- * league's numbers — so nothing is preset by division; he answers each one.
- * Saved answers keep a whole format under a name, one tap to use again. */
-const FMT_DIVS = ["Pro","Semi-Pro","Division 1","Division 2","Division 3","Division 4","Division 5","Women's","Masters","Collegiate","Juniors","Other"];
+ * the sheet he is on too. Saved answers keep a whole format under a name, one
+ * tap to use again.
+ *
+ * The divisions are the ones the NXL Divisional X-Ball Rules 2026 cover, with
+ * the numbers its own tables give, so picking one fills them in: 8.1.1 (X-Ball
+ * is Semi-Pro and Divisions 2 to 5), 8.2 (game time and mercy lead), 9.3.12
+ * (a standard break of at least two minutes; split deck one minute for D2-D5,
+ * 45 seconds for Semi-Pro), 9.12.1 (overtime only in playoffs, except
+ * Semi-Pro), and 15.3.1 / 15.5 (3v3 Amateur and Intermediate: six minutes, a
+ * three-point lead, overtime by 1v1). Divisional X-Ball is a game clock and a
+ * mercy lead, not a race, so these divisions set no race. The game time is the
+ * official's clock (9.3.13) and is only shown: the coach still taps Time's up.
+ * Every answer can still be changed after, and Other, for an event this
+ * rulebook does not cover, presets nothing. Structure and numbers, never the
+ * league's text (docs/RULES-CHECK.md). */
+const FMT_RULES = {
+  "Semi-Pro":         {game:"xball", time:15, mercy:5, split:45, ot:"Overtime decides a tied match (9.12.3)."},
+  "Division 2":       {game:"xball", time:15, mercy:5, split:60},
+  "Division 3":       {game:"xball", time:12, mercy:4, split:60},
+  "Division 4":       {game:"xball", time:12, mercy:4, split:60},
+  "Division 5":       {game:"xball", time:10, mercy:3, split:60},
+  "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
+  "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
+const FMT_CUSTOM_DIVS = ["Pro", "Masters"];
+const FMT_DIVS = [...Object.keys(FMT_RULES), ...FMT_CUSTOM_DIVS, "Other"];
+const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
+const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
-const FMT_KEYS = ["div","game","raceTo","mercy","clock"];
+const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
 function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
 // Men a side on a sheet: its own count, else five.
 function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number(m.size) : 0; return n > 0 && n <= 10 ? n : 5; }
 const fmtGame = id => FMT_GAMES.find(g => g[0] === id) || null;
 function fmtSummary(f = fmt()){
   const g = fmtGame(f.game);
-  const bits = [f.div, g && g[1],
-    f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 ? "no race" : "",
+  const bits = [f.div, g && g[1], f.time > 0 ? `${f.time}-min game` : "",
+    f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 && !(f.time > 0) ? "no race" : "",
     f.mercy > 0 ? `mercy ${f.mercy}` : "",
     f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
   return bits.join(" · ");
@@ -4897,7 +4972,23 @@ window.setFmt = (k, v) => {
   else v = Number(v) > 0 ? Number(v) : 0;
   S.fmt = {...fmt(), [k]: v};
   const m = curMatch();
-  if(k === "div"){ if(m) patchMatch({div: v}); save(S); render(); return; }
+  if(k === "div"){
+    if(m) patchMatch({div: v});
+    const r = fmtRule(v);
+    if(!r){ S.fmt = {...S.fmt, time: 0}; save(S); render(); return; }
+    // The rulebook's numbers for this division, through the same setters as
+    // any other answer: a sheet that can no longer take one says so, and the
+    // next sheet starts with it.
+    S.fmt = {...S.fmt, game: r.game, raceTo: 0, mercy: r.mercy, clock: 120, time: r.time};
+    const msgs = [];
+    S.flash = ""; fmtSize(r.game); if(S.flash) msgs.push(S.flash);
+    S.flash = ""; window.setRaceTo(0); if(S.flash) msgs.push(S.flash);
+    S.flash = ""; window.setMercy(r.mercy); if(S.flash) msgs.push(S.flash);
+    window.setBreakClock(120);
+    save(S);
+    flash(msgs.length ? msgs.join(" ") : `${v}: ${r.time}-minute game, mercy at a ${r.mercy}-point lead, 2:00 between points — from the ${FMT_RULEBOOK}.`);
+    return;
+  }
   if(k === "game"){ fmtSize(v); save(S); render(); return; }
   if(k === "raceTo") return window.setRaceTo(v);
   if(k === "mercy") return window.setMercy(v);
@@ -4914,7 +5005,7 @@ window.saveFmt = () => {
   const kept = FMT_KEYS.reduce((o, k) => (f[k] !== undefined ? {...o, [k]: f[k]} : o), {});
   const list = Array.isArray(S.fmts) ? S.fmts : [];
   const hit = list.find(x => foldName(x.name) === foldName(name));
-  S.fmts = hit ? list.map(x => x === hit ? {...x, ...kept, name: hit.name} : x)
+  S.fmts = hit ? list.map(x => x === hit ? {id: x.id, name: hit.name, ...kept} : x)
                : [...list, {id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, ...kept}];
   save(S); flash(hit ? `Updated ${hit.name}.` : `Saved as ${name}.`);
 };
@@ -4943,6 +5034,7 @@ function fmtPage(first){
   const race = f.raceTo !== undefined ? f.raceTo : raceTo(), mer = f.mercy !== undefined ? f.mercy : mercy(),
         clk = f.clock !== undefined ? f.clock : breakClock();
   const saved = Array.isArray(S.fmts) ? S.fmts : [];
+  const rule = fmtRule(f.div);
   return sec(first ? "Your format" : "Format", `
     <p class="lede">${first ? "Answer these once and every new sheet starts with them. Change them any time under More › Format."
                             : "Every new sheet starts with these. An answer here goes on the sheet you are on too."}</p>
@@ -4953,15 +5045,20 @@ function fmtPage(first){
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
       </div>`).join("")}</div>` : ""}
     <p class="note" style="margin-top:var(--s3)">Division:</p>
-    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}</button>`).join("")}</div>
-    <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
+    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !FMT_DIVS.includes(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}${FMT_CUSTOM_DIVS.includes(d) ? " · custom" : ""}</button>`).join("")}</div>
+    ${rule ? `<div class="panel" style="margin-top:var(--s3)">
+      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(f.div)}</b> · ${esc(FMT_RULEBOOK)}</p>
+      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3v3 X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
+      <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
+    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    ${rule ? "" : `<p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
-    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>
+    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>`}
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
-    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
-    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${[45,60,90,120].map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${(rule ? [120, rule.split].filter(Boolean) : [45,60,90,120]).map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule ? (n === 120 ? " · standard" : " · split deck") : ""}</button>`).join("")}</div>
     <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>
       <div class="btnrow"><input id="fmtName" class="grow" maxlength="40" placeholder="${esc(fmtSummary(f) || "e.g. D3 X-Ball")}" aria-label="Name for these answers" ${onEnter("saveFmt()")}>
       <button class="btn btn--quiet" onclick="saveFmt()">Save</button></div></div>
@@ -15674,9 +15771,11 @@ const HELP = {
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/format": {t:"Format", w:"Your division and match format — asked once after you sign in.",
-    how:["Pick the division, how many a side — X-Ball, 5-man, 3-man, 7-man or 10-man — the race, the mercy and the clock between points.",
+    how:["Pick your division: Semi-Pro, Division 2 to 5, or 3v3 Amateur or Intermediate. Its game time, mercy lead and break fill in from the NXL Divisional X-Ball Rules 2026.",
+         "Divisional X-Ball is a game clock and a mercy lead, not a race. The game clock is the official's: tap Time's up on the point sheet when it runs out.",
+         "The break is at least 2:00; on a split deck it is 1:00, or 0:45 in Semi-Pro. Any answer can still be changed.",
+         "Other is for an event this rulebook does not cover: set how many a side, the race, the mercy and the clock yourself.",
          "Every new sheet starts with these, and an answer here goes on the sheet you are on too.",
-         "Nothing is preset by division: the numbers are your event's rule, so you answer each one.",
          "Save these answers keeps the whole format under a name. Use puts it back with one tap."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Tap the man — the five on the point come first — tap a score, write the reason.",
@@ -16208,8 +16307,8 @@ function moreBody(k){
           esc(clockName(g.t))}</span>
         <span class="assign__body">
           <span class="assign__job">${esc(g.h)} <span style="color:var(--dim)">v</span> ${esc(g.a)}</span>
-          <span class="assign__who">${esc(g.g ? g.g + " Prelims" : "")}${
-            g.g && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
+          <span class="assign__who">${esc(gameSub(g))}${
+            gameSub(g) && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
         <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
           isOpen ? "Close" : "Open"}</button>
         ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
