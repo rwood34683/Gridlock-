@@ -2290,7 +2290,19 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   refused write clears only its own warning (`storeFailed` / `storeKept`, and
   per key in `web/native.js`), the mirror is written at once on the way to
   the background, and `beforeunload` warns while anything is still unsaved.
-  `test/storage-safety.js` holds all of it with two real tabs.
+  The check before a write cannot see a write another tab made a moment
+  earlier, so every save also carries the save it built on (`prevAt`) and
+  the tab that wrote it (`by`); each tab follows that line (`_head`), and a
+  write that did not build on this tab's own latest is a fork (`forkSeen`):
+  both tabs go stale, each keeps its own season in its copy, and the other
+  tab's save, when the store no longer holds it, is kept as a snapshot copy
+  (`keepSnapshot`). "Safe to close" is never remembered: `verifyTabCopy()`
+  reads the copy back and checks it against the season held now, writing it
+  again if another tab deleted it, before the banner or `beforeunload` say
+  so. A stale tab with a copy says it is alive (`TAB_LIVE`), and Delete in
+  another tab refuses that copy while it does.
+  `test/storage-safety.js` holds all of it with two real tabs, and plays the
+  races in a fixed order by holding storage events.
 - Read an email's capitals as a different account. Offline sign-in compares
   through `sameEmail()`, the way the account server already does.
 - Open Sightlines on whichever bunker the digitiser listed first. The

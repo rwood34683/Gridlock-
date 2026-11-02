@@ -45,6 +45,24 @@ const FIELD = key => ({ key, name: "Test " + key, bunkers: Array.from({ length: 
   const browser = await chromium.launch(launchOptions());
   const fresh = async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    /* Cross-tab storage events are held when a test asks, so an interleaving
+       that depends on one tab's write not having reached the other yet is
+       played in a fixed order rather than left to timing. Off by default. */
+    await ctx.addInitScript(() => {
+      window.__hold = false; window.__held = [];
+      window.addEventListener("storage", e => {
+        if (!window.__hold || e.__replay) return;
+        e.stopImmediatePropagation();
+        window.__held.push({ key: e.key, newValue: e.newValue, oldValue: e.oldValue });
+      }, true);
+      window.__release = () => {
+        window.__hold = false;
+        const q = window.__held.splice(0);
+        q.forEach(x => { const ev = new StorageEvent("storage", { key: x.key, newValue: x.newValue, oldValue: x.oldValue, storageArea: localStorage });
+          ev.__replay = true; window.dispatchEvent(ev); });
+        return q.length;
+      };
+    });
     const open = async () => {
       const p = await ctx.newPage();
       p.on("dialog", d => d.accept());
@@ -379,6 +397,103 @@ const FIELD = key => ({ key, name: "Test " + key, bunkers: Array.from({ length: 
     assert.equal(r.before, false);
     assert.equal(r.after, true, "the map change is waiting to send");
     assert.equal(r.timer, true);
+    await ctx.close();
+  });
+
+  /* ------------------------------------- review of PR 272: two more interleavings */
+  await test("two tabs writing at once: the point written over is kept, and both tabs know", async () => {
+    const { ctx, open } = await fresh();
+    const x = await open();
+    await x.evaluate(() => { S.roster = [{ name: "Seed", num: 1 }]; save(S); });
+    const y = await open();                                   // Y reads the same baseline
+    const base = await stored(x);
+    await x.evaluate(() => { window.__hold = true; });
+    await y.evaluate(() => { window.__hold = true; });
+    // X saves a point. Its write has not reached Y yet.
+    await x.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+    await y.waitForFunction(() => window.__held.length > 0);
+    // Y's check before writing still reads the baseline — the moment the race needs.
+    await y.evaluate(b => {
+      const get = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (k) { return k === "gridlock.coach.v2" ? b : get.call(this, k); };
+      try { S.roster = [...S.roster, { name: "Y Edit", num: 2 }]; save(S); }
+      finally { Storage.prototype.getItem = get; }
+    }, base);
+    await x.waitForFunction(() => window.__held.length > 0);
+    const now = JSON.parse(await stored(x));
+    assert.equal(now.results.length, 0, "the race happened: Y wrote over X's point");
+    assert.ok(now.roster.some(r => r.name === "Y Edit"));
+    // Each tab now hears of the other's write, in that order.
+    await x.evaluate(() => window.__release());
+    await y.evaluate(() => window.__release());
+    const copies = await x.evaluate(() => window.gridlockRecoveryCopies().map(c => JSON.parse(c.text).data));
+    assert.ok(copies.some(d => (d.results || []).length === 1), "X's point is in a recovery copy");
+    assert.ok(copies.some(d => (d.roster || []).some(r => r.name === "Y Edit")) || JSON.parse(await stored(x)).roster.some(r => r.name === "Y Edit"),
+      "Y's edit is kept too");
+    // Neither tab goes on writing over the other, and neither shares to the cloud.
+    for (const p of [x, y]) {
+      const r = await p.evaluate(() => {
+        window.gridlockCloud = { pushSeason: async () => ({ ok: true }) };
+        S.entered = true; S.role = "staff"; S.syncOn = true;
+        const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e);
+        return { stale: _stale, sync: syncAllowed(), warn: e.defaultPrevented, text: (render(), document.getElementById("root").textContent) };
+      });
+      assert.equal(r.stale, true);
+      assert.equal(r.sync, false);
+      assert.equal(r.warn, false, "both sides are kept, so closing is safe");
+      assert.match(r.text, /recovery copy/i);
+    }
+    // And once the store holds neither, X's own copy still holds the point.
+    await x.evaluate(() => { S.roster = [...S.roster, { name: "After", num: 3 }]; save(S); });
+    assert.equal(JSON.parse(await stored(x)).results.length, 0, "a stale tab still never writes the season");
+    const own = await x.evaluate(() => JSON.parse(window.gridlockRecoveryCopies().find(c => c.mine).text).data);
+    assert.equal(own.results.length, 1);
+    assert.ok(own.roster.some(r => r.name === "After"));
+    await ctx.close();
+  });
+
+  await test("a recovery copy deleted from another tab is put back before the tab says it is safe", async () => {
+    const { ctx, open } = await fresh();
+    const a = await open(), b = await open();
+    await b.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+    await a.evaluate(() => { S.roster = [{ name: "Only In A", num: 4 }]; save(S); });   // A is stale, copy kept
+    const key = await a.evaluate(() => window.gridlockRecoveryCopies().find(c => c.mine).key);
+    // A minute on, A is still open. Delete from B is refused while A says it is.
+    await a.evaluate(() => { const t = Date.now() + 60000; Date.now = () => t; if (typeof tabAlive === "function") tabAlive(); });
+    const refused = await b.evaluate(k => { const t = Date.now() + 60000; Date.now = () => t; return window.dropRecoveryCopy(k); }, key);
+    assert.equal(refused, false, "the owner is open, so its copy is not deleted");
+    assert.ok(await stored(b, key), "and it is still there");
+    // Deleted anyway (an older build, a cleared site): A hears of it and puts it back.
+    await b.evaluate(k => localStorage.removeItem(k), key);
+    await a.waitForFunction(k => localStorage.getItem(k) !== null, key, { timeout: 3000 });
+    assert.ok(JSON.parse(await stored(a, key)).data.roster.some(r => r.name === "Only In A"));
+    // Deleted while A hears nothing: closing re-checks, writes it again, and only then is safe.
+    await a.evaluate(() => { window.__hold = true; });
+    await b.evaluate(k => localStorage.removeItem(k), key);
+    const back = await a.evaluate(k => {
+      S.roster = [...S.roster, { name: "Not Saved Yet", num: 5 }];      // edits the copy does not have
+      const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e);
+      return { warn: e.defaultPrevented, copy: JSON.parse(localStorage.getItem(k) || "null") };
+    }, key);
+    assert.equal(back.warn, false);
+    assert.ok(back.copy && back.copy.data.roster.some(r => r.name === "Not Saved Yet"), "the copy matches the edits now");
+    // Deleted, and it cannot be written again: the tab says so and closing warns.
+    await b.evaluate(k => localStorage.removeItem(k), key);
+    const stuck = await a.evaluate(() => {
+      const set = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (String(k).includes(".tab.")) { const e = new Error("full"); e.name = "QuotaExceededError"; throw e; }
+        return set.call(this, k, v);
+      };
+      try {
+        render();
+        const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e);
+        return { warn: e.defaultPrevented, text: document.getElementById("root").textContent };
+      } finally { Storage.prototype.setItem = set; }
+    });
+    assert.equal(stuck.warn, true, "closing warns");
+    assert.doesNotMatch(stuck.text, /safe to close/i);
+    assert.match(stuck.text, /not saved/i);
     await ctx.close();
   });
 

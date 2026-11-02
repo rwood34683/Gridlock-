@@ -3558,7 +3558,8 @@ function load(){
     const parsed = JSON.parse(raw);
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
-    _baseStamp = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
+    _baseStamp = _head = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
+    delete parsed.prevAt; delete parsed.by;
     adoptCallPicked(parsed);
     readHere(parsed, raw);
     return Object.assign(defaultState(), parsed);
@@ -3569,7 +3570,7 @@ function load(){
       _recoveryText = raw;
       try{ localStorage.setItem(RECOVERY_KEY, raw); }catch(ignore){}
     }
-    _baseStamp = storedStamp();
+    _baseStamp = _head = storedStamp();
     return defaultState();
   }
 }
@@ -3595,17 +3596,30 @@ const HERE_KEY = STORE_KEY + ".here";
  * to a recovery copy of its own (TAB_COPY + TAB_ID, an ordinary Save-a-copy
  * file with its maps on its fields), read back before the screen says it is
  * safe to close, and its cloud sharing stops. Reload opens the newer season;
- * Nexus lists the copies to merge in or delete. */
+ * Nexus lists the copies to merge in or delete.
+ *
+ * The check before a write cannot see a write another tab made a moment
+ * earlier that has not reached this tab yet: storage between tabs is not one
+ * lock. So every save also says which save it built on (`prevAt`) and which
+ * tab wrote it (`by`), and each tab follows the line of saves it has seen
+ * (`_head`). A save from another tab that did not build on this tab's latest
+ * is a fork: two tabs wrote at once and one of them was written over. Both
+ * tabs see it when the other's write reaches them, and both keep what could
+ * be lost — this tab's season in its own copy, and the other tab's save, when
+ * the store no longer holds it, as a snapshot copy of its own. */
 const TAB_COPY = STORE_KEY + ".tab.";
+const TAB_LIVE = STORE_KEY + ".live.";
 const TAB_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-var _baseStamp = 0, _stale = false, _staleSince = 0;
-var _tabCopyAt = 0, _tabCopyFail = "", _tabCopySeason = null;
-function storedStamp(){
-  const t = localStorage.getItem(STORE_KEY);
+var _baseStamp = 0, _head = 0, _headMine = false, _stale = false, _staleSince = 0;
+var _tabCopyAt = 0, _tabCopyFail = "", _tabCopySeason = null, _tabCopyText = null;
+var _snapFail = "", _snapPending = [];
+// A number off the tail of a saved season, without parsing all of it.
+function tailNum(t, key){
   if(!t) return 0;
-  const i = t.lastIndexOf('"savedAt":');
-  return i < 0 ? 0 : (parseInt(t.slice(i + 10), 10) || 0);
+  const i = t.lastIndexOf('"' + key + '":');
+  return i < 0 ? 0 : (parseInt(t.slice(i + key.length + 3), 10) || 0);
 }
+function storedStamp(){ return tailNum(localStorage.getItem(STORE_KEY), "savedAt"); }
 function markStale(){
   if(_stale) return;
   _stale = true; _staleSince = Date.now();
@@ -3625,11 +3639,69 @@ function keepTabCopy(){
       ? "There is no room left for a recovery copy." : "The recovery copy could not be written.";
     return false;
   }
-  _tabCopyFail = ""; _tabCopyAt = Date.now();
+  _tabCopyFail = ""; _tabCopyAt = Date.now(); _tabCopyText = text;
+  tabAlive();
   return true;
 }
+/* A copy can be taken off behind this tab's back — another tab's Delete, a
+ * cleared site — so "safe to close" is never remembered: it is checked. The
+ * copy must be in storage, the one this tab last wrote, and written from the
+ * season this tab holds now; if any of that is not so it is written again,
+ * and only a copy read back counts. */
+function tabCopyHolds(){
+  if(!_tabCopyAt || _tabCopyText === null) return false;
+  try{ if(localStorage.getItem(TAB_COPY + TAB_ID) !== _tabCopyText) return false; }catch(e){ return false; }
+  return _tabCopySeason === null || seasonText(S) === _tabCopySeason;
+}
+function verifyTabCopy(){
+  if(!_stale || (!_tabCopyAt && !_tabCopyFail)) return true;
+  if(tabCopyHolds()) return true;
+  const season = seasonText(S);
+  if(keepTabCopy()){ _tabCopySeason = season; return true; }
+  return false;
+}
+// While a stale tab is open its copy is in use: it says so every few
+// seconds, and Delete on another tab waits until it has stopped saying so.
+function tabAlive(){
+  if(!_stale || !_tabCopyAt) return;
+  try{ localStorage.setItem(TAB_LIVE + TAB_ID, String(Date.now())); }catch(e){}
+}
+setInterval(() => { if(_stale && _tabCopyAt){ tabAlive(); verifyTabCopy(); } }, 10000);
+// Another tab's save that this store no longer holds: kept as a copy.
+function keepSnapshot(text){
+  let d = null; try{ d = JSON.parse(text); }catch(e){ return true; }
+  if(!plainRecord(d)) return true;
+  const data = {};
+  KEEP_ALL.forEach(k => { if(d[k] !== undefined) data[k] = d[k]; });
+  if(data.fields) data.fields = fieldsOut(data.fields);
+  const stamp = tailNum(text, "savedAt") || Date.now();
+  const copy = {format: COPY_FORMAT, v: COPY_VERSION, scope: "all",
+                at: new Date(stamp).toISOString(), app: "Gridlock Coach", data};
+  if(typeof d.seasonId === "string" && /^[a-f0-9]{32}$/i.test(d.seasonId)) copy.seasonId = d.seasonId;
+  const out = JSON.stringify(copy, null, 1), key = TAB_COPY + "s" + stamp.toString(36);
+  try{
+    localStorage.setItem(key, out);
+    if(localStorage.getItem(key) !== out) throw new Error("not read back");
+  }catch(e){
+    _snapFail = "Another tab's save could not be kept as a recovery copy.";
+    if(!_snapPending.includes(text)) _snapPending.push(text);
+    return false;
+  }
+  _snapPending = _snapPending.filter(t => t !== text);
+  if(!_snapPending.length) _snapFail = "";
+  return true;
+}
+// Two tabs wrote at once. Keep both sides of it, then stop writing.
+function forkSeen(text){
+  // This tab's own latest save is the one that may have been written over.
+  const mine = !_stale && _headMine;
+  markStale();
+  if(mine || _tabCopyAt || _tabCopyFail){ const season = seasonText(S); if(keepTabCopy()) _tabCopySeason = season; }
+  let cur = null; try{ cur = localStorage.getItem(STORE_KEY); }catch(e){}
+  if(cur !== text) keepSnapshot(text);
+}
 // What a stale tab still holds that is nowhere but in this tab's memory.
-const tabUnsaved = () => _stale && !!_tabCopyFail;
+const tabUnsaved = () => _stale && (!!_tabCopyFail || !!_snapFail || (!!_tabCopyAt && !tabCopyHolds()));
 window.gridlockRecoveryCopies = () => {
   const out = [];
   try{
@@ -3651,6 +3723,8 @@ window.dropRecoveryCopy = key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
   if(!c) return false;
   if(c.mine && _stale){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
+  let live = 0; try{ live = +localStorage.getItem(TAB_LIVE + key.slice(TAB_COPY.length)) || 0; }catch(e){}
+  if(!c.mine && live && Date.now() - live < 30000){ flash("The tab that wrote that copy is still open and keeping its changes in it. Close that tab first."); return false; }
   if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
   if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
   try{ localStorage.removeItem(key); }catch(e){ return false; }
@@ -3673,7 +3747,7 @@ function scratchKeys(){
 }
 function seasonText(s){
   const skip = scratchKeys(), out = {};
-  for(const k of Object.keys(s)) if(k !== "savedAt" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
+  for(const k of Object.keys(s)) if(k !== "savedAt" && k !== "prevAt" && k !== "by" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
   return JSON.stringify(out);
 }
 // It names the season it sits on — when it was written and how long it is —
@@ -3723,7 +3797,9 @@ function save(s){
   }
   // Never the same stamp twice: two saves in one millisecond read as one.
   s.savedAt = Math.max(Date.now(), (s === S ? _baseStamp : 0) + 1);
-  const nav = {savedAt: s.savedAt};
+  // Which save this one built on, and which tab wrote it: the line of saves
+  // every other tab follows to tell a newer save from a fork.
+  const nav = {prevAt: s === S ? _head : 0, by: TAB_ID, savedAt: s.savedAt};
   NAV_KEYS.forEach(k => { if(s[k] !== undefined) nav[k] = s[k]; });
   const tail = JSON.stringify(nav);
   const text = season === "{}" ? tail : season.slice(0, -1) + "," + tail.slice(1);
@@ -3731,7 +3807,7 @@ function save(s){
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
   try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
-       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; saveHere(s); } }
+       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = _head = s.savedAt; _headMine = true; saveHere(s); } }
   catch(e){ storeRefused(e); }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
   if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) mirrorMaps();
@@ -3791,8 +3867,14 @@ function contextWarning(){
 }
 function staleWarning(){
   if(!_stale) return "";
+  verifyTabCopy();
+  if(_snapPending.length) _snapPending.slice().forEach(keepSnapshot);
   const red = `class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)"`;
   const reload = `<button onclick="location.reload()">Open the newer season</button>`;
+  if(_snapFail && !_tabCopyFail) return `<div ${red}>
+    <span><b>Two tabs saved at the same moment, and one of those saves is not kept anywhere yet.</b>
+    ${esc(_snapFail)} Do not close this tab: free some space, then use Nexus &rsaquo; Save a copy.</span>
+    <button onclick="set({tab:'more',more:'nexus'})">Open Nexus</button></div>`;
   if(_tabCopyFail) return `<div ${red}>
     <span><b>Another tab saved newer work, and this tab's changes are not saved anywhere.</b>
     ${esc(_tabCopyFail)} Do not close this tab: use Nexus &rsaquo; Save a copy first, or free some space.</span>
@@ -3829,9 +3911,24 @@ let S = load();
 // Another tab saving makes this one stale at once, not only on its next tap:
 // its cloud push stops, and the screen says so before anything is lost.
 window.addEventListener("storage", e => {
-  if(_stale || (e.key !== STORE_KEY && e.key !== null)) return;
-  let cur = _baseStamp; try{ cur = storedStamp(); }catch(x){}
-  if(cur && cur !== _baseStamp){ markStale(); try{ render(); }catch(x){} }
+  // This tab's own copy taken off or changed by another tab: put it back.
+  if(e.key === TAB_COPY + TAB_ID){
+    if(_stale && _tabCopyAt && e.newValue !== _tabCopyText){ verifyTabCopy(); try{ render(); }catch(x){} }
+    return;
+  }
+  if(e.key !== STORE_KEY || !e.newValue) return;      // a cleared store is not newer work
+  const s = tailNum(e.newValue, "savedAt"), p = tailNum(e.newValue, "prevAt");
+  if(!s || s === _head) return;
+  if(p && p === _head){
+    // Built on the save this tab last knew of: newer work, in line.
+    _head = s; _headMine = false;
+    if(!_stale){ markStale(); try{ render(); }catch(x){} }
+    return;
+  }
+  // Not built on it: two tabs wrote at once, or a tab that does not say.
+  forkSeen(e.newValue);
+  _head = s; _headMine = false;
+  try{ render(); }catch(x){}
 });
 // Every tap is already saved on the tap. What can still be lost on the way
 // out is a write the phone refused: try it once more, and if it is still
@@ -3840,8 +3937,15 @@ const unsavedWork = () => !!(_storeFails.season || _storeFails.maps || tabUnsave
 function saveOnLeave(){
   try{ if(_storeFails.season || (_stale && _tabCopyFail)) save(S); }catch(e){}
   try{ if(_storeFails.maps) keepMaps(); }catch(e){}
+  // The copy is checked again on the way out, never taken on trust.
+  try{ verifyTabCopy(); }catch(e){}
+  try{ _snapPending.slice().forEach(keepSnapshot); }catch(e){}
 }
-window.addEventListener("pagehide", saveOnLeave);
+window.addEventListener("pagehide", e => {
+  saveOnLeave();
+  // Gone for good: its copy is no longer in use. (A page kept for Back is not.)
+  if(!e.persisted) try{ localStorage.removeItem(TAB_LIVE + TAB_ID); }catch(x){}
+});
 document.addEventListener("visibilitychange", () => { if(document.hidden) saveOnLeave(); });
 window.addEventListener("beforeunload", e => {
   saveOnLeave();
