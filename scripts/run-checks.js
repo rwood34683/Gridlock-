@@ -15,7 +15,7 @@ const SUITES = {
   "cloud-recovery": "test/cloud-recovery.js", "account-recovery": "test/account-recovery.js", "auth-native": "test/auth-native.js",
   "cloud-build-security": "test/cloud-build-security.js",
   "account-entitlements": "test/account-entitlements.cjs", "admin-handler": "test/admin-handler.mjs", "admin-portal": "test/admin-portal.cjs",
-  "season-safety":"test/season-safety.cjs", "storage-safety":"test/storage-safety.js", "preview":"test/preview-package.js", "account-deletion":"test/account-deletion.mjs",
+  "season-safety":"test/season-safety.cjs", "storage-safety":"test/storage-safety.js", "acceptance-lifecycle":"test/acceptance-lifecycle.cjs", "preview":"test/preview-package.js", "account-deletion":"test/account-deletion.mjs",
   billing: "test/billing-adapter.js", "billing-security": "test/billing-security.js", brands: "test/brands.js"
 };
 async function main() {

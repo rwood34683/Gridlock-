@@ -3567,6 +3567,15 @@ const defaultState = () => ({
  * case. If localStorage has something, it is the truth and nothing overwrites
  * it. `web/native.js` owns the plugin end and no-ops in a browser.
  */
+const COPY_FORMAT = "gridlock.coach.copy";
+const COPY_VERSION = 1;
+
+// What is worth keeping. Everything else — which tab you were on, whether a
+// path is mid-animation, a half-typed join code — is this session's business.
+const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
+                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds"];
+
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
 /* What the phone refused, kept by what it was: the season and the maps are
@@ -3727,7 +3736,7 @@ function tabCopyHolds(){
   return _tabCopySeason === null || seasonText(S) === _tabCopySeason;
 }
 function verifyTabCopy(){
-  if(!_stale || (!_tabCopyAt && !_tabCopyFail)) return true;
+  if(!_tabCopyAt && !_tabCopyFail) return true;
   if(tabCopyHolds()) return true;
   const season = seasonText(S);
   if(keepTabCopy()){ _tabCopySeason = season; return true; }
@@ -3736,30 +3745,39 @@ function verifyTabCopy(){
 // While a stale tab is open its copy is in use: it says so every few
 // seconds, and Delete on another tab waits until it has stopped saying so.
 function tabAlive(){
-  if(!_stale || !_tabCopyAt) return;
+  if(!_tabCopyAt) return;
   try{ localStorage.setItem(TAB_LIVE + TAB_ID, String(Date.now())); }catch(e){}
 }
-setInterval(() => { if(_stale && _tabCopyAt){ tabAlive(); verifyTabCopy(); } }, 10000);
+setInterval(() => { if(_tabCopyAt){ tabAlive(); verifyTabCopy(); } }, 10000);
 // Another tab's save that this store no longer holds: kept as a copy.
-function keepSnapshot(text){
+function keepSnapshot(text, own = false){
   let d = null; try{ d = JSON.parse(text); }catch(e){ return true; }
   if(!plainRecord(d)) return true;
   const data = {};
   KEEP_ALL.forEach(k => { if(d[k] !== undefined) data[k] = d[k]; });
-  if(data.fields) data.fields = fieldsOut(data.fields);
+  if(data.fields) data.fields = data.fields.map(f => {
+    const map=f && (fieldMapOk(f.map) ? f.map : FIELD_MAPS?.[f.key]);
+    return fieldMapOk(map) ? {...f,map} : f;
+  });
   const stamp = tailNum(text, "savedAt") || Date.now();
   const copy = {format: COPY_FORMAT, v: COPY_VERSION, scope: "all",
                 at: new Date(stamp).toISOString(), app: "Gridlock Coach", data};
   if(typeof d.seasonId === "string" && /^[a-f0-9]{32}$/i.test(d.seasonId)) copy.seasonId = d.seasonId;
+  if(own) copy.journalId=saveIdOf(text);
   const out = JSON.stringify(copy, null, 1),
-        key = TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
+        key = own ? TAB_COPY + TAB_ID : TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
     if(localStorage.getItem(key) !== out) throw new Error("not read back");
   }catch(e){
+    if(own){ _tabCopyFail="This tab's latest changes could not be kept as a recovery copy."; storeFailed("season",e); return false; }
     _snapFail = "Another tab's save could not be kept as a recovery copy.";
     if(!_snapPending.includes(text)) _snapPending.push(text);
     return false;
+  }
+  if(own){
+    _tabCopyFail=""; _tabCopyAt=Date.now(); _tabCopyText=out; _tabCopySeason=seasonText(S); tabAlive();
+    return true;
   }
   _snapPending = _snapPending.filter(t => t !== text);
   if(!_snapPending.length) _snapFail = "";
@@ -3775,7 +3793,7 @@ function forkSeen(text){
   if(cur !== text) keepSnapshot(text);
 }
 // What a stale tab still holds that is nowhere but in this tab's memory.
-const tabUnsaved = () => _stale && (!!_tabCopyFail || !!_snapFail || (!!_tabCopyAt && !tabCopyHolds()));
+const tabUnsaved = () => !!_tabCopyFail || !!_snapFail || (!!_tabCopyAt && !tabCopyHolds());
 window.gridlockRecoveryCopies = () => {
   const out = [];
   try{
@@ -3783,6 +3801,10 @@ window.gridlockRecoveryCopies = () => {
       const key = localStorage.key(i);
       if(!key || !key.startsWith(TAB_COPY)) continue;
       const text = localStorage.getItem(key) || "";
+      try{ const copy=JSON.parse(text), current=localStorage.getItem(STORE_KEY);
+        if(copy.journalId && (copy.journalId===saveIdOf(current) || copy.journalId===tailStr(current,"prevId"))) continue;
+      }catch(e){}
+      if(key===TAB_COPY+TAB_ID && !_stale && tabCopyHolds() && storedId()===_baseId) continue;
       let at = 0; try{ at = Date.parse(JSON.parse(text).at) || 0; }catch(e){}
       out.push({key, text, at, mine: key === TAB_COPY + TAB_ID});
     }
@@ -3796,7 +3818,7 @@ window.gridlockRecoveryCopies = () => {
 window.dropRecoveryCopy = key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
   if(!c) return false;
-  if(c.mine && _stale){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
+  if(c.mine && _tabCopyAt){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
   let live = 0; try{ live = +localStorage.getItem(TAB_LIVE + key.slice(TAB_COPY.length)) || 0; }catch(e){}
   if(!c.mine && live && Date.now() - live < 30000){ flash("The tab that wrote that copy is still open and keeping its changes in it. Close that tab first."); return false; }
   if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
@@ -3881,6 +3903,11 @@ function save(s){
   // A throw here used to escape through set() before render() ever ran, so the
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
+  // Journal this tab before replacing the shared season. Storage events can
+  // be delayed until after every tab has closed, so they cannot be the first
+  // place an overwritten point gets its recovery copy. One key per tab keeps
+  // this bounded instead of adding a new snapshot for every point.
+  if(s === S && !keepSnapshot(text, true)) return;
   try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
        if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; _baseId = _head = saveId; _headMine = true; saveHere(s); } }
   catch(e){ storeRefused(e); }
@@ -3988,7 +4015,7 @@ let S = load();
 window.addEventListener("storage", e => {
   // This tab's own copy taken off or changed by another tab: put it back.
   if(e.key === TAB_COPY + TAB_ID){
-    if(_stale && _tabCopyAt && e.newValue !== _tabCopyText){ verifyTabCopy(); try{ render(); }catch(x){} }
+    if(_tabCopyAt && e.newValue !== _tabCopyText){ verifyTabCopy(); try{ render(); }catch(x){} }
     return;
   }
   if(e.key !== STORE_KEY || !e.newValue) return;      // a cleared store is not newer work
@@ -6229,14 +6256,6 @@ function joinLink(code){ return "gridlock://class/" + code; }
    hand it to an assistant coach, keep one before a tournament. Loading one back
    either replaces what is here or merges into it. Nothing leaves the phone
    unless you tap the button. */
-const COPY_FORMAT = "gridlock.coach.copy";
-const COPY_VERSION = 1;
-
-// What is worth keeping. Everything else — which tab you were on, whether a
-// path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds"];
 // Messages ride too: the Messages screen says a note travels in a squad copy,
 // and it did not.
 const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","teamCode","codes","playGone","fields","renamedMen","renamedTeams","messages"];
