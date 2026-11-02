@@ -2755,6 +2755,22 @@ const defaultState = () => ({
  */
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
+/* What the phone refused, kept by what it was: the season and the maps are
+ * two writes, and the season saving on the next tap said nothing about a map
+ * the phone had just refused — it cleared the warning anyway, and a coach read
+ * a screen that said all was well over a picture that would not be there after
+ * a relaunch. Each write clears only its own refusal. */
+const _storeFails = {};
+function storeFailed(what, e){
+  _storeFails[what] = (e && e.name === "QuotaExceededError")
+    ? "This phone's storage for the app is full."
+    : "This phone is not letting the app save.";
+  _storeFail = Object.values(_storeFails)[0] || "";
+}
+function storeKept(what){
+  delete _storeFails[what];
+  _storeFail = Object.values(_storeFails)[0] || "";
+}
 // Declared before load(): copyDataError() checks a field's map with it, and an
 // older save carried its map on the field — read before this line existed it
 // threw, and the whole season went to recovery.
@@ -2780,6 +2796,7 @@ function load(){
     const parsed = JSON.parse(raw);
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
+    _baseStamp = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
     adoptCallPicked(parsed);
     readHere(parsed, raw);
     return Object.assign(defaultState(), parsed);
@@ -2790,6 +2807,7 @@ function load(){
       _recoveryText = raw;
       try{ localStorage.setItem(RECOVERY_KEY, raw); }catch(ignore){}
     }
+    _baseStamp = storedStamp();
     return defaultState();
   }
 }
@@ -2803,6 +2821,88 @@ function load(){
  * The half-done keys clearScratch() resets are not written at all: a launch
  * resets them anyway, and they were what made an unchanged season look new. */
 const HERE_KEY = STORE_KEY + ".here";
+/* Two tabs, one season.
+ *
+ * Every tab holds the whole season in memory and every tap writes all of it,
+ * so a tab left open on Saturday's sheet wrote Saturday back over the points
+ * another tab had saved on Sunday — silently, and the cloud copy followed it.
+ * A tab now knows which save it last read or wrote (`_baseStamp`, the season's
+ * savedAt, read off the tail of the stored text without parsing it). When the
+ * stored season is not that one, another tab has saved since: this tab is
+ * stale. It never writes the season or the maps again; what it changes goes
+ * to a recovery copy of its own (TAB_COPY + TAB_ID, an ordinary Save-a-copy
+ * file with its maps on its fields), read back before the screen says it is
+ * safe to close, and its cloud sharing stops. Reload opens the newer season;
+ * Nexus lists the copies to merge in or delete. */
+const TAB_COPY = STORE_KEY + ".tab.";
+const TAB_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+var _baseStamp = 0, _stale = false, _staleSince = 0;
+var _tabCopyAt = 0, _tabCopyFail = "", _tabCopySeason = null;
+function storedStamp(){
+  const t = localStorage.getItem(STORE_KEY);
+  if(!t) return 0;
+  const i = t.lastIndexOf('"savedAt":');
+  return i < 0 ? 0 : (parseInt(t.slice(i + 10), 10) || 0);
+}
+function markStale(){
+  if(_stale) return;
+  _stale = true; _staleSince = Date.now();
+  // A push queued before the other tab saved would send the older season.
+  try{ clearSyncRetry(); ++_syncEpoch; }catch(e){}
+}
+// This tab's own copy, with this tab's maps. Said safe only once read back.
+function keepTabCopy(){
+  let text = "";
+  try{ text = copyPayload("all"); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
+  const key = TAB_COPY + TAB_ID;
+  try{
+    localStorage.setItem(key, text);
+    if(localStorage.getItem(key) !== text) throw new Error("not read back");
+  }catch(e){
+    _tabCopyFail = (e && e.name === "QuotaExceededError")
+      ? "There is no room left for a recovery copy." : "The recovery copy could not be written.";
+    return false;
+  }
+  _tabCopyFail = ""; _tabCopyAt = Date.now();
+  return true;
+}
+// What a stale tab still holds that is nowhere but in this tab's memory.
+const tabUnsaved = () => _stale && !!_tabCopyFail;
+window.gridlockRecoveryCopies = () => {
+  const out = [];
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith(TAB_COPY)) continue;
+      const text = localStorage.getItem(key) || "";
+      let at = 0; try{ at = Date.parse(JSON.parse(text).at) || 0; }catch(e){}
+      out.push({key, text, at, mine: key === TAB_COPY + TAB_ID});
+    }
+  }catch(e){}
+  return out.sort((a, b) => b.at - a.at);
+};
+/* A copy is somebody's only record of what they did in that tab. This tab's
+ * own copy is the one it is still saving into while it is stale, so it cannot
+ * be deleted from here; another tab's copy written in the last half minute may
+ * be one that tab is still writing, and waits. */
+window.dropRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(!c) return false;
+  if(c.mine && _stale){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
+  if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
+  if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
+  try{ localStorage.removeItem(key); }catch(e){ return false; }
+  render();
+  return true;
+};
+window.mergeRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(c) window.loadCopy("merge", c.text);
+};
+window.showRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(c) set({copyText: c.text, copyStatus: "A recovery copy from another tab. Copy the text to keep it, or merge it in."});
+};
 const NAV_KEYS = ["tab", "more", "scoutTab"];
 var _scratchKeys = null, _lastSeason = null;
 function scratchKeys(){
@@ -2824,9 +2924,7 @@ function saveHere(s){
 }
 function storeRefused(e){
   _lastSeason = null;
-  _storeFail = (e && e.name === "QuotaExceededError")
-    ? "This phone's storage for the app is full."
-    : "This phone is not letting the app save.";
+  storeFailed("season", e);
 }
 // Reading the season back is a lookup the browser keeps in memory, not a
 // read of the disk, so the skip can afford to check it is still there.
@@ -2847,8 +2945,22 @@ function save(s){
   // A slow native restore must not overwrite work already started this launch.
   _hadLocal = true;
   const season = seasonText(s);
-  if(s === S && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
-  s.savedAt = Date.now();
+  if(s === S && !_stale && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
+  if(s === S && !_stale){
+    // Nothing stored at all is not newer work: the store was cleared under
+    // the app, and the season in memory is the one to put back.
+    let cur = _baseStamp; try{ cur = storedStamp(); }catch(e){}
+    if(cur && cur !== _baseStamp) markStale();
+  }
+  // Stale: the season and the maps are another tab's now. Only a change of
+  // this tab's own is written, and only to its own copy.
+  if(s === S && _stale){
+    if(_tabCopySeason === null) _tabCopySeason = _lastSeason;
+    if(season !== _tabCopySeason || _tabCopyFail){ if(keepTabCopy()) _tabCopySeason = season; }
+    return;
+  }
+  // Never the same stamp twice: two saves in one millisecond read as one.
+  s.savedAt = Math.max(Date.now(), (s === S ? _baseStamp : 0) + 1);
   const nav = {savedAt: s.savedAt};
   NAV_KEYS.forEach(k => { if(s[k] !== undefined) nav[k] = s[k]; });
   const tail = JSON.stringify(nav);
@@ -2856,10 +2968,11 @@ function save(s){
   // A throw here used to escape through set() before render() ever ran, so the
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
-  try{ localStorage.setItem(STORE_KEY, text); _storeFail = ""; if(s === S){ _lastSeason = season; _lastLen = text.length; saveHere(s); } }
+  try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
+       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; saveHere(s); } }
   catch(e){ storeRefused(e); }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
-  if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) keepMaps();
+  if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) mirrorMaps();
   // Opt-in league sync: a best-effort push, throttled and fully guarded. It can
   // never throw out of save() and never blocks a point — a no-signal push is a
   // no-op and the phone stays the working copy.
@@ -2914,7 +3027,26 @@ function contextWarning(){
     Staff sign-in, keeping the screen awake and Share will not work here. Everything else does.
     Use the installed app, or open this on the same machine at localhost.</span></div>`;
 }
+function staleWarning(){
+  if(!_stale) return "";
+  const red = `class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)"`;
+  const reload = `<button onclick="location.reload()">Open the newer season</button>`;
+  if(_tabCopyFail) return `<div ${red}>
+    <span><b>Another tab saved newer work, and this tab's changes are not saved anywhere.</b>
+    ${esc(_tabCopyFail)} Do not close this tab: use Nexus &rsaquo; Save a copy first, or free some space.</span>
+    <button onclick="set({tab:'more',more:'nexus'})">Open Nexus</button></div>`;
+  if(_tabCopyAt) return `<div ${red}>
+    <span><b>Another tab saved newer work.</b> This tab did not write over it. Its own changes are kept
+    as a separate recovery copy (${esc(new Date(_tabCopyAt).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}))}),
+    checked on this phone, and cloud sharing is paused here. It is safe to close this tab. The copy is on
+    Nexus &rsaquo; Recovery copies.</span>${reload}</div>`;
+  return `<div ${red}>
+    <span><b>Another tab saved newer work.</b> Anything you change here is kept as a separate recovery copy,
+    not over it, and cloud sharing is paused in this tab. Nothing here is unsaved, so it is safe to close.</span>${reload}</div>`;
+}
 function storeWarning(){
+  const stale = staleWarning();
+  if(stale) return stale;
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
     <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
     Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
@@ -2932,6 +3064,28 @@ function storeWarning(){
   return "";
 }
 let S = load();
+// Another tab saving makes this one stale at once, not only on its next tap:
+// its cloud push stops, and the screen says so before anything is lost.
+window.addEventListener("storage", e => {
+  if(_stale || (e.key !== STORE_KEY && e.key !== null)) return;
+  let cur = _baseStamp; try{ cur = storedStamp(); }catch(x){}
+  if(cur && cur !== _baseStamp){ markStale(); try{ render(); }catch(x){} }
+});
+// Every tap is already saved on the tap. What can still be lost on the way
+// out is a write the phone refused: try it once more, and if it is still
+// refused ask the browser to warn before the tab goes.
+const unsavedWork = () => !!(_storeFails.season || _storeFails.maps || tabUnsaved());
+function saveOnLeave(){
+  try{ if(_storeFails.season || (_stale && _tabCopyFail)) save(S); }catch(e){}
+  try{ if(_storeFails.maps) keepMaps(); }catch(e){}
+}
+window.addEventListener("pagehide", saveOnLeave);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveOnLeave(); });
+window.addEventListener("beforeunload", e => {
+  saveOnLeave();
+  if(!unsavedWork()) return;
+  e.preventDefault(); e.returnValue = "";
+});
 // A running animation/drill cannot resume from its saved timers after a reload.
 // Keep the coach's real call, and reopen with every player at the set.
 function resetLiveState(){
@@ -3051,11 +3205,47 @@ var FIELD_MAPS = (() => {
   } catch(e){ return {}; }
 })();
 const mapOf = f => !f ? "" : (f.key && FIELD_MAPS[f.key]) || (fieldMapOk(f.map) ? f.map : "");
+/* Each tab writes only the maps it changed, onto what is stored now: a tab
+ * that had read map A wrote the whole set back, and a newer map B another tab
+ * had saved for the same field was gone. `_mapsSeen` is the set as this tab
+ * last read or wrote it. A map this tab changed that another tab has changed
+ * too is a conflict — the stored one stays, and this tab goes stale with its
+ * own picture in its recovery copy. And nothing the phone's own store refused
+ * goes to the durable mirror: a map that did not save is not a map to keep. */
+var _mapsSeen = {...FIELD_MAPS};
+function readStoredMaps(){
+  try{
+    const m = JSON.parse(localStorage.getItem(MAPS_KEY) || "{}");
+    return m && typeof m === "object" && !Array.isArray(m) ? m : {};
+  }catch(e){ return {}; }
+}
+function mirrorMaps(){
+  if(!window.gridlockKeep) return;
+  let text = null; try{ text = localStorage.getItem(MAPS_KEY); }catch(e){}
+  if(text === null) return;
+  try{ window.gridlockKeep(text, MAPS_KEY); _mapsMirrored = true; }catch(e){}
+}
 function keepMaps(){
-  const text = JSON.stringify(FIELD_MAPS);
+  if(_stale){ keepTabCopy(); return; }
+  const stored = readStoredMaps();
+  const keys = [...new Set([...Object.keys(FIELD_MAPS), ...Object.keys(_mapsSeen)])];
+  const changed = keys.filter(k => (FIELD_MAPS[k] || "") !== (_mapsSeen[k] || ""));
+  const clash = changed.some(k => (stored[k] || "") !== (_mapsSeen[k] || "") && (stored[k] || "") !== (FIELD_MAPS[k] || ""));
+  if(clash){ markStale(); keepTabCopy(); return; }
+  const next = {...stored};
+  changed.forEach(k => { if(FIELD_MAPS[k]) next[k] = FIELD_MAPS[k]; else delete next[k]; });
+  const text = JSON.stringify(next);
   try{ localStorage.setItem(MAPS_KEY, text); }
-  catch(e){ _storeFail = "This phone's storage for the app is full."; }
+  catch(e){ storeFailed("maps", e); return; }
+  storeKept("maps");
+  // What the other tabs saved is this tab's now too.
+  Object.keys(FIELD_MAPS).forEach(k => { if(!(k in next)) delete FIELD_MAPS[k]; });
+  Object.assign(FIELD_MAPS, next);
+  _mapsSeen = {...next};
   if(window.gridlockKeep) try{ window.gridlockKeep(text, MAPS_KEY); _mapsMirrored = true; }catch(e){}
+  // A map is part of what a coach shares: a picture changed with nothing else
+  // left the season text as it was, and the cloud never heard of it.
+  if(changed.length) try{ maybeSync(); }catch(e){}
 }
 function liftMaps(){
   let moved = false;
@@ -3078,7 +3268,7 @@ window.gridlockRestoreMaps = text => {
   if(!m || typeof m !== "object") return;
   let took = false;
   Object.entries(m).forEach(([k, v]) => { if(!FIELD_MAPS[k] && String(k).startsWith("my:") && fieldMapOk(v)){ FIELD_MAPS[k] = v; took = true; } });
-  if(took){ try{ localStorage.setItem(MAPS_KEY, JSON.stringify(FIELD_MAPS)); }catch(e){} registerFields(); render(); }
+  if(took){ try{ localStorage.setItem(MAPS_KEY, JSON.stringify(FIELD_MAPS)); _mapsSeen = {...FIELD_MAPS}; }catch(e){} registerFields(); render(); }
 };
 // Fields as a copy carries them: each with its map back on it.
 const fieldsOut = list => (list || []).map(f => mapOf(f) ? {...f, map: mapOf(f)} : f);
@@ -5447,7 +5637,7 @@ window.saveCopy = async scope => {
       const result = await window.gridlockExportFile(text, name);
       if(result && result.status === "shared"){
         S.copyStatus = `Backup file sent to the share sheet · ${copySummary(JSON.parse(text).data)}. Keep ${name} in Files or your chosen destination.`;
-        S.copiedAt = Date.now();
+        if(scope !== "squad") S.copiedAt = Date.now();
       } else if(result && result.status === "cancelled"){
         S.copyStatus = "Share cancelled. Tap Save a copy to try again, or use Show it as text.";
       } else {
@@ -5479,7 +5669,9 @@ window.saveCopy = async scope => {
   S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}. `
     + (saved ? `Look for ${name} in your downloads or the share sheet — if neither arrived, use Show it as text.`
              : `Use Show it as text below and keep it somewhere safe.`);
-  if(saved) S.copiedAt = Date.now();
+  // Only the whole season, actually handed off, is a backup. A squad file is
+  // a roster for an assistant, not his season.
+  if(saved && scope !== "squad") S.copiedAt = Date.now();
   save(S);
   render();
 };
@@ -5633,7 +5825,9 @@ window.openSentSheet = () => {
   S.copySheet = null; window.openMatch(id);
   if(S.matchId === id) set({tab: "tally"});
 };
-window.showCopy = scope => { S.copyText = copyPayload(scope); S.copiedAt = Date.now(); save(S); render(); };
+// Text on the screen is not a backup until he has copied it somewhere, and
+// the app cannot know that he did: showing it says nothing about copiedAt.
+window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
 /* The one thing protecting a season is the copy, and nothing ever said how
  * long it had been. Said where he has a minute — a finished sheet, and the
  * record under Matches — only when there is something to lose and the last
@@ -5693,9 +5887,9 @@ window.loadCopy = (mode, suppliedText) => {
     o.walk = Object.values(S.walk || {}).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0);
     return o; };
   const sizeBefore = sizeOf();
-  // What just loaded is a copy, so the season has one as of now — the nudge
-  // must not open on a restored phone saying none was ever made.
-  S.copiedAt = Date.now();
+  // Bringing a copy in is not a backup of this phone: the date of the last
+  // full season he actually exported stays exactly what it was.
+  const backedUp = S.copiedAt;
   // Replace swaps the data, not the session: you stay signed in, on this screen,
   // looking at the message that says what just happened.
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
@@ -5775,6 +5969,7 @@ window.loadCopy = (mode, suppliedText) => {
   // back, not left on the deleted list for the next merge to strip again.
   if(mode === "replace") next.sheetsGone = (S.sheetsGone || []).filter(id => !(d.matches || []).some(m => m && m.id === id));
   Object.keys(next).forEach(k => { S[k] = next[k]; });
+  S.copiedAt = backedUp;
   // Their man numbered on one phone and not yet on the other came back as two
   // — "#7 Dill" and "Dill" — with his sightings split between the two keys.
   // A numberless man is the numbered one of the same name, as pitDup reads it.
@@ -9483,6 +9678,11 @@ function accountRecord(text, legacy = false){
      (a.kind === "apple" && a.sub) || (a.email && a.salt && a.hash)) return a;
   return {};
 }
+// An email is one address whatever its capitals: "Coach@X.com" and
+// "coach@x.com" reach the same inbox, and the server reads them as one
+// account. Offline the phone read them as two and told him to make another.
+const sameEmail = (a, b) => !!a && !!b &&
+  String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 function readAccount(key = STAFF_KEY){
   try{ return accountRecord(localStorage.getItem(key), key !== STAFF_KEY); }catch(e){ return {}; }
 }
@@ -9712,7 +9912,7 @@ window.doAuth = async () => {
   if(creating){
     // Creating over an account that is already here is how a coach who meant to
     // sign in loses the one he had — nothing else on the phone can get it back.
-    if(acc.email && acc.email !== email &&
+    if(acc.email && !sameEmail(acc.email, email) &&
        !confirm(`This phone already has ${acc.email}. A new account replaces that sign-in and `
               + `there is no way back to it. Your season is kept separately and is not touched. Continue?`)) return;
     const salt = newSalt(), hash = await hashPass(pass, salt);
@@ -9723,14 +9923,14 @@ window.doAuth = async () => {
     return;
   }
 
-  if(acc.email === email && acc.salt && await verifyAccountPassword(pass, acc)){
+  if(sameEmail(acc.email, email) && acc.salt && await verifyAccountPassword(pass, acc)){
     if(attempt !== _authAttempt) return;
     if(!acc.hash.startsWith("pbkdf2-sha256$")){
       const salt = newSalt(), hash = await hashPass(pass,salt);
       if(attempt !== _authAttempt) return;
       if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
     }
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
+    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
@@ -9738,7 +9938,7 @@ window.doAuth = async () => {
   // rather than locking the coach out of his own phone.
   if(attempt !== _authAttempt) return;
   const old = readAccount("gridlock.staff");
-  if(old.email === email && old.pass === pass){
+  if(sameEmail(old.email, email) && old.pass === pass){
     const salt = newSalt(), hash = await hashPass(pass, salt);
     if(attempt !== _authAttempt) return;
     if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
@@ -9762,7 +9962,7 @@ window.doAuth = async () => {
              + "make one here with the same email. Nothing you have logged is kept inside an account, "
              + "so you lose nothing, and Nexus \u203a Save a copy is how a season moves between phones.");
   const known = acc.email || old.email;
-  if(known !== email)
+  if(!sameEmail(known, email))
     return say("The account on this phone is " + known + ". Sign in with that one, "
              + "or make a new account — your season is kept separately and is not touched either way.");
   say(window.gridlockCloud
@@ -9800,7 +10000,8 @@ function syncStatus(data){
   Object.assign(S,data);_syncStatusWrite=true;
   try{save(S);}finally{_syncStatusWrite=false;}render();
 }
-const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting;
+// A stale tab never sends: its season is older than the one another tab saved.
+const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
 function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
 function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
 function queueSeasonPush(t){
@@ -14611,6 +14812,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
@@ -15658,6 +15860,7 @@ function moreBody(k){
     <div class="fld"><label>Original saved text</label><textarea readonly style="min-height:150px"
       onclick="this.select()">${esc(_recoveryText)}</textarea></div>
     <button class="btn btn--danger" onclick="clearRecovery()">I have it — clear this</button>`) : "")
+  + recoveryCopiesSec()
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>
@@ -15671,6 +15874,28 @@ function moreBody(k){
     </div>
     <p class="note">A copy never carries your staff password. Sign in again on the new phone.</p>`);
   return "";
+}
+/* What another tab kept when it found this one had saved newer work. Each is
+ * an ordinary copy — merge it in, show it to keep it, or delete it once it is
+ * in. Never pruned by the app: it may be the only record of those taps. */
+function recoveryCopiesSec(){
+  const list = window.gridlockRecoveryCopies();
+  if(!list.length) return "";
+  const rows = list.map(c => {
+    let what = "";
+    try{ what = copySummary(JSON.parse(c.text).data || {}); }catch(e){ what = "unreadable"; }
+    const when = c.at ? new Date(c.at).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}) : "";
+    const k = JSON.stringify(c.key).replace(/"/g, "&quot;");
+    return `<div class="panel" style="margin-bottom:8px">
+      <p class="note"><b>${c.mine ? "This tab" : "Another tab"}</b>${when ? " · " + esc(when) : ""} · ${esc(what)}</p>
+      <div class="toggles">
+        <button class="btn" onclick="mergeRecoveryCopy(${k})">Merge this copy in</button>
+        <button class="btn btn--quiet" onclick="showRecoveryCopy(${k})">Show this copy</button>
+        <button class="btn btn--danger" onclick="dropRecoveryCopy(${k})">Delete this copy</button>
+      </div></div>`;
+  }).join("");
+  return sec("Recovery copies", `<p class="lede">A tab that found another tab had saved newer work kept
+    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>${rows}`);
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];

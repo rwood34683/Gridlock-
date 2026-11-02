@@ -3836,11 +3836,13 @@ const ROSTER = [
     const t = document.getElementById("root").textContent;
     return /No copy of this season has been saved yet/.test(t) && /Save a copy · Nexus/.test(t);
   }));
-  check("Show it as text counts as a copy; a fresh one quiets the nudge, a week-old one brings it back", await ev(() => {
+  check("Show it as text is not a backup; a fresh export quiets the nudge, a week-old one brings it back", await ev(() => {
     window.showCopy("all");
-    const quiet = !!S.copiedAt && !/No copy of this season/.test(document.getElementById("root").textContent) && !/Last copy saved/.test(document.getElementById("root").textContent);
-    window.set({ copiedAt: Date.now() - 9 * 86400000, copyText: "" });
-    return quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
+    const still = !S.copiedAt && /No copy of this season/.test(document.getElementById("root").textContent);
+    window.set({ copiedAt: Date.now(), copyText: "" });
+    const quiet = !/No copy of this season/.test(document.getElementById("root").textContent) && !/Last copy saved/.test(document.getElementById("root").textContent);
+    window.set({ copiedAt: Date.now() - 9 * 86400000 });
+    return still && quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
   }));
   check("the nudge never shows while a point is on, and Matches carries it too", await ev(() => {
     window.newMatch();
@@ -3978,12 +3980,15 @@ const ROSTER = [
     window.timeUp(); window.newMatch();
     return offered && tie;
   }));
-  check("a season loaded from a copy counts as saved — the nudge does not open on a restored phone", await ev(() => {
+  check("loading a copy is not a backup of this phone — the date of the last real export stands", await ev(() => {
     window.set({ copiedAt: null });
     const text = copyPayload("all");
     const el = document.getElementById("copyIn") || Object.assign(document.body.appendChild(document.createElement("textarea")), { id: "copyIn" });
     el.value = text; window.loadCopy("merge");
-    const ok = !!S.copiedAt && Date.now() - S.copiedAt < 5000;
+    const none = S.copiedAt == null;
+    const at = Date.now() - 3 * 86400000; window.set({ copiedAt: at });
+    el.value = text; window.loadCopy("merge");
+    const ok = none && S.copiedAt === at;
     if(el.parentNode === document.body) el.remove();
     return ok || "status: " + S.copyStatus;
   }) === true, await ev(() => S.copyStatus));

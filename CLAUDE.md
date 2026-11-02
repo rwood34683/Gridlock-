@@ -1261,7 +1261,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   not his men to name.
 - Let a season go unsaved in silence. There is no server, so the copy is the
   only thing protecting it, and nothing said how long it had been. `copiedAt`
-  is set by Save a copy and Show it as text; `copyNudge()` speaks up on a
+  is set only by a successful full-season export — Save everything handed to
+  the share sheet or downloaded; `copyNudge()` speaks up on a
   finished sheet and under the record on Matches, only when something is
   logged and the copy is a week old or missing — never while a point is on.
 - Count a call twice because a thumb tapped twice. One point has one call:
@@ -2264,9 +2265,34 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   one: a long first point can run the match clock out at 0–0, and level is
   still a tie or overtime. The buttons stand whenever a sheet has an opponent
   and is not over.
-- Tell a restored phone no copy was ever saved. What just loaded *is* a copy,
-  so `loadCopy()` stamps `copiedAt`; the nudge is for a season that has
-  never left the phone, not one that just arrived on it.
+- Count anything but a full-season export as a backup. Show it as text puts
+  the season on screen and the app cannot know it was ever copied off; a
+  squad file is a roster, not the season; a cancelled or failed share sent
+  nothing; and a copy loaded in — merge or replace — is somebody's backup
+  arriving, not this phone's leaving. None of them touch `copiedAt`, and a
+  load keeps the date the last real export set.
+- Let a stale tab write the season. Every tab holds the whole season and
+  every tap writes all of it, so a tab left open wrote an older season back
+  over points another tab had saved, and its maps over newer maps. `save()`
+  reads the stored season's `savedAt` off its tail (`storedStamp()`) and
+  compares it with the one this tab last read or wrote (`_baseStamp`); when
+  another tab has saved since, the tab is stale (`markStale()`, also on the
+  `storage` event): it never writes the season or the maps again, its cloud
+  sharing stops (`syncAllowed()`), and what it changes goes to a recovery
+  copy of its own (`TAB_COPY + TAB_ID`, an ordinary copy with its maps on its
+  fields), read back before the banner says it is safe to close. Nexus ›
+  Recovery copies merges, shows or deletes them; this tab's own copy cannot
+  be deleted while it is still saving into it. A cleared store is not newer
+  work — the season in memory goes back. `keepMaps()` writes only the maps
+  this tab changed onto what is stored now (`_mapsSeen`), a clash on one map
+  makes the tab stale, a map the phone refused never goes to the native
+  mirror, and a map-only change is a change to share (`maybeSync`). Each
+  refused write clears only its own warning (`storeFailed` / `storeKept`, and
+  per key in `web/native.js`), the mirror is written at once on the way to
+  the background, and `beforeunload` warns while anything is still unsaved.
+  `test/storage-safety.js` holds all of it with two real tabs.
+- Read an email's capitals as a different account. Offline sign-in compares
+  through `sameEmail()`, the way the account server already does.
 - Open Sightlines on whichever bunker the digitiser listed first. The
   question a coach walks over with is what his own man can see, so
   `sightDefault()` stands him in his first plant for the call he is on and

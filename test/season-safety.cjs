@@ -30,7 +30,7 @@ function syncHarness(){
   const state={entered:true,role:'staff',email:'owner@example.test',syncOn:true,syncAt:null};
   const cloud={pushSeason:async(_label,payload)=>{uploads.push(payload);return{ok:true};}};
   const context=vm.createContext({window:{gridlockCloud:cloud,addEventListener:(name,fn)=>events.set(name,fn)},S:state,
-    Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_recoveryUser:null,_recoveryBusy:false,
+    Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_stale:false,_recoveryUser:null,_recoveryBusy:false,
     copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},
     setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{at:clock+ms,fn});return id;},clearTimeout:id=>timers.delete(id)});
   const start=app.indexOf('const canSync ='),end=app.indexOf('window.toggleSync =',start);
