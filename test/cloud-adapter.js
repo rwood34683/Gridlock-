@@ -33,8 +33,8 @@ window.fetch = async (url, opts) => {
     body = { access_token:"AT2", refresh_token:"RT2", expires_in:3600, user:{ id:"u_1" } };
   } else if (/\\/auth\\/v1\\/recover/.test(url)) {
     body = {};
-  } else if (/\\/rest\\/v1\\/seasons/.test(url)) {
-    status = opts.method === "DELETE" ? 204 : 201; body = {};
+  } else if (/\\/rest\\/v1\\/rpc\\/gridlock_write_season/.test(url)) {
+    status=200;body={ok:true,revision:JSON.parse(opts.body).expected_revision+1};
   }
   return { ok: status < 300, status, json: async () => body };
 };`;
@@ -81,22 +81,22 @@ window.fetch = async (url, opts) => {
     // Re-establish a session for the season calls.
     await page.evaluate(async () => { await window.gridlockCloud.signIn("coach@team.com", "sideline1"); window.__reqs = []; });
 
-    check("pushSeason upserts one row keyed on owner, with the season as the payload", await page.evaluate(async () => {
+    check("pushSeason uses the server revision RPC with no client-selected owner", await page.evaluate(async () => {
       const copy = JSON.stringify({ format: "gridlock.coach.copy", v: 1, data: { matches: [{ id: "m1" }] } });
       const r = await window.gridlockCloud.pushSeason("Garland Elite", copy);
       const last = window.__reqs[window.__reqs.length - 1];
       const row = JSON.parse(last.body);
       return r.ok
         && last.method === "POST"
-        && /\/rest\/v1\/seasons\?on_conflict=owner/.test(last.url)
-        && /merge-duplicates/.test(last.headers.Prefer || "")
+        && /\/rest\/v1\/rpc\/gridlock_write_season/.test(last.url)
+        && row.expected_revision === 0 && row.remove_season === false
         && last.headers.Authorization === "Bearer AT"
-        && row.owner === "u_1" && row.label === "Garland Elite"
-        && row.payload && row.payload.data.matches[0].id === "m1";      // stored as an object, not a string
+        && !("owner" in row) && row.season_label === "Garland Elite"
+        && row.season_payload && row.season_payload.data.matches[0].id === "m1";      // stored as an object, not a string
     }));
     check("pushSeason with no signal is offline and sends nothing durable", await page.evaluate(async () => {
       window.__netUp = false; window.__reqs = [];
-      const r = await window.gridlockCloud.pushSeason("Garland Elite", "{}");
+      const r = await window.gridlockCloud.pushSeason("Garland Elite", JSON.stringify({format:"gridlock.coach.copy",data:{}}));
       window.__netUp = true;
       return r.offline === true;
     }));
@@ -104,7 +104,7 @@ window.fetch = async (url, opts) => {
       window.__reqs = [];
       const r = await window.gridlockCloud.deleteSeason();
       const last = window.__reqs[window.__reqs.length - 1];
-      return r.ok && last.method === "DELETE" && /\/rest\/v1\/seasons\?owner=eq\.u_1/.test(last.url);
+      return r.ok && last.method === "POST" && /gridlock_write_season/.test(last.url) && JSON.parse(last.body).remove_season === true;
     }));
 
     check("pushSeason before sign-in refuses without touching the network", await page.evaluate(async () => {

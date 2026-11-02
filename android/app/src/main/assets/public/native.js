@@ -81,9 +81,13 @@
   var KEY = "gridlock.coach.v2";
   var ACCOUNT = "gridlock.staff.v2";
   var pending = {}, timer = null, flushing = null;
+  // Which keys' newest write failed. A key saving clears only its own entry:
+  // the season saving said nothing about a map the phone had just refused,
+  // and clearing the warning on it hid the one copy that was not kept.
+  var failedKeys = {};
 
-  function storageStatus(failed) {
-    var message = failed ? "The phone could not update its second copy. Keep a backup with Save a copy on Nexus." : "";
+  function storageStatus() {
+    var message = Object.keys(failedKeys).length ? "The phone could not update its second copy. Keep a backup with Save a copy on Nexus." : "";
     if (window.gridlockDurableError === message) return;
     window.gridlockDurableError = message;
     if (typeof window.render === "function") window.render();
@@ -101,14 +105,17 @@
     flushing = Promise.all(Object.keys(out).map(function (k) {
       return Promise.resolve().then(function () {
         return P.Preferences.set({ key: k, value: out[k] });
+      }).then(function () {
+        delete failedKeys[k];
       }).catch(function () {
         failed = true;
+        failedKeys[k] = true;
         // Retry the failed text only if an even newer save is not queued.
         if (!(k in pending)) pending[k] = out[k];
       });
     })).then(function () {
       flushing = null;
-      storageStatus(failed);
+      storageStatus();
       if (Object.keys(pending).length && !timer) timer = setTimeout(flush, failed ? 5000 : 0);
     });
     return flushing;
@@ -124,6 +131,15 @@
     pending[key || KEY] = text;
     if (!timer) timer = setTimeout(flush, 500);
   };
+  /* The half second of debounce is the one window in which the last tap is
+   * only in localStorage. Going to the background or closing does not wait
+   * for it: what is queued is written now, while the app still runs. */
+  if (window.gridlockDurable) {
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") flush();
+    });
+    if (window.addEventListener) window.addEventListener("pagehide", function () { flush(); });
+  }
 
   /* Keep the screen awake on a sideline.
    *

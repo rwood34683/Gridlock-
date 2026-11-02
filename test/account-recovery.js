@@ -106,8 +106,20 @@ const { createServer } = require("../scripts/serve.js");
         window.GRIDLOCK_CLOUD={url:"https://demo.supabase.co",anonKey:"public-test-fixture",redirectTo:location.origin+location.pathname};
         window.__requests=[];
         window.fetch=async (url,opts={}) => {
-          __requests.push({url,method:opts.method,body:opts.body});
-          return new Response(JSON.stringify({id:"coach-id",email:"coach@example.test"}),{status:200,headers:{"Content-Type":"application/json"}});
+          const endpoint=new URL(url),headers=new Headers(opts.headers);
+          const request={url:String(url),method:opts.method||"GET",body:opts.body,
+            authorization:headers.get("Authorization"),apikey:headers.get("apikey")};
+          __requests.push(request);
+          let body;
+          if(endpoint.origin==="https://demo.supabase.co"&&endpoint.pathname==="/auth/v1/user"&&["GET","PUT"].includes(request.method)){
+            body={id:"coach-id",email:"coach@example.test"};
+          }else if(endpoint.origin==="https://demo.supabase.co"&&endpoint.pathname==="/rest/v1/entitlements"&&request.method==="GET"){
+            body=[];
+          }else{
+            request.unexpected=true;
+            throw Error("Unexpected mocked recovery request");
+          }
+          return new Response(JSON.stringify(body),{status:200,headers:{"Content-Type":"application/json"}});
         };
       });
       await page.addScriptTag({path:path.join(__dirname,"../native/gridlock-cloud.js")});
@@ -121,8 +133,27 @@ const { createServer } = require("../scripts/serve.js");
       assert.equal(await page.evaluate(() => JSON.stringify(localStorage).includes("test-access")),false);
       await screenshot(page,"password-recovery-form");
       await passwords(page); await page.evaluate(() => completePasswordReset());
-      assert.deepEqual(await page.evaluate(() => ({entered:S.entered,uid:gridlockCloud.session().user.id,method:__requests.at(-1).method,plain:JSON.stringify(localStorage).includes("test-password")})),
-        {entered:true,uid:"coach-id",method:"PUT",plain:false});
+      assert.deepEqual(await page.evaluate(() => ({entered:S.entered,uid:gridlockCloud.session().user.id,plain:JSON.stringify(localStorage).includes("test-password")})),
+        {entered:true,uid:"coach-id",plain:false});
+      const requests=await page.evaluate(() => __requests);
+      assert.equal(requests.some(r=>r.unexpected),false,"all recovery requests stay in the mock");
+      const updates=requests.filter(r=>new URL(r.url).pathname==="/auth/v1/user"&&r.method==="PUT");
+      assert.equal(updates.length,1,"exactly one password update is submitted");
+      assert.deepEqual(updates[0],{
+        url:"https://demo.supabase.co/auth/v1/user",method:"PUT",body:JSON.stringify({password:"test-password"}),
+        authorization:"Bearer test-access",apikey:"public-test-fixture"
+      });
+      const reads=requests.filter(r=>new URL(r.url).pathname==="/rest/v1/entitlements");
+      assert.equal(reads.length,1,"the verified account's access is refreshed after recovery");
+      assert.equal(reads[0].method,"GET");
+      assert.equal(reads[0].authorization,"Bearer test-access");
+      assert.equal(reads[0].apikey,"public-test-fixture");
+      assert.equal(new URL(reads[0].url).origin,"https://demo.supabase.co");
+      assert.deepEqual(Object.fromEntries(new URL(reads[0].url).searchParams),{
+        user_id:"eq.coach-id",select:"user_id,plan,expires_at",limit:"1"
+      });
+      assert.ok(requests.indexOf(reads[0])>requests.indexOf(updates[0]),"access refresh follows the password write");
+      assert.equal(await page.evaluate(() => accountGrantPlan()),"free");
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STAFF_KEY)));
       assert.equal(saved.email,"coach@example.test"); assert.ok(saved.hash);
     });
@@ -156,7 +187,7 @@ const { createServer } = require("../scripts/serve.js");
       assert.deepEqual(await page.evaluate(() => ({entered:S.entered,account:localStorage.getItem(STAFF_KEY),cancel:__cancel})), {entered:false,account:null,cancel:1});
     });
     await check("crypto failure gives feedback without entering or saving an account", async page => {
-      await page.evaluate(() => { crypto.subtle.digest = async () => { throw Error("unavailable"); }; });
+      await page.evaluate(() => { crypto.subtle.deriveBits = async () => { throw Error("unavailable"); }; });
       await auth(page,"create");
       assert.equal(await page.evaluate(() => S.entered || !!localStorage.getItem(STAFF_KEY)), false);
       assert.match(await page.locator("#root").innerText(), /could not securely/);
@@ -191,3 +222,4 @@ const { createServer } = require("../scripts/serve.js");
     if (server) { server.closeAllConnections(); await new Promise(r => server.close(r)); }
   }
 })().catch(e => { console.error(e); process.exitCode=1; });
+

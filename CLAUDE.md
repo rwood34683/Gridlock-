@@ -773,6 +773,28 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     5v5 11 (`wc-prem` … `wc-pump`). Names are the page's own spelling; a name
     entered in two divisions is one team to the app. No scores, no tendency.
 
+53. ~~Administration and account plan access.~~ Done — `admin/index.html`
+    signs in against the configured account service and uses the
+    `gridlock-admin` Edge Function to list users, review seasons coaches chose
+    to upload, and set Free, Team or Program access with an optional expiry.
+    Each request verifies the caller with Auth and checks an immutable UUID
+    allowlist; client roles, email text and metadata never grant admin access.
+    Service credentials stay on the server. The portal has no invite, password,
+    ban, user-delete or season-delete operation. Passwords, tokens, user lists
+    and cloud seasons live only in page memory; sign-out and expiry clear them
+    and invalidate pending replies. Manual imports stay separately in this
+    browser. Coach sync remains opt-in, with own-row policies and its existing
+    delete-upload control; phone-only seasons are never visible to the portal.
+    The coach adapter reads only its authenticated user's entitlement. The app
+    holds that grant in memory, clears it on account changes, and supplements
+    store access without replacing store restores or granting admin rights.
+    Missing/expired grants give no paid access; malformed or foreign rows are
+    refused. Refresh after verified sign-in, recovery, authenticated reopen or
+    More > Plan > Refresh account access. Staging remains fully unlocked while
+    `BILLING_LIVE` is off. `docs/ADMIN-PORTAL.md` covers setup and scope;
+    `test/account-entitlements.cjs`, `test/admin-handler.mjs` and
+    `test/admin-portal.cjs` run in `npm run check` without a browser.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
@@ -1239,7 +1261,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   not his men to name.
 - Let a season go unsaved in silence. There is no server, so the copy is the
   only thing protecting it, and nothing said how long it had been. `copiedAt`
-  is set by Save a copy and Show it as text; `copyNudge()` speaks up on a
+  is set only by a successful full-season export — Save everything handed to
+  the share sheet or downloaded; `copyNudge()` speaks up on a
   finished sheet and under the record on Matches, only when something is
   logged and the copy is a week old or missing — never while a point is on.
 - Count a call twice because a thumb tapped twice. One point has one call:
@@ -2242,9 +2265,50 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   one: a long first point can run the match clock out at 0–0, and level is
   still a tie or overtime. The buttons stand whenever a sheet has an opponent
   and is not over.
-- Tell a restored phone no copy was ever saved. What just loaded *is* a copy,
-  so `loadCopy()` stamps `copiedAt`; the nudge is for a season that has
-  never left the phone, not one that just arrived on it.
+- Count anything but a full-season export as a backup. Show it as text puts
+  the season on screen and the app cannot know it was ever copied off; a
+  squad file is a roster, not the season; a cancelled or failed share sent
+  nothing; and a copy loaded in — merge or replace — is somebody's backup
+  arriving, not this phone's leaving. None of them touch `copiedAt`, and a
+  load keeps the date the last real export set.
+- Let a stale tab write the season. Every tab holds the whole season and
+  every tap writes all of it, so a tab left open wrote an older season back
+  over points another tab had saved, and its maps over newer maps. `save()`
+  reads the stored season's `savedAt` off its tail (`storedStamp()`) and
+  compares it with the one this tab last read or wrote (`_baseStamp`); when
+  another tab has saved since, the tab is stale (`markStale()`, also on the
+  `storage` event): it never writes the season or the maps again, its cloud
+  sharing stops (`syncAllowed()`), and what it changes goes to a recovery
+  copy of its own (`TAB_COPY + TAB_ID`, an ordinary copy with its maps on its
+  fields), read back before the banner says it is safe to close. Nexus ›
+  Recovery copies merges, shows or deletes them; this tab's own copy cannot
+  be deleted while it is still saving into it. A cleared store is not newer
+  work — the season in memory goes back. `keepMaps()` writes only the maps
+  this tab changed onto what is stored now (`_mapsSeen`), a clash on one map
+  makes the tab stale, a map the phone refused never goes to the native
+  mirror, and a map-only change is a change to share (`maybeSync`). Each
+  refused write clears only its own warning (`storeFailed` / `storeKept`, and
+  per key in `web/native.js`), the mirror is written at once on the way to
+  the background, and `beforeunload` warns while anything is still unsaved.
+  The check before a write cannot see a write another tab made a moment
+  earlier, so every save also carries its own id (`saveId`, the tab's id and
+  a counter), the save it built on (`prevId`) and the tab that wrote it
+  (`by`); each tab follows that line by id (`_head`, `_baseId`) and never by
+  time — two tabs on one millisecond, or a frozen clock, write the same
+  `savedAt`, and a check by time read the other tab's save as its own. A
+  season from before ids is known as `at:<savedAt>`. A write that did not
+  build on this tab's own latest is a fork (`forkSeen`):
+  both tabs go stale, each keeps its own season in its copy, and the other
+  tab's save, when the store no longer holds it, is kept as a snapshot copy
+  (`keepSnapshot`). "Safe to close" is never remembered: `verifyTabCopy()`
+  reads the copy back and checks it against the season held now, writing it
+  again if another tab deleted it, before the banner or `beforeunload` say
+  so. A stale tab with a copy says it is alive (`TAB_LIVE`), and Delete in
+  another tab refuses that copy while it does.
+  `test/storage-safety.js` holds all of it with two real tabs, and plays the
+  races in a fixed order by holding storage events.
+- Read an email's capitals as a different account. Offline sign-in compares
+  through `sameEmail()`, the way the account server already does.
 - Open Sightlines on whichever bunker the digitiser listed first. The
   question a coach walks over with is what his own man can see, so
   `sightDefault()` stands him in his first plant for the call he is on and

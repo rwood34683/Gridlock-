@@ -522,7 +522,7 @@ const ROSTER = [
   check("create account signs the coach in as staff", await ev(() => S.role === "staff" && S.entered));
   const stored = await ev(() => JSON.parse(localStorage.getItem("gridlock.staff.v2") || "{}"));
   check("password is not stored in the clear", !JSON.stringify(stored).includes("sideline1"));
-  check("salt and hash are both stored", !!stored.salt && !!stored.hash && stored.hash.length === 64);
+  check("salt and hash are both stored", !!stored.salt && !!stored.hash && /^pbkdf2-sha256\$600000\$[a-f0-9]{64}$/.test(stored.hash));
   // The format is asked straight after sign-in, on its own screen, not on Tally.
   check("format: asked after sign-in, before the tabs", await ev(() => {
     const root = document.getElementById("root"), txt = root.textContent;
@@ -3836,11 +3836,13 @@ const ROSTER = [
     const t = document.getElementById("root").textContent;
     return /No copy of this season has been saved yet/.test(t) && /Save a copy · Nexus/.test(t);
   }));
-  check("Show it as text counts as a copy; a fresh one quiets the nudge, a week-old one brings it back", await ev(() => {
+  check("Show it as text is not a backup; a fresh export quiets the nudge, a week-old one brings it back", await ev(() => {
     window.showCopy("all");
-    const quiet = !!S.copiedAt && !/No copy of this season/.test(document.getElementById("root").textContent) && !/Last copy saved/.test(document.getElementById("root").textContent);
-    window.set({ copiedAt: Date.now() - 9 * 86400000, copyText: "" });
-    return quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
+    const still = !S.copiedAt && /No copy of this season/.test(document.getElementById("root").textContent);
+    window.set({ copiedAt: Date.now(), copyText: "" });
+    const quiet = !/No copy of this season/.test(document.getElementById("root").textContent) && !/Last copy saved/.test(document.getElementById("root").textContent);
+    window.set({ copiedAt: Date.now() - 9 * 86400000 });
+    return still && quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
   }));
   check("the nudge never shows while a point is on, and Matches carries it too", await ev(() => {
     window.newMatch();
@@ -3978,12 +3980,15 @@ const ROSTER = [
     window.timeUp(); window.newMatch();
     return offered && tie;
   }));
-  check("a season loaded from a copy counts as saved — the nudge does not open on a restored phone", await ev(() => {
+  check("loading a copy is not a backup of this phone — the date of the last real export stands", await ev(() => {
     window.set({ copiedAt: null });
     const text = copyPayload("all");
     const el = document.getElementById("copyIn") || Object.assign(document.body.appendChild(document.createElement("textarea")), { id: "copyIn" });
     el.value = text; window.loadCopy("merge");
-    const ok = !!S.copiedAt && Date.now() - S.copiedAt < 5000;
+    const none = S.copiedAt == null;
+    const at = Date.now() - 3 * 86400000; window.set({ copiedAt: at });
+    el.value = text; window.loadCopy("merge");
+    const ok = none && S.copiedAt === at;
     if(el.parentNode === document.body) el.remove();
     return ok || "status: " + S.copyStatus;
   }) === true, await ev(() => S.copyStatus));
@@ -5149,10 +5154,10 @@ const ROSTER = [
     const ok = document.getElementById("wkWhere").value === "Snake wire" && document.querySelectorAll("#walk-map rect[stroke='#ffffff']").length === 0;
     window.set({ walkPick: null }); return ok;
   }));
-  check("Messages says nothing is sent, and no button claims to send", await ev(() => {
+  check("Messages explains no player notification, and no button claims to send", await ev(() => {
     window.set({ tab: "more", more: "messages" });
     const t = document.querySelector(".main").textContent;
-    return /nothing is sent anywhere/.test(t) && ![...document.querySelectorAll("#root .btn")].some(b => b.textContent.trim() === "Send");
+    return /does not send a notification to your players/.test(t) && /squad copy/.test(t) && /League sync/.test(t) && ![...document.querySelectorAll("#root .btn")].some(b => b.textContent.trim() === "Send");
   }));
   check("every jersey-number box asks the phone for the number keyboard", await ev(() => {
     window.set({ tab: "more", more: "team" });
@@ -9568,7 +9573,7 @@ const ROSTER = [
     return /PBLeagues/.test(t) && /13 Sep 2026/.test(t) && /Sunday/.test(t);
   }));
   check("and never claims it can refresh itself", await ev(() =>
-    /no network|cannot refresh/i.test(document.getElementById("root").innerText)));
+    /does not refresh automatically/i.test(document.getElementById("root").innerText) && /league.s page/i.test(document.getElementById("root").innerText)));
   check("games read in time order inside a day", await ev(() => {
     const fri = allGames().filter(g => g.d === "2026-09-18").map(g => g.t);
     return fri.every((t, i) => i === 0 || fri[i - 1] <= t);
@@ -10242,8 +10247,11 @@ const ROSTER = [
     return gone && !!document.querySelector(".tip");
   }));
   check("Help is in the More menu", await ev(() => {
-    window.set({ tab:"more", more:null });
-    return /What every screen does/.test(document.getElementById("root").textContent);
+    window.set({ tab:"more", more:null, helpFor:"" });
+    const help = [...document.querySelectorAll("#root button")].find(b => b.querySelector(".list__name")?.textContent === "Help");
+    if (!help) return false;
+    help.click();
+    return S.more === "help" && document.querySelectorAll(".coach-start button").length === 4 && /Your first match/.test(document.getElementById("root").textContent);
   }));
   check("the tutorial describes the Tally that actually exists", await ev(() => {
     window.set({ showTutorial:true, tab:"playbook" });

@@ -25,6 +25,7 @@
  *     sendReset(email)           -> {ok, said, offline}
  *     signOut()                  -> void
  *     session()                  -> {user} | null
+ *     getEntitlement()           -> {ok, user, entitlement, said, offline}
  *     pushSeason(label, payload) -> {ok, said, offline}   // opt-in League sync
  *     deleteSeason()             -> {ok, said, offline}
  *
@@ -40,6 +41,20 @@
   var loaded = false, currentSession = null, sessionText = null, refreshing = null;
   var seasonTail = Promise.resolve(), deleting = false;
   var recoverySession = null, updatingPassword = false;
+  var MAX_SEASON_BYTES = 2 * 1024 * 1024;
+  var seasonRevisions = Object.create(null);
+  function revision(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
+  function bindingKey(id) { return "grindx.cloud.season.v2:" + cfg().url + ":" + id; }
+  function seasonRevision(id) {
+    if(Object.prototype.hasOwnProperty.call(seasonRevisions,id)) return seasonRevisions[id];
+    try { var n = JSON.parse(localStorage.getItem(bindingKey(id)) || "0"); seasonRevisions[id]=revision(n)===null?0:n;return seasonRevisions[id]; }
+    catch(e) { return 0; }
+  }
+  function saveRevision(id, value) {
+    if(revision(value) === null) return false;
+    try { var k=bindingKey(id), v=JSON.stringify(value);localStorage.setItem(k,v);if(localStorage.getItem(k)!==v)return false;seasonRevisions[id]=value;return true; }
+    catch(e) { return false; }
+  }
 
   function said(msg) { return { ok: false, said: msg }; }
   function cfg() { return CFG; }
@@ -92,6 +107,15 @@
     return (body && (body.msg || body.error_description || body.error_message || body.error || body.message))
       || "That was refused by the server.";
   }
+  function entitlementExpiry(value) {
+    if (value === null) return 0;
+    if (typeof value !== "string") return NaN;
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+    if (!m || +m[2] < 1 || +m[2] > 12 || +m[3] < 1 ||
+        +m[3] > new Date(Date.UTC(+m[1], +m[2], 0)).getUTCDate() ||
+        +m[4] > 23 || +m[5] > 59 || +m[6] > 59 || (m[7] && (+m[8] > 23 || +m[9] > 59))) return NaN;
+    return Date.parse(value);
+  }
   // Keep the callback on this build's exact screen; never forward credentials
   // to a destination supplied by the email URL itself.
   function redirectUrl() {
@@ -138,14 +162,17 @@
     var headers = { apikey: c.anonKey, "Content-Type": "application/json" };
     for (var k in (opts.headers || {})) headers[k] = opts.headers[k];
     if (token) headers.Authorization = "Bearer " + token;
-    var res;
+    var res, body=null;
+    var controller=typeof AbortController!=="undefined"?new AbortController():null;
+    var timer=controller?setTimeout(function(){controller.abort();},20000):null;
     try {
       res = await fetch(c.url.replace(/\/+$/, "") + path, {
         method: opts.method || "GET", headers: headers, body: opts.body,
+        ...(controller?{signal:controller.signal}:{}),
       });
+      try{body=await res.json();}catch(e){if(controller?.signal.aborted)return {net:false};}
     } catch (e) { return { net: false }; }
-    var body = null;
-    try { body = await res.json(); } catch (e) {}
+    finally {if(timer!==null)clearTimeout(timer);}
     return { net: true, ok: res.ok, status: res.status, body: body };
   }
 
@@ -271,7 +298,77 @@
       var s = readSession();
       return s && s.user ? { user: s.user } : null;
     },
-    // One owner row per coach. Serialize writes so removal is the final request.
+    // An account grant is read only with that account's verified bearer token.
+    // RLS limits the row too; the explicit owner filter never requests peers.
+    async getEntitlement() {
+      readSession();
+      var g = generation, t = await token(), s = readSession();
+      if (g !== generation) return cancelled();
+      if (!t || !(s && s.user && s.user.id)) return said("Sign in to check your account access.");
+      var id = s.user.id;
+      var r = await call("/rest/v1/entitlements?user_id=eq." + encodeURIComponent(id) + "&select=user_id,plan,expires_at&limit=1", {}, t);
+      var current = readSession();
+      if (g !== generation || !current || current.user.id !== id) return cancelled();
+      if (!r.net) return OFFLINE;
+      if (!r.ok || !Array.isArray(r.body)) return said("Your account access could not be checked. Try again with a signal.");
+      var row = r.body[0], grant = { plan: "free", exp: 0, source: "account" };
+      if (row) {
+        if (row.user_id !== id || !["free", "team", "program"].includes(row.plan))
+          return said("The server returned invalid account access.");
+        var expiry = entitlementExpiry(row.expires_at);
+        if (!Number.isFinite(expiry) || expiry < 0) return said("The server returned invalid account access.");
+        if (row.expires_at === null || expiry > Date.now()) grant = { plan: row.plan, exp: expiry, source: "account" };
+      }
+      return { ok: true, user: s.user, entitlement: grant };
+    },
+    async getSeason() {
+      var g=generation, t=await token(), s=readSession();
+      if(g!==generation) return cancelled();
+      if(!t || !s) return said("Sign in to review your cloud copy.");
+      var id=s.user.id;
+      var r=await call("/rest/v1/seasons?owner=eq."+encodeURIComponent(id)+"&select=label,payload,revision,deleted_at,updated_at&limit=1",{},t);
+      if(g!==generation || readSession()!==s) return cancelled();
+      if(!r.net) return OFFLINE;
+      if(!r.ok || !Array.isArray(r.body)) return said("Your cloud copy could not be loaded.");
+      var row=r.body[0];
+      if(!row) return {ok:true,revision:0,missing:true,user:s.user};
+      if(revision(row.revision)===null) return said("The season service needs its safety update before syncing.");
+      return {ok:true,user:s.user,revision:row.revision,removed:!!row.deleted_at,label:row.label,payload:row.payload,updated_at:row.updated_at};
+    },
+    async deleteAccount(password, confirmation, code) {
+      var g=generation, s=readSession();
+      if(!s) return said("Sign in online before deleting your account.");
+      if(confirmation!=="DELETE MY ACCOUNT") return said("Type DELETE MY ACCOUNT to confirm.");
+      var auth=await call("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email:s.user.email,password:password})});
+      if(g!==generation || readSession()!==s) return cancelled();
+      if(!auth.net) return OFFLINE;
+      if(!auth.ok || auth.body?.user?.id!==s.user.id || !auth.body.access_token) return said("Your password was not confirmed. Nothing was deleted.");
+      var access=auth.body.access_token;
+      var factor=(auth.body.user.factors||[]).find(function(f){return f.factor_type==="totp"&&f.status==="verified";});
+      if(factor){
+        if(!/^\d{6}$/.test(code||"")) return said("Enter the six-digit code from your authenticator. Nothing was deleted.");
+        var path="/auth/v1/factors/"+encodeURIComponent(factor.id);
+        var challenge=await call(path+"/challenge",{method:"POST",body:"{}"},access);
+        if(g!==generation || readSession()!==s) return cancelled();
+        if(!challenge.ok || !challenge.body?.id) return said("The authenticator challenge failed. Nothing was deleted.");
+        var verified=await call(path+"/verify",{method:"POST",body:JSON.stringify({challenge_id:challenge.body.id,code:code})},access);
+        if(g!==generation || readSession()!==s) return cancelled();
+        if(!verified.ok || !verified.body?.access_token) return said("The authenticator code was refused. Nothing was deleted.");
+        access=verified.body.access_token;
+      }
+      var removed=await call("/functions/v1/gridlock-account",{method:"POST",body:JSON.stringify({confirmation:confirmation})},access);
+      if(g!==generation || readSession()!==s) return cancelled();
+      if(!removed.net) return said("Deletion was not confirmed. Check your connection, then sign in to check your account.");
+      if(!removed.ok || removed.body?.ok!==true) return said(authError(removed.body)||"Deletion was not confirmed.");
+      ++generation;++seasonVersion;writeSession(null);recoverySession=null;
+      return {ok:true};
+    },
+    acceptSeason(userId, value) {
+      var s=readSession();
+      return !!(s && s.user.id===userId && saveRevision(userId,value));
+    },
+    // No direct table writes: one server transaction compares the revision and
+    // keeps a deletion marker. An unbound second device starts at revision zero.
     async pushSeason(label, payload) {
       if (deleting) return said("Wait for removal to finish before sending again.");
       var g = generation, v = seasonVersion;
@@ -282,13 +379,21 @@
         if (!t || !(s && s.user && s.user.id)) return said("Sign in before turning on League sync.");
         var data;
         try { data = typeof payload === "string" ? JSON.parse(payload) : payload; } catch (e) { data = payload; }
-        var row = { owner: s.user.id, label: String(label || "").slice(0, 60), payload: data, updated_at: new Date().toISOString() };
-        var r = await call("/rest/v1/seasons?on_conflict=owner", {
-          method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row),
-        }, t);
-        if (g !== generation || v !== seasonVersion) return cancelled();
+        if(!data || typeof data!=="object" || data.format!=="gridlock.coach.copy" || !data.data || typeof data.data!=="object") return said("Choose a complete Gridlock season copy.");
+        var row = { expected_revision:seasonRevision(s.user.id), season_label:String(label || "").slice(0,60), season_payload:data, remove_season:false };
+        var body=JSON.stringify(row);
+        if(new TextEncoder().encode(body).byteLength > MAX_SEASON_BYTES) return said("This season is too large for cloud sync. Save a copy on this phone; cloud copies must be under 2 MB.");
+        var r = await call("/rest/v1/rpc/gridlock_write_season", {method:"POST",body:body},t);
+        var current=readSession();
+        if (g !== generation || !current || current.user.id!==s.user.id) return cancelled();
+        // A removal on this device waits for this response. Keep its acknowledged
+        // version even when the upload's UI result has been invalidated.
+        var acknowledged=r.net&&r.ok&&r.body?.ok===true&&saveRevision(s.user.id,r.body.revision);
+        if(v!==seasonVersion)return cancelled();
         if (!r.net) return OFFLINE;
-        if (!r.ok) return said(authError(r.body) || "Your league would not accept it.");
+        if (!r.ok) return said("Your season could not be sent. The server must support safe season sync.");
+        if(r.body && r.body.conflict) return {ok:false,conflict:true,said:"Another device changed or removed your cloud copy. Review the cloud copy before sending again. Your phone's season is unchanged."};
+        if(!acknowledged) return said("Your upload could not be safely acknowledged. Review the cloud copy before sending again.");
         return { ok: true };
       });
     },
@@ -303,17 +408,26 @@
           var t = await token(), s = readSession();
           if (g !== generation) return cancelled();
           if (!t || !(s && s.user && s.user.id)) return said("Sign in before removing what you sent.");
-          // This runs after any upload already sent, so it cannot recreate the row.
-          var r = await call("/rest/v1/seasons?owner=eq." + encodeURIComponent(s.user.id), { method: "DELETE" }, t);
+          var expected=seasonRevision(s.user.id);
+          // A new device may explicitly remove the current copy. Read its version
+          // first; a concurrent upload still causes a conflict at the server.
+          if(!expected){
+            var latest=await api.getSeason();
+            if(g!==generation || !latest || !latest.ok) return latest || cancelled();
+            expected=latest.revision;
+          }
+          var r = await call("/rest/v1/rpc/gridlock_write_season", {method:"POST",body:JSON.stringify({expected_revision:expected,season_label:null,season_payload:null,remove_season:true})},t);
           if (g !== generation) return cancelled();
           if (!r.net) return OFFLINE;
           if (!r.ok) return said("Your league would not remove it.");
+          if(r.body && r.body.conflict) return {ok:false,conflict:true,said:"Another device changed your cloud copy. Review it before removing it. Nothing was removed."};
+          if(!r.body || r.body.ok!==true || !saveRevision(s.user.id,r.body.revision)) return said("Removal could not be safely acknowledged. Review the cloud copy before retrying.");
           return { ok: true };
         });
       } finally { deleting = false; }
     },
   };
-  function install() { if (cfg() && cfg().url && cfg().anonKey) window.gridlockCloud = api; }
+  function install() { if (cfg() && cfg().url && cfg().anonKey) {window.gridlockCloud = api;var s=readSession();if(s)seasonRevision(s.user.id);} }
   install();
   if (typeof module !== "undefined" && module.exports) module.exports = { api: api, configure: window.gridlockCloudConfigure };
 })();

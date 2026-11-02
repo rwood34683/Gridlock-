@@ -12,11 +12,19 @@ const credentials = id => ({access_token: "token-" + id, refresh_token: "refresh
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return {promise, resolve}; };
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function setup(route, expired = false) {
-  const data = new Map(), requests = [];
+  const data = new Map(), requests = [];let mockRevision=0;
   if (expired) data.set(KEY, JSON.stringify({...credentials("old"), expires_at: 1}));
   const localStorage = {getItem: k => data.get(k) || null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k)};
-  const sandbox = {window: {GRIDLOCK_CLOUD: {url: "https://example.test", anonKey: "test-only"}}, localStorage, Date, JSON, Promise,
-    fetch: async (url, opts) => { requests.push({url, ...opts}); return route(url, opts); }};
+  const sandbox = {window: {GRIDLOCK_CLOUD: {url: "https://example.test", anonKey: "test-only"}}, localStorage, Date, JSON, Promise, TextEncoder,
+    fetch: async (url, opts) => {
+      requests.push({url,...opts});
+      if(url.includes('/rest/v1/seasons?'))return response(mockRevision?[{revision:mockRevision,payload:null,deleted_at:null}]:[]);
+      if(url.includes('/rpc/gridlock_write_season')){
+        const body=JSON.parse(opts.body),r=await route(url,{...opts,method:body.remove_season?'DELETE':'POST'});
+        if(!r.ok)return r;return response({ok:true,revision:++mockRevision,removed:body.remove_season});
+      }
+      return route(url,opts);
+    }};
   vm.runInNewContext(source, sandbox);
   return {api: sandbox.window.gridlockCloud, configure: sandbox.window.gridlockCloudConfigure, data, requests, localStorage};
 }
@@ -32,7 +40,7 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
     await check("a pending refresh cannot outlive " + action, async () => {
       const gate = deferred();
       const s = setup(url => url.includes("refresh_token") ? gate.promise : response(credentials("new")), true);
-      const pending = s.api.pushSeason("test", {});
+      const pending = s.api.pushSeason("test", {format:"gridlock.coach.copy",data:{}});
       await tick();
       assert.ok(s.requests.some(r => r.url.includes("refresh_token")));
       if (action === "logout") s.api.signOut();
@@ -67,7 +75,7 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
   for (const changedTo of [null, "new"]) {
     await check("another tab's session change cancels a pending refresh: " + changedTo, async () => {
       const gate = deferred(), s = setup(url => url.includes("refresh_token") ? gate.promise : response(), true);
-      const pending = s.api.pushSeason("old season", {}); await tick();
+      const pending = s.api.pushSeason("old season", {format:"gridlock.coach.copy",data:{}}); await tick();
       if (changedTo) s.data.set(KEY, JSON.stringify({...credentials(changedTo), expires_at:Date.now() + 3600000}));
       else s.data.delete(KEY);
       gate.resolve(response(credentials("old")));
@@ -82,46 +90,46 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
     s.localStorage.removeItem = () => { throw Error("storage denied"); };
     s.api.signOut();
     assert.equal(s.api.session(), null);
-    assert.equal((await s.api.pushSeason("test", {})).ok, false);
+    assert.equal((await s.api.pushSeason("test", {format:"gridlock.coach.copy",data:{}})).ok, false);
     assert.equal(s.requests.filter(r => r.url.includes("/rest/")).length, 0);
   });
   await check("DELETE follows dispatched POST and drops queued uploads", async () => {
     const gate = deferred();
     const s = setup((url, opts) => url.includes("/rest/") && opts.method === "POST" ? gate.promise : response(credentials("old")));
     await s.api.signIn("old@example.test", "password");
-    const upload = s.api.pushSeason("first", {});
+    const upload = s.api.pushSeason("first", {format:"gridlock.coach.copy",data:{}});
     await tick();
-    const queued = s.api.pushSeason("queued", {});
+    const queued = s.api.pushSeason("queued", {format:"gridlock.coach.copy",data:{}});
     const removal = s.api.deleteSeason();
-    assert.equal((await s.api.pushSeason("during removal", {})).ok, false);
+    assert.equal((await s.api.pushSeason("during removal", {format:"gridlock.coach.copy",data:{}})).ok, false);
     await tick();
-    assert.equal(s.requests.filter(r => r.method === "DELETE").length, 0);
+    assert.equal(s.requests.filter(r => r.body && JSON.parse(r.body).remove_season).length, 0);
     gate.resolve(response({}, 201));
     assert.equal((await upload).ok, false); // stale status must not report a later send
     assert.equal((await queued).ok, false);
     assert.equal((await removal).ok, true);
-    assert.deepEqual(s.requests.filter(r => r.url.includes("/rest/")).map(r => r.method), ["POST", "DELETE"]);
-    assert.ok(s.requests.at(-1).url.endsWith("owner=eq.old"));
+    assert.deepEqual(s.requests.filter(r => r.url.includes("/rpc/")).map(r => JSON.parse(r.body).remove_season ? "DELETE" : "POST"), ["POST", "DELETE"]);
+    assert.equal(JSON.parse(s.requests.at(-1).body).remove_season,true);
   });
   await check("deletion during refresh cancels the upload and removes with the refreshed token", async () => {
     const gate = deferred(), s = setup(url => url.includes("refresh_token") ? gate.promise : response({}, 204), true);
-    const upload = s.api.pushSeason("test", {}); await tick();
+    const upload = s.api.pushSeason("test", {format:"gridlock.coach.copy",data:{}}); await tick();
     const removal = s.api.deleteSeason();
     gate.resolve(response(credentials("old")));
     assert.equal((await upload).ok, false);
     assert.equal((await removal).ok, true);
-    assert.deepEqual(s.requests.filter(r => r.url.includes("/rest/")).map(r => r.method), ["DELETE"]);
+    assert.deepEqual(s.requests.filter(r => r.url.includes("/rpc/")).map(r => JSON.parse(r.body).remove_season ? "DELETE" : "POST"), ["DELETE"]);
     assert.equal(s.requests.at(-1).headers.Authorization, "Bearer token-old");
   });
   await check("a delete queued before an account switch never deletes the new account", async () => {
     const gate = deferred(), s = setup((url, opts) => url.includes("/rest/") && opts.method === "POST" ? gate.promise : response(credentials("new")));
     await s.api.signIn("new@example.test", "password");
-    const upload = s.api.pushSeason("test", {}); await tick();
+    const upload = s.api.pushSeason("test", {format:"gridlock.coach.copy",data:{}}); await tick();
     const removal = s.api.deleteSeason();
     s.api.signOut(); await s.api.signIn("new@example.test", "password");
     gate.resolve(response()); await upload;
     assert.equal((await removal).ok, false);
-    assert.equal(s.requests.filter(r => r.method === "DELETE").length, 0);
+    assert.equal(s.requests.filter(r => r.body && JSON.parse(r.body).remove_season).length, 0);
   });
   await check("failed deletion reports failure and can be retried", async () => {
     let fail = true;
@@ -138,7 +146,7 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
   });
   await check("a revoked refresh token clears the session instead of sending stale credentials", async () => {
     const s = setup(() => response({msg: "Refresh token revoked"}, 400), true);
-    assert.equal((await s.api.pushSeason("test", {})).ok, false);
+    assert.equal((await s.api.pushSeason("test", {format:"gridlock.coach.copy",data:{}})).ok, false);
     assert.equal(s.api.session(), null); assert.equal(s.data.has(KEY), false);
     assert.equal(s.requests.filter(r => r.url.includes("/rest/")).length, 0);
   });
@@ -146,7 +154,7 @@ async function check(name, fn) { await fn(); console.log("  PASS  " + name); pas
     for (const value of ["null", "[]", "true", '"text"', '{"user":null}', '{"access_token":{},"user":{"id":"x"}}']) {
       const s = setup(() => response()); s.data.set(KEY, value);
       assert.equal(s.api.session(), null);
-      assert.equal((await s.api.pushSeason("x", {})).ok, false);
+      assert.equal((await s.api.pushSeason("x", {format:"gridlock.coach.copy",data:{}})).ok, false);
       assert.equal(s.requests.length, 0);
     }
   });
