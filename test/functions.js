@@ -554,6 +554,28 @@ const ROSTER = [
     return onSheet && saved && back && done && moved && carried
       || JSON.stringify({ onSheet, saved, back, done, moved, carried });
   }));
+  check("format: a division fills in the rulebook's numbers (NXL Divisional X-Ball 2026, 8.2, 9.3.12, 15.3.1) and Other presets nothing", await ev(() => {
+    const want = { "Semi-Pro": [15, 5, 5], "Division 2": [15, 5, 5], "Division 3": [12, 4, 5], "Division 4": [12, 4, 5],
+                   "Division 5": [10, 3, 5], "3v3 Amateur": [6, 3, 3], "3v3 Intermediate": [6, 3, 3] };
+    window.set({ tab: "more", more: "format" });
+    const listed = JSON.stringify(FMT_DIVS) === JSON.stringify([...Object.keys(want), "Other"]);
+    const bad = [];
+    for (const [d, [time, mer, size]] of Object.entries(want)) {
+      window.setFmt("div", d);
+      const m = curMatch(), f = S.fmt;
+      if (!(f.time === time && f.mercy === mer && f.clock === 120 && f.raceTo === 0 && m.mercy === mer && m.breakClock === 120
+            && !m.raceTo && sideSize(m) === size)) bad.push(d);
+    }
+    const page3 = (window.setFmt("div", "Division 3"), document.getElementById("root").innerText);
+    const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 · split deck/.test(page3)
+      && !/Race to — your format/.test(page3) && !/10-man/.test(page3);
+    const semi = (window.setFmt("div", "Semi-Pro"), /0:45 · split deck/.test(document.getElementById("root").innerText));
+    window.setFmt("div", "Other");
+    const other = S.fmt.time === 0 && /Race to — your format/.test(document.getElementById("root").innerText);
+    S.fmt = {}; S.matches = S.matches.map(x => ({...x, size: null, game: null, div: null, raceTo: null, mercy: null, breakClock: null}));
+    window.set({ tab: "playbook" });
+    return listed && !bad.length && shown && semi && other || JSON.stringify({ listed, bad, shown, semi, other });
+  }));
   await ev(() => window.set({ entered: false, mode: "login" })); await page.waitForTimeout(80);
   await page.fill("#em", "coach@team.com"); await page.fill("#pw", "wrongpass");
   await ev(async () => { await window.doAuth(); }); await page.waitForTimeout(120);

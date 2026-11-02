@@ -4155,20 +4155,42 @@ window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({bre
 /* The format, asked once after sign-in rather than on the point sheet: the
  * division, how many a side, the race, the mercy and the clock between points.
  * Every new sheet starts with it (openSheet), and an answer given here goes on
- * the sheet he is on too. The division is a label — the app carries no
- * league's numbers — so nothing is preset by division; he answers each one.
- * Saved answers keep a whole format under a name, one tap to use again. */
-const FMT_DIVS = ["Pro","Semi-Pro","Division 1","Division 2","Division 3","Division 4","Division 5","Women's","Masters","Collegiate","Juniors","Other"];
+ * the sheet he is on too. Saved answers keep a whole format under a name, one
+ * tap to use again.
+ *
+ * The divisions are the ones the NXL Divisional X-Ball Rules 2026 cover, with
+ * the numbers its own tables give, so picking one fills them in: 8.1.1 (X-Ball
+ * is Semi-Pro and Divisions 2 to 5), 8.2 (game time and mercy lead), 9.3.12
+ * (a standard break of at least two minutes; split deck one minute for D2-D5,
+ * 45 seconds for Semi-Pro), 9.12.1 (overtime only in playoffs, except
+ * Semi-Pro), and 15.3.1 / 15.5 (3v3 Amateur and Intermediate: six minutes, a
+ * three-point lead, overtime by 1v1). Divisional X-Ball is a game clock and a
+ * mercy lead, not a race, so these divisions set no race. The game time is the
+ * official's clock (9.3.13) and is only shown: the coach still taps Time's up.
+ * Every answer can still be changed after, and Other, for an event this
+ * rulebook does not cover, presets nothing. Structure and numbers, never the
+ * league's text (docs/RULES-CHECK.md). */
+const FMT_RULES = {
+  "Semi-Pro":         {game:"xball", time:15, mercy:5, split:45, ot:"Overtime decides a tied match (9.12.3)."},
+  "Division 2":       {game:"xball", time:15, mercy:5, split:60},
+  "Division 3":       {game:"xball", time:12, mercy:4, split:60},
+  "Division 4":       {game:"xball", time:12, mercy:4, split:60},
+  "Division 5":       {game:"xball", time:10, mercy:3, split:60},
+  "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
+  "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
+const FMT_DIVS = [...Object.keys(FMT_RULES), "Other"];
+const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
+const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
-const FMT_KEYS = ["div","game","raceTo","mercy","clock"];
+const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
 function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
 // Men a side on a sheet: its own count, else five.
 function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number(m.size) : 0; return n > 0 && n <= 10 ? n : 5; }
 const fmtGame = id => FMT_GAMES.find(g => g[0] === id) || null;
 function fmtSummary(f = fmt()){
   const g = fmtGame(f.game);
-  const bits = [f.div, g && g[1],
-    f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 ? "no race" : "",
+  const bits = [f.div, g && g[1], f.time > 0 ? `${f.time}-min game` : "",
+    f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 && !(f.time > 0) ? "no race" : "",
     f.mercy > 0 ? `mercy ${f.mercy}` : "",
     f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
   return bits.join(" · ");
@@ -4187,7 +4209,23 @@ window.setFmt = (k, v) => {
   else v = Number(v) > 0 ? Number(v) : 0;
   S.fmt = {...fmt(), [k]: v};
   const m = curMatch();
-  if(k === "div"){ if(m) patchMatch({div: v}); save(S); render(); return; }
+  if(k === "div"){
+    if(m) patchMatch({div: v});
+    const r = fmtRule(v);
+    if(!r){ S.fmt = {...S.fmt, time: 0}; save(S); render(); return; }
+    // The rulebook's numbers for this division, through the same setters as
+    // any other answer: a sheet that can no longer take one says so, and the
+    // next sheet starts with it.
+    S.fmt = {...S.fmt, game: r.game, raceTo: 0, mercy: r.mercy, clock: 120, time: r.time};
+    const msgs = [];
+    S.flash = ""; fmtSize(r.game); if(S.flash) msgs.push(S.flash);
+    S.flash = ""; window.setRaceTo(0); if(S.flash) msgs.push(S.flash);
+    S.flash = ""; window.setMercy(r.mercy); if(S.flash) msgs.push(S.flash);
+    window.setBreakClock(120);
+    save(S);
+    flash(msgs.length ? msgs.join(" ") : `${v}: ${r.time}-minute game, mercy at a ${r.mercy}-point lead, 2:00 between points — from the ${FMT_RULEBOOK}.`);
+    return;
+  }
   if(k === "game"){ fmtSize(v); save(S); render(); return; }
   if(k === "raceTo") return window.setRaceTo(v);
   if(k === "mercy") return window.setMercy(v);
@@ -4233,6 +4271,7 @@ function fmtPage(first){
   const race = f.raceTo !== undefined ? f.raceTo : raceTo(), mer = f.mercy !== undefined ? f.mercy : mercy(),
         clk = f.clock !== undefined ? f.clock : breakClock();
   const saved = Array.isArray(S.fmts) ? S.fmts : [];
+  const rule = fmtRule(f.div);
   return sec(first ? "Your format" : "Format", `
     <p class="lede">${first ? "Answer these once and every new sheet starts with them. Change them any time under More › Format."
                             : "Every new sheet starts with these. An answer here goes on the sheet you are on too."}</p>
@@ -4243,15 +4282,20 @@ function fmtPage(first){
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
       </div>`).join("")}</div>` : ""}
     <p class="note" style="margin-top:var(--s3)">Division:</p>
-    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}</button>`).join("")}</div>
-    <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
+    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !fmtRule(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}</button>`).join("")}</div>
+    ${rule ? `<div class="panel" style="margin-top:var(--s3)">
+      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(f.div)}</b> · ${esc(FMT_RULEBOOK)}</p>
+      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3v3 X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
+      <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
+    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? "Other — an event this rulebook does not cover: set each answer below." : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    ${rule ? "" : `<p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
-    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>
+    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>`}
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
-    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
-    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${[45,60,90,120].map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${(rule ? [120, rule.split].filter(Boolean) : [45,60,90,120]).map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule ? (n === 120 ? " · standard" : " · split deck") : ""}</button>`).join("")}</div>
     <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>
       <div class="btnrow"><input id="fmtName" class="grow" maxlength="40" placeholder="${esc(fmtSummary(f) || "e.g. D3 X-Ball")}" aria-label="Name for these answers" ${onEnter("saveFmt()")}>
       <button class="btn btn--quiet" onclick="saveFmt()">Save</button></div></div>
@@ -14964,9 +15008,11 @@ const HELP = {
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/format": {t:"Format", w:"Your division and match format — asked once after you sign in.",
-    how:["Pick the division, how many a side — X-Ball, 5-man, 3-man, 7-man or 10-man — the race, the mercy and the clock between points.",
+    how:["Pick your division: Semi-Pro, Division 2 to 5, or 3v3 Amateur or Intermediate. Its game time, mercy lead and break fill in from the NXL Divisional X-Ball Rules 2026.",
+         "Divisional X-Ball is a game clock and a mercy lead, not a race. The game clock is the official's: tap Time's up on the point sheet when it runs out.",
+         "The break is at least 2:00; on a split deck it is 1:00, or 0:45 in Semi-Pro. Any answer can still be changed.",
+         "Other is for an event this rulebook does not cover: set how many a side, the race, the mercy and the clock yourself.",
          "Every new sheet starts with these, and an answer here goes on the sheet you are on too.",
-         "Nothing is preset by division: the numbers are your event's rule, so you answer each one.",
          "Save these answers keeps the whole format under a name. Use puts it back with one tap."]},
   "more/assess": {t:"Assess", w:"Grade a player after the point.",
     how:["Tap the man — the five on the point come first — tap a score, write the reason.",

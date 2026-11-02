@@ -684,9 +684,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `fmtAsk` until the coach taps Done, and the shell shows `fmtPage(true)`
     with no tabs: division (`FMT_DIVS`, Pro down to Division 5, Women's,
     Masters, Collegiate, Juniors), how many a side (`FMT_GAMES`: X-Ball,
-    5-, 3-, 7-, 10-man), race, mercy and the clock between points. The
-    division is a label and nothing is preset by it — the numbers are the
-    event's rule. Answers live in `S.fmt`, go on the sheet he is on through
+    5-, 3-, 7-, 10-man), race, mercy and the clock between points. Picking
+    a division fills in its numbers from the NXL Divisional X-Ball Rules 2026
+    (`FMT_RULES`: Semi-Pro and D2–D5 per 8.1.1 / 8.2, 3v3 Amateur and
+    Intermediate per 15.3.1 — game time shown, mercy, a 2:00 break per 9.3.12,
+    no race); every answer stays editable, and **Other** presets nothing and
+    asks the race and men a side. `docs/RULES-CHECK.md` has the table. Answers live in `S.fmt`, go on the sheet he is on through
     the existing setters, and `openSheet` starts every new sheet with them;
     **Save these answers** keeps a format under a name (`S.fmts`, Use · ✕).
     More › Format is the same screen later; Tally keeps one line and
