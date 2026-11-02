@@ -1009,6 +1009,7 @@ svg.field [data-pick]{cursor:crosshair}
 .voice-editor{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.voice-editor textarea,#voice-manual{width:100%;min-height:72px}
 .voice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.voice-grid .fld{min-width:0}.voice-grid select{width:100%;min-width:0}
 @media(max-width:420px){.voice-grid{grid-template-columns:1fr}}
+.coach-start{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s3) 0}.coach-start .btn{min-height:56px;white-space:normal;text-align:left;justify-content:flex-start}.coach-terms{margin-top:var(--s3);border-top:1px solid var(--line)}.coach-terms summary{display:flex;align-items:center;min-height:48px;cursor:pointer;color:var(--mute);font-weight:700}.coach-terms .kv{margin-top:var(--s2)}@media(max-width:480px){.coach-start{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -3516,6 +3517,22 @@ const defaultState = () => ({
  */
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
+/* What the phone refused, kept by what it was: the season and the maps are
+ * two writes, and the season saving on the next tap said nothing about a map
+ * the phone had just refused — it cleared the warning anyway, and a coach read
+ * a screen that said all was well over a picture that would not be there after
+ * a relaunch. Each write clears only its own refusal. */
+const _storeFails = {};
+function storeFailed(what, e){
+  _storeFails[what] = (e && e.name === "QuotaExceededError")
+    ? "This phone's storage for the app is full."
+    : "This phone is not letting the app save.";
+  _storeFail = Object.values(_storeFails)[0] || "";
+}
+function storeKept(what){
+  delete _storeFails[what];
+  _storeFail = Object.values(_storeFails)[0] || "";
+}
 // Declared before load(): copyDataError() checks a field's map with it, and an
 // older save carried its map on the field — read before this line existed it
 // threw, and the whole season went to recovery.
@@ -3541,6 +3558,7 @@ function load(){
     const parsed = JSON.parse(raw);
     if(!plainRecord(parsed) || copyDataError(parsed)) throw new Error("Invalid saved season");
     _hadLocal = true;
+    _baseStamp = Number.isFinite(parsed.savedAt) ? parsed.savedAt : 0;
     adoptCallPicked(parsed);
     readHere(parsed, raw);
     return Object.assign(defaultState(), parsed);
@@ -3551,6 +3569,7 @@ function load(){
       _recoveryText = raw;
       try{ localStorage.setItem(RECOVERY_KEY, raw); }catch(ignore){}
     }
+    _baseStamp = storedStamp();
     return defaultState();
   }
 }
@@ -3564,6 +3583,88 @@ function load(){
  * The half-done keys clearScratch() resets are not written at all: a launch
  * resets them anyway, and they were what made an unchanged season look new. */
 const HERE_KEY = STORE_KEY + ".here";
+/* Two tabs, one season.
+ *
+ * Every tab holds the whole season in memory and every tap writes all of it,
+ * so a tab left open on Saturday's sheet wrote Saturday back over the points
+ * another tab had saved on Sunday — silently, and the cloud copy followed it.
+ * A tab now knows which save it last read or wrote (`_baseStamp`, the season's
+ * savedAt, read off the tail of the stored text without parsing it). When the
+ * stored season is not that one, another tab has saved since: this tab is
+ * stale. It never writes the season or the maps again; what it changes goes
+ * to a recovery copy of its own (TAB_COPY + TAB_ID, an ordinary Save-a-copy
+ * file with its maps on its fields), read back before the screen says it is
+ * safe to close, and its cloud sharing stops. Reload opens the newer season;
+ * Nexus lists the copies to merge in or delete. */
+const TAB_COPY = STORE_KEY + ".tab.";
+const TAB_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+var _baseStamp = 0, _stale = false, _staleSince = 0;
+var _tabCopyAt = 0, _tabCopyFail = "", _tabCopySeason = null;
+function storedStamp(){
+  const t = localStorage.getItem(STORE_KEY);
+  if(!t) return 0;
+  const i = t.lastIndexOf('"savedAt":');
+  return i < 0 ? 0 : (parseInt(t.slice(i + 10), 10) || 0);
+}
+function markStale(){
+  if(_stale) return;
+  _stale = true; _staleSince = Date.now();
+  // A push queued before the other tab saved would send the older season.
+  try{ clearSyncRetry(); ++_syncEpoch; }catch(e){}
+}
+// This tab's own copy, with this tab's maps. Said safe only once read back.
+function keepTabCopy(){
+  let text = "";
+  try{ text = copyPayload("all"); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
+  const key = TAB_COPY + TAB_ID;
+  try{
+    localStorage.setItem(key, text);
+    if(localStorage.getItem(key) !== text) throw new Error("not read back");
+  }catch(e){
+    _tabCopyFail = (e && e.name === "QuotaExceededError")
+      ? "There is no room left for a recovery copy." : "The recovery copy could not be written.";
+    return false;
+  }
+  _tabCopyFail = ""; _tabCopyAt = Date.now();
+  return true;
+}
+// What a stale tab still holds that is nowhere but in this tab's memory.
+const tabUnsaved = () => _stale && !!_tabCopyFail;
+window.gridlockRecoveryCopies = () => {
+  const out = [];
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith(TAB_COPY)) continue;
+      const text = localStorage.getItem(key) || "";
+      let at = 0; try{ at = Date.parse(JSON.parse(text).at) || 0; }catch(e){}
+      out.push({key, text, at, mine: key === TAB_COPY + TAB_ID});
+    }
+  }catch(e){}
+  return out.sort((a, b) => b.at - a.at);
+};
+/* A copy is somebody's only record of what they did in that tab. This tab's
+ * own copy is the one it is still saving into while it is stale, so it cannot
+ * be deleted from here; another tab's copy written in the last half minute may
+ * be one that tab is still writing, and waits. */
+window.dropRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(!c) return false;
+  if(c.mine && _stale){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
+  if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
+  if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
+  try{ localStorage.removeItem(key); }catch(e){ return false; }
+  render();
+  return true;
+};
+window.mergeRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(c) window.loadCopy("merge", c.text);
+};
+window.showRecoveryCopy = key => {
+  const c = window.gridlockRecoveryCopies().find(x => x.key === key);
+  if(c) set({copyText: c.text, copyStatus: "A recovery copy from another tab. Copy the text to keep it, or merge it in."});
+};
 const NAV_KEYS = ["tab", "more", "scoutTab"];
 var _scratchKeys = null, _lastSeason = null;
 function scratchKeys(){
@@ -3585,9 +3686,7 @@ function saveHere(s){
 }
 function storeRefused(e){
   _lastSeason = null;
-  _storeFail = (e && e.name === "QuotaExceededError")
-    ? "This phone's storage for the app is full."
-    : "This phone is not letting the app save.";
+  storeFailed("season", e);
 }
 // Reading the season back is a lookup the browser keeps in memory, not a
 // read of the disk, so the skip can afford to check it is still there.
@@ -3608,8 +3707,22 @@ function save(s){
   // A slow native restore must not overwrite work already started this launch.
   _hadLocal = true;
   const season = seasonText(s);
-  if(s === S && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
-  s.savedAt = Date.now();
+  if(s === S && !_stale && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
+  if(s === S && !_stale){
+    // Nothing stored at all is not newer work: the store was cleared under
+    // the app, and the season in memory is the one to put back.
+    let cur = _baseStamp; try{ cur = storedStamp(); }catch(e){}
+    if(cur && cur !== _baseStamp) markStale();
+  }
+  // Stale: the season and the maps are another tab's now. Only a change of
+  // this tab's own is written, and only to its own copy.
+  if(s === S && _stale){
+    if(_tabCopySeason === null) _tabCopySeason = _lastSeason;
+    if(season !== _tabCopySeason || _tabCopyFail){ if(keepTabCopy()) _tabCopySeason = season; }
+    return;
+  }
+  // Never the same stamp twice: two saves in one millisecond read as one.
+  s.savedAt = Math.max(Date.now(), (s === S ? _baseStamp : 0) + 1);
   const nav = {savedAt: s.savedAt};
   NAV_KEYS.forEach(k => { if(s[k] !== undefined) nav[k] = s[k]; });
   const tail = JSON.stringify(nav);
@@ -3617,10 +3730,11 @@ function save(s){
   // A throw here used to escape through set() before render() ever ran, so the
   // screen froze mid-tap with nothing said. Storage being full or switched off
   // is a thing the coach has to be told, not a thing the app dies of.
-  try{ localStorage.setItem(STORE_KEY, text); _storeFail = ""; if(s === S){ _lastSeason = season; _lastLen = text.length; saveHere(s); } }
+  try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
+       if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; saveHere(s); } }
   catch(e){ storeRefused(e); }
   if(window.gridlockKeep) try{ window.gridlockKeep(text); }catch(e){}
-  if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) keepMaps();
+  if(!_mapsMirrored && window.gridlockKeep && FIELD_MAPS && Object.keys(FIELD_MAPS).length) mirrorMaps();
   // Opt-in league sync: a best-effort push, throttled and fully guarded. It can
   // never throw out of save() and never blocks a point — a no-signal push is a
   // no-op and the phone stays the working copy.
@@ -3675,7 +3789,26 @@ function contextWarning(){
     Staff sign-in, keeping the screen awake and Share will not work here. Everything else does.
     Use the installed app, or open this on the same machine at localhost.</span></div>`;
 }
+function staleWarning(){
+  if(!_stale) return "";
+  const red = `class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)"`;
+  const reload = `<button onclick="location.reload()">Open the newer season</button>`;
+  if(_tabCopyFail) return `<div ${red}>
+    <span><b>Another tab saved newer work, and this tab's changes are not saved anywhere.</b>
+    ${esc(_tabCopyFail)} Do not close this tab: use Nexus &rsaquo; Save a copy first, or free some space.</span>
+    <button onclick="set({tab:'more',more:'nexus'})">Open Nexus</button></div>`;
+  if(_tabCopyAt) return `<div ${red}>
+    <span><b>Another tab saved newer work.</b> This tab did not write over it. Its own changes are kept
+    as a separate recovery copy (${esc(new Date(_tabCopyAt).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}))}),
+    checked on this phone, and cloud sharing is paused here. It is safe to close this tab. The copy is on
+    Nexus &rsaquo; Recovery copies.</span>${reload}</div>`;
+  return `<div ${red}>
+    <span><b>Another tab saved newer work.</b> Anything you change here is kept as a separate recovery copy,
+    not over it, and cloud sharing is paused in this tab. Nothing here is unsaved, so it is safe to close.</span>${reload}</div>`;
+}
 function storeWarning(){
+  const stale = staleWarning();
+  if(stale) return stale;
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
     <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
     Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
@@ -3693,6 +3826,28 @@ function storeWarning(){
   return "";
 }
 let S = load();
+// Another tab saving makes this one stale at once, not only on its next tap:
+// its cloud push stops, and the screen says so before anything is lost.
+window.addEventListener("storage", e => {
+  if(_stale || (e.key !== STORE_KEY && e.key !== null)) return;
+  let cur = _baseStamp; try{ cur = storedStamp(); }catch(x){}
+  if(cur && cur !== _baseStamp){ markStale(); try{ render(); }catch(x){} }
+});
+// Every tap is already saved on the tap. What can still be lost on the way
+// out is a write the phone refused: try it once more, and if it is still
+// refused ask the browser to warn before the tab goes.
+const unsavedWork = () => !!(_storeFails.season || _storeFails.maps || tabUnsaved());
+function saveOnLeave(){
+  try{ if(_storeFails.season || (_stale && _tabCopyFail)) save(S); }catch(e){}
+  try{ if(_storeFails.maps) keepMaps(); }catch(e){}
+}
+window.addEventListener("pagehide", saveOnLeave);
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveOnLeave(); });
+window.addEventListener("beforeunload", e => {
+  saveOnLeave();
+  if(!unsavedWork()) return;
+  e.preventDefault(); e.returnValue = "";
+});
 // A running animation/drill cannot resume from its saved timers after a reload.
 // Keep the coach's real call, and reopen with every player at the set.
 function resetLiveState(){
@@ -3812,11 +3967,47 @@ var FIELD_MAPS = (() => {
   } catch(e){ return {}; }
 })();
 const mapOf = f => !f ? "" : (f.key && FIELD_MAPS[f.key]) || (fieldMapOk(f.map) ? f.map : "");
+/* Each tab writes only the maps it changed, onto what is stored now: a tab
+ * that had read map A wrote the whole set back, and a newer map B another tab
+ * had saved for the same field was gone. `_mapsSeen` is the set as this tab
+ * last read or wrote it. A map this tab changed that another tab has changed
+ * too is a conflict — the stored one stays, and this tab goes stale with its
+ * own picture in its recovery copy. And nothing the phone's own store refused
+ * goes to the durable mirror: a map that did not save is not a map to keep. */
+var _mapsSeen = {...FIELD_MAPS};
+function readStoredMaps(){
+  try{
+    const m = JSON.parse(localStorage.getItem(MAPS_KEY) || "{}");
+    return m && typeof m === "object" && !Array.isArray(m) ? m : {};
+  }catch(e){ return {}; }
+}
+function mirrorMaps(){
+  if(!window.gridlockKeep) return;
+  let text = null; try{ text = localStorage.getItem(MAPS_KEY); }catch(e){}
+  if(text === null) return;
+  try{ window.gridlockKeep(text, MAPS_KEY); _mapsMirrored = true; }catch(e){}
+}
 function keepMaps(){
-  const text = JSON.stringify(FIELD_MAPS);
+  if(_stale){ keepTabCopy(); return; }
+  const stored = readStoredMaps();
+  const keys = [...new Set([...Object.keys(FIELD_MAPS), ...Object.keys(_mapsSeen)])];
+  const changed = keys.filter(k => (FIELD_MAPS[k] || "") !== (_mapsSeen[k] || ""));
+  const clash = changed.some(k => (stored[k] || "") !== (_mapsSeen[k] || "") && (stored[k] || "") !== (FIELD_MAPS[k] || ""));
+  if(clash){ markStale(); keepTabCopy(); return; }
+  const next = {...stored};
+  changed.forEach(k => { if(FIELD_MAPS[k]) next[k] = FIELD_MAPS[k]; else delete next[k]; });
+  const text = JSON.stringify(next);
   try{ localStorage.setItem(MAPS_KEY, text); }
-  catch(e){ _storeFail = "This phone's storage for the app is full."; }
+  catch(e){ storeFailed("maps", e); return; }
+  storeKept("maps");
+  // What the other tabs saved is this tab's now too.
+  Object.keys(FIELD_MAPS).forEach(k => { if(!(k in next)) delete FIELD_MAPS[k]; });
+  Object.assign(FIELD_MAPS, next);
+  _mapsSeen = {...next};
   if(window.gridlockKeep) try{ window.gridlockKeep(text, MAPS_KEY); _mapsMirrored = true; }catch(e){}
+  // A map is part of what a coach shares: a picture changed with nothing else
+  // left the season text as it was, and the cloud never heard of it.
+  if(changed.length) try{ maybeSync(); }catch(e){}
 }
 function liftMaps(){
   let moved = false;
@@ -3839,7 +4030,7 @@ window.gridlockRestoreMaps = text => {
   if(!m || typeof m !== "object") return;
   let took = false;
   Object.entries(m).forEach(([k, v]) => { if(!FIELD_MAPS[k] && String(k).startsWith("my:") && fieldMapOk(v)){ FIELD_MAPS[k] = v; took = true; } });
-  if(took){ try{ localStorage.setItem(MAPS_KEY, JSON.stringify(FIELD_MAPS)); }catch(e){} registerFields(); render(); }
+  if(took){ try{ localStorage.setItem(MAPS_KEY, JSON.stringify(FIELD_MAPS)); _mapsSeen = {...FIELD_MAPS}; }catch(e){} registerFields(); render(); }
 };
 // Fields as a copy carries them: each with its map back on it.
 const fieldsOut = list => (list || []).map(f => mapOf(f) ? {...f, map: mapOf(f)} : f);
@@ -5378,7 +5569,7 @@ const SCOUT_VIEWS = ["matchup","breakouts","anticipate","counter","layers","game
 function fixScreen(){
   if(!TABS.includes(S.tab)) S.tab = "playbook";
   if(!SCOUT_VIEWS.includes(S.scoutTab || "matchup")) S.scoutTab = "matchup";
-  if(S.more && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
+  if(S.more && !Object.prototype.hasOwnProperty.call(MORE_HIDDEN, S.more) && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
 }
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 /* The class deep link is the one door that is not the account, and it opens
@@ -5879,7 +6070,8 @@ function copyPayload(scope){
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   if(data.fields) data.fields = fieldsOut(data.fields);
-  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, scope: scope || "all",
+  if(!S.seasonId) S.seasonId=newSalt();
+  return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, seasonId:S.seasonId, scope: scope || "all",
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 /* One sheet, to hand to the coach beside you. Two phones on one match — one
@@ -6112,13 +6304,16 @@ function copyDataError(data){
       num:v => str(v)||num(v), plant:strings})),
       // A logged break may carry the five bunkers they were seen at. That list
       // is the one non-scalar on the row; a copy with it in was being refused.
-      breaks:list(v => record(v, {plants:list(str)}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
+      breaks:list(v => record(v, {plants:list(str), at:num, pt:num}) && Object.entries(v).every(([k, x]) => k === "plants" || scalar(x))),
       answers:strings})),
     teams:map(list(nameRow)),
     playGone:strings,
     left:v => row(v) && (v.name === undefined || str(v.name)),
     right:v => row(v) && (v.name === undefined || str(v.name)),
-    tally:list(v => str(v) || row(v)), calls:list(row), moves:list(row), assessments:list(row),
+    tally:list(v => str(v) || row(v) && record(v, {pt:num, at:num})),
+    calls:list(v => row(v) && record(v, {pt:num, at:num})),
+    moves:list(v => row(v) && record(v, {pt:num, at:num})),
+    assessments:list(v => row(v) && record(v, {pt:num, at:num, score:v => Number.isInteger(v) && v >= 1 && v <= 5})),
     // A breakout is the one row with a list in it — the route he ran, up to
     // five points in feet. Everything else on it is a scalar.
     breakouts:list(v => record(v, {route:list(p => row(p) && num(p.x) && num(p.y))})
@@ -6204,7 +6399,7 @@ window.saveCopy = async scope => {
       const result = await window.gridlockExportFile(text, name);
       if(result && result.status === "shared"){
         S.copyStatus = `Backup file sent to the share sheet · ${copySummary(JSON.parse(text).data)}. Keep ${name} in Files or your chosen destination.`;
-        S.copiedAt = Date.now();
+        if(scope !== "squad") S.copiedAt = Date.now();
       } else if(result && result.status === "cancelled"){
         S.copyStatus = "Share cancelled. Tap Save a copy to try again, or use Show it as text.";
       } else {
@@ -6236,7 +6431,9 @@ window.saveCopy = async scope => {
   S.copyStatus = `Copy made · ${copySummary(JSON.parse(text).data)}. `
     + (saved ? `Look for ${name} in your downloads or the share sheet — if neither arrived, use Show it as text.`
              : `Use Show it as text below and keep it somewhere safe.`);
-  if(saved) S.copiedAt = Date.now();
+  // Only the whole season, actually handed off, is a backup. A squad file is
+  // a roster for an assistant, not his season.
+  if(saved && scope !== "squad") S.copiedAt = Date.now();
   save(S);
   render();
 };
@@ -6390,7 +6587,9 @@ window.openSentSheet = () => {
   S.copySheet = null; window.openMatch(id);
   if(S.matchId === id) set({tab: "tally"});
 };
-window.showCopy = scope => { S.copyText = copyPayload(scope); S.copiedAt = Date.now(); save(S); render(); };
+// Text on the screen is not a backup until he has copied it somewhere, and
+// the app cannot know that he did: showing it says nothing about copiedAt.
+window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
 /* The one thing protecting a season is the copy, and nothing ever said how
  * long it had been. Said where he has a minute — a finished sheet, and the
  * record under Matches — only when there is something to lose and the last
@@ -6410,9 +6609,9 @@ function seasonHere(){
   return (S.matches || []).some(m => m && (loggedSize(m.id) || (S.results || []).some(r => r && r.m === m.id)))
     || (S.roster || []).length > 0 || Object.keys(S.scout || {}).length > 0 || Object.keys(S.plays || {}).length > 0;
 }
-window.loadCopy = mode => {
+window.loadCopy = (mode, suppliedText) => {
   const el = document.getElementById("copyIn");
-  copyDraft = el ? el.value : copyDraft;
+  copyDraft = suppliedText == null ? (el ? el.value : copyDraft) : suppliedText;
   const r = readCopy(copyDraft);
   if(r.error){ S.copyStatus = r.error; save(S); render(); return; }
   const d = r.payload.data;
@@ -6450,9 +6649,9 @@ window.loadCopy = mode => {
     o.walk = Object.values(S.walk || {}).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0);
     return o; };
   const sizeBefore = sizeOf();
-  // What just loaded is a copy, so the season has one as of now — the nudge
-  // must not open on a restored phone saying none was ever made.
-  S.copiedAt = Date.now();
+  // Bringing a copy in is not a backup of this phone: the date of the last
+  // full season he actually exported stays exactly what it was.
+  const backedUp = S.copiedAt;
   // Replace swaps the data, not the session: you stay signed in, on this screen,
   // looking at the message that says what just happened.
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
@@ -6532,6 +6731,7 @@ window.loadCopy = mode => {
   // back, not left on the deleted list for the next merge to strip again.
   if(mode === "replace") next.sheetsGone = (S.sheetsGone || []).filter(id => !(d.matches || []).some(m => m && m.id === id));
   Object.keys(next).forEach(k => { S[k] = next[k]; });
+  S.copiedAt = backedUp;
   // Their man numbered on one phone and not yet on the other came back as two
   // — "#7 Dill" and "Dill" — with his sightings split between the two keys.
   // A numberless man is the numbered one of the same name, as pitDup reads it.
@@ -6712,7 +6912,9 @@ window.loadCopy = mode => {
     S.copyStatus = S.copyStatus.replace(statusHead, `Merged in ${sheetId ? "a sheet" : "a copy"} — ${said}${clashSaid}`);
   }
   copyDraft = "";
+  if(mode==="replace") S.seasonId=typeof r.payload.seasonId==="string"&&/^[a-f0-9]{32}$/i.test(r.payload.seasonId)?r.payload.seasonId:newSalt();
   S.copyText = ""; save(S); render();
+  return true;
 };
 window.readCopyFile = input => {
   const f = input.files && input.files[0];
@@ -10000,7 +10202,8 @@ function tourRows(){
       <div class="kv__row"><span class="kv__k">Playbook</span><span class="kv__v">The call. Pick the break, play it, read the five jobs.</span></div>
       <div class="kv__row"><span class="kv__k">Tally</span><span class="kv__v">Tap the bunker each man broke to, then say what happened to each. Then who won the point.</span></div>
       <div class="kv__row"><span class="kv__k">Scout</span><span class="kv__v">The other pit — what they run when behind, where their five plant, who has the lanes off the break, and your counter. Counted from what you log, never guessed.</span></div>
-      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">The walk, the team, clinics, league ops — and Help.</span></div>
+      <div class="kv__row"><span class="kv__k">Sightlines</span><span class="kv__v">Check shooting lanes between bunkers on this field.</span></div>
+      <div class="kv__row"><span class="kv__k">More</span><span class="kv__v">Your roster, match format, saved matches, account, backups and Help.</span></div>
       <div class="kv__row"><span class="kv__k">Stuck</span><span class="kv__v">The ? at the top opens help for whatever screen you are on.</span></div>
     </div>`;
 }
@@ -10008,8 +10211,7 @@ function tourPanel(){
   return `<div class="panel">
     <h3 class="panel__title">How it works</h3>
     ${tourRows()}
-    <p class="note">An account takes a moment and lives on this phone only. There is no server
-      to send it to.</p>
+    <p class="note">${canSync() ? "Sign in with your Gridlock account. Your season stays on this device unless you turn on cloud sharing." : "Your account and saved season stay on this device. Keep a season copy before moving to another phone."}</p>
   </div>`;
 }
 
@@ -10031,7 +10233,7 @@ function promo(){
       <div class="promo__name">${logoMark()}</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
     </div>
-    ${S.mode === "create" || S.mode === "login" ? "" : `
+    ${["create", "login", "recovery"].includes(S.mode) ? "" : `
     <div style="display:flex;flex-direction:column;gap:12px">
       <p class="promo__tag">Call the break.<br/>Chart the point.<br/>Know what worked.</p>
       <ul class="promo__does">
@@ -10044,7 +10246,7 @@ function promo(){
            Appended below, it sat under three buttons and the footer — off the
            fold on a phone, with six buttons and two ways to do one thing all
            on screen at once. One screen, one job. */""}
-    ${S.mode === "create" || S.mode === "login" ? authForm() + `
+    ${["create", "login", "recovery"].includes(S.mode) ? authForm() + `
       <p class="note">Gridlock System · powered by UPRA</p>
     </div>` : `
     <div class="stack">
@@ -10069,6 +10271,7 @@ function promo(){
       <button class="btn btn--quiet btn--block" onclick="set({promoTour: !S.promoTour})">${
         S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
     </div>
+    ${S.authSaid ? `<p class="warn" role="status">${esc(S.authSaid)}</p>` : ""}
     ${S.promoTour ? tourPanel() : ""}
     <p class="note">Gridlock System · powered by UPRA</p>`}
   </div>`;
@@ -10076,10 +10279,11 @@ function promo(){
 // Whether this phone already carries a staff account, so the sign-in line
 // opens the right half of the form instead of the wrong one.
 function hasAccount(){
-  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "null");
-       return !!(a && a.email); }catch(e){ return false; }
+  const a = readAccount();
+  return !!(a.email || a.sub);
 }
 function authForm(){
+  if(S.mode === "recovery") return recoveryForm();
   if(S.mode!=="create" && S.mode!=="login") return "";
   const make = S.mode === "create";
   // A real form with the fields the phone looks for, so iOS and Android offer
@@ -10105,23 +10309,160 @@ function authForm(){
     <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
       <button type="submit" class="btn grow">${make?"Create account":"Sign in"}</button>
-      <button type="button" class="btn btn--ghost" onclick="set({mode:null,authSaid:''})">Back</button>
+      <button type="button" class="btn btn--ghost" onclick="chooseAuth(null)">Back</button>
     </div>
-    <button type="button" class="btn btn--quiet btn--block" onclick="set({mode:'${make?"login":"create"}',authSaid:''})">${
+    <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('${make?"login":"create"}')">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     ${window.gridlockCloud && !make
       ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
-    <p class="note">Kept on this phone only, salted and hashed. There is no server to send it to.</p>
+    <p class="note">${window.gridlockCloud
+      ? "Your password is checked by the account server. A salted hash is also kept on this phone for sign-in without a signal."
+      : "Kept on this phone only, salted and hashed. There is no server to send it to."}</p>
   </form>`;
 }
 // The staff password never touches storage in the clear. It is salted and
 // hashed with the platform's own crypto, and only the hash is kept — so a
 // shared or stolen phone does not hand over the password itself.
 const STAFF_KEY = "gridlock.staff.v2";
+let _authAttempt = 0;
+let _recoveryUser = null, _recoveryBusy = false;
+// Server account grants are separate from store purchases. They stay in memory
+// and can only supplement the same verified account, never a later sign-in.
+let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
+function clearAccountGrant(){ ++_grantAttempt; _accountGrant = null; _grantSaid = ""; }
+function accountGrantPlan(){
+  const g = _accountGrant, cloud = window.gridlockCloud, acc = readAccount();
+  let session = null;
+  try{ session = cloud && cloud.session && cloud.session(); }catch(e){}
+  if(!g || !S.entered || !acc.cloud || !acc.uid || acc.uid !== g.uid ||
+     cloud !== g.cloud || !session || !session.user || session.user.id !== g.uid ||
+     String(S.email).toLowerCase() !== String(acc.email).toLowerCase() ||
+     (g.exp && Date.now() >= g.exp)) return "free";
+  return Object.prototype.hasOwnProperty.call(PLANS, g.plan) ? g.plan : "free";
+}
+async function refreshAccountGrant(cloud = window.gridlockCloud, authAttempt = _authAttempt){
+  clearAccountGrant();
+  const acc = readAccount(), ticket = _grantAttempt;
+  if(!cloud || !cloud.getEntitlement || !S.entered || !acc.cloud || !acc.uid) return;
+  const uid = acc.uid, email = S.email;
+  const same = () => ticket === _grantAttempt && authAttempt === _authAttempt &&
+    cloud === window.gridlockCloud && S.entered && S.email === email && readAccount().uid === uid;
+  _grantSaid = "Checking account access…";
+  try{
+    const r = await cloud.getEntitlement();
+    if(!same()) return;
+    const e = r && r.entitlement;
+    if(r && r.ok && r.user && r.user.id === uid && e &&
+       Object.prototype.hasOwnProperty.call(PLANS, e.plan) && Number.isFinite(e.exp) && e.exp >= 0 &&
+       (!e.exp || e.exp > Date.now())){
+      _accountGrant = {uid, cloud, plan:e.plan, exp:e.exp};
+      _grantSaid = "Account access checked. " + PLAN_NAME[e.plan] + ".";
+    }else _grantSaid = "Account access could not be confirmed. Try again with a signal.";
+  }catch(e){ if(same()) _grantSaid = "Account access could not be checked. Try again with a signal."; }
+  if(same() && S.tab === "more" && S.more === "plan") render();
+}
+window.refreshAccountAccess = () => refreshAccountGrant();
+const ACCOUNT_SAVE_SAID = "This phone could not save your sign-in. Free some space, then try again. Your season has not been removed.";
+window.chooseAuth = mode => {
+  clearAccountGrant();
+  ++_authAttempt; _recoveryUser = null; _recoveryBusy = false;
+  try{ if(window.gridlockCloud && window.gridlockCloud.cancelRecovery) window.gridlockCloud.cancelRecovery(); }catch(e){}
+  set({mode, authSaid:""});
+};
+function recoveryForm(){
+  return `<form class="panel" method="post" action="#" novalidate onsubmit="event.preventDefault();completePasswordReset()">
+    <h3 class="panel__title">Choose a new password</h3>
+    <p class="note">${_recoveryUser ? "Set the password for your account. Your season stays on this phone." : "Open a fresh password link from your email before setting a password."}</p>
+    ${S.authSaid ? `<p class="warn" role="status">${esc(S.authSaid)}</p>` : ""}
+    ${_recoveryUser ? `<div class="fld"><label for="newpw">New password</label><input id="newpw" name="new-password" type="password" autocomplete="new-password" minlength="6"/></div>
+    <div class="fld"><label for="confirmpw">Confirm password</label><input id="confirmpw" name="confirm-password" type="password" autocomplete="new-password" minlength="6"/></div>
+    <button type="submit" class="btn btn--block" ${_recoveryBusy ? "disabled" : ""}>${_recoveryBusy ? "Saving…" : "Save password"}</button>` : ""}
+    <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('login')">Back to sign in</button>
+  </form>`;
+}
+window.gridlockHandleAuthUrl = async raw => {
+  const cloud = window.gridlockCloud;
+  if(!cloud || !cloud.handleAuthUrl || !cloud.isAuthUrl || !cloud.isAuthUrl(raw)) return false;
+  const attempt = ++_authAttempt;
+  clearAccountGrant();
+  ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
+  set({entered:false, role:"guest", email:"", joinOnly:false, mode:"login", authSaid:"Checking your email link…"});
+  let r;
+  try{ r = await cloud.handleAuthUrl(raw); }
+  catch(e){ r = {ok:false, said:"That link could not be checked. Open it again with a signal, or request a new link."}; }
+  if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return true;
+  if(r && r.ok && r.recovery && r.user && r.user.id && r.user.email){
+    _recoveryUser = {id:r.user.id, email:r.user.email};
+    set({mode:"recovery", authSaid:""});
+  }else{
+    set({mode:"login", authSaid:r && r.ok && r.confirmed
+      ? "Your email is confirmed. Sign in to continue."
+      : (r && r.said) || "That link is no longer usable. Request a new password link, then open the newest email."});
+  }
+  return true;
+};
+window.completePasswordReset = async () => {
+  const cloud = window.gridlockCloud, user = _recoveryUser;
+  if(_recoveryBusy) return;
+  if(!user || !cloud || !cloud.updatePassword) return set({authSaid:"Open a fresh password link from your email first."});
+  const pass = (document.getElementById("newpw") || {}).value || "";
+  const again = (document.getElementById("confirmpw") || {}).value || "";
+  if(pass.length < 6) return set({authSaid:"Use a password of six characters or more."});
+  if(pass !== again) return set({authSaid:"The two passwords do not match. Type them again."});
+  const attempt = ++_authAttempt;
+  _recoveryBusy = true; set({authSaid:"Saving your password…"});
+  try{
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    const r = await cloud.updatePassword(pass);
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    if(!r || !r.ok){ _recoveryBusy = false; return set({authSaid:(r && r.said) || "The password was not saved. Try again with a signal."}); }
+    _recoveryUser = null; _recoveryBusy = false;
+    if(!writeAccount({email:user.email, salt, hash, cloud:true, uid:user.id})){
+      try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+      if(attempt !== _authAttempt) return;
+      return set({mode:"login", authSaid:ACCOUNT_SAVE_SAID + " Your new password was accepted; sign in with it when you retry."});
+    }
+    dropLegacyAccount();
+    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+    refreshAccountGrant(cloud, attempt);
+  }catch(e){
+    if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
+  }
+};
+function accountRecord(text, legacy = false){
+  let a;
+  try{ a = JSON.parse(text); }catch(e){ return {}; }
+  if(!a || typeof a !== "object" || Array.isArray(a)) return {};
+  for(const key of ["email", "salt", "hash", "kind", "sub", "name", "phone", "uid", "pass"])
+    if(a[key] != null && typeof a[key] !== "string") return {};
+  if(legacy ? a.email && a.pass :
+     (a.kind === "apple" && a.sub) || (a.email && a.salt && a.hash)) return a;
+  return {};
+}
+// An email is one address whatever its capitals: "Coach@X.com" and
+// "coach@x.com" reach the same inbox, and the server reads them as one
+// account. Offline the phone read them as two and told him to make another.
+const sameEmail = (a, b) => !!a && !!b &&
+  String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+function readAccount(key = STAFF_KEY){
+  try{ return accountRecord(localStorage.getItem(key), key !== STAFF_KEY); }catch(e){ return {}; }
+}
+function dropLegacyAccount(){
+  try{ localStorage.removeItem("gridlock.staff"); }catch(e){}
+}
 async function hashPass(pass, saltHex){
-  const enc = new TextEncoder().encode(saltHex + "|" + pass);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  if(!/^[0-9a-f]{32}$/i.test(saltHex)) throw new Error("Invalid password salt");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const salt = new Uint8Array(saltHex.match(/../g).map(v => parseInt(v,16)));
+  const buf = await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000}, key, 256);
+  return "pbkdf2-sha256$600000$" + [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function verifyAccountPassword(pass, acc){
+  if(acc.hash.startsWith("pbkdf2-sha256$")) return acc.hash === await hashPass(pass, acc.salt);
+  if(!/^[0-9a-f]{64}$/i.test(acc.hash)) return false;
+  const buf = await crypto.subtle.digest("SHA-256",new TextEncoder().encode(acc.salt + "|" + pass));
+  return acc.hash === [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
 function newSalt(){
   return [...crypto.getRandomValues(new Uint8Array(16))]
@@ -10132,19 +10473,21 @@ function newSalt(){
  * season coming back on a phone the coach can no longer sign in to is half a
  * rescue — creating a class and sending a blast are both gated on it. */
 function writeAccount(acc){
-  const text = JSON.stringify(acc);
-  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
-  if(window.gridlockKeep) try{ window.gridlockKeep(text, STAFF_KEY); }catch(e){}
+  let text;
+  try{
+    text = JSON.stringify(acc);
+    localStorage.setItem(STAFF_KEY, text);
+    if(localStorage.getItem(STAFF_KEY) !== text) return false;
+  }catch(e){ return false; }
+  if(window.gridlockKeep) try{ Promise.resolve(window.gridlockKeep(text, STAFF_KEY)).catch(() => {}); }catch(e){}
+  return true;
 }
 window.gridlockRestoreAccount = text => {
-  let have = null;
-  try{ have = JSON.parse(localStorage.getItem(STAFF_KEY) || "null"); }catch(e){}
-  if(have && have.email) return false;              // this phone has one already
-  let d = null;
-  try{ d = JSON.parse(text); }catch(e){ return false; }
-  if(!d || !(d.email || d.sub) || !(d.hash || d.kind === "apple")) return false;
-  try{ localStorage.setItem(STAFF_KEY, text); }catch(e){}
-  return true;
+  const have = readAccount();
+  if(have.email || have.sub) return false;          // this phone has one already
+  const d = accountRecord(text);
+  if(!(d.email || d.sub)) return false;
+  return writeAccount(d);
 };
 
 /* ============================================================
@@ -10174,22 +10517,25 @@ window.gridlockRestoreAccount = text => {
 window.appleSignIn = async () => {
   const a = window.gridlockApple;
   if(!a || !a.signIn) return set({authSaid: "Sign in with Apple is not available on this build."});
+  const attempt = ++_authAttempt;
+  clearAccountGrant();
+  clearSyncRetry();++_syncEpoch; S.syncOn = false;
   set({authSaid: "Asking Apple…"});
   try{
     const who = await a.signIn();
+    if(attempt !== _authAttempt) return;
     if(!who || !who.sub) return set({authSaid: "Apple did not return a sign-in. Nothing has changed."});
     // An Apple account keeps no password: there is nothing to hash, and the
     // stable id is the thing that identifies him on the next launch.
-    const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
-    writeAccount({kind: "apple", sub: who.sub,
-                  email: who.email || kept.email || "",
-                  name: who.name || kept.name || ""});
+    const prior = readAccount(), kept = prior.sub === who.sub ? prior : {};
+    if(!writeAccount({kind: "apple", sub: who.sub,
+                     email: who.email || kept.email || "",
+                     name: who.name || kept.name || ""})) return set({authSaid: ACCOUNT_SAVE_SAID});
     set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone});
-  }catch(err){ set({authSaid: "Apple could not be reached. Nothing has changed."}); }
+  }catch(err){ if(attempt === _authAttempt) set({authSaid: "Apple could not be reached. Nothing has changed."}); }
 };
 function phoneDone(){
-  try{ const a = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); return a.phone || ""; }
-  catch(e){ return ""; }
+  return readAccount().phone || "";
 }
 window.startVerify = async () => {
   const v = window.gridlockVerify;
@@ -10211,8 +10557,9 @@ window.checkVerify = async () => {
   try{
     const r = await v.check(S.verifyPhone || "", code);
     if(r && r.ok){
-      const kept = (() => { try{ return JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){ return {}; } })();
-      writeAccount({...kept, phone: S.verifyPhone || "", phoneAt: Date.now()});
+      const kept = readAccount();
+      if(!(kept.email || kept.sub) || !writeAccount({...kept, phone: S.verifyPhone || "", phoneAt: Date.now()}))
+        return set({verifySaid: "This phone could not save the verified number. Free some space, then try again."});
       set({verifySent: false, verifySaid: "", verifyPhone: ""});
     } else set({verifySaid: (r && r.said) || "That code does not match. Ask for a new one if it has expired."});
   }catch(e){ set({verifySaid: "The code could not be checked. Nothing has changed."}); }
@@ -10262,17 +10609,19 @@ window.sendReset = async () => {
   const say = m => set({authSaid: m});
   if(!cloud || !cloud.sendReset) return say("There is no account server on this build to reset from.");
   if(!email) return say("Type the email first, then ask for the link.");
+  const attempt = ++_authAttempt;
   say("Sending…");
   try{
     const r = await cloud.sendReset(email);
-    say(r && r.ok ? "Check that inbox — the link is good for an hour."
+    if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    say(r && r.ok ? "Check that inbox for the newest password link. If it has expired, ask for another."
                   : (r && r.said) || "That could not be sent. Nothing has changed.");
-  }catch(e){ say("The account server could not be reached. Nothing has changed."); }
+  }catch(e){ if(attempt === _authAttempt) say("The account server could not be reached. Nothing has changed."); }
 };
 
 window.doAuth = async () => {
-  const email = document.getElementById("em").value.trim();
-  const pass = document.getElementById("pw").value;
+  const email = ((document.getElementById("em") || {}).value || "").trim();
+  const pass = (document.getElementById("pw") || {}).value || "";
   // The redraw that shows a refusal rebuilt the box empty, so a coach who
   // mistyped his password typed his email again too. The email stays; the
   // password is his to type again.
@@ -10281,8 +10630,11 @@ window.doAuth = async () => {
   if(!(window.crypto && crypto.subtle))
     return say("This address is not a secure one, so the phone will not hash a password here. "
              + "Use the installed app, or open this on the same machine at localhost.");
-  let acc = {};
-  try{ acc = JSON.parse(localStorage.getItem(STAFF_KEY) || "{}"); }catch(e){}
+  const attempt = ++_authAttempt, creating = S.mode === "create";
+  clearAccountGrant();
+  ++_syncEpoch; S.syncOn = false;
+  const acc = readAccount();
+  try{
 
   /* The server first where there is one, and the phone whenever it cannot be
      reached. A successful cloud sign-in writes the local account too, so the
@@ -10292,48 +10644,67 @@ window.doAuth = async () => {
     say("Checking…");
     let r = null;
     try{
-      r = S.mode === "create" ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
+      r = creating ? await cloud.signUp(email, pass) : await cloud.signIn(email, pass);
     }catch(e){ r = {offline: true}; }
+    if(attempt !== _authAttempt) return;
+    if(r && r.ok && r.pendingConfirmation){
+      S.mode = "login";
+      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation.");
+    }
     if(r && r.ok){
-      const salt = newSalt();
-      writeAccount({...(acc.kind === "apple" ? acc : {}), email, salt,
-                    hash: await hashPass(pass, salt),
-                    cloud: true, uid: (r.user && r.user.id) || acc.uid || ""});
-      localStorage.removeItem("gridlock.staff");
-      return set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      const salt = newSalt(), hash = await hashPass(pass, salt);
+      if(attempt !== _authAttempt) return;
+      if(!writeAccount({email, salt, hash, cloud: true, uid: (r.user && r.user.id) || ""})){
+        try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+        if(attempt !== _authAttempt) return;
+        return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
+      }
+      dropLegacyAccount();
+      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      refreshAccountGrant(cloud, attempt);
+      return;
     }
     // A refusal is his to see. A network failure is not, and must never be the
     // reason a coach cannot get into his own app between points.
     if(r && !r.offline) return say(r.said || "That was refused by the account server.");
+    if(creating) return say("The account server could not be reached. Connect to the internet, then create your account again.");
     S.authSaid = "";
   }
 
-  if(S.mode === "create"){
+  if(creating){
     // Creating over an account that is already here is how a coach who meant to
     // sign in loses the one he had — nothing else on the phone can get it back.
-    if(acc.email && acc.email !== email &&
+    if(acc.email && !sameEmail(acc.email, email) &&
        !confirm(`This phone already has ${acc.email}. A new account replaces that sign-in and `
               + `there is no way back to it. Your season is kept separately and is not touched. Continue?`)) return;
-    const salt = newSalt();
-    writeAccount({email, salt, hash: await hashPass(pass, salt)});
-    localStorage.removeItem("gridlock.staff");   // drop any old clear-text account
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt) return;
+    if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
+    dropLegacyAccount();   // only after the replacement is safely stored
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
-  if(acc.email === email && acc.salt && acc.hash === await hashPass(pass, acc.salt)){
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
+  if(sameEmail(acc.email, email) && acc.salt && await verifyAccountPassword(pass, acc)){
+    if(attempt !== _authAttempt) return;
+    if(!acc.hash.startsWith("pbkdf2-sha256$")){
+      const salt = newSalt(), hash = await hashPass(pass,salt);
+      if(attempt !== _authAttempt) return;
+      if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
+    }
+    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
 
   // An account made before hashing is upgraded on the next correct sign-in
   // rather than locking the coach out of his own phone.
-  let old = {};
-  try{ old = JSON.parse(localStorage.getItem("gridlock.staff") || "{}"); }catch(e){}
-  if(old.email === email && old.pass === pass){
-    const salt = newSalt();
-    writeAccount({email, salt, hash: await hashPass(pass, salt)});
-    localStorage.removeItem("gridlock.staff");
+  if(attempt !== _authAttempt) return;
+  const old = readAccount("gridlock.staff");
+  if(sameEmail(old.email, email) && old.pass === pass){
+    const salt = newSalt(), hash = await hashPass(pass, salt);
+    if(attempt !== _authAttempt) return;
+    if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
+    dropLegacyAccount();
     set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
     return;
   }
@@ -10346,12 +10717,14 @@ window.doAuth = async () => {
   if(acc.kind === "apple")
     return say("This phone signs in with Apple. Use the Sign in with Apple button rather than a "
              + "password — there is no password on this account to get wrong.");
+  if(!acc.email && !old.email && window.gridlockCloud)
+    return say("This phone has no saved sign-in and the account server could not be reached. Connect to the internet, then sign in again.");
   if(!acc.email && !old.email)
     return say("This phone has never had an account on it. There is no server to look yours up on — "
              + "make one here with the same email. Nothing you have logged is kept inside an account, "
              + "so you lose nothing, and Nexus \u203a Save a copy is how a season moves between phones.");
   const known = acc.email || old.email;
-  if(known !== email)
+  if(!sameEmail(known, email))
     return say("The account on this phone is " + known + ". Sign in with that one, "
              + "or make a new account — your season is kept separately and is not touched either way.");
   say(window.gridlockCloud
@@ -10360,6 +10733,11 @@ window.doAuth = async () => {
     : "That password does not match. There is nowhere to reset it from, because nothing about the "
       + "account leaves this phone. Making a new account with the same email replaces the password "
       + "and leaves your season exactly where it is.");
+  }catch(e){
+    if(attempt !== _authAttempt) return;
+    try{ if(window.gridlockCloud && window.gridlockCloud.signOut) await window.gridlockCloud.signOut(); }catch(ignore){}
+    if(attempt === _authAttempt) say("This phone could not securely save or check your sign-in. Try again. Your season has not been removed.");
+  }
 };
 
 /* ============================================================
@@ -10376,54 +10754,161 @@ const canSync = () => !!(window.gridlockCloud && window.gridlockCloud.pushSeason
 function syncLabel(){
   return String(S.syncLabel || pitName("left", "") || S.teamCode || S.email || "Coach").slice(0, 60);
 }
-let _lastAutoSync = 0;
-function maybeSync(){
-  if(!S.syncOn || !canSync()) return;
-  const now = Date.now();
-  if(now - _lastAutoSync < 90000) return;         // at most once a minute and a half
-  _lastAutoSync = now;
-  const payload = copyPayload("all");
-  Promise.resolve().then(() => window.gridlockCloud.pushSeason(syncLabel(), payload))
-    .then(r => { if(r && r.ok) S.syncAt = Date.now(); })   // persists on the next save
-    .catch(() => {});
+let _lastAutoSync = 0, _syncEpoch = 0;
+let _syncTail = Promise.resolve(), _syncDeleting = false;
+let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
+function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
+function syncStatus(data){
+  Object.assign(S,data);_syncStatusWrite=true;
+  try{save(S);}finally{_syncStatusWrite=false;}render();
 }
-window.syncNow = async () => {
-  if(!canSync()) return;
-  const say = m => set({syncSaid: m});
-  say("Sending your season to your league…");
+// A stale tab never sends: its season is older than the one another tab saved.
+const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
+function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
+function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
+function queueSeasonPush(t){
+  const label = syncLabel(), payload = copyPayload("all");
+  const pending = _syncTail.then(() => {
+    if(!sameSync(t) || !syncAllowed()) return {ok:false};
+    return t.cloud.pushSeason(label, payload);
+  });
+  _syncTail = pending.catch(() => {});
+  return pending;
+}
+window.staffSignOut = () => {
+  clearSyncRetry();
+  ++_authAttempt; ++_syncEpoch;
+  clearAccountGrant();
+  _recoveryUser = null; _recoveryBusy = false;
+  S.syncOn = false;                            // pause before save can auto-send
+  const cloud = window.gridlockCloud;
+  try{ if(cloud && cloud.signOut) Promise.resolve(cloud.signOut()).catch(() => {}); }catch(e){}
+  set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:""});
+};
+function maybeSync(){
+  if(_syncStatusWrite || !syncAllowed()) return;
+  _syncDirty=true;
+  scheduleSync();
+}
+function scheduleSync(delay){
+  if(!syncAllowed() || !_syncDirty || _syncSending) return;
+  clearTimeout(_syncTimer);
+  const t=syncTicket();
+  _syncTimer=setTimeout(()=>{_syncTimer=null;if(sameSync(t)&&syncAllowed()) sendSeason(false);},
+    delay == null ? Math.max(0,90000-(Date.now()-_lastAutoSync)) : delay);
+}
+async function sendSeason(manual){
+  if(!syncAllowed() || _syncSending) return;
+  const t = syncTicket();
+  clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
+  if(manual) syncStatus({syncSaid:"Sending your season to your league…"});
   let r = null;
-  try{ r = await window.gridlockCloud.pushSeason(syncLabel(), copyPayload("all")); }
-  catch(e){ r = {ok:false, offline:true}; }
-  if(r && r.ok) return set({syncAt: Date.now(), syncSaid: "Sent to your league."});
-  if(r && r.offline) return set({syncSaid: "No signal — it will go up on its own once you have bars. Your season is safe on the phone."});
-  set({syncSaid: (r && r.said) || "That could not be sent. Nothing has changed."});
+  try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
+  _syncSending=false;
+  if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
+  if(r && r.ok === true){
+    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Sent to your league."});
+    scheduleSync();return;
+  }
+  if(r && r.conflict){
+    clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
+  }
+  _syncDirty=true;
+  syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."});
+  scheduleSync(90000);
+}
+window.syncNow = () => sendSeason(true);
+window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);}});
+window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
+window.reviewCloudSeason = async () => {
+  const cloud=window.gridlockCloud, attempt=_authAttempt;
+  if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
+  clearSyncRetry();++_syncEpoch;S.syncOn=false;
+  syncStatus({syncSaid:"Loading your cloud copy…"});
+  await _syncTail;
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
+  let r;try{r=await cloud.getSeason();}catch(e){}
+  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
+  if(!r || !r.ok) return syncStatus({syncSaid:(r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged."});
+  if(r.missing || r.removed){
+    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return syncStatus({syncSaid:"Nothing changed. Sharing stays off."});
+    if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
+    S.syncOn=true;return syncNow();
+  }
+  const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
+  if(checked.error) return syncStatus({syncSaid:"The cloud copy is not a readable season. Your phone is unchanged."});
+  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return syncStatus({syncSaid:"Nothing restored. Your phone is unchanged."});
+  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",copyPayload("all"));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
+  if(window.loadCopy("replace",raw)!==true) return;
+  if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
+  syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
+};
+window.showPreRestoreCopy = () => {
+  try{
+    const raw=localStorage.getItem(STORE_KEY+".before-cloud-restore")||"";
+    if(readCopy(raw).error)return set({syncSaid:"No readable pre-restore season is stored on this phone."});
+    set({copyText:raw,copyStatus:"This is the season kept before cloud restore. Copy this text and save it somewhere safe."});
+  }catch(e){set({syncSaid:"The pre-restore copy could not be opened. Your current season is unchanged."});}
 };
 window.toggleSync = () => {
+  if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
+  if(!S.entered || S.role !== "staff" || !canSync()) return;
+  ++_syncEpoch;
+  clearSyncRetry();
   if(S.syncOn) return set({syncOn: false,
     syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
-  // Claim the throttle window so the save() below does not also auto-fire; the
-  // explicit syncNow() is the one push, and it gives him a result to read.
   _lastAutoSync = Date.now();
   S.syncOn = true; save(S); render();
   syncNow();
 };
 window.deleteSynced = async () => {
+  if(_syncDeleting) return;
   const cloud = window.gridlockCloud;
-  const say = m => set({syncSaid: m});
-  // Only say it was removed when the league said so: with no adapter, or no
-  // signal, it said removed while everything sent was still there.
-  if(!cloud || !cloud.deleteSeason)
-    return set({syncOn: false, syncAt: null, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+  if(!cloud || !cloud.deleteSeason){
+    ++_syncEpoch;
+    return set({syncOn: false, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+  }
   if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
-  say("Removing what you sent…");
-  try{ const r = await cloud.deleteSeason();
-    if(r && r.offline) return set({syncOn: false, syncAt: null, syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
-    if(r && r.ok === false) return set({syncSaid: r.said || "That could not be removed. Try again with a signal."});
-  }catch(e){ return set({syncSaid: "Could not reach your league to remove it. Try again with a signal."}); }
-  set({syncOn: false, syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+  clearSyncRetry();
+  ++_syncEpoch;
+  const t = syncTicket();
+  _syncDeleting = true;
+  set({syncOn: false, syncSaid: "Removing what you sent…"});
+  try{
+    // Wait for an already-dispatched upload; DELETE must land after it.
+    await _syncTail;
+    if(!sameSync(t)) return;
+    const r = await cloud.deleteSeason();
+    if(!sameSync(t)) return;
+    if(r && r.ok === true)
+      return set({syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+    if(r && r.offline)
+      return set({syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
+    set({syncSaid: (r && r.said) || "Removal was not confirmed. League sync is off. Tap Remove to try again."});
+  }catch(e){
+    if(sameSync(t)) set({syncSaid: "Could not reach your league to remove it. League sync is off. Tap Remove to try again."});
+  }finally{ _syncDeleting = false; }
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
+let _accountDeleting=false;
+window.deleteCloudAccount = async () => {
+  const cloud=window.gridlockCloud;
+  if(_accountDeleting||!cloud?.deleteAccount)return;
+  const password=document.getElementById("deleteAccountPassword")?.value||"";
+  const phrase=document.getElementById("deleteAccountPhrase")?.value||"";
+  const code=document.getElementById("deleteAccountCode")?.value||"";
+  if(!password||phrase!=="DELETE MY ACCOUNT")return set({syncSaid:"Enter your password and type DELETE MY ACCOUNT. Nothing was deleted."});
+  if(!confirm("Permanently delete this Gridlock account and its cloud season? This cannot be undone. The season saved on this phone stays here; save a copy if you need it."))return;
+  const attempt=++_authAttempt;clearSyncRetry();++_syncEpoch;S.syncOn=false;_accountDeleting=true;
+  syncStatus({syncSaid:"Confirming account deletion…"});
+  let result;try{result=await cloud.deleteAccount(password,phrase,code);}catch(e){}
+  _accountDeleting=false;
+  if(attempt!==_authAttempt||cloud!==window.gridlockCloud)return;
+  if(!result?.ok)return syncStatus({syncSaid:result?.said||"Deletion was not confirmed. Your phone's season is unchanged."});
+  clearAccountGrant();const cleaned=writeAccount({});dropLegacyAccount();
+  set({entered:false,role:"guest",email:"",mode:"login",authSaid:"Your account and its cloud season were deleted. The season on this phone is still here."+(cleaned?"":" This browser could not clear the saved local sign-in; clear it in your browser settings."),syncOn:false,syncAt:null,syncSaid:""});
+};
 
 /* ============================================================
    Playbook — leads with the call, because that is the job
@@ -14041,8 +14526,8 @@ function scoutBreakouts(){
       ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
     </div>
     ${(lastFive => lastFive && !fixing && !picked.length ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${lastFive.script ? esc(callName(lastFive.script)) + " · " : ""}${lastFive.pt ? `point ${lastFive.pt}` : "season"}${lastFive.plants ? ` · ${lastFive.plants.map(id => esc(label(id))).join(", ")}` : ""}</b>.</p>
-        ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${lastFive.at})">Fix it</button>` : ""}
-        <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${lastFive.at})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
+        ${lastFive.plants && lastFive.plants.length ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${Number.isFinite(lastFive.at) ? lastFive.at : "null"})">Fix it</button>` : ""}
+        <button class="btn btn--quiet" onclick="unlogTheirAt('${side}',${Number.isFinite(lastFive.at) ? lastFive.at : "null"})">Undo</button></div>` : "")(seen.find(b => b && S.theirLast && b.at === S.theirLast))}
     <p class="note" role="status">${picked.length
       ? fixing ? `${picked.length} placed. Save the five when it is right.` : `${picked.length} of ${sideSize()} placed. Log the five on their own, or tap a named call below to log it with them.`
       : `Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.`}</p>
@@ -14084,10 +14569,10 @@ function scoutBreakouts(){
       : `<div class="empty">Nothing logged on ${esc(R.name)} yet. Tap their call above the moment you read it.</div>`,
       total?total+" seen":"")
   + (seen.length?sec("As you saw it", `<div class="assigns">${seen.slice(0,12).map((b,i)=>`<div class="assign">
-        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${b.pt || "·"}</span>
+        <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${esc(b.pt || "·")}</span>
         <span class="assign__body"><span class="assign__job">${esc(b.script ? (callName(b.script)) : "Where they went")}</span>
-        <span class="assign__who">${b.pt ? `point ${b.pt}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
-        ${b.plants && b.plants.length && (!b.layout || b.layout === S.layoutKey) ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${b.at})">Fix</button>` : ""}
+        <span class="assign__who">${b.pt ? `point ${esc(b.pt)}` : "season"}${b.plants?` · ${b.plants.map(id=>esc(label(id))).join(", ")}`:""}</span></span>
+        ${b.plants && b.plants.length && (!b.layout || b.layout === S.layoutKey) ? `<button class="btn btn--quiet" onclick="fixTheirFive('${side}',${Number.isFinite(b.at) ? b.at : "null"})">Fix</button>` : ""}
         <button class="btn btn--danger" onclick="unlogTheirBreak('${side}',${i})">Remove</button>
       </div>`).join("")}</div>`, "Newest first"):"");
 }
@@ -15057,7 +15542,7 @@ const HELP = {
          "Under it, Bunker codes draws the field with every bunker labelled. Pick any field to read its key; tap a bunker to give it your team's own name, and Put the code back to undo it."]},
   "more/messages": {t:"Messages", w:"Notes that stay with the squad.",
     how:["Write it once and it is on the phone for the weekend.",
-         "There is no network, so nothing sends anywhere."]},
+         "These notes do not send a notification. Share them with your squad in a copy from Nexus."]},
   "more/matches": {t:"Matches", w:"Every sheet you have kept.",
     how:["The one in play is at the top with its score.",
          "Open an old one and you land on its last point, so you can still tally something you missed.",
@@ -15085,21 +15570,22 @@ const HELP = {
          "Every field the app carries is listed with where its map came from.",
          "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
-    watch:"Save a copy before every event. It is the only backup there is. League sync is the one thing that sends a season off the phone, and only when you switch it on — you can pause it or delete what you sent from the same place."},
+    watch:"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus."},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
-  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. There is no server, so the file goes however you send files: AirDrop, a message, mail."],
-  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone itself was wiped, Nexus and Save a copy is the only way back, which is why it is worth doing before every event."],
+  ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
+  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
   ["How many points wins it?", "Race to, under More › Format: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
-  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy is the only thing protecting a season — there is no server."],
+  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
@@ -15115,7 +15601,7 @@ const HELP_Q = [
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
-  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. Only the things that talk to somebody else need one: League sync, if you switch it on, and the store when you buy or restore the plan."],
+  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
@@ -15179,8 +15665,7 @@ function verifyBlock(){
       except to the service that sent that code.</p></div>`;
   return `<div class="panel">
     <h3 class="panel__title">Verify your phone</h3>
-    <p class="note">One code, by text. It is the only thing in this app that touches a network, and
-      it is used for nothing but proving the number is yours.</p>
+    <p class="note">One code, by text, to check that the number is yours. A signal is needed to receive it.</p>
     ${S.verifySaid ? `<p class="warn">${esc(S.verifySaid)}</p>` : ""}
     ${S.verifySent ? `<div class="fld"><label for="vcode">The code we sent to ${esc(S.verifyPhone)}</label>
         <input id="vcode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></div>
@@ -15206,6 +15691,10 @@ function planPage(){
         : "Nothing is for sale in this build yet, so everything is unlocked."}</p>
     </div>
     ${said ? `<p class="warn">${esc(said)}</p>` : ""}`, billingLive() ? "" : "not selling yet")
+  + (window.gridlockCloud && window.gridlockCloud.getEntitlement && readAccount().cloud ? sec("Account access", `
+    <p class="note">Access granted to your account is checked when you sign in online. Store purchases stay separate.</p>
+    ${_grantSaid ? `<p class="note" role="status">${esc(_grantSaid)}</p>` : ""}
+    <button class="btn btn--quiet btn--block" onclick="refreshAccountAccess()">Refresh account access</button>`) : "")
   + sec("Free, always", `<p class="lede">Everything you do while a point is on. It does not expire and it does
       not need a signal.</p>
     <div class="kv">
@@ -15214,7 +15703,7 @@ function planPage(){
       ${row("Sightlines", "What any bunker can see, and the dragged lane.")}
       ${row("The field", "Walk notes, Movement, Bunker stats.")}
       ${row("The squad", "Roster, Lineups, your words for every bunker, call and job, Codes, Messages.")}
-      ${row("Save a copy", "Your backup is never behind a wall. There is no server here, so that file is the only thing protecting your season.")}
+      ${row("Save a copy", "Save a backup you control before every event. Cloud sharing keeps one current copy when you turn it on; keep files for older versions.")}
       ${row("The match in play", "Always. A sheet you are on is never locked.")}
     </div>`)
   + sec("Team", `<p class="lede">What you do between events. Priced per season; a season renews
@@ -15246,6 +15735,24 @@ function planPage(){
       S.preview ? "Stop previewing the free plan" : "Show me the free plan"}</button>`, "Staff") : "");
 }
 
+function coachQuickStart(){
+  return sec("Your first match", `<p class="lede">Set up the field and your players before the first point. Each step opens the screen you need.</p>
+    <div class="coach-start" role="group" aria-label="Match-day setup">
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'format',helpFor:''});toMainTop()">1. Check the match format</button>
+      <button class="btn btn--ghost" onclick="set({tab:'more',more:'team',helpFor:''});toMainTop()">2. Add your players</button>
+      <button class="btn btn--ghost" onclick="set({tab:'playbook',more:null,evPick:true,helpFor:''});toMainTop()">3. Pick the field and breakout</button>
+      <button class="btn btn--ghost" onclick="set({tab:'tally',more:null,helpFor:''});toMainTop()">4. Open the point sheet</button>
+    </div>
+    <p class="note">Tally starts a new match or continues the one already saved. After your session, keep a backup from More &rsaquo; Nexus &rsaquo; Save a copy.</p>
+    <details class="coach-terms"><summary>Paintball terms, in plain language</summary><div class="kv">
+      <div class="kv__row"><span class="kv__k">Point</span><span class="kv__v">One round, from the starting horn to its result.</span></div>
+      <div class="kv__row"><span class="kv__k">Match</span><span class="kv__v">A game against an opponent. In X-ball, a match contains multiple points.</span></div>
+      <div class="kv__row"><span class="kv__k">Breakout</span><span class="kv__v">The opening route each player runs at the start of a point.</span></div>
+      <div class="kv__row"><span class="kv__k">Bunker</span><span class="kv__v">The cover marked on your field map.</span></div>
+      <div class="kv__row"><span class="kv__k">Lane</span><span class="kv__v">A shooting line between positions on the field.</span></div>
+    </div></details>`, "Quick start");
+}
+
 function helpPage(){
   const here = S.helpFor;
   const order = Object.keys(HELP);
@@ -15253,6 +15760,7 @@ function helpPage(){
       ? `<div class="tip"><span class="grow">Help for the screen you came from.</span>
          <button onclick="set({helpFor:''})">Show all</button></div>` + helpCard(here)
       : "")
+    + (here && HELP[here] ? "" : coachQuickStart())
     + sec("Questions", `<div class="list">${HELP_Q.map(([q, a], i) => `
         <button class="list__row" onclick="set({helpQ: S.helpQ===${i} ? -1 : ${i}})">
           <span class="list__body"><span class="list__name">${esc(q)}</span>
@@ -15322,8 +15830,9 @@ function planOf(){
   if(!billingLive()) return S.preview ? "free" : "program";
   const p = ((S.billing || {}).plan) || "free";
   const exp = (S.billing || {}).exp || 0;
-  if(exp && Date.now() > exp) return "free";
-  return PLANS[p] === undefined ? "free" : p;
+  const storePlan = (exp && Date.now() > exp) || !Object.prototype.hasOwnProperty.call(PLANS, p) ? "free" : p;
+  const accountPlan = accountGrantPlan();
+  return PLANS[accountPlan] > PLANS[storePlan] ? accountPlan : storePlan;
 }
 function entitled(need){ return PLANS[planOf()] >= (PLANS[need] || 0); }
 function gateFor(key){ const need = PAID[key]; return need && !entitled(need) ? need : null; }
@@ -15362,8 +15871,10 @@ window.restorePlan = async () => {
   set({billingSaid: "Asking the store what you own…"});
   try{
     const got = await b.restore();
-    if(got && got.plan && got.plan !== "free"){ window.gridlockEntitle(got); set({billingSaid: ""}); }
-    else set({billingSaid: "The store has no purchase on this Apple ID. If you bought on another account, sign in with that one."});
+    if(got && got.plan && Object.prototype.hasOwnProperty.call(PLANS, got.plan)){
+      window.gridlockEntitle(got);
+      set({billingSaid:got.plan === "free" ? "The store has no active purchase on this account. If you bought on another account, sign in with that one." : ""});
+    } else set({billingSaid: "The store did not confirm your purchases. Try Restore again with a signal."});
   }catch(err){ set({billingSaid: "The store could not be reached. Nothing has changed."}); }
 };
 
@@ -15402,15 +15913,18 @@ const MORE_GROUPS=[
   ["Running the day",[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
-    ["matches","Matches","Every sheet you have kept"],
-    ["classes","Classes","Clinic sign-in sheet, on this phone"],
-    ["league","League","Groups and ops blasts"]]],
+    ["matches","Matches","Every sheet you have kept"]]],
   ["Device",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
-    ["help","Help","What every screen does, and the usual questions"],
-    ["nexus","Nexus","Account, tutorial and privacy"]]]
+    ["help","Help","Quick start, paintball terms and help for every screen"]]],
+  // Nexus is where admin and staff sign in, and where the season is backed up.
+  ["Account & backups",[
+    ["nexus","Nexus","Your account, cloud sharing, saved copies and privacy"]]]
 ];
-const MORE_TITLES=Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]])));
+// Off the menu at the owner's call, still reachable: a class deep link opens
+// Classes on a signed-in phone, so the screens stay and only the rows go.
+const MORE_HIDDEN = {classes:"Classes", league:"League"};
+const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
 function morePage(){
   if(!S.more){
@@ -15570,7 +16084,7 @@ function moreBody(k){
         the two is across the tape.</p>
       <p class="note">${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
       <p class="aid">Read off the league, not worked out here: <b>${esc(SCHEDULE.read)}</b>.
-        ${esc(SCHEDULE.covers)} The app makes no network calls, so it cannot refresh this — re-read it
+        ${esc(SCHEDULE.covers)} This schedule does not refresh automatically. Check it against the league's page
         nearer the event and paste or type anything that moved.</p>`,
       games.length + (games.length === 1 ? " game" : " games"))
     + days.map(d => sec(dayName(d), `<div class="assigns">${
@@ -15604,8 +16118,8 @@ function moreBody(k){
       <button class="btn btn--block" onclick="readSchedule()">Read it</button>
       <p class="note">It is best effort and it does not pretend otherwise: what it reads lands in the
         list above as ordinary rows, so anything it got wrong you take off with one tap.</p>
-      <p class="aid">Nothing is fetched. The app has no network at all — that is why it works on a
-        field with no bars — so a schedule gets in the way you just got it in: pasted, or typed.</p>`);
+      <p class="aid">Schedules are added by pasting or typing. Once saved on this device, they are available
+        at the field without a signal.</p>`);
   }
   if(k==="matches"){
     const all=[...(S.matches||[])].sort((a,b)=>b.at-a.at);
@@ -15706,7 +16220,7 @@ function moreBody(k){
     return sec("Team", editor, roster.length+(roster.length===1?" player":" players"))
     + sec("Squad code", `<p class="lede">Your squad's name for itself. It travels inside a squad copy, so a
       player pasting one on his own phone can see whether he is adding <b>your</b> team or somebody
-      else's. It cannot fetch anything — nothing in this app reaches a network.</p>
+      else's. The code labels a squad copy; it does not download or sync the squad.</p>
       <div class="joinrow"><div>
         <div class="joincode">${esc(squadCode())}</div>
         <p class="note">Read it out with the copy. Nexus → Save a copy is what actually moves the squad.</p>
@@ -15878,7 +16392,7 @@ function moreBody(k){
     const all=S.assessments||[];
     const here=rowsHere(all);
     const pt=sheetPoint(), on=sideMen(pt).map(p=>p.name), bench=roster.map(p=>p.name).filter(n=>!on.includes(n));
-    const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${g.score}`:""}</button>`; };
+    const chip=n=>{ const g=gradeOn(n, pt); return `<button class="${S.asWho===n?"on":""}" onclick="assessPick(${jsq(n)})">${esc(n)}${g?` · ${esc(g.score)}`:""}</button>`; };
     const names=[...new Set(all.map(a=>a.who))];
     const avg=n=>{const g=all.filter(a=>a.who===n); return (g.reduce((t,a)=>t+a.score,0)/g.length).toFixed(1);};
     const ready=!!(S.asWho&&S.asScore);
@@ -15902,9 +16416,9 @@ function moreBody(k){
     // number, so it is this match's.
     + (here.length?sec("Grades", `<div class="assigns">
         ${here.slice(0,30).map(a=>`<div class="assign">
-          <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${a.score}</span>
+          <span class="assign__n" style="background:${a.score>=4?"var(--ok)":a.score<=2?"var(--red)":"var(--panel-2)"};color:${a.score>=4?"#06210f":"#fff"}">${esc(a.score)}</span>
           <span class="assign__body"><span class="assign__job">${esc(a.who)}</span>
-          <span class="assign__who">Point ${a.pt}${a.note?" · "+esc(a.note):""}</span></span>
+          <span class="assign__who">Point ${esc(a.pt)}${a.note?" · "+esc(a.note):""}</span></span>
           <button class="btn btn--danger" onclick="undoAssess(${(S.assessments||[]).indexOf(a)})">Undo</button>
         </div>`).join("")}</div>`, matchLabel(curMatch()))
       : sec("Grades", `<div class="empty">No grades on this sheet yet.</div>`));
@@ -15995,8 +16509,8 @@ function moreBody(k){
     // on the phone for the season. And the button said Send, in an app that
     // cannot send: a note is kept here and travels in a squad copy, nothing
     // goes to anyone's phone.
-    `<p class="lede">Notes for the squad. They stay on this phone and travel in a squad copy from Nexus —
-      nothing is sent anywhere, because nothing in this app reaches a network.</p>` +
+    `<p class="lede">Notes for the squad. Adding a note does not send a notification to your players.
+      Share the notes in a squad copy from Nexus. They are also included if you turn on League sync.</p>` +
     ((S.messages||[]).length?`<div class="assigns">${S.messages.map((m,i)=>`<div class="assign">
       <span class="assign__body"><span class="assign__job">${esc(m)}</span></span>
       <button class="btn btn--danger" onclick="delMsg(${i})">Remove</button></div>`).join("")}</div>`
@@ -16031,13 +16545,16 @@ function moreBody(k){
       or the screen goes off, so it does not run your battery down in a pocket.</p>`:""}
     ${verifyBlock()}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
-    <button class="btn btn--ghost btn--block" onclick="set({entered:false,role:'guest',email:''})">Staff sign out</button>
+    <button class="btn btn--ghost btn--block" onclick="staffSignOut()">Staff sign out</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + (canSync() ? sec("League sync", `<p class="lede">Send this season to your league's admin, so the whole year across every coach
       is in one place. This is the one thing that leaves your phone — and only because you turn it on.</p>
     <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
       your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
       password never does. You can pause it, or delete what you sent, at any time.</p>
+    <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
+    <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
+    <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
     <div class="fld"><label for="syncLabel">Shown to your league as</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
@@ -16046,11 +16563,12 @@ function moreBody(k){
     </div>
     ${S.syncOn ? `<div class="toggles">
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
-        <button class="btn btn--danger" onclick="deleteSynced()">Stop and delete what I sent</button>
       </div>
       <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}It also goes up on its own as you log, once you have signal.</p>` : ""}
+    <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
     ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
     S.syncOn ? "On" : "Off") : "")
+  + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>
@@ -16078,8 +16596,8 @@ function moreBody(k){
       yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
     Object.keys(LAYOUTS).length+" fields")
-  + sec("Save a copy", `<p class="lede">There is no server behind this app, so there is no automatic backup. A copy
-      is a file you own — keep one before a tournament, move to a new phone, or hand the squad to an
+  + sec("Save a copy", `<p class="lede">${canSync()?"Cloud sharing holds one current copy when you turn it on. A file you save is a backup you own —":"There is no server behind this app, so there is no automatic backup. A copy is a file you own —"}
+      keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>
     <div class="toggles">
       <button class="btn" onclick="saveCopy('all')">Save everything</button>
@@ -16104,6 +16622,7 @@ function moreBody(k){
     <div class="fld"><label>Original saved text</label><textarea readonly style="min-height:150px"
       onclick="this.select()">${esc(_recoveryText)}</textarea></div>
     <button class="btn btn--danger" onclick="clearRecovery()">I have it — clear this</button>`) : "")
+  + recoveryCopiesSec()
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>
@@ -16117,6 +16636,28 @@ function moreBody(k){
     </div>
     <p class="note">A copy never carries your staff password. Sign in again on the new phone.</p>`);
   return "";
+}
+/* What another tab kept when it found this one had saved newer work. Each is
+ * an ordinary copy — merge it in, show it to keep it, or delete it once it is
+ * in. Never pruned by the app: it may be the only record of those taps. */
+function recoveryCopiesSec(){
+  const list = window.gridlockRecoveryCopies();
+  if(!list.length) return "";
+  const rows = list.map(c => {
+    let what = "";
+    try{ what = copySummary(JSON.parse(c.text).data || {}); }catch(e){ what = "unreadable"; }
+    const when = c.at ? new Date(c.at).toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}) : "";
+    const k = JSON.stringify(c.key).replace(/"/g, "&quot;");
+    return `<div class="panel" style="margin-bottom:8px">
+      <p class="note"><b>${c.mine ? "This tab" : "Another tab"}</b>${when ? " · " + esc(when) : ""} · ${esc(what)}</p>
+      <div class="toggles">
+        <button class="btn" onclick="mergeRecoveryCopy(${k})">Merge this copy in</button>
+        <button class="btn btn--quiet" onclick="showRecoveryCopy(${k})">Show this copy</button>
+        <button class="btn btn--danger" onclick="dropRecoveryCopy(${k})">Delete this copy</button>
+      </div></div>`;
+  }).join("");
+  return sec("Recovery copies", `<p class="lede">A tab that found another tab had saved newer work kept
+    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>${rows}`);
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];
@@ -16518,6 +17059,10 @@ function render(){
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
 }
 render();
+if(S.mode === "recovery"){ S.mode = "login"; render(); }
+if(window.gridlockCloud && window.gridlockCloud.isAuthUrl && window.gridlockCloud.isAuthUrl(location.href))
+  window.gridlockHandleAuthUrl(location.href);
+else if(S.entered) refreshAccountGrant();
 </script>
 <script>
 /* Gridlock Coach — native bridge.
@@ -16603,9 +17148,13 @@ render();
   var KEY = "gridlock.coach.v2";
   var ACCOUNT = "gridlock.staff.v2";
   var pending = {}, timer = null, flushing = null;
+  // Which keys' newest write failed. A key saving clears only its own entry:
+  // the season saving said nothing about a map the phone had just refused,
+  // and clearing the warning on it hid the one copy that was not kept.
+  var failedKeys = {};
 
-  function storageStatus(failed) {
-    var message = failed ? "The phone could not update its second copy. Keep a backup with Save a copy on Nexus." : "";
+  function storageStatus() {
+    var message = Object.keys(failedKeys).length ? "The phone could not update its second copy. Keep a backup with Save a copy on Nexus." : "";
     if (window.gridlockDurableError === message) return;
     window.gridlockDurableError = message;
     if (typeof window.render === "function") window.render();
@@ -16623,14 +17172,17 @@ render();
     flushing = Promise.all(Object.keys(out).map(function (k) {
       return Promise.resolve().then(function () {
         return P.Preferences.set({ key: k, value: out[k] });
+      }).then(function () {
+        delete failedKeys[k];
       }).catch(function () {
         failed = true;
+        failedKeys[k] = true;
         // Retry the failed text only if an even newer save is not queued.
         if (!(k in pending)) pending[k] = out[k];
       });
     })).then(function () {
       flushing = null;
-      storageStatus(failed);
+      storageStatus();
       if (Object.keys(pending).length && !timer) timer = setTimeout(flush, failed ? 5000 : 0);
     });
     return flushing;
@@ -16646,6 +17198,15 @@ render();
     pending[key || KEY] = text;
     if (!timer) timer = setTimeout(flush, 500);
   };
+  /* The half second of debounce is the one window in which the last tap is
+   * only in localStorage. Going to the background or closing does not wait
+   * for it: what is queued is written now, while the app still runs. */
+  if (window.gridlockDurable) {
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") flush();
+    });
+    if (window.addEventListener) window.addEventListener("pagehide", function () { flush(); });
+  }
 
   /* Keep the screen awake on a sideline.
    *
@@ -16727,15 +17288,23 @@ render();
     var m = /(?:class\/|[?&]c=)([A-Za-z0-9-]+)/.exec(url);
     return m ? m[1].toUpperCase() : null;
   }
+  function openAppUrl(url) {
+    var cloud = window.gridlockCloud;
+    if (cloud && cloud.isAuthUrl && cloud.isAuthUrl(url) && window.gridlockHandleAuthUrl) {
+      Promise.resolve(window.gridlockHandleAuthUrl(url)).catch(function () {});
+      return;
+    }
+    openJoinCode(codeFromUrl(url));
+  }
 
   if (P.App) {
     // appUrlOpen covers a running app. A link that launches a stopped app is
     // delivered separately, and otherwise its class code never reaches the UI.
     if (P.App.getLaunchUrl) P.App.getLaunchUrl().then(function (event) {
-      openJoinCode(codeFromUrl(event && event.url));
+      openAppUrl(event && event.url);
     }).catch(function () {});
     P.App.addListener("appUrlOpen", function (event) {
-      openJoinCode(codeFromUrl(event && event.url));
+      openAppUrl(event && event.url);
     });
 
     /* Backgrounding is the last moment anything here is guaranteed to run, and
@@ -16752,7 +17321,7 @@ render();
         P.App.exitApp();
         return;
       }
-      if (S.mode) return window.set({ mode: null });
+      if (S.mode) return window.chooseAuth ? window.chooseAuth(null) : window.set({ mode: null });
       if (S.pbView) return window.set({ pbView: null });
       if (S.pad) return window.set({ pad: null });
       if (S.tab === "more" && S.more) return window.set({ more: null });
@@ -16761,6 +17330,7 @@ render();
     });
   }
 })();
+
 
 </script>
 <!-- Offline caching is provided by the full web build. -->
