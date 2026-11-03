@@ -77,6 +77,39 @@ The launcher checks the installed tools before changing or downloading anything.
 
 Choose an iPhone simulator in Xcode and press Run. Open the `.xcworkspace`, which includes the pods. Opening only the `.xcodeproj` omits those dependencies.
 
+## Real accounts on the iPhone (the cloud build)
+
+`OPEN-IN-XCODE.command` packages the offline app. Its sign-in is a lock kept on
+that phone, so your gridlockpb.com account does not exist there. To run the
+iPhone app against the real account server, the one app.gridlockpb.com uses,
+use the cloud launcher instead.
+
+1. In the project folder, create a file named `.env.cloud` with the project's
+   two **public** values (Supabase › Project Settings › API Keys):
+
+   ```text
+   GRINDX_SUPABASE_URL=https://<your project>.supabase.co
+   GRINDX_SUPABASE_ANON_KEY=sb_publishable_...
+   ```
+
+   Never put the secret or service_role key here; the build refuses one.
+   `.env.cloud` is git-ignored.
+2. In Supabase › Authentication › URL Configuration › Redirect URLs, add
+   `gridlock://auth/callback`. Without it, confirm-email and password-reset
+   links cannot come back to the app.
+3. Double-click **OPEN-IN-XCODE-CLOUD.command**, or run
+   `bash OPEN-IN-XCODE-CLOUD.command` (same as `npm run ios:cloud`).
+
+It runs the same tool checks, then `npm ci`, builds the cloud app into
+`dist/cloud-ios/` with the callback `gridlock://auth/callback`, syncs that into
+`ios/`, checks the shell holds the adapter and the callback and no secret, and
+opens the workspace. `capacitor.config.json` is pointed at the cloud build only
+for the sync and put back afterwards. While the shell holds the cloud build,
+`git status` shows `ios/App/App/public/index.html` and `sw.js` as changed; that
+is expected. `npm run sync` (or the ordinary launcher) puts the offline build
+back. Accounts made in the offline build stay on that simulator and are not
+moved to the server.
+
 ## After editing the app
 
 ```sh

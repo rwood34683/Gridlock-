@@ -815,6 +815,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach is on and `toGameField` says so. `docs/WORLD-CUP-LAYOUT.md` is the
     runbook for the field once NXL publishes the official 2D.
 
+55. ~~Real accounts on the iPhone.~~ Done — the Xcode launcher packaged the
+    offline `web/`, so the simulator's sign-in was a lock on that phone and a
+    gridlockpb.com account did not exist there. **OPEN-IN-XCODE-CLOUD.command**
+    (`npm run ios:cloud`, `scripts/ios-cloud.js`) reads the two public values
+    from `.env.cloud` or the environment, runs `cloud-build.js` into
+    `dist/cloud-ios/` with `gridlock://auth/callback`, syncs it into `ios/`
+    with `webDir` pointed there only for the sync (`withWebDir` restores the
+    committed config, even on failure), and refuses a shell without the
+    adapter, the callback, or with a secret (`verifyShell`). The committed
+    `web/`, `capacitor.config.json` and the offline launcher are unchanged;
+    `npm run sync` puts the offline build back. The generated config in the
+    shell is git-ignored. `gridlock://auth/callback` must be in Supabase's
+    redirect allowlist. `test/ios-cloud.cjs` holds it without a Mac.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.

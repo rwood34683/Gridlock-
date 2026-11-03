@@ -6,7 +6,7 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
-  "format-regressions": "test/format-regressions.cjs",
+  "format-regressions": "test/format-regressions.cjs", "ios-cloud": "test/ios-cloud.cjs",
   dependencies: "test/dependencies.js",
   server: "test/server.js", functions: "test/functions.js", devices: "test/devices.js", bunkers: "tools/verify_bunkers.js",
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",
