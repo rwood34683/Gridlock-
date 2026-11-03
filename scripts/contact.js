@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const CONFIG = path.join(ROOT, 'site/contact.json');
-const KEYS = ['domain', 'email', 'appstore', 'play', 'sha256'];
+const KEYS = ['domain', 'email', 'appstore', 'play', 'sha256', 'app'];
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function readContact(file = CONFIG) {
   const config = Object.fromEntries(KEYS.map(key => [key, null]));
@@ -20,11 +20,11 @@ function readContact(file = CONFIG) {
 // config; throws one sentence naming the first thing wrong.
 function apply(config, args) {
   const next = { ...config };
-  if (!args.length) throw new Error('Expected --domain, --email, --appstore, --play or --sha256 followed by a value.');
+  if (!args.length) throw new Error('Expected --domain, --email, --appstore, --play, --sha256 or --app followed by a value.');
   for (let n = 0; n < args.length; n += 2) {
     const key = String(args[n]).replace(/^--/, '');
     const value = String(args[n + 1] || '').trim();
-    if (!KEYS.includes(key) || !String(args[n]).startsWith('--') || !value || value.startsWith('--')) throw new Error('Expected --domain, --email, --appstore, --play or --sha256 followed by a value.');
+    if (!KEYS.includes(key) || !String(args[n]).startsWith('--') || !value || value.startsWith('--')) throw new Error('Expected --domain, --email, --appstore, --play, --sha256 or --app followed by a value.');
     if (key === 'domain' && !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(value)) throw new Error('Domain must be a hostname without a scheme or path.');
     if (key === 'email' && !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/i.test(value)) throw new Error('Enter a valid support email address.');
     if (key === 'appstore' && !/^(?:id)?[1-9]\d{4,}$/.test(value)) throw new Error('App Store ID must be the numeric ID assigned by Apple.');
@@ -33,8 +33,13 @@ function apply(config, args) {
       try { url = new URL(value); } catch { throw new Error('Use the HTTPS Google Play app-details URL.'); }
       if (url.origin !== 'https://play.google.com' || url.pathname !== '/store/apps/details' || !url.searchParams.get('id')) throw new Error('Use the HTTPS Google Play app-details URL.');
     }
+    if (key === 'app') {
+      let url;
+      try { url = new URL(value); } catch { throw new Error('The app address must be the HTTPS address of the live web app, like https://app.example.com/.'); }
+      if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new Error('The app address must be the HTTPS address of the live web app, like https://app.example.com/.');
+    }
     if (key === 'sha256' && !/^(?:[0-9a-f]{2}:){31}[0-9a-f]{2}$/i.test(value)) throw new Error('SHA-256 must contain 32 colon-separated hexadecimal pairs.');
-    next[key] = key === 'appstore' ? value.replace(/^id/, '') : key === 'domain' ? value.toLowerCase() : key === 'sha256' ? value.toUpperCase() : value;
+    next[key] = key === 'appstore' ? value.replace(/^id/, '') : key === 'domain' ? value.toLowerCase() : key === 'sha256' ? value.toUpperCase() : key === 'app' ? new URL(value).href : value;
   }
   return next;
 }
@@ -65,6 +70,16 @@ function stampIndex(text, config) {
   if (config.appstore) stores.push(`<a href="https://apps.apple.com/app/id${config.appstore}">View on the App Store</a>`);
   if (config.play) stores.push(`<a href="${esc(config.play)}">View on Google Play</a>`);
   return text.replace(/<!-- store-links:start -->[\s\S]*?<!-- store-links:end -->/, `<!-- store-links:start -->${stores.join('') || '<span class="store-status">Store downloads are not available in this build.</span>'}<!-- store-links:end -->`);
+}
+// Where the site's "Open the app" buttons go once it is published: the live web
+// app (with accounts) when one is configured, else the offline copy the build
+// puts at app/. The committed pages keep href="app.html", so a local preview of
+// site/ still opens the single-file copy beside it.
+function appHref(config, fallback = 'app/') {
+  return config && config.app ? config.app : fallback;
+}
+function linkApp(text, config, fallback = 'app/') {
+  return text.replaceAll('href="app.html"', `href="${esc(appHref(config, fallback))}"`);
 }
 function assetLinks(config, appId) {
   const association = config.sha256 ? [{relation:['delegate_permission/common.handle_all_urls'], target:{namespace:'android_app',package_name:appId,sha256_cert_fingerprints:[config.sha256]}}] : [];
@@ -102,4 +117,4 @@ function main() {
   console.log('Regenerate artifacts and run npm run site:check -- --release before publishing.');
 }
 if (require.main === module) { try { main(); } catch (err) { console.error(err.message); process.exitCode = 1; } }
-module.exports = { KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, stampSocial, assetLinks };
+module.exports = { appHref, linkApp, KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, stampSocial, assetLinks };

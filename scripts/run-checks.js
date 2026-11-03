@@ -6,7 +6,7 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
-  "format-regressions": "test/format-regressions.cjs", "ios-cloud": "test/ios-cloud.cjs",
+  "format-regressions": "test/format-regressions.cjs", "ios-cloud": "test/ios-cloud.cjs", "site-links": "test/site-links.cjs",
   dependencies: "test/dependencies.js",
   server: "test/server.js", functions: "test/functions.js", devices: "test/devices.js", bunkers: "tools/verify_bunkers.js",
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",
@@ -30,7 +30,7 @@ async function main() {
   process.once("SIGINT", onSignal); process.once("SIGTERM", onSignal);
   try {
     let url = process.env.APP_URL;
-    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native", "cloud-session", "cloud-recovery", "auth-native", "cloud-build-security", "billing-security", "account-entitlements", "admin-handler", "admin-portal", "season-safety", "account-deletion"].includes(name));
+    const needsBrowser = names.some(name => !["dependencies", "server", "voice-parser", "speech-native", "cloud-session", "cloud-recovery", "auth-native", "cloud-build-security", "site-links", "billing-security", "account-entitlements", "admin-handler", "admin-portal", "season-safety", "account-deletion"].includes(name));
     if (!url && needsBrowser) {
       server = createServer();
       await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });

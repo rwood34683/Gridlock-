@@ -63,8 +63,18 @@ function build(opts = {}) {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(file, dest);
     }
-    const index = path.join(resolved, "index.html");
-    fs.writeFileSync(index, fs.readFileSync(index, "utf8").replaceAll('href="app.html"', 'href="app/"'));
+    // "Open the app" goes to the live web app when contact.json names one, so
+    // the published site sends a coach to the app his account lives in; with
+    // none, the home page opens the offline copy at app/ as before. Support and
+    // privacy keep app.html (copied above) unless there is a live app.
+    const contact = require("./contact");
+    const config = contact.readContact(path.join(site, "contact.json"));
+    for (const page of ["index.html", "support.html", "privacy.html"]) {
+      const file = path.join(resolved, page);
+      if (!fs.existsSync(file)) continue;
+      const fallback = page === "index.html" ? "app/" : "app.html";
+      fs.writeFileSync(file, contact.linkApp(fs.readFileSync(file, "utf8"), config, fallback));
+    }
   } else {
     fs.writeFileSync(path.join(resolved, "index.html"), `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>${short}</title><a href="app/">Open ${short}</a>`);
   }
