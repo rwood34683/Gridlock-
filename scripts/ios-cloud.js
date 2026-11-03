@@ -34,14 +34,18 @@ const OUT = path.join(ROOT, "dist", "cloud-ios");
 const CALLBACK = "gridlock://auth/callback";
 const PUBLIC = path.join(ROOT, "ios", "App", "App", "public");
 
-// KEY=value lines; # comments and blank lines are skipped, quotes are dropped.
+// KEY=value lines; # comments, trailing " # ..." comments and blank lines are
+// skipped, quotes are dropped.
 function readEnvFile(file = ENV_FILE) {
   if (!fs.existsSync(file)) return {};
   const out = {};
   for (const line of fs.readFileSync(file, "utf8").split(/\r?\n/)) {
     if (/^\s*(#|$)/.test(line)) continue;
     const m = /^\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
-    if (m) out[m[1]] = m[2].replace(/^(["'])(.*)\1$/, "$2");
+    if (!m) continue;
+    // A quoted value is taken whole; an unquoted one ends at a " #" comment.
+    const q = /^(["'])(.*)\1$/.exec(m[2]);
+    out[m[1]] = q ? q[2] : m[2].replace(/\s+#.*$/, "");
   }
   return out;
 }
@@ -63,14 +67,28 @@ const MISSING = [
 ].join("\n");
 
 // Point Capacitor at another web folder for one call, and always put the
-// committed file back exactly as it was.
+// committed file back exactly as it was. A finally block alone does not run
+// when the coach presses Ctrl-C or closes the Terminal window mid-sync: the
+// signal killed node and left webDir on the cloud build, so the ordinary
+// offline launcher would have packaged the cloud app. Handling the signals
+// keeps node alive until the sync child returns, then restores and exits.
+const SIGNALS = { SIGINT: 2, SIGTERM: 15, SIGHUP: 1 };
 function withWebDir(dir, fn, configFile = CONFIG) {
   const before = fs.readFileSync(configFile, "utf8");
   const cfg = JSON.parse(before);
   cfg.webDir = path.relative(path.dirname(configFile), dir).split(path.sep).join("/");
+  const restore = () => fs.writeFileSync(configFile, before);
+  const handlers = Object.entries(SIGNALS).map(([sig, n]) => {
+    const h = () => { restore(); process.exit(128 + n); };
+    process.on(sig, h);
+    return [sig, h];
+  });
   fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + "\n");
   try { return fn(); }
-  finally { fs.writeFileSync(configFile, before); }
+  finally {
+    restore();
+    for (const [sig, h] of handlers) process.removeListener(sig, h);
+  }
 }
 
 // What the shell must hold after the sync: the cloud adapter, its config with
@@ -102,6 +120,9 @@ function main(argv = process.argv.slice(2)) {
   const active = require("./configure-native").activeBrand();
   if (active.key !== brands.default) throw new Error(`The cloud iPhone build is for ${brands.brands[brands.default].short}; the shell is switched to ${active.short}. Run npm run brand native ${brands.default} first.`);
 
+  const webDir = JSON.parse(fs.readFileSync(CONFIG, "utf8")).webDir;
+  if (webDir !== "web") throw new Error(`capacitor.config.json points webDir at ${webDir}, not web. Put the committed file back first: git checkout -- capacitor.config.json`);
+
   const { url, anonKey } = settings();
   if (!url || !anonKey) throw new Error(MISSING);
 
@@ -127,7 +148,7 @@ function main(argv = process.argv.slice(2)) {
   if (problems.length) throw new Error("The iPhone shell did not take the cloud build: " + problems.join("; ") + ".");
   console.log("The iPhone shell now holds the cloud build: sign-in uses your gridlockpb.com accounts.");
   console.log(`Add ${CALLBACK} to Supabase > Authentication > URL Configuration > Redirect URLs, or email links will not come back to the app.`);
-  console.log("To go back to the offline build later: npm run sync.");
+  console.log("Before git pull, run npm run sync: it puts the offline build back, so the two changed files in ios/ do not block the pull.");
 
   if (open) {
     run("open", [path.join(ROOT, "ios/App/App.xcworkspace")]);

@@ -19,6 +19,22 @@ check("reads .env.cloud lines, skipping comments and quotes", () => {
   assert.deepEqual(m.readEnvFile(f), { GRINDX_SUPABASE_URL: "https://x.supabase.co", GRINDX_SUPABASE_ANON_KEY: "sb_publishable_abc" });
   assert.deepEqual(m.readEnvFile(path.join(tmp, "missing")), {});
 });
+check("a comment after a value is not part of it, and a quoted value is taken whole", () => {
+  const f = path.join(tmp, ".env.trailing");
+  fs.writeFileSync(f, "\uFEFFGRINDX_SUPABASE_URL=https://x.supabase.co   # project\r\nGRINDX_SUPABASE_ANON_KEY=\"sb_publishable_a # b\"\r\n");
+  assert.deepEqual(m.readEnvFile(f), { GRINDX_SUPABASE_URL: "https://x.supabase.co", GRINDX_SUPABASE_ANON_KEY: "sb_publishable_a # b" });
+});
+check("Ctrl-C or a closed Terminal during the sync still puts Capacitor's config back", () => {
+  const f = path.join(tmp, "capacitor.config.sig.json");
+  const before = '{\n  "webDir": "web"\n}\n';
+  fs.writeFileSync(f, before);
+  for (const sig of ["INT", "HUP", "TERM"]) {
+    const code = `const m=require(${JSON.stringify(path.join(ROOT, "scripts/ios-cloud.js"))});const {spawnSync}=require("node:child_process");` +
+      `m.withWebDir(${JSON.stringify(path.join(tmp, "dist/cloud-ios"))},()=>{spawnSync("sh",["-c","kill -${sig} "+process.pid+"; sleep 1"]);},${JSON.stringify(f)});`;
+    require("node:child_process").spawnSync(process.execPath, ["-e", code], { stdio: "ignore" });
+    assert.equal(fs.readFileSync(f, "utf8"), before, "restored after SIG" + sig);
+  }
+});
 check("the environment wins over the file, and nothing set is empty", () => {
   const s = m.settings({ GRINDX_SUPABASE_URL: "https://env.supabase.co" }, { GRINDX_SUPABASE_URL: "https://file.supabase.co", GRINDX_SUPABASE_ANON_KEY: "k" });
   assert.deepEqual(s, { url: "https://env.supabase.co", anonKey: "k" });

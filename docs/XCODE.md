@@ -107,7 +107,10 @@ opens the workspace. `capacitor.config.json` is pointed at the cloud build only
 for the sync and put back afterwards. While the shell holds the cloud build,
 `git status` shows `ios/App/App/public/index.html` and `sw.js` as changed; that
 is expected. `npm run sync` (or the ordinary launcher) puts the offline build
-back. Accounts made in the offline build stay on that simulator and are not
+back; run it before `git pull`, or the pull refuses to overwrite those two
+files. If a run is interrupted, the launcher still puts `capacitor.config.json`
+back; should it ever be left pointing anywhere but `web`, `npm run sync`
+refuses and says to run `git checkout -- capacitor.config.json`. Accounts made in the offline build stay on that simulator and are not
 moved to the server.
 
 ## After editing the app
