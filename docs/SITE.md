@@ -52,5 +52,15 @@ at it, so a coach lands in the app his gridlockpb.com account lives in rather
 than the offline copy. Take the setting out and the home page opens the offline
 copy at `/app/` again. `test/site-links.cjs` holds both.
 
+The committed pages describe the offline copy: no server, an account that is a
+lock on the phone. That is still true of `site/app.html`, the Claude preview and
+the Grind X and Lockdown builds, so it stays. Beside a live app's button it
+would be false, so with `"app"` set the build swaps each passage marked
+`<!-- live:name -->…<!-- /live -->` for its text in `scripts/site-live.js`:
+the account server, what it keeps, League sync, and Delete account. The build
+refuses if a published page still says an offline-only thing, and
+`site:check` refuses a marked passage with no live text. Change what the live
+app sends up (`docs/SERVER.md`) and change `scripts/site-live.js` with it.
+
 Nothing about the app changes with the site. The app makes no network calls and
 never reads the site.

@@ -66,4 +66,44 @@ check("no live app: the home page opens app/ and the others app.html, as before"
   for (const page of ["support.html", "privacy.html"]) assert.deepEqual([...new Set(links(pages[page]))], ["app.html"], page);
 });
 
+
+const live = require("../scripts/site-live.js");
+const plain = html => html.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ");
+check("with a live app, no published page says an offline-only thing", () => {
+  const pages = builtSite("https://app.gridlockpb.com/");
+  for (const [page, html] of Object.entries(pages)) {
+    for (const re of live.OFFLINE_ONLY) assert.ok(!re.test(plain(html)), `${page} still says ${re}`);
+    for (const [name, text] of Object.entries(live.LIVE[page])) assert.ok(html.includes(`<!-- live:${name} -->${text}<!-- /live -->`), `${page}: ${name}`);
+  }
+  const p = plain(pages["privacy.html"]), s = plain(pages["support.html"]);
+  assert.match(p, /Your account/); assert.match(p, /hosted by Supabase/); assert.match(p, /never the password itself/);
+  assert.match(p, /administrators can review uploaded seasons/); assert.match(p, /Delete account/);
+  assert.match(s, /Can I delete my account\?/); assert.match(s, /reset link/);
+});
+check("without a live app, the published pages keep the offline wording word for word", () => {
+  const pages = builtSite(null);
+  for (const page of ["index.html", "support.html", "privacy.html"]) {
+    const committed = fs.readFileSync(path.join(ROOT, "site", page), "utf8");
+    const back = pages[page].replaceAll('href="app/"', 'href="app.html"');
+    assert.equal(back, committed, page);
+  }
+  assert.match(plain(pages["support.html"]), /there is no server/);
+});
+check("a dropped or doubled marker refuses, naming the page and passage", () => {
+  const html = fs.readFileSync(path.join(ROOT, "site/support.html"), "utf8");
+  const dropped = html.replace(/<!-- live:signal -->([\s\S]*?)<!-- \/live -->/, "$1");
+  assert.throws(() => live.stampLive(dropped, "support.html"), /support\.html: the live-app passage "signal" must be marked exactly once \(found 0\)/);
+  const doubled = html + "<!-- live:signal -->x<!-- /live -->";
+  assert.throws(() => live.stampLive(doubled, "support.html"), /found 2/);
+  const unknown = html + "<!-- live:nope -->x<!-- /live -->";
+  assert.throws(() => live.stampLive(unknown, "support.html"), /"nope" has no live-app text/);
+});
+check("the live wording names only what the live app does", () => {
+  const app = fs.readFileSync(path.join(ROOT, "web/index.html"), "utf8");
+  // Every screen the live copy sends a coach to exists under that name in the app.
+  for (const label of ["Review or restore cloud season", "Delete my account permanently", "League sync", "Save a copy", "Load a copy"]) assert.ok(app.includes(label), label);
+  const adapter = fs.readFileSync(path.join(ROOT, "native/gridlock-cloud.js"), "utf8");
+  for (const call of ["signUp", "signIn", "sendReset", "getEntitlement", "pushSeason", "deleteSeason", "deleteAccount"]) assert.ok(adapter.includes(call), call);
+});
+
 console.log(`${passed}/${passed} site link checks passed.`);

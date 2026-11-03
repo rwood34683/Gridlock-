@@ -73,7 +73,19 @@ function build(opts = {}) {
       const file = path.join(resolved, page);
       if (!fs.existsSync(file)) continue;
       const fallback = page === "index.html" ? "app/" : "app.html";
-      fs.writeFileSync(file, contact.linkApp(fs.readFileSync(file, "utf8"), config, fallback));
+      let html = contact.linkApp(fs.readFileSync(file, "utf8"), config, fallback);
+      // Beside a live app's button the offline build's "there is no server"
+      // would be false: the live wording (scripts/site-live.js) replaces each
+      // marked passage, and a page that still says an offline-only thing
+      // refuses the build rather than ship it.
+      if (config.app) {
+        const live = require("./site-live");
+        html = live.stampLive(html, page);
+        const text = html.replace(/<!--[\s\S]*?-->/g, "");
+        const stray = live.OFFLINE_ONLY.find(re => re.test(text));
+        if (stray) throw new Error(`${page} still says ${stray} beside the live app's button. Mark the passage in site/${page} and give it live text in scripts/site-live.js.`);
+      }
+      fs.writeFileSync(file, html);
     }
   } else {
     fs.writeFileSync(path.join(resolved, "index.html"), `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>${short}</title><a href="app/">Open ${short}</a>`);
