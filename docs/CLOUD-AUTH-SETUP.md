@@ -20,6 +20,14 @@ the complete account-creation or password-recovery flow has passed on a phone.
 
 ## Build configuration
 
+The live app is https://app.gridlockpb.com/. The owner-confirmed public
+project settings are in `site/contact.json` under `cloud`; environment values
+override them. `npm run cloud:build` is an alias for the existing command.
+Only this cloud build adds the account adapter and the HTTPS Privacy/Support
+page URLs from the contact domain. `npm run ios:cloud` uses the same builder
+for an iPhone web export. See [LIVE-REBUILD.md](LIVE-REBUILD.md) for exact
+commands and the current owner-controlled Sites upload procedure.
+
 Set the following in the build environment, then run `npm run build:cloud`:
 
 ```text

@@ -1,39 +1,33 @@
 # The account server
 
-**Supabase. Accounts and purchases only. The season never leaves the phone.**
+**Supabase hosts the account server. League sync is optional.**
 
-Built as an adapter and switched off: `web/index.html` still contains no
-`fetch`, so a browser build and every existing suite behave exactly as before
-until a shim fills in `window.gridlockCloud`.
+The live cloud build uses the public project settings in `site/contact.json`.
+The committed `web/index.html` contains no `fetch`; the cloud build adds the
+adapter separately. An unconfigured offline build sends nothing to this server.
 
-## What goes up, and what never does
+## What the account server keeps
 
-| Up | Stays on the phone |
-|---|---|
-| Email, password hash (Supabase's), user id | Roster and player numbers |
-| What he bought, and when | Every tally, breakout and result |
-| Verified phone number, if SMS is on | Scouting on every opponent |
-| | His words for bunkers, calls and jobs |
-| | His own plays |
+Supabase keeps the coach's email, a password hash, an account id, email
+confirmation, last sign-in, and plan (Free/Team/Program) with its end date.
 
-That split is the point. It buys the four things a device alone cannot do — a
-customer list, a password he can reset, phone verification, and an account that
-survives a lost phone — without you holding competitive data belonging to teams
-who play each other.
+**The one exception to keeping the season on the device is opt-in League sync.**
+When the coach turns it on, it uploads the full season and keeps one current
+copy with the coach's account on that account server. Gridlock PB LLC's
+administrators can review uploaded seasons. This includes rosters, tallies,
+results, scouting on opponents, calls, plays and other season records. The
+account password is never part of the season upload.
 
-**The one exception is opt-in League sync**, a separate feature with its own
-switch-on in `docs/ADMIN-PORTAL.md`. It *does* send the whole season up — but
-only to a collector the coach's league operates, only after the coach turns it
-on himself in Nexus, and it can be paused and deleted. It is adapter-gated
-(`window.gridlockCloud.pushSeason`), so the app still ships no `fetch`, and the
-Nexus and sign-in copy branch on `canSync()` so the app never tells a coach his
-season stays put once that capability exists. If you turn League sync on for a
-build, you are holding competitive data — get consent, and keep the privacy
-notice true to it.
+The coach can pause sending, review or restore the copy, or delete what was
+sent from Nexus. Pausing does not delete an existing copy. Nexus > Delete
+account deletes the login and the League sync copy; local and shared files
+are separate. The copy is current state, not a history of backups. Save a copy
+before each event for a backup the coach controls.
 
-**The privacy copy must stay true to this table.** The sign-in panel already
-branches: with a server it says the email and purchases are kept and the season
-never leaves the device. Change the table, change the copy, in the same commit. The published site's account and privacy wording is `scripts/site-live.js` (`docs/SITE.md`).
+This is adapter-gated (`window.gridlockCloud.pushSeason`). The Nexus, sign-in
+and Help copy branch on `canSync()`; offline wording stays unchanged.
+Keep the live website wording in `scripts/site-live.js` and the app wording
+consistent whenever this data flow changes.
 
 ## Offline-first is not negotiable
 
@@ -50,6 +44,10 @@ A server that can lock a coach out between points is worse than no server.
 
 ## Setting it up
 
+For the existing live app, use [the owner rebuild instructions](LIVE-REBUILD.md).
+The adapter example below explains the integration; it is not an instruction
+to replace the configured live services.
+
 1. Create a project at supabase.com. Note the **project URL** and the **anon
    key** — the anon key is public by design and safe in the app; **the service
    role key never ships**, in any build, ever.
@@ -57,7 +55,7 @@ A server that can lock a coach out between points is worse than no server.
    Phone if you are turning SMS on (Supabase holds the code, so you do not need
    a verify endpoint of your own — this replaces `window.gridlockVerify`).
 3. **Auth → URL Configuration**: set the redirect for password-reset links to
-   your deep link, `gridlock://reset`.
+   your deep link, `gridlock://auth/callback`.
 4. One table, for what he owns:
 
 ```sql
@@ -101,7 +99,7 @@ window.gridlockCloud = {
     catch(e){ return net(e); } },
   async sendReset(email){
     try { const {error} = await sb.auth.resetPasswordForEmail(email,
-            {redirectTo: "gridlock://reset"});
+            {redirectTo: "gridlock://auth/callback"});
           return error ? {ok:false, said:error.message} : {ok:true}; }
     catch(e){ return net(e); } },
   signOut(){ sb.auth.signOut(); },
@@ -118,6 +116,6 @@ actually answered.
 
 Your privacy label moves from **Data Not Collected** to collecting an email
 address and a user id, linked to identity. Update the label and the privacy
-notice in the same release that ships the shim. The rest of the claim survives
-and is worth keeping sharp: *nothing about your team, or anybody else's, is on
-a machine we own.*
+notice in the same release that ships the shim. If League sync ships, the disclosure must also cover the full-season upload,
+its account association and administrator access. It must never claim that
+competitive data cannot be reviewed by Gridlock PB LLC.

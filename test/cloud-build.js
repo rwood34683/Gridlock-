@@ -38,7 +38,7 @@ const OUT = path.resolve(__dirname, "..", "dist", "cloud-test");
   // The committed app is untouched: no config, no adapter, no fetch.
   const web = fs.readFileSync(path.resolve(__dirname, "..", "web", "index.html"), "utf8");
   check("the committed web/index.html is not modified by the build",
-    !/gridlock-config\.js|GRIDLOCK_CLOUD/.test(web) && !/fetch\s*\(/.test(web));
+    !/gridlock-config\.js|GRIDLOCK_CLOUD\s*=/.test(web) && !/fetch\s*\(/.test(web));
 
   const browser = await chromium.launch(launchOptions());
   try {

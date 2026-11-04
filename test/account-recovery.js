@@ -50,6 +50,76 @@ const { createServer } = require("../scripts/serve.js");
     await page.fill("#newpw", "test-password"); await page.fill("#confirmpw", confirm);
   }
   try {
+    await check("phone and PC reset requests keep the address for a second request", async page => {
+      for(const viewport of [{width:390,height:844},{width:1365,height:900}]){
+        await page.setViewportSize(viewport);
+        await page.evaluate(() => {
+          window.__resetEmails=[];
+          window.gridlockCloud={sendReset:async email=>{__resetEmails.push(email);return {ok:true};}};
+          chooseAuth("login");
+        });
+        await page.fill("#em","coach@example.test");
+        await page.evaluate(()=>sendReset());
+        assert.equal(await page.inputValue("#em"),"coach@example.test");
+        await page.evaluate(()=>sendReset());
+        assert.deepEqual(await page.evaluate(()=>__resetEmails),["coach@example.test","coach@example.test"]);
+        assert.match(await page.locator("#root").innerText(),/Check that inbox/);
+      }
+    });
+    await check("refused and failed reset requests retain the address and allow retry", async page => {
+      await page.evaluate(() => {
+        window.__resetEmails=[];
+        window.gridlockCloud={sendReset:async email=>{
+          __resetEmails.push(email);
+          if(__resetEmails.length===1)return {ok:false,said:"Please wait before asking again."};
+          if(__resetEmails.length===2)throw Error("offline");
+          return {ok:true};
+        }};
+        chooseAuth("login");
+      });
+      await page.fill("#em","coach@example.test");
+      for(const message of [/Please wait/,/could not be reached/,/Check that inbox/]){
+        await page.evaluate(()=>sendReset());
+        assert.equal(await page.inputValue("#em"),"coach@example.test");
+        assert.equal(await page.locator('[onclick="sendReset()"]').isEnabled(),true);
+        assert.match(await page.locator("#root").innerText(),message);
+      }
+      assert.equal(await page.evaluate(()=>__resetEmails.length),3);
+    });
+    await check("pending reset disables repeat taps and releases the form when complete", async page => {
+      await page.evaluate(()=>{
+        window.__resetEmails=[];
+        window.gridlockCloud={sendReset:email=>{__resetEmails.push(email);return new Promise(r=>window.__resetFinish=r);}};
+        chooseAuth("login");
+      });
+      await page.fill("#em","coach@example.test");
+      await page.evaluate(()=>{window.__resetWork=sendReset();});
+      assert.equal(await page.locator("#em").isDisabled(),true);
+      assert.equal(await page.locator('[onclick="sendReset()"]').isDisabled(),true);
+      await page.evaluate(()=>sendReset());
+      assert.equal(await page.evaluate(()=>__resetEmails.length),1);
+      await page.evaluate(async()=>{__resetFinish({ok:true});await __resetWork;});
+      assert.equal(await page.locator("#em").isEnabled(),true);
+      assert.equal(await page.inputValue("#em"),"coach@example.test");
+    });
+    await check("an older reset response cannot replace a later request or its address", async page => {
+      await page.evaluate(()=>{
+        window.__resetFinishes=[];
+        window.gridlockCloud={sendReset:()=>new Promise(r=>__resetFinishes.push(r))};
+        chooseAuth("login");
+      });
+      await page.fill("#em","first@example.test");
+      await page.evaluate(()=>{window.__firstReset=sendReset();chooseAuth("login");});
+      await page.fill("#em","second@example.test");
+      await page.evaluate(()=>{window.__secondReset=sendReset();});
+      await page.evaluate(async()=>{__resetFinishes[0]({ok:false,said:"Old refusal"});await __firstReset;});
+      assert.equal(await page.inputValue("#em"),"second@example.test");
+      assert.equal(await page.locator('[onclick="sendReset()"]').isDisabled(),true);
+      assert.doesNotMatch(await page.locator("#root").innerText(),/Old refusal/);
+      await page.evaluate(async()=>{__resetFinishes[1]({ok:true});await __secondReset;});
+      assert.equal(await page.inputValue("#em"),"second@example.test");
+      assert.equal(await page.locator('[onclick="sendReset()"]').isEnabled(),true);
+    });
     await check("confirmation-required signup stays signed out without a local credential", async page => {
       await page.evaluate(() => { window.gridlockCloud = {signUp:async()=>({ok:true,pendingConfirmation:true,user:{id:"new"}})}; });
       await auth(page, "create");
@@ -156,6 +226,58 @@ const { createServer } = require("../scripts/serve.js");
       assert.equal(await page.evaluate(() => accountGrantPlan()),"free");
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STAFF_KEY)));
       assert.equal(saved.email,"coach@example.test"); assert.ok(saved.hash);
+    });
+    await check("a password reset on a phone signs in on a clean PC with the new password", async phone => {
+      const desktopContext=await browser.newContext({serviceWorkers:"block",viewport:{width:1365,height:900}});
+      let serverPassword="test-password";
+      const user={id:"cross-device-coach",email:"coach@example.test"};
+      const requests=[];
+      const server=async route=>{
+        const request=route.request(),endpoint=new URL(request.url());
+        const method=request.method(),body=request.postDataJSON();
+        const headers={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"apikey,content-type,authorization","Access-Control-Allow-Methods":"GET,POST,PUT"};
+        if(method==="OPTIONS"){await route.fulfill({status:204,headers});return;}
+        requests.push({path:endpoint.pathname,method});
+        let response,status=200;
+        if(endpoint.pathname==="/auth/v1/token"){
+          if(body.email!==user.email || body.password!==serverPassword){status=400;response={msg:"Email or password is wrong."};}
+          else response={user,access_token:"fixture-access",refresh_token:"fixture-refresh",expires_in:3600};
+        }else if(endpoint.pathname==="/auth/v1/user"){
+          assert.ok(request.headers().authorization,"account operations require a bearer token");
+          if(method==="PUT")serverPassword=body.password;
+          response=user;
+        }else if(endpoint.pathname==="/rest/v1/entitlements")response=[];
+        else if(endpoint.pathname==="/auth/v1/logout")response={};
+        else throw Error("Unexpected cross-device fixture request: "+endpoint.pathname);
+        await route.fulfill({status,headers,contentType:"application/json",body:JSON.stringify(response)});
+      };
+      try{
+        const desktop=await desktopContext.newPage();
+        await desktop.goto(url);
+        for(const page of [phone,desktop]){
+          await page.route("https://cross-device.supabase.co/**",server);
+          await page.evaluate(()=>{
+            window.GRIDLOCK_CLOUD={url:"https://cross-device.supabase.co",anonKey:"public-test-fixture",redirectTo:location.origin+location.pathname};
+          });
+          await page.addScriptTag({path:path.join(__dirname,"../native/gridlock-cloud.js")});
+        }
+        await auth(phone,"login");
+        assert.equal(await phone.evaluate(()=>S.entered),true);
+        assert.equal(await desktop.evaluate(()=>localStorage.getItem(STAFF_KEY)),null,"PC starts without a saved account");
+        await phone.evaluate(()=>gridlockHandleAuthUrl(location.origin+location.pathname+"#"+new URLSearchParams({
+          access_token:"fixture-recovery",refresh_token:"fixture-refresh",type:"recovery",expires_in:"3600"
+        })));
+        await phone.fill("#newpw","new-test-password");await phone.fill("#confirmpw","new-test-password");
+        await phone.evaluate(()=>completePasswordReset());
+        assert.equal(await phone.evaluate(()=>S.entered),true,"password reset returns the phone to the app");
+        assert.equal(serverPassword,"new-test-password");
+        await auth(desktop,"login");
+        assert.equal(await desktop.evaluate(()=>S.entered),false,"the old password no longer signs in");
+        await desktop.fill("#pw","new-test-password");await desktop.evaluate(()=>doAuth());
+        assert.deepEqual(await desktop.evaluate(()=>({entered:S.entered,uid:gridlockCloud.session()?.user.id})),{entered:true,uid:user.id});
+        assert.equal(requests.filter(r=>r.path==="/auth/v1/user"&&r.method==="PUT").length,1);
+        assert.equal(await desktop.evaluate(()=>JSON.stringify(localStorage).includes("new-test-password")),false);
+      }finally{await desktopContext.close();}
     });
     await check("mismatched passwords never reach the account server", async page => {
       await recovery(page); await passwords(page,"different-password"); await page.evaluate(() => completePasswordReset());

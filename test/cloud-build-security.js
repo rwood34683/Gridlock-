@@ -57,3 +57,13 @@ test("bad output paths and broken injection anchors preserve source and the last
   assert.equal(fs.readFileSync(path.join(outDir, "kept.txt"), "utf8"), "previous build");
   assert.equal(fs.readFileSync(path.join(root, "web/index.html"), "utf8"), "missing anchor");
 }));
+
+test("site domain rejects HTTP and credentials before replacing a successful cloud build", () => fixture(({ run, root, outDir }) => {
+  run();fs.writeFileSync(path.join(outDir,"kept.txt"),"previous build");
+  fs.mkdirSync(path.join(root,"site"));
+  for(const domain of ["http://example.com", "https://coach:password@example.com", "coach@example.com"]) {
+    fs.writeFileSync(path.join(root,"site/contact.json"),JSON.stringify({domain}));
+    assert.throws(()=>run(),/domain|HTTPS/);
+    assert.equal(fs.readFileSync(path.join(outDir,"kept.txt"),"utf8"),"previous build");
+  }
+}));

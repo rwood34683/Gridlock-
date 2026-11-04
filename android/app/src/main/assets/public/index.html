@@ -488,7 +488,7 @@ svg.field{width:100%;height:auto;display:block}
   .pbtop svg.field{max-height:calc(100vh - 170px)}
   /* One column across a sideways phone is a very long line to read. Cap the
      measure so a sentence still scans between points. */
-  p, .lede, .note, .empty, dd{max-width:70ch}
+  p, .lede, .note, .empty, dd{max-width:60ch}
 }
 
 /* ============================================================
@@ -731,9 +731,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 }
 /* With the break clock up as well — four chips and a 5–6 to 7 score — a
    375 px phone ran the Staff chip 10 px past the edge. The clock carries a
-   class on the header, and under 400 px it takes the same step the 360 rule
+   class on the header, and under 480 px it takes the same step the 360 rule
    does. The devices suite measures the header with the clock and score up. */
-@media(max-width:399px){
+@media(max-width:479px){
   .hdr--clock .hdr__top{gap:6px}
   .hdr--clock .score-chip{padding:4px 8px;font-size:12px;gap:2px}
   .hdr--clock .hdr__top .who-chip{display:none}
@@ -9783,6 +9783,7 @@ function authForm(){
   if(S.mode === "recovery") return recoveryForm();
   if(S.mode!=="create" && S.mode!=="login") return "";
   const make = S.mode === "create";
+  const sending = resetPending();
   // A real form with the fields the phone looks for, so iOS and Android offer
   // the saved password (Face ID / Keychain) and to save a new one, and the
   // email box never capitalises its first letter or autocorrects.
@@ -9792,9 +9793,10 @@ function authForm(){
            moment the promo required one. It now says what the account actually
            is: a lock on this phone, not a login to anything. */""}
     <p class="note" style="margin-top:0">${canSync()
-      ? `Your email and what you have bought are kept on our server, so you can sign in on a new
-         phone and reset a password you have forgotten. Your season stays on this phone <b>unless you
-         switch on League sync</b> yourself — that is off until you turn it on, in Nexus.`
+      ? `Your email and plan are kept with your account on our account server, so you can sign in on a new
+         phone and reset a forgotten password. If you <b>switch on League sync</b> in Nexus, your full season
+         is uploaded and one current copy is kept with your account on that server. Gridlock PB LLC's administrators can review it.
+         You can pause sending, review or restore the copy, or delete what you sent. Delete account removes your login and that copy.`
       : window.gridlockCloud
       ? `Your email and what you have bought are kept on our server, so you can sign in on a new
          phone and reset a password you have forgotten. <b>Your season never leaves this device</b> —
@@ -9802,7 +9804,7 @@ function authForm(){
       : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
          about you or your team ever leaves the device.`}</p>
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
-    <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${onEnter("doAuth()")}/></div>
+    <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${sending ? "disabled" : ""} ${onEnter("doAuth()")}/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
       <button type="submit" class="btn grow">${make?"Create account":"Sign in"}</button>
@@ -9811,7 +9813,7 @@ function authForm(){
     <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('${make?"login":"create"}')">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     ${window.gridlockCloud && !make
-      ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
+      ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()" ${sending ? "disabled" : ""}>${sending ? "Sending…" : "Forgot it? Email me a link"}</button>` : ""}
     <p class="note">${window.gridlockCloud
       ? "Your password is checked by the account server. A salted hash is also kept on this phone for sign-in without a signal."
       : "Kept on this phone only, salted and hashed. There is no server to send it to."}</p>
@@ -9823,6 +9825,10 @@ function authForm(){
 const STAFF_KEY = "gridlock.staff.v2";
 let _authAttempt = 0;
 let _recoveryUser = null, _recoveryBusy = false;
+let _resetAttempt = null;
+function resetPending(){
+  return !!(_resetAttempt && _resetAttempt.attempt === _authAttempt && _resetAttempt.cloud === window.gridlockCloud);
+}
 // Server account grants are separate from store purchases. They stay in memory
 // and can only supplement the same verified account, never a later sign-in.
 let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
@@ -10101,19 +10107,33 @@ window.checkVerify = async () => {
    keeps one coach out of another's row. No service key ever ships in the app.
    docs/SERVER.md is the switch-on. */
 window.sendReset = async () => {
+  if(resetPending()) return;
   const cloud = window.gridlockCloud;
   const email = ((document.getElementById("em") || {}).value || "").trim();
-  const say = m => set({authSaid: m});
+  // Status redraws replace the form. Keep its address so a refused request or
+  // another tap does not turn into "Type the email first" after it was typed.
+  const say = m => {
+    const keep = ((document.getElementById("em") || {}).value || email);
+    set({authSaid:m});
+    const field = document.getElementById("em");
+    if(field) field.value = keep;
+  };
   if(!cloud || !cloud.sendReset) return say("There is no account server on this build to reset from.");
   if(!email) return say("Type the email first, then ask for the link.");
   const attempt = ++_authAttempt;
+  const request = {attempt, cloud};
+  _resetAttempt = request;
   say("Sending…");
   try{
     const r = await cloud.sendReset(email);
     if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    _resetAttempt = null;
     say(r && r.ok ? "Check that inbox for the newest password link. If it has expired, ask for another."
                   : (r && r.said) || "That could not be sent. Nothing has changed.");
-  }catch(e){ if(attempt === _authAttempt) say("The account server could not be reached. Nothing has changed."); }
+  }catch(e){
+    if(_resetAttempt === request) _resetAttempt = null;
+    if(attempt === _authAttempt && cloud === window.gridlockCloud) say("The account server could not be reached. Nothing has changed.");
+  }finally{ if(_resetAttempt === request) _resetAttempt = null; }
 };
 
 window.doAuth = async () => {
@@ -10299,13 +10319,13 @@ async function sendSeason(manual){
   const t = syncTicket();
   clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
-  if(manual) syncStatus({syncSaid:"Sending your season to your league…"});
+  if(manual) syncStatus({syncSaid:"Sending your season to your account server…"});
   let r = null;
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
   _syncSending=false;
   if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
   if(r && r.ok === true){
-    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Sent to your league."});
+    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
     scheduleSync();return;
   }
   if(r && r.conflict){
@@ -10364,9 +10384,9 @@ window.deleteSynced = async () => {
   const cloud = window.gridlockCloud;
   if(!cloud || !cloud.deleteSeason){
     ++_syncEpoch;
-    return set({syncOn: false, syncSaid: "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
+    return set({syncOn: false, syncSaid: canSync() ? "League sync is off on this phone. This build cannot remove the server copy — contact support for help." : "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
   }
-  if(!confirm("Remove everything this phone sent to your league? What is on this phone stays.")) return;
+  if(!confirm(canSync() ? "Remove your season copy from our account server? What is on this phone stays." : "Remove everything this phone sent to your league? What is on this phone stays.")) return;
   clearSyncRetry();
   ++_syncEpoch;
   const t = syncTicket();
@@ -10379,12 +10399,12 @@ window.deleteSynced = async () => {
     const r = await cloud.deleteSeason();
     if(!sameSync(t)) return;
     if(r && r.ok === true)
-      return set({syncAt: null, syncSaid: "League sync is off, and your season has been removed from the league."});
+      return set({syncAt: null, syncSaid: canSync() ? "League sync is off, and your season copy has been removed from our account server." : "League sync is off, and your season has been removed from the league."});
     if(r && r.offline)
       return set({syncSaid: "League sync is off. There is no signal, so nothing was removed yet — tap Remove again with a signal."});
     set({syncSaid: (r && r.said) || "Removal was not confirmed. League sync is off. Tap Remove to try again."});
   }catch(e){
-    if(sameSync(t)) set({syncSaid: "Could not reach your league to remove it. League sync is off. Tap Remove to try again."});
+    if(sameSync(t)) set({syncSaid: canSync() ? "Could not reach our account server to remove the copy. League sync is off. Tap Remove to try again." : "Could not reach your league to remove it. League sync is off. Tap Remove to try again."});
   }finally{ _syncDeleting = false; }
 };
 window.setSyncLabel = v => set({syncLabel: String(v || "").slice(0, 60)});
@@ -15063,13 +15083,14 @@ const HELP = {
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
   "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
-    how:["Save a copy is your backup and how you move to another phone.",
+    get how(){return ["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
-         "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
+         canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from.",
          "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
-         "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one."],
-    watch:"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus."},
+         "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one.",
+         ...(cloudPageLinks() ? ["Privacy and Support open the public pages in a new tab, here and on Help."] : [])];},
+    get watch(){return canSync() ? "Save a copy before every event to keep a backup you control. In Nexus you can pause League sync, review or restore the server copy, or delete what you sent. Pausing does not delete the copy. Delete account removes your login and the League sync copy." :"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus.";}},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
@@ -15078,13 +15099,13 @@ const HELP_Q = [
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
-  ["Where did my season go?", "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
+  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On a new phone, sign in and review the server copy in Nexus before restoring it, if you had League sync on. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
   ["How many points wins it?", "Race to, under More › Format: 2, 4, 5 or 7, whatever your format is. The score chip shows it, the sheet calls match point, and when a side gets there it says the match is over. Leave it blank and the score is just the score."],
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
-  ["When did I last back up?", "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
+  ["When did I last back up?", () => canSync() ? "More › Matches says when you last saved a file. Nexus › Save a copy keeps a backup you control. League sync keeps one current full-season copy with your account on our account server; Gridlock PB LLC's administrators can review it. It is not a history of backups. Pause, review/restore or delete it in Nexus." : "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
@@ -15252,6 +15273,19 @@ function coachQuickStart(){
     </div></details>`, "Quick start");
 }
 
+// Public pages are supplied only by a cloud build. Never trust a config value as markup.
+function cloudPageLinks(){
+  const config = window.GRIDLOCK_CLOUD;
+  const links = [["Privacy",config?.privacyUrl],["Support",config?.supportUrl]].flatMap(([label,value])=>{
+    if(typeof value!=="string" || /[\s\\]/.test(value)) return [];
+    try{
+      const url=new URL(value);
+      if(url.protocol!=="https:" || url.username || url.password) return [];
+      return ['<a class="btn btn--quiet" href="'+esc(url.href)+'" target="_blank" rel="noopener">'+label+'</a>'];
+    }catch(_){return [];}
+  });
+  return links.length ? '<div class="btnrow" aria-label="Privacy and support">'+links.join("")+'</div>' : "";
+}
 function helpPage(){
   const here = S.helpFor;
   const order = Object.keys(HELP);
@@ -15260,10 +15294,11 @@ function helpPage(){
          <button onclick="set({helpFor:''})">Show all</button></div>` + helpCard(here)
       : "")
     + (here && HELP[here] ? "" : coachQuickStart())
+    + cloudPageLinks()
     + sec("Questions", `<div class="list">${HELP_Q.map(([q, a], i) => `
         <button class="list__row" onclick="set({helpQ: S.helpQ===${i} ? -1 : ${i}})">
           <span class="list__body"><span class="list__name">${esc(q)}</span>
-          ${S.helpQ === i ? `<span class="list__desc">${esc(a)}</span>` : ""}</span>
+          ${S.helpQ === i ? `<span class="list__desc">${esc(typeof a==="function" ? a() : a)}</span>` : ""}</span>
           <span class="list__go">${S.helpQ === i ? "▾" : "›"}</span>
         </button>`).join("")}</div>`, HELP_Q.length + " answered")
     + (here && HELP[here] ? "" : sec("Every screen", `<div class="list">
@@ -16026,9 +16061,9 @@ function moreBody(k){
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
           canSync() && S.syncOn
-            ? `Your season is being sent to your league — your roster, your tallies and your scouting — because you turned <b>League sync</b> on. Turn it off below to keep it on this phone only. Your password is stored salted and hashed, never in the clear.`
+            ? `<b>League sync</b> is on. When a send succeeds, your full season is uploaded and one current copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it. Pause sending, review or restore the copy, or delete what you sent below. Pausing does not delete the copy. Your account password is stored as a hash.`
           : canSync()
-            ? `On this device only. You can send it to your league from <b>League sync</b> below; it is off until you turn it on. Your password is stored salted and hashed, never in the clear.`
+            ? `Your email and plan are kept with your account on our account server; your account password is stored as a hash. <b>League sync</b> is off. Turning it on uploads your full season and keeps one current copy with your account on that server, where Gridlock PB LLC's administrators can review it. A copy sent earlier stays until you delete it. You can review or restore it below. Delete account removes your login and that copy.`
             : `On this device only. Nothing is sent to a server, and your password is stored salted and hashed, never in the clear.`}</span></div>
         <div class="kv__row"><span class="kv__k">Kept safe</span><span class="kv__v">${
           window.gridlockDurableError ? `The second copy is waiting for a successful save. Use Save a copy below to keep your work.` : window.gridlockDurable
@@ -16046,19 +16081,20 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <button class="btn btn--ghost btn--block" onclick="staffSignOut()">Staff sign out</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
-  + (canSync() ? sec("League sync", `<p class="lede">Send this season to your league's admin, so the whole year across every coach
-      is in one place. This is the one thing that leaves your phone — and only because you turn it on.</p>
+  + cloudPageLinks()
+  + (canSync() ? sec("League sync", `<p class="lede">Upload your full season and keep one current copy with your account on our account server.
+      Gridlock PB LLC's administrators can review it. It is off until you turn it on.</p>
     <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
       your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
       password never does. You can pause it, or delete what you sent, at any time.</p>
     <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
     <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
     <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
-    <div class="fld"><label for="syncLabel">Shown to your league as</label>
+    <div class="fld"><label for="syncLabel">Season copy name</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
       <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
-        S.syncOn?"Sending to your league":"Send my season to my league"}</button>
+        S.syncOn?"Sending to my account":"Send my season to my account"}</button>
     </div>
     ${S.syncOn ? `<div class="toggles">
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
@@ -16537,8 +16573,8 @@ function render(){
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
-  const at = main ? main.scrollTop : 0;
   const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
+  const at = main && screen === _where ? main.scrollTop : 0;
   _lastPointMemo = new Map();
   try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }
   finally { _lastPointMemo = null; }
@@ -16553,7 +16589,10 @@ function render(){
     }
   });
   const next = document.querySelector(".main");
-  if(next && screen === _where) next.scrollTop = at;
+  // The new scroller already starts at zero. Writing zero forces layout of
+  // the entire rebuilt sheet before the browser can paint it. Restore only
+  // a real offset; a different screen starts at the top without a layout read.
+  if(next && screen === _where && at !== 0) next.scrollTop = at;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
 }

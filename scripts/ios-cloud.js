@@ -114,6 +114,10 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${path.basename(command)} ${args.join(" ")} failed.`);
 }
 
+function buildIOS({url, anonKey} = {}) {
+  return require("./cloud-build").build({url, anonKey, redirectTo: CALLBACK, outDir: OUT});
+}
+
 function main(argv = process.argv.slice(2)) {
   const open = !argv.includes("--no-open");
   const brands = require("./brand").loadBrands();
@@ -133,7 +137,7 @@ function main(argv = process.argv.slice(2)) {
     throw new Error("Opening Xcode requires a Mac. Use --no-open to sync the cloud build into ios/ only.");
   }
 
-  const built = require("./cloud-build").build({ url, anonKey, redirectTo: CALLBACK, outDir: OUT });
+  const built = buildIOS({ url, anonKey });
   console.log(`Cloud build for the iPhone app: ${path.relative(ROOT, built.outDir)}/ (project ${built.host}, callback ${CALLBACK}).`);
 
   const cli = path.join(ROOT, "node_modules/@capacitor/cli/bin/capacitor");
@@ -156,7 +160,7 @@ function main(argv = process.argv.slice(2)) {
   }
 }
 
-module.exports = { readEnvFile, settings, withWebDir, verifyShell, CALLBACK, MISSING };
+module.exports = { buildIOS, readEnvFile, settings, withWebDir, verifyShell, CALLBACK, MISSING };
 
 if (require.main === module) {
   try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; }

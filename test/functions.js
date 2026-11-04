@@ -379,17 +379,17 @@ const ROSTER = [
   });
   check("with the adapter, Nexus offers League sync and says it is off until you turn it on", await ev(() => {
     const t = document.getElementById("root").innerText;
-    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Send my season to my league/.test(t);
+    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Send my season to my account/.test(t);
   }));
   check("turning it on pushes the whole season through the adapter", await ev(async () => {
     window.toggleSync();
     await new Promise(r => setTimeout(r, 20));
     if(window.__pushes.length !== 1) return false;
     const p = JSON.parse(window.__pushes[0].payload);
-    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Sent to your league/.test(S.syncSaid);
+    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Kept with your account on our account server/.test(S.syncSaid);
   }));
   check("now the data-lives line says the season is going up", await ev(() =>
-    /being sent to your league/i.test(document.getElementById("root").innerText)));
+    /one current copy is kept with your account on our account server/i.test(document.getElementById("root").innerText)));
   check("no signal is silent about the network and does not stamp a send", await ev(async () => {
     window.__syncNet = false; const wasAt = S.syncAt;
     await window.syncNow();
@@ -398,7 +398,7 @@ const ROSTER = [
   check("delete removes what was sent and turns sync off", await ev(async () => {
     window.__syncNet = true;
     await window.deleteSynced();
-    return window.__deleted === true && S.syncOn === false && /removed from the league/i.test(S.syncSaid);
+    return window.__deleted === true && S.syncOn === false && /removed from our account server/i.test(S.syncSaid);
   }));
   check("the sign-in panel tells a new coach the season stays put unless he turns sync on", await ev(() => {
     window.set({ entered: false, mode: "create", authSaid: "" });
@@ -2860,7 +2860,7 @@ const ROSTER = [
       .trim();
     const html = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf8");
     const inApp = /const BREAK_PLANTS = \{[\s\S]*?\n\};/.exec(html);
-    return !!inApp && inApp[0] === made;
+    return !!inApp && inApp[0].replace(/\r\n/g, "\n") === made.replace(/\r\n/g, "\n");
   })());
 
   /* -------------------------------------------------- where he is shooting */
