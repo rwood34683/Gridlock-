@@ -26,6 +26,9 @@ function generated(out){const sandbox={window:{}};vm.runInNewContext(fs.readFile
  }
  assert.match(ACCOUNT,/Free, Team or Program/);assert.match(SYNC,/one current copy/);
  assert.equal(fs.readFileSync(path.join(ROOT,'marketing/grok/src/cloud-copy.ts'),'utf8').replace(/\r\n/g,'\n'),grokCopy(),'Grok and template website wording stay aligned');
+ const websiteChrome=fs.readFileSync(path.join(ROOT,'marketing/grok/src/components/site-chrome.tsx'),'utf8');
+ assert.match(websiteChrome,/Browser beta/);assert.match(websiteChrome,/iPhone \/ iPad/);assert.match(websiteChrome,/PC \/ Mac/);
+ assert.doesNotMatch(websiteChrome,/Available for/,'the browser beta does not imply a store listing');
  for(const route of ['index','privacy','support']){
    const source=fs.readFileSync(path.join(ROOT,`marketing/grok/src/routes/${route}.tsx`),'utf8');
    assert.ok(source.includes('CLOUD_COPY.'),route+' uses the confirmed wording');
@@ -62,6 +65,22 @@ function generated(out){const sandbox={window:{}};vm.runInNewContext(fs.readFile
   assert.match(await page.evaluate(()=>HELP_Q.find(q=>q[0]==='Where did my season go?')[1]()),/Gridlock PB LLC/);
   await page.evaluate(()=>{delete window.gridlockCloud;render();});text=await page.locator('#root').innerText();assert.match(text,/On this device only. Nothing is sent to a server/);
   assert.ok(!/gridlockpb\.com/.test(fs.readFileSync(path.join(ROOT,'web/index.html'),'utf8')));
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>{window.gridlockCloud={pushSeason:async()=>({ok:true})};set({entered:false,mode:'login'});});
+  const disclosure=page.locator('.auth-data');
+  assert.equal(await disclosure.getAttribute('open'),null);
+  assert.match(await page.locator('#root').innerText(),/Use your account on any device/);
+  assert.doesNotMatch(await page.locator('#root').innerText(),/administrators can review/);
+  await page.fill('#em','coach@example.test');await page.fill('#pw','fixture-password');
+  const summary=disclosure.locator('summary');
+  assert.ok((await summary.boundingBox()).height>=44,'data explanation has a full-size tap target');
+  await summary.click();
+  const explanation=await disclosure.innerText();
+  assert.match(explanation,/full season/);assert.match(explanation,/Gridlock PB LLC's administrators can review/);
+  assert.match(explanation,/pause sending, review or restore/);assert.match(explanation,/Delete account removes your login and that copy/);
+  assert.equal(await page.inputValue('#em'),'coach@example.test');assert.equal(await page.inputValue('#pw'),'fixture-password');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await summary.click();assert.equal(await disclosure.getAttribute('open'),null);
   console.log('PASS cloud pages: URL rejection, cloud/iPhone config, live wording, escaped links, offline absence and sync disclosure');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

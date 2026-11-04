@@ -842,6 +842,8 @@ cloud config, validated as HTTPS without credentials and escaped at render.
 Offline web, bundled app and Claude preview have no such links. The offline
 Claude preview also excludes all references to the default live domain,
 including old live-app notices, support addresses and social metadata.
+The cloud sign-in panel leads with a short explanation; its native disclosure
+keeps all account/sync details readable without clearing fields when opened.
 Keep real scroll offsets on a same-screen redraw, but do not restore zero on
 the new scroller or read the old offset when changing screens: that forces
 layout on the critical path of every tap. Keep the load-test budgets unchanged.

@@ -53,6 +53,7 @@ function Privacy() {
         <section className="card mt-12 p-5" aria-labelledby="account-title">
           <h2 id="account-title" className="display text-section text-fg">Your account</h2>
           <p className="mt-3 text-fg">{CLOUD_COPY.account}</p>
+          <p className="mt-3 text-fg">Gridlock PB LLC's administrators can review accounts and manage plans. They cannot see your password.</p>
         </section>
         <section className="card mt-12 p-5" aria-labelledby="sync-title">
           <h2 id="sync-title" className="display text-section text-fg">League sync: your choice</h2>

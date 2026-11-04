@@ -243,6 +243,10 @@ button.ctx__ev b{color:var(--mute)}
 
 .lede{color:var(--mute);font-size:var(--t-sm);line-height:1.5}
 .note{color:var(--dim);font-size:var(--t-xs);line-height:1.5}
+.auth-intro{margin-top:0;font-size:var(--t-sm)}
+.auth-data{margin:4px 0 12px}
+.auth-data summary{min-height:44px;padding:12px 0;cursor:pointer;color:var(--mute);font-size:var(--t-sm);line-height:20px;font-weight:600}
+.auth-data .note{margin:0 0 8px;font-size:var(--t-sm);line-height:1.55}
 .warn{color:var(--warn);font-size:var(--t-sm)}
 
 /* ============================================================
@@ -9849,17 +9853,19 @@ function authForm(){
     ${/* This said "coaching a match needs none", which stopped being true the
            moment the promo required one. It now says what the account actually
            is: a lock on this phone, not a login to anything. */""}
-    <p class="note" style="margin-top:0">${canSync()
-      ? `Your email and plan are kept with your account on our account server, so you can sign in on a new
+    ${canSync()
+      ? `<p class="note auth-intro">Use your account on any device. Your season stays here unless you switch on League sync.</p>
+         <details class="auth-data"><summary>About your account and season</summary>
+         <p class="note">Your email and plan are kept with your account on our account server, so you can sign in on a new
          phone and reset a forgotten password. If you <b>switch on League sync</b> in Nexus, your full season
          is uploaded and one current copy is kept with your account on that server. Gridlock PB LLC's administrators can review it.
-         You can pause sending, review or restore the copy, or delete what you sent. Delete account removes your login and that copy.`
-      : window.gridlockCloud
+         You can pause sending, review or restore the copy, or delete what you sent. Delete account removes your login and that copy.</p></details>`
+      : `<p class="note" style="margin-top:0">${window.gridlockCloud
       ? `Your email and what you have bought are kept on our server, so you can sign in on a new
          phone and reset a password you have forgotten. <b>Your season never leaves this device</b> —
          not your roster, not your scouting, not one tally.`
       : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
-         about you or your team ever leaves the device.`}</p>
+         about you or your team ever leaves the device.`}</p>`}
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
     <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${sending ? "disabled" : ""} ${onEnter("doAuth()")}/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
