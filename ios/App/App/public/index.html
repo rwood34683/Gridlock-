@@ -10593,7 +10593,7 @@ function playbook(){
         <button class="btn grow" onclick="set({tab:'more',more:'team'})">Add your players ›</button>
         <button class="btn btn--quiet grow" onclick="set({evPick:true});toMainTop()">Which event? ›</button>
         <button class="btn btn--quiet" onclick="dismissTip('next')">Got it</button></span></div>` : "";
-  return `${nextCard}${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
+  return `${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
 
   <div class="pbtop">
   <div class="call">
@@ -10713,7 +10713,7 @@ function playbook(){
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
-  ${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
+  ${nextCard}${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
     <p class="note" style="margin-top:0"><b>P</b> primary · <b>S</b> secondary — his role on this break. Face is where he looks, Shot and Lane 2 his lanes.</p>
@@ -12512,8 +12512,17 @@ let _lastEnd = null;
 window.tapResult = won => {
   if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
     return flash(`Point ${_lastEnd.pt} is already scored. Tap Back a point to change it.`);
-  const pt = S.point || 1, before = (S.results || []).length;
+  const pt = S.point || 1, before = (S.results || []).length, mid = S.matchId;
+  // The call he is on is the call he ran: every result button writes it with
+  // the result unless he already logged one for this point, so self-scout is
+  // not one more tap a point. A watched game's call is not his; Log the call
+  // still changes it. (endPoint() itself stays the bare result.)
+  const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(c => c.m === mid && c.pt === pt)
+    ? {script: S.script, layout: S.layoutKey, pt, m: mid, vs: matchVs(), auto: true} : null;
   window.endPoint(won);
+  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(c => c.m === mid && c.pt === pt)){
+    S.calls = [{...call, at: Date.now()}, ...(S.calls || [])]; save(S);
+  }
   // Say what was scored, so a tap on the wrong one is caught while it is
   // still one tap back.
   if((S.results || []).length >= before && _lastEnd && _lastEnd.pt === pt){
@@ -12539,11 +12548,6 @@ window.endPoint = won => {
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
                 ...(read ? {read} : {})}];
-  // The call he is on is the call he ran: written with the result unless he
-  // already logged one for this point, so self-scout is not one more tap a
-  // point. A watched game's call is not his; Log the call still changes it.
-  if(!(curMatch()||{}).watch && callSet() && !(S.calls || []).some(c => c.m === S.matchId && c.pt === pt))
-    S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now(), auto: true}, ...(S.calls || [])];
   // The next point starts with the field clear: nothing half-logged carries —
   // including bunkers tapped for their five on Scout and not yet logged.
   clearPointScratch();
