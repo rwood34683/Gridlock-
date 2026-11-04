@@ -11,7 +11,7 @@ when the league publishes a new edition.
 Every number below is a **setting the coach can change** on the format screen
 and the point sheet. Picking a division under More › Format fills in that
 division's numbers from the rulebook's own tables; he can still change any of
-them. **Pro** and **Masters** are named custom choices, and **Other** is for any
+them. **Pro**, **WNXL** and **Masters** are named custom choices, and **Other** is for any
 event this rulebook does not cover: none of the three presets anything.
 
 ## The divisions and their numbers (read 2 Nov 2026)
@@ -19,12 +19,12 @@ event this rulebook does not cover: none of the three presets anything.
 8.1.1 says the X-Ball format is played by **Semi-Pro, D2, D3, D4 and D5**, and
 section 15 adds **3v3 X-Ball** (Amateur and Intermediate). Those seven are
 the divisions with rulebook numbers (`FMT_RULES` in `web/index.html`). The
-list also carries **Pro** and **Masters** as named custom choices
+list also carries **Pro**, **WNXL** and **Masters** as named custom choices
 (`FMT_CUSTOM_DIVS`, shown as "· custom"), and **Other**. This rulebook gives
 none of those a game time or mercy limit: Pro plays under the league's pro
-rules, and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
+rules, WNXL (the women's pro division, entered as "WNXL Pro X-Ball" on PBLeagues) is not in it, and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
 choice clears any game time and asks how many a side, the race, the mercy and
-the clock, like Other. Division 1, Women's, Collegiate and Juniors are off the
+the clock, like Other. Division 1, Collegiate and Juniors are off the
 list; a saved format or sheet that still carries one keeps the name and shows
 under Other.
 
@@ -75,4 +75,4 @@ else is the official's to apply.
 
 ## Named custom formats
 
-Pro and Masters remain visible as custom choices. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.
+Pro, WNXL and Masters remain visible as custom choices. WNXL's own race, mercy and clock go in by hand until the league's rules for it are read; send them and they become a preset. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.

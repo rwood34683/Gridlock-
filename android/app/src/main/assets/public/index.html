@@ -4178,7 +4178,7 @@ const FMT_RULES = {
   "Division 5":       {game:"xball", time:10, mercy:3, split:60},
   "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
   "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
-const FMT_CUSTOM_DIVS = ["Pro", "Masters"];
+const FMT_CUSTOM_DIVS = ["Pro", "WNXL", "Masters"];
 const FMT_DIVS = [...Object.keys(FMT_RULES), ...FMT_CUSTOM_DIVS, "Other"];
 const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
 const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;

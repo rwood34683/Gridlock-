@@ -36,8 +36,8 @@ const {createServer}=require('../scripts/serve');
    assert(raw);const restored=await p.evaluate(async raw=>{const ok=loadCopy('replace',raw);if(typeof _localSaveTail!=='undefined')await _localSaveTail;return{ok,time:S.fmt.time,clock:S.fmt.clock,presets:S.fmts.length,points:S.results.length};},raw);
    assert.deepEqual(restored,{ok:true,time:15,clock:45,presets:1,points:1});await p.reload();assert.equal(await p.evaluate(()=>S.fmts[0].clock),45);
   });
-  await check('Pro and Masters are visible custom choices without divisional defaults',async p=>{
-   for(const div of ['Pro','Masters']){await p.getByRole('button',{name:div+' · custom',exact:true}).click();const got=await p.evaluate(()=>({div:S.fmt.div,time:S.fmt.time,text:document.getElementById('root').innerText}));assert.equal(got.div,div);assert.equal(got.time,0);assert.match(got.text,/custom settings/);assert.match(got.text,/Race to/);assert(!got.text.includes('12-minute game'));}
+  await check('Pro, WNXL and Masters are visible custom choices without divisional defaults',async p=>{
+   for(const div of ['Pro','WNXL','Masters']){await p.getByRole('button',{name:div+' · custom',exact:true}).click();const got=await p.evaluate(()=>({div:S.fmt.div,time:S.fmt.time,text:document.getElementById('root').innerText}));assert.equal(got.div,div);assert.equal(got.time,0);assert.match(got.text,/custom settings/);assert.match(got.text,/Race to/);assert(!got.text.includes('12-minute game'));}
   });
   await check('mercy 6 can be picked and ends the match at a six-point lead, not before',async p=>{
    await p.evaluate(()=>setFmt('div','Other'));
