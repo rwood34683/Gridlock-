@@ -828,6 +828,18 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     shell is git-ignored. `gridlock://auth/callback` must be in Supabase's
     redirect allowlist. `test/ios-cloud.cjs` holds it without a Mac.
 
+56. ~~The World Cup field.~~ Done — NXL published the World Cup layout on 4
+    Nov 2026 and the coach sent the labeled 2D, the clean 2D and two 3D renders.
+    It is the seventh measured field (`nwc`, `NWC`), "NXL World Cup ·
+    Kissimmee", 11–15 Nov. `tools/digitize_worldcup.py` / `emit_worldcup.py`
+    are the Lone Star pair on this map: mirror check 24 pairs plus five on the
+    centre line, axis 74.91 ft, sd 0.11. The two corner doritos are printed on
+    their side pointing in at the 50 and draw as `triin`; the two unlabeled red
+    bunkers on the end lines are Br, as on Lone Star. The badge off the map is
+    its mark (`EVENT_LOGO.nwc`, `web/event-nxl-worldcup.jpg`). Every World Cup
+    game on the schedule now opens on it. A bar laid across the field (`bar`
+    with w > h) drew as an oval; its corners are rounded to the short side now.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

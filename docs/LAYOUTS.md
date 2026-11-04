@@ -41,6 +41,33 @@ The map is stretched to the field's edges and is a guide only — it never
 moves or sizes a bunker. It never enters this pack: it lives in the coach's season and rides
 in Save a copy.
 
+## How the NXL World Cup was digitized
+
+Source: `layouts/images/nxl_2026_worldcup_2d_labeled.jpg` (2048 × 1553), the
+official labeled 2D NXL published on 4 Nov 2026 for the World Cup, Kissimmee FL,
+11–15 Nov, sent by the coach with the clean 2D and two 3D renders
+(`nxl_2026_worldcup_2d.jpg`, `nxl_2026_worldcup_3d_side.jpg`,
+`nxl_2026_worldcup_3d_end.jpg`). Run it with:
+
+```bash
+PYTHONPATH=tools python3 tools/digitize_worldcup.py   # -> tools/out/worldcup_measured.json
+PYTHONPATH=tools python3 tools/emit_worldcup.py       # the event JSON + tools/out/nwc_layout.js
+node tools/plants.js --write                          # plants the twelve calls on it
+```
+
+It is the Lone Star method on the Lone Star style of map (see below), at 11.14
+px/ft. The printed grid is the field border plus fifteen by twelve 10-ft cells.
+Mirror check: 24 pairs and five bunkers on the centre line, axis 74.91 ft, sd
+0.11 ft; the printed centre line measures 75.07 ft. Two things are its own:
+
+- **The two corner doritos are printed on their side,** pointing in at the 50.
+  The app draws them with the `triin` shape, the book's dorito footprint turned.
+- **Two unlabeled red bunkers stand on the end lines at the 50.** They are read
+  as Br, as the Lone Star map's end-line bunkers were.
+
+The doritos' shaded faces sit to their right, so their windows reach past the
+lit paint on that side; the first pass without that read them 0.8 ft left.
+
 ## How the WCPPL Championship was digitized
 
 Source: `layouts/images/wcppl_2026_championship_2d.jpg` (1440 × 1144), the 2D

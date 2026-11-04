@@ -43,6 +43,7 @@ const FIELDS = [
   ["ujt", "usxbl_2026_jt_championship.json"],
   ["ugp", "usxbl_2026_gp_championship.json"],
   ["wch", "wcppl_2026_championship.json"],
+  ["nwc", "nxl_2026_world_cup.json"],
 ];
 
 // The same five bands the app labels a job with, off the same y.

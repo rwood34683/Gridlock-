@@ -1,0 +1,31 @@
+// Digitized from the official NXL labeled 2D on its printed 10-ft grid.
+// Written by tools/emit_worldcup.py — do not hand-edit.
+const NWC = [
+  {id:"MD#1",n:"MD",x:50.2,y:13.2,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:66.5,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"MD#3",n:"MD",x:83.3,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:100.1,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
+  {id:"SD#1",n:"SD",x:37.3,y:18.1,t:"dorito",w:5.21,h:4.53,c:"r"},{id:"SD#2",n:"SD",x:112.3,y:18.3,t:"dorito",w:5.21,h:4.53,c:"r"},
+  {id:"MD#5",n:"MD",x:126.8,y:23.1,t:"triin",w:6.11,h:6.69,c:"r"},{id:"MD#6",n:"MD",x:23.1,y:23.5,t:"triin",w:6.11,h:6.69,c:"r"},
+  {id:"MT#1",n:"MT",x:97.5,y:27.9,t:"temple",w:4.95,h:4.98,c:"r",d:"b"},{id:"MT#2",n:"MT",x:52.1,y:28.1,t:"temple",w:4.98,h:4.95,c:"r",d:"b"},
+  {id:"Tr#1",n:"Tr",x:75.0,y:28.5,t:"ball",w:3.57,h:3.63,c:"r"},{id:"C#1",n:"C",x:12.2,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},
+  {id:"C#2",n:"C",x:137.8,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},{id:"GB#1",n:"GB",x:75.2,y:40.3,t:"gbrick",w:4.76,h:10.09,c:"b"},
+  {id:"C#3",n:"C",x:90.0,y:48.4,t:"ball",w:4.27,h:4.11,c:"b"},{id:"C#4",n:"C",x:59.9,y:48.5,t:"ball",w:4.27,h:4.11,c:"b"},
+  {id:"Tr#2",n:"Tr",x:78.0,y:50.2,t:"ball",w:3.63,h:3.57,c:"r"},{id:"Tr#3",n:"Tr",x:71.6,y:50.3,t:"ball",w:3.63,h:3.57,c:"r"},
+  {id:"MT#3",n:"MT",x:117.4,y:50.3,t:"temple",w:4.95,h:4.98,c:"r",d:"b"},{id:"MT#4",n:"MT",x:32.3,y:50.4,t:"temple",w:4.98,h:4.95,c:"r",d:"b"},
+  {id:"Br#1",n:"Br",x:11.8,y:60.2,t:"can",w:3.4,h:4.8,c:"b"},{id:"Br#2",n:"Br",x:138.2,y:60.3,t:"can",w:3.4,h:4.8,c:"b"},
+  {id:"Br#3",n:"Br",x:1.4,y:60.6,t:"can",w:3.54,h:8.04,c:"r"},{id:"Br#4",n:"Br",x:148.7,y:60.6,t:"can",w:3.54,h:8.04,c:"r"},
+  {id:"GB#2",n:"GB",x:75.1,y:65.1,t:"gbrick",w:4.76,h:10.09,c:"b"},{id:"MW#1",n:"MW",x:108.7,y:70.2,t:"mw",w:1.93,h:7.07,c:"b"},
+  {id:"MW#2",n:"MW",x:41.3,y:70.4,t:"mw",w:1.93,h:7.07,c:"b"},{id:"GW#1",n:"GW",x:57.3,y:74.4,t:"gwing",w:5.34,h:5.66,c:"r"},
+  {id:"GW#2",n:"GW",x:92.6,y:74.5,t:"gwing",w:5.34,h:5.66,c:"r"},{id:"SB#1",n:"SB",x:105.0,y:77.1,t:"beam",w:9.68,h:1.49,c:"r",a:-56.3},
+  {id:"SB#2",n:"SB",x:44.8,y:77.5,t:"beam",w:9.68,h:1.49,c:"r",a:55.0},{id:"T#1",n:"T",x:137.6,y:82.2,t:"temple",w:4.69,h:4.82,c:"r",d:"b"},
+  {id:"T#2",n:"T",x:12.4,y:82.3,t:"temple",w:4.69,h:4.82,c:"r",d:"b"},{id:"SB#3",n:"SB",x:50.6,y:85.6,t:"beam",w:9.68,h:1.49,c:"r",a:54.8},
+  {id:"SB#4",n:"SB",x:99.2,y:85.8,t:"beam",w:9.68,h:1.49,c:"r",a:-55.8},{id:"Tr#4",n:"Tr",x:75.0,y:88.5,t:"ball",w:3.57,h:3.63,c:"r"},
+  {id:"Wg#1",n:"Wg",x:56.3,y:91.3,t:"bar",w:7.3,h:3.05,c:"r"},{id:"Wg#2",n:"Wg",x:93.3,y:91.4,t:"bar",w:7.3,h:3.05,c:"r"},
+  {id:"SB#5",n:"SB",x:64.3,y:95.1,t:"beam",w:9.68,h:1.49,c:"r",a:35.5},{id:"SB#6",n:"SB",x:85.5,y:95.2,t:"beam",w:9.68,h:1.49,c:"r",a:-35.7},
+  {id:"T#3",n:"T",x:22.2,y:97.7,t:"temple",w:4.82,h:4.69,c:"r",d:"b"},{id:"T#4",n:"T",x:127.1,y:97.9,t:"temple",w:4.82,h:4.69,c:"r",d:"b"},
+  {id:"SB#7",n:"SB",x:75.0,y:99.2,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#8",n:"SB",x:29.7,y:99.3,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#9",n:"SB",x:39.9,y:99.4,t:"beam",w:9.68,h:1.49,c:"r"},{id:"SB#10",n:"SB",x:109.7,y:99.4,t:"beam",w:9.68,h:1.49,c:"r"},
+  {id:"SB#11",n:"SB",x:119.9,y:99.4,t:"beam",w:9.68,h:1.49,c:"r"},{id:"MW#3",n:"MW",x:69.0,y:101.9,t:"mw",w:1.93,h:7.07,c:"b"},
+  {id:"MW#4",n:"MW",x:81.0,y:102.0,t:"mw",w:1.93,h:7.07,c:"b"},{id:"Br#5",n:"Br",x:111.6,y:102.6,t:"can",w:3.4,h:4.8,c:"b"},
+  {id:"Br#6",n:"Br",x:38.3,y:102.7,t:"can",w:3.4,h:4.8,c:"b"},{id:"GP#1",n:"GP",x:53.9,y:104.4,t:"plus",w:11.31,h:11.09,c:"r",k:4.02},
+  {id:"GP#2",n:"GP",x:96.0,y:104.4,t:"plus",w:11.31,h:11.09,c:"r",k:4.02}
+];
