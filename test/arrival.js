@@ -145,7 +145,7 @@ async function integrationChecks(page) {
   assert.equal(await page.locator("#arrival-player").inputValue(), "number:7", "Pit row opens its own player");
   assert.equal(await page.locator("#arrival-destination").inputValue(), "GW#1", "Existing plant is selected as destination");
   assert.equal(await page.evaluate(() => S.arrivalSightings.length), 0, "A roster plant never becomes an invented observation");
-  assert((await page.locator("main").innerText()).includes("Inferred route, not confirmed movement"), "Inferred route is labeled");
+  assert((await page.locator("main").innerText()).includes("Our guess at how he got there"), "the guessed route is labeled");
   const original = await page.evaluate(() => arrivalContext());
   assert.deepEqual(original, {side: "right", team: "Test Opponent", named: true, player: "number:7", layout: "mwo", m: "arrival-match-one", pt: 3},
     "Observation context identifies team/player/layout/match/point, and says the team was named");
