@@ -6725,7 +6725,7 @@ const ROSTER = [
     const offGate = root().includes("That sheet is on " + LAYOUTS[other].name) && /Back to /.test(root());
     window.logArrivalSighting();
     const offRefused = (S.arrivalSightings || []).length === n0 && /That sheet is on/.test((S.arrival || {}).notice || "");
-    window.set({ matchId: keepId, arrival: { destination: bl[3].id } });
+    window.set({ matchId: keepId, arrival: { destination: bl[3].id, player: "number:7" } });
     window.logArrivalSighting();
     const took = (S.arrivalSightings || []).length === n0 + 1 && (S.arrivalSightings || []).slice(-1)[0].team === "Dynasty" && !document.querySelector("#root .warn");
     const flags = { gate, optBlank, noGhost, refused, refusedShot, went, offGate, offRefused, took };
@@ -6789,12 +6789,12 @@ const ROSTER = [
     const refused = (S.arrivalSightings || []).length === n0 && /not on this sheet/.test((S.arrival || {}).notice || "");
     [...document.querySelectorAll("#root .warn button")].find(b => /Start a sheet/.test(b.textContent)).click();
     const started = matchVs() === "Dynasty" && pitOf("right").name === "Dynasty" && !document.querySelector("#root .warn");
-    window.set({ arrival: { team: "Dynasty", destination: bl[3].id } });
+    window.set({ arrival: { team: "Dynasty", player: "number:7", destination: bl[3].id } });
     window.logArrivalSighting();
     const took = (S.arrivalSightings || []).length === n0 + 1 && (S.arrivalSightings || []).slice(-1)[0].m === S.matchId;
     // an empty sheet takes the team's name as the first row lands
     window.set({ tab: "tally", right: { name: "Rejects" } }); window.newMatch();
-    window.set({ tab: "scout", scoutTab: "arrival", arrival: { team: "Dynasty", destination: bl[4].id } });
+    window.set({ tab: "scout", scoutTab: "arrival", arrival: { team: "Dynasty", player: "number:7", destination: bl[4].id } });
     const openGate = !document.querySelector("#root .warn");
     window.logArrivalSighting();
     const adopted = matchVs() === "Dynasty" && (S.arrivalSightings || []).length === n0 + 2;
@@ -8070,7 +8070,8 @@ const ROSTER = [
     flags.theirFive = !!logFive && !logFive.disabled && (logFive.click(), theirBreaks("right").length === nFive && said(/where their five ended up first/));
     // How did they get there: Record with nothing tapped is not greyed out, it says what to tap
     window.set({ tab: "scout", scoutTab: "arrival", right: { name: "Dynasty" }, flash: "" });
-    S.arrival = { ...(S.arrival || {}), destination: "", sightingBunker: "", shotAt: "", notice: "" };
+    // A man picked, so what is missing is the bunker.
+    S.arrival = { ...(S.arrival || {}), player: "number:7", destination: "", sightingBunker: "", shotAt: "", notice: "" };
     const rec = [...document.querySelectorAll("#root button")].find(b => /^Record sighting$/.test(b.textContent.trim()));
     flags.arrival = !!rec && !rec.disabled && (rec.click(), /Choose a bunker before recording/.test(document.getElementById("root").innerText));
     const shot = [...document.querySelectorAll("#root button")].find(b => /^Record shot$/.test(b.textContent.trim()));
