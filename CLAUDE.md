@@ -683,15 +683,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     the start rather than on Tally, with the answers kept. Sign-in sets
     `fmtAsk` until the coach taps Done, and the shell shows `fmtPage(true)`
     with no tabs: division (`FMT_DIVS`: the seven rulebook divisions below,
-    then Pro, WNXL and Masters as named custom choices, then Other), how many a side (`FMT_GAMES`: X-Ball,
+    in five groups: X-Ball, 3-player X-Ball, timed games, race to, and Other), how many a side (`FMT_GAMES`: X-Ball,
     5-, 3-, 7-, 10-man), race, mercy and the clock between points. Picking
     a division fills in its numbers from the NXL Divisional X-Ball Rules 2026
     (`FMT_RULES`: Semi-Pro and D2–D5 per 8.1.1 / 8.2, 3v3 Amateur and
     Intermediate per 15.3.1 — game time shown, mercy, a 2:00 break per 9.3.12,
-    no race); every answer stays editable. **Pro**, **WNXL** and **Masters**
-    (`FMT_CUSTOM_DIVS`, "· custom") and **Other** preset nothing — except WNXL, which fills in race to 5 and a 5-point mercy, the owner's setting (`FMT_OWNER`), and says it is not from a published rulebook: the rulebook
-    gives them no numbers, so they clear the game time and ask the race and
-    men a side. A name from an older list keeps itself and shows under Other.
+    no race); every answer stays editable. **Pro**, **WNXL**, **Masters**
+    and every other format the owner's NXL format reference of 4 Nov 2026 lists (`FMT_REF`: Pro 15 min / mercy 6, WNXL 15 / 5, Masters 10 / 3, Pro 3-player X-Ball 7 / 3, the timed 3v3, 5v5, 7v7, 10v10 and Classic 5v5 with no mercy, College X-Ball race to 5) — fill in their numbers and say they are from that reference, not the rulebook; the picker groups them (`FMT_GROUPS`), and a **Game clock** row (`time`, shown and never run) sits between Race to and Mercy rule. Only **Other** presets nothing: it
+    clears the game time and asks the race and men a side. A name from an older list keeps itself and shows under Other.
     **Save these answers** under a name already saved replaces that preset's
     fields and keeps its id and name (`saveFmt`), so a custom format never
     inherits an old divisional game time; `test/format-regressions.cjs` holds

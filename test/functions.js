@@ -558,7 +558,8 @@ const ROSTER = [
     const want = { "Semi-Pro": [15, 5, 5], "Division 2": [15, 5, 5], "Division 3": [12, 4, 5], "Division 4": [12, 4, 5],
                    "Division 5": [10, 3, 5], "3v3 Amateur": [6, 3, 3], "3v3 Intermediate": [6, 3, 3] };
     window.set({ tab: "more", more: "format" });
-    const listed = JSON.stringify(FMT_DIVS) === JSON.stringify([...Object.keys(want), "Pro", "WNXL", "Masters", "Other"]);
+    const listed = JSON.stringify(FMT_DIVS) === JSON.stringify(["Pro", "WNXL", "Semi-Pro", "Division 2", "Division 3", "Division 4", "Division 5", "Masters",
+      "Pro 3-player", "3v3 Amateur", "3v3 Intermediate", "3v3", "5v5", "7v7", "10v10", "Classic 5v5", "College X-Ball", "Other"]);
     const bad = [];
     for (const [d, [time, mer, size]] of Object.entries(want)) {
       window.setFmt("div", d);
@@ -568,7 +569,7 @@ const ROSTER = [
     }
     const page3 = (window.setFmt("div", "Division 3"), document.getElementById("root").innerText);
     const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 · split deck/.test(page3)
-      && !/Race to — your format/.test(page3) && !/10-man/.test(page3);
+      && /Race to — your format/.test(page3) && /Game clock — the official's starting clock/.test(page3) && /12 min · rulebook/.test(page3);
     const semi = (window.setFmt("div", "Semi-Pro"), /0:45 · split deck/.test(document.getElementById("root").innerText));
     window.setFmt("div", "Other");
     const other = S.fmt.time === 0 && /Race to — your format/.test(document.getElementById("root").innerText);

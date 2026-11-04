@@ -36,9 +36,6 @@ const {createServer}=require('../scripts/serve');
    assert(raw);const restored=await p.evaluate(async raw=>{const ok=loadCopy('replace',raw);if(typeof _localSaveTail!=='undefined')await _localSaveTail;return{ok,time:S.fmt.time,clock:S.fmt.clock,presets:S.fmts.length,points:S.results.length};},raw);
    assert.deepEqual(restored,{ok:true,time:15,clock:45,presets:1,points:1});await p.reload();assert.equal(await p.evaluate(()=>S.fmts[0].clock),45);
   });
-  await check('Pro and Masters are visible custom choices without divisional defaults',async p=>{
-   for(const div of ['Pro','Masters']){await p.getByRole('button',{name:div+' · custom',exact:true}).click();const got=await p.evaluate(()=>({div:S.fmt.div,time:S.fmt.time,text:document.getElementById('root').innerText}));assert.equal(got.div,div);assert.equal(got.time,0);assert.match(got.text,/custom settings/);assert.match(got.text,/Race to/);assert(!got.text.includes('12-minute game'));}
-  });
   await check('mercy 6 can be picked and ends the match at a six-point lead, not before',async p=>{
    await p.evaluate(()=>setFmt('div','Other'));
    await p.getByRole('button',{name:'6 points',exact:true}).click();
@@ -49,20 +46,39 @@ const {createServer}=require('../scripts/serve');
    assert.deepEqual(got,{mercy:6,at5:false,mp5:true,at6:true});
    await p.reload();assert.equal(await p.evaluate(()=>S.fmt.mercy),6);
   });
-  await check('WNXL fills in race to 5 and a 5-point mercy, says whose numbers they are, and stays editable',async p=>{
-   await p.evaluate(()=>{setFmt('clock',90);});
-   await p.getByRole('button',{name:'WNXL · custom',exact:true}).click();
-   const got=await p.evaluate(()=>({f:{...S.fmt},m:curMatch(),size:sideSize(),root:document.getElementById('root').innerText}));
-   assert.equal(got.f.div,'WNXL');assert.equal(got.f.raceTo,5);assert.equal(got.f.mercy,5);assert.equal(got.f.game,'xball');assert.equal(got.f.time,0);
-   assert.equal(got.f.clock,90,'the clock between points is left as the coach set it');
-   assert.equal(got.m.raceTo,5);assert.equal(got.m.mercy,5);assert.equal(got.size,5);
-   assert.match(got.root,/WNXL: race to 5, and the match ends at a 5-point lead/);assert.match(got.root,/not from a published rulebook/);
-   const lit=await p.evaluate(()=>['Race to','Mercy rule'].map(l=>[...document.querySelectorAll(`[aria-label="${l}"] button.on`)].map(b=>b.textContent.trim())));
-   assert.deepEqual(lit,[['Race to 5'],['5 points']]);
-   await p.getByRole('button',{name:'4 points',exact:true}).click();assert.equal(await p.evaluate(()=>S.fmt.mercy),4);
-   const sheet=await p.evaluate(()=>{setFmt('mercy',5);openSheet({vs:'WNXL fixture'});return{race:curMatch().raceTo,mercy:curMatch().mercy,div:curMatch().div};});
-   assert.deepEqual(sheet,{race:5,mercy:5,div:'WNXL'});
-   await p.reload();assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.raceTo,S.fmt.mercy]),['WNXL',5,5]);
+  await check('every division in the owner\'s NXL format table fills in its clock, mercy and race',async p=>{
+   const want={
+    'Pro':['xball',15,6,0,5],'WNXL':['xball',15,5,0,5],'Semi-Pro':['xball',15,5,0,5],'Division 2':['xball',15,5,0,5],
+    'Division 3':['xball',12,4,0,5],'Division 4':['xball',12,4,0,5],'Division 5':['xball',10,3,0,5],'Masters':['xball',10,3,0,5],
+    'Pro 3-player':['3',7,3,0,3],'3v3 Amateur':['3',6,3,0,3],'3v3 Intermediate':['3',6,3,0,3],
+    '3v3':['3',3,0,0,3],'5v5':['5',5,0,0,5],'7v7':['7',7,0,0,7],'10v10':['10',10,0,0,10],'Classic 5v5':['5',5,0,0,5],
+    'College X-Ball':['xball',15,0,5,5]};
+   for(const [div,[game,time,mercy,race,size]] of Object.entries(want)){
+    const got=await p.evaluate(div=>{openSheet({vs:'Fixture '+div});setFmt('div',div);const m=curMatch();return{game:S.fmt.game,time:S.fmt.time,mercy:S.fmt.mercy,race:S.fmt.raceTo,size:sideSize(),mMercy:mercy(),mRace:raceTo(),text:document.getElementById('root').innerText};},div);
+    assert.deepEqual([got.game,got.time,got.mercy,got.race,got.size],[game,time,mercy,race,size],div);
+    assert.equal(got.mMercy,mercy,div+' mercy on the sheet');assert.equal(got.mRace,race,div+' race on the sheet');
+    if(!['Semi-Pro','Division 2','Division 3','Division 4','Division 5','3v3 Amateur','3v3 Intermediate'].includes(div))assert.match(got.text,/from the NXL format reference \(4 Nov 2026\), not the divisional rulebook/,div);
+   }
+  });
+  await check('the game clock row sits under Race to and above Mercy rule, and is kept',async p=>{
+   const order=await p.evaluate(()=>['Race to','Game clock','Mercy rule'].map(l=>{const el=document.querySelector(`[aria-label="${l}"]`);return el?el.getBoundingClientRect().top:null;}));
+   assert(order.every(Boolean),JSON.stringify(order));assert(order[0]<order[1]&&order[1]<order[2],JSON.stringify(order));
+   await p.evaluate(()=>setFmt('div','Pro'));
+   assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('[aria-label="Game clock"] button.on')].map(b=>b.textContent.trim())),['15 min']);
+   await p.getByRole('button',{name:'12 min',exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.fmt.time),12);
+   assert.match(await p.evaluate(()=>fmtSummary()),/12-min game/);
+   await p.reload();assert.equal(await p.evaluate(()=>S.fmt.time),12);
+   await p.getByRole('button',{name:'Off',exact:true}).first().click();
+   assert.equal(await p.evaluate(()=>S.fmt.time),0);
+  });
+  await check('conventional 3v3 and 3-player X-Ball are separate groups, and the timed formats show their bracket',async p=>{
+   const groups=await p.evaluate(()=>[...document.querySelectorAll('.seg[aria-label]')].map(el=>[el.getAttribute('aria-label'),[...el.querySelectorAll('button')].map(b=>b.textContent.trim())]).filter(([l])=>/X-Ball|Timed|Race to$/.test(l)));
+   const g=Object.fromEntries(groups);
+   assert.deepEqual(g['3-player X-Ball · game clock and mercy'],['Pro · World Cup','Amateur','Intermediate']);
+   assert.deepEqual(g['Timed games · one clock, no mercy'],['3v3','5v5','7v7','10v10','Classic 5v5']);
+   await p.evaluate(()=>setFmt('div','7v7'));
+   assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/win or go home\. That is the bracket, not the points in a game/);
   });
   await check('format screen fits phone and tablet with rule and custom choices',async p=>{
    for(const viewport of [{width:375,height:667},{width:820,height:1180}]){await p.setViewportSize(viewport);for(const div of ['Division 3','Other']){await p.evaluate(div=>setFmt('div',div),div);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}}

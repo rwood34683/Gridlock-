@@ -4178,15 +4178,54 @@ const FMT_RULES = {
   "Division 5":       {game:"xball", time:10, mercy:3, split:60},
   "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
   "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
-const FMT_CUSTOM_DIVS = ["Pro", "WNXL", "Masters"];
-const FMT_DIVS = [...Object.keys(FMT_RULES), ...FMT_CUSTOM_DIVS, "Other"];
 const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
-// A custom division the owner gave numbers to. They are his call, not a
-// published rule (the divisional rulebook names WNXL only in 4.2.5.1, as its
-// own format), so the screen says whose they are and every one stays
-// editable. The clock between points is left as the coach set it.
-const FMT_OWNER = {
-  "WNXL": {game:"xball", raceTo:5, mercy:5, said:"set for this app on 4 Nov 2026, not from a published rulebook"}};
+/* The rest of the formats, from the NXL format reference the owner gave on
+ * 4 Nov 2026 (NXL's own event pages): game clock, mercy lead and race for the
+ * divisions and formats the divisional rulebook does not carry. They are not
+ * the rulebook, so the screen says where they came from, and every answer
+ * stays editable. X-Ball is a game clock and a mercy lead, not a race; the
+ * timed formats are one clock and no mercy; College X-Ball is the one race.
+ * `series` is how a bracket advances (best 2 of 3 …), shown and never scored:
+ * it is not the points needed to win a game. The clock between points is left
+ * as the coach set it — the reference gives none. */
+const FMT_REF_SAID = "from the NXL format reference (4 Nov 2026), not the divisional rulebook";
+const FMT_REF = {
+  "Pro":            {game:"xball", time:15, mercy:6, raceTo:0},
+  "WNXL":           {game:"xball", time:15, mercy:5, raceTo:0},
+  "Masters":        {game:"xball", time:10, mercy:3, raceTo:0},
+  "Pro 3-player":   {game:"3",     time:7,  mercy:3, raceTo:0, note:"Pro 3-player X-Ball, World Cup 2026."},
+  "3v3":            {game:"3",     time:3,  mercy:0, raceTo:0, series:"Elimination rounds are best 2 of 3."},
+  "5v5":            {game:"5",     time:5,  mercy:0, raceTo:0, series:"Elimination rounds are best 2 of 3."},
+  "7v7":            {game:"7",     time:7,  mercy:0, raceTo:0, series:"Elimination rounds are win or go home."},
+  "10v10":          {game:"10",    time:10, mercy:0, raceTo:0, series:"Elimination rounds are win or go home."},
+  "Classic 5v5":    {game:"5",     time:5,  mercy:0, raceTo:0, series:"Prelims are best 2 of 3."},
+  "College X-Ball": {game:"xball", time:15, mercy:0, raceTo:5, note:"NCPA College X-Ball: the one X-Ball division that is a race."}};
+const fmtRef = d => Object.prototype.hasOwnProperty.call(FMT_REF, d) ? FMT_REF[d] : null;
+// The division picker in the groups a referee reads them in. The key is what
+// a sheet and a saved format keep; the label is only what the button says.
+const FMT_GROUPS = [
+  ["X-Ball · five a side · game clock and mercy", ["Pro", "WNXL", "Semi-Pro", "Division 2", "Division 3", "Division 4", "Division 5", "Masters"]],
+  ["3-player X-Ball · game clock and mercy", ["Pro 3-player", "3v3 Amateur", "3v3 Intermediate"]],
+  ["Timed games · one clock, no mercy", ["3v3", "5v5", "7v7", "10v10", "Classic 5v5"]],
+  ["Race to", ["College X-Ball"]],
+  ["Anything else", ["Other"]]];
+const FMT_LABEL = {"WNXL":"WNXL Pro", "Pro 3-player":"Pro · World Cup", "3v3 Amateur":"Amateur", "3v3 Intermediate":"Intermediate"};
+const fmtLabel = d => FMT_LABEL[d] || d;
+// The whole name, where the button's short label would be ambiguous.
+const FMT_FULL = {"Pro":"Professional", "WNXL":"WNXL Professional", "Masters":"Masters X-Ball", "Pro 3-player":"Pro 3-player X-Ball",
+  "3v3 Amateur":"Amateur 3-player X-Ball", "3v3 Intermediate":"Intermediate 3-player X-Ball", "3v3":"3v3 timed game", "5v5":"5v5 timed game",
+  "7v7":"7v7 timed game", "10v10":"10v10 timed game", "Classic 5v5":"Classic 5v5 timed game"};
+const fmtFull = d => FMT_FULL[d] || d;
+const FMT_DIVS = FMT_GROUPS.flatMap(g => g[1]);
+// Kept for older saves and checks: no named division presets nothing now.
+const FMT_CUSTOM_DIVS = [];
+const FMT_TIMES = [3, 5, 6, 7, 10, 12, 15];
+// One line for what a reference preset sets.
+function fmtRefLine(r){
+  return [`a ${r.time}-minute game clock`,
+    r.raceTo > 0 ? `race to ${r.raceTo}` : "no race",
+    r.mercy > 0 ? `the match ends early at a ${r.mercy}-point lead` : "no mercy"].join(", ");
+}
 const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
 const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
@@ -4218,15 +4257,15 @@ window.setFmt = (k, v) => {
   const m = curMatch();
   if(k === "div"){
     if(m) patchMatch({div: v});
-    const r = fmtRule(v), own = FMT_OWNER[v];
-    if(own){
-      S.fmt = {...S.fmt, game: own.game, raceTo: own.raceTo, mercy: own.mercy, time: 0};
+    const r = fmtRule(v), ref = fmtRef(v);
+    if(ref){
+      S.fmt = {...S.fmt, game: ref.game, raceTo: ref.raceTo, mercy: ref.mercy, time: ref.time};
       const msgs = [];
-      S.flash = ""; fmtSize(own.game); if(S.flash) msgs.push(S.flash);
-      S.flash = ""; window.setRaceTo(own.raceTo); if(S.flash) msgs.push(S.flash);
-      S.flash = ""; window.setMercy(own.mercy); if(S.flash) msgs.push(S.flash);
+      S.flash = ""; fmtSize(ref.game); if(S.flash) msgs.push(S.flash);
+      S.flash = ""; window.setRaceTo(ref.raceTo); if(S.flash) msgs.push(S.flash);
+      S.flash = ""; window.setMercy(ref.mercy); if(S.flash) msgs.push(S.flash);
       save(S);
-      flash(msgs.length ? msgs.join(" ") : `${v}: race to ${own.raceTo}, mercy at a ${own.mercy}-point lead — ${own.said}.`);
+      flash(msgs.length ? msgs.join(" ") : `${fmtFull(v)}: ${fmtRefLine(ref)} — ${FMT_REF_SAID}.`);
       return;
     }
     if(!r){ S.fmt = {...S.fmt, time: 0}; save(S); render(); return; }
@@ -4244,6 +4283,8 @@ window.setFmt = (k, v) => {
     return;
   }
   if(k === "game"){ fmtSize(v); save(S); render(); return; }
+  // The game clock is the official's: kept with the format and shown, never run.
+  if(k === "time"){ save(S); render(); return; }
   if(k === "raceTo") return window.setRaceTo(v);
   if(k === "mercy") return window.setMercy(v);
   if(k === "clock") return window.setBreakClock(v);
@@ -4299,16 +4340,23 @@ function fmtPage(first){
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
       </div>`).join("")}</div>` : ""}
     <p class="note" style="margin-top:var(--s3)">Division:</p>
-    <div class="seg seg--wrap" aria-label="Division">${FMT_DIVS.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !FMT_DIVS.includes(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(d)}${FMT_CUSTOM_DIVS.includes(d) ? " · custom" : ""}</button>`).join("")}</div>
+    ${FMT_GROUPS.map(([head, divs]) => `<p class="note fmt-group" style="margin:var(--s2) 0 var(--s1)">${esc(head)}</p>
+    <div class="seg seg--wrap" aria-label="${esc(head)}">${divs.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !FMT_DIVS.includes(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(fmtLabel(d))}</button>`).join("")}</div>`).join("")}
+    <p class="note" style="margin-top:var(--s2)">X-Ball runs on a game clock, not a race: the mercy is the lead that ends a match early, not the winning score, and when time runs out the score decides it.</p>
     ${rule ? `<div class="panel" style="margin-top:var(--s3)">
-      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(f.div)}</b> · ${esc(FMT_RULEBOOK)}</p>
-      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3v3 X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
+      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_RULEBOOK)}</p>
+      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3-player X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
       <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
-    </div>` : FMT_OWNER[f.div] ? `<p class="note" style="margin-top:var(--s2)"><b style="color:var(--ink)">${esc(f.div)}</b>: race to ${FMT_OWNER[f.div].raceTo}, and the match ends at a ${FMT_OWNER[f.div].mercy}-point lead — ${esc(FMT_OWNER[f.div].said)}. Change any answer below.</p>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
-    ${rule ? "" : `<p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
+    </div>` : fmtRef(f.div) ? `<div class="panel" style="margin-top:var(--s3)">
+      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_REF_SAID)}</p>
+      <p class="note" style="margin:var(--s2) 0 0">${fmtRef(f.div).series ? `Timed game, ${fmtGame(fmtRef(f.div).game)[2]} a side` : fmtRef(f.div).game === "3" ? "3-player X-Ball, three a side" : "X-Ball, five a side"}: ${esc(fmtRefLine(fmtRef(f.div)))}.${fmtRef(f.div).note ? " " + esc(fmtRef(f.div).note) : ""}${fmtRef(f.div).series ? " " + esc(fmtRef(f.div).series) + " That is the bracket, not the points in a game." : ""} The game clock is the official's: tap Time's up on the point sheet when it runs out. Change any answer below.</p>
+    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
-    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>`}
+    <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>
+    <p class="note" style="margin-top:var(--s3)">Game clock — the official's starting clock for the match:</p>
+    <div class="seg seg--wrap" aria-label="Game clock"><button class="${f.time > 0 ? "" : "on"}" onclick="setFmt('time', 0)">Off</button>${FMT_TIMES.map(n => `<button class="${f.time === n ? "on" : ""}" onclick="setFmt('time', ${n})">${n} min${rule && rule.time === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
     <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5,6].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
@@ -14938,7 +14986,7 @@ const HELP = {
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
-         "Your format — division, how many a side, race, mercy and clock — is asked after you sign in and kept under More › Format. The sheet calls match point and match over for you.",
+         "Your format — division, how many a side, race, game clock, mercy and the clock between points — is asked after you sign in and kept under More › Format. Pick your division and its numbers fill in. The sheet calls match point and match over for you.",
          "Who's on, above your five, is where you rotate: tap a man off, tap a man on. The five stands until you change it, point after point.",
          "Clock between points is the one clock you run. Set it to what your event gives you and it starts itself when a point is scored; it rides in the header on every tab.",
          "Time's up is for when the official's match clock runs out: ahead, the match ends at this score; level, you say whether that is a tie or goes to overtime.",
@@ -15132,7 +15180,7 @@ const HELP_Q = [
   ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],
   ["I turned the phone sideways.", "Tally offers the quick log at the top the moment the phone is on its side: the score, the call, We won it and They won it on one screen, one-handed. It is the same point sheet turned sideways — one match, one score, whichever way you logged it. Exit puts you back where you were."],
-  ["Our matches are on a clock with a mercy rule.", "Set both under More › Format. Mercy rule — 3, 4 or 5 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
+  ["Our matches are on a clock with a mercy rule.", "Set both under More › Format. X-Ball is a game clock and a mercy, not a race. Mercy rule — 3, 4, 5 or 6 points — ends the match the moment one side leads by that much, and the sheet calls match point one short of it. Time's up is for the clock running out; level, your format says tie or overtime. Race to stays for formats that race to a score. Leave what does not apply off."],
   ["What will they run next?", "The point sheet reads it between points: the call they have run most in the spot you are in right now — the first point, a timeout just spent, match point either way, behind or ahead, after losing or winning a point — with the count beside it, and your best answer from your own record against that call, one tap to make it the call. It is counted from what you logged on Scout › Breakouts, so it starts thin and sharpens as the day goes. It also says when their last five calls disagree with the season, and names your own tell: the call you have run most against them in the same spot, because they chart you too. Until the real five is tapped in, the Scout field shows a dashed ghost of where they have planted most, named under the field with the man usually seen in each bunker."],
   ["Who has the lanes off the break?", "The Lanes chip over the Scout field draws every clear lane between your five and theirs, white over black like every lane here. Once their five is known — placed on Tally or logged on Scout › Breakouts for this point, or the five they usually plant — the call panel and the Counter count, bunker to bunker on the measured field, how many of your five would have a clear lane on one of theirs and how many of theirs would have one on you. It is the same test Sightlines makes, and it is geometry, not a read: where they actually stand off the buzzer is yours to see. When one of their men has shot two or more of yours and has been sighted in their five, it also names which of your five has a lane on his usual bunker."],
   ["What does each of their men do off the buzzer?", "Scout › Anticipate, By wire off the buzzer: every man of theirs you charted on Tally, sorted by the wire of the bunker he broke to, and what he did there — stop, run (a Moved to), shoot (a lane or target ticked) or run & shoot. A count of what you told the sheet, with how many charted on each wire; a man placed and not yet told is not counted."],
