@@ -3025,6 +3025,36 @@ function keepSnapshot(text, own = false){
   if(!_snapPending.length) _snapFail = "";
   return true;
 }
+/* Every tab journals its latest save under its own key before it writes the
+ * season, and a tab that closed cleanly left that journal behind: one
+ * whole-season copy a launch, never removed. On one phone with one tab the
+ * store filled up after a handful of launches, saves were refused, and Nexus
+ * listed "another tab saved newer work" that nobody had made. A journal
+ * whose save is the one the store holds, or the one it built on, records
+ * nothing the store does not, so it is taken off — at launch and once a
+ * minute — unless its tab still says it is open. A journal whose save is not
+ * on that line is a real fork and stays; snapshots carry no journal id and
+ * always stay. */
+function pruneJournals(){
+  let cur = null; try{ cur = localStorage.getItem(STORE_KEY); }catch(e){ return 0; }
+  if(!cur) return 0;
+  const line = new Set([saveIdOf(cur), tailStr(cur, "prevId")].filter(Boolean));
+  const drop = [];
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith(TAB_COPY) || key === TAB_COPY + TAB_ID) continue;
+      const tab = key.slice(TAB_COPY.length);
+      let live = 0; try{ live = +localStorage.getItem(TAB_LIVE + tab) || 0; }catch(e){}
+      if(live && Date.now() - live < 30000) continue;
+      let id = ""; try{ id = JSON.parse(localStorage.getItem(key) || "").journalId || ""; }catch(e){}
+      if(id && line.has(id)) drop.push(key);
+    }
+  }catch(e){}
+  drop.forEach(k => { try{ localStorage.removeItem(k); localStorage.removeItem(TAB_LIVE + k.slice(TAB_COPY.length)); }catch(e){} });
+  return drop.length;
+}
+setInterval(() => { try{ pruneJournals(); }catch(e){} }, 60000);
 // Two tabs wrote at once. Keep both sides of it, then stop writing.
 function forkSeen(text){
   // This tab's own latest save is the one that may have been written over.
@@ -3252,6 +3282,7 @@ function storeWarning(){
   return "";
 }
 let S = load();
+try{ pruneJournals(); }catch(e){}
 // Another tab saving makes this one stale at once, not only on its next tap:
 // its cloud push stops, and the screen says so before anything is lost.
 window.addEventListener("storage", e => {
@@ -3891,7 +3922,7 @@ function clearScratch(s = S){
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
-  s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.joinOnly = false; s.joinSaid = "";
+  s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.pickAside = null; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
   s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
   // The season copy shown as text is the whole season again, saved inside the
@@ -8907,7 +8938,7 @@ function manRead(side, who, team){
     const first = outs.filter(o => o.m === r.m && o.pt === r.pt && o.side === side).sort((x, y) => (x.at || 0) - (y.at || 0))[0];
     return first === mine; };
   return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
-          delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battling").length,
+          delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battle").length,
           bunker: top("bunker"), shotFrom: top("shotFrom"),
           gunUp: rows.filter(r => (r.dir !== null && r.dir !== undefined && r.dir !== "") || r.shootAt).length,
           took: rows.reduce((n, r) => n + all.filter(o => o && o.m === r.m && o.pt === r.pt && o.side === opp && o.alive === false && o.shotFrom && o.shotFrom === r.bunker).length, 0),
@@ -9382,6 +9413,22 @@ function setPick(list, extra = {}){
   if(_pickHist.length > 40) _pickHist.shift();
   set({theirPick: list, ...extra});
 }
+/* On a watched game both teams are charted on one field, a five at a time,
+ * and the switch for whose five threw away the men already placed — with
+ * Undo cleared, on the screen where Undo exists to save exactly that tap.
+ * The five placed for one side is set aside while the other is charted, and
+ * comes back on the way back, only on the same sheet, point and field. A fix
+ * in progress is one logged row being edited, so it is cancelled, as before. */
+window.switchScoutSide = sd => {
+  const cur = (curMatch()||{}).watch && S.scoutSide === "left" && pitNamed("left") ? "left" : "right";
+  if(sd === cur) return;
+  const here = {m: S.matchId, pt: sheetPoint(), layout: S.layoutKey};
+  const keep = !S.theirFix && (S.theirPick || []).length ? {side: cur, list: [...S.theirPick], ...here} : null;
+  const back = S.pickAside && S.pickAside.side === sd && S.pickAside.m === here.m && S.pickAside.pt === here.pt
+    && S.pickAside.layout === here.layout ? S.pickAside.list : [];
+  _pickHist = [];
+  set({scoutSide: sd, theirPick: back, theirFix: null, pickAside: keep});
+};
 window.dropTheirPick = i => setPick((S.theirPick || []).filter((_, k) => k !== i));
 window.undoTheirPick = () => {
   if(!_pickHist.length){ flash("Nothing to undo on this five yet."); return; }
@@ -12094,9 +12141,9 @@ function tally(){
       <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     </div>` : `<div class="btnrow">
-      <button class="btn grow btn--lg" onclick="endPoint('us')">${
+      <button class="btn grow btn--lg" onclick="tapResult('us')">${
         (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
-      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${
+      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${
         (curMatch()||{}).watch ? esc(sideWord("them")) + " won it" : "They won it"}</button>
     </div>
     <div class="btnrow">
@@ -12373,6 +12420,20 @@ function clearPointScratch(){
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
  * answer rather than scoring it twice. */
+// A thumb on a sideline taps twice. The second tap of a double landed on the
+// same button in the same place after the redraw and scored the next point
+// too: 2–1 on a race to four went to 4–1, final, with nothing said. Every
+// result button goes through tapResult(), which takes a tap inside
+// RESULT_GUARD_MS of the last result on this sheet as that second tap. Back a
+// point is how a result is changed, and it clears the guard; endPoint() itself
+// stays unguarded so a script or a check can score points back to back.
+const RESULT_GUARD_MS = 1500;
+let _lastEnd = null;
+window.tapResult = won => {
+  if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
+    return flash(`Point ${_lastEnd.pt} is already scored. Tap Back a point to change it.`);
+  window.endPoint(won);
+};
 window.endPoint = won => {
   if(nobodyToPlay()) return needOpponent();
   // The sheet stands its result buttons down once the race is won, but the
@@ -12402,12 +12463,14 @@ window.endPoint = won => {
   // to a buzzer that is not coming.
   S.clockEnd = breakClock() && !matchOver() ? Date.now() + breakClock() * 1000 : 0;
   _buzzed = false;
+  _lastEnd = {m: S.matchId, pt, at: Date.now()};
   save(S); render();
 };
 // Back a point, because Next point is one tap and a sideline is a sideline.
 // It moves the cursor; it does not throw away what was logged on the point you
 // are leaving, and markOut already refuses to log the same man twice.
 window.backPoint = () => {
+  _lastEnd = null;
   const to = Math.max(1, (S.point || 1) - 1);
   // The result goes with it. Otherwise the score still counts a point he is
   // about to play again, and Back a point silently becomes a way to inflate it.
@@ -13232,7 +13295,7 @@ function arrivalPlayerKey(player){
 function arrivalContext(){
   const a = S.arrival || {}, side = a.side === "left" ? "left" : "right";
   const pit = pitOf(side), named = !!(a.team || pit.named), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
-  return {side, team, named, player:a.player || "number:1", layout:S.layoutKey,
+  return {side, team, named, player:a.player || "", layout:S.layoutKey,
           m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : sheetPoint()};
 }
 /* A sighting belongs to a team and to a sheet on this field. With nobody in
@@ -13477,8 +13540,8 @@ window.setArrival = patch => {
   if((previous.layout && previous.layout !== S.layoutKey) || (previous.scope && previous.scope !== arrivalScope())) previous = {...previous,startBunker:"",destination:"",sightingBunker:"",shotAt:""};
   S.arrival = {...previous,...patch,layout:S.layoutKey};
   const unlessChosen = (key,value) => { if(!(key in patch)) S.arrival[key] = value; };
-  if("side" in patch){ if(!("startEnd" in patch)) delete S.arrival.startEnd; unlessChosen("team",""); unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
-  if("team" in patch){ unlessChosen("player","number:1"); unlessChosen("destination",""); unlessChosen("startBunker",""); }
+  if("side" in patch){ if(!("startEnd" in patch)) delete S.arrival.startEnd; unlessChosen("team",""); unlessChosen("player",""); unlessChosen("destination",""); unlessChosen("startBunker",""); }
+  if("team" in patch){ unlessChosen("player",""); unlessChosen("destination",""); unlessChosen("startBunker",""); }
   if("player" in patch) unlessChosen("startBunker","");
   if(["side","team","player","matchId","point"].some(k=>k in patch)){ unlessChosen("sightingBunker",""); unlessChosen("shotAt",""); }
   if("player" in patch || "matchId" in patch || "point" in patch){
@@ -13519,6 +13582,11 @@ window.logArrivalSighting = () => {
   }
   const context = arrivalContext(), why = arrivalRefusal(context);
   if(why){ S.arrival = {...a,notice:why}; render(); return; }
+  // A sighting is one man's. The screen used to open on their #1, so a scout
+  // tapping fast with his eyes on the field wrote every man's moves onto #1
+  // and their rotations and usual bunkers read wrong. Nobody is picked until
+  // he picks him.
+  if(!context.player){ S.arrival = {...a,notice:"Tap the man first — who did you see?"}; render(); return; }
   if(!curLayout().bunkers.some(b=>b.id===id)){
     S.arrival = {...a,notice:"Choose a bunker before recording a sighting."}; render(); return;
   }
@@ -13553,6 +13621,11 @@ window.logArrivalShot = () => {
   }
   const context = arrivalContext(), why = arrivalRefusal(context);
   if(why){ S.arrival = {...a,notice:why}; render(); return; }
+  // A sighting is one man's. The screen used to open on their #1, so a scout
+  // tapping fast with his eyes on the field wrote every man's moves onto #1
+  // and their rotations and usual bunkers read wrong. Nobody is picked until
+  // he picks him.
+  if(!context.player){ S.arrival = {...a,notice:"Tap the man first — who did you see?"}; render(); return; }
   const has = id => curLayout().bunkers.some(b=>b.id===id);
   if(!has(from)){ S.arrival = {...a,notice:"Choose the bunker they were shooting from first — the sighting above."}; render(); return; }
   if(!has(to)){ S.arrival = {...a,notice:"Choose the bunker they were shooting at."}; render(); return; }
@@ -13698,7 +13771,9 @@ function scoutArrival(){
   const roster = profileOf(c.team).players || [];
   const players = new Map(roster.map(p=>[arrivalPlayerKey(p),`${p.num ? '#'+p.num+' ' : ''}${p.name || 'Unnamed opponent'}`]));
   (S.arrivalSightings || []).filter(o=>o.team===c.team).forEach(o=>{if(!players.has(o.player)) players.set(o.player,o.player.replace(/^number:/,'#').replace(/^name:/,''));});
-  if(!players.has(c.player)) players.set(c.player,c.player.replace(/^number:/,'#').replace(/^name:/,''));
+  if(c.player && !players.has(c.player)) players.set(c.player,c.player.replace(/^number:/,'#').replace(/^name:/,''));
+  const manChips = players.size ? `<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">Who did you see?</h4>
+    <div class="seg seg--wrap" aria-label="Their man">${[...players].slice(0,15).map(([key,name])=>`<button class="${key===c.player?"on":""}" aria-pressed="${key===c.player}" onclick="setArrival({player:${jsq(key)}})">${esc(name)}</button>`).join("")}</div>` : "";
   const teams = arrivalTeamNames();
   const label = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? `${callOf(b)} · ${b.id}` : id; };
   const bunkerOptions = selected => curLayout().bunkers.map(b=>`<option value="${esc(b.id)}"${selected===b.id?' selected':''}>${esc(label(b.id))}</option>`).join("");
@@ -13708,10 +13783,11 @@ function scoutArrival(){
     <div class="arrival-grid">
       <div class="fld"><label for="arrival-team">Opponent team</label><select id="arrival-team" onchange="setArrival({team:this.value})">${teams.map(t=>`<option value="${esc(t===c.team && !c.named ? "" : t)}"${t===c.team?' selected':''}>${esc(t===c.team && !c.named ? "Nobody in the pit yet" : t)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('team')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='team')}">Add team</button></div>
       ${arrivalCustomForm("team")}
-      <div class="fld"><label for="arrival-player">Opponent player</label><select id="arrival-player" onchange="setArrival({player:this.value})">${[...players].map(([key,name])=>`<option value="${esc(key)}"${key===c.player?' selected':''}>${esc(name)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('player')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='player')}">Add player</button></div>
-      <div class="fld"><label for="arrival-number">Or enter their number</label><input id="arrival-number" inputmode="numeric" maxlength="30" value="${esc(c.player.startsWith('number:')?c.player.slice(7):'')}" placeholder="Number is enough" onchange="setArrivalNumber(this.value)"/></div>
+      <div class="fld"><label for="arrival-player">Opponent player</label><select id="arrival-player" onchange="setArrival({player:this.value})">${c.player?"":`<option value="" selected>Pick the man</option>`}${[...players].map(([key,name])=>`<option value="${esc(key)}"${key===c.player?' selected':''}>${esc(name)}</option>`).join("")}</select><button type="button" class="btn btn--quiet arrival-add" onclick="toggleArrivalCustom('player')" aria-expanded="${!!(_arrivalCustom && _arrivalCustom.kind==='player')}">Add player</button></div>
+      <div class="fld"><label for="arrival-number">Or enter their number</label><input id="arrival-number" inputmode="numeric" maxlength="30" value="${esc(c.player && c.player.startsWith('number:')?c.player.slice(7):'')}" placeholder="Number is enough" onchange="setArrivalNumber(this.value)"/></div>
       ${arrivalCustomForm("player")}
     </div>
+    ${manChips}
     <details class="arrival-context"${a.details?' open':''} ontoggle="arrivalDetailsToggle(this)"><summary>Pit, match &amp; starting end · Point ${c.pt} · ${options.startEnd==='right'?'Right → left':'Left → right'}</summary>
     <div class="arrival-grid">
       <div class="fld"><label for="arrival-side">Which pit</label><select id="arrival-side" onchange="setArrival({side:this.value})">
@@ -13726,7 +13802,7 @@ function scoutArrival(){
         <option value="left"${options.startEnd==='left'?' selected':''}>Left end → moving right</option><option value="right"${options.startEnd==='right'?' selected':''}>Right end → moving left</option></select></div>
       <div class="fld"><label for="arrival-start">Start from</label><select id="arrival-start" onchange="setArrival({startBunker:this.value})"><option value="">Start station</option>${bunkerOptions(options.startBunker)}</select></div>
     </div>
-    <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player))} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
+    <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player) || "no man picked yet")} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
     </details>
     <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Pick destination</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Pick earlier sighting</button></div>
     <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,names:true,overlay:arrivalOverlay(model)})}</div>
@@ -14095,7 +14171,7 @@ function scoutBreakouts(){
   const bl=curLayout().bunkers, label=id=>{ const b=bl.find(x=>x.id===id); return b?callOf(b):id; };
   const plants=plantCounts(side);
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
-      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="_pickHist=[];set({scoutSide:'${sd}',theirPick:[],theirFix:null})">${esc(pitOf(sd).name)}</button>`).join("")}
+      ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="switchScoutSide('${sd}')">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
   return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
       two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>
@@ -14301,7 +14377,7 @@ function pointStory(gid, pt, team){
       <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${esc(named(r.bunker)).slice(0,3)}</span>
       <span class="assign__body"><span class="assign__job">${esc(r.player||(r.side==="us"?"your man":"their man"))} → ${esc(named(r.bunker))}</span>
       <span class="assign__who">${[r.alive===true?"made it":r.alive===false?`shot on the break${r.shotFrom?` from ${esc(named(r.shotFrom))}`:""}`:"",
-        r.delayed?"delayed":"", r.movedTo?`moved to ${esc(named(r.movedTo))}`:"", r.entry==="battling"?"battling in":r.entry==="free"?"no pressure":""].filter(Boolean).join(" · ")||"charted"}</span></span>
+        r.delayed?"delayed":"", r.movedTo?`moved to ${esc(named(r.movedTo))}`:"", r.entry==="battle"?"battling in":r.entry==="clean"?"no pressure":""].filter(Boolean).join(" · ")||"charted"}</span></span>
     </div>`).join("")}</div>`:"";
   if(!facts&&!chart) return "";
   return sec("The point", `<div class="kv">${facts}</div>${chart}
@@ -14549,8 +14625,8 @@ function sightlines(){
              lane.blocked ? " · " + lane.by.slice(0,2).map(o=>esc(name(o))).join(" then ") + " in the way" : ""}</span>
          </div>
          <p class="note">Drag the white dot off the bunker to where the paint would actually go. Nobody shoots the middle of a bunker.</p>`
-      : `<p class="note">Tap a bunker to ask about one lane. Everything red is clipped by something
-         between you and it.</p>`}
+      : `<p class="note">Tap a bunker to ask about one lane. A dashed grey lane is blocked, and
+         what is in the way is ringed.</p>`}
     <div class="facts">
       <span class="fact"><b>${res.clear}</b><span>Clear lanes</span></span>
       <span class="fact"><b>${res.lines.length-res.clear}</b><span>Blocked</span></span>
@@ -15066,7 +15142,7 @@ const HELP = {
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
     how:["Once their five is known, their bunkers lead the lane table with a tag, their shooter's by name, and the count says how many of them are clear from where you stand.",
          "Under the counts, the bunker you are standing in says what was logged at it: how often their five have planted on it and the men lost there on either side.",
-         "Tap where you are standing. Every lane fans out, green for clear, red for blocked.",
+         "Tap where you are standing. Every lane fans out: solid white is clear, dashed grey is blocked.",
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
          "Dashed means something is in the way, and the blocker is ringed."]},
@@ -15110,7 +15186,7 @@ const HELP = {
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/format": {t:"Format", w:"Your division and match format — asked once after you sign in.",
-    how:["Pick your division: Semi-Pro, Division 2 to 5, or 3v3 Amateur or Intermediate. Its game time, mercy lead and break fill in from the NXL Divisional X-Ball Rules 2026.",
+    how:["Pick your division and its game clock, mercy, race and break fill in: Semi-Pro, Division 2 to 5 and the 3v3 divisions from the NXL Divisional X-Ball Rules 2026; Pro, WNXL, Masters, the timed games and College X-Ball from the NXL format reference.",
          "Divisional X-Ball is a game clock and a mercy lead, not a race. The game clock is the official's: tap Time's up on the point sheet when it runs out.",
          "The break is at least 2:00; on a split deck it is 1:00, or 0:45 in Semi-Pro. Any answer can still be changed.",
          "Other is for an event this rulebook does not cover: set how many a side, the race, the mercy and the clock yourself.",
@@ -15179,7 +15255,7 @@ const HELP_Q = [
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
-  ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in, and a second tap takes him off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
+  ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
@@ -15187,10 +15263,10 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
-  ["Can my assistant coach log too?", "On his own phone, yes, but the two do not sync. Nexus, then Save a copy, hands the file over and merges it."],
+  ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
-  ["What does it cost?", "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
+  ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Tap a man's bunker to take him off and tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
@@ -16386,8 +16462,8 @@ function quickLog(){
     </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
             : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${esc(matchPointWord(mp))}.</b> ${raceTo() ? `First to ${raceTo()}.` : mercy() ? `A ${mercy()}-point lead ends it.` : ""}</p>` : ""}
     <div class="qlog__score">
-      <button class="btn btn--lg" onclick="endPoint('us')">${esc(us)} won it</button>
-      <button class="btn btn--lg" style="background:var(--blue)" onclick="endPoint('them')">${esc(them)} won it</button>
+      <button class="btn btn--lg" onclick="tapResult('us')">${esc(us)} won it</button>
+      <button class="btn btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${esc(them)} won it</button>
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
