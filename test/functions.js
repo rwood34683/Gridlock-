@@ -2331,8 +2331,8 @@ const ROSTER = [
   // so a second one is the first real test that any of it was general.
   G("Tampa Bay");
   check("every layout that ships says where it came from", await ev(() =>
-    Object.keys(LAYOUTS).length === 6 &&
-    ["lso", "tby", "mwo"].every(k => /official NXL field map/.test(LAYOUTS[k].source)) &&
+    Object.keys(LAYOUTS).length === 7 &&
+    ["lso", "tby", "mwo", "nwc"].every(k => /official NXL field map/.test(LAYOUTS[k].source)) &&
     /field map the coach sent/.test(LAYOUTS.ujt.source) &&
     /field map the coach sent/.test(LAYOUTS.wch.source) &&
     /3D render the coach sent/.test(LAYOUTS.ugp.source) &&
@@ -9607,9 +9607,10 @@ const ROSTER = [
     window.watchGame(g.id);
     return (S.left || {}).name === g.h && (S.right || {}).name === g.a;
   }));
-  check("and while the event's field is not in the app, the sheet stays on the field he is on and says so", await ev(() =>
-    !LAYOUTS[SCHEDULE.layout] && curMatch().layout === "lso" && S.layoutKey === "lso"
-    && /World Cup field is not in the app yet, so this sheet is on NXL Lone Star Open/.test(S.flash || "")));
+  // The World Cup field is in the app now, so watching one of its games moves
+  // him onto it and the sheet is on it.
+  check("and the event's field is in the app: the game opens on it", await ev(() =>
+    !!LAYOUTS[SCHEDULE.layout] && curMatch().layout === SCHEDULE.layout && S.layoutKey === SCHEDULE.layout));
   check("and opens a sheet that says it is watched, not played", await ev(() => {
     const m = curMatch();
     return !!m.watch && m.home === "San Diego Dynasty" && S.point === 1
