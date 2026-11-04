@@ -7,7 +7,7 @@ const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
   "cloud-pages": "test/cloud-pages.js",
-  "format-regressions": "test/format-regressions.cjs", "ux-section1": "test/ux-section1.cjs", "ux-section3": "test/ux-section3.cjs", "ios-cloud": "test/ios-cloud.cjs", "site-links": "test/site-links.cjs",
+  "format-regressions": "test/format-regressions.cjs", "ux-section1": "test/ux-section1.cjs", "ux-section3": "test/ux-section3.cjs", "sync-ask": "test/sync-ask.cjs", "ios-cloud": "test/ios-cloud.cjs", "site-links": "test/site-links.cjs",
   dependencies: "test/dependencies.js",
   server: "test/server.js", functions: "test/functions.js", devices: "test/devices.js", bunkers: "tools/verify_bunkers.js",
   load: "test/loadtest.js", offline: "test/offline.js", arrival: "test/arrival.js", "arrival-custom": "test/arrival-custom.js", platform: "test/platform.js",

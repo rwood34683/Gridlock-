@@ -10591,6 +10591,52 @@ window.toggleSync = () => {
   S.syncOn = true; save(S); render();
   syncNow();
 };
+/* The backup question, asked once an account on a cloud build, straight after
+   sign-in and before the format. League sync stays opt-in: nothing is sent
+   until he taps Yes, and the answer is the same switch Nexus carries. Which
+   accounts have been asked is kept on this phone beside the season, keyed on
+   the account id, so a second account on the same phone is asked its own. */
+const SYNC_ASKED_KEY = "gridlock.coach.syncasked";
+function syncAskId(){
+  const a = readAccount();
+  return String((a.cloud && a.uid) || S.email || "").trim().toLowerCase();
+}
+function syncAskedList(){
+  try{ const v = JSON.parse(localStorage.getItem(SYNC_ASKED_KEY) || "[]"); return Array.isArray(v) ? v.filter(x => typeof x === "string") : []; }
+  catch(e){ return []; }
+}
+function markSyncAsked(){
+  const id = syncAskId(); if(!id) return;
+  const list = syncAskedList(); if(list.includes(id)) return;
+  try{ localStorage.setItem(SYNC_ASKED_KEY, JSON.stringify([...list, id].slice(-20))); }catch(e){}
+  _syncAskedNow.add(id);
+}
+// Held in memory too, so a phone that refuses the write still asks only once a launch.
+const _syncAskedNow = new Set();
+function syncAskDue(){
+  if(!S.entered || S.role !== "staff" || !canSync() || S.syncOn || _stale) return false;
+  const a = readAccount(), id = syncAskId();
+  if(!a.cloud || !id) return false;
+  return !_syncAskedNow.has(id) && !syncAskedList().includes(id);
+}
+function syncAskPage(){
+  return sec("Back up your season", `
+    <p class="lede">Keep a copy of your season with your account, so a lost or wiped phone does not lose it.</p>
+    <p class="note">Yes turns on <b>League sync</b>: your full season, including your scouting, uploads and one current
+      copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it.
+      Turn it off or delete the copy any time in More › Nexus › League sync.</p>
+    <div class="btnrow">
+      <button class="btn grow" onclick="answerSyncAsk(true)">Yes, back it up</button>
+      <button class="btn btn--quiet grow" onclick="answerSyncAsk(false)">Not now</button>
+    </div>`);
+}
+window.answerSyncAsk = yes => {
+  if(!syncAskDue()) return render();
+  markSyncAsked();
+  if(yes) return toggleSync();
+  set({syncSaid: "League sync is off. Your season stays on this phone. Turn it on any time in More › Nexus."});
+  flash("Not backed up. Turn it on any time in More › Nexus › League sync.");
+};
 window.deleteSynced = async () => {
   if(_syncDeleting) return;
   const cloud = window.gridlockCloud;
@@ -16570,8 +16616,8 @@ function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
   const blocked = gateKey();
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
-  const asking = !!S.fmtAsk;
-  const page = asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
+  const askSync = syncAskDue(), asking = askSync || !!S.fmtAsk;
+  const page = askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
                        : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
@@ -16931,7 +16977,7 @@ function render(){
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
-  const screen = [S.entered, !!S.fmtAsk, S.tab, S.more, S.scoutTab].join("|");
+  const screen = [S.entered, !!S.fmtAsk, syncAskDue(), S.tab, S.more, S.scoutTab].join("|");
   const at = main && screen === _where ? main.scrollTop : 0;
   _lastPointMemo = new Map();
   try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }

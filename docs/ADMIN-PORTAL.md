@@ -91,7 +91,9 @@ and manual imports; they do not imply all coaches have uploaded data.
 ## Consent and the season store
 
 The default coach build remains offline. A cloud-enabled build offers
-**Nexus > League sync**, off until the coach opts in. It uploads the whole
+**Nexus > League sync**, off until the coach opts in. The app asks each
+account once, right after its first sign-in ("Back up your season"), so most
+coaches meet the choice without looking for it; Not now leaves it off. It uploads the whole
 season, including competitive scouting data. Coaches can pause uploads and
 delete their uploaded copy. Administrator access does not turn that switch on,
 read phone-only seasons, or change the coach's own-row RLS policies.

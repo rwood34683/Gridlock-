@@ -840,6 +840,16 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     game on the schedule now opens on it. A bar laid across the field (`bar`
     with w > h) drew as an oval; its corners are rounded to the short side now.
 
+57. ~~Ask about the backup at first sign-in.~~ Done — the owner asked how a
+    coach's season reaches the admin portal, and the answer was only if he found
+    League sync under Nexus. A cloud build now asks each account once, straight
+    after sign-in and before the format (`syncAskDue()`, `syncAskPage()`): **Yes,
+    back it up** is `toggleSync()`, the same switch as Nexus; **Not now** leaves
+    it off. It stays opt-in — nothing is sent before Yes, and the question names
+    the full season, the scouting and Gridlock PB LLC's administrators. Asked
+    accounts are kept by account id under `gridlock.coach.syncasked`; a build
+    without `pushSeason` never asks. `test/sync-ask.cjs` holds it.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
