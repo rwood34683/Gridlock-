@@ -574,6 +574,20 @@ svg.field{width:100%;height:auto;display:block}
   padding:var(--s2) var(--s3) var(--s3);background:var(--panel);border-top:1px solid var(--line);
   border-radius:0 0 var(--r-md) var(--r-md)}
 .tsheet .fld{margin-top:var(--s1)}
+.tally-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px var(--s3);margin-bottom:var(--s2)}
+.tally-head__sc{font-size:var(--t-xl);letter-spacing:-.02em;color:var(--ink)}
+.tally-head__who{color:var(--mute);font-size:var(--t-sm);font-weight:600}
+.tally-head__up{flex-basis:100%;color:var(--mute);font-size:var(--t-sm)}
+.tally-head__up b{color:var(--ink)}
+/* The result, always a thumb away on Tally: the sheet is four phone screens
+   tall and We won it sat half way down it. Sticky to the foot of the column,
+   so it never covers the tab bar or the field it sits under. */
+.resultbar{position:sticky;bottom:calc(-1 * var(--s6));z-index:6;display:flex;gap:var(--s2);align-items:stretch;
+  margin:0 calc(-1 * var(--s4)) calc(-1 * var(--s6));padding:var(--s2) var(--s4) var(--s3);
+  background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 24px -14px rgba(0,0,0,.9)}
+.resultbar .btn{min-height:52px}
+.resultbar .resultbar__back{flex:none;padding:6px 10px}
+.flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
 /* On a tablet the field is most of the screen, so the sheet under it was off
@@ -11394,6 +11408,27 @@ window.tallyDone = () => {
   set({tallySel:null, tallyDraft:null, tallyPickFor:null, tallyEdit:null});
   if(said) flash(said);
 };
+/* Most men make it, and the sheet asked five taps of every one of them:
+ * the bunker, a scroll, his name, Made it, Log. With nothing else answered,
+ * his name is the whole story — he is logged made it and the sheet closes (or
+ * moves to the next placed man). Answer anything first and the name only
+ * names him; Fix it and Undo stand under the field for a wrong tap. */
+const draftBlank = d => !!d && d.alive == null && !d.entry && d.dir == null && !d.shootAt && !d.delayed
+  && !d.movedTo && !d.movedDelayed && !d.shotFrom && !(d.route || []).length;
+window.nameMadeIt = n => {
+  const d = draft();
+  if(!draftBlank(d)) return window.setDraft({player: n});
+  keepDraft();
+  S.tallyDraft = {...d, player: n, alive: true};
+  window.logBreakout();
+};
+// After a man is logged the field comes back under the thumb for the next one.
+function tallyFieldBack(){
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(!main || !map) return;
+  const top = map.getBoundingClientRect().top - main.getBoundingClientRect().top;
+  if(top < 0 || top > main.clientHeight * 0.5) main.scrollTop += top - 6;
+}
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
@@ -11491,12 +11526,14 @@ window.logBreakout = () => {
     S.tallyDraft = null; save(S);
     const told = breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).length;
     if(!was) flash(pt === sheetPoint() ? `All ${told} on this point recorded.` : `All ${told} on point ${pt} recorded.`); else render();
+    tallyFieldBack();
     return;
   }
   // The side sticks if the coach set it — he is working through their five —
   // and everything else starts clean for the next man.
   S.tallyDraft = d.sideSet ? {side, sideSet:true} : null;
   save(S); render();
+  tallyFieldBack();
 };
 window.undoBreakout = id => {
   const row = (S.breakouts || []).find(r => r && r.id === id); if(!row) return;
@@ -11747,8 +11784,9 @@ function breakoutSheet(){
       const taken = n => breakoutsHere().find(r => r.pt === rowPt && r.side === side && r.player === n && r.id !== S.tallyEdit && (S.tallyEdit || r.bunker !== b.id));
       return seg([[!d.player, "No name", "setDraft({player:''})"],
         ...names.map(n => { const t = taken(n);
-          return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `setDraft({player:${jsq(n)}})`]; })]);
+          return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `nameMadeIt(${jsq(n)})`]; })]);
     })()}
+    ${draftBlank(d) ? `<p class="note" style="margin:6px 0 0">Tap his name and he is logged <b>made it</b>. Shot on the break, or more to say? Answer that first, then his name.</p>` : ""}
     ${q("Did he make it?")}
     ${seg([[d.alive === true, "Made it", `setDraft({alive:${d.alive === true ? "null" : "true"}})`],
            [d.alive === false, "Shot on the break", `setDraft({alive:${d.alive === false ? "null" : "false"}})`]])}
@@ -11900,7 +11938,8 @@ function tally(){
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
       ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off."
-      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
+      : tellBacklog().length ? "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."
+      : "Tap the bunker a man broke to and his sheet opens. Tap his name and he is logged made it."}</p>
     ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
   // a man of theirs who broke deep into your half is still theirs. Under the
@@ -11960,14 +11999,13 @@ function tally(){
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
   ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
-  ${sec("Break chart", `<div class="facts">
-      <span class="fact" style="flex:1 0 100%;text-align:center">
-        <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : `You v ${matchVs() || "them"}`)} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
-      ${/* A watched game has no "you": the two sides are the two teams on it. */""}
-      <span class="fact"><b>${alive("us")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"}</span></span>
-      <span class="fact"><b>${alive("them")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"}</span></span>
-      <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
+  ${sec("Break chart", `${/* One line over the field, not three boxes: the score is
+        in the header too, and the field started 410 px down a phone under a
+        hero score and three tiles. A watched game has no "you": the two sides
+        are the two teams on it. */""}<div class="tally-head">
+      <b class="tally-head__sc">${sc.us}<span style="color:var(--dim)">–</span>${sc.them}</b>
+      <span class="tally-head__who">${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : `You v ${matchVs() || "them"}`)} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span>
+      <span class="tally-head__up"><b>${alive("us")}</b> ${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"} · <b>${alive("them")}</b> ${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"} · <b>${chartPt.length}</b> logged this point</span>
     </div>
     ${sheetField() ? `<div class="warn"><b>This sheet is on ${esc(LAYOUTS[sheetField()].name)}</b>, not the event on screen.
         Nothing logs here until you are back on that field, or you start a sheet on this one.
@@ -12143,12 +12181,7 @@ function tally(){
             been the mis-tap. */""}
       <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    </div>` : `<div class="btnrow">
-      <button class="btn grow btn--lg" onclick="tapResult('us')">${
-        (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
-      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${
-        (curMatch()||{}).watch ? esc(sideWord("them")) + " won it" : "They won it"}</button>
-    </div>
+    </div>` : `<p class="note">Who won it is in the bar at the foot of the screen.</p>
     <div class="btnrow">
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
@@ -12210,7 +12243,22 @@ function tally(){
       ? `${outsHere.length ? `<p class="note">Bunkers can be set on the point you are on.</p>` : `<p class="note">No outs on point ${pt} yet.</p>`}${outs.length > outsHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:true})">Show all ${outs.length} on this sheet</button>` : ""}`
       : `<p class="note">${outs.length>40?`Showing the last 40 of ${outs.length}. `:""}Bunkers can be set on the point you are on.</p><button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:false})">Only point ${pt}</button>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
-    outs.length?outs.length+" on this sheet":"")}`;
+    outs.length?outs.length+" on this sheet":"")}${resultBar()}`;
+}
+/* We won it / They won it, fixed to the foot of Tally whenever a point can
+ * be scored. Not while a man's breakout sheet is open — that sheet has its own
+ * bar, and the result is never the next tap while one is half told. */
+function resultBarShown(){
+  return S.tab === "tally" && !nobodyToPlay() && !sheetField() && !matchOver() && !selBunker() && !S.quick;
+}
+function resultBar(){
+  if(!resultBarShown()) return "";
+  const w = (curMatch()||{}).watch, back = (S.point||1) > 1;
+  return `<div class="resultbar" role="group" aria-label="Who won the point">
+    ${back ? `<button class="btn btn--quiet resultbar__back" onclick="backPoint()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : ""}
+    <button class="btn grow" onclick="tapResult('us')">${w ? esc(sideWord("us")) + " won it" : "We won it"}</button>
+    <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? esc(sideWord("them")) + " won it" : "They won it"}</button>
+  </div>`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
 // to. Both feed Bunker stats. The fast path stays one tap — this is after.
@@ -12435,7 +12483,15 @@ let _lastEnd = null;
 window.tapResult = won => {
   if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
     return flash(`Point ${_lastEnd.pt} is already scored. Tap Back a point to change it.`);
+  const pt = S.point || 1, before = (S.results || []).length;
   window.endPoint(won);
+  // Say what was scored, so a tap on the wrong one is caught while it is
+  // still one tap back.
+  if((S.results || []).length >= before && _lastEnd && _lastEnd.pt === pt){
+    const sc = matchScore(), w = (curMatch()||{}).watch;
+    const who = won === "them" ? (w ? sideWord("them") : matchVs() || "them") : (w ? sideWord("us") : "you");
+    flash(`Point ${pt} to ${who} · ${sc.us}–${sc.them}${matchOver() ? " · match over" : ""}`);
+  }
 };
 window.endPoint = won => {
   if(nobodyToPlay()) return needOpponent();
@@ -12454,6 +12510,11 @@ window.endPoint = won => {
   S.results = [...(S.results || []).filter(r => !(r.m === S.matchId && r.pt === pt)),
                {m: S.matchId, pt, won: won === "them" ? "them" : "us", at: Date.now(),
                 ...(read ? {read} : {})}];
+  // The call he is on is the call he ran: written with the result unless he
+  // already logged one for this point, so self-scout is not one more tap a
+  // point. A watched game's call is not his; Log the call still changes it.
+  if(!(curMatch()||{}).watch && callSet() && !(S.calls || []).some(c => c.m === S.matchId && c.pt === pt))
+    S.calls = [{script: S.script, layout: S.layoutKey, pt, m: S.matchId, vs: matchVs(), at: Date.now(), auto: true}, ...(S.calls || [])];
   // The next point starts with the field clear: nothing half-logged carries —
   // including bunkers tapped for their five on Scout and not yet logged.
   clearPointScratch();
@@ -16419,7 +16480,7 @@ function shell(){
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
-    ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.flash ? `<div class="flash${resultBarShown() ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
 }
