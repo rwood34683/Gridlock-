@@ -22,7 +22,7 @@ the divisions with rulebook numbers (`FMT_RULES` in `web/index.html`). The
 list also carries **Pro**, **WNXL** and **Masters** as named custom choices
 (`FMT_CUSTOM_DIVS`, shown as "· custom"), and **Other**. This rulebook gives
 none of those a game time or mercy limit: Pro plays under the league's pro
-rules, WNXL (the women's pro division, entered as "WNXL Pro X-Ball" on PBLeagues) is not in it, and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
+rules, WNXL (the women's pro division, entered as "WNXL Pro X-Ball" on PBLeagues) appears only in a roster rule — "The WNXL Professional Division is its own separate format" (4.2.5.1) — and its game time, mercy and race are not in this book (re-read 4 Nov 2026), and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
 choice clears any game time and asks how many a side, the race, the mercy and
 the clock, like Other. Division 1, Collegiate and Juniors are off the
 list; a saved format or sheet that still carries one keeps the name and shows
