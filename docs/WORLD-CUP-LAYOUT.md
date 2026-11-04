@@ -1,13 +1,10 @@
 # The NXL World Cup field
 
-Status on 2 November 2026: **the field is not in the app yet.** NXL is due to
-release the layout on Wednesday 4 November. Prelims run from Wednesday 11 to
-Saturday 14 November, according to the schedule in the app.
-
-The app makes no network calls and this environment cannot reach the league's
-site. The map therefore arrives the way every other field has: the coach sends
-it. Bunker positions are never typed by hand or guessed (`docs/LAYOUTS.md`, "The
-rule").
+Status on 4 November 2026: **the field is in the app** as `nwc`, "NXL World Cup ·
+Kissimmee", measured off the official labeled 2D NXL published that day (the
+maps print 11–15 Nov 2026, Kissimmee FL). `docs/LAYOUTS.md` › "How the NXL World
+Cup was digitized" has the method and the mirror check. What follows is the
+runbook it was added by, kept for the record.
 
 ## What is ready now
 
