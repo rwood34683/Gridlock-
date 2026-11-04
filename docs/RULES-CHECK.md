@@ -76,3 +76,33 @@ else is the official's to apply.
 ## Named custom formats
 
 Pro, WNXL and Masters remain visible as custom choices. WNXL fills in **race to 5 and a 5-point mercy**, the owner's setting of 4 Nov 2026 (`FMT_OWNER`), not a published rule; the screen says so, the clock between points is left as the coach set it, and every answer stays editable. Replace it with the league's numbers once its WNXL rules are read. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.
+
+## The NXL format reference (owner, 4 Nov 2026)
+
+The owner sent a consolidated reference of NXL formats from the league's event
+pages. It covers the divisions and formats the divisional rulebook does not
+(`FMT_REF` in `web/index.html`). The Format screen names it as "the NXL format
+reference (4 Nov 2026), not the divisional rulebook", and every answer stays
+editable. The rows the rulebook also covers (Semi-Pro, D2–D5, Amateur and
+Intermediate 3-player X-Ball) agree with it and keep their rulebook citation.
+The reference gives no clock between points, so a reference preset leaves the
+coach's setting alone.
+
+| Division / format | Players | Game clock | Mercy lead | Race to | Bracket |
+|---|---|---|---|---|---|
+| Professional | 5 (X-Ball) | 15 min | 6 | — | |
+| WNXL Professional | 5 (X-Ball) | 15 min | 5 | — | |
+| Masters X-Ball | 5 (X-Ball) | 10 min | 3 | — | |
+| Pro 3-player X-Ball (World Cup 2026) | 3 | 7 min | 3 | — | |
+| 3v3 | 3 | 3 min | — | — | best 2 of 3 in elimination |
+| 5v5 | 5 | 5 min | — | — | best 2 of 3 in elimination |
+| 7v7 | 7 | 7 min | — | — | win or go home |
+| 10v10 | 10 | 10 min | — | — | win or go home |
+| Classic 5v5 | 5 | 5 min | — | — | best 2 of 3 in prelims |
+| College X-Ball (NCPA) | 5 (X-Ball) | 15 min | — | 5 | |
+
+WNXL was race to 5 with a 5-point mercy from 4 Nov 2026 until this reference
+replaced it the same day: 15 minutes, 5-point mercy, no race. The bracket
+column is shown on the screen and never scored: it is how a bracket advances,
+not the points that win a game. The screen keeps conventional 3v3 and
+3-player X-Ball in separate groups.
