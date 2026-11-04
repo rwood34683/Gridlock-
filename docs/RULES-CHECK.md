@@ -75,4 +75,4 @@ else is the official's to apply.
 
 ## Named custom formats
 
-Pro, WNXL and Masters remain visible as custom choices. WNXL's own race, mercy and clock go in by hand until the league's rules for it are read; send them and they become a preset. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.
+Pro, WNXL and Masters remain visible as custom choices. WNXL fills in **race to 5 and a 5-point mercy**, the owner's setting of 4 Nov 2026 (`FMT_OWNER`), not a published rule; the screen says so, the clock between points is left as the coach set it, and every answer stays editable. Replace it with the league's numbers once its WNXL rules are read. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.

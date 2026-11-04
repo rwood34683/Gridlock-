@@ -689,7 +689,7 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     (`FMT_RULES`: Semi-Pro and D2–D5 per 8.1.1 / 8.2, 3v3 Amateur and
     Intermediate per 15.3.1 — game time shown, mercy, a 2:00 break per 9.3.12,
     no race); every answer stays editable. **Pro**, **WNXL** and **Masters**
-    (`FMT_CUSTOM_DIVS`, "· custom") and **Other** preset nothing: the rulebook
+    (`FMT_CUSTOM_DIVS`, "· custom") and **Other** preset nothing — except WNXL, which fills in race to 5 and a 5-point mercy, the owner's setting (`FMT_OWNER`), and says it is not from a published rulebook: the rulebook
     gives them no numbers, so they clear the game time and ask the race and
     men a side. A name from an older list keeps itself and shows under Other.
     **Save these answers** under a name already saved replaces that preset's
