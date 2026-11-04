@@ -1,7 +1,7 @@
 # Owner rebuild and upload
 
-This PR prepares files only. It does not merge, publish, or change Supabase,
-Cloudflare, Vercel, domains or access settings.
+Use the reviewed, tested main commit for a release. This workflow preserves
+Supabase, Cloudflare, Vercel, domains and access settings.
 
 The owner confirmed that the live app is uploaded through **Sites in this
 chat**, not the public website's old GitHub Pages instructions. Read-only
@@ -10,7 +10,8 @@ Sites inspection on 3 November 2026 confirmed the existing project:
 - Title: Gridlock Staging (its existing title, even though it serves the app).
 - Project: `appgprj_6ae3e6056c408191845a684abeffcb8b`.
 - Current live address: https://app.gridlockpb.com/.
-- Prior version: 10. A separately authorized latest-main release was published as version 11 on 3 November 2026. This PR has not been deployed.
+- Latest recorded app release before the sign-in polish: version 12, from
+  main `bb97dd9` (PR #277), published on 3 November 2026.
 
 ## Build the app after reviewing and merging the PR
 
@@ -61,16 +62,18 @@ Sites publishing is a connected-tool workflow in this chat:
    reset, Nexus sync disclosure, Help/Nexus page links, and admin access.
    Test a phone and tablet too. Enter passwords and MFA codes only in the app.
 
-These are owner instructions for a later publish. None of those publishing
-or write-credential operations were performed for this PR.
+Follow these steps only for an owner-authorized release. Keep its returned
+version and deployment identifiers in the release record.
 
 ## Public website built in Grok
 
 The live website is https://gridlockpb.com. The owner pointed to the open Grok
-workspace, and its source was downloaded for review. The four changed source
+workspace, and its source was downloaded for review. The five reviewed source
 files are in `marketing/grok/` with instructions for applying them to that
-export while retaining its design and deployment configuration. Those files
-have not been applied to the cloud Grok workspace or published.
+export while retaining its design and deployment configuration. The
+owner-authorized copy update was applied to the existing Grok workspace
+and published on 3 November 2026. Live Home, Privacy and Support were checked
+after publication.
 
 `scripts/site-live.js`
 holds the confirmed wording and generates a separate **review export** with
@@ -81,6 +84,7 @@ and leaves the committed offline site and app unchanged.
 Use the `marketing/grok/` overlay to apply the wording to the existing Grok
 pages. Its existing app CTAs already point to https://app.gridlockpb.com/;
 Privacy routes to `/privacy` and Support to `/support`. Support remains
-support@gridlockpb.com. Review the edited Grok export before a
-separately authorized publish. Do not upload this template export over the
+support@gridlockpb.com. Review a fresh edited export and prepared preview
+before each
+owner-authorized publish. Do not upload this template export over the
 Grok design without reviewing that design change with the owner.

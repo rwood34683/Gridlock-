@@ -1,46 +1,47 @@
-# Grok website copy update — source overlay for review
+# Grok website copy — reviewed source overlay
 
-These four files update the owner's actual Grok marketing-site export,
+These five files update the owner's actual Grok marketing-site export,
 downloaded from the open **Build Marketing Website for Gridlock Coach App**
-workspace on 3 November 2026. They are not a replacement website or a standalone
-app. The original export's framework, assets, styles, shared header/footer,
-routes and deployment configuration are intentionally left with that project.
+workspace on 3 November 2026. This is an overlay, not a standalone website.
+The original framework, assets, styles, routes and hosting stay in Grok.
 
-Copy `src/cloud-copy.ts` and the three `src/routes/*.tsx` files over the same
-paths in that Grok export. Review their diff against the current workspace
-first if it has changed since the export. Keep its existing `src/app-url.ts`:
-`APP_URL` already points to `https://app.gridlockpb.com/`, and the shared CTA
-and Support link use it. Privacy and Support already route to `/privacy` and
-`/support`. The existing support email/footer fixes are retained.
+Copy these files to the same paths in a fresh export:
 
-The update removes “nobody else reads your scouting” and the unconditional
-device-only promise. It explains the Supabase account records, opt-in
-full-season upload, administrator review, pausing without deleting, restore,
-upload deletion and Delete account. It keeps the original design, hero,
-logos, iOS/Android marks and Facebook/Instagram section.
+- src/cloud-copy.ts
+- src/routes/index.tsx
+- src/routes/privacy.tsx
+- src/routes/support.tsx
+- src/components/site-chrome.tsx
 
-`src/cloud-copy.ts` is generated from the confirmed wording in
-`scripts/site-live.js` in the Gridlock repo:
+Compare them with the current workspace first. Keep src/app-url.ts: its
+APP_URL already points to https://app.gridlockpb.com/. Privacy and Support
+use /privacy and /support. The support email and footer fixes are retained.
 
-```powershell
-node scripts/site-live.js --grok-copy
-```
+The copy explains Supabase account records, opt-in full-season upload,
+administrator review, pausing without deleting, restore, upload deletion
+and Delete account. Support explains same-account sign-in across devices
+and password resets. Platform labels say Browser beta for iPhone/iPad,
+Android and PC/Mac. The design, logos and social section are preserved.
 
-After applying this reviewed overlay in Grok, build and typecheck the website,
-then inspect Home, Privacy and Support at phone and desktop sizes. Prepare a
-preview for the owner. **Do not click Publish Changes as part of this PR.**
+src/cloud-copy.ts is generated from scripts/site-live.js:
 
-The Grok workspace and the public website were not modified or published by
-this PR. The edited export was checked locally; see the PR's validation notes.
+    node scripts/site-live.js --grok-copy
 
-Local verification: TypeScript and the production Vite compile passed. Home,
-Privacy and Support rendered on desktop and phone in both development and
-built previews. The final built check also checked console errors and waited
-for the original logo images to decode before screenshots.
+The owner-authorized update was applied to the existing Grok workspace and
+published on 3 November 2026. Live Home, Privacy and Support were checked
+at https://gridlockpb.com, including phone width, app links and disclosures.
+No domains, access rules, database or hosting configuration were changed.
 
-The downloaded export's built preview initially stopped because its local
-PGLite fallback could not find `pglite.data`, `pglite.wasm` and `initdb.wasm`.
-For local QA only, those existing files were copied from the locked
-`@electric-sql/pglite` package into the build's `__server.func/_libs/` directory.
-This source overlay does not change the Grok scaffold, database configuration
-or deployment settings. Recheck the prepared preview in Grok before publishing.
+Validation: TypeScript and the production Vite compile passed. All three
+routes rendered without overflow or console errors on phone and desktop
+in development and built previews. Original logos decoded before captures.
+
+For local built-preview QA only, the locked PGLite package's pglite.data,
+pglite.wasm and initdb.wasm were copied into the generated __server.func/_libs/
+directory because the export's fallback could not find them. This overlay
+does not change the framework or database configuration. Grok also reported
+passing typecheck/build and phone/desktop development and built previews.
+
+For a future update, compare a fresh export, inspect its diff, typecheck,
+build and review all three pages before an owner-authorized publication
+through the existing Grok project.

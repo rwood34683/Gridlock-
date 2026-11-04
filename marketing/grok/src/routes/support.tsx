@@ -11,7 +11,7 @@ export const Route = createFileRoute("/support")({
       {
         name: "description",
         content:
-          "Save a copy from More → Nexus, load it on a new phone, and reach Gridlock PB LLC.",
+          "Sign in across devices, reset your password, save or restore a season, and reach Gridlock support.",
       },
     ],
   }),
@@ -19,6 +19,18 @@ export const Route = createFileRoute("/support")({
 });
 
 const FAQ = [
+  {
+    q: "Can I use the same account on my phone and computer?",
+    a: "Yes. Open the Gridlock app and use the same invited email and your current password on each device. There is no separate computer account. Your season stays on the device unless you move a saved copy or review and restore a League sync copy in Nexus.",
+  },
+  {
+    q: "I reset my password but still cannot sign in.",
+    a: "Use the email that was invited to the beta. Different email addresses are different accounts, and a password reset does not grant beta access to another address. Request one new link from the sign-in screen, open the newest email and save your new password. Then use that password on every device. If it still fails, email support with the error message. Keep passwords and verification codes private.",
+  },
+  {
+    q: "How do I delete my account?",
+    a: "More → Nexus → Delete account permanently deletes your login and the League sync copy. Files you saved or shared and seasons on your devices stay until you delete them there.",
+  },
   {q: "Where does League sync keep my season?", a: CLOUD_COPY.sync},
   {
     q: "How do I save the season?",
@@ -87,8 +99,13 @@ function Support() {
         <section id="beta" className="scroll-mt-header mt-12">
           <h2 className="display text-section text-fg">Beta sign-in</h2>
           <p className="mt-4 text-fg">
-            Invited testers create a Gridlock account with their invited email, or sign in with their existing Gridlock password. Password resets are available on the sign-in screen.
+            This beta opens in your browser on a phone, tablet or computer. Use the same invited email and Gridlock password on each device.
           </p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-fg">
+            <li>Open the app and choose Sign in.</li>
+            <li>For a forgotten password, enter your invited email and choose “Forgot it? Email me a link”.</li>
+            <li>Open the newest email, save your new password, then use it on your other devices too.</li>
+          </ol>
           <a href={APP_URL} className="btn btn-primary mt-6 w-full sm:w-auto">
             Get Gridlock
           </a>
