@@ -9783,6 +9783,7 @@ function authForm(){
   if(S.mode === "recovery") return recoveryForm();
   if(S.mode!=="create" && S.mode!=="login") return "";
   const make = S.mode === "create";
+  const sending = resetPending();
   // A real form with the fields the phone looks for, so iOS and Android offer
   // the saved password (Face ID / Keychain) and to save a new one, and the
   // email box never capitalises its first letter or autocorrects.
@@ -9803,7 +9804,7 @@ function authForm(){
       : `It lives on this phone and nowhere else — there is no server to send it to, and nothing
          about you or your team ever leaves the device.`}</p>
     ${S.authSaid ? `<p class="warn">${esc(S.authSaid)}</p>` : ""}
-    <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${onEnter("doAuth()")}/></div>
+    <div class="fld"><label for="em">Email</label><input id="em" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="coach@team.com" ${sending ? "disabled" : ""} ${onEnter("doAuth()")}/></div>
     <div class="fld"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="${make ? "new-password" : "current-password"}" autocapitalize="none" autocorrect="off" spellcheck="false"${make ? ' minlength="6"' : ""} placeholder="6 characters or more" ${onEnter("doAuth()")}/></div>
     <div class="btnrow">
       <button type="submit" class="btn grow">${make?"Create account":"Sign in"}</button>
@@ -9812,7 +9813,7 @@ function authForm(){
     <button type="button" class="btn btn--quiet btn--block" onclick="chooseAuth('${make?"login":"create"}')">${
       make ? "Already have one? Sign in" : "No account yet? Create one"}</button>
     ${window.gridlockCloud && !make
-      ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()">Forgot it? Email me a link</button>` : ""}
+      ? `<button type="button" class="btn btn--quiet btn--block" onclick="sendReset()" ${sending ? "disabled" : ""}>${sending ? "Sending…" : "Forgot it? Email me a link"}</button>` : ""}
     <p class="note">${window.gridlockCloud
       ? "Your password is checked by the account server. A salted hash is also kept on this phone for sign-in without a signal."
       : "Kept on this phone only, salted and hashed. There is no server to send it to."}</p>
@@ -9824,6 +9825,10 @@ function authForm(){
 const STAFF_KEY = "gridlock.staff.v2";
 let _authAttempt = 0;
 let _recoveryUser = null, _recoveryBusy = false;
+let _resetAttempt = null;
+function resetPending(){
+  return !!(_resetAttempt && _resetAttempt.attempt === _authAttempt && _resetAttempt.cloud === window.gridlockCloud);
+}
 // Server account grants are separate from store purchases. They stay in memory
 // and can only supplement the same verified account, never a later sign-in.
 let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
@@ -10102,19 +10107,33 @@ window.checkVerify = async () => {
    keeps one coach out of another's row. No service key ever ships in the app.
    docs/SERVER.md is the switch-on. */
 window.sendReset = async () => {
+  if(resetPending()) return;
   const cloud = window.gridlockCloud;
   const email = ((document.getElementById("em") || {}).value || "").trim();
-  const say = m => set({authSaid: m});
+  // Status redraws replace the form. Keep its address so a refused request or
+  // another tap does not turn into "Type the email first" after it was typed.
+  const say = m => {
+    const keep = ((document.getElementById("em") || {}).value || email);
+    set({authSaid:m});
+    const field = document.getElementById("em");
+    if(field) field.value = keep;
+  };
   if(!cloud || !cloud.sendReset) return say("There is no account server on this build to reset from.");
   if(!email) return say("Type the email first, then ask for the link.");
   const attempt = ++_authAttempt;
+  const request = {attempt, cloud};
+  _resetAttempt = request;
   say("Sending…");
   try{
     const r = await cloud.sendReset(email);
     if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return;
+    _resetAttempt = null;
     say(r && r.ok ? "Check that inbox for the newest password link. If it has expired, ask for another."
                   : (r && r.said) || "That could not be sent. Nothing has changed.");
-  }catch(e){ if(attempt === _authAttempt) say("The account server could not be reached. Nothing has changed."); }
+  }catch(e){
+    if(_resetAttempt === request) _resetAttempt = null;
+    if(attempt === _authAttempt && cloud === window.gridlockCloud) say("The account server could not be reached. Nothing has changed.");
+  }finally{ if(_resetAttempt === request) _resetAttempt = null; }
 };
 
 window.doAuth = async () => {

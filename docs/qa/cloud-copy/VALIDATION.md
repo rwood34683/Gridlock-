@@ -89,3 +89,28 @@ overflow or page errors. The service worker and public configuration match
 the saved build byte for byte; the host only adds its script to the HTML.
 A real signed-in admin/MFA test remains with the owner. No service settings
 or live account/season data changed.
+
+## Password-reset retry follow-up
+
+Reproduced with a synthetic address: after an accepted password-link request,
+the status redraw emptied the email box. A second tap therefore made no
+request and said to type the email first. Reset status redraws now retain the
+address. The address and reset button are disabled only while that request is
+pending, preventing duplicate taps from sending overlapping emails. A refusal
+or network error releases the form for another try. A late response from an
+earlier screen cannot change a newer request or its address.
+
+Regression coverage exercises phone and PC widths, successful and refused
+retries, network exceptions, duplicate taps and out-of-order responses. A
+separate two-browser test uses the real account adapter and a shared synthetic
+account server: reset on the phone, then reject the old password and accept
+the new password on a clean PC. It sends no real emails and changes no live
+account. This does not establish that a reported live-account sign-in problem
+is resolved; the tester's current app address and actual error still need to
+be checked. These follow-up changes remain in the review PR, not version 11.
+
+Follow-up validation: `npm run check` passed all 37 suites, including all
+21 account recovery/security cases, functions 1,301/1,301, devices 235/235
+and brands 71/71. `npm run site:check` passed 23/23; `npm audit` reported
+zero vulnerabilities. The original retry reproduction now retains the
+address and makes the second request. No live account test was performed.
