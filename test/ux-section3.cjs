@@ -80,6 +80,57 @@ const SEED = require("../scripts/seed.js");
       const still = await p.evaluate(() => ({ open: !!S.tallySel, who: draft().player, alive: draft().alive }));
       assert.deepEqual(still, { open: true, who: "Okafor", alive: false });
     });
+    await check("a watched game is scored from Scout, through the same guard", async p => {
+      await p.evaluate(() => {
+        S.left = { ...S.left, name: "Blast Camp" }; S.right = { ...S.right, name: "Rejects" };
+        openSheet({ vs: "Rejects", watch: true, home: "Blast Camp", away: "Rejects" });
+        set({ tab: "scout", scoutTab: "breakouts" });
+      });
+      const btn = p.locator('[aria-label="Who won the point"] button', { hasText: "Rejects won it" });
+      await btn.click(); await btn.click().catch(() => {});
+      const sc = await p.evaluate(() => matchScore());
+      assert.deepEqual([sc.us, sc.them], [0, 1]);
+    });
+    await check("Layers draws one field, and Record sighting sits under the field it is tapped on", async p => {
+      await p.evaluate(() => set({ tab: "scout", scoutTab: "layers" }));
+      assert.equal(await p.locator("#root svg.field").count(), 1);
+      await p.evaluate(() => { set({ scoutTab: "arrival" }); setArrival({ side: "right" }); });
+      const map = await p.locator("#arrival-map").boundingBox();
+      const rec = await p.getByRole("button", { name: "Record sighting", exact: true }).boundingBox();
+      assert.ok(rec.y - (map.y + map.height) < 40, "Record is right under the field");
+    });
+    await check("the schedule jumps to the next game in one tap", async p => {
+      await p.evaluate(() => set({ tab: "more", more: "schedule" }));
+      const jump = p.locator("button", { hasText: /^Next game ·/ });
+      assert.equal(await jump.count(), 1);
+      await jump.click();
+      const open = await p.evaluate(() => S.gameOpen);
+      assert.ok(open, "the game opens");
+      const row = await p.locator(`[data-game="${open}"]`).boundingBox();
+      assert.ok(row.y >= 0 && row.y < 844 / 2, "its row is on screen");
+    });
+    await check("the squad goes in by paste, and the add row keeps the keyboard up", async p => {
+      await p.evaluate(() => { S.roster = []; save(S); set({ tab: "more", more: "team" }); });
+      await p.fill("#rPaste", "Houston Heat Roster\n7 Reyes\n12 Okafor\nCoach Bob Smith\n21 Vance");
+      await p.getByRole("button", { name: "Add them", exact: true }).click();
+      const names = await p.evaluate(() => S.roster.map(r => r.name + "#" + r.num));
+      assert.deepEqual(names, ["Reyes#7", "Okafor#12", "Vance#21"]);
+      await p.fill("#rNum", "33"); await p.fill("#rName", "Marsh"); await p.press("#rName", "Enter");
+      assert.equal(await p.evaluate(() => document.activeElement && document.activeElement.id), "rNum");
+      assert.equal(await p.evaluate(() => S.roster.length), 4);
+    });
+    await check("the format page's scroll does not carry onto Playbook; P and S say what they are", async p => {
+      await p.evaluate(() => { S.fmtAsk = true; render(); document.querySelector(".main").scrollTop = 700; set({ flash: "" }); });
+      await p.evaluate(() => set({ fmtAsk: false, tab: "playbook" }));
+      assert.equal(await p.evaluate(() => document.querySelector(".main").scrollTop), 0);
+      assert.ok(await p.locator('button[aria-label="Primary"]').count() >= 1);
+      assert.ok(await p.locator('button[aria-label="Secondary"]').count() >= 1);
+    });
+    await check("a new phone with no squad is told what comes next on Playbook", async p => {
+      await p.evaluate(() => { S.roster = []; S.tips.next = false; set({ tab: "playbook" }); });
+      await p.getByRole("button", { name: "Add your players ›" }).click();
+      assert.deepEqual(await p.evaluate(() => [S.tab, S.more]), ["more", "team"]);
+    });
   } finally {
     await browser.close(); server.close();
     console.log(`${passed}/${passed + failed} section-three checks passed.`);
