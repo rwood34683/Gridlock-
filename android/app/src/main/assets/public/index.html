@@ -5335,17 +5335,19 @@ window.pasteSquad = () => {
   if(!text.trim()){ flash("Paste the list first — one man a line."); return; }
   const {found, skipped} = parseRoster(text, "");
   let added = 0, there = 0;
+  const shared = [];
   found.forEach(m => {
     const name = clean(String(m.name || "").trim()).slice(0, 32);
     if(!name){ return; }
     if(squadHas(name)){ there++; return; }
-    const n = jerseyNum(m.num);
+    const n = jerseyNum(m.num), other = n !== null ? numWorn(n, -1) : null;
+    if(other) shared.push(`#${n} is also ${other.name}'s`);
     S.roster = [...(S.roster || []), {name, num: n !== null ? n : freeNum(), p: m.wire && m.wire !== "Flex" ? m.wire : "", s: ""}];
     forgetRename(name); added++;
   });
   if(!added && !there){ flash("No names read in that. One man a line — 7 Reyes."); return; }
   save(S);
-  flash(`${added} added${there ? `, ${there} already on the squad` : ""}${skipped.length ? `, ${skipped.length} ${skipped.length === 1 ? "line" : "lines"} left out` : ""}.`);
+  flash(`${added} added${there ? `, ${there} already on the squad` : ""}${skipped.length ? `, ${skipped.length} ${skipped.length === 1 ? "line" : "lines"} left out` : ""}.${shared.length ? " " + shared.join("; ") + "." : ""}`);
 };
 const numWorn = (n, except) => (S.roster || []).find((p, i) => i !== except && Number(p.num) === Number(n)) || null;
 // A jersey number is a whole number from 0 to 999. "-5" and "1234" are typos,
@@ -11447,6 +11449,13 @@ const draftBlank = d => !!d && d.alive == null && !d.entry && d.dir == null && !
 window.nameMadeIt = n => {
   const d = draft();
   if(!draftBlank(d)) return window.setDraft({player: n});
+  // A name already charted on this point is a correction, and logging it at
+  // once replaced his earlier row — and the out on it — with a bare "made
+  // it". It only names him; Log is still the tap that writes over.
+  const b = selBunker(), pt = S.tallyEdit ? ((S.breakouts || []).find(r => r && r.id === S.tallyEdit) || {}).pt : sheetPoint();
+  const side = d.side || (b ? sideOfBunker(b, pt) : "");
+  if(breakoutsHere().some(r => r.pt === pt && r.side === side && r.player === n && r.id !== S.tallyEdit))
+    return window.setDraft({player: n});
   keepDraft();
   S.tallyDraft = {...d, player: n, alive: true};
   window.logBreakout();
@@ -12284,7 +12293,10 @@ function resultBar(){
   if(!resultBarShown()) return "";
   const w = (curMatch()||{}).watch, back = (S.point||1) > 1;
   return `<div class="resultbar" role="group" aria-label="Who won the point">
-    ${back ? `<button class="btn btn--quiet resultbar__back" onclick="backPoint()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : ""}
+    ${/* The back slot is always there, empty on point 1: the bar keeps one
+          shape on every point, so the second tap of a double on point 1 lands
+          on We won it again (and the guard) — never on a back button that
+          appeared under it and took the point away. */""}${back ? `<button class="btn btn--quiet resultbar__back" onclick="tapBack()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : `<span class="resultbar__back" aria-hidden="true"></span>`}
     <button class="btn grow" onclick="tapResult('us')">${w ? esc(sideWord("us")) + " won it" : "We won it"}</button>
     <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? esc(sideWord("them")) + " won it" : "They won it"}</button>
   </div>`;
@@ -12509,6 +12521,13 @@ function clearPointScratch(){
 // stays unguarded so a script or a check can score points back to back.
 const RESULT_GUARD_MS = 1500;
 let _lastEnd = null;
+// Back a point from the bar, inside the guard after a result, is the second
+// half of a double tap: it is refused and said, never taken as an undo.
+window.tapBack = () => {
+  if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
+    return flash(`Point ${_lastEnd.pt} was just scored. Tap ‹ again to take it back.`);
+  window.backPoint();
+};
 window.tapResult = won => {
   if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
     return flash(`Point ${_lastEnd.pt} is already scored. Tap Back a point to change it.`);
@@ -12517,11 +12536,15 @@ window.tapResult = won => {
   // the result unless he already logged one for this point, so self-scout is
   // not one more tap a point. A watched game's call is not his; Log the call
   // still changes it. (endPoint() itself stays the bare result.)
-  const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(c => c.m === mid && c.pt === pt)
+  // A call this tap wrote itself before (auto) is his standing call then, and
+  // a point taken back and scored again takes the one standing now; a call
+  // he logged with his own tap is never overwritten.
+  const mine = c => c.m === mid && c.pt === pt && !c.auto;
+  const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(mine)
     ? {script: S.script, layout: S.layoutKey, pt, m: mid, vs: matchVs(), auto: true} : null;
   window.endPoint(won);
-  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(c => c.m === mid && c.pt === pt)){
-    S.calls = [{...call, at: Date.now()}, ...(S.calls || [])]; save(S);
+  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(mine)){
+    S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))]; save(S);
   }
   // Say what was scored, so a tap on the wrong one is caught while it is
   // still one tap back.

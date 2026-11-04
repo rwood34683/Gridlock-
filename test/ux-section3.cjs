@@ -131,6 +131,47 @@ const SEED = require("../scripts/seed.js");
       await p.getByRole("button", { name: "Add your players ›" }).click();
       assert.deepEqual(await p.evaluate(() => [S.tab, S.more]), ["more", "team"]);
     });
+    await check("review: a double tap on point 1 scores point 1 once and never lands on a back button", async p => {
+      await p.evaluate(() => { openSheet({ vs: "Rejects" }); set({ tab: "tally" }); });
+      const btn = p.locator(".resultbar button", { hasText: "We won it" });
+      const box = await btn.boundingBox();
+      const x = box.x + 12, y = box.y + box.height / 2;      // its left edge, where ‹ 1 would appear
+      await p.mouse.click(x, y); await p.mouse.click(x, y);
+      const got = await p.evaluate(() => ({ pt: S.point, n: S.results.filter(r => r.m === S.matchId).length }));
+      assert.deepEqual(got, { pt: 2, n: 1 });
+    });
+    await check("review: tapping a name already charted elsewhere this point only names him; nothing is overwritten", async p => {
+      const got = await p.evaluate(() => {
+        set({ tab: "tally", tallyStep: "record", tallyMode: "record" });
+        const ours = curLayout().bunkers.filter(x => x.x < 60);
+        tallyTap([ours[0].x, ours[0].y]); setDraft({ player: "Reyes", alive: false }); logBreakout();
+        const outs0 = S.tally.filter(o => o.m === S.matchId && o.pt === S.point && o.name === "Reyes").length;
+        tallyTap([ours[3].x, ours[3].y]); nameMadeIt("Reyes");
+        return { outs0, outs1: S.tally.filter(o => o.m === S.matchId && o.pt === S.point && o.name === "Reyes").length,
+          rows: S.breakouts.filter(r => r.m === S.matchId && r.pt === S.point && r.player === "Reyes").map(r => [r.bunker, r.alive]),
+          open: !!S.tallySel, draft: draft().player, first: ours[0].id };
+      });
+      assert.equal(got.outs0, 1); assert.equal(got.outs1, 1, "his out stays");
+      assert.deepEqual(got.rows, [[got.first, false]], "his row stays"); assert.equal(got.open, true); assert.equal(got.draft, "Reyes");
+    });
+    await check("review: a point taken back and scored again takes the call standing now; a call he logged himself stays", async p => {
+      const got = await p.evaluate(() => {
+        set({ tab: "tally" });
+        const pt = S.point, on = () => S.calls.filter(c => c.m === S.matchId && c.pt === pt).map(c => c.script);
+        set({ script: "snake" }); tapResult("us"); const a = on();
+        _lastEnd = null; backPoint(); set({ script: "blitz" }); tapResult("us"); const b = on();
+        _lastEnd = null; backPoint(); set({ script: "hold" }); logCall(); set({ script: "flood" }); tapResult("us"); const c = on();
+        return { a, b, c };
+      });
+      assert.deepEqual(got, { a: ["snake"], b: ["blitz"], c: ["hold"] });
+    });
+    await check("review: a pasted man who wears a number already worn is added and said", async p => {
+      await p.evaluate(() => set({ tab: "more", more: "team" }));
+      await p.locator("summary", { hasText: "Paste your roster" }).click();
+      await p.fill("#rPaste", "7 Newman");
+      await p.getByRole("button", { name: "Add them", exact: true }).click();
+      assert.match(await root(p), /#7 is also Reyes's/);
+    });
   } finally {
     await browser.close(); server.close();
     console.log(`${passed}/${passed + failed} section-three checks passed.`);
