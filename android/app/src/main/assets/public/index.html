@@ -4386,15 +4386,15 @@ function fmtPage(first){
     <p class="note" style="margin-top:var(--s3)">Division:</p>
     ${FMT_GROUPS.map(([head, divs]) => `<p class="note fmt-group" style="margin:var(--s2) 0 var(--s1)">${esc(head)}</p>
     <div class="seg seg--wrap" aria-label="${esc(head)}">${divs.map(d => `<button class="${f.div === d || (d === "Other" && f.div && !FMT_DIVS.includes(f.div)) ? "on" : ""}" onclick="setFmt('div', ${jsq(d)})">${esc(fmtLabel(d))}</button>`).join("")}</div>`).join("")}
-    <p class="note" style="margin-top:var(--s2)">X-Ball runs on a game clock, not a race: the mercy is the lead that ends a match early, not the winning score, and when time runs out the score decides it.</p>
+    <p class="note" style="margin-top:var(--s2)">Divisional X-Ball runs on a game clock, not a race: the mercy is the lead that ends a match early, not the winning score, and when time runs out the score decides it.</p>
     ${rule ? `<div class="panel" style="margin-top:var(--s3)">
       <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_RULEBOOK)}</p>
-      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3-player X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
-      <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
+      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3-player X-Ball, three a side" : "X-Ball, five a side"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead. The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
+      <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""}. ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
     </div>` : fmtRef(f.div) ? `<div class="panel" style="margin-top:var(--s3)">
       <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_REF_SAID)}</p>
       <p class="note" style="margin:var(--s2) 0 0">${fmtRef(f.div).series ? `Timed game, ${fmtGame(fmtRef(f.div).game)[2]} a side` : fmtRef(f.div).game === "3" ? "3-player X-Ball, three a side" : "X-Ball, five a side"}: ${esc(fmtRefLine(fmtRef(f.div)))}.${fmtRef(f.div).note ? " " + esc(fmtRef(f.div).note) : ""}${fmtRef(f.div).series ? " " + esc(fmtRef(f.div).series) + " That is the bracket, not the points in a game." : ""} The game clock is the official's: tap Time's up on the point sheet when it runs out. Change any answer below.</p>
-    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — your own numbers. Set each answer below.` : `Pick your division and its numbers fill in. Other is for any other event.`}</p>`}
     <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
@@ -5282,6 +5282,9 @@ function playerCalls(who){ return (((S.playerCalls || {})[S.layoutKey] || {})[wh
 // A bunker by the team's word for it, else its code — the one lookup every
 // screen that names a bunker from its id reads through.
 function bunkerLabel(id){ const b = curLayout().bunkers.find(x => x.id === id); return b ? callOf(b) : id; }
+// How a bunker reads in a list: "MD#1" when nobody has a word for it, and
+// "Rocket · MD#1" when the team has. "MD · MD#1" said the code twice.
+function pickName(b, who){ const c = callOf(b, who); return c === b.n ? b.id : `${c} · ${b.id}`; }
 function callOf(b, who){
   return (who && playerCalls(who)[b.id]) || bunkerCalls()[b.id] || b.n;
 }
@@ -9780,8 +9783,8 @@ function tip(id, text){
 window.dismissTip = id => { S.tips[id]=true; save(S); render(); };
 
 function staffGate(what){
-  return `<div class="empty">Staff login required to ${what}.</div>
-    <button class="btn btn--ghost btn--block" onclick="set({entered:false,mode:'login'})">Staff log in</button>`;
+  return `<div class="empty">Sign in to ${what}.</div>
+    <button class="btn btn--ghost btn--block" onclick="set({entered:false,mode:'login'})">Sign in</button>`;
 }
 
 /* ============================================================
@@ -10557,7 +10560,7 @@ function playbook(){
     <p class="call__read">${picked ? esc(m.read) : `Tap the one you are running under the field and it draws your five on ${esc(curLayout().name)}.`}</p>
     ${(()=>{const r=breakRecord(key); return picked && r.points
       ? `<p class="note">On ${esc(curLayout().name)} you have called this ${r.points} time${r.points===1?"":"s"} —
-         ${r.us} out${r.us===1?"":"s"} against you, ${r.them} against them.</p>`
+         you lost ${r.us} m${r.us===1?"an":"en"}, they lost ${r.them}.</p>`
       : "";})()}
     ${ans ? `<p class="note">You wrote down: they run <b>${esc(callName(ans.theirs))}</b>
       — seen ${ans.seen} time${ans.seen===1?"":"s"} — and you answer <b>${esc(callName(ans.ours))}</b>.
@@ -10635,7 +10638,7 @@ function playbook(){
   ${/* Which end the five break from. Below Play the break, not above it: a row
         over Play pushed it off the first screen on first run. */""}
   ${endsChip()}
-  ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log this call · point ${sheetPoint()}</button>`}
+  ${(curMatch()||{}).watch ? "" : `<button class="btn btn--ghost btn--block" onclick="logCall()">✓&nbsp; Log the call · point ${sheetPoint()}</button>`}
   ${/* The read for the next point, under the controls rather than in the call
         card: with a real season it grew the card past the fold and put the
         field, Change the call and Play the break under the tab bar. */""}
@@ -10656,7 +10659,7 @@ function playbook(){
     <button class="tgl ${S.namesOn?"on":""}" onclick="set({namesOn:!S.namesOn})"><i></i>Names</button>
     <button class="tgl ${S.smoothOn===false?"":"on"}" onclick="setSmooth(S.smoothOn===false)"><i></i>Smooth</button>
     <button class="tgl ${S.editPath?"on":""}" onclick="set({editPath:!S.editPath,playing:false})"><i></i>Edit path</button>
-    <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Back to the line</button>
+    <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Rewind</button>
   </div>` : ""}
   ${picked && S.editPath?`<p class="note"><b>Drag along a run to draw it in.</b> Drag a corner to move it, tap one to
     take it out, tap the line to add one. Drag a player to point him. <button class="btn btn--danger"
@@ -10664,7 +10667,7 @@ function playbook(){
 
   <div class="toggles">
     ${picked ? `<button class="btn btn--quiet" onclick="set({pbView:'cards'})">Cards · here is your job</button>` : ""}
-    <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'counter'})">Opp · they run X, we run Y</button>
+    <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'counter'})">Your answers to their calls</button>
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
@@ -10730,7 +10733,7 @@ function playbook(){
                   `<option value="@${deg}" ${d[f]===("@"+deg)?"selected":""}>${seenGlyph(deg)} ${esc(LANE_NAME[deg])}</option>`).join("")}
               </optgroup>
               <optgroup label="A bunker on this field">
-                ${bl.map(b=>`<option value="${esc(b.id)}" ${sel===b.id?"selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+                ${bl.map(b=>`<option value="${esc(b.id)}" ${sel===b.id?"selected":""}>${esc(pickName(b))}</option>`).join("")}
               </optgroup>
             </select></div>`).join("")}
         </div>`;
@@ -10769,7 +10772,7 @@ function playbook(){
             <button class="btn btn--danger" onclick="unlogCall(${i})">Undo</button>
           </div>`).join("")}
         </div>`
-      : `<div class="empty">Nothing logged on ${esc(curLayout().name)} yet. Tap <b>Log this call</b> the
+      : `<div class="empty">Nothing logged on ${esc(curLayout().name)} yet. Tap <b>Log the call</b> the
          moment you make it, and this counts how predictable you have been.</div>`,
       ss.n ? ss.n + (ss.n===1?" call":" calls") : curLayout().name);
   })()}`;
@@ -11956,7 +11959,7 @@ function tally(){
   ${/* A phone on its side is the shape the quick log was built for, and the
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
-  ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Phone's on its side — log on the fly</button>`}
+  ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
   ${sec("Break chart", `<div class="facts">
       <span class="fact" style="flex:1 0 100%;text-align:center">
         <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
@@ -12007,7 +12010,7 @@ function tally(){
     <div class="btnrow" data-callpick>
       ${callSet() ? `<button class="btn btn--quiet grow" onclick="set({tallyPick:!S.tallyPick})">${
         S.tallyPick?"Close":"Change the call"}</button>` : ""}
-      ${(curMatch()||{}).watch || sheetField() ? "" : `<button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log it · point ${pt}</button>`}
+      ${(curMatch()||{}).watch || sheetField() ? "" : `<button class="btn btn--ghost grow" onclick="logCall()">✓&nbsp; Log the call · point ${pt}</button>`}
     </div>
     ${lanesLine()}
     ${S.tallyPick || !callSet()?`<div class="seg seg--wrap">
@@ -12075,7 +12078,7 @@ function tally(){
       ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",theirNames())}
     </div>
     <p class="note" style="max-width:56ch">Right read or wrong read, then who won it. That is the whole score, and it
-      sets Ahead / Even / Must-score for you.</p>
+      tells you whether you are ahead, level or must score.</p>
     <div class="seg seg--wrap">
       <button class="${S.tallyRead==="right"?"on":""}" onclick="setRead('right')">✓ Right read</button>
       <button class="${S.tallyRead==="wrong"?"on":""}" onclick="setRead('wrong')">✗ Wrong read</button>
@@ -12152,7 +12155,7 @@ function tally(){
     </div>`}
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
-    <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Landscape · log on the fly</button>
+    <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Quick log</button>
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
@@ -12240,7 +12243,7 @@ function whoPick(idx, side, value){
  * out and styled every redraw while nobody was looking at them. The box draws
  * only what it says now and fills the moment a finger or a key reaches it
  * (`fillPick`), before the phone opens its picker. */
-const bunkerOption = (b, value) => `<option value="${esc(b.id)}"${value === b.id ? " selected" : ""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
+const bunkerOption = (b, value) => `<option value="${esc(b.id)}"${value === b.id ? " selected" : ""}>${esc(pickName(b))}</option>`;
 function bunkerPick(label, idx, field, value){
   const cur = value && curLayout().bunkers.find(b => b.id === value);
   return `<label style="display:flex;flex-direction:column;gap:4px">
@@ -13134,8 +13137,8 @@ function scout(){
       ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") && callSet() ? breakLanes(S.script) : null);
         const sh = w ? null : shooterLane("right");
         const words = w
-          ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc((curMatch()||{}).home || "the home side")}'s on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc((curMatch()||{}).away || "the away side")}'s on Breakouts`}`
-                   : `clear lanes off the break · ${w.onThem} of ${esc(w.homeName)}'s ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(w.awayName)}'s ${w.theirs} on ${esc(w.homeName)}`)
+          ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc(poss((curMatch()||{}).home || "the home side"))} on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc(poss((curMatch()||{}).away || "the away side"))} on Breakouts`}`
+                   : `clear lanes off the break · ${w.onThem} of ${esc(poss(w.homeName))} ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(poss(w.awayName))} ${w.theirs} on ${esc(w.homeName)}`)
           : l ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
           : !callSet() && !w ? `lanes show once you pick the call` : pitNamed("right") ? `lanes show once their five is known — <button class="btn btn--quiet read-line__go" onclick="set({scoutTab:'breakouts'})">Log it on Breakouts ›</button>` : `lanes show once a team is in the right pit`;
         return `${sh && sh.at ? `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--warn)"></i>${esc(sh.tag)} usually sets up here — he has shot ${sh.hits} of your men</span>` : ""}<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:16px;height:3px;border-radius:2px;background:#fff"></i>${words}</span>`; })():""}
@@ -13286,6 +13289,8 @@ function rekeyTheirMan(team, before, after){
     S.tally = (S.tally || []).map(o => o && o.side === "us" && o.vs === team && o.by === oldBy ? {...o, by: newBy} : o);
 }
 // How their man is written on the breakout sheet: "#7 Dill", "#7", or "Dill".
+// A team's possessive the way it is said: Jesters' five, Dynasty's five.
+const poss = n => { n = String(n == null ? "" : n); return /s$/i.test(n) ? n + "'" : n + "'s"; };
 const theirTag = p => (p.num ? "#" + p.num : "") + (p.num && p.name ? " " : "") + (p.name || "");
 function arrivalPlayerKey(player){
   return player && String(player.num || "").trim()
@@ -13775,7 +13780,7 @@ function scoutArrival(){
   const manChips = players.size ? `<h4 class="sec__eyebrow" style="margin:var(--s3) 0 8px">Who did you see?</h4>
     <div class="seg seg--wrap" aria-label="Their man">${[...players].slice(0,15).map(([key,name])=>`<button class="${key===c.player?"on":""}" aria-pressed="${key===c.player}" onclick="setArrival({player:${jsq(key)}})">${esc(name)}</button>`).join("")}</div>` : "";
   const teams = arrivalTeamNames();
-  const label = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? `${callOf(b)} · ${b.id}` : id; };
+  const label = id => { const b = curLayout().bunkers.find(b=>b.id===id); return b ? pickName(b) : id; };
   const bunkerOptions = selected => curLayout().bunkers.map(b=>`<option value="${esc(b.id)}"${selected===b.id?' selected':''}>${esc(label(b.id))}</option>`).join("");
   const pick = a.pick === "sighting" ? "sighting" : "destination";
   return sec("How did they get there?",`<p class="lede">Choose an opponent and the bunker they reached. Add the places you actually saw them, in order, to narrow the possible routes.</p>
@@ -13800,11 +13805,11 @@ function scoutArrival(){
         ${Array.from({length:Math.min(500,Math.max(lastPoint(c.m),c.pt))},(_,i)=>i+1).map(n=>`<option value="${n}"${a.point===n?' selected':''}>Point ${n}</option>`).join("")}</select></div>
       <div class="fld"><label for="arrival-end">Their starting end</label><select id="arrival-end" onchange="setArrival({startEnd:this.value})">
         <option value="left"${options.startEnd==='left'?' selected':''}>Left end → moving right</option><option value="right"${options.startEnd==='right'?' selected':''}>Right end → moving left</option></select></div>
-      <div class="fld"><label for="arrival-start">Start from</label><select id="arrival-start" onchange="setArrival({startBunker:this.value})"><option value="">Start station</option>${bunkerOptions(options.startBunker)}</select></div>
+      <div class="fld"><label for="arrival-start">Start from</label><select id="arrival-start" onchange="setArrival({startBunker:this.value})"><option value="">Start line</option>${bunkerOptions(options.startBunker)}</select></div>
     </div>
     <p class="note">${esc(curLayout().name)} · ${esc(c.team)} · ${esc(players.get(c.player) || "no man picked yet")} · Point ${c.pt}. The starting end defaults to the selected pit; change it when teams switch ends.</p>
     </details>
-    <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Pick destination</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Pick earlier sighting</button></div>
+    <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Where he ended up</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Where you saw him</button></div>
     <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,names:true,overlay:arrivalOverlay(model)})}</div>
     <p class="aid"><b>Possible routes are a training aid, not a prediction.</b> Green numbers are where you saw him. Dashed lines are the app filling in between.</p>
     ${route ? `<div class="seg seg--wrap">${result.routes.map(r=>`<button class="${route.id===r.id?'on':''}" onclick="setArrival({route:'${r.id}'})">${esc(r.label)} · ~${Math.round(r.length)} ft</button>`).join("")}</div>
@@ -13821,9 +13826,9 @@ function scoutArrival(){
     <div class="fld"><label for="arrival-shot">Shooting at</label><select id="arrival-shot" onchange="setArrival({shotAt:this.value})"><option value="">${options.sightingBunker||options.destination?'From '+esc(label(options.sightingBunker||options.destination))+' — choose where the paint went':'Choose the bunker they were at first'}</option>${bunkerOptions(a.shotAt||"")}</select></div>
     <div class="btnrow"><button class="btn" onclick="logArrivalShot()">Record shot</button>
       <button class="btn btn--quiet" onclick="undoArrivalShot()">Undo last shot</button></div>
-    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there. Everything belongs only to this team, player, field, match and point.')}</p>`)
-  + sec("Possible route",`${route ? `<p class="aid"><b>Inferred route, not confirmed movement.</b> Green numbered squares are your recorded sightings. The dashed amber line is one possible connection; the ? bunker is selected, not yet observed. The white marker demonstrates travel, with no measured timing.</p>
-      <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Possible leg ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
+    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there.')}</p>`)
+  + sec("Possible route",`${route ? `<p class="aid"><b>Our guess at how he got there — you did not see this part.</b> Green numbered squares are where you saw him. The dashed amber line is one way he could have gone; the ? bunker is the one picked, not yet seen. The white dot runs the route; it is not timed.</p>
+      <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Run ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
       <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
     : `<div class="empty">${esc(result.warning)}</div>`}`)
   + sec(`Shots seen · ${shots.length}`,shots.length ? `<ol class="arrival-narrative">${shots.map((o,i)=>`<li><b>${i+1}. From ${esc(label(o.from))} at ${esc(label(o.to))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · white line on the field</span>
@@ -13840,7 +13845,7 @@ function scoutArrival(){
       <p class="aid"><b>A count, not a prediction.</b> It says where they have shot from and at when you were watching. Officials govern the live call.</p>` : `<div class="empty">Nothing logged yet for ${esc(c.team)} on this field. Shots you record above build this up through the match.</div>`))(teamLanes(c.team,c.layout))
   + sec(`Observed sightings · ${sightings.length}`,sightings.length ? `<ol class="arrival-narrative">${sightings.map((o,i)=>`<li><b>${i+1}. ${esc(label(o.bunker))}</b><br/><span class="note">Recorded ${esc(new Date(o.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}))} · order observed, not travel time</span>
         <span class="btnrow" style="margin-top:4px"><button class="btn btn--quiet" onclick="fixArrivalSighting(${jsq(o.id)})" aria-label="Move sighting ${i+1} to the bunker selected">Move here</button>
-        <button class="btn btn--quiet" onclick="dropArrivalSighting(${jsq(o.id)})" aria-label="Remove sighting ${i+1}">✕ Remove</button></span></li>`).join("")}</ol><p class="note">Saved on this device and included in Nexus → Save everything. Merging the same copy does not duplicate sightings.</p>` : `<div class="empty">Nothing seen yet for this player on this field, match and point. Until you add what you saw, the route is only what the field allows.</div>`);
+        <button class="btn btn--quiet" onclick="dropArrivalSighting(${jsq(o.id)})" aria-label="Remove sighting ${i+1}">✕ Remove</button></span></li>`).join("")}</ol>` : `<div class="empty">Nothing seen yet for this player on this field, match and point. Until you add what you saw, the route is only what the field allows.</div>`);
 }
 document.addEventListener("click",ev=>{
   if(S.tab!=="scout" || S.scoutTab!=="arrival") return;
@@ -14173,12 +14178,12 @@ function scoutBreakouts(){
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
       ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="switchScoutSide('${sd}')">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
-  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
-      two or three on one bunker is a tap each. No names needed — those can come later on How did they get there?</p>
+  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(poss(R.name))}` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
+      two or three on one bunker is a tap each. No names needed — tell each man later on Tally, step 2.</p>
     <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     ${fixing ? `<p class="warn">Fixing ${fixing.pt ? `point ${fixing.pt}'s five` : "a five logged for the season"}. Tap a man's × to take him off, tap the field to put one on, then Save.</p>` : ""}
     <div class="btnrow">
-      <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(R.name)}'s` : "their"} ${sideSize() === 5 ? "five" : sideSize()} · point ${pt}`}</button>
+      <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(poss(R.name))}` : "their"} ${sideSize() === 5 ? "five" : sideSize()} · point ${pt}`}</button>
       <button class="btn btn--quiet" onclick="undoTheirPick()" aria-label="Undo — the last tap on this five">↶ Undo</button>
       <button class="btn btn--quiet" onclick="clearTheirPick()" aria-label="Clear all — the men placed">Clear all</button>
       ${fixing ? `<button class="btn btn--quiet" onclick="cancelTheirFix()">Cancel the fix</button>` : ""}
@@ -14429,14 +14434,14 @@ function scoutCounter(){
         <span class="rank__pct">${r.vs ? `won ${r.vs.won} of ${r.vs.n} vs ${esc(callName(read.call))}` : r.rec.n ? `won ${r.rec.won} of ${r.rec.n}` : fitWord(r, Math.max(...ranked.map(x => x.pct)))}</span>
       </button>`).join("")}
     </div>
-    <p class="note">${read ? `<b>vs ${esc(callName(read.call))}</b> is your record with that call on the points they ran ${esc(callName(read.call))}, counted from your own log on this field. ` : ""}${played ? `<b>won x of y</b> is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}${theirNow ? `<b>lanes</b> is counted off ${esc(curLayout().name)} against ${theirNow.basis === "logged" ? "the five they logged on this point" : `the five they usually plant (${theirNow.n} logged fives)`}: how many of your five would have a clear lane on one of theirs off the break, leaning out either side of the bunker, and how many of theirs on you. ` : ""}The rest is the heuristic. Tap a break to make it the call.</p>
+    <p class="note">${read ? `<b>vs ${esc(callName(read.call))}</b> is your record with that call on the points they ran ${esc(callName(read.call))}, counted from your own log on this field. ` : ""}${played ? `<b>won 3 of 4</b>, say, is your record with that call against ${esc(R.name)} on this field, counted from the points you logged — ${played} so far. ` : ""}${theirNow ? `<b>lanes</b> is counted off ${esc(curLayout().name)} against ${theirNow.basis === "logged" ? "the five they logged on this point" : `the five they usually plant (${theirNow.n} logged fives)`}: how many of your five would have a clear lane on one of theirs off the break, leaning out either side of the bunker, and how many of theirs on you. ` : ""}The rest is the app's guess from their tendency. Tap a break to make it the call.</p>
     <button class="btn btn--ghost btn--block" onclick="copyMatchup()">Copy matchup card</button>`,
     state)
   + (()=>{ const seen = Object.fromEntries(breakFreq("right"));
       const a = answersFor("right");
       const rows = playKeys().sort((p,q)=>(seen[q]||0)-(seen[p]||0));
       const written = Object.keys(a).length;
-      return sec("They run X, we run Y", `<p class="lede">Your own answer to each of their calls, written
+      return sec("Your answers to their calls", `<p class="lede">Your own answer to each of their calls, written
         down against <b>${esc(R.name)}</b> rather than worked out again on the sideline. It follows them in
         and out of the pit, and Playbook shows it beside the call.</p>
         <div class="assigns">
@@ -14453,7 +14458,7 @@ function scoutCounter(){
             </span>
           </div>`).join("")}
         </div>
-        <p class="aid">Yours, not the picker's. <b>The ranking above is a heuristic; this is what you saw.</b></p>`,
+        <p class="aid">Yours, not the picker's. <b>The order above is the app's guess; this is what you saw.</b></p>`,
         written ? `${written} written down` : R.name);
     })();
 }
@@ -15057,11 +15062,11 @@ window.sendBlast = () => {
 const HELP = {
   playbook: {t:"Playbook", w:"The call, drawn on the real field.",
     how:["Tap a break to pick it. The five paths redraw on the event layout.",
-         "Play break runs it, so you can watch who leaves first.",
+         "Play the break runs it, so you can watch who leaves first.",
          "Face and Shot set where each man looks and what he lanes. Lane 2 adds a secondary lane, drawn dashed beside the first.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "The twelve are named your way, and + Yours under the field writes a play of your own. Team lists them all; name them once and every screen uses your word.",
-         "A play of your own writes a thirteenth: name it, tap the bunker each of the five plants on, and the app draws the runs.",
+         "A play of your own adds to the list: name it, tap the bunker each of the five plants on, and the app draws the runs.",
          "Job on a man's row names what you shout for that job. It follows the call, so it is the same on every field.",
          "Log it records the call you actually made, which is what self-scout counts."],
     watch:"A play you wrote is the five bunkers, and those change from field to field — so it asks you to build it again at a new event rather than guessing where your snake runner goes."},
@@ -15074,7 +15079,7 @@ const HELP = {
          "Under two seconds means you are calling it, not reading it."]},
   tally: {t:"Tally", w:"The break chart and the point sheet.",
     how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Two men on one bunker is two taps; the ✕ beside a man in the list takes him off.",
-         "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or clean, which way he was shooting — and Save goes to the next.",
+         "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or no pressure, which way he was shooting — and Save goes to the next.",
          "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
          "When the point ends tap We won it or They won it. That is the score.",
@@ -15095,7 +15100,7 @@ const HELP = {
          "Names writes the bunker codes on the field when you need to find one."]},
   "scout/matchup": {t:"Matchup", w:"The head-to-head read.",
     how:["Their tendency and threat are your film read, typed by you.",
-         "The break above draws their most-logged call in blue and yours in red."],
+         "The break above draws the call they run most, in blue."],
     watch:"A team nobody has scored reads as a dash. The app never guesses a number."},
   "scout/breakouts": {t:"Breakouts", w:"Where their five went, without needing names.",
     how:["Tap the field where each of their men ended up, any order — as many as a side plays on your format.",
@@ -15105,9 +15110,11 @@ const HELP = {
          "Logged one wrong? Fix it under the field, or Fix in As you saw it, puts that five back on the field to change; Save writes over it on its own point.",
          "Where they plant counts bunkers across every five you have logged, and lists each man charted there — tap one to add or change his details.",
          "A call is tied to the point only when this team is on the sheet. Off the sheet it counts for the season, and the screen says so with one tap to start the right match."]},
-  "scout/anticipate": {t:"Anticipate", w:"How to read a break before it happens.",
-    how:["The tells to watch in the set: a body cheating a wire, a gun already up.",
-         "This is teaching, not a prediction about tonight."]},
+  "scout/anticipate": {t:"Anticipate", w:"What they have run, and when.",
+    how:["What they ran when behind, ahead, level, after winning or losing a point, on the first point, after a timeout and at match point — counted from your log, with the count on every line. Under three logged says nothing.",
+         "Lately puts their last five beside the season, and says when the two disagree.",
+         "By wire off the buzzer counts what their men did on each wire: stop, run, shoot, or run and shoot.",
+         "The tells to watch in the set: a body cheating a wire, a gun already up. It is a count of what you saw, not a prediction."]},
   "scout/arrival": {t:"How did they get there?", w:"One named man, bunker by bunker.",
     how:["Pick the team and the man, then the bunker he reached.",
          "Add the places you actually saw him, in order, and the possible routes narrow.",
@@ -15117,7 +15124,7 @@ const HELP = {
     how:["Start listening, then say what happened as it happens.",
          "Every line lands as a draft you review before it counts.",
          "Type instead if the microphone is refused or it is too loud."]},
-  "scout/counter": {t:"Counter", w:"They run X, we run Y.",
+  "scout/counter": {t:"Counter", w:"Your answer to each of their calls.",
     how:["The picker ranks the twelve against their tendency and the score; a call you have run against them is ranked by what it won.",
          "Lanes is counted off the field: against the five they logged on this point, or the five they usually plant, how many of your five would have a clear lane on one of theirs off the break and how many of theirs on you.",
          "Opp is your own answer written down, which beats any ranking.",
@@ -15211,11 +15218,11 @@ const HELP = {
          "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate.",
          "Delete takes a sheet off for good — a practice sheet, a game charted twice — with everything logged on it. It asks first."]},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
-    how:["Staff login required to create one.",
+    how:["Sign in to create one.",
          "Joining does not need an account. Scan the code or type it.",
          "Everything stays on this phone."]},
   "more/league": {t:"League", w:"Groups and ops blasts.",
-    how:["Staff login required to send a blast.",
+    how:["Sign in to send a blast.",
          "Pick the group, write it once, and it goes in the log.",
          "The phone's share sheet carries it; with no share sheet the text sits in a box at the top of the screen to copy from."]},
   "more/plan": {t:"Plan", w:"What is free, what Team adds, and getting a purchase back.",
@@ -15401,13 +15408,13 @@ function coachQuickStart(){
     <div class="coach-start" role="group" aria-label="Match-day setup">
       <button class="btn btn--ghost" onclick="set({tab:'more',more:'format',helpFor:''});toMainTop()">1. Check the match format</button>
       <button class="btn btn--ghost" onclick="set({tab:'more',more:'team',helpFor:''});toMainTop()">2. Add your players</button>
-      <button class="btn btn--ghost" onclick="set({tab:'playbook',more:null,evPick:true,helpFor:''});toMainTop()">3. Pick the field and breakout</button>
+      <button class="btn btn--ghost" onclick="set({tab:'playbook',more:null,evPick:true,helpFor:''});toMainTop()">3. Pick the field and the call</button>
       <button class="btn btn--ghost" onclick="set({tab:'tally',more:null,helpFor:''});toMainTop()">4. Open the point sheet</button>
     </div>
     <p class="note">Tally starts a new match or continues the one already saved. After your session, keep a backup from More &rsaquo; Nexus &rsaquo; Save a copy.</p>
     <details class="coach-terms"><summary>Paintball terms, in plain language</summary><div class="kv">
-      <div class="kv__row"><span class="kv__k">Point</span><span class="kv__v">One round, from the starting horn to its result.</span></div>
-      <div class="kv__row"><span class="kv__k">Match</span><span class="kv__v">A game against an opponent. In X-ball, a match contains multiple points.</span></div>
+      <div class="kv__row"><span class="kv__k">Point</span><span class="kv__v">One round, from the buzzer to its result.</span></div>
+      <div class="kv__row"><span class="kv__k">Match</span><span class="kv__v">A game against an opponent. In X-Ball, a match contains multiple points.</span></div>
       <div class="kv__row"><span class="kv__k">Breakout</span><span class="kv__v">The opening route each player runs at the start of a point.</span></div>
       <div class="kv__row"><span class="kv__k">Bunker</span><span class="kv__v">The cover marked on your field map.</span></div>
       <div class="kv__row"><span class="kv__k">Lane</span><span class="kv__v">A shooting line between positions on the field.</span></div>
@@ -15576,9 +15583,9 @@ const GATE_TITLE = {"scout":"Scout", "playbook/cards":"Cards", "playbook/rep":"R
 const MORE_GROUPS=[
   ["The field",[
     ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
-    ["walk","Walk","Field-walk notes against this layout"],
+    ["walk","Walk","Notes from walking the field"],
     ["movement","Movement","Bunker to bunker after the break"],
-    ["stats","Bunker stats","Visits, shots, holds and elims"]]],
+    ["stats","Bunker stats","Where men go, and where they go out"]]],
   ["The team",[
     ["lineups","Lineups","Who is on this point"],
     ["team","Team","Roster, numbers and positions"],
@@ -15589,7 +15596,7 @@ const MORE_GROUPS=[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
     ["matches","Matches","Every sheet you have kept"]]],
-  ["Device",[
+  ["App",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
@@ -15639,7 +15646,7 @@ function moreBody(k){
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
-          ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`).join("")}
+          ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(pickName(b))}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
         <textarea id="wkNote" maxlength="240" placeholder="Snake mouth is hot. GP first off the tape."></textarea></div>
@@ -15992,7 +15999,7 @@ function moreBody(k){
     // The list prints a point number against each rotation, so it has to be one
     // match's — point 4 of today and point 4 of March are not the same point.
     const mvHere=rowsHere(mv);
-    const opt=(b,sel)=>`<option value="${esc(b.id)}"${sel===b.id?" selected":""}>${esc(callOf(b))} · ${esc(b.id)}</option>`;
+    const opt=(b,sel)=>`<option value="${esc(b.id)}"${sel===b.id?" selected":""}>${esc(pickName(b))}</option>`;
     // The man is tapped, the five on the point first and the bench after, the
     // way Assess does it — a dropdown of nine asked him to find the man he was
     // looking at.
@@ -16467,7 +16474,7 @@ function quickLog(){
     </div>
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
-      ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log call</button>`}
+      ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log the call</button>`}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point ›</button>
     </div>
     <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
@@ -16558,7 +16565,7 @@ function whiteboardPage(){
     <div class="toggles">
       <button class="tgl ${wb.field?"on":""}" onclick="wbField(true)"><i></i>Field</button>
       <button class="tgl ${!wb.field?"on":""}" onclick="wbField(false)"><i></i>Blank</button>
-      <button class="btn btn--quiet" onclick="openQuick()">⤢ Landscape log</button>
+      <button class="btn btn--quiet" onclick="openQuick()">⤢ Quick log</button>
     </div>`, wb.field ? curLayout().name : "Blank board");
 }
 window.wbTool  = t => set({wb: {...wbState(), tool: t}});

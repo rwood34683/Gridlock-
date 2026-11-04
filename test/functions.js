@@ -603,9 +603,9 @@ const ROSTER = [
   /* ------------------------------------------------------------- role gating */
   G("Role gating");
   await seed({ role: "guest", tab: "more", more: "classes" });
-  check("guest cannot create a class", (await page.locator("text=Staff login required to create a class").count()) > 0);
+  check("guest cannot create a class", (await page.locator("text=Sign in to create a class").count()) > 0);
   await go("more", "league");
-  check("guest cannot open league admin", (await page.locator("text=Staff login required to open league admin").count()) > 0);
+  check("guest cannot open league admin", (await page.locator("text=Sign in to open league admin").count()) > 0);
   await seed({ tab: "more", more: "classes" });
   check("staff can create a class", (await page.locator("button:has-text('Create class')").count()) > 0);
   check("joining never asks for an account", (await page.locator("text=No account needed").count()) > 0);
@@ -3068,7 +3068,7 @@ const ROSTER = [
   await seed({ tab: "tally", script: "snake", right: { name: "Rejects" }, left: {},
                quick: false, quickPick: false });
   check("the point sheet offers a way into it", await ev(() =>
-    [...document.querySelectorAll("#root .btn")].some(x => /Landscape/.test(x.textContent))));
+    [...document.querySelectorAll("#root .btn")].some(x => /Quick log/.test(x.textContent))));
   check("it opens as a full layer with the call and both scoring buttons", await ev(() => {
     window.openQuick();
     const q = document.querySelector("#root .qlog"); if(!q) return false;
@@ -5476,7 +5476,7 @@ const ROSTER = [
     const sideways = matchMedia("(orientation:landscape) and (max-height:520px)").matches;
     const shown = bar && getComputedStyle(bar).display !== "none";
     const first = bar && document.querySelector(".main").firstElementChild === bar;
-    return !!bar && shown === sideways && first && /log on the fly/.test(bar.textContent);
+    return !!bar && shown === sideways && first && /Quick log/.test(bar.textContent);
   }));
   check("the whiteboard's ink layer is the exact size of its picture, and a stroke lands", await ev(() => {
     window.set({ tab: "more", more: "wb", wb: null });
@@ -7661,8 +7661,8 @@ const ROSTER = [
     S.left = { name: "Dynasty" }; S.right = { name: "Houston Heat" };
     window.openSheet({ vs: "Houston Heat", watch: true, home: "Dynasty", away: "Houston Heat" }); window.set({});
     const said = ["lineups", "movement", "assess"].every(k => { window.set({ tab: "more", more: k }); const t = document.getElementById("root").textContent; return /A game you are watching: Dynasty v Houston Heat/.test(t) && /Chart it on Scout/.test(t) && !/Save grade|Tap the man who moved|Tap the slot/.test(t); });
-    window.set({ tab: "playbook" }); const noPb = !/Log this call/.test(document.getElementById("root").textContent);
-    window.set({ tab: "tally" }); const noSheet = ![...document.querySelectorAll("#root button")].some(b => /Log it · point/.test(b.textContent));
+    window.set({ tab: "playbook" }); const noPb = !/Log the call/.test(document.getElementById("root").textContent);
+    window.set({ tab: "tally" }); const noSheet = ![...document.querySelectorAll("#root button")].some(b => /Log the call · point/.test(b.textContent));
     const before = (S.calls || []).length; window.logCall(); const refused = (S.calls || []).length === before;
     const go = [...document.querySelectorAll("#root button")].find(b => /Chart it on Scout/.test(b.textContent));
     window.set({ tab: "more", more: "assess" }); [...document.querySelectorAll("#root button")].find(b => /Chart it on Scout/.test(b.textContent)).click();
@@ -10249,7 +10249,7 @@ const ROSTER = [
     const btn = document.querySelector(".help-btn"); if(!btn) return false;
     btn.click();
     return S.tab === "more" && S.more === "help" && S.helpFor === "scout/counter"
-      && /They run X, we run Y/.test(document.getElementById("root").textContent);
+      && /Your answer to each of their calls/.test(document.getElementById("root").textContent);
   }));
   check("help for a screen names what it is for and how to use it", await ev(() => {
     window.set({ tab:"more", more:"help", helpFor:"tally" });

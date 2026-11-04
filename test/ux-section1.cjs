@@ -129,6 +129,20 @@ const SEED = require("../scripts/seed.js");
       assert.doesNotMatch(got.sight, /red for blocked/);
       assert.doesNotMatch(got.src, /Everything red is clipped/);
     });
+    await check("words: no screen says the developer words or the old names for one action", async p => {
+      const text = await p.evaluate(() => {
+        const out = [];
+        const grab = () => out.push(document.getElementById("root").innerText);
+        for (const tab of ["playbook", "tally", "sightlines"]) { set({ tab }); grab(); }
+        for (const [k] of SCOUT_TABS) { set({ tab: "scout", scoutTab: k }); grab(); }
+        for (const [, rows] of MORE_GROUPS) for (const [k] of rows) { set({ tab: "more", more: k }); grab(); }
+        set({ tab: "more", more: null }); grab();
+        return out.join("\n");
+      });
+      for (const bad of [/heuristic/i, /they run X/i, /won x of y/, /Staff log ?in/i, /Start station/, /Possible leg/, /Inferred route/,
+                         /log on the fly/i, /Landscape log/, /Log this call/, /Log it ·/, /Back to the line/, /\bs's\b/, /starting horn/, /X-ball/])
+        assert.doesNotMatch(text, bad);
+    });
   } finally {
     await browser.close(); server.close();
     console.log(`${passed}/${passed + failed} section-one checks passed.`);
