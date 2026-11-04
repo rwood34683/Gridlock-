@@ -4,7 +4,7 @@ const NWC = [
   {id:"MD#1",n:"MD",x:50.2,y:13.2,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:66.5,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
   {id:"MD#3",n:"MD",x:83.3,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:100.1,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
   {id:"SD#1",n:"SD",x:37.3,y:18.1,t:"dorito",w:5.21,h:4.53,c:"r"},{id:"SD#2",n:"SD",x:112.3,y:18.3,t:"dorito",w:5.21,h:4.53,c:"r"},
-  {id:"MD#5",n:"MD",x:126.8,y:23.1,t:"triin",w:6.11,h:6.69,c:"r"},{id:"MD#6",n:"MD",x:23.1,y:23.5,t:"triin",w:6.69,h:6.11,c:"r"},
+  {id:"MD#5",n:"MD",x:126.8,y:23.1,t:"triin",w:6.11,h:6.69,c:"r"},{id:"MD#6",n:"MD",x:23.1,y:23.5,t:"triin",w:6.11,h:6.69,c:"r"},
   {id:"MT#1",n:"MT",x:97.5,y:27.9,t:"temple",w:4.95,h:4.98,c:"r",d:"b"},{id:"MT#2",n:"MT",x:52.1,y:28.1,t:"temple",w:4.98,h:4.95,c:"r",d:"b"},
   {id:"Tr#1",n:"Tr",x:75.0,y:28.5,t:"ball",w:3.57,h:3.63,c:"r"},{id:"C#1",n:"C",x:12.2,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},
   {id:"C#2",n:"C",x:137.8,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},{id:"GB#1",n:"GB",x:75.2,y:40.3,t:"gbrick",w:4.76,h:10.09,c:"b"},

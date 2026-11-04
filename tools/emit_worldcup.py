@@ -113,7 +113,10 @@ for b in out:
          # A dorito printed on its side points in at the 50: its long side
          # runs up and down the field, so the book's footprint is turned.
          't': 'triin' if side_on else dorito_shape(b) if 'dorito' in b['type'] else SHAPE[b['type']],
-         'w': b['h_ft'] if side_on else b['w_ft'], 'h': b['w_ft'] if side_on else b['h_ft'],
+         # Turned whatever way the book's aspect came back: tip to base (the
+         # short side) runs along the field, the base across it.
+         'w': min(b['w_ft'], b['h_ft']) if side_on else b['w_ft'],
+         'h': max(b['w_ft'], b['h_ft']) if side_on else b['h_ft'],
          'c': 'r' if b['body'] == 'red' else 'b'}
     if angled:
         d['a'] = ang

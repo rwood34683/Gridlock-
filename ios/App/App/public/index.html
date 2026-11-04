@@ -1722,7 +1722,7 @@ const NWC = [
   {id:"MD#1",n:"MD",x:50.2,y:13.2,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#2",n:"MD",x:66.5,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
   {id:"MD#3",n:"MD",x:83.3,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},{id:"MD#4",n:"MD",x:100.1,y:13.3,t:"dorito",w:6.69,h:6.11,c:"r"},
   {id:"SD#1",n:"SD",x:37.3,y:18.1,t:"dorito",w:5.21,h:4.53,c:"r"},{id:"SD#2",n:"SD",x:112.3,y:18.3,t:"dorito",w:5.21,h:4.53,c:"r"},
-  {id:"MD#5",n:"MD",x:126.8,y:23.1,t:"triin",w:6.11,h:6.69,c:"r"},{id:"MD#6",n:"MD",x:23.1,y:23.5,t:"triin",w:6.69,h:6.11,c:"r"},
+  {id:"MD#5",n:"MD",x:126.8,y:23.1,t:"triin",w:6.11,h:6.69,c:"r"},{id:"MD#6",n:"MD",x:23.1,y:23.5,t:"triin",w:6.11,h:6.69,c:"r"},
   {id:"MT#1",n:"MT",x:97.5,y:27.9,t:"temple",w:4.95,h:4.98,c:"r",d:"b"},{id:"MT#2",n:"MT",x:52.1,y:28.1,t:"temple",w:4.98,h:4.95,c:"r",d:"b"},
   {id:"Tr#1",n:"Tr",x:75.0,y:28.5,t:"ball",w:3.57,h:3.63,c:"r"},{id:"C#1",n:"C",x:12.2,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},
   {id:"C#2",n:"C",x:137.8,y:35.4,t:"ball",w:4.11,h:4.27,c:"b"},{id:"GB#1",n:"GB",x:75.2,y:40.3,t:"gbrick",w:4.76,h:10.09,c:"b"},
@@ -2134,9 +2134,9 @@ const DIVISIONS = [
    the left pit and `a` in the right when a game is opened.
 
    It replaced the Lone Star Open's read, which was September's event; sheets
-   kept from Lone Star stay in Matches. The World Cup field is `nwc`, and until
-   its measured layout is in LAYOUTS a game opens on the field the coach is on
-   and says so (`toGameField`). */
+   kept from Lone Star stay in Matches. The World Cup field is `nwc`, measured
+   off the official 2D on 4 Nov 2026, and every game opens on it
+   (`toGameField`). */
 const SCHEDULE = {
   event:"NXL World Cup", div:"Pro X-Ball", field:"NXL Pro", layout:"nwc",
   read:"PBLeagues · NXL World Cup · print schedule · Wed 11 – Sat 14 Nov · printed 1 Nov 2026",
@@ -2262,8 +2262,9 @@ const gameField = g => (g && g.layout && LAYOUTS[g.layout]) ? g.layout : (LAYOUT
 // Off to the game's field before its sheet opens, and say so.
 function toGameField(g){
   const lk = gameField(g);
-  // The event's field is not in the app yet: the sheet opens on the field he
-  // is on, and says so, rather than leave him to find out from the bunkers.
+  // A schedule whose event's field is not in the app (none today: the World
+  // Cup is `nwc`) opens on the field he is on, and says so, rather than leave
+  // him to find out from the bunkers.
   const missing = g && g.layout && !LAYOUTS[g.layout] ? ` The ${SCHEDULE.event} field is not in the app yet, so this sheet is on ${(LAYOUTS[lk] || {}).name || "the field you are on"}.` : "";
   if(lk === S.layoutKey) return missing;
   window.pickEvent(lk);
