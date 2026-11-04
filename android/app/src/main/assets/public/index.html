@@ -4150,6 +4150,11 @@ function overWord(mid, us, them){
  * It starts itself the moment a point is scored, because that is when it
  * starts on the field, and one tap stops or restarts it. `clockEnd` is
  * scratch — a relaunch never resumes yesterday's countdown. */
+// The official's game clock for the match, in minutes: kept on the sheet like
+// the race and the mercy so every sheet says what it was played to. Shown,
+// never run — the coach still taps Time's up.
+function gameTime(m){ m = m === undefined ? curMatch() : m; return m && m.gameTime > 0 ? m.gameTime : 0; }
+function setGameTime(n){ n = Number(n) > 0 ? Number(n) : 0; if(curMatch()) patchMatch({gameTime: n || null}); }
 function breakClock(m){ m = m === undefined ? curMatch() : m; return m && m.breakClock > 0 ? m.breakClock : 0; }
 window.setBreakClock = n => { n = Number(n) > 0 ? Number(n) : 0; patchMatch({breakClock: n || null}); if(!n) S.clockEnd = 0; save(S); render(); };
 /* The format, asked once after sign-in rather than on the point sheet: the
@@ -4235,8 +4240,9 @@ function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number
 const fmtGame = id => FMT_GAMES.find(g => g[0] === id) || null;
 function fmtSummary(f = fmt()){
   const g = fmtGame(f.game);
-  const bits = [f.div, g && g[1], f.time > 0 ? `${f.time}-min game` : "",
+  const bits = [f.div, g && g[1],
     f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 && !(f.time > 0) ? "no race" : "",
+    f.time > 0 ? `${f.time}-min game` : "",
     f.mercy > 0 ? `mercy ${f.mercy}` : "",
     f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
   return bits.join(" · ");
@@ -4260,6 +4266,7 @@ window.setFmt = (k, v) => {
     const r = fmtRule(v), ref = fmtRef(v);
     if(ref){
       S.fmt = {...S.fmt, game: ref.game, raceTo: ref.raceTo, mercy: ref.mercy, time: ref.time};
+      setGameTime(ref.time);
       const msgs = [];
       S.flash = ""; fmtSize(ref.game); if(S.flash) msgs.push(S.flash);
       S.flash = ""; window.setRaceTo(ref.raceTo); if(S.flash) msgs.push(S.flash);
@@ -4268,11 +4275,12 @@ window.setFmt = (k, v) => {
       flash(msgs.length ? msgs.join(" ") : `${fmtFull(v)}: ${fmtRefLine(ref)} — ${FMT_REF_SAID}.`);
       return;
     }
-    if(!r){ S.fmt = {...S.fmt, time: 0}; save(S); render(); return; }
+    if(!r){ S.fmt = {...S.fmt, time: 0}; setGameTime(0); save(S); render(); return; }
     // The rulebook's numbers for this division, through the same setters as
     // any other answer: a sheet that can no longer take one says so, and the
     // next sheet starts with it.
     S.fmt = {...S.fmt, game: r.game, raceTo: 0, mercy: r.mercy, clock: 120, time: r.time};
+    setGameTime(r.time);
     const msgs = [];
     S.flash = ""; fmtSize(r.game); if(S.flash) msgs.push(S.flash);
     S.flash = ""; window.setRaceTo(0); if(S.flash) msgs.push(S.flash);
@@ -4284,7 +4292,7 @@ window.setFmt = (k, v) => {
   }
   if(k === "game"){ fmtSize(v); save(S); render(); return; }
   // The game clock is the official's: kept with the format and shown, never run.
-  if(k === "time"){ save(S); render(); return; }
+  if(k === "time"){ setGameTime(v); save(S); render(); return; }
   if(k === "raceTo") return window.setRaceTo(v);
   if(k === "mercy") return window.setMercy(v);
   if(k === "clock") return window.setBreakClock(v);
@@ -4315,6 +4323,7 @@ window.useFmt = id => {
   if(f.game){ S.flash = ""; fmtSize(f.game); if(S.flash) msgs.push(S.flash); }
   if(f.raceTo !== undefined){ S.flash = ""; window.setRaceTo(f.raceTo); if(S.flash) msgs.push(S.flash); }
   if(f.mercy !== undefined){ S.flash = ""; window.setMercy(f.mercy); if(S.flash) msgs.push(S.flash); }
+  if(f.time !== undefined) setGameTime(f.time);
   if(f.clock !== undefined) window.setBreakClock(f.clock);
   save(S); flash(msgs.length ? msgs.join(" ") : `Using ${p.name}.`);
 };
@@ -4327,7 +4336,7 @@ function fmtPage(first){
   const f = fmt(), m = curMatch();
   // What shows lit is his answer, else what the sheet he is on already has.
   const race = f.raceTo !== undefined ? f.raceTo : raceTo(), mer = f.mercy !== undefined ? f.mercy : mercy(),
-        clk = f.clock !== undefined ? f.clock : breakClock();
+        clk = f.clock !== undefined ? f.clock : breakClock(), gt = f.time !== undefined ? f.time : gameTime();
   const saved = Array.isArray(S.fmts) ? S.fmts : [];
   const rule = fmtRule(f.div);
   return sec(first ? "Your format" : "Format", `
@@ -4356,7 +4365,7 @@ function fmtPage(first){
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
     <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>
     <p class="note" style="margin-top:var(--s3)">Game clock — the official's starting clock for the match:</p>
-    <div class="seg seg--wrap" aria-label="Game clock"><button class="${f.time > 0 ? "" : "on"}" onclick="setFmt('time', 0)">Off</button>${FMT_TIMES.map(n => `<button class="${f.time === n ? "on" : ""}" onclick="setFmt('time', ${n})">${n} min${rule && rule.time === n ? " · rulebook" : ""}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Game clock"><button class="${gt > 0 ? "" : "on"}" onclick="setFmt('time', 0)">Off</button>${FMT_TIMES.map(n => `<button class="${gt === n ? "on" : ""}" onclick="setFmt('time', ${n})">${n} min${rule && rule.time === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
     <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5,6].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
@@ -11966,6 +11975,7 @@ function tally(){
     <div class="btnrow" style="margin-top:var(--s3);align-items:center">
       <p class="note grow" style="margin:0">Format: ${esc([(curMatch()||{}).div, (fmtGame((curMatch()||{}).game)||[])[1] || (sideSize() !== 5 ? sideSize() + " a side" : ""),
         raceTo() === 1 ? "one point" : raceTo() ? "race to " + raceTo() : "no race",
+        gameTime() ? gameTime() + "-min game clock" : "",
         mercy() ? "mercy " + mercy() : "", breakClock() ? mmss(breakClock()) + " between points" : ""].filter(Boolean).join(" · "))}</p>
       <button class="btn btn--quiet" onclick="set({tab:'more',more:'format'})">Change the format</button>
     </div>
@@ -12485,6 +12495,7 @@ function openSheet(fields){
   S.matches = [{id, at: Date.now(), layout: S.layoutKey,
                 raceTo: has("raceTo") ? (f.raceTo || null) : cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
                 breakClock: has("clock") ? (f.clock || null) : cur && cur.breakClock > 0 ? cur.breakClock : null,
+                gameTime: has("time") ? (f.time || null) : cur && cur.gameTime > 0 ? cur.gameTime : null,
                 mercy: has("mercy") ? (f.mercy || null) : cur && cur.mercy > 0 ? cur.mercy : null,
                 size: g ? g[2] : cur && cur.size > 0 ? cur.size : null,
                 // The format, never a schedule game: a sheet opened off the

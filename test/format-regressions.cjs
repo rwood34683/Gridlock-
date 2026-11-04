@@ -72,6 +72,17 @@ const {createServer}=require('../scripts/serve');
    await p.getByRole('button',{name:'Off',exact:true}).first().click();
    assert.equal(await p.evaluate(()=>S.fmt.time),0);
   });
+  await check('every division puts its game clock on the sheet, the next sheet keeps it, and the point sheet shows it between race and mercy',async p=>{
+   for(const [div,mins] of [['Pro',15],['WNXL',15],['Division 3',12],['Masters',10],['Pro 3-player',7],['3v3 Amateur',6],['3v3',3],['5v5',5],['7v7',7],['10v10',10],['Classic 5v5',5],['College X-Ball',15]]){
+    const got=await p.evaluate(div=>{setFmt('div',div);const now=gameTime();openSheet({vs:'Clock '+div});return{now,next:gameTime()};},div);
+    assert.deepEqual(got,{now:mins,next:mins},div);
+   }
+   const line=await p.evaluate(()=>{setFmt('div','Division 3');S.tab='tally';render();const t=document.getElementById('root').innerText;const m=t.match(/Format: ([^\n]*)/);return m?m[1]:t.slice(0,300);});
+   assert.match(line,/no race · 12-min game clock · mercy 4/,line);
+   await p.evaluate(()=>{S.tab='more';S.more='format';render();});
+   await p.getByRole('button',{name:'7 min',exact:true}).click();
+   assert.equal(await p.evaluate(()=>gameTime()),7);
+  });
   await check('conventional 3v3 and 3-player X-Ball are separate groups, and the timed formats show their bracket',async p=>{
    const groups=await p.evaluate(()=>[...document.querySelectorAll('.seg[aria-label]')].map(el=>[el.getAttribute('aria-label'),[...el.querySelectorAll('button')].map(b=>b.textContent.trim())]).filter(([l])=>/X-Ball|Timed|Race to$/.test(l)));
    const g=Object.fromEntries(groups);
