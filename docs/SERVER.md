@@ -33,7 +33,7 @@ notice true to it.
 
 **The privacy copy must stay true to this table.** The sign-in panel already
 branches: with a server it says the email and purchases are kept and the season
-never leaves the device. Change the table, change the copy, in the same commit.
+never leaves the device. Change the table, change the copy, in the same commit. The published site's account and privacy wording is `scripts/site-live.js` (`docs/SITE.md`).
 
 ## Offline-first is not negotiable
 

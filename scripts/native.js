@@ -33,6 +33,11 @@ function main() {
   if (platform && !["android", "ios"].includes(platform)) throw new Error("Platform must be android or ios.");
   if (["open", "build"].includes(action) && !platform) throw new Error("Choose android or ios.");
   if (platform === "ios" && (action === "open" || action === "build" || extra.includes("--open"))) requireMac();
+  // npm run ios:cloud points webDir at the cloud build only for its own sync.
+  // A config still pointing elsewhere was left by an interrupted run, and
+  // syncing it would package the cloud app as if it were the offline one.
+  const webDir = JSON.parse(fs.readFileSync(path.join(ROOT, "capacitor.config.json"), "utf8")).webDir;
+  if (webDir !== "web") throw new Error(`capacitor.config.json points webDir at ${webDir}, not web; an interrupted npm run ios:cloud left it there. Put it back with: git checkout -- capacitor.config.json`);
   const platforms = platform ? [platform] : ["android", "ios"];
   for (const name of platforms) {
     if (!fs.existsSync(path.join(ROOT, name))) {

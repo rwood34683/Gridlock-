@@ -4178,9 +4178,15 @@ const FMT_RULES = {
   "Division 5":       {game:"xball", time:10, mercy:3, split:60},
   "3v3 Amateur":      {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."},
   "3v3 Intermediate": {game:"3",     time:6,  mercy:3, ot:"A tie goes to a 2-minute 1v1 (15.5)."}};
-const FMT_CUSTOM_DIVS = ["Pro", "Masters"];
+const FMT_CUSTOM_DIVS = ["Pro", "WNXL", "Masters"];
 const FMT_DIVS = [...Object.keys(FMT_RULES), ...FMT_CUSTOM_DIVS, "Other"];
 const FMT_RULEBOOK = "NXL Divisional X-Ball Rules 2026";
+// A custom division the owner gave numbers to. They are his call, not a
+// published rule (the divisional rulebook names WNXL only in 4.2.5.1, as its
+// own format), so the screen says whose they are and every one stays
+// editable. The clock between points is left as the coach set it.
+const FMT_OWNER = {
+  "WNXL": {game:"xball", raceTo:5, mercy:5, said:"set for this app on 4 Nov 2026, not from a published rulebook"}};
 const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
 const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
@@ -4212,7 +4218,17 @@ window.setFmt = (k, v) => {
   const m = curMatch();
   if(k === "div"){
     if(m) patchMatch({div: v});
-    const r = fmtRule(v);
+    const r = fmtRule(v), own = FMT_OWNER[v];
+    if(own){
+      S.fmt = {...S.fmt, game: own.game, raceTo: own.raceTo, mercy: own.mercy, time: 0};
+      const msgs = [];
+      S.flash = ""; fmtSize(own.game); if(S.flash) msgs.push(S.flash);
+      S.flash = ""; window.setRaceTo(own.raceTo); if(S.flash) msgs.push(S.flash);
+      S.flash = ""; window.setMercy(own.mercy); if(S.flash) msgs.push(S.flash);
+      save(S);
+      flash(msgs.length ? msgs.join(" ") : `${v}: race to ${own.raceTo}, mercy at a ${own.mercy}-point lead — ${own.said}.`);
+      return;
+    }
     if(!r){ S.fmt = {...S.fmt, time: 0}; save(S); render(); return; }
     // The rulebook's numbers for this division, through the same setters as
     // any other answer: a sheet that can no longer take one says so, and the
@@ -4288,13 +4304,13 @@ function fmtPage(first){
       <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(f.div)}</b> · ${esc(FMT_RULEBOOK)}</p>
       <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3v3 X-Ball, three a side (15.3.1)" : "X-Ball, five a side (8.1.1)"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead (${rule.game === "3" ? "15.3.1" : "8.2"}). The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
       <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""} (9.3.12). ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
-    </div>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
+    </div>` : FMT_OWNER[f.div] ? `<p class="note" style="margin-top:var(--s2)"><b style="color:var(--ink)">${esc(f.div)}</b>: race to ${FMT_OWNER[f.div].raceTo}, and the match ends at a ${FMT_OWNER[f.div].mercy}-point lead — ${esc(FMT_OWNER[f.div].said)}. Change any answer below.</p>` : `<p class="note" style="margin-top:var(--s2)">${f.div ? `${esc(f.div)} — custom settings. This divisional rulebook does not supply defaults for this choice; set each answer below.` : `Pick your division and its numbers from the ${esc(FMT_RULEBOOK)} fill in. Other is for any other event.`}</p>`}
     ${rule ? "" : `<p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
     <div class="seg seg--wrap" aria-label="Race to"><button class="${race === 1 ? "on" : ""}" onclick="setFmt('raceTo', 1)">One point · 5-man</button>${[2,4,5,7].map(n => `<button class="${race === n ? "on" : ""}" onclick="setFmt('raceTo', ${n})">Race to ${n}</button>`).join("")}<button class="${race ? "" : "on"}" onclick="setFmt('raceTo', 0)">No race</button></div>`}
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
-    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5,6].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
     <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${(rule ? [120, rule.split].filter(Boolean) : [45,60,90,120]).map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule ? (n === 120 ? " · standard" : " · split deck") : ""}</button>`).join("")}</div>
     <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>

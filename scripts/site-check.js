@@ -41,6 +41,12 @@ try { associations = JSON.parse(read('.well-known/assetlinks.json')); ok('App-li
 for (const [key, label] of [['domain','Owned domain'], ['email','Monitored support email'], ['appstore','App Store listing ID'], ['play','Google Play listing URL'], ['sha256','Android release signing fingerprint']]) {
   if (!config[key]) { if (release) ok(label, false, 'not configured'); else warnings.push(`${label} is not configured.`); }
 }
+if (config.app) ok('Live app address is HTTPS', (() => { try { const u = new URL(config.app); return u.protocol === 'https:' && !u.search && !u.hash && !u.username; } catch { return false; } })(), config.app);
+if (config.app) for (const page of ['index.html', 'support.html', 'privacy.html']) {
+  let err = '';
+  try { require('./site-live').stampLive(read(page), page); } catch (e) { err = e.message; }
+  ok(`${page} has live-app wording for every offline-only passage`, !err, err);
+}
 if (config.domain) ok('CNAME agrees with configured domain', exists('CNAME') && read('CNAME').trim() === config.domain);
 if (config.email) for (const file of ['support.html','privacy.html']) ok(`${file} uses configured support email`, read(file).includes(`mailto:${config.email.replace(/&/g,'&amp;').replace(/'/g,'&#39;')}`));
 if (config.sha256) {

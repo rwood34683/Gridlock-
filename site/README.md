@@ -24,7 +24,8 @@ npm run contact -- --domain your-real-domain.com --email support@your-real-domai
 npm run contact -- --appstore YOUR_NUMERIC_ID
 npm run contact -- --play https://play.google.com/store/apps/details?id=com.upra.gridlock.coach
 npm run contact -- --sha256 YOUR_COLON_SEPARATED_SHA256
+npm run contact -- --app https://app.your-real-domain.com/
 npm run site:check -- --release
 ```
 
-Setting a domain does not invent a support email. Store links remain absent until explicitly configured. Setting a signing fingerprint writes the Android association file. A real release still needs the domain, support contact, store entries and signing verification. The privacy notice describes this code's behavior; review it for any services or distribution changes you introduce. This work does not publish anything.
+`--app` is the live web app with accounts. When it is set, `npm run build` points every "Open the app" on the published home, support and privacy pages at it; without it the home page opens the offline copy at `app/`. The committed pages keep `app.html`, so a local preview still opens the copy beside them. Setting a domain does not invent a support email. Store links remain absent until explicitly configured. Setting a signing fingerprint writes the Android association file. A real release still needs the domain, support contact, store entries and signing verification. The privacy notice describes this code's behavior; review it for any services or distribution changes you introduce. This work does not publish anything.

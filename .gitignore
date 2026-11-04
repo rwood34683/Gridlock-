@@ -20,3 +20,8 @@ ios/App/App.xcodeproj/xcuserdata/
 ios/DerivedData/
 *.xcuserstate
 .idea/
+
+# The iPhone cloud build (npm run ios:cloud) writes these into the shell. They
+# carry the Supabase project's public config and are rebuilt on every run.
+ios/App/App/public/gridlock-config.js
+ios/App/App/public/gridlock-cloud.js

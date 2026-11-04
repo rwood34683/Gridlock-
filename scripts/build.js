@@ -63,8 +63,30 @@ function build(opts = {}) {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(file, dest);
     }
-    const index = path.join(resolved, "index.html");
-    fs.writeFileSync(index, fs.readFileSync(index, "utf8").replaceAll('href="app.html"', 'href="app/"'));
+    // "Open the app" goes to the live web app when contact.json names one, so
+    // the published site sends a coach to the app his account lives in; with
+    // none, the home page opens the offline copy at app/ as before. Support and
+    // privacy keep app.html (copied above) unless there is a live app.
+    const contact = require("./contact");
+    const config = contact.readContact(path.join(site, "contact.json"));
+    for (const page of ["index.html", "support.html", "privacy.html"]) {
+      const file = path.join(resolved, page);
+      if (!fs.existsSync(file)) continue;
+      const fallback = page === "index.html" ? "app/" : "app.html";
+      let html = contact.linkApp(fs.readFileSync(file, "utf8"), config, fallback);
+      // Beside a live app's button the offline build's "there is no server"
+      // would be false: the live wording (scripts/site-live.js) replaces each
+      // marked passage, and a page that still says an offline-only thing
+      // refuses the build rather than ship it.
+      if (config.app) {
+        const live = require("./site-live");
+        html = live.stampLive(html, page);
+        const text = html.replace(/<!--[\s\S]*?-->/g, "");
+        const stray = live.OFFLINE_ONLY.find(re => re.test(text));
+        if (stray) throw new Error(`${page} still says ${stray} beside the live app's button. Mark the passage in site/${page} and give it live text in scripts/site-live.js.`);
+      }
+      fs.writeFileSync(file, html);
+    }
   } else {
     fs.writeFileSync(path.join(resolved, "index.html"), `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=app/"><title>${short}</title><a href="app/">Open ${short}</a>`);
   }

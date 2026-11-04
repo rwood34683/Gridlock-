@@ -11,7 +11,7 @@ when the league publishes a new edition.
 Every number below is a **setting the coach can change** on the format screen
 and the point sheet. Picking a division under More › Format fills in that
 division's numbers from the rulebook's own tables; he can still change any of
-them. **Pro** and **Masters** are named custom choices, and **Other** is for any
+them. **Pro**, **WNXL** and **Masters** are named custom choices, and **Other** is for any
 event this rulebook does not cover: none of the three presets anything.
 
 ## The divisions and their numbers (read 2 Nov 2026)
@@ -19,12 +19,12 @@ event this rulebook does not cover: none of the three presets anything.
 8.1.1 says the X-Ball format is played by **Semi-Pro, D2, D3, D4 and D5**, and
 section 15 adds **3v3 X-Ball** (Amateur and Intermediate). Those seven are
 the divisions with rulebook numbers (`FMT_RULES` in `web/index.html`). The
-list also carries **Pro** and **Masters** as named custom choices
+list also carries **Pro**, **WNXL** and **Masters** as named custom choices
 (`FMT_CUSTOM_DIVS`, shown as "· custom"), and **Other**. This rulebook gives
 none of those a game time or mercy limit: Pro plays under the league's pro
-rules, and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
+rules, WNXL (the women's pro division, entered as "WNXL Pro X-Ball" on PBLeagues) appears only in a roster rule — "The WNXL Professional Division is its own separate format" (4.2.5.1) — and its game time, mercy and race are not in this book (re-read 4 Nov 2026), and Masters appears only as a roster rule (4.3.4, 4.7.6). So a custom
 choice clears any game time and asks how many a side, the race, the mercy and
-the clock, like Other. Division 1, Women's, Collegiate and Juniors are off the
+the clock, like Other. Division 1, Collegiate and Juniors are off the
 list; a saved format or sheet that still carries one keeps the name and shows
 under Other.
 
@@ -45,7 +45,7 @@ up. Race to and how many a side are asked only under Other.
 
 | Rulebook | What it says, structurally | What the app does | State |
 |---|---|---|---|
-| 8.1, 8.2 | A match is a series of points on a game clock, with a **point-differential mercy rule**; game time and mercy margin vary by division. | **Mercy rule** on the point sheet (Off · 3 · 4 · 5) ends the match at that lead and calls match point one short of it; **Time's up** records the clock running out. **Race to** stays for formats that race to a score. The clock itself is the official's. | Done |
+| 8.1, 8.2 | A match is a series of points on a game clock, with a **point-differential mercy rule**; game time and mercy margin vary by division. | **Mercy rule** on the point sheet (Off · 3 · 4 · 5 · 6) ends the match at that lead and calls match point one short of it; **Time's up** records the clock running out. **Race to** stays for formats that race to a score. The clock itself is the official's. | Done |
 | 9.3.9, 9.3.11 | First point from the pit side; teams **switch ends after every point scored**; a no-point does not switch them; overtime starts on the pit side. | **Swap every point** switches on scored points, read off the results — "Next point, no result" is a no-point and nobody moves. Overtime points start from the pit-side end. **Switch ends** still overrides this point. | Done |
 | 9.3.12, 8.3 | A break period follows every point: standard minimum two minutes; split deck one minute (D2–D5) or 45 seconds (semi-pro). | **Clock between points**: Off · 0:45 · 1:00 · 1:30 · 2:00, started by the hang. | Done |
 | 9.7 | One **timeout** of one minute per team per match, called by the designated coach, not in the last ten seconds before a point, usable before overtime. | **Our timeout / Their timeout** on the point sheet: one a side a match, recorded with the point it went on, one tap gives it back. The minute is the official's clock. | Done |
@@ -75,4 +75,4 @@ else is the official's to apply.
 
 ## Named custom formats
 
-Pro and Masters remain visible as custom choices. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.
+Pro, WNXL and Masters remain visible as custom choices. WNXL fills in **race to 5 and a 5-point mercy**, the owner's setting of 4 Nov 2026 (`FMT_OWNER`), not a published rule; the screen says so, the clock between points is left as the coach set it, and every answer stays editable. Replace it with the league's numbers once its WNXL rules are read. This divisional rulebook supplies no defaults for them. Existing custom answers and legacy division names are preserved. Overwriting a saved preset replaces its format fields rather than retaining an old game-time value.

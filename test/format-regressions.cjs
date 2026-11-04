@@ -39,6 +39,31 @@ const {createServer}=require('../scripts/serve');
   await check('Pro and Masters are visible custom choices without divisional defaults',async p=>{
    for(const div of ['Pro','Masters']){await p.getByRole('button',{name:div+' · custom',exact:true}).click();const got=await p.evaluate(()=>({div:S.fmt.div,time:S.fmt.time,text:document.getElementById('root').innerText}));assert.equal(got.div,div);assert.equal(got.time,0);assert.match(got.text,/custom settings/);assert.match(got.text,/Race to/);assert(!got.text.includes('12-minute game'));}
   });
+  await check('mercy 6 can be picked and ends the match at a six-point lead, not before',async p=>{
+   await p.evaluate(()=>setFmt('div','Other'));
+   await p.getByRole('button',{name:'6 points',exact:true}).click();
+   const picked=await p.evaluate(()=>({fmt:S.fmt.mercy,on:[...document.querySelectorAll('[aria-label="Mercy rule"] button.on')].map(b=>b.textContent)}));
+   assert.deepEqual(picked,{fmt:6,on:['6 points']});
+   const got=await p.evaluate(()=>{openSheet({vs:'Mercy fixture'});const m=curMatch(),id=m.id;const score=n=>{S.results=Array.from({length:n},(_,i)=>({m:id,pt:i+1,won:'us',at:i+1}));S.point=n+1;};
+    score(5);const at5=!!matchOver(id),mp5=!!matchPoint();score(6);return{mercy:m.mercy,at5,mp5,at6:!!matchOver(id)};});
+   assert.deepEqual(got,{mercy:6,at5:false,mp5:true,at6:true});
+   await p.reload();assert.equal(await p.evaluate(()=>S.fmt.mercy),6);
+  });
+  await check('WNXL fills in race to 5 and a 5-point mercy, says whose numbers they are, and stays editable',async p=>{
+   await p.evaluate(()=>{setFmt('clock',90);});
+   await p.getByRole('button',{name:'WNXL · custom',exact:true}).click();
+   const got=await p.evaluate(()=>({f:{...S.fmt},m:curMatch(),size:sideSize(),root:document.getElementById('root').innerText}));
+   assert.equal(got.f.div,'WNXL');assert.equal(got.f.raceTo,5);assert.equal(got.f.mercy,5);assert.equal(got.f.game,'xball');assert.equal(got.f.time,0);
+   assert.equal(got.f.clock,90,'the clock between points is left as the coach set it');
+   assert.equal(got.m.raceTo,5);assert.equal(got.m.mercy,5);assert.equal(got.size,5);
+   assert.match(got.root,/WNXL: race to 5, and the match ends at a 5-point lead/);assert.match(got.root,/not from a published rulebook/);
+   const lit=await p.evaluate(()=>['Race to','Mercy rule'].map(l=>[...document.querySelectorAll(`[aria-label="${l}"] button.on`)].map(b=>b.textContent.trim())));
+   assert.deepEqual(lit,[['Race to 5'],['5 points']]);
+   await p.getByRole('button',{name:'4 points',exact:true}).click();assert.equal(await p.evaluate(()=>S.fmt.mercy),4);
+   const sheet=await p.evaluate(()=>{setFmt('mercy',5);openSheet({vs:'WNXL fixture'});return{race:curMatch().raceTo,mercy:curMatch().mercy,div:curMatch().div};});
+   assert.deepEqual(sheet,{race:5,mercy:5,div:'WNXL'});
+   await p.reload();assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.raceTo,S.fmt.mercy]),['WNXL',5,5]);
+  });
   await check('format screen fits phone and tablet with rule and custom choices',async p=>{
    for(const viewport of [{width:375,height:667},{width:820,height:1180}]){await p.setViewportSize(viewport);for(const div of ['Division 3','Other']){await p.evaluate(div=>setFmt('div',div),div);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}}
   });
