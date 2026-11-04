@@ -1696,8 +1696,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Draw two fields on one sub-tab. Breakouts has its own field — the one he
   taps where their five ended up — and the shared break field above it put
   that job two screens down on a phone. Breakouts joins Games and Division in
-  skipping the shared break section; their drawn call is still on Matchup,
-  Counter and Layers. The training-aid line reads *under* every sub-tab, not
+  skipping the shared break section, and so does Layers, which has its own
+  field; their drawn call is still on Matchup and Counter. The training-aid line reads *under* every sub-tab, not
   over it: above, it was one more block between the fold and the field.
 - Put eight controls between a coach and the field he came to tap. How did
   they get there had the pit, the team, the man, his number, the match, the

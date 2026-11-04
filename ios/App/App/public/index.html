@@ -574,6 +574,20 @@ svg.field{width:100%;height:auto;display:block}
   padding:var(--s2) var(--s3) var(--s3);background:var(--panel);border-top:1px solid var(--line);
   border-radius:0 0 var(--r-md) var(--r-md)}
 .tsheet .fld{margin-top:var(--s1)}
+.tally-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px var(--s3);margin-bottom:var(--s2)}
+.tally-head__sc{font-size:var(--t-xl);letter-spacing:-.02em;color:var(--ink)}
+.tally-head__who{color:var(--mute);font-size:var(--t-sm);font-weight:600}
+.tally-head__up{flex-basis:100%;color:var(--mute);font-size:var(--t-sm)}
+.tally-head__up b{color:var(--ink)}
+/* The result, always a thumb away on Tally: the sheet is four phone screens
+   tall and We won it sat half way down it. Sticky to the foot of the column,
+   so it never covers the tab bar or the field it sits under. */
+.resultbar{position:sticky;bottom:calc(-1 * var(--s6));z-index:6;display:flex;gap:var(--s2);align-items:stretch;
+  margin:0 calc(-1 * var(--s4)) calc(-1 * var(--s6));padding:var(--s2) var(--s4) var(--s3);
+  background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 24px -14px rgba(0,0,0,.9)}
+.resultbar .btn{min-height:52px}
+.resultbar .resultbar__back{flex:none;padding:6px 10px;min-width:56px}
+.flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
 /* On a tablet the field is most of the screen, so the sheet under it was off
@@ -5311,6 +5325,29 @@ window.addPlayer = () => {
   forgetRename(name);
   const other = numWorn(num, S.roster.length - 1);
   save(S); if(other) flash(`${name} added. #${num} is also ${other.name}'s number.`); else render();
+  const box = document.getElementById("rNum"); if(box) box.focus();
+};
+// His own squad off a pasted list, read the way the pits read one: a heading,
+// a coach or the team's name is skipped and said, a man already on the squad
+// is left as he is.
+window.pasteSquad = () => {
+  const text = (document.getElementById("rPaste") || {}).value || "";
+  if(!text.trim()){ flash("Paste the list first — one man a line."); return; }
+  const {found, skipped} = parseRoster(text, "");
+  let added = 0, there = 0;
+  const shared = [];
+  found.forEach(m => {
+    const name = clean(String(m.name || "").trim()).slice(0, 32);
+    if(!name){ return; }
+    if(squadHas(name)){ there++; return; }
+    const n = jerseyNum(m.num), other = n !== null ? numWorn(n, -1) : null;
+    if(other) shared.push(`#${n} is also ${other.name}'s`);
+    S.roster = [...(S.roster || []), {name, num: n !== null ? n : freeNum(), p: m.wire && m.wire !== "Flex" ? m.wire : "", s: ""}];
+    forgetRename(name); added++;
+  });
+  if(!added && !there){ flash("No names read in that. One man a line — 7 Reyes."); return; }
+  save(S);
+  flash(`${added} added${there ? `, ${there} already on the squad` : ""}${skipped.length ? `, ${skipped.length} ${skipped.length === 1 ? "line" : "lines"} left out` : ""}.${shared.length ? " " + shared.join("; ") + "." : ""}`);
 };
 const numWorn = (n, except) => (S.roster || []).find((p, i) => i !== except && Number(p.num) === Number(n)) || null;
 // A jersey number is a whole number from 0 to 999. "-5" and "1234" are typos,
@@ -10551,6 +10588,13 @@ function playbook(){
   if(S.pbView === "cards") return cardsView();
   const ans = oppAnswer("right");
   const picked = callSet();
+  // A new phone lands here straight off the format questions, and nothing
+  // said what came next. Two doors, dismissible, never the tutorial.
+  const nextCard = !(S.roster || []).length && !S.tips.next ? `<div class="tip" style="flex-wrap:wrap"><span class="grow"><b>Next:</b> put your squad in, and check the event is the one you are at — ${esc(curLayout().name)}.</span>
+      <span class="btnrow" style="flex-basis:100%;margin:0">
+        <button class="btn grow" onclick="set({tab:'more',more:'team'})">Add your players ›</button>
+        <button class="btn btn--quiet grow" onclick="set({evPick:true});toMainTop()">Which event? ›</button>
+        <button class="btn btn--quiet" onclick="dismissTip('next')">Got it</button></span></div>` : "";
   return `${tip("pb","The field is the call. Play it, then read the five jobs underneath.")}
 
   <div class="pbtop">
@@ -10671,9 +10715,10 @@ function playbook(){
     <button class="btn btn--quiet" onclick="startRep()">⚡ Rep · name the call</button>
   </div>
 
-  ${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
+  ${nextCard}${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
+    <p class="note" style="margin-top:0"><b>P</b> primary · <b>S</b> secondary — his role on this break. Face is where he looks, Shot and Lane 2 his lanes.</p>
     <div class="assigns">
       ${currentPaths().map((pth,i)=>{
         const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
@@ -10697,8 +10742,8 @@ function playbook(){
           </span>
           <span class="assign__ctl">
             <span class="ps">
-              <button class="${role==="P"?"on":""}" onclick="setDirect('${pth.id}','role','P')">P</button>
-              <button class="${role==="S"?"on":""}" onclick="setDirect('${pth.id}','role','S')">S</button>
+              <button class="${role==="P"?"on":""}" aria-label="Primary" aria-pressed="${role==="P"}" onclick="setDirect('${pth.id}','role','P')">P</button>
+              <button class="${role==="S"?"on":""}" aria-label="Secondary" aria-pressed="${role==="S"}" onclick="setDirect('${pth.id}','role','S')">S</button>
             </span>
             <button class="tgl ${d.face!=null?"on":""}" onclick="openPad('face','${pth.id}')"><i></i>${d.face!=null?seenGlyph(d.face):"Face"}</button>
             <button class="tgl ${d.shot?"on":""}" onclick="openPad('shot','${pth.id}')" aria-label="Shot — primary lane${shotLane(d.shot)!==null?": "+seenSay(shotLane(d.shot)):shotB?": "+esc(callOf(shotB)):""}"><i></i>${shotLane(d.shot)!==null?seenGlyph(shotLane(d.shot)):shotB?esc(callOf(shotB)):"Shot"}</button>
@@ -11394,6 +11439,34 @@ window.tallyDone = () => {
   set({tallySel:null, tallyDraft:null, tallyPickFor:null, tallyEdit:null});
   if(said) flash(said);
 };
+/* Most men make it, and the sheet asked five taps of every one of them:
+ * the bunker, a scroll, his name, Made it, Log. With nothing else answered,
+ * his name is the whole story — he is logged made it and the sheet closes (or
+ * moves to the next placed man). Answer anything first and the name only
+ * names him; Fix it and Undo stand under the field for a wrong tap. */
+const draftBlank = d => !!d && d.alive == null && !d.entry && d.dir == null && !d.shootAt && !d.delayed
+  && !d.movedTo && !d.movedDelayed && !d.shotFrom && !(d.route || []).length;
+window.nameMadeIt = n => {
+  const d = draft();
+  if(!draftBlank(d)) return window.setDraft({player: n});
+  // A name already charted on this point is a correction, and logging it at
+  // once replaced his earlier row — and the out on it — with a bare "made
+  // it". It only names him; Log is still the tap that writes over.
+  const b = selBunker(), pt = S.tallyEdit ? ((S.breakouts || []).find(r => r && r.id === S.tallyEdit) || {}).pt : sheetPoint();
+  const side = d.side || (b ? sideOfBunker(b, pt) : "");
+  if(breakoutsHere().some(r => r.pt === pt && r.side === side && r.player === n && r.id !== S.tallyEdit))
+    return window.setDraft({player: n});
+  keepDraft();
+  S.tallyDraft = {...d, player: n, alive: true};
+  window.logBreakout();
+};
+// After a man is logged the field comes back under the thumb for the next one.
+function tallyFieldBack(){
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(!main || !map) return;
+  const top = map.getBoundingClientRect().top - main.getBoundingClientRect().top;
+  if(top < 0 || top > main.clientHeight * 0.5) main.scrollTop += top - 6;
+}
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
   if(!matchVs()) return needOpponent();
@@ -11491,12 +11564,14 @@ window.logBreakout = () => {
     S.tallyDraft = null; save(S);
     const told = breakoutsHere().filter(r => r.pt === pt && r.layout === S.layoutKey).length;
     if(!was) flash(pt === sheetPoint() ? `All ${told} on this point recorded.` : `All ${told} on point ${pt} recorded.`); else render();
+    tallyFieldBack();
     return;
   }
   // The side sticks if the coach set it — he is working through their five —
   // and everything else starts clean for the next man.
   S.tallyDraft = d.sideSet ? {side, sideSet:true} : null;
   save(S); render();
+  tallyFieldBack();
 };
 window.undoBreakout = id => {
   const row = (S.breakouts || []).find(r => r && r.id === id); if(!row) return;
@@ -11747,8 +11822,9 @@ function breakoutSheet(){
       const taken = n => breakoutsHere().find(r => r.pt === rowPt && r.side === side && r.player === n && r.id !== S.tallyEdit && (S.tallyEdit || r.bunker !== b.id));
       return seg([[!d.player, "No name", "setDraft({player:''})"],
         ...names.map(n => { const t = taken(n);
-          return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `setDraft({player:${jsq(n)}})`]; })]);
+          return [d.player === n, t ? `${esc(n)} <span style="opacity:.6">· ${esc(bunkerLabel(t.bunker))}</span>` : esc(n), `nameMadeIt(${jsq(n)})`]; })]);
     })()}
+    ${draftBlank(d) ? `<p class="note" style="margin:6px 0 0">Tap his name and he is logged <b>made it</b>. Shot on the break, or more to say? Answer that first, then his name.</p>` : ""}
     ${q("Did he make it?")}
     ${seg([[d.alive === true, "Made it", `setDraft({alive:${d.alive === true ? "null" : "true"}})`],
            [d.alive === false, "Shot on the break", `setDraft({alive:${d.alive === false ? "null" : "false"}})`]])}
@@ -11900,7 +11976,8 @@ function tally(){
     </div>
     <p class="note" style="margin:0;max-width:56ch">${step === "place"
       ? "Off the buzzer, tap the bunker each man broke to — one tap a man, so two on one bunker is two taps. ✕ in the list takes a man off."
-      : "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."}</p>
+      : tellBacklog().length ? "Each man you placed opens in turn: say what happened, Save goes to the next. Tap any other bunker to chart one more man."
+      : "Tap the bunker a man broke to and his sheet opens. Tap his name and he is logged made it."}</p>
     ${sheetField() ? "" : overPointNote()}`;
   // Whose men a tap places: by the half it lands in unless he says otherwise —
   // a man of theirs who broke deep into your half is still theirs. Under the
@@ -11960,14 +12037,13 @@ function tally(){
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
   ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
-  ${sec("Break chart", `<div class="facts">
-      <span class="fact" style="flex:1 0 100%;text-align:center">
-        <b style="font-size:var(--t-hero);letter-spacing:-.02em">${sc.us}<span style="color:var(--dim)"> – </span>${sc.them}</b>
-        <span>${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : `You v ${matchVs() || "them"}`)} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span></span>
-      ${/* A watched game has no "you": the two sides are the two teams on it. */""}
-      <span class="fact"><b>${alive("us")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"}</span></span>
-      <span class="fact"><b>${alive("them")}</b><span>${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"}</span></span>
-      <span class="fact"><b>${chartPt.length}</b><span>Logged this point</span></span>
+  ${sec("Break chart", `${/* One line over the field, not three boxes: the score is
+        in the header too, and the field started 410 px down a phone under a
+        hero score and three tiles. A watched game has no "you": the two sides
+        are the two teams on it. */""}<div class="tally-head">
+      <b class="tally-head__sc">${sc.us}<span style="color:var(--dim)">–</span>${sc.them}</b>
+      <span class="tally-head__who">${esc((curMatch() || {}).watch ? `${sideWord("us")} v ${sideWord("them")}` : `You v ${matchVs() || "them"}`)} · ${matchOver() ? "final" : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""}`}</span>
+      <span class="tally-head__up"><b>${alive("us")}</b> ${(curMatch() || {}).watch ? `${esc(sideWord("us"))} up` : "You up"} · <b>${alive("them")}</b> ${(curMatch() || {}).watch ? `${esc(sideWord("them"))} up` : "Them up"} · <b>${chartPt.length}</b> logged this point</span>
     </div>
     ${sheetField() ? `<div class="warn"><b>This sheet is on ${esc(LAYOUTS[sheetField()].name)}</b>, not the event on screen.
         Nothing logs here until you are back on that field, or you start a sheet on this one.
@@ -12143,12 +12219,7 @@ function tally(){
             been the mis-tap. */""}
       <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    </div>` : `<div class="btnrow">
-      <button class="btn grow btn--lg" onclick="tapResult('us')">${
-        (curMatch()||{}).watch ? esc(sideWord("us")) + " won it" : "We won it"}</button>
-      <button class="btn grow btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${
-        (curMatch()||{}).watch ? esc(sideWord("them")) + " won it" : "They won it"}</button>
-    </div>
+    </div>` : `<p class="note">Who won it is in the bar at the foot of the screen.</p>
     <div class="btnrow">
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
       <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
@@ -12210,7 +12281,25 @@ function tally(){
       ? `${outsHere.length ? `<p class="note">Bunkers can be set on the point you are on.</p>` : `<p class="note">No outs on point ${pt} yet.</p>`}${outs.length > outsHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:true})">Show all ${outs.length} on this sheet</button>` : ""}`
       : `<p class="note">${outs.length>40?`Showing the last 40 of ${outs.length}. `:""}Bunkers can be set on the point you are on.</p><button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:false})">Only point ${pt}</button>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
-    outs.length?outs.length+" on this sheet":"")}`;
+    outs.length?outs.length+" on this sheet":"")}${resultBar()}`;
+}
+/* We won it / They won it, fixed to the foot of Tally whenever a point can
+ * be scored. Not while a man's breakout sheet is open — that sheet has its own
+ * bar, and the result is never the next tap while one is half told. */
+function resultBarShown(){
+  return S.tab === "tally" && !nobodyToPlay() && !sheetField() && !matchOver() && !selBunker() && !S.quick;
+}
+function resultBar(){
+  if(!resultBarShown()) return "";
+  const w = (curMatch()||{}).watch, back = (S.point||1) > 1;
+  return `<div class="resultbar" role="group" aria-label="Who won the point">
+    ${/* The back slot is always there, empty on point 1: the bar keeps one
+          shape on every point, so the second tap of a double on point 1 lands
+          on We won it again (and the guard) — never on a back button that
+          appeared under it and took the point away. */""}${back ? `<button class="btn btn--quiet resultbar__back" onclick="tapBack()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : `<span class="resultbar__back" aria-hidden="true"></span>`}
+    <button class="btn grow" onclick="tapResult('us')">${w ? esc(sideWord("us")) + " won it" : "We won it"}</button>
+    <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? esc(sideWord("them")) + " won it" : "They won it"}</button>
+  </div>`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
 // to. Both feed Bunker stats. The fast path stays one tap — this is after.
@@ -12432,10 +12521,38 @@ function clearPointScratch(){
 // stays unguarded so a script or a check can score points back to back.
 const RESULT_GUARD_MS = 1500;
 let _lastEnd = null;
+// Back a point from the bar, inside the guard after a result, is the second
+// half of a double tap: it is refused and said, never taken as an undo.
+window.tapBack = () => {
+  if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
+    return flash(`Point ${_lastEnd.pt} was just scored. Tap ‹ again to take it back.`);
+  window.backPoint();
+};
 window.tapResult = won => {
   if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
     return flash(`Point ${_lastEnd.pt} is already scored. Tap Back a point to change it.`);
+  const pt = S.point || 1, before = (S.results || []).length, mid = S.matchId;
+  // The call he is on is the call he ran: every result button writes it with
+  // the result unless he already logged one for this point, so self-scout is
+  // not one more tap a point. A watched game's call is not his; Log the call
+  // still changes it. (endPoint() itself stays the bare result.)
+  // A call this tap wrote itself before (auto) is his standing call then, and
+  // a point taken back and scored again takes the one standing now; a call
+  // he logged with his own tap is never overwritten.
+  const mine = c => c.m === mid && c.pt === pt && !c.auto;
+  const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(mine)
+    ? {script: S.script, layout: S.layoutKey, pt, m: mid, vs: matchVs(), auto: true} : null;
   window.endPoint(won);
+  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(mine)){
+    S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))]; save(S);
+  }
+  // Say what was scored, so a tap on the wrong one is caught while it is
+  // still one tap back.
+  if((S.results || []).length >= before && _lastEnd && _lastEnd.pt === pt){
+    const sc = matchScore(), w = (curMatch()||{}).watch;
+    const who = won === "them" ? (w ? sideWord("them") : matchVs() || "them") : (w ? sideWord("us") : "you");
+    flash(`Point ${pt} to ${who} · ${sc.us}–${sc.them}${matchOver() ? " · match over" : ""}`);
+  }
 };
 window.endPoint = won => {
   if(nobodyToPlay()) return needOpponent();
@@ -12613,6 +12730,12 @@ function gameGuard(){
     + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`
     + (owed ? ` ${owed} ${owed === 1 ? "man" : "men"} placed on it ${owed === 1 ? "is" : "are"} still to tell: open it again from Matches to finish.` : ""));
 }
+// Opens the game's row on the schedule list and brings it under the thumb.
+window.jumpGame = id => {
+  set({gameOpen: id});
+  const el = [...document.querySelectorAll("[data-game]")].find(x => x.getAttribute("data-game") === id);
+  if(el) el.scrollIntoView({block: "start"});
+};
 window.watchGame = id => {
   const g = gameById(id); if(!g || !gameGuard()) return;
   // The schedule's spelling of a team is the board's team.
@@ -13040,7 +13163,13 @@ function matchStrip(){
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
-  </div>`;
+  </div>${/* A game watched off the fence is charted on Scout, and its points were
+        scored only on Tally: a tab and back every point. The two named
+        result buttons ride here on a watched sheet, through the same guard. */""}${
+    m && m.watch && !matchOver() && !sheetField() ? `<div class="btnrow" role="group" aria-label="Who won the point" style="margin:-4px 0 var(--s3)">
+      <button class="btn grow" onclick="tapResult('us')">${esc(sideWord("us"))} won it</button>
+      <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${esc(sideWord("them"))} won it</button>
+    </div>` : ""}`;
 }
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
@@ -13104,7 +13233,7 @@ function scout(){
        match strip and nothing else. Breakouts draws its own field — the one he
        taps where their five ended up — and a second field above it put that
        job two screens down on a phone. */""}
-  ${["games","board","breakouts"].includes(view) ? "" : sec("The break", `<div class="seg seg--wrap">
+  ${["games","board","breakouts","layers"].includes(view) ? "" : sec("The break", `<div class="seg seg--wrap">
       <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">${(curMatch()||{}).watch ? esc(R.named ? R.name : "Away") : "Theirs"}</button>
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">${(curMatch()||{}).watch ? esc(L.named ? L.name : "Home") : "Yours"}</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
@@ -13811,6 +13940,13 @@ function scoutArrival(){
     </details>
     <div class="seg seg--wrap"><button class="${pick==='destination'?'on':''}" onclick="setArrival({pick:'destination'})">Where he ended up</button><button class="${pick==='sighting'?'on':''}" onclick="setArrival({pick:'sighting'})">Where you saw him</button></div>
     <div class="field-wrap" id="arrival-map">${fieldSVG({static:true,noPaths:true,pick:true,names:true,overlay:arrivalOverlay(model)})}</div>
+    ${/* Record sat 230 px below the field, under the route chips, the playback
+          and two long lists: every sighting was a tap, a scroll and a tap. It
+          sits under the field the bunker is tapped on. */""}
+    <div class="btnrow"><button class="btn" onclick="logArrivalSighting()">Record sighting</button>
+      <button class="btn btn--quiet" onclick="undoArrivalSighting()">Undo last sighting</button>
+      <button class="btn btn--quiet" onclick="resetArrivalSightings()">Clear this point</button></div>
+    ${a.notice ? `<p class="note" role="status"><b style="color:var(--ink)">${esc(a.notice)}</b></p>` : ""}
     <p class="aid"><b>Possible routes are a training aid, not a prediction.</b> Green numbers are where you saw him. Dashed lines are the app filling in between.</p>
     ${route ? `<div class="seg seg--wrap">${result.routes.map(r=>`<button class="${route.id===r.id?'on':''}" onclick="setArrival({route:'${r.id}'})">${esc(r.label)} · ~${Math.round(r.length)} ft</button>`).join("")}</div>
       <div class="arrival-playback"><button class="btn btn--quiet" onclick="stepArrival(-1)">Previous stop</button><button class="btn" onclick="playArrival()">${_arrivalPlayback.running?'Pause route':'Play route'}</button><button class="btn btn--quiet" onclick="stepArrival(1)">Next stop</button></div>
@@ -13820,13 +13956,10 @@ function scoutArrival(){
       <div class="fld"><label for="arrival-sighting">Where you saw him on the way</label><select id="arrival-sighting" onchange="setArrival({sightingBunker:this.value})"><option value="">${options.destination?'Same as where he ended up':'Pick the bunker'}</option>${bunkerOptions(options.sightingBunker)}</select></div>
     ${/* Record is never disabled: the handler says what is missing ("Choose a
           bunker before recording a sighting"), and a greyed button says nothing. */""}
-    <div class="btnrow"><button class="btn" onclick="logArrivalSighting()">Record sighting</button>
-      <button class="btn btn--quiet" onclick="undoArrivalSighting()">Undo last sighting</button>
-      <button class="btn btn--quiet" onclick="resetArrivalSightings()">Clear this point</button></div>
     <div class="fld"><label for="arrival-shot">Shooting at</label><select id="arrival-shot" onchange="setArrival({shotAt:this.value})"><option value="">${options.sightingBunker||options.destination?'From '+esc(label(options.sightingBunker||options.destination))+' — choose where the paint went':'Choose the bunker they were at first'}</option>${bunkerOptions(a.shotAt||"")}</select></div>
     <div class="btnrow"><button class="btn" onclick="logArrivalShot()">Record shot</button>
       <button class="btn btn--quiet" onclick="undoArrivalShot()">Undo last shot</button></div>
-    <p class="note" role="status">${esc(a.notice || 'Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there.')}</p>`)
+    <p class="note">Record earlier sightings first, then the destination if you saw them there. A shot is from the bunker selected above; recording one also places him there.</p>`)
   + sec("Possible route",`${route ? `<p class="aid"><b>Our guess at how he got there — you did not see this part.</b> Green numbered squares are where you saw him. The dashed amber line is one way he could have gone; the ? bunker is the one picked, not yet seen. The white dot runs the route; it is not timed.</p>
       <ol class="arrival-narrative">${route.legs.map((leg,i)=>{const from=result.anchors[leg.from],to=result.anchors[leg.to];return `<li><b>Run ${i+1} · ~${Math.round(leg.length)} ft</b><br/>${esc(from.kind==='start' ? from.bunker ? 'Starting bunker '+label(from.bunker) : from.label : 'Sighting '+from.number+' at '+label(from.bunker))} → ${esc(to.kind==='observed'?'sighting '+to.number+' at '+label(to.bunker):'selected destination '+label(to.bunker))}.</li>`;}).join("")}</ol>
       <p class="note">Routes avoid measured bunker footprints and stay inside the field. They do not account for paint, cover strength, player speed or unseen opponents. A starting position and a destination alone cannot establish the route they actually took.</p>`
@@ -15242,7 +15375,12 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
-  ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
+  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
+  ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
+  ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
+  ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
+  ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
+  ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
@@ -15262,19 +15400,13 @@ const HELP_Q = [
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
-  ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
-  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
-  ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
   ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
-  ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
-  ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
-  ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Tap a man's bunker to take him off and tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
   ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
@@ -15292,6 +15424,7 @@ const HELP_Q = [
   ["How do I scout a game I'm not in?", "More › Schedule › Watch this game puts the home team in the left pit and the away team in the right and opens a sheet that counts against them and never against you. On Scout › Breakouts a switch says whose five you are charting, the break toggle names the two teams, and the score buttons name them too. Your own screens — Lineups, Movement, Assess, Log it — stand down on it, because none of your five is on that field."],
   ["A player opened the class link on his own phone.", "The link opens the sign-in sheet and nothing else — no account is needed to sign a clinic sheet, and nothing past it. The session itself lives on the phone that created it, so his own phone says there is no open session with that code: hand him yours, or have him sign in on the one you pass around."],
   ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
+  ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
 ];
 
 /* Which entry belongs to the screen a coach is standing on. */
@@ -15739,7 +15872,7 @@ function moreBody(k){
       // The clock leads the row. A schedule is read by time first — a coach is
       // working out what he can get to before his own game — so it sits in its
       // own column rather than under the names where it has to be hunted for.
-      return `<div class="assign" style="flex-wrap:wrap">
+      return `<div class="assign" style="flex-wrap:wrap" data-game="${esc(g.id)}">
         <span style="flex:none;width:60px;font-size:var(--t-xs);color:var(--mute);letter-spacing:.04em">${
           esc(clockName(g.t))}</span>
         <span class="assign__body">
@@ -15760,7 +15893,13 @@ function moreBody(k){
         </span>` : ""}
       </div>`;
     };
-    return calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
+    // At the event the next game was several screens of thumbing away: the
+    // calendar, then Wednesday, then every game since. One tap goes to it.
+    const nowMs = Date.now(), at = g => Date.parse(`${g.d}T${g.t || "00:00"}`) || 0;
+    const byClock = [...games].sort((x, y) => at(x) - at(y));
+    const nextG = byClock.find(g => at(g) >= nowMs - 15 * 60000) || null;
+    const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">Next game · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
+    return jump + calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
         teams in the pits and opens a sheet that counts against them and never against you — it is how
         you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
         the two is across the tape.</p>
@@ -15877,26 +16016,35 @@ function moreBody(k){
         onchange="editPlayer(${i},'${f}',this.value)"/>`;
     const editor=`<p class="lede">Your squad. Playbook names the five off this list, Tally logs outs against
       it, and Movement and Assess pick players from it — so it is worth getting right once.</p>
+      ${/* The add row leads, and the keyboard stays up between men: it sat under
+            the list, slid 200 px further down with every man, and closed after
+            each one — 27 taps for a nine-man squad. A pasted list is one. */""}
+      <div class="rost__add">
+        <input id="rNum" class="rost__num" placeholder="#" inputmode="numeric" aria-label="Jersey number" ${onEnter("addPlayer()")}/>
+        <input id="rName" placeholder="Name" maxlength="32" aria-label="Name" ${onEnter("addPlayer()")}/>
+        <div class="rost__ps">
+          <label><span class="note">Primary</span><input id="rP" placeholder="e.g. snake MW" ${onEnter("addPlayer()")}/></label>
+          <label><span class="note">Secondary</span><input id="rS" placeholder="e.g. GP" ${onEnter("addPlayer()")}/></label>
+        </div>
+      </div>
+      <button class="btn btn--block" onclick="addPlayer()">Add player</button>
+      <details class="rost__paste"${roster.length ? "" : " open"}><summary>Paste your roster</summary>
+        <p class="note">One man a line — <i>7 Reyes</i>, <i>Reyes #7</i>, or a list copied off a league page. Headings and coaches are left out.</p>
+        <textarea id="rPaste" rows="5" aria-label="Paste your roster" placeholder="7 Reyes&#10;12 Okafor&#10;21 Vance"></textarea>
+        <button class="btn btn--block" onclick="pasteSquad()">Add them</button>
+      </details>
       ${roster.length?`<div class="rost">${roster.map((pl,i)=>`<div class="rost__p">
           ${field(i,"num","#",pl.num,"rost__num")}
           ${field(i,"name","Name",pl.name)}
           <button class="btn btn--danger" onclick="delPlayer(${i})">Remove</button>
           <div class="rost__ps">
-            <label><span class="note">Primary</span>${field(i,"p","snake MW",pl.p)}</label>
-            <label><span class="note">Secondary</span>${field(i,"s","GP",pl.s)}</label>
+            <label><span class="note">Primary</span>${field(i,"p","e.g. snake MW",pl.p)}</label>
+            <label><span class="note">Secondary</span>${field(i,"s","e.g. GP",pl.s)}</label>
           </div>
         </div>`).join("")}</div>`
-        :`<div class="empty">No players yet. Add your five — their names then show up on Playbook,
+        :`<div class="empty">No players yet. Add your squad — their names then show up on Playbook,
           Tally, Movement and Assess.</div>`}
-      <div class="rost__add">
-        <input id="rNum" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter("addPlayer()")}/>
-        <input id="rName" placeholder="Name" maxlength="32" ${onEnter("addPlayer()")}/>
-        <div class="rost__ps">
-          <label><span class="note">Primary</span><input id="rP" placeholder="snake MW" ${onEnter("addPlayer()")}/></label>
-          <label><span class="note">Secondary</span><input id="rS" placeholder="GP" ${onEnter("addPlayer()")}/></label>
-        </div>
-      </div>
-      <button class="btn btn--block" onclick="addPlayer()">Add player</button>`;
+`;
     const pcall=((S.playerCalls||{})[S.layoutKey])||{};
     const pcRows=Object.entries(pcall).flatMap(([who,m])=>Object.entries(m).map(([id,word])=>[who,id,word]));
     return sec("Team", editor, roster.length+(roster.length===1?" player":" players"))
@@ -16419,7 +16567,7 @@ function shell(){
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
-    ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.flash ? `<div class="flash${resultBarShown() ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
 }
@@ -16721,7 +16869,7 @@ function render(){
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
-  const screen = [S.entered, S.tab, S.more, S.scoutTab].join("|");
+  const screen = [S.entered, !!S.fmtAsk, S.tab, S.more, S.scoutTab].join("|");
   const at = main && screen === _where ? main.scrollTop : 0;
   _lastPointMemo = new Map();
   try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }
