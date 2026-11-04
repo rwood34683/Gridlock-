@@ -4,5 +4,10 @@
   "appstore": null,
   "play": null,
   "sha256": null,
-  "app": "https://app.gridlockpb.com/"
+  "app": "https://app.gridlockpb.com/",
+  "cloud": {
+    "url": "https://tldgxtrvbzlnydlysdln.supabase.co",
+    "anonKey": "sb_publishable_06JZ1yePx_pl22MXZfVF2Q_ye_LQ0Os",
+    "redirectTo": "https://app.gridlockpb.com/"
+  }
 }

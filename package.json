@@ -50,7 +50,9 @@
     "test:voice-parser": "node scripts/run-checks.js voice-parser",
     "test:voice": "node scripts/run-checks.js voice",
     "test:speech-native": "node scripts/run-checks.js speech-native",
-    "android:preflight": "node scripts/android.js"
+    "android:preflight": "node scripts/android.js",
+    "cloud:build": "node scripts/cloud-build.js",
+    "site:live": "node scripts/site-live.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

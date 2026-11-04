@@ -6,8 +6,10 @@ https://claude.ai/artifact/JoZQM9DA52jnHbKQJTu4UP
 
 It is the committed `site/` and `web/` and nothing else: no cloud adapter,
 configuration, keys or admin page. `scripts/package-preview.js` builds it and
-refuses to finish if any of those appear. Sign-in, cloud saves and admin live on
-the live app, https://app.gridlockpb.com/.
+refuses to finish if any of those appear. Sign-in, cloud saves and admin are
+not available in the preview. Per the owner's 3 November 2026 instruction, the
+generated preview contains no live-domain references: no live-app link,
+support email at that domain, or social metadata naming it.
 
 ## What the preview adds to the app
 
@@ -16,8 +18,7 @@ in no other build. The real app is unchanged.
 
 | Where | What | Why |
 | --- | --- | --- |
-| Every page | A notice that the preview runs offline, with **Open the live app** | Sign-in, cloud saves and admin are not in the preview |
-| Every page | If the viewer will not open a new tab, the notice prints `https://app.gridlockpb.com/` | The link never fails silently |
+| Every page | An offline-only notice, with no live-app link or domain | Sign-in, cloud saves and admin are not in the preview |
 | The app | The notice says downloads are switched off | The viewer never lets a page save a file |
 | The app | **Save a copy** shows the season as text and says no file was saved and nothing counts as a backup | The text is the only way out of the preview; a copy shown is not a copy kept |
 | The app | **Send this sheet** copies the sheet, or shows it as text, and says no file was saved or sent | Same reason |
@@ -70,5 +71,5 @@ the manifest is re-recorded at the next publish.
   whether a share is pinned to a version, and reading the artifact back shows
   the published file. To see it as a visitor does, open the link in a private
   window.
-- **Whether the claude.ai viewer lets the link open a new tab.** If it does not,
-  the fallback address appears.
+- **The published viewer after rebuilding.** This PR changes the next package
+  only; it does not republish or re-record the old published manifest.

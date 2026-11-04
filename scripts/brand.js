@@ -86,10 +86,10 @@ function byAppId(appId, brands = loadBrands()) {
 
 // The substitution table, from the default brand to `to`. Identity when to is the default.
 // The company's legal name — Gridlock PB LLC — is a name and not a brand: it
-// owns every build, so a variant never swaps the word inside it. It is
-// written once as <span data-company>…</span> and both the swap and the
-// stray-name check pass over it.
-const COMPANY = /<span data-company>[^<]*<\/span>/g;
+// owns every build, so a variant never swaps the word inside it.
+// Both marked HTML and plain account/help copy retain this exact legal name.
+// The stray-name check makes the same exception, never a blanket brand pass.
+const COMPANY = /<span data-company>[^<]*<\/span>|Gridlock PB LLC/g;
 function transformText(text, from, to) {
   if (from.key === to.key) return text;
   const held = [];
@@ -171,6 +171,15 @@ function stage(to, brands = loadBrands()) {
   if (contact.domain) site.set("CNAME", Buffer.from(contact.domain + "\n"));
   site.set(".well-known/assetlinks.json", Buffer.from(contactLib.assetLinks(contact, to.appId)));
   site.set("contact.json", Buffer.from(JSON.stringify(contact, null, 2) + "\n"));
+  // On Windows Git may check out CRLF while generated contact/association
+  // text uses LF. The default build must retain the original bytes, without
+  // accepting any content difference or weakening selfCheck's comparison.
+  if(from.key === to.key) for(const [rel,buf] of site) {
+    const file=path.join(SITE,rel);
+    if(!fs.existsSync(file)) continue;
+    const original=fs.readFileSync(file);
+    if(!original.equals(buf) && original.toString("utf8").replace(/\r\n/g,"\n") === buf.toString("utf8").replace(/\r\n/g,"\n")) site.set(rel,original);
+  }
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, "capacitor.config.json"), "utf8"));
   config.appId = to.appId; config.appName = to.name;
   // Every other build's display name, so a build can be refused for saying one.

@@ -69,7 +69,10 @@ check("the missing-settings message says what to write and never asks for a secr
 });
 check("the launcher, the npm script and the ignore rules are in place", () => {
   const launcher = path.join(ROOT, "OPEN-IN-XCODE-CLOUD.command");
-  assert.ok(fs.statSync(launcher).mode & 0o111, "launcher is executable");
+  const executable = process.platform === "win32"
+    ? require("node:child_process").execFileSync("git", ["ls-files", "--stage", "--", "OPEN-IN-XCODE-CLOUD.command"], {cwd: ROOT, encoding:"utf8"}).startsWith("100755 ")
+    : Boolean(fs.statSync(launcher).mode & 0o111);
+  assert.ok(executable, "launcher is executable (Git index mode on Windows, filesystem mode elsewhere)");
   assert.match(fs.readFileSync(launcher, "utf8"), /node scripts\/ios-cloud\.js/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).scripts["ios:cloud"], "node scripts/ios-cloud.js");
   const ignore = fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8");

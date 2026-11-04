@@ -148,6 +148,24 @@ const measure = () => {
       await page.locator(".tabs button", { hasText: tab }).click();
       await page.waitForTimeout(260);
       const m = await page.evaluate(measure);
+      if(name === "iPhone SE landscape" && tab === "Scout") {
+        const fallback=await page.addStyleTag({content:':root{--sans:Arial,sans-serif}'});
+        const fm=await page.evaluate(measure);
+        check("Devices",`${name} — Scout fallback text under ${MEASURE} ch`,!fm.line || fm.line.ch<=MEASURE,fm.line ? `${fm.line.ch} ch` : "");
+        await fallback.evaluate(el=>el.remove());
+      }
+      if (process.env.DEVICE_SHOTS && name === "iPhone SE landscape" && tab === "Scout") {
+        fs.mkdirSync(process.env.DEVICE_SHOTS, {recursive:true});
+        const prior = await page.evaluate(what => {
+          const main=document.querySelector('.main'), top=main.scrollTop;
+          const el=[...document.querySelectorAll('.main p,.main li,.main .note,.main td')].find(e=>!e.children.length&&(e.textContent||'').trim().startsWith(what));
+          if(el)el.scrollIntoView({block:'center'});
+          return top;
+        }, m.line?.what || '');
+        await page.screenshot({path:path.join(process.env.DEVICE_SHOTS,'scout-landscape.png')});
+        await page.evaluate(top=>{document.querySelector('.main').scrollTop=top;},prior);
+        fs.writeFileSync(path.join(process.env.DEVICE_SHOTS,'scout-measurement.json'),JSON.stringify(m.line,null,2)+'\n');
+      }
       worst.over = Math.max(worst.over, m.over);
       worst.tbl = Math.max(worst.tbl, m.tbl || 0);
       worst.tabsIn = worst.tabsIn && m.tabsIn;
@@ -243,6 +261,16 @@ const measure = () => {
       }catch(e){ return "threw " + e.message; }
     });
     check("Devices", `${name} — header chips on screen with the clock and score up`, stressed === true, stressed === true ? "" : String(stressed));
+    if(name === "iPhone 16 / 17 Pro") {
+      const fallback=await page.addStyleTag({content:':root{--sans:Arial,sans-serif}'});
+      check("Devices",`${name} — fallback header chips with clock and score`,(await page.evaluate(measure)).hdrIn);
+      await fallback.evaluate(el=>el.remove());
+    }
+    if(process.env.DEVICE_SHOTS && name === "iPhone 16 / 17 Pro"){
+      fs.mkdirSync(process.env.DEVICE_SHOTS,{recursive:true});
+      await page.screenshot({path:path.join(process.env.DEVICE_SHOTS,'header-clock.png')});
+      fs.writeFileSync(path.join(process.env.DEVICE_SHOTS,'header-measurement.json'),JSON.stringify(await page.evaluate(()=>[...document.querySelectorAll('.hdr__top > *')].map(e=>({text:e.textContent.trim(),right:e.getBoundingClientRect().right,width:e.getBoundingClientRect().width,viewport:innerWidth}))),null,2)+'\n');
+    }
     // Two long team names on a watched game: the Scout break toggle and the
     // whose-five switch wrap rather than pushing the third option off the edge.
     const longNames = await page.evaluate(() => {

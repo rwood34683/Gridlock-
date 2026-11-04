@@ -831,6 +831,22 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
+the account server. Opt-in League sync uploads the full season and keeps one
+current copy with the coach's account; Gridlock PB LLC's administrators can
+review uploaded seasons. Pause does not delete it. Nexus can review/restore or
+delete the upload; Delete account removes the login and that copy. Keep
+`scripts/site-live.js`, `docs/SERVER.md` and canSync-only app wording consistent.
+Leave offline wording alone. Preserve the exact legal name even in plain-text
+Help/account copy in every brand. Privacy/Support page URLs come only from the
+cloud config, validated as HTTPS without credentials and escaped at render.
+Offline web, bundled app and Claude preview have no such links. The offline
+Claude preview also excludes all references to the default live domain,
+including old live-app notices, support addresses and social metadata.
+Keep real scroll offsets on a same-screen redraw, but do not restore zero on
+the new scroller or read the old offset when changing screens: that forces
+layout on the critical path of every tap. Keep the load-test budgets unchanged.
+
 User, Team, Player, Event, Layout/Bunker, PathEdit, Match, TallyEntry, Breakout, ScoutEntry, ScoutTeamProfile, BunkerCall, ClassSession, ClassResponse, LeagueGroup, LeagueMember, LeagueBlast, Message, AssessmentEntry.
 
 A **Match** is `{id, at, vs, layout}` and every row logged on a sideline carries

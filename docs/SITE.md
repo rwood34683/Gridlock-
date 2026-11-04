@@ -1,5 +1,13 @@
 # Publishing the site — gridlockpb.com
 
+**Current owner-confirmed setup (3 November 2026):** the live app at
+https://app.gridlockpb.com/ is uploaded through Sites in this chat; the public
+website at https://gridlockpb.com is built in Grok. Follow
+[LIVE-REBUILD.md](LIVE-REBUILD.md) for the current app rebuild/upload steps and
+the reviewed Grok copy overlay. The GitHub Pages procedure below describes the
+repository's separate static/offline-site export. Do not apply its DNS or
+hosting steps to the existing live sites as part of this PR.
+
 The landing, support and privacy pages in `site/` are built by `npm run build`
 into `dist/` and published by the **Publish Gridlock site** workflow
 (`.github/workflows/site.yml`). It is run by hand from the Actions tab, never

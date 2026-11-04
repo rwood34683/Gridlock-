@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const root = path.resolve(process.env.GRIDLOCK_TEST_ROOT || path.join(__dirname, ".."));
 const adapter = fs.readFileSync(path.join(root, "native/gridlock-cloud.js"), "utf8");
-const app = fs.readFileSync(path.join(root, "web/index.html"), "utf8");
+const app = fs.readFileSync(path.join(root, "web/index.html"), "utf8").replace(/\r\n/g, "\n");
 const KEY = "grindx.cloud.session";
 const user = id => ({id, email:id + "@example.test"});
 const credentials = id => ({access_token:"token-"+id,refresh_token:"refresh-"+id,expires_in:3600,user:user(id)});
@@ -22,7 +22,11 @@ function adapterSetup(route) {
   vm.runInContext(adapter,ctx);
   return {api:window.gridlockCloud,data,requests,configure:window.gridlockCloudConfigure};
 }
-function between(start,end){return app.slice(app.indexOf(start),app.indexOf(end,app.indexOf(start)));}
+function between(start,end){
+  const first=app.indexOf(start),last=app.indexOf(end,first);
+  assert.ok(first>=0 && last>first, "account handler boundaries exist: "+start+" through "+end);
+  return app.slice(first,last);
+}
 function bridgeSetup(getEntitlement) {
   const state={entered:true,email:"a@example.test",billing:{plan:"free",exp:0,source:"store"},tab:"playbook",preview:false};
   let acc={cloud:true,uid:"a",email:state.email}, session={user:user("a")}, renders=0, live=true;

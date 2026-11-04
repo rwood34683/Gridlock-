@@ -7,9 +7,7 @@
  *   - nothing from the cloud build, no keys and no admin page is bundled;
  *   - the build reproduces the recorded one (docs/preview-manifest.json)
  *     whenever its sources and packager are unchanged;
- *   - "Open the live app" opens https://app.gridlockpb.com/ in a new tab with
- *     no way back to the preview, and when the viewer blocks the tab the
- *     notice prints the address instead;
+ *   - no live-domain or support-email reference in any bundled page;
  *   - Save a copy and Send this sheet never try to download, show the copy as
  *     usable text, say that no file was saved, and do not count a backup.
  * The live app is never contacted: its address is answered locally.
@@ -40,16 +38,24 @@ async function test(name, fn) {
   const appFile = path.join(OUT, "site", "app.html");
 
   await test("the preview bundles no cloud configuration, key or admin page", async () => {
-    for (const bad of ["gridlock-config", "GRIDLOCK_CLOUD", "supabase", "sb_publishable", "service_role", "gridlock-admin", "admin/index"])
+    for (const bad of ["gridlock-config", "supabase", "sb_publishable", "service_role", "gridlock-admin", "admin/index"])
       assert.ok(!artifact.includes(bad), "artifact contains " + bad);
+    function inspect(dir) {
+      for(const entry of fs.readdirSync(dir,{withFileTypes:true})) {
+        const file=path.join(dir,entry.name);
+        if(entry.isDirectory()) inspect(file);
+        else assert.ok(!fs.readFileSync(file).includes("gridlockpb.com"),file+" has no live-domain reference");
+      }
+    }
+    inspect(path.join(OUT,"site"));
+    assert.ok(!/GRIDLOCK_CLOUD\s*=/.test(artifact.toString()),"no injected cloud configuration");
   });
 
-  await test("every page carries the notice and the link fallback; the app carries the export handling", async () => {
+  await test("every page has an offline notice without live-domain references; the app handles exports", async () => {
     for (const f of ["index.html", "support.html", "privacy.html", "app.html"]) {
       const h = fs.readFileSync(path.join(OUT, "site", f), "utf8");
       assert.ok(h.includes('class="pv-note"'), f + " has the notice");
-      assert.ok(h.includes(`href="${LIVE}"`), f + " links the live app");
-      assert.ok(h.includes('id="pv-link"'), f + " has the link fallback");
+      assert.ok(!/gridlockpb\.com|class="pv-link"|GRIDLOCK_CLOUD\s*=/.test(h), f + " has no live domain, link or configuration");
     }
     assert.ok(fs.readFileSync(appFile, "utf8").includes('id="pv-export"'), "app has the export handling");
   });
@@ -81,39 +87,14 @@ async function test(name, fn) {
     return ctx;
   };
 
-  await test("Open the live app opens the live app in a new tab, with no way back to the preview", async () => {
+  await test("the bundled landing page opens only the offline app", async () => {
     const ctx = await context(), p = await ctx.newPage();
-    await p.goto("file://" + appFile);
-    const [pop] = await Promise.all([p.waitForEvent("popup"), p.click("a.pv-link")]);
-    await pop.waitForLoadState();
-    assert.equal(pop.url(), LIVE);
-    assert.equal(await pop.evaluate(() => window.opener === null), true);
-    await ctx.close();
-  });
-
-  await test("a blocked new tab prints the live app's address where it can be read", async () => {
-    const ctx = await context(), p = await ctx.newPage();
-    await p.goto("file://" + appFile);
-    await p.evaluate(() => { window.open = () => null; });
-    await p.click("a.pv-link");
-    const fb = p.locator(".pv-fallback");
-    assert.equal(await fb.isVisible(), true);
-    assert.match(await fb.textContent(), /could not open a new tab\. Open https:\/\/app\.gridlockpb\.com\/ in your browser/);
-    assert.equal(await fb.getAttribute("role"), "status");
-    await ctx.close();
-  });
-
-  await test("the bundled landing page and app both open the live app", async () => {
-    const ctx = await context(), p = await ctx.newPage();
-    await p.goto("file://" + path.join(OUT, "artifact.html"));
-    const frame = () => p.frames().find(f => f !== p.mainFrame());
-    await p.waitForFunction(() => document.getElementById("view") && document.getElementById("view").contentDocument && document.getElementById("view").contentDocument.querySelector(".pv-link"));
-    let [pop] = await Promise.all([p.waitForEvent("popup"), frame().click("a.pv-link")]);
-    assert.equal(pop.url(), LIVE); await pop.close();
-    await frame().click('a.button[href="app.html"]');
-    await p.waitForFunction(() => { const d = document.getElementById("view").contentDocument; return d && d.getElementById("pv-export"); });
-    [pop] = await Promise.all([p.waitForEvent("popup"), frame().click("a.pv-link")]);
-    assert.equal(pop.url(), LIVE);
+    await p.goto("file://" + path.join(OUT,"artifact.html"));
+    await p.waitForFunction(() => document.getElementById("view")?.contentDocument?.querySelector('a.button[href="app.html"]'));
+    const frame=p.frames().find(f=>f!==p.mainFrame());
+    await frame.click('a.button[href="app.html"]');
+    await p.waitForFunction(() => !!document.getElementById("view")?.contentDocument?.getElementById("pv-export"));
+    assert.ok(!/gridlockpb\.com/.test(await p.locator("#view").getAttribute("srcdoc") || ""));
     await ctx.close();
   });
 

@@ -1,0 +1,45 @@
+[
+  {
+    "name": "header-clock",
+    "viewport": 402,
+    "chips": [
+      {
+        "text": "SYSTEM · COACH",
+        "right": 131.8125,
+        "width": 115.8125
+      },
+      {
+        "text": "",
+        "right": 205.921875,
+        "width": 68.109375
+      },
+      {
+        "text": "1:30",
+        "right": 258.890625,
+        "width": 46.96875
+      },
+      {
+        "text": "5–6to 7",
+        "right": 336,
+        "width": 71.109375
+      },
+      {
+        "text": "",
+        "right": 386,
+        "width": 44
+      },
+      {
+        "text": "Staff",
+        "right": 0,
+        "width": 0
+      }
+    ],
+    "pass": true
+  },
+  {
+    "name": "scout-landscape",
+    "ch": 68,
+    "text": "No published roster in the app for Blast Camp. Paste theirs off PBLeagues below,\n             or log them one at a time as you see them.",
+    "pass": true
+  }
+]

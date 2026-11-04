@@ -57,8 +57,23 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
   check("renames the display word and the deep link only", t === 'Grind X-backup.json GridlockVoiceParser grindx://class/X window.gridlockKeep "gridlock.coach.v2"', t);
   const co = brand.transformText('&copy; 2026 <span data-company>Gridlock PB LLC</span> · Gridlock Coach', gridlock, grindx);
   check("keeps the company's legal name in every build", co === '&copy; 2026 <span data-company>Gridlock PB LLC</span> · Grind X Coach', co);
+  for(const variant of [grindx,lockdown]) {
+    const stagedCopy=brand.stage(variant,brands);
+    const app=stagedCopy.web.get("index.html").toString("utf8");
+    check(`${variant.short} keeps the legal name in plain account/help copy`, app.includes("Gridlock PB LLC's administrators can review"));
+    check(`${variant.short} ships no default domain in its app or site`, [...stagedCopy.web.values(),...stagedCopy.site.values()].every(buf=>!buf.includes("gridlockpb.com")));
+  }
   const identity = brand.stage(gridlock, brands);
   check("the default brand stages as the source, byte for byte", [...identity.web].every(([rel, buf]) => buf.equals(fs.readFileSync(path.join(WEB, rel)))) && !brand.selfCheck(identity).length);
+  {
+    const file=path.join(ROOT,"site/.well-known/assetlinks.json"),original=fs.readFileSync(file);
+    try {
+      const crlf=Buffer.from(original.toString("utf8").replace(/\r?\n/g,"\r\n"));
+      fs.writeFileSync(file,crlf);
+      const windows=brand.stage(gridlock,brands);
+      check("default association retains CRLF source bytes and passes the strict check",windows.site.get(".well-known/assetlinks.json").equals(crlf) && !brand.selfCheck(windows).length);
+    } finally {fs.writeFileSync(file,original);}
+  }
   const staged = brand.stage(grindx, brands);
   check("the variant passes its own check", !brand.selfCheck(staged).length, brand.selfCheck(staged)[0]);
   {
@@ -150,7 +165,7 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
   const built = brand.build("grindx");
   const out = built.out;
   // The company's legal name is the same in every build, so the name checks read past it.
-  const LEGAL = /<span data-company>[^<]*<\/span>/g;
+  const LEGAL = /<span data-company>[^<]*<\/span>|Gridlock PB LLC/g;
   const raw = rel => fs.readFileSync(path.join(out, rel), "utf8");
   const rd = rel => raw(rel).replace(LEGAL, "");
   check("builds to dist/brand/grindx", out.endsWith(path.join("dist", "brand", "grindx")) && fs.existsSync(path.join(out, "app/index.html")) && fs.existsSync(path.join(out, "GrindX.html")));
