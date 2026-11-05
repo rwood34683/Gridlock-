@@ -10305,7 +10305,7 @@ const ROSTER = [
                  editPath:true, pad:"face:1", replayPt:4, replayStep:2, theirPick:["x"], sightAim:[10,10],
                  penOpen:true, gameOpen:"sch0", gameNew:{h:"x"}, gamePaste:"half a schedule",
                  quick:true, quickPick:true, copyText:"the whole season again", copyStatus:"Replaced with …", sightPick:"to", pbView:"cards", handText:{title:"Cards", text:"five men"}, building:{k:"", name:"half a play", plants:["x"], layout:"lso"}, tallyStep:"record", tallyEdit:"b-half", tallyPlace:"them",
-                 tallyValueOpen:true, tallyAllBreaks:true, tallyAllOuts:true, sightAll:true, keptAll:true,
+                 tallyValueOpen:true, tallyAllBreaks:true, tallyAllOuts:true, sightAll:true, keptAll:true, reviewId:"some-sheet",
                  wb:{field:true, color:"#e5342f", tool:"pen", marks:[{t:"pen", c:"#e5342f", pts:[[40,40],[60,60]]}]} });
     window.selectBunker(curLayout().bunkers[3].id);
     window.setDraft({ player:"Reyes", alive:false });
@@ -10322,7 +10322,7 @@ const ROSTER = [
       quick:S.quick, quickPick:S.quickPick,
       copyText:S.copyText, copyStatus:S.copyStatus, sightPick:S.sightPick === "from" ? "" : S.sightPick, pbView:S.pbView, handText:S.handText, building:S.building,
       tallyStep:S.tallyStep === "record" ? "" : S.tallyStep, tallyEdit:S.tallyEdit, tallyPlace:S.tallyPlace,
-      tallyValueOpen:S.tallyValueOpen, tallyAllBreaks:S.tallyAllBreaks, tallyAllOuts:S.tallyAllOuts, sightAll:S.sightAll, keptAll:S.keptAll,
+      tallyValueOpen:S.tallyValueOpen, tallyAllBreaks:S.tallyAllBreaks, tallyAllOuts:S.tallyAllOuts, sightAll:S.sightAll, keptAll:S.keptAll, reviewId:S.reviewId,
     }).filter(([k, v]) => !(v === null || v === "" || v === false || v === -1 || v === 0))
       .map(([k]) => k).join(", "));
     check("nothing a coach was in the middle of survives a relaunch", !left, left);
