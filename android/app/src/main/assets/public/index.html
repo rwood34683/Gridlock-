@@ -130,6 +130,8 @@ h1,h2,h3,p{margin:0}
 }
 .score-chip i{color:var(--dim);font-style:normal;font-weight:600}
 .who-chip.staff{color:var(--ink);border-color:var(--accent);background:rgba(173,21,21,.18)}
+/* The chip stays the size of a chip; the button round it is a 44 px target. */
+.who-btn{flex:none;min-height:44px;min-width:44px;padding:0;border:0;background:none;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center}
 
 /* live context: what field and what call, always on screen */
 .ctx{
@@ -750,7 +752,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .brand small{display:none}
   .brand img.brand-logo{height:20px;margin:0 0 0 -2px}
   .score-chip{padding:4px 8px;font-size:12px;gap:2px}
-  .hdr__top .who-chip{display:none}
+  .hdr__top .who-chip, .hdr__top .who-btn{display:none}
 }
 /* With the break clock up as well — four chips and a 5–6 to 7 score — a
    375 px phone ran the Staff chip 10 px past the edge. The clock carries a
@@ -759,7 +761,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 @media(max-width:479px){
   .hdr--clock .hdr__top{gap:6px}
   .hdr--clock .score-chip{padding:4px 8px;font-size:12px;gap:2px}
-  .hdr--clock .hdr__top .who-chip{display:none}
+  .hdr--clock .hdr__top .who-chip, .hdr--clock .hdr__top .who-btn{display:none}
 }
 /* A watched game's score is two other teams' score. The chip says so, and
    reads in the right pit's blue rather than his own red. */
@@ -10655,6 +10657,13 @@ function queueSeasonPush(t){
   _syncTail = pending.catch(() => {});
   return pending;
 }
+// Sign out from a tap asks first: on a sideline a stray thumb on Sign out was
+// the account gone mid-match. The season stays on the phone either way.
+window.askSignOut = () => {
+  if(!confirm(`Sign out${S.email ? " of " + S.email : ""}? Your season stays on this phone.${S.syncOn ? " League sync pauses until you sign in again." : ""}`)) return;
+  window.staffSignOut();
+};
+window.openAccount = () => set({tab: "more", more: "nexus", evPick: false});
 window.staffSignOut = () => {
   clearSyncRetry();
   ++_authAttempt; ++_syncEpoch;
@@ -15747,7 +15756,7 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
-  ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
+  ["How do I sign out?", "Tap STAFF at the top right (or More, then Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
@@ -16696,6 +16705,9 @@ function moreBody(k){
   if(k==="nexus") return sec("Nexus", `<div class="panel">
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
+      </div>
+      ${staffed() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="askSignOut()">Sign out</button>` : ""}
+      <div class="kv">
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
           canSync() && S.syncOn
@@ -16717,7 +16729,6 @@ function moreBody(k){
       or the screen goes off, so it does not run your battery down in a pocket.</p>`:""}
     ${verifyBlock()}
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
-    <button class="btn btn--ghost btn--block" onclick="staffSignOut()">Staff sign out</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + cloudPageLinks()
   + (canSync() ? sec("League sync", `<p class="lede">Upload your full season and keep one current copy with your account on our account server.
@@ -16894,7 +16905,11 @@ function shell(){
               that open nothing behind it. They wait for Done. */""}
         ${asking ? "" : `${clockChip()}${line}
         <button class="help-btn" onclick="openHelp()" aria-label="Help for this screen"></button>`}
-        <span class="who-chip ${staffed()?"staff":""}">${staffed()?"Staff":"Guest"}</span>
+        ${/* The chip read like a button and did nothing; sign-out sat at the foot of
+              Nexus. It is the door to the account now: Nexus, with Sign out at the
+              top — or, on a screen with no tabs, the sign-out question itself. */""}${staffed()
+          ? `<button class="who-btn" onclick="${asking ? "askSignOut()" : "openAccount()"}" aria-label="Staff — signed in as ${esc(S.email || "staff")}, account and sign out"><span class="who-chip staff">Staff</span></button>`
+          : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
         <span class="ctx__line">${Object.keys(LAYOUTS).length>1

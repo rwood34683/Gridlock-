@@ -104,7 +104,7 @@ let passed = 0;
         set({entered:true, role:"staff", email:"coach@example.test", fmtDone:true, fmtAsk:false, tab:"more", more:"nexus", syncOn:true});
       });
       const before = await page.evaluate(() => JSON.stringify(S.matches));
-      await page.getByRole("button", {name:"Staff sign out", exact:true}).click();
+      await page.getByRole("button", {name:"Sign out", exact:true}).click();
       await page.evaluate(async () => { _lastAutoSync = 0; save(S); await syncNow(); await _syncTail; });
       assert.deepEqual(await page.evaluate(() => [S.entered, S.syncOn, __out, __late]), [false, false, 1, 0]);
       assert.equal(await page.evaluate(() => JSON.stringify(S.matches)), before);
