@@ -104,3 +104,21 @@ deletion or verified store purchase entitlements. Removing an uploaded season
 is not deleting the Auth account. Before an account-backed paid release,
 complete those server workflows, store setup, privacy review and final device
 checks. Do not mark the app ready solely because SMTP or the local tests pass.
+
+## Beta and live channels
+
+Use the long-lived `beta` branch for tester releases: merge changes to `beta`,
+then build and publish that branch to https://beta.gridlockpb.com/. After
+testers approve, merge `beta` into `main` and publish `main` to
+https://app.gridlockpb.com/ for everyone. Keep a separate deployment for each
+branch; adding a second domain to the live deployment would only alias it.
+
+Both builds use the same public account-server URL and publishable key. The
+beta build sets `GRINDX_AUTH_REDIRECT_URL=https://beta.gridlockpb.com/`. The
+owner must add that exact URL to Supabase Auth’s Redirect URLs and confirm
+before testing email callbacks. Keep the live Site URL unchanged.
+
+The current Sites/Cloudflare publication is manual. A merge alone does not
+publish either branch until a Git-connected deployment workflow is configured.
+Run the full checks before publishing; never put a secret or service-role key
+in either build.
