@@ -13302,28 +13302,36 @@ function tally(){
    leaves the foot of the screen and sits under the sheet, as it did before.
    A tap on the field never lands on We won it. */
 const TALLY_FIELD_MIN = 170;
-function fitTallyField(){
+function fitTallyField(svg, bar, main){
+  if(!svg.isConnected || !bar.isConnected || !main.isConnected) return;
+  svg.style.maxHeight = ""; svg.style.width = "";
+  const mr = main.getBoundingClientRect(), fr = svg.getBoundingClientRect(), br = bar.getBoundingClientRect();
+  const top = fr.top - mr.top + main.scrollTop;
+  const room = Math.floor(main.clientHeight - br.height - top - 8);
+  const fits = fr.height <= room || room >= TALLY_FIELD_MIN;
+  bar.classList.toggle("resultbar--flow", !fits);
+  if(fr.height > room && fits){ svg.style.maxHeight = room + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; }
+}
+// Measuring a newly rebuilt sheet in render() forces its whole layout into
+// every tap. Wait for the browser's layout pass, and measure only that sheet.
+// Until fitted, the result bar stays in flow so it cannot cover a bunker.
+let _tallyFitObserver;
+function watchTallyField(){
+  if(_tallyFitObserver){ _tallyFitObserver.disconnect(); _tallyFitObserver = null; }
   const svg = document.querySelector("#tally-map svg.field"), bar = document.querySelector(".resultbar"),
         main = document.querySelector(".main");
-  if(!svg) return;
-  svg.style.maxHeight = ""; svg.style.width = "";
-  if(!bar || !main) return;
-  bar.classList.remove("resultbar--flow");
-  const mr = main.getBoundingClientRect(), fr = svg.getBoundingClientRect(), br = bar.getBoundingClientRect();
-  const top = fr.top - mr.top + main.scrollTop;                 // where the field starts, scrolled to the top
-  const room = Math.floor(main.clientHeight - br.height - top - 8);
-  if(fr.height <= room) return;
-  if(room >= TALLY_FIELD_MIN){ svg.style.maxHeight = room + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; return; }
-  bar.classList.add("resultbar--flow");
+  if(!svg || !bar || !main || typeof ResizeObserver !== "function") return;
+  _tallyFitObserver = new ResizeObserver(() => fitTallyField(svg, bar, main));
+  _tallyFitObserver.observe(main);
+  _tallyFitObserver.observe(bar);
 }
-addEventListener("resize", () => { if(S.tab === "tally") fitTallyField(); });
 function resultBarShown(){
   return S.tab === "tally" && !nobodyToPlay() && !sheetField() && !matchOver() && !selBunker() && !S.quick;
 }
 function resultBar(){
   if(!resultBarShown()) return "";
   const w = (curMatch()||{}).watch, back = (S.point||1) > 1;
-  return `<div class="resultbar" role="group" aria-label="Who won the point">
+  return `<div class="resultbar resultbar--flow" role="group" aria-label="Who won the point">
     ${/* The back slot is always there, empty on point 1: the bar keeps one
           shape on every point, so the second tap of a double on point 1 lands
           on We won it again (and the guard) — never on a back button that
@@ -17988,7 +17996,7 @@ function render(){
   if(next && screen === _where && at !== 0) next.scrollTop = at;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
-  fitTallyField();
+  watchTallyField();
 }
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }

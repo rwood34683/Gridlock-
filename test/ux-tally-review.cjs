@@ -38,6 +38,37 @@ const SEED = require("../scripts/seed.js");
         });
         assert.equal(hits, 0);
       }, vp);
+
+    await check("the small-phone field fits after layout and after rotating back", async p => {
+      await p.evaluate(() => set({ tab: "tally" }));
+      async function fitted(){
+        await p.waitForFunction(() => {
+          const f = document.querySelector("#tally-map svg.field").getBoundingClientRect(),
+                b = document.querySelector(".resultbar").getBoundingClientRect(),
+                m = document.querySelector(".main").getBoundingClientRect();
+          return f.height >= 170 && f.bottom <= b.top && b.bottom <= m.bottom + 1;
+        });
+      }
+      await fitted();
+      await p.setViewportSize({ width: 844, height: 390 });
+      await p.waitForFunction(() => document.querySelector(".resultbar").classList.contains("resultbar--flow"));
+      assert.ok(await p.evaluate(() => document.querySelector("#tally-map svg.field").getBoundingClientRect().bottom
+        <= document.querySelector(".resultbar").getBoundingClientRect().top));
+      await p.setViewportSize({ width: 375, height: 667 }); await fitted();
+      await p.evaluate(() => { set({ tab: "scout" }); set({ tab: "tally" }); });
+      await fitted();
+    }, { width: 375, height: 667 });
+    await check("a bottom bunker tap opens its sheet without changing the result", async p => {
+      await p.evaluate(() => set({ tab: "tally" }));
+      await p.waitForFunction(() => !document.querySelector(".resultbar").classList.contains("resultbar--flow"));
+      const before = await p.evaluate(() => JSON.stringify({ point: S.point, results: S.results }));
+      const target = await p.locator("#tally-map .bnk").evaluateAll(nodes => nodes.map(n => {
+        const r = n.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }).sort((a, b) => b.y - a.y)[0]);
+      await p.mouse.click(target.x, target.y);
+      assert.ok(await p.locator("#tally-sheet").isVisible(), "opens the bunker sheet");
+      assert.equal(await p.evaluate(() => JSON.stringify({ point: S.point, results: S.results })), before);
+    }, { width: 375, height: 667 });
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);

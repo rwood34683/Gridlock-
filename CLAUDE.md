@@ -888,6 +888,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `test/ux-tally-review.cjs`, `test/ux-review-scout.cjs` and
     `test/ux-players.cjs` hold them.
 
+59. ~~Keep Tally responsive with a full season.~~ Done — fitting its field
+    inside render forced synchronous layout on every tap. A ResizeObserver
+    fits it after layout and is replaced when the screen changes. Until then,
+    the result bar stays in normal flow; on short screens it stays there.
+    Keep the load budgets unchanged and test settled phone fit, rotation and
+    bottom-bunker taps as well as the immediate no-overlap check.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
