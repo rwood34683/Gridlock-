@@ -570,7 +570,7 @@ svg.field{width:100%;height:auto;display:block}
    the lane, at what, timing, moved to, route — and a coach logs five men a
    point. It rides the bottom of the screen while the sheet is open instead,
    so it is never a scroll away from whichever question he is on. */
-.tsheet__act{position:sticky;bottom:calc(-1 * var(--s3));margin:var(--s2) calc(-1 * var(--s3)) calc(-1 * var(--s3));
+.tsheet__act{position:sticky;bottom:calc(-1 * var(--s6));margin:var(--s2) calc(-1 * var(--s3)) calc(-1 * var(--s3));
   padding:var(--s2) var(--s3) var(--s3);background:var(--panel);border-top:1px solid var(--line);
   border-radius:0 0 var(--r-md) var(--r-md)}
 .tsheet .fld{margin-top:var(--s1)}
@@ -587,6 +587,10 @@ svg.field{width:100%;height:auto;display:block}
   background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 24px -14px rgba(0,0,0,.9)}
 .resultbar .btn{min-height:52px}
 .resultbar.resultbar--flow{position:static;margin-bottom:0}
+/* A watched game's two names: one line each, cut short, not four lines a button. */
+.resultbar .btn{min-width:0;white-space:nowrap}
+.resultbar .rb__lbl{min-width:0;max-width:100%;overflow:hidden}
+.resultbar .rb__name{display:inline-block;max-width:calc(100% - 4.2em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .resultbar .resultbar__back{flex:none;padding:6px 10px;min-width:56px}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
@@ -1993,7 +1997,8 @@ function routeObstacles(list, pad){
         if(a.y0 > b.y1 + 1.5 || b.y0 > a.y1 + 1.5) continue;
         boxes[i] = {ids:a.ids.concat(b.ids), n:a.n,
           x0:Math.min(a.x0,b.x0), x1:Math.max(a.x1,b.x1),
-          y0:Math.min(a.y0,b.y0), y1:Math.max(a.y1,b.y1)};
+          y0:Math.min(a.y0,b.y0), y1:Math.max(a.y1,b.y1),
+          parts:(a.parts || [a]).concat(b.parts || [b])};
         boxes.splice(j, 1);
         merged = true;
         break outer;
@@ -2001,8 +2006,10 @@ function routeObstacles(list, pad){
     }
     if(!merged) break;
   }
-  return boxes.map(o => ({ids:new Set(o.ids), n:o.n,
-    x:(o.x0+o.x1)/2, y:(o.y0+o.y1)/2, hw:(o.x1-o.x0)/2, hh:(o.y1-o.y0)/2}));
+  const box = o => ({ids:new Set(o.ids), n:o.n, x:(o.x0+o.x1)/2, y:(o.y0+o.y1)/2, hw:(o.x1-o.x0)/2, hh:(o.y1-o.y0)/2});
+  // Each merged box keeps the bunkers it was made of: a run to one of them
+  // still has to go round the others (see routeClear).
+  return boxes.map(o => ({...box(o), parts: o.parts ? o.parts.map(box) : null}));
 }
 
 // Route around whatever is in the way, the way a player does: run to a corner,
@@ -2023,7 +2030,17 @@ function routeClear(from, to, targetId, obstacles){
   // bunker, and a padded neighbour that reaches over him walled the end off,
   // so the router gave up and drew a straight line through everything.
   const ends = o => Math.abs(to[0]-o.x) <= o.hw && Math.abs(to[1]-o.y) <= o.hh;
-  const live = obstacles.filter(o => !o.ids.has(targetId) && !holds(o) && !ends(o));
+  // A merged group the target is in stops being one wall: two balls of one
+  // kind 6 ft apart merged, and a run to one went straight through the
+  // other. Its other bunkers stand on their own — except those whose padded
+  // box touches the target's, which are the same wall as it (a snake's beams).
+  const near = (a, b) => Math.abs(a.x - b.x) <= a.hw + b.hw && Math.abs(a.y - b.y) <= a.hh + b.hh;
+  const split = o => {
+    if(!o.ids.has(targetId) || !o.parts) return [o];
+    const mine = o.parts.filter(q => q.ids.has(targetId));
+    return o.parts.filter(q => !q.ids.has(targetId) && !mine.some(t => near(q, t))).map(q => ({...q, ids: new Set(q.ids)}));
+  };
+  const live = obstacles.flatMap(split).filter(o => !o.ids.has(targetId) && !holds(o) && !ends(o));
   // Most boxes are nowhere near a given leg; the leg's own extent rules them
   // out before the exact test runs. Strict, so a leg along an edge still hits.
   const clear = (a, b) => {
@@ -4952,6 +4969,7 @@ window.setMercy = n => {
   if(want){
     const sc = matchScore(), lead = Math.abs(sc.us - sc.them);
     if(lead > want){ flash(`The lead is already ${lead}, so a mercy at ${want} would have ended it before now. Mercy at ${lead} or more.`); return; }
+    if(lead === want && lead > 0 && liveRows()){ flash(`A mercy at ${want} ends the match at ${sc.us}–${sc.them}, and point ${S.point} already has men charted. Score point ${S.point} first, or mercy at ${lead + 1} or more.`); return; }
   }
   patchMatch({mercy: want}); S.matchState = derivedState(); if(matchOver()) S.clockEnd = 0; save(S); render();
 };
@@ -5317,6 +5335,13 @@ window.setMatchVs = name => {
 // race to 2 would have ended points ago, and matchOver() read it as a win
 // for whichever side it checked first. The race is at least the higher score,
 // and one past it when the score is level.
+// Rows on the point being played that has no result yet: a race or a mercy
+// that ends the match at the score before it strands them past the end.
+function liveRows(){
+  const m = S.matchId, pt = S.point || 1;
+  if((S.results || []).some(r => r && r.m === m && r.pt === pt)) return 0;
+  return [S.breakouts, S.tally, S.assessments].reduce((n, l) => n + (l || []).filter(r => r && r.m === m && r.pt === pt).length, 0);
+}
 window.setRaceTo = n => {
   // Overtime is the race to one past the tie; a race tapped over it left the
   // sheet saying "next point wins it" while the match played on.
@@ -5327,6 +5352,9 @@ window.setRaceTo = n => {
     if(hi > want || lo >= want){
       const least = hi > lo ? hi : hi + 1;
       flash(`The score is already ${sc.us}–${sc.them}, so a race to ${want} would have ended before now. Race to ${least} or more.`); return;
+    }
+    if(want === hi && hi > lo && liveRows()){
+      flash(`A race to ${want} ends the match at ${sc.us}–${sc.them}, and point ${S.point} already has men charted. Score point ${S.point} first, or race to ${hi + 1} or more.`); return;
     }
   }
   patchMatch({raceTo: want}); S.matchState = derivedState(); if(matchOver()) S.clockEnd = 0; save(S); render();
@@ -6001,6 +6029,8 @@ function fixScreen(){
   if(!SCOUT_VIEWS.includes(S.scoutTab || "matchup")) S.scoutTab = "matchup";
   if(S.more && !Object.prototype.hasOwnProperty.call(MORE_HIDDEN, S.more) && !MORE_GROUPS.some(([, rows]) => rows.some(r => r[0] === S.more))) S.more = null;
 }
+// Nothing under three logged is said anywhere: two fives are a coincidence.
+const GHOST_MIN = 3;
 window.S = S;   // the bridge in native.js reads this; set() mutates in place
 /* The class deep link is the one door that is not the account, and it opens
  * the join sheet and nothing else. On a phone that is signed in it is Classes
@@ -6029,13 +6059,21 @@ function set(patch){
   // made. Leaving ends the drill, the same as stopping it.
   if(repState().running &&
      (("tab" in patch && patch.tab !== "playbook") ||
-      ("pbView" in patch && patch.pbView !== "rep"))) endRep();
+      ("pbView" in patch && patch.pbView !== "rep") ||
+      // Another field is another drill: the clock ran on through the switch.
+      ("layoutKey" in patch && patch.layoutKey !== S.layoutKey))) endRep();
   // Same reasoning for the break animation: it repaints, and a repaint on a tab
   // the coach has left costs him whatever he was typing on the one he is on.
   if(S.playing && "tab" in patch && patch.tab !== S.tab) stopPlaying();
   // A play being built is built on the field it was started on; another
   // event drops it rather than keep that field's bunkers in the draft.
-  if("layoutKey" in patch && patch.layoutKey !== S.layoutKey && !("building" in patch)) patch = {...patch, building: null};
+  if("layoutKey" in patch && patch.layoutKey !== S.layoutKey && !("building" in patch)){
+    const b = S.building, n = b && Array.isArray(b.plants) ? b.plants.filter(Boolean).length : 0;
+    patch = {...patch, building: null};
+    // Said, not dropped in silence: a coach who changed the event to check a
+    // bunker came back to an empty builder.
+    if(b && (n || b.name)) patch.flash = `The play you were writing${b.name ? ` (${b.name})` : ""} was on ${(LAYOUTS[S.layoutKey] || {}).name || "the other field"} — start it again here.`;
+  }
   // Every half-done pick is a bunker id, and ids repeat across fields: three
   // of their bunkers tapped on Lone Star logged as Tampa's Wg#2, and an open
   // breakout sheet wrote its man to the other field's bunker.
@@ -8285,7 +8323,9 @@ function walkRender(focus){
   const typed = (document.getElementById("wkNote") || {}).value || "";
   render();
   const el = document.getElementById("wkNote");
-  if(el){ el.value = typed; if(focus) el.focus(); }
+  // Focus without the scroll: the box sits under the field, and scrolling to
+  // it carried the bunker and its sticky notes off the top of the screen.
+  if(el){ el.value = typed; if(focus) el.focus({preventScroll: true}); }
 }
 window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
 window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
@@ -9482,7 +9522,7 @@ function fieldSVG(opts={}, runnersOnly){
     else if(pitNamed("right")){
       const rd = nextRead("right"), g = likelyPlants("right", rd && !rd.thin ? rd.call : null);
       const ghostSeen = {};
-      if(g.n >= 2) their += g.top.map(([id, n]) => {
+      if(g.n >= GHOST_MIN) their += g.top.map(([id, n]) => {
         const b = layout.bunkers.find(x => x.id === shownBunker(id)); if(!b) return "";
         // A doubled bunker carries two ghosts side by side, not one over the other.
         const many = g.top.filter(([x]) => x === id).length, k = (ghostSeen[id] = (ghostSeen[id] || 0) + 1) - 1;
@@ -9672,6 +9712,12 @@ window.setPitTeam = (side, name) => {
   // A five being fixed, or picked, belongs to the team that was in the pit.
   if(foldName(name) !== foldName((S[side] || {}).name)){
     if(S.theirFix && S.theirFix.side === side){ S.theirFix = null; S.theirPick = []; _pickHist = []; }
+    // A five picked and not yet logged was the team that was in the pit;
+    // Log after a team change filed it against the new one.
+    else if(side === (S.scoutSide === "left" ? "left" : "right") && (S.theirPick || []).length){
+      const n = S.theirPick.length; S.theirPick = []; _pickHist = []; S.pickAside = null;
+      S.flash = `${n} placed ${n === 1 ? "man" : "men"} cleared — they were ${S[side].name || "the other team"}'s.`;
+    }
   }
   S[side] = {...(S[side] || {}), name: name || ""};
   if(side === "right"){ adoptPitAsOpponent(); if(matchVs()) S.tallyNudge = false; }
@@ -9970,7 +10016,7 @@ function usualMan(team, id){
 function ghostLegend(){
   if(!pitNamed("right") || theirFiveLogged("right")) return "";
   const rd = nextRead("right"), g = likelyPlants("right", rd && !rd.thin ? rd.call : null);
-  if(g.n < 2) return "";
+  if(g.n < GHOST_MIN) return "";
   const bl = curLayout().bunkers, team = pitOf("right").name;
   const bits = g.top.map(([id, n]) => { const b = bl.find(x => x.id === shownBunker(id)), u = usualMan(team, id);
     return `${esc(b ? callOf(b) : id)} ${n}${u ? ` (usually ${esc(u.who)})` : ""}`; });
@@ -10009,7 +10055,7 @@ function theirFiveNow(side = "right"){
   if(!pitNamed(side)) return null;
   const f = theirFiveLogged(side); if(f) return {ids: f.plants, basis: "logged"};
   const rd = nextRead(side), g = likelyPlants(side, rd && !rd.thin ? rd.call : null);
-  return g.n >= 2 ? {ids: g.top.map(([id]) => shownBunker(id)), basis: "likely", n: g.n} : null;
+  return g.n >= GHOST_MIN ? {ids: g.top.map(([id]) => shownBunker(id)), basis: "likely", n: g.n} : null;
 }
 function breakLanes(k, their = theirFiveNow()){
   const mine = plantIdsFor(k); if(!mine || !their || !their.ids.length) return null;
@@ -10079,7 +10125,7 @@ function lanesLine(){
 function likelyPlants(side = "right", call){
   const rows = theirBreaks(side).filter(b => Array.isArray(b.plants) && b.plants.length && (!b.layout || b.layout === S.layoutKey));
   const under = call ? rows.filter(b => b.script === call) : [];
-  const use = under.length >= 2 ? under : rows, team = pitOf(side).name;
+  const use = under.length >= GHOST_MIN ? under : rows, team = pitOf(side).name;
   // Counted per man, not per bunker: a five that doubles MD is two men on MD,
   // and counting MD once dropped the second man from the ghost.
   const c = new Map(); use.forEach(b => { const seen = {}; b.plants.forEach(id => { const f = teamFrame(id, b.m, b.pt, team), k = f + "|" + (seen[f] = (seen[f] || 0) + 1); c.set(k, (c.get(k) || 0) + 1); }); });
@@ -10548,6 +10594,9 @@ function parseRoster(text, team){
     ROSTER_WIRE.forEach(([re, w]) => {
       if(re.test(rest)){ if(!wire) wire = w; rest = rest.replace(re, " "); }
     });
+    // A wire written after the number — "Lee #44 (D-side)", "Lee 44 snake" —
+    // hid it from the tail match, and the strip below threw the 44 away.
+    if(!num){ const any = rest.match(/(?:^|[\s(])#?(\d{1,3})(?=[\s)]|$)/); if(any){ num = any[1]; rest = rest.replace(any[0], " "); } }
     rest = rest.replace(/[^A-Za-z'’.\- ]/g, " ").replace(/\s+/g, " ").trim();
     let words = rest.split(" ").filter(Boolean);           // shed the class column
     while(words.length && ROSTER_CLASS.test(words[words.length - 1])) words.pop();
@@ -10915,7 +10964,7 @@ window.completePasswordReset = async () => {
       return set({mode:"login", authSaid:ACCOUNT_SAVE_SAID + " Your new password was accepted; sign in with it when you retry."});
     }
     dropLegacyAccount();
-    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone}); afterSignIn();
+    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
     refreshAccountGrant(cloud, attempt);
   }catch(e){
     if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
@@ -11022,7 +11071,7 @@ window.appleSignIn = async () => {
     if(!writeAccount({kind: "apple", sub: who.sub,
                      email: who.email || kept.email || "",
                      name: who.name || kept.name || ""})) return set({authSaid: ACCOUNT_SAVE_SAID});
-    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone}); afterSignIn();
+    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
   }catch(err){ if(attempt === _authAttempt) set({authSaid: "Apple could not be reached. Nothing has changed."}); }
 };
 function phoneDone(){
@@ -11165,7 +11214,7 @@ window.doAuth = async () => {
         return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
       }
       dropLegacyAccount();
-      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone}); afterSignIn();
+      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
       refreshAccountGrant(cloud, attempt);
       return;
     }
@@ -11186,7 +11235,7 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
     dropLegacyAccount();   // only after the replacement is safely stored
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
     return;
   }
 
@@ -11197,7 +11246,7 @@ window.doAuth = async () => {
       if(attempt !== _authAttempt) return;
       if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
     }
-    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
+    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
     return;
   }
 
@@ -11210,7 +11259,7 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
     dropLegacyAccount();
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); try{ afterSignIn(); }catch(e){}   // the backup question never stands between him and the app
     return;
   }
   // Three different failures used to read as one accusing line. Which of them
@@ -11256,6 +11305,94 @@ window.doAuth = async () => {
    is the switch-on; a coach can pause it and delete what he sent.
    ============================================================ */
 const canSync = () => !!(window.gridlockCloud && window.gridlockCloud.pushSeason);
+/* The backup question, asked once an account on a cloud build, straight after
+   a sign-in and before the format. League sync stays opt-in: nothing is sent
+   until he taps Yes, and the answer is the same switch Nexus carries.
+   It is asked only at a sign-in (`S.syncAsk`, set by `afterSignIn()`), never
+   because sync went off mid-season: pause, delete, a conflict or a review
+   turning it off must never put a question over the point sheet.
+   Kept on this phone, by account id: who has been asked, and who said yes.
+   Sign-out pauses sharing; the next sign-in of an account that said yes on
+   this phone turns it back on and says so, rather than leaving it off unseen.
+   An account seen sharing (a send that went through) counts as asked and yes,
+   so a coach who turned it on before the question existed is never asked. */
+const SYNC_ASKED_KEY = "gridlock.coach.syncasked", SYNC_YES_KEY = "gridlock.coach.syncyes";
+const _syncSeen = {[SYNC_ASKED_KEY]: new Set(), [SYNC_YES_KEY]: new Set()};
+function syncAskId(){
+  try{ const a = readAccount(); return String((a.cloud && a.uid) || S.email || "").trim().toLowerCase(); }
+  catch(e){ return ""; }
+}
+function syncList(key){
+  let v = [];
+  try{ v = JSON.parse(localStorage.getItem(key) || "[]"); }catch(e){}
+  return new Set([...(Array.isArray(v) ? v.filter(x => typeof x === "string") : []), ..._syncSeen[key]]);
+}
+function syncListSet(key, on){
+  const id = syncAskId(); if(!id) return;
+  const list = syncList(key);
+  if(on) _syncSeen[key].add(id); else _syncSeen[key].delete(id);
+  if(list.has(id) === !!on) return;
+  if(on) list.add(id); else list.delete(id);
+  try{ localStorage.setItem(key, JSON.stringify([...list].slice(-20))); }catch(e){}
+}
+function markSyncAsked(){ syncListSet(SYNC_ASKED_KEY, true); }
+function syncYes(on){ if(on) markSyncAsked(); syncListSet(SYNC_YES_KEY, on); }
+function syncAskDue(){
+  if(!S.entered || S.role !== "staff" || !canSync() || S.syncOn || _stale) return false;
+  const a = readAccount(), id = syncAskId();
+  if(!a.cloud || !id) return false;
+  return !syncList(SYNC_ASKED_KEY).has(id);
+}
+// Run after every sign-in that lands in the app.
+function afterSignIn(){
+  if(!canSync() || !S.entered || S.role !== "staff") return;
+  const id = syncAskId(); if(!id) return;
+  if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
+    ++_syncEpoch; clearSyncRetry(); _lastAutoSync = Date.now();
+    S.syncOn = true; S.syncAsk = false; S.syncSaid = "Backup is back on — your season keeps sending to your account.";
+    save(S); render(); syncNow();
+    return;
+  }
+  if(syncAskDue() && !S.syncAsk){ S.syncAsk = true; save(S); render(); }
+}
+function syncAskShown(){
+  if(!S.syncAsk) return false;
+  if(syncAskDue()) return true;
+  S.syncAsk = false;
+  return false;
+}
+function syncAskPage(){
+  return sec("Back up your season", `
+    <p class="lede">Keep a copy of your season with your account, so a lost or wiped phone does not lose it.</p>
+    <p class="note">Yes turns on <b>League sync</b>: your full season, including your scouting, uploads and one current
+      copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it.
+      Turn it off or delete the copy any time in More › Nexus › League sync.</p>
+    <div class="btnrow">
+      <button class="btn grow" onclick="answerSyncAsk(true)">Yes, back it up</button>
+      <button class="btn btn--quiet grow" onclick="answerSyncAsk(false)">Not now</button>
+    </div>`);
+}
+window.answerSyncAsk = async yes => {
+  if(!syncAskShown()) return render();
+  S.syncAsk = false;
+  if(!yes){
+    markSyncAsked();
+    set({syncSaid: "League sync is off. Your season stays on this phone. Turn it on any time in More › Nexus."});
+    flash("Not backed up. Turn it on any time in More › Nexus › League sync.");
+    return;
+  }
+  markSyncAsked();
+  const before = S.syncAt || 0;
+  toggleSync();
+  // Say how the first send went: a Yes that quietly did nothing is a coach
+  // who believes his season is safe.
+  const t0 = Date.now();
+  while(_syncSending && Date.now() - t0 < 20000) await new Promise(r => setTimeout(r, 100));
+  if(!S.entered) return;
+  if(S.syncOn && (S.syncAt || 0) > before) return flash("Backed up. Your season keeps sending to your account.");
+  if(!S.syncOn) return flash((S.syncSaid ? S.syncSaid + " " : "") + "Open More › Nexus › League sync to sort it out.");
+  flash(S.syncSaid || "Backup is on. It will send when you have signal.");
+};
 function syncLabel(){
   return String(S.syncLabel || pitName("left", "") || S.teamCode || S.email || "Coach").slice(0, 60);
 }
@@ -11357,8 +11494,8 @@ window.reviewCloudSeason = async () => {
    write over the first one's copy, so the season the phone had before any
    restore was gone. The newest is under the plain key; the ones before it
    move down to .1 .. .3. */
-const PRE_RESTORE = STORE_KEY+".before-cloud-restore", PRE_RESTORE_KEEP = 3;
-function preRestoreKey(i){ return i ? PRE_RESTORE+"."+i : PRE_RESTORE; }
+const PRE_RESTORE_KEEP = 3;
+function preRestoreKey(i){ const k = STORE_KEY+".before-cloud-restore"; return i ? k+"."+i : k; }
 function keepPreRestore(){
   const text = copyPayload("all");
   try{
@@ -11366,7 +11503,7 @@ function keepPreRestore(){
       const older = localStorage.getItem(preRestoreKey(i-1));
       if(older != null) localStorage.setItem(preRestoreKey(i), older);
     }
-    localStorage.setItem(PRE_RESTORE, text);
+    localStorage.setItem(preRestoreKey(0), text);
   }catch(e){ return false; }
   return true;
 }
@@ -11394,94 +11531,6 @@ window.toggleSync = () => {
   syncYes(true);
   S.syncOn = true; save(S); render();
   syncNow();
-};
-/* The backup question, asked once an account on a cloud build, straight after
-   a sign-in and before the format. League sync stays opt-in: nothing is sent
-   until he taps Yes, and the answer is the same switch Nexus carries.
-   It is asked only at a sign-in (`S.syncAsk`, set by `afterSignIn()`), never
-   because sync went off mid-season: pause, delete, a conflict or a review
-   turning it off must never put a question over the point sheet.
-   Kept on this phone, by account id: who has been asked, and who said yes.
-   Sign-out pauses sharing; the next sign-in of an account that said yes on
-   this phone turns it back on and says so, rather than leaving it off unseen.
-   An account seen sharing (a send that went through) counts as asked and yes,
-   so a coach who turned it on before the question existed is never asked. */
-const SYNC_ASKED_KEY = "gridlock.coach.syncasked", SYNC_YES_KEY = "gridlock.coach.syncyes";
-const _syncSeen = {[SYNC_ASKED_KEY]: new Set(), [SYNC_YES_KEY]: new Set()};
-function syncAskId(){
-  const a = readAccount();
-  return String((a.cloud && a.uid) || S.email || "").trim().toLowerCase();
-}
-function syncList(key){
-  let v = [];
-  try{ v = JSON.parse(localStorage.getItem(key) || "[]"); }catch(e){}
-  return new Set([...(Array.isArray(v) ? v.filter(x => typeof x === "string") : []), ..._syncSeen[key]]);
-}
-function syncListSet(key, on){
-  const id = syncAskId(); if(!id) return;
-  const list = syncList(key);
-  if(on) _syncSeen[key].add(id); else _syncSeen[key].delete(id);
-  if(list.has(id) === !!on) return;
-  if(on) list.add(id); else list.delete(id);
-  try{ localStorage.setItem(key, JSON.stringify([...list].slice(-20))); }catch(e){}
-}
-function markSyncAsked(){ syncListSet(SYNC_ASKED_KEY, true); }
-function syncYes(on){ if(on) markSyncAsked(); syncListSet(SYNC_YES_KEY, on); }
-function syncAskDue(){
-  if(!S.entered || S.role !== "staff" || !canSync() || S.syncOn || _stale) return false;
-  const a = readAccount(), id = syncAskId();
-  if(!a.cloud || !id) return false;
-  return !syncList(SYNC_ASKED_KEY).has(id);
-}
-// Run after every sign-in that lands in the app.
-function afterSignIn(){
-  if(!canSync() || !S.entered || S.role !== "staff") return;
-  const id = syncAskId(); if(!id) return;
-  if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
-    ++_syncEpoch; clearSyncRetry(); _lastAutoSync = Date.now();
-    S.syncOn = true; S.syncAsk = false; S.syncSaid = "Backup is back on — your season keeps sending to your account.";
-    save(S); render(); syncNow();
-    return;
-  }
-  if(syncAskDue() && !S.syncAsk){ S.syncAsk = true; save(S); render(); }
-}
-function syncAskShown(){
-  if(!S.syncAsk) return false;
-  if(syncAskDue()) return true;
-  S.syncAsk = false;
-  return false;
-}
-function syncAskPage(){
-  return sec("Back up your season", `
-    <p class="lede">Keep a copy of your season with your account, so a lost or wiped phone does not lose it.</p>
-    <p class="note">Yes turns on <b>League sync</b>: your full season, including your scouting, uploads and one current
-      copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it.
-      Turn it off or delete the copy any time in More › Nexus › League sync.</p>
-    <div class="btnrow">
-      <button class="btn grow" onclick="answerSyncAsk(true)">Yes, back it up</button>
-      <button class="btn btn--quiet grow" onclick="answerSyncAsk(false)">Not now</button>
-    </div>`);
-}
-window.answerSyncAsk = async yes => {
-  if(!syncAskShown()) return render();
-  S.syncAsk = false;
-  if(!yes){
-    markSyncAsked();
-    set({syncSaid: "League sync is off. Your season stays on this phone. Turn it on any time in More › Nexus."});
-    flash("Not backed up. Turn it on any time in More › Nexus › League sync.");
-    return;
-  }
-  markSyncAsked();
-  const before = S.syncAt || 0;
-  toggleSync();
-  // Say how the first send went: a Yes that quietly did nothing is a coach
-  // who believes his season is safe.
-  const t0 = Date.now();
-  while(_syncSending && Date.now() - t0 < 20000) await new Promise(r => setTimeout(r, 100));
-  if(!S.entered) return;
-  if(S.syncOn && (S.syncAt || 0) > before) return flash("Backed up. Your season keeps sending to your account.");
-  if(!S.syncOn) return flash((S.syncSaid ? S.syncSaid + " " : "") + "Open More › Nexus › League sync to sort it out.");
-  flash(S.syncSaid || "Backup is on. It will send when you have signal.");
 };
 window.deleteSynced = async () => {
   if(_syncDeleting) return;
@@ -13279,8 +13328,8 @@ function resultBar(){
           shape on every point, so the second tap of a double on point 1 lands
           on We won it again (and the guard) — never on a back button that
           appeared under it and took the point away. */""}${back ? `<button class="btn btn--quiet resultbar__back" onclick="tapBack()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : `<span class="resultbar__back" aria-hidden="true"></span>`}
-    <button class="btn grow" onclick="tapResult('us')">${w ? esc(sideWord("us")) + " won it" : "We won it"}</button>
-    <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? esc(sideWord("them")) + " won it" : "They won it"}</button>
+    <button class="btn grow" onclick="tapResult('us')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("us"))}</span> won it</span>` : "We won it"}</button>
+    <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("them"))}</span> won it</span>` : "They won it"}</button>
   </div>`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
@@ -13589,7 +13638,22 @@ window.endPoint = won => {
 // are leaving, and markOut already refuses to log the same man twice.
 window.backPoint = () => {
   _lastEnd = null;
-  const to = Math.max(1, (S.point || 1) - 1);
+  const to = Math.max(1, (S.point || 1) - 1), from = S.point || 1, mid = S.matchId;
+  // Men charted on a point nobody scored, left by Back: after Next point by
+  // mistake they were charted on a point that never happened, and stayed there
+  // past the end of the race. They come back with the cursor when the point
+  // he goes back to has nobody charted on it yet; otherwise he is told.
+  let carried = "";
+  if(from > to && !(S.results || []).some(r => r && r.m === mid && r.pt === from)){
+    const left = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === from);
+    if(left.length){
+      if(!(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
+        S.breakouts = S.breakouts.map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
+        S.tally = (S.tally || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
+        carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`;
+      } else carried = `Point ${from} still has ${left.length} ${left.length === 1 ? "man" : "men"} charted — Next point to tell them, or take them off there.`;
+    }
+  }
   // The result goes with it. Otherwise the score still counts a point he is
   // about to play again, and Back a point silently becomes a way to inflate it.
   // The read he ticked on it stands again, because Back a point is how a
@@ -13616,6 +13680,7 @@ window.backPoint = () => {
   if(taken && taken.read) S.tallyRead = taken.read;
   S.matchState = derivedState();
   save(S); render();
+  if(carried) flash(carried);
 };
 
 /* A new match: the opponent across the tape now, and the point back to one.
@@ -13738,7 +13803,18 @@ window.jumpGame = id => {
   if(el) el.scrollIntoView({block: "start"});
 };
 window.watchGame = id => {
-  const g = gameById(id); if(!g || !gameGuard()) return;
+  const g = gameById(id); if(!g) return;
+  // A game already being watched is one sheet: Watch again reopens it rather
+  // than starting "game 2" at 0–0 and splitting it across two sheets.
+  const had = (S.matches || []).find(m => m && m.watch && m.sched === g.id);
+  if(had){
+    const moved = toGameField(g);
+    if(had.id !== S.matchId) openMatchNow(had.id);
+    set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
+    flash(((moved || "").trim() + " Back on the sheet you were watching.").trim());
+    return;
+  }
+  if(!gameGuard()) return;
   // The schedule's spelling of a team is the board's team.
   const h = boardTeam(g.h), a = boardTeam(g.a);
   const moved = toGameField(g);
@@ -14267,7 +14343,7 @@ function scout(){
       ${S.lanesOn?(()=>{ const w = watchLanes(), l = w ? null : (pitOnSheet("right") && callSet() ? breakLanes(S.script) : null);
         const sh = w ? null : shooterLane("right");
         const words = w
-          ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc(poss((curMatch()||{}).home || "the home side"))} on the left pit card`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc(poss((curMatch()||{}).away || "the away side"))} on Breakouts`}`
+          ? (w.thin ? `lanes show once both fives are logged on this point — ${w.home ? "" : `${esc(poss((curMatch()||{}).home || "the home side"))} on Breakouts`}${!w.home && !w.away ? ", " : ""}${w.away ? "" : `${esc(poss((curMatch()||{}).away || "the away side"))} on Breakouts`}`
                    : `clear lanes off the break · ${w.onThem} of ${esc(poss(w.homeName))} ${w.mine} on ${esc(w.awayName)} · ${w.onYou} of ${esc(poss(w.awayName))} ${w.theirs} on ${esc(w.homeName)}`)
           : l ? `clear lanes off the break on ${esc(breakName())} · ${l.onThem} of your ${l.mine} on them · ${l.onYou} of their ${l.theirs} on you${l.basis === "likely" ? ` · against the five they usually plant` : ""}`
           : !callSet() && !w ? `lanes show once you pick the call` : pitNamed("right") ? `lanes show once their five is known — <button class="btn btn--quiet read-line__go" onclick="set({scoutTab:'breakouts'})">Log it on Breakouts ›</button>` : `lanes show once a team is in the right pit`;
@@ -14410,8 +14486,15 @@ function rekeyTheirMan(team, before, after){
     S.voiceEvents = (S.voiceEvents || []).map(o => o.team === team && o.player === oldKey ? {...o, player: newKey, playerName: after.name || "#" + after.num} : o);
   }
   const oldTag = theirTag(before), newTag = theirTag(after);
-  if(oldTag && newTag && oldTag !== newTag)
+  if(oldTag && newTag && oldTag !== newTag){
     S.breakouts = (S.breakouts || []).map(r => r && r.side === "them" && r.vs === team && r.player === oldTag ? {...r, player: newTag} : r);
+    // His outs are tallied under the same tag: left behind, the column read
+    // him as still in and a tap put him out a second time on one point.
+    S.tally = (S.tally || []).map(o => o && o.side === "them" && o.vs === team && o.name === oldTag ? {...o, name: newTag} : o);
+  }
+  // The man picked on How did they get there is him too.
+  if(oldKey !== newKey && S.arrival && S.arrival.player === oldKey && (S.arrival.playerTeam || arrivalContext().team) === team)
+    S.arrival = {...S.arrival, player: newKey, playerTeam: team};
   // Who shot one of his is written "#7", or the name for a man with no number.
   const byKey = p => p.num ? "#" + String(p.num).trim() : theirTag(p);
   const oldBy = byKey(before), newBy = byKey(after);
@@ -14430,7 +14513,10 @@ function arrivalPlayerKey(player){
 function arrivalContext(){
   const a = S.arrival || {}, side = a.side === "left" ? "left" : "right";
   const pit = pitOf(side), named = !!(a.team || pit.named), team = a.team || (pit.named ? pit.name : "Unidentified opponent");
-  return {side, team, named, player:a.player || "", layout:S.layoutKey,
+  // A man picked belongs to the team he was picked on: with another team in
+  // the pit he is nobody, and a sighting filed under him was a man nobody picked.
+  const player = a.player && (!a.playerTeam || foldName(a.playerTeam) === foldName(team)) ? a.player : "";
+  return {side, team, named, player, layout:S.layoutKey,
           m:a.matchId || S.matchId, pt:Number.isInteger(a.point) && a.point > 0 ? a.point : a.matchId ? lastPoint(a.matchId) : sheetPoint()};
 }
 /* A sighting belongs to a team and to a sheet on this field. With nobody in
@@ -14677,9 +14763,16 @@ window.setArrival = patch => {
   const unlessChosen = (key,value) => { if(!(key in patch)) S.arrival[key] = value; };
   if("side" in patch){ if(!("startEnd" in patch)) delete S.arrival.startEnd; unlessChosen("team",""); unlessChosen("player",""); unlessChosen("destination",""); unlessChosen("startBunker",""); }
   if("team" in patch){ unlessChosen("player",""); unlessChosen("destination",""); unlessChosen("startBunker",""); }
-  if("player" in patch) unlessChosen("startBunker","");
-  if(["side","team","player","matchId","point"].some(k=>k in patch)){ unlessChosen("sightingBunker",""); unlessChosen("shotAt",""); }
-  if("player" in patch || "matchId" in patch || "point" in patch){
+  // The first man picked after "Tap the man first" keeps the bunker he had
+  // already tapped: that tap was for this man. Changing from one man to
+  // another starts the bunkers over, as before.
+  const teamNow = S.arrival.team || pitName(S.arrival.side === "left" ? "left" : "right", "");
+  const hadMan = !!previous.player && (!previous.playerTeam || foldName(previous.playerTeam) === foldName(teamNow));
+  const firstPick = "player" in patch && !!patch.player && !hadMan;
+  if("player" in patch && patch.player) S.arrival.playerTeam = teamNow;
+  if("player" in patch && !firstPick) unlessChosen("startBunker","");
+  if(["side","team","matchId","point"].some(k=>k in patch) || ("player" in patch && !firstPick)){ unlessChosen("sightingBunker",""); unlessChosen("shotAt",""); }
+  if(("player" in patch && !firstPick) || "matchId" in patch || "point" in patch){
     if(!("destination" in patch)) S.arrival.destination = "";
   }
   S.arrival.notice = "";
@@ -15177,7 +15270,7 @@ function scoutMatchup(){
         ? `<div><h4>${esc(L.named ? L.name : (curMatch().home || "Home"))} · logged</h4><ol>
         ${(L.players||[]).length
           ? L.players.map(m=>`<li><b>${esc(m.num||"?")}</b><span>${m.name ? esc(m.name) + (m.wire ? " · " : "") : ""}${esc(m.wire||"")}</span></li>`).join("")
-          : `<li class="note" style="grid-column:1/-1">Nobody logged yet — log them in the left pit card above.</li>`}
+          : `<li class="note" style="grid-column:1/-1">Nobody logged yet — chart their five on Breakouts, with the switch on their name.</li>`}
       </ol></div>`
         : `<div><h4>Your five${callSet() ? ` · ${esc(breakName())}` : ""}</h4><ol>
         ${five.map((p,i)=>{ const who = fiveFor(S.point||1)[i]; return `<li><b>${i+1}</b><span>${who ? `${esc(who.name)}${callSet() ? " · " : ""}` : ""}${callSet() ? esc(jobName(S.script, p.id, p.label)) : who ? "" : "—"}</span></li>`; }).join("")}
@@ -15382,7 +15475,8 @@ const LAYERS=[["theirOuts","Their outs","Where their players went out"],
 function scoutLayers(){
   const R=pitOf("right"), on=S.scoutLayers||{theirOuts:true}, w=!!(curMatch()||{}).watch;
   // On a watched game "your outs" are the home side's — there is no you on that field.
-  const name=(k,n)=> w && k==="theirOuts" ? `${sideWord("them")} outs` : w && k==="yourOuts" ? `${sideWord("us")} outs` : n;
+  const name=(k,n)=> w && k==="theirOuts" ? `${sideWord("them")} outs` : w && k==="yourOuts" ? `${sideWord("us")} outs`
+    : w && k==="rotations" ? `${poss(sideWord("us"))} rotations` : w && k==="theirMoves" ? `${poss(sideWord("them"))} rotations` : n;
   // On this field: bunker ids repeat across layouts, so another field's outs
   // landed on this field's T#1.
   // His own sheets read as yours and theirs; a watched game's sides are two
@@ -15406,8 +15500,8 @@ function scoutLayers(){
     ? lay(o => (on.theirOuts && o.side==="them" && vs(o)) || (on.yourOuts && o.side==="us" && vs(o)))
     : false;
   const any=live.reduce((n,[k])=>n+counts[k],0);
-  return sec("Layers", `<p class="lede">Everything you have logged against ${esc(R.name)} on
-      ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations — green yours, blue theirs, the number on a blue one how often it was seen.</p>
+  return sec("Layers", `<p class="lede">${w ? `Everything you have logged on ${esc(sideWord("us"))} v ${esc(sideWord("them"))}` : `Everything you have logged against ${esc(R.name)}`} on
+      ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations — green ${w ? esc(poss(sideWord("us"))) : "yours"}, blue ${w ? esc(poss(sideWord("them"))) : "theirs"}, the number on a blue one how often it was seen.</p>
     <div class="toggles">
       ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
         onclick="toggleLayer('${k}')"><i></i>${esc(name(k,n))} · ${counts[k]}</button>`).join("")}
@@ -15514,7 +15608,7 @@ function pointStory(gid, pt, team){
     +kv("Timeout",tos.length?tos.map(t=>esc(who(t.side))).join(", "):"");
   const chart=rows.length?`<div class="assigns" style="margin-top:var(--s3)">${rows.map(r=>`<div class="assign">
       <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${esc(named(r.bunker)).slice(0,3)}</span>
-      <span class="assign__body"><span class="assign__job">${esc(r.player||(r.side==="us"?"your man":"their man"))} → ${esc(named(r.bunker))}</span>
+      <span class="assign__body"><span class="assign__job">${esc(r.player||(m&&m.watch?poss(who(r.side))+" man":r.side==="us"?"your man":"their man"))} → ${esc(named(r.bunker))}</span>
       <span class="assign__who">${[r.alive===true?"made it":r.alive===false?`shot on the break${r.shotFrom?` from ${esc(named(r.shotFrom))}`:""}`:"",
         r.delayed?"delayed":"", r.movedTo?`moved to ${esc(named(r.movedTo))}`:"", r.entry==="battle"?"battling in":r.entry==="clean"?"no pressure":""].filter(Boolean).join(" · ")||"charted"}</span></span>
     </div>`).join("")}</div>`:"";
@@ -16203,7 +16297,7 @@ const HELP = {
          "The twelve are named your way, and + Yours under the field writes a play of your own. Team lists them all; name them once and every screen uses your word.",
          "A play of your own adds to the list: name it, tap the bunker each of the five plants on, and the app draws the runs.",
          "Job on a man's row names what you shout for that job. It follows the call, so it is the same on every field.",
-         "Log it records the call you actually made, which is what self-scout counts."],
+         "Log the call records the call you actually made, which is what self-scout counts."],
     watch:"A play you wrote is the five bunkers, and those change from field to field — so it asks you to build it again at a new event rather than guessing where your snake runner goes."},
   "playbook/cards": {t:"Cards", w:"One card a man, to hand out or share.",
     how:["Each card names his bunker, his job and his lane for the call you are on.",
@@ -16396,20 +16490,20 @@ const HELP_Q = [
   ["When did I last back up?", () => canSync() ? "More › Matches says when you last saved a file. Nexus › Save a copy keeps a backup you control. League sync keeps one current full-season copy with your account on our account server; Gridlock PB LLC's administrators can review it. It is not a history of backups. Pause, review/restore or delete it in Nexus." : "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
-  ["How long between points?", "Set Clock between points under More › Format — 0:45, 1:00, 1:30 or 2:00, whatever your event gives you. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
+  ["How long between points?", "Set Clock between points under More › Format, from the times your format offers — the division you pick sets which, and Other offers them all. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
   ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
-  ["We switched ends.", "Switch ends, under the field on Tally or Playbook. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
+  ["We switched ends.", "Switch ends, under the field on Tally (and on Playbook once a call is picked). The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
-  ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call. The amber note under the field means the map is the league's render, not the staked field: walk it and tap the note off."],
+  ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["How do I sign out?", "More, then Nexus, at the bottom: Staff sign out. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
-  ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Tap a man's bunker to take him off and tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
+  ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
   ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
   ["The screen keeps going dark.", "Nexus has Keep the screen awake, on by default. The phone drops it whenever you switch away, so it does not drain in a pocket."],

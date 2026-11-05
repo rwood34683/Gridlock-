@@ -849,6 +849,44 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     the full season, the scouting and Gridlock PB LLC's administrators. Asked
     accounts are kept by account id under `gridlock.coach.syncasked`; a build
     without `pushSeason` never asks. `test/sync-ask.cjs` holds it.
+    It is asked only at a sign-in (`afterSignIn()` sets `S.syncAsk`), never
+    because sync went off mid-season; an account seen sharing counts as asked
+    and yes (`gridlock.coach.syncyes`), so a yes comes back on after sign-out.
+    Yes says how the first send went.
+
+58. ~~The seventh pass.~~ Done — six readers on 5 Nov 2026, each confirming in
+    a browser: Tally, Scout, accounts, Playbook and the fields, a screenshot
+    sweep with a random-tap tester, and what a player is handed. The ones a
+    coach or a player would feel:
+    - The result bar sat over the bottom of the Tally field on a short phone,
+      and a tap on a bunker there scored a point. `fitTallyField()` fits the
+      field above the bar; where it cannot, the bar sits under the sheet.
+    - Double taps: New match after the winning point closed the sheet, Next
+      point skipped two (`tapNewMatch`, `tapNext`); Back's "tap again" is
+      taken. Back a point takes the call the result wrote, and on a merge a
+      call he tapped beats one the result wrote.
+    - A race or mercy equal to the score refuses while the point has men
+      charted (`liveRows`); men charted after Next point come back with Back.
+    - Their man renamed or numbered takes his outs with him; a man picked on
+      How did they get there belongs to the team he was picked on
+      (`playerTeam`), and the first pick keeps the bunker tapped before him;
+      a five placed and not logged leaves with the team; Watch this game
+      again reopens its sheet; nothing under three fives draws a ghost
+      (`GHOST_MIN`); a watched game says no "you" on Layers or Games.
+    - A merged obstacle group the target is in splits back into its bunkers
+      (`routeObstacles` keeps `parts`): a World Cup run to Tr#2 went through
+      Tr#3. The route checks run on `nwc` now.
+    - A pasted "Lee #44 (D-side)" keeps the 44; a Walk tap no longer scrolls
+      the notes away; Help matches Make it yours, the clock and Log the call.
+    - Cloud: a cancelled review leaves sharing as it was, and each restore
+      keeps its own copy of the phone's season (`preRestoreKey`).
+    - Players: the clinic sheet says why Submit refused, a second sign-in
+      keeps the level and wire left as they were, the code stays for the next
+      kid, Back clears `?c=`; a card names a bunker once by its word or its
+      code (`cardName`), shows the team's word for the job, and the matchup
+      card prints no read nobody made.
+    `test/ux-tally-review.cjs`, `test/ux-review-scout.cjs` and
+    `test/ux-players.cjs` hold them.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
