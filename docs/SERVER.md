@@ -12,7 +12,11 @@ Supabase keeps the coach's email, a password hash, an account id, email
 confirmation, last sign-in, and plan (Free/Team/Program) with its end date.
 
 **The one exception to keeping the season on the device is opt-in League sync.**
-When the coach turns it on, it uploads the full season and keeps one current
+A cloud build asks once per account, straight after the first sign-in and
+before the format ("Back up your season": Yes, back it up / Not now). Nothing
+is sent unless the coach taps Yes; the answer is the same switch as Nexus >
+League sync, and which accounts were asked is kept on the phone under
+`gridlock.coach.syncasked`. When the coach turns it on, it uploads the full season and keeps one current
 copy with the coach's account on that account server. Gridlock PB LLC's
 administrators can review uploaded seasons. This includes rosters, tallies,
 results, scouting on opponents, calls, plays and other season records. The

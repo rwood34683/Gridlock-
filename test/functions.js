@@ -5700,7 +5700,7 @@ const ROSTER = [
   check("a ghost of where they plant most stands on the Scout field until the real five is tapped in", await ev(() => {
     window.set({ tab: "scout", scoutTab: "counter", right: { name: "Dynasty" }, pitOpen: null, theirPick: [] });
     const bl = curLayout().bunkers, ids = [3, 9, 14, 20, 30].map(i => bl[i].id);
-    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: S.layoutKey, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: S.layoutKey, plants: ids, at: 2 }] }); window.set({});
+    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: S.layoutKey, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: S.layoutKey, plants: ids, at: 2 }, { script: "blitz", pt: 3, m: "old-a", layout: S.layoutKey, plants: ids, at: 3 }] }); window.set({});
     const ghosts = document.querySelectorAll("#root svg.field .ghost-plant").length;
     window.logTheirBreak("right", "", ids.slice(0, 3)); window.set({});
     const gone = document.querySelectorAll("#root svg.field .ghost-plant").length === 0 && !!theirFiveLogged("right");
@@ -5756,12 +5756,12 @@ const ROSTER = [
   check("the ghost five is named under the Scout field, with the man usually seen in each bunker", await ev(() => {
     window.set({ tab: "scout", scoutTab: "counter", right: { name: "Dynasty" }, pitOpen: null, theirPick: [] });
     const bl = curLayout().bunkers, ids = [3, 9, 14, 20, 30].map(i => bl[i].id), L = S.layoutKey;
-    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: L, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: L, plants: ids, at: 2 }, { script: "blitz", pt: 3, m: "old-a", layout: L, at: 3 }] });
+    editProfile("right", { breaks: [{ script: "blitz", pt: 1, m: "old-a", layout: L, plants: ids, at: 1 }, { script: "blitz", pt: 2, m: "old-a", layout: L, plants: ids, at: 2 }, { script: "blitz", pt: 3, m: "old-a", layout: L, plants: ids, at: 3 }] });
     const keep = S.arrivalSightings;
     S.arrivalSightings = [...(S.arrivalSightings || []), ...[1, 2].map(i => ({ id: "sg" + i, team: "Dynasty", player: "#7 Dill", layout: L, m: "old-a", pt: i, bunker: ids[0], seq: 1, at: i }))];
     window.set({});
     const text = document.getElementById("root").textContent;
-    const named = new RegExp("likely five under " + callName("blitz") + ", from 2 logged fives: " + callOf(bl[3]) + " 2 \\(usually #7 Dill\\)").test(text);
+    const named = new RegExp("likely five under " + callName("blitz") + ", from 3 logged fives: " + callOf(bl[3]) + " 3 \\(usually #7 Dill\\)").test(text);
     S.arrivalSightings = keep; editProfile("right", { breaks: [] }); window.set({ theirPick: [] });
     return named;
   }));
@@ -7809,14 +7809,16 @@ const ROSTER = [
     window.set({ theirPick: five }); window.logTheirBreak("right", "blitz", five); window.endPoint("us");
     const swapped = ourEnd() === "right";
     window.set({ theirPick: twins }); window.logTheirBreak("right", "blitz", twins);
-    const counts = plantCounts("right"), oneFive = counts.length === 5 && counts.every(([, n]) => n === 2);
-    const g = likelyPlants("right", "blitz"), ghostOne = g.n === 2 && g.top.length === 5 && g.top.every(([, n]) => n === 2);
+    // A third five off another sheet: nothing under three logged is drawn.
+    editProfile("right", { breaks: [...theirBreaks("right"), { script: "blitz", pt: 1, m: "old-z", layout: "lso", plants: five, at: 0 }] });
+    const counts = plantCounts("right"), oneFive = counts.length === 5 && counts.every(([, n]) => n === 3);
+    const g = likelyPlants("right", "blitz"), ghostOne = g.n === 3 && g.top.length === 5 && g.top.every(([, n]) => n === 3);
     // on the right end the ghost is drawn on the twins (the end they break from now), and the legend names them there
     window.set({ theirPick: [] });
     const t5 = theirFiveNow("right"), drawnOnTwins = t5 && t5.basis === "logged";   // point 2 has a logged five, so the real five leads
     window.endPoint("them");   // point 3: ends switch on a point scored, so we are back on the left; nothing logged on it, the ghost draws on the right-end five
     const t3 = theirFiveNow("right"), ghostRight = t3 && t3.basis === "likely" && t3.ids.slice().sort().join() === five.slice().sort().join();
-    const bb = bunkerBook(five[0]), book = /planted here 2 times/.test(bb);
+    const bb = bunkerBook(five[0]), book = /planted here 3 times/.test(bb);
     window.setSwapEnds(false); window.set({ tab: "tally" }); window.newMatch();
     return distinct && swapped && oneFive && ghostOne && drawnOnTwins && ghostRight && book;
   }));
@@ -7927,7 +7929,7 @@ const ROSTER = [
     const target = bl.find(x => x.id !== b.id && x.id !== twin.id && mirrorBunkerId(x.id) !== x.id);
     window.setDirect(p.id, "shot", ownShot(target.id));
     const kept = directOf(p.id).shot === mirrorBunkerId(target.id);
-    const card = cardLines()[0].shot === callOf(target);
+    const card = cardLines()[0].shot === cardName(target);
     window.set({ tab: "playbook", pbView: null, pad: "shot:" + p.id });
     const sel = [...document.querySelectorAll("#root .assign select")].find(x => x.querySelector("option[value='" + target.id + "']"));
     const row = !!sel && sel.value === target.id;
@@ -10538,7 +10540,7 @@ const ROSTER = [
   check("three men on one bunker run to three spots of their own on every measured field", await ev(() => {
     const was = { plays: S.plays, script: S.script, callPicked: S.callPicked, building: S.building, layoutKey: S.layoutKey };
     const out = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch", "nwc"]){
       window.pickEvent(lk);
       const bl = curLayout().bunkers, big = bl.filter(b => b.x > 20 && b.x < 70).sort((a, c) => (c.w || 0) * (c.h || 0) - (a.w || 0) * (a.h || 0))[0];
       const rest = bl.filter(b => b.id !== big.id && b.x > 20 && b.x < 70).slice(0, 2).map(b => b.id);
@@ -10603,7 +10605,7 @@ const ROSTER = [
   }));
   check("a doubled bunker's two men stand clear of every other bunker and run round them — on every field", await ev(() => {
     const was = { plays: S.plays, layoutKey: S.layoutKey }, bad = {};
-    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch"]){
+    for(const lk of ["lso", "tby", "mwo", "ujt", "ugp", "wch", "nwc"]){
       if(!LAYOUTS[lk]) continue;
       const L = LAYOUTS[lk], boxes = b => bunkerBoxes(b).map(q => ({ x: q.x, y: q.y, hw: q.w / 2, hh: q.h / 2 }));
       for(const b of L.bunkers){
@@ -10625,9 +10627,9 @@ const ROSTER = [
     // the beam and the centre wedge sits in the gap between two beams.
     // And the WCPPL field's two capped beams, where the wedge sits on the beam
     // the men are doubled on.
-    const ok = !list("lso") && !list("tby") && !list("ujt") && [...(bad.wch || [])].every(id => ["SB#3", "SB#6"].includes(id)) && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id))
+    const ok = !list("lso") && !list("tby") && !list("ujt") && !list("nwc") && [...(bad.wch || [])].every(id => ["SB#3", "SB#6"].includes(id)) && [...(bad.mwo || [])].every(id => ["SB#6", "SB#7", "SB#8", "SB#13", "SB#14"].includes(id))
       && [...(bad.ugp || [])].every(id => ["SB#4", "SB#7", "SB#11", "SD#1"].includes(id));
-    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt"), ugp: list("ugp"), wch: list("wch") });
+    return ok || JSON.stringify({ lso: list("lso"), tby: list("tby"), mwo: list("mwo"), ujt: list("ujt"), ugp: list("ugp"), wch: list("wch"), nwc: list("nwc") });
   }));
   G("Match day");
   const unread = await ev(() => {
