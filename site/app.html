@@ -4789,7 +4789,7 @@ function clearScratch(s = S){
   // back, and the tutorial opened itself after sign-in.
   s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.pasteNoteTeam = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
-  s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false;
+  s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false; s.reviewId = null;
   // A sighting or shot bunker tapped on How did they get there and not yet
   // recorded came back after a relaunch, one tap on Record from being logged
   // as the next sighting. The pit, the team and the sheet stay; the taps go.
@@ -13069,7 +13069,8 @@ function tally(){
           <button class="btn grow" onclick="pickEvent(${jsq(sheetField())})">Back to ${esc(LAYOUTS[sheetField()].name)}</button>
           <button class="btn btn--quiet grow" onclick="newMatch()">New match here</button>
         </div></div>` : ""}
-    ${matchOver() ? `<p class="warn"><b>Match over — ${esc(overWord())} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>${copyNudge()}`
+    ${matchOver() ? `<p class="warn"><b>Match over — ${esc(overWord())} ${sc.us}–${sc.them}${(curMatch()||{}).timeUp ? " on the clock" : ""}.</b> New match starts the next sheet.</p>
+        <button class="btn btn--quiet btn--block" onclick="openReview(${jsq(S.matchId)})">Review this match</button>${copyNudge()}`
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>${esc(matchPointWord())}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
     ${stepStrip}
@@ -15600,6 +15601,149 @@ function scoutGames(){
     <p class="aid">What you logged, in the order you logged it. Nothing is reconstructed.</p>`,
     "Point "+pick));
 }
+/* The match review: one sheet read back after the hang, in one place, with
+ * the text to hand the squad. Every line is a count of what was logged on
+ * that sheet, with its sample on it — what each call won, what they ran,
+ * where men were lost, and each man's breaks. Nothing is modelled, nothing
+ * is graded for him, and a sheet with nothing charted says so. */
+function matchReview(mid){
+  const m = matchById(mid); if(!m) return null;
+  const on = r => r && typeof r === "object" && r.m === m.id;
+  const res = (S.results || []).filter(on), wonOn = pt => (res.find(r => r.pt === pt) || {}).won;
+  const here = !m.layout || m.layout === S.layoutKey, lay = LAYOUTS[m.layout] || curLayout();
+  // A bunker named the way the field he is on names it, counted in the end's
+  // frame so a man who swapped ends breaks to one bunker; a sheet from another
+  // field is named off that field's own map.
+  const key = (id, pt) => here ? frameId(id, m.id, pt) : id;
+  const label = id => { if(!id) return "";
+    if(here) return bunkerLabel(m.id === S.matchId ? shownBunker(id) : id);
+    const b = lay.bunkers.find(x => x.id === id); return b ? b.n : id; };
+  const tally = (list, f) => Object.entries(list.reduce((a, x) => { const k = f(x); if(k) a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]);
+  const sideName = s => m.watch ? (s === "us" ? m.home || "Home" : m.away || "Away") : s === "us" ? "You" : m.vs || "Them";
+  // Calls: his own, joined with who won the point. None on a watched game.
+  const calls = m.watch ? [] : (S.calls || []).filter(c => on(c) && c.script);
+  const callRows = Object.values(calls.reduce((a, c) => { const k = c.script, w = wonOn(c.pt);
+    a[k] = a[k] || {key: k, n: 0, won: 0, lost: 0}; a[k].n++; if(w === "us") a[k].won++; if(w === "them") a[k].lost++; return a; }, {}))
+    .sort((a, b) => b.n - a.n || b.won - a.won);
+  // Theirs: the named calls in every team's book stamped with this sheet,
+  // won from that team's side of the result.
+  const theirs = [];
+  Object.entries(S.scout || {}).forEach(([team, p]) => (p && p.breaks || []).forEach(b => { if(on(b) && b.script) theirs.push({...b, team}); }));
+  const teamSide = team => m.watch ? (foldName(team) === foldName(m.home || "") ? "us" : "them") : "them";
+  const theirRows = Object.values(theirs.reduce((a, b) => { const k = b.team + "|" + b.script, w = wonOn(b.pt);
+    a[k] = a[k] || {team: b.team, key: b.script, n: 0, won: 0}; a[k].n++; if(w && w === teamSide(b.team)) a[k].won++; return a; }, {}))
+    .sort((a, b) => b.n - a.n);
+  const outs = (S.tally || []).filter(on), charted = (S.breakouts || []).filter(on);
+  // Where each side lost men: an out with the bunker he was shot at, else a
+  // charted man shot on the break at the bunker he broke to.
+  const lostAt = side => {
+    const at = outs.filter(o => o.side === side && o.shotAt).map(o => ({id: key(o.shotAt, o.pt), k: [o.pt, o.name].join("|")}));
+    const seen = new Set(at.map(x => x.k));
+    charted.filter(r => r.side === side && r.alive === false && r.bunker && !seen.has([r.pt, r.player].join("|")))
+      .forEach(r => at.push({id: key(r.bunker, r.pt)}));
+    return tally(at, x => x.id).map(([id, n]) => [label(id), n]);
+  };
+  // A man: his breaks charted, made it, shot on the break and from where,
+  // tallied out, and first out on a point. Named men only — a placed man not
+  // yet told is one of five, not anyone.
+  const men = side => {
+    const names = [...new Set([...charted.filter(r => r.side === side).map(r => r.player), ...outs.filter(o => o.side === side).map(o => o.name)].filter(Boolean))];
+    const order = side === "us" && !m.watch ? (S.roster || []).map(p => p.name) : [];
+    names.sort((a, b) => ((order.indexOf(a) + 1) || 999) - ((order.indexOf(b) + 1) || 999) || String(a).localeCompare(String(b)));
+    return names.map(name => {
+      const rows = charted.filter(r => r.side === side && r.player === name), mine = outs.filter(o => o.side === side && o.name === name);
+      const first = mine.filter(o => { const f = outs.filter(x => x.pt === o.pt && x.side === side).sort((x, y) => (x.at || 0) - (y.at || 0))[0]; return f === o; }).length;
+      const to = tally(rows.filter(r => r.bunker), r => key(r.bunker, r.pt))[0];
+      const from = tally(rows.filter(r => r.alive === false && r.shotFrom), r => key(r.shotFrom, r.pt))[0];
+      const grades = side === "us" && !m.watch ? (S.assessments || []).filter(a => on(a) && a.who === name && a.score) : [];
+      return {name, n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
+              out: mine.length, first, to: to ? [label(to[0]), to[1]] : null, from: from ? [label(from[0]), from[1]] : null,
+              grade: grades.length ? Math.round(grades.reduce((s, a) => s + a.score, 0) / grades.length * 10) / 10 : 0, graded: grades.length};
+    });
+  };
+  const pens = (S.pens || []).filter(on), tos = (S.timeouts || []).filter(on);
+  const reads = res.filter(r => r.read);
+  return {m, sc: scoreOf(m.id), over: matchOver(m.id), points: res.length, field: lay.name,
+          reads: {n: reads.length, right: reads.filter(r => r.read === "right").length},
+          calls: callRows, theirs: theirRows,
+          lost: {us: lostAt("us"), them: lostAt("them")}, outs: {us: outs.filter(o => o.side === "us").length, them: outs.filter(o => o.side === "them").length},
+          men: {us: men("us"), them: men("them")}, charted: charted.length,
+          pens: {us: pens.filter(p => p.side === "us").reduce((n, p) => n + (p.cost || 0), 0), them: pens.filter(p => p.side === "them").reduce((n, p) => n + (p.cost || 0), 0), n: pens.length},
+          tos: tos.map(t => t.side), sideName};
+}
+// The result in words: "You won 4–2", "Dynasty won 4–3", "a tie at 3–3", or
+// the score so far on a sheet still open.
+function reviewResult(r){
+  const s = `${r.sc.us}–${r.sc.them}`;
+  if(r.over === "tie") return `A tie at ${s}`;
+  if(r.over) return `${r.over === "us" ? r.sideName("us") : r.sideName("them")} won ${s}${r.m.timeUp ? " on the clock" : ""}`;
+  return r.points ? `${s} so far · not finished` : "No points scored yet";
+}
+function manBits(x){
+  return [x.n ? `${x.n} break${x.n === 1 ? "" : "s"} charted` : "", x.made ? `made it ${x.made} of ${x.n}` : "",
+          x.shot ? `shot on the break ${x.shot}${x.from ? ` (from ${x.from[0]})` : ""}` : "",
+          x.to && x.n > 1 ? `broke to ${x.to[0]} ${x.to[1]} of ${x.n}` : x.to ? `broke to ${x.to[0]}` : "",
+          x.out ? `out ${x.out}` : "", x.first ? `first out ${x.first}` : ""].filter(Boolean);
+}
+function reviewSec(mid){
+  const r = matchReview(mid); if(!r) return "";
+  const {m} = r, watch = !!m.watch, them = r.sideName("them"), us = r.sideName("us");
+  const callName2 = k => esc(callName(k));
+  const rec = (won, n) => `won ${won} of ${n}`;
+  const blocks = [];
+  blocks.push(`<div class="facts" style="margin-bottom:var(--s3)">
+      <span class="fact"><b>${r.sc.us}–${r.sc.them}</b><span>${esc(watch ? `${us} v ${them}` : `You v ${them}`)}</span></span>
+      <span class="fact"><b>${r.points}</b><span>${r.points === 1 ? "Point scored" : "Points scored"}</span></span>
+      ${r.charted ? `<span class="fact"><b>${r.charted}</b><span>Men charted</span></span>` : ""}
+      ${r.reads.n ? `<span class="fact"><b>${r.reads.right} of ${r.reads.n}</b><span>Right read</span></span>` : ""}
+    </div><p class="lede"><b style="color:var(--ink)">${esc(reviewResult(r))}</b> · ${esc(r.field)}</p>`);
+  if(!watch) blocks.push(r.calls.length ? `<h3 class="panel__title">Your calls</h3><div class="kv">${r.calls.map(c =>
+      `<div class="kv__row"><span class="kv__k">${callName2(c.key)}</span><span class="kv__v">called ${c.n} · ${rec(c.won, c.won + c.lost)}</span></div>`).join("")}</div>`
+    : `<p class="note">No calls logged on this sheet. Log it on the point sheet and the review says what each call won.</p>`);
+  if(r.theirs.length) blocks.push(`<h3 class="panel__title">${watch ? "What they ran" : `What ${esc(them)} ran`}</h3><div class="kv">${r.theirs.map(c =>
+      `<div class="kv__row"><span class="kv__k">${watch ? esc(c.team) + " · " : ""}${callName2(c.key)}</span><span class="kv__v">ran ${c.n} · ${rec(c.won, c.n)}</span></div>`).join("")}</div>`);
+  const lost = (side, title) => r.lost[side].length ? `<h3 class="panel__title">${title}</h3><div class="kv">${r.lost[side].slice(0, 5).map(([b, n]) =>
+      `<div class="kv__row"><span class="kv__k">${esc(b)}</span><span class="kv__v">${n} ${n === 1 ? "man" : "men"}</span></div>`).join("")}</div>` : "";
+  blocks.push(lost("us", watch ? `Where ${esc(us)} lost men` : "Where you lost men") + lost("them", `Where ${esc(them)} lost men`));
+  const menList = (side, title) => r.men[side].length ? `<h3 class="panel__title">${title}</h3><div class="assigns">${r.men[side].map(x => `<div class="assign">
+      <span class="assign__body"><span class="assign__job">${esc(x.name)}</span>
+      <span class="assign__who">${esc(manBits(x).join(" · ") || "charted")}${x.graded ? ` · your grade ${x.grade} (${x.graded})` : ""}</span></span></div>`).join("")}</div>` : "";
+  blocks.push(menList("us", watch ? esc(us) : "Your men") + menList("them", watch ? esc(them) : `${esc(poss(them))} men`));
+  if(!r.charted && !r.calls.length && !r.theirs.length && !(r.outs.us + r.outs.them))
+    blocks.push(`<p class="note">Only the score is on this sheet. Chart the break on Tally and log the call, and the review fills in — who made it, where men were lost, what each call won.</p>`);
+  const extra = [r.pens.n ? `Penalties: ${watch ? esc(us) : "you"} −${r.pens.us}, ${esc(them)} −${r.pens.them}` : "",
+                 r.tos.length ? `Timeouts: ${r.tos.map(s => esc(r.sideName(s))).join(", ")}` : ""].filter(Boolean);
+  if(extra.length) blocks.push(`<p class="note">${extra.join(" · ")}</p>`);
+  return `<div id="match-review">` + sec("Match review", blocks.join("") + `
+    <button class="btn btn--block" onclick="shareReview(${jsq(m.id)})">Share the review with the squad</button>
+    <p class="aid">Counted from what was logged on this sheet. Grades stay on this phone and are not in the shared text.</p>
+    ${S.reviewId && S.reviewId !== S.matchId ? `<button class="btn btn--quiet btn--block" onclick="set({reviewId:null})">Back to the sheet on now</button>` : ""}`, matchLabel(m)) + `</div>`;
+}
+function reviewText(mid){
+  const r = matchReview(mid); if(!r) return "";
+  const {m} = r, watch = !!m.watch, them = r.sideName("them"), us = r.sideName("us");
+  const L = [`${watch ? `${us} v ${them}` : `vs ${them}`} · ${dayOf(m.at)}${m.note ? " · " + m.note : ""}`, `${reviewResult(r)} · ${r.field}`];
+  if(r.reads.n) L.push(`Right read ${r.reads.right} of ${r.reads.n}`);
+  if(r.calls.length){ L.push("", "Our calls:"); r.calls.forEach(c => L.push(`- ${callName(c.key)}: called ${c.n}, won ${c.won} of ${c.won + c.lost}`)); }
+  if(r.theirs.length){ L.push("", watch ? "What they ran:" : `What ${them} ran:`); r.theirs.forEach(c => L.push(`- ${watch ? c.team + " · " : ""}${callName(c.key)}: ran ${c.n}, won ${c.won} of ${c.n}`)); }
+  if(r.lost.us.length) L.push("", `${watch ? `Where ${us}` : "Where we"} lost men: ${r.lost.us.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
+  if(r.lost.them.length) L.push(`Where ${them} lost men: ${r.lost.them.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
+  const men = (side, title) => { if(!r.men[side].length) return; L.push("", title); r.men[side].forEach(x => L.push(`- ${x.name}: ${manBits(x).join(", ") || "charted"}`)); };
+  men("us", watch ? `${us}:` : "Our men:"); if(watch) men("them", `${them}:`);
+  L.push("", "Counted from what was logged on the sideline.");
+  return L.join("\n");
+}
+window.shareReview = mid => {
+  if(!matchById(mid)) return;
+  handOff("Match review", reviewText(mid));
+};
+// A kept sheet's review, read where he is standing. Another sheet's review is
+// the same wall as opening it: every sheet but the one on now is Team.
+window.openReview = id => {
+  if(id !== S.matchId && !entitled("team")) return set({tab:"more", more:"plan", billingSaid:""});
+  set({tab:"more", more:"matches", reviewId: id === S.matchId ? null : id, evPick:false});
+  requestAnimationFrame(() => { const el = document.getElementById("match-review"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+};
 /* One point, as the logs tell it: what you called, what they ran and where
  * their five planted, who won it and whether the read was right, any penalty
  * or timeout, and every man charted on the break. Read back, never rebuilt. */
@@ -16462,7 +16606,8 @@ const HELP = {
          "New match starts a fresh sheet and puts the point back to one. Nothing is deleted.",
          "Name this sheet — Prelim 2, Sunday quarter — and the name shows in the kept list.",
          "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate.",
-         "Delete takes a sheet off for good — a practice sheet, a game charted twice — with everything logged on it. It asks first."]},
+         "Delete takes a sheet off for good — a practice sheet, a game charted twice — with everything logged on it. It asks first.",
+         "Match review, under the sheet: the score, what each of your calls won, what they ran, where men were lost and each man's breaks. Review on a kept sheet reads that one back. Share the review sends it to the squad as text, without the grades."]},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
     how:["Sign in to create one.",
          "Joining does not need an account. Scan the code or type it.",
@@ -16488,6 +16633,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
@@ -17097,6 +17243,8 @@ function moreBody(k){
         have kept is below, and opening one puts you back on its last point so you can still
         tally a point you logged late.</p>
       ${sheetSize(curMatch()) || matchVs() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2);color:var(--warn)" onclick="delSheet(${jsq(S.matchId)})">Delete this sheet</button>` : ""}`, matchLabel(curMatch()))
+    // The review of the sheet on now, or of a kept one he asked for.
+    + (rid => sheetSize(matchById(rid)) ? reviewSec(rid) : "")(S.reviewId && matchById(S.reviewId) ? S.reviewId : S.matchId)
     + sec("This event", (record || `<div class="empty">Nothing finished at ${esc(layoutName)} yet. Set Race to under More › Format and the record counts itself.</div>`) + copyNudge(), won + lost + tied ? `${won}–${lost}${tied ? `–${tied}` : ""}` : "")
     // The last dozen sheets, the one on now and any with men still to tell;
     // forty sheets of rows rebuilt on every tap was most of what this screen
@@ -17114,7 +17262,7 @@ function moreBody(k){
           <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
             day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}${
             untoldOn(m.id) ? ` · <b style="color:var(--warn)">${untoldOn(m.id)} still to tell</b>` : ""}</span></span>
-          ${on?"":`<span class="assign__acts"><button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>
+          ${on?"":`<span class="assign__acts">${n ? `<button class="btn btn--quiet" onclick="openReview(${jsq(m.id)})">${entitled("team")?"Review":"Review · Team"}</button>` : ""}<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>
           <button class="btn btn--quiet" style="color:var(--warn)" aria-label="Delete ${esc(matchLabel(m))}" onclick="delSheet(${jsq(m.id)})">Delete</button></span>`}
         </div>`;
       }).join("")}</div>${all.length > 12 ? `<button class="btn btn--quiet btn--block" onclick="set({keptAll:${!S.keptAll}})">${S.keptAll ? "Only the last 12" : `Every sheet · ${all.length}`}</button>` : ""}`

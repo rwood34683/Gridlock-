@@ -895,6 +895,21 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Keep the load budgets unchanged and test settled phone fit, rotation and
     bottom-bunker taps as well as the immediate no-overlap check.
 
+61. ~~The match review.~~ Done — after the hang a coach had the score on the
+    sheet and the rest spread over five screens, and nothing a player could be
+    handed. More › Matches carries **Match review** under This match
+    (`matchReview(mid)`, `reviewSec`, `reviewText`): the result, points scored,
+    right reads, what each of his calls won, what they ran, where each side
+    lost men, and each man's breaks — charted, made it, shot on the break and
+    from where, the bunker he broke to, out, first out. Counted from the rows
+    stamped with that sheet only, bunkers in the end's frame (`frameId`), a
+    sheet from another field named off its own map. **Share the review with
+    the squad** hands it over as text through `handOff`; grades show on the
+    screen and never in the text. **Review** on a kept row reads that sheet
+    without opening it (`openReview`, `S.reviewId` scratch, gated like Open);
+    a finished sheet offers **Review this match** on the point sheet. A
+    watched game names both teams and has no "you". `test/match-review.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
