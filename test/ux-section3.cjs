@@ -29,6 +29,9 @@ const SEED = require("../scripts/seed.js");
   try {
     await check("the result is a fixed bar at the foot of Tally, on screen wherever the sheet is scrolled", async p => {
       await p.evaluate(() => set({ tab: "tally" }));
+      // The field is fitted by ResizeObserver before paint. Wait for that
+      // layout pass, then hold the same position and scroll requirements.
+      await p.waitForFunction(() => getComputedStyle(document.querySelector(".resultbar")).position === "sticky");
       for (const top of [0, 900, 2000]) {
         await p.evaluate(t => { document.querySelector(".main").scrollTop = t; }, top);
         const box = await p.locator(".resultbar").boundingBox();
