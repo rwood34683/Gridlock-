@@ -895,6 +895,25 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Keep the load budgets unchanged and test settled phone fit, rotation and
     bottom-bunker taps as well as the immediate no-overlap check.
 
+60. ~~Google and Apple sign-in, for the cloud build.~~ Done — beside email
+    and password, **Continue with Google / Apple** on the welcome page and the
+    sign-in form, and **Link Google / Link Apple** in Nexus for a coach already
+    signed in. The adapter runs Supabase's PKCE code flow
+    (`startProvider`, `finishProvider`, `authUrlKind`): the verifier stays on
+    the phone (`grindx.cloud.oauth`, ten minutes, used once), the code is out
+    of the address before anything runs, and only `/auth/v1/user`'s answer is
+    the identity. A callback this phone did not start, an old one, a cancelled
+    or refused one, or one for another account on a link is refused and said.
+    Off until the owner configures the providers and builds with
+    `GRINDX_AUTH_PROVIDERS` (`authProviders()` takes only google / apple);
+    offline and unconfigured builds show no button, a native shell only with
+    `window.gridlockOpenAuth`, and never a second Apple button beside the
+    native one. Beta invitations, plans and administrators stay the server's.
+    The local account is `kind:"oauth"` with no password. Deleting one asks
+    for a password set by reset first. `docs/SOCIAL-SIGN-IN.md` is the owner's
+    setup, the relay-address and linking rules; `test/social-sign-in.cjs` and
+    `test/social-sign-in-ui.cjs` hold it.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
@@ -2635,6 +2654,12 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   replaces an old paid cache just as a paid restore does. Malformed or expired
   store expiration dates never mean lifetime access; only a missing/null expiry
   does. `test/billing-security.js` pins those cases.
+- Trust an OAuth callback, or link accounts by email. A provider sign-in is
+  only what the account server confirms after a PKCE exchange this phone
+  started; the app never matches two accounts by an email it was shown, and
+  linking is the coach's own tap from a signed-in account. A provider secret
+  (Google client secret, Apple `.p8` or its generated secret) belongs only in
+  the Supabase dashboard — never in a build input, generated config or log.
 - Let a cloud build accept a secret/service-role key, overwrite source folders,
   or reuse an offline cache after its adapter or public configuration changed.
   Accept public keys only, restrict cloud output to a child of dist, and hash

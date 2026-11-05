@@ -100,7 +100,9 @@ The callback handler consumes the access and refresh tokens from a URL
 fragment, verifies the user with Supabase, and clears the fragment before
 rendering. This follows Supabase's
 [implicit-flow callback format](https://supabase.com/docs/guides/auth/sessions/implicit-flow).
-It does not implement a server-side PKCE authorization-code exchange.
+Email links still use that format. Google and Apple sign-in, when the owner
+switches them on, use Supabase's PKCE code flow instead; the verifier stays in
+the adapter and the code is exchanged once. See [SOCIAL-SIGN-IN.md](SOCIAL-SIGN-IN.md).
 
 Do not point production email links at an unhosted or untested page. Changing
 these settings is a separate deployment step; the code changes do not change
