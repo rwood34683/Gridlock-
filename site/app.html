@@ -586,6 +586,7 @@ svg.field{width:100%;height:auto;display:block}
   margin:0 calc(-1 * var(--s4)) calc(-1 * var(--s6));padding:var(--s2) var(--s4) var(--s3);
   background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -10px 24px -14px rgba(0,0,0,.9)}
 .resultbar .btn{min-height:52px}
+.resultbar.resultbar--flow{position:static;margin-bottom:0}
 .resultbar .resultbar__back{flex:none;padding:6px 10px;min-width:56px}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
@@ -6014,6 +6015,12 @@ window.openJoin = code => {
 };
 const params = new URLSearchParams(location.search);
 if(params.get("c")) window.openJoin(params.get("c"));
+// Back from the sheet takes the code out of the address too: left there, a
+// reload opened the sheet again instead of the welcome page.
+window.leaveJoin = () => {
+  try{ if(new URLSearchParams(location.search).get("c")) history.replaceState(null, "", location.pathname + location.hash); }catch(e){}
+  set({joinOnly:false, joinCode:"", joinSaid:""});
+};
 
 function set(patch){
   // The drill puts a call on the field that the coach did not make, and only
@@ -6117,6 +6124,9 @@ function bunkerLabel(id){ const b = curLayout().bunkers.find(x => x.id === id); 
 // How a bunker reads in a list: "MD#1" when nobody has a word for it, and
 // "Rocket · MD#1" when the team has. "MD · MD#1" said the code twice.
 function pickName(b, who){ const c = callOf(b, who); return c === b.n ? b.id : `${c} · ${b.id}`; }
+// What a card calls a bunker: the word for it where there is one, else its
+// code — "MD" was three bunkers on the World Cup field and seven SB on Lone Star.
+function cardName(b, who){ const c = callOf(b, who); return c === b.n && b.id ? b.id : c; }
 function callOf(b, who){
   return (who && playerCalls(who)[b.id]) || bunkerCalls()[b.id] || b.n;
 }
@@ -6924,6 +6934,10 @@ function reconcileSheet(mid){
       seen.add(k); return true;
     });
   };
+  // A call he logged with his own tap beats one the result button wrote for
+  // him (auto), whichever phone it came from — the same rule tapResult keeps.
+  const tapped = new Set((S.calls || []).filter(c => c && c.m === mid && c.pt && !c.auto).map(c => String(c.pt)));
+  S.calls = (S.calls || []).filter(c => { if(c && c.m === mid && c.pt && c.auto && tapped.has(String(c.pt))){ dupes++; return false; } return true; });
   S.calls = keepFirst(S.calls, c => c.pt ? String(c.pt) : null);
   S.tally = keepFirst(S.tally, o => o.pt && o.name ? [o.pt, o.side, foldName(o.name)].join("|") : null);
   S.breakouts = keepFirst(S.breakouts, r => r.player ? [r.pt, r.side, foldName(r.player)].join("|") : null);
@@ -10901,7 +10915,7 @@ window.completePasswordReset = async () => {
       return set({mode:"login", authSaid:ACCOUNT_SAVE_SAID + " Your new password was accepted; sign in with it when you retry."});
     }
     dropLegacyAccount();
-    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+    set({entered:true, role:"staff", email:user.email, mode:null, authSaid:"", fmtAsk:!S.fmtDone}); afterSignIn();
     refreshAccountGrant(cloud, attempt);
   }catch(e){
     if(attempt === _authAttempt){ _recoveryBusy = false; set({authSaid:"This phone could not finish saving your password. Try again, or request a new link."}); }
@@ -11008,7 +11022,7 @@ window.appleSignIn = async () => {
     if(!writeAccount({kind: "apple", sub: who.sub,
                      email: who.email || kept.email || "",
                      name: who.name || kept.name || ""})) return set({authSaid: ACCOUNT_SAVE_SAID});
-    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+    set({entered: true, role: "staff", email: who.email || kept.email || "", mode: null, authSaid: "", fmtAsk: !S.fmtDone}); afterSignIn();
   }catch(err){ if(attempt === _authAttempt) set({authSaid: "Apple could not be reached. Nothing has changed."}); }
 };
 function phoneDone(){
@@ -11151,7 +11165,7 @@ window.doAuth = async () => {
         return say(ACCOUNT_SAVE_SAID + " The server accepted your account; choose Sign in when you retry.");
       }
       dropLegacyAccount();
-      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone});
+      set({entered: true, role: "staff", email, mode: null, authSaid: "", fmtAsk: !S.fmtDone}); afterSignIn();
       refreshAccountGrant(cloud, attempt);
       return;
     }
@@ -11172,7 +11186,7 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
     dropLegacyAccount();   // only after the replacement is safely stored
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
     return;
   }
 
@@ -11183,7 +11197,7 @@ window.doAuth = async () => {
       if(attempt !== _authAttempt) return;
       if(!writeAccount({...acc,salt,hash})) return say(ACCOUNT_SAVE_SAID);
     }
-    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone});
+    set({entered:true, role:"staff", email: acc.email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
     return;
   }
 
@@ -11196,7 +11210,7 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(!writeAccount({email, salt, hash})) return say(ACCOUNT_SAVE_SAID);
     dropLegacyAccount();
-    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone});
+    set({entered:true, role:"staff", email, mode:null, fmtAsk:!S.fmtDone}); afterSignIn();
     return;
   }
   // Three different failures used to read as one accusing line. Which of them
@@ -11274,7 +11288,7 @@ window.staffSignOut = () => {
   S.syncOn = false;                            // pause before save can auto-send
   const cloud = window.gridlockCloud;
   try{ if(cloud && cloud.signOut) Promise.resolve(cloud.signOut()).catch(() => {}); }catch(e){}
-  set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:""});
+  set({entered:false, role:"guest", email:"", mode:null, authSaid:"", syncAt:null, syncSaid:"", syncAsk:false});
 };
 function maybeSync(){
   if(_syncStatusWrite || !syncAllowed()) return;
@@ -11299,11 +11313,12 @@ async function sendSeason(manual){
   _syncSending=false;
   if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
   if(r && r.ok === true){
+    syncYes(true);
     syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
     scheduleSync();return;
   }
   if(r && r.conflict){
-    clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
+    syncYes(false);clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
   }
   _syncDirty=true;
   syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."});
@@ -11315,31 +11330,57 @@ window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
 window.reviewCloudSeason = async () => {
   const cloud=window.gridlockCloud, attempt=_authAttempt;
   if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
+  const wasOn=!!S.syncOn;
   clearSyncRetry();++_syncEpoch;S.syncOn=false;
+  // Looking and then saying no changes nothing: sharing goes back the way it was.
+  const back=said=>{if(wasOn&&S.entered&&S.role==="staff"&&canSync()&&!_syncDeleting&&!_stale){S.syncOn=true;_syncDirty=true;}syncStatus({syncSaid:said+(wasOn?(S.syncOn?" Sharing is back on.":""):" Sharing stays off.")});if(S.syncOn)scheduleSync(0);};
   syncStatus({syncSaid:"Loading your cloud copy…"});
   await _syncTail;
   if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
   let r;try{r=await cloud.getSeason();}catch(e){}
   if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
-  if(!r || !r.ok) return syncStatus({syncSaid:(r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged."});
+  if(!r || !r.ok) return back((r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged.");
   if(r.missing || r.removed){
-    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return syncStatus({syncSaid:"Nothing changed. Sharing stays off."});
+    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
     if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
     S.syncOn=true;return syncNow();
   }
   const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
-  if(checked.error) return syncStatus({syncSaid:"The cloud copy is not a readable season. Your phone is unchanged."});
-  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return syncStatus({syncSaid:"Nothing restored. Your phone is unchanged."});
-  try{localStorage.setItem(STORE_KEY+".before-cloud-restore",copyPayload("all"));}catch(e){return syncStatus({syncSaid:"There is not enough room to preserve this phone's season. Save a copy before restoring."});}
+  if(checked.error) return back("The cloud copy is not a readable season. Your phone is unchanged.");
+  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
+  if(!keepPreRestore()) return back("There is not enough room to preserve this phone's season. Save a copy before restoring.");
   if(window.loadCopy("replace",raw)!==true) return;
   if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
   syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
 };
-window.showPreRestoreCopy = () => {
+/* The season on this phone before a cloud restore. A second restore used to
+   write over the first one's copy, so the season the phone had before any
+   restore was gone. The newest is under the plain key; the ones before it
+   move down to .1 .. .3. */
+const PRE_RESTORE = STORE_KEY+".before-cloud-restore", PRE_RESTORE_KEEP = 3;
+function preRestoreKey(i){ return i ? PRE_RESTORE+"."+i : PRE_RESTORE; }
+function keepPreRestore(){
+  const text = copyPayload("all");
   try{
-    const raw=localStorage.getItem(STORE_KEY+".before-cloud-restore")||"";
+    for(let i = PRE_RESTORE_KEEP; i > 0; i--){
+      const older = localStorage.getItem(preRestoreKey(i-1));
+      if(older != null) localStorage.setItem(preRestoreKey(i), older);
+    }
+    localStorage.setItem(PRE_RESTORE, text);
+  }catch(e){ return false; }
+  return true;
+}
+function preRestoreCount(){
+  let n = 0;
+  try{ for(let i = 0; i <= PRE_RESTORE_KEEP; i++) if(localStorage.getItem(preRestoreKey(i))) n++; }catch(e){}
+  return n;
+}
+window.showPreRestoreCopy = (i = 0) => {
+  i = Math.max(0, Math.min(PRE_RESTORE_KEEP, Number(i) || 0));
+  try{
+    const raw=localStorage.getItem(preRestoreKey(i))||"";
     if(readCopy(raw).error)return set({syncSaid:"No readable pre-restore season is stored on this phone."});
-    set({copyText:raw,copyStatus:"This is the season kept before cloud restore. Copy this text and save it somewhere safe."});
+    set({copyText:raw,copyStatus:(i ? "This is the season kept before an earlier cloud restore." : "This is the season kept before the last cloud restore.")+" Copy this text and save it somewhere safe."});
   }catch(e){set({syncSaid:"The pre-restore copy could not be opened. Your current season is unchanged."});}
 };
 window.toggleSync = () => {
@@ -11347,39 +11388,68 @@ window.toggleSync = () => {
   if(!S.entered || S.role !== "staff" || !canSync()) return;
   ++_syncEpoch;
   clearSyncRetry();
-  if(S.syncOn) return set({syncOn: false,
-    syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."});
+  if(S.syncOn){ syncYes(false); return set({syncOn: false,
+    syncSaid: "League sync paused. What you already sent is still up — use Delete to remove it."}); }
   _lastAutoSync = Date.now();
+  syncYes(true);
   S.syncOn = true; save(S); render();
   syncNow();
 };
 /* The backup question, asked once an account on a cloud build, straight after
-   sign-in and before the format. League sync stays opt-in: nothing is sent
-   until he taps Yes, and the answer is the same switch Nexus carries. Which
-   accounts have been asked is kept on this phone beside the season, keyed on
-   the account id, so a second account on the same phone is asked its own. */
-const SYNC_ASKED_KEY = "gridlock.coach.syncasked";
+   a sign-in and before the format. League sync stays opt-in: nothing is sent
+   until he taps Yes, and the answer is the same switch Nexus carries.
+   It is asked only at a sign-in (`S.syncAsk`, set by `afterSignIn()`), never
+   because sync went off mid-season: pause, delete, a conflict or a review
+   turning it off must never put a question over the point sheet.
+   Kept on this phone, by account id: who has been asked, and who said yes.
+   Sign-out pauses sharing; the next sign-in of an account that said yes on
+   this phone turns it back on and says so, rather than leaving it off unseen.
+   An account seen sharing (a send that went through) counts as asked and yes,
+   so a coach who turned it on before the question existed is never asked. */
+const SYNC_ASKED_KEY = "gridlock.coach.syncasked", SYNC_YES_KEY = "gridlock.coach.syncyes";
+const _syncSeen = {[SYNC_ASKED_KEY]: new Set(), [SYNC_YES_KEY]: new Set()};
 function syncAskId(){
   const a = readAccount();
   return String((a.cloud && a.uid) || S.email || "").trim().toLowerCase();
 }
-function syncAskedList(){
-  try{ const v = JSON.parse(localStorage.getItem(SYNC_ASKED_KEY) || "[]"); return Array.isArray(v) ? v.filter(x => typeof x === "string") : []; }
-  catch(e){ return []; }
+function syncList(key){
+  let v = [];
+  try{ v = JSON.parse(localStorage.getItem(key) || "[]"); }catch(e){}
+  return new Set([...(Array.isArray(v) ? v.filter(x => typeof x === "string") : []), ..._syncSeen[key]]);
 }
-function markSyncAsked(){
+function syncListSet(key, on){
   const id = syncAskId(); if(!id) return;
-  const list = syncAskedList(); if(list.includes(id)) return;
-  try{ localStorage.setItem(SYNC_ASKED_KEY, JSON.stringify([...list, id].slice(-20))); }catch(e){}
-  _syncAskedNow.add(id);
+  const list = syncList(key);
+  if(on) _syncSeen[key].add(id); else _syncSeen[key].delete(id);
+  if(list.has(id) === !!on) return;
+  if(on) list.add(id); else list.delete(id);
+  try{ localStorage.setItem(key, JSON.stringify([...list].slice(-20))); }catch(e){}
 }
-// Held in memory too, so a phone that refuses the write still asks only once a launch.
-const _syncAskedNow = new Set();
+function markSyncAsked(){ syncListSet(SYNC_ASKED_KEY, true); }
+function syncYes(on){ if(on) markSyncAsked(); syncListSet(SYNC_YES_KEY, on); }
 function syncAskDue(){
   if(!S.entered || S.role !== "staff" || !canSync() || S.syncOn || _stale) return false;
   const a = readAccount(), id = syncAskId();
   if(!a.cloud || !id) return false;
-  return !_syncAskedNow.has(id) && !syncAskedList().includes(id);
+  return !syncList(SYNC_ASKED_KEY).has(id);
+}
+// Run after every sign-in that lands in the app.
+function afterSignIn(){
+  if(!canSync() || !S.entered || S.role !== "staff") return;
+  const id = syncAskId(); if(!id) return;
+  if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
+    ++_syncEpoch; clearSyncRetry(); _lastAutoSync = Date.now();
+    S.syncOn = true; S.syncAsk = false; S.syncSaid = "Backup is back on — your season keeps sending to your account.";
+    save(S); render(); syncNow();
+    return;
+  }
+  if(syncAskDue() && !S.syncAsk){ S.syncAsk = true; save(S); render(); }
+}
+function syncAskShown(){
+  if(!S.syncAsk) return false;
+  if(syncAskDue()) return true;
+  S.syncAsk = false;
+  return false;
 }
 function syncAskPage(){
   return sec("Back up your season", `
@@ -11392,12 +11462,26 @@ function syncAskPage(){
       <button class="btn btn--quiet grow" onclick="answerSyncAsk(false)">Not now</button>
     </div>`);
 }
-window.answerSyncAsk = yes => {
-  if(!syncAskDue()) return render();
+window.answerSyncAsk = async yes => {
+  if(!syncAskShown()) return render();
+  S.syncAsk = false;
+  if(!yes){
+    markSyncAsked();
+    set({syncSaid: "League sync is off. Your season stays on this phone. Turn it on any time in More › Nexus."});
+    flash("Not backed up. Turn it on any time in More › Nexus › League sync.");
+    return;
+  }
   markSyncAsked();
-  if(yes) return toggleSync();
-  set({syncSaid: "League sync is off. Your season stays on this phone. Turn it on any time in More › Nexus."});
-  flash("Not backed up. Turn it on any time in More › Nexus › League sync.");
+  const before = S.syncAt || 0;
+  toggleSync();
+  // Say how the first send went: a Yes that quietly did nothing is a coach
+  // who believes his season is safe.
+  const t0 = Date.now();
+  while(_syncSending && Date.now() - t0 < 20000) await new Promise(r => setTimeout(r, 100));
+  if(!S.entered) return;
+  if(S.syncOn && (S.syncAt || 0) > before) return flash("Backed up. Your season keeps sending to your account.");
+  if(!S.syncOn) return flash((S.syncSaid ? S.syncSaid + " " : "") + "Open More › Nexus › League sync to sort it out.");
+  flash(S.syncSaid || "Backup is on. It will send when you have signal.");
 };
 window.deleteSynced = async () => {
   if(_syncDeleting) return;
@@ -11411,6 +11495,7 @@ window.deleteSynced = async () => {
   ++_syncEpoch;
   const t = syncTicket();
   _syncDeleting = true;
+  syncYes(false);
   set({syncOn: false, syncSaid: "Removing what you sent…"});
   try{
     // Wait for an already-dispatched upload; DELETE must land after it.
@@ -11716,23 +11801,27 @@ function cardLines(){
     // one of them is where their shooter usually sets up. Geometry off the
     // measured field; nothing on the card says where they will actually stand.
     const t5 = theirFiveNow("right"), plant = shownBunker(p.bunker);
-    const clear = t5 ? t5.ids.filter(id => laneClear(plant, id)).map(id => callOf(curLayout().bunkers.find(b => b.id === id) || {n: id}, mine)) : null;
+    const clear = t5 ? t5.ids.filter(id => laneClear(plant, id)).map(id => cardName(curLayout().bunkers.find(b => b.id === id) || {n: id}, mine)).filter((w, i, a) => a.indexOf(w) === i) : null;
     const sh = t5 ? shooterLane("right") : null;
     const onHim = sh && sh.at && laneClear(plant, sh.at) ? sh.tag : "";
-    return {n: p.id, who, job: jobName(S.script, p.id, p.label), wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
+    // The app's own job is written "SB · snake wire": the bunker again, then
+    // the wire. Only a word the team gave the job is worth a line of its own.
+    const plantB = curLayout().bunkers.find(b => b.id === plant) || {n: "—"};
+    const job = jobName(S.script, p.id, p.label), ownJob = job !== p.label ? job : "";
+    return {n: p.id, who, job, ownJob, wire: wireOf((curLayout().bunkers.find(b => b.id === p.bunker) || {y:60}).y),
             clear, onHim, theirBasis: t5 ? t5.basis : "",
-            bunker: callOf(curLayout().bunkers.find(b => b.id === plant) || {n: "—"}, mine),
+            bunker: cardName(plantB, mine),
             role: d.role === "S" ? "Secondary" : "Primary", go: goWord(p),
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
-            shot: lane !== null ? LANE_NAME[lane] : shotB ? callOf(shotB, mine) : "the lane he is running",
-            shot2: lane2 !== null ? LANE_NAME[lane2] : shot2B ? callOf(shot2B, mine) : ""};
+            shot: lane !== null ? LANE_NAME[lane] : shotB ? cardName(shotB, mine) : "the lane he is running",
+            shot2: lane2 !== null ? LANE_NAME[lane2] : shot2B ? cardName(shot2B, mine) : ""};
   });
 }
 window.shareCards = () => {
   if(!callSet()) return flash("Pick the call first — a card is one man's job on it.");
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? manTag(c.who) : "(no name)"}\n`
-        + `   ${c.bunker} · ${c.job}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}${c.shot2 ? `, then ${c.shot2}` : ""}`
+        + `   ${c.bunker}${c.ownJob ? " · " + c.ownJob : ""} · ${c.wire}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}${c.shot2 ? `, then ${c.shot2}` : ""}`
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   handOff("Gridlock cards", t);
 };
@@ -11858,6 +11947,7 @@ function cardsView(){
         <span class="assign__n">${c.n}</span>
         <span class="assign__body">
           <span class="call__name" style="font-size:var(--t-xl)">${esc(c.bunker)}</span>
+          ${c.ownJob ? `<span class="assign__job">${esc(c.ownJob)}</span>` : ""}
           <span class="assign__job">${c.who?esc(manTag(c.who)):"no one on this job yet"}</span>
           <span class="assign__who">on the ${esc(c.wire)}</span>
         </span>
@@ -13087,12 +13177,12 @@ function tally(){
             on it is a mis-tap, so the result buttons stand down and New match
             leads. Back a point is still there, because the last tap may have
             been the mis-tap. */""}
-      <button class="btn grow btn--lg" onclick="newMatch()">New match${sheetField() ? " here" : ""}</button>
+      <button class="btn grow btn--lg" onclick="tapNewMatch()">New match${sheetField() ? " here" : ""}</button>
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    </div>` : `<p class="note">Who won it is in the bar at the foot of the screen.</p>
+    </div>` : `<p class="note">Who won it is the bar with the two result buttons.</p>
     <div class="btnrow">
       ${(S.point||1) > 1 ? `<button class="btn btn--quiet grow" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-      <button class="btn btn--quiet grow" onclick="nextPoint()">Next point, no result</button>
+      <button class="btn btn--quiet grow" onclick="tapNext()">Next point, no result</button>
     </div>`}
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
@@ -13156,6 +13246,28 @@ function tally(){
 /* We won it / They won it, fixed to the foot of Tally whenever a point can
  * be scored. Not while a man's breakout sheet is open — that sheet has its own
  * bar, and the result is never the next tap while one is half told. */
+/* The bar is sticky to the foot of the screen, so on a short phone it sat over
+   the bottom third of the field — and a tap meant for a bunker there scored a
+   point. The field is fitted to the room above the bar instead; where even a
+   small field will not fit (a phone on its side, a 320 px phone), the bar
+   leaves the foot of the screen and sits under the sheet, as it did before.
+   A tap on the field never lands on We won it. */
+const TALLY_FIELD_MIN = 170;
+function fitTallyField(){
+  const svg = document.querySelector("#tally-map svg.field"), bar = document.querySelector(".resultbar"),
+        main = document.querySelector(".main");
+  if(!svg) return;
+  svg.style.maxHeight = ""; svg.style.width = "";
+  if(!bar || !main) return;
+  bar.classList.remove("resultbar--flow");
+  const mr = main.getBoundingClientRect(), fr = svg.getBoundingClientRect(), br = bar.getBoundingClientRect();
+  const top = fr.top - mr.top + main.scrollTop;                 // where the field starts, scrolled to the top
+  const room = Math.floor(main.clientHeight - br.height - top - 8);
+  if(fr.height <= room) return;
+  if(room >= TALLY_FIELD_MIN){ svg.style.maxHeight = room + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; return; }
+  bar.classList.add("resultbar--flow");
+}
+addEventListener("resize", () => { if(S.tab === "tally") fitTallyField(); });
 function resultBarShown(){
   return S.tab === "tally" && !nobodyToPlay() && !sheetField() && !matchOver() && !selBunker() && !S.quick;
 }
@@ -13393,10 +13505,26 @@ const RESULT_GUARD_MS = 1500;
 let _lastEnd = null;
 // Back a point from the bar, inside the guard after a result, is the second
 // half of a double tap: it is refused and said, never taken as an undo.
+const inGuard = () => _lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS;
+// Refused once, the next tap is meant: the message says "tap again", so the
+// guard is spent and the tap it asks for goes through.
 window.tapBack = () => {
-  if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
-    return flash(`Point ${_lastEnd.pt} was just scored. Tap ‹ again to take it back.`);
+  if(inGuard()){ const pt = _lastEnd.pt; _lastEnd = {..._lastEnd, at: 0}; return flash(`Point ${pt} was just scored. Tap ‹ again to take it back.`); }
   window.backPoint();
+};
+// The tap after the winning point lands where the result buttons were, and
+// on a finished sheet that is New match: a reflex double tap closed the sheet.
+window.tapNewMatch = () => {
+  if(inGuard()){ _lastEnd = {..._lastEnd, at: 0}; return flash("That point ended the match. Tap New match again to start the next sheet."); }
+  window.newMatch();
+};
+// Next point redraws in the same place, so a double tap skipped two points.
+let _lastNext = null;
+window.tapNext = () => {
+  if(_lastNext && _lastNext.m === S.matchId && _lastNext.pt === S.point && Date.now() - _lastNext.at < RESULT_GUARD_MS)
+    return flash(`On to point ${S.point} already. ‹ goes back a point.`);
+  window.nextPoint();
+  _lastNext = {m: S.matchId, pt: S.point, at: Date.now()};
 };
 window.tapResult = won => {
   if(_lastEnd && _lastEnd.m === S.matchId && Date.now() - _lastEnd.at < RESULT_GUARD_MS)
@@ -13468,6 +13596,9 @@ window.backPoint = () => {
   // mis-tapped winner is corrected and the read was not what was wrong.
   const taken = (S.results || []).find(r => r.m === S.matchId && r.pt === to);
   S.results = (S.results || []).filter(r => !(r.m === S.matchId && r.pt === to));
+  // The call the result button wrote goes with the result: a point taken back
+  // and never scored again is not a call he ran. One he logged himself stays.
+  S.calls = (S.calls || []).filter(c => !(c && c.m === S.matchId && c.pt === to && c.auto));
   // Time's up ended the match at that score; take the score back and the
   // horn goes with it, or the sheet reads level with the clock still run out
   // and the result buttons up beside Undo time's up. Overtime stays: the
@@ -14031,7 +14162,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="nextPoint()">Next point</button>`}
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()">Next point</button>`}
     <button class="btn" onclick="newMatch()">New match</button>
   </div>${/* A game watched off the fence is charted on Scout, and its points were
         scored only on Tally: a tab and back every point. The two named
@@ -15468,7 +15599,7 @@ function scoutCounter(){
 window.copyMatchup = () => {
   // The left pit is a team he watches; it is a side of this card only on a watched sheet.
   const who = (curMatch()||{}).watch && pitNamed("left") ? `${pitOf("left").name} vs ${pitOf("right").name}` : `vs ${pitOf("right").name}`;
-  const t=`Gridlock · ${who}\nThey read ${pitOf("right").tend}. Match state ${S.matchState||"Even"}.\nCall: ${callSet() ? breakName() : "not picked yet"}.`;
+  const t=`Gridlock · ${who}\n${pitOf("right").tendKnown ? `They read ${pitOf("right").tend}.` : "No read on them yet."} Match state ${S.matchState||"Even"}.\nCall: ${callSet() ? breakName() : "not picked yet"}.`;
   handOff("Gridlock matchup", t);
 };
 
@@ -15707,9 +15838,10 @@ function joinSheet(){
     </div>
     <div class="stack" style="width:100%;text-align:left">
       ${joinSection()}
-      <button class="btn btn--ghost btn--block" onclick="set({joinOnly:false,joinCode:'',joinSaid:''})">Not signing a sheet · back</button>
+      <button class="btn btn--ghost btn--block" onclick="leaveJoin()">Not signing a sheet · back</button>
       <p class="note">Signing a clinic sheet needs no account. Coaching does — the welcome page is behind Back.</p>
     </div>
+    ${S.flash ? `<div class="flash" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
   </div>`;
 }
 function classesPage(){
@@ -15766,9 +15898,9 @@ function formBox(c){
     <div class="fld"><label>Name</label><input id="fn" maxlength="40" ${onEnter(`submitForm(${JSON.stringify(String(c.code))})`)}/></div>
     <div class="fld"><label>Phone or email</label><input id="fc" placeholder="optional" maxlength="80" ${onEnter(`submitForm(${JSON.stringify(String(c.code))})`)}/></div>
     <div class="fld"><label>Experience</label>
-      <select id="fe"><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select></div>
+      <select id="fe"><option value="">—</option><option>New</option><option>Rec</option><option>Division</option><option>Pro-semi</option></select></div>
     <div class="fld"><label>Preferred wire</label>
-      <select id="fw"><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select></div>
+      <select id="fw"><option value="">—</option><option>Snake</option><option>Dorito</option><option>Center</option><option>Flex</option><option>Back</option></select></div>
     <div class="fld"><label>Notes</label><textarea id="ft" placeholder="Anything the coach should know"></textarea></div>
     <label class="checkrow"><input type="checkbox" id="fa"/> This is a training sign-in form</label>
     <button class="btn btn--block" onclick="submitForm(${jsq(c.code)})">Submit</button>
@@ -15852,10 +15984,10 @@ window.submitForm = code => {
     const was=S.responses[i], merged={...was};
     for(const k of ["contact","exp","wire","notes"]) if(String(row[k]||"").trim()) merged[k]=row[k];
     S.responses=S.responses.map((r,j)=>j===i?merged:r);
-    S.joinCode=""; S.joinSaid=`${was.name} was already signed in — updated. Hand the phone back to the coach.`; save(S); render(); return;
+    S.joinSaid=`${was.name} was already signed in — updated. Next one: type your name below, or hand the phone back to the coach.`; save(S); render(); return;
   }
   S.responses=[row,...(S.responses||[])];
-  S.joinCode=""; S.joinSaid=`Signed in as ${row.name}. Hand the phone back to the coach.`; save(S); render();
+  S.joinSaid=`Signed in as ${row.name}. Next one: type your name below, or hand the phone back to the coach.`; save(S); render();
 };
 
 /* ============================================================
@@ -17256,6 +17388,7 @@ function moreBody(k){
     <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
     <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
     <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
+    ${Array.from({length: Math.max(0, preRestoreCount()-1)}, (_, k) => `<button class="btn btn--quiet" onclick="showPreRestoreCopy(${k+1})">Show the one before that${k ? " (" + (k+1) + ")" : ""}</button>`).join("")}
     <div class="fld"><label for="syncLabel">Season copy name</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <div class="toggles">
@@ -17378,7 +17511,7 @@ function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
   const blocked = gateKey();
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
-  const askSync = syncAskDue(), asking = askSync || !!S.fmtAsk;
+  const askSync = syncAskShown(), asking = askSync || !!S.fmtAsk;
   const page = askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
                        : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
@@ -17479,7 +17612,7 @@ function quickLog(){
     </div>` : nobodyToPlay() ? `<div class="qlog__score">
       <button class="btn btn--lg" style="grid-column:1 / -1" onclick="needOpponent()">Pick the other team first · back to the sheet</button>
     </div>` : over ? `<div class="qlog__score">
-      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="newMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${esc(overWord(undefined, watch ? us : "you", watch ? them : "they"))} ${sc.us}–${sc.them} · New match`}</button>
+      <button class="btn btn--lg" style="grid-column:1 / -1" onclick="tapNewMatch()">${off ? `This sheet is on ${esc(LAYOUTS[off].name)} · New match here` : `Match over — ${esc(overWord(undefined, watch ? us : "you", watch ? them : "they"))} ${sc.us}–${sc.them} · New match`}</button>
     </div>
     <div class="qlog__row">
       ${(S.point||1)>1?`<button class="btn btn--quiet" onclick="backPoint()">Undo point ${(S.point||1)-1}</button>`:""}
@@ -17493,7 +17626,7 @@ function quickLog(){
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
       ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log the call</button>`}
-      <button class="btn btn--quiet grow" onclick="nextPoint()">Next point ›</button>
+      <button class="btn btn--quiet grow" onclick="tapNext()">Next point ›</button>
     </div>
     <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
   </div>`;
@@ -17739,7 +17872,7 @@ function render(){
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const main = document.querySelector(".main");
-  const screen = [S.entered, !!S.fmtAsk, syncAskDue(), S.tab, S.more, S.scoutTab].join("|");
+  const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
   const at = main && screen === _where ? main.scrollTop : 0;
   _lastPointMemo = new Map();
   try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }
@@ -17761,6 +17894,7 @@ function render(){
   if(next && screen === _where && at !== 0) next.scrollTop = at;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
+  fitTallyField();
 }
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }

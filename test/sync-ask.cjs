@@ -74,6 +74,50 @@ const { createServer } = require("../scripts/serve");
       await p.evaluate(() => staffSignOut()); await signIn(p, "second@example.test");
       assert.match(await root(p), /Back up your season/i);
     });
+    await check("sync going off mid-season never puts the question over the sheet", async p => {
+      await signIn(p);
+      await p.getByRole("button", { name: "Yes, back it up" }).click();
+      await p.waitForFunction(() => __pushes === 1);
+      // An account from before the question existed: sharing on, never asked.
+      await p.evaluate(() => { localStorage.removeItem("gridlock.coach.syncasked"); localStorage.removeItem("gridlock.coach.syncyes"); set({ fmtAsk: false, tab: "tally" }); });
+      await p.evaluate(() => toggleSync());              // paused on Nexus
+      assert.equal(await p.evaluate(() => S.syncOn), false);
+      assert.doesNotMatch(await root(p), /Back up your season/i);
+      assert.ok(await p.locator("nav.tabs").count() > 0, "the tabs stay");
+    });
+    await check("a conflict on Yes says so, and sign-out then sign-in turns a yes back on", async p => {
+      await signIn(p);
+      await p.evaluate(() => { window.gridlockCloud.pushSeason = async () => ({ ok: false, conflict: true, said: "Another device has a newer cloud copy." }); });
+      await p.getByRole("button", { name: "Yes, back it up" }).click();
+      await p.waitForFunction(() => /newer cloud copy/.test(document.getElementById("root").innerText));
+      assert.match(await root(p), /Nexus/);
+      assert.equal(await p.evaluate(() => S.syncOn), false);
+      // A yes that went through comes back on after sign-out and sign-in.
+      await p.evaluate(() => { window.gridlockCloud.pushSeason = async () => { __pushes++; return { ok: true }; }; toggleSync(); });
+      await p.waitForFunction(() => S.syncAt);
+      await p.evaluate(() => staffSignOut()); await signIn(p);
+      assert.equal(await p.evaluate(() => S.syncOn), true, "back on");
+      assert.doesNotMatch(await root(p), /Back up your season/i);
+    });
+    await check("cancelling a cloud review leaves sharing on; each restore keeps its own copy", async p => {
+      await signIn(p);
+      await p.getByRole("button", { name: "Yes, back it up" }).click();
+      await p.waitForFunction(() => S.syncAt);
+      await p.evaluate(() => {
+        const copy = copyPayload("all");
+        Object.assign(window.gridlockCloud, { getSeason: async () => ({ ok: true, payload: copy, revision: 3, user: { id: "u" } }), acceptSeason: () => true });
+      });
+      const page = p; page.removeAllListeners("dialog"); page.once("dialog", d => d.dismiss());
+      await p.evaluate(() => reviewCloudSeason());
+      assert.equal(await p.evaluate(() => S.syncOn), true, "a cancelled review puts sharing back");
+      page.on("dialog", d => d.accept());
+      await p.evaluate(() => { S.roster = [{ num: 1, name: "PhoneOnlyMan", pos: "" }]; save(S); });
+      await p.evaluate(() => reviewCloudSeason());
+      await p.evaluate(() => { S.roster = [{ num: 2, name: "Second", pos: "" }]; save(S); });
+      await p.evaluate(() => reviewCloudSeason());
+      const kept = await p.evaluate(() => Object.keys(localStorage).filter(k => k.includes("before-cloud-restore")).map(k => localStorage.getItem(k)).join("\n"));
+      assert.match(kept, /PhoneOnlyMan/, "the first phone season is still kept");
+    });
     await check("a build without League sync never asks", async p => {
       await p.evaluate(() => { window.gridlockCloud = { signIn: async e => ({ ok: true, user: { id: "x", email: e } }), signOut: async () => {} }; });
       await signIn(p);

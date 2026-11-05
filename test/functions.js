@@ -7927,7 +7927,7 @@ const ROSTER = [
     const target = bl.find(x => x.id !== b.id && x.id !== twin.id && mirrorBunkerId(x.id) !== x.id);
     window.setDirect(p.id, "shot", ownShot(target.id));
     const kept = directOf(p.id).shot === mirrorBunkerId(target.id);
-    const card = cardLines()[0].shot === callOf(target);
+    const card = cardLines()[0].shot === cardName(target);
     window.set({ tab: "playbook", pbView: null, pad: "shot:" + p.id });
     const sel = [...document.querySelectorAll("#root .assign select")].find(x => x.querySelector("option[value='" + target.id + "']"));
     const row = !!sel && sel.value === target.id;
