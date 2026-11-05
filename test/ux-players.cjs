@@ -70,6 +70,19 @@ const SEED = require("../scripts/seed.js");
       assert.match(got.t, /Rocket 1/); assert.match(got.card, /Rocket 1/, "the card in his hand says it too");
       assert.deepEqual(got.ambiguous, [], "every bunker on a card is one bunker on this field");
     });
+    await check("the STAFF badge opens the account, and Sign out asks before it signs out", async p => {
+      await p.getByRole("button", { name: /account and sign out/ }).click();
+      assert.equal(await p.evaluate(() => S.more), "nexus");
+      const box = await p.getByRole("button", { name: "Sign out", exact: true }).boundingBox();
+      assert.ok(box && box.y < 844, "Sign out is on the first screen of Nexus");
+      p.removeAllListeners("dialog"); p.once("dialog", d => d.dismiss());
+      await p.getByRole("button", { name: "Sign out", exact: true }).click();
+      assert.equal(await p.evaluate(() => S.entered), true, "No keeps him signed in");
+      p.once("dialog", d => d.accept());
+      await p.getByRole("button", { name: "Sign out", exact: true }).click();
+      assert.equal(await p.evaluate(() => S.entered), false);
+      assert.ok(await p.evaluate(() => S.matches.length) > 0, "the season stays");
+    });
   } finally {
     await browser.close(); server.close();
     console.log(`${passed}/${passed + failed} player checks passed.`);
