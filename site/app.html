@@ -10780,7 +10780,7 @@ function promo(){
            Appended below, it sat under three buttons and the footer — off the
            fold on a phone, with six buttons and two ways to do one thing all
            on screen at once. One screen, one job. */""}
-    ${["create", "login", "recovery"].includes(S.mode) ? authForm() + `
+    ${["create", "login", "recovery"].includes(S.mode) ? authForm() + (S.mode === "recovery" ? "" : providerButtons()) + `
       <p class="note">Gridlock System · powered by UPRA</p>
     </div>` : `
     <div class="stack">
@@ -10796,6 +10796,7 @@ function promo(){
         has ? "Sign in" : "Create your account"}</button>
       <button class="btn btn--ghost btn--block" onclick="set({mode:'${has ? "create" : "login"}',authSaid:''})">${
         has ? "Create a different account" : "I already have one"}</button>
+      ${providerButtons()}
       ${/* No price claim and no account claim on the first screen, by the
              owner's decision. The page sells what the app does and nothing
              else. Nothing is lost that a coach needs: the store page carries
@@ -10814,7 +10815,7 @@ function promo(){
 // opens the right half of the form instead of the wrong one.
 function hasAccount(){
   const a = readAccount();
-  return !!(a.email || a.sub);
+  return !!(a.email || a.sub || a.uid);
 }
 function authForm(){
   if(S.mode === "recovery") return recoveryForm();
@@ -10925,6 +10926,9 @@ function recoveryForm(){
 window.gridlockHandleAuthUrl = async raw => {
   const cloud = window.gridlockCloud;
   if(!cloud || !cloud.handleAuthUrl || !cloud.isAuthUrl || !cloud.isAuthUrl(raw)) return false;
+  const kind = cloud.authUrlKind ? cloud.authUrlKind(raw) : "email";
+  if(kind === "link") return finishLink(cloud, raw);
+  if(kind === "signin") return finishProviderSignIn(cloud, raw);
   const attempt = ++_authAttempt;
   clearAccountGrant();
   ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
@@ -10943,6 +10947,83 @@ window.gridlockHandleAuthUrl = async raw => {
   }
   return true;
 };
+/* Google and Apple through the account server (cloud builds only). The
+   adapter starts the provider's page and exchanges the one-time code on the
+   way back; this side only accepts what the account server confirmed. A
+   callback is never proof by itself, and nothing here decides who is invited,
+   what plan he has or who administers: the server does. docs/SOCIAL-SIGN-IN.md. */
+const PROVIDER_WORD = {google: "Google", apple: "Apple"};
+// The providers this build can actually offer. The native Apple button
+// (window.gridlockApple) stays the Apple door where it exists, so a phone never
+// shows two Apple buttons.
+function cloudProviders(){
+  const c = window.gridlockCloud;
+  if(!canSync() || !c || typeof c.providers !== "function") return [];
+  let list = [];
+  try{ list = c.providers() || []; }catch(e){ return []; }
+  return list.filter(p => PROVIDER_WORD[p] && !(p === "apple" && window.gridlockApple));
+}
+function providerButtons(){
+  const list = cloudProviders();
+  if(!list.length) return "";
+  return `<div class="stack" role="group" aria-label="Sign in with another account">
+    ${list.map(p => `<button type="button" class="btn btn--ghost btn--block" onclick="providerSignIn('${p}')">Continue with ${PROVIDER_WORD[p]}</button>`).join("")}
+  </div>`;
+}
+window.providerSignIn = async provider => {
+  const cloud = window.gridlockCloud;
+  if(!cloudProviders().includes(provider)) return set({authSaid: "That sign-in is not set up on this build."});
+  const attempt = ++_authAttempt;
+  set({authSaid: `Opening ${PROVIDER_WORD[provider]}…`});
+  let r;
+  try{ r = await cloud.startProvider(provider, "signin"); }catch(e){ r = {ok:false}; }
+  if(attempt !== _authAttempt) return;
+  if(!r || !r.ok) set({authSaid: (r && r.offline) ? "No signal. Google and Apple sign-in need one; your season on this phone is unchanged."
+                                                   : (r && r.said) || `${PROVIDER_WORD[provider]} could not be opened. Nothing changed.`});
+};
+async function finishProviderSignIn(cloud, raw){
+  const attempt = ++_authAttempt;
+  clearAccountGrant();
+  ++_syncEpoch; S.syncOn = false; _recoveryUser = null; _recoveryBusy = false;
+  set({entered:false, role:"guest", email:"", joinOnly:false, mode:null, authSaid:"Finishing sign-in…"});
+  let r;
+  try{ r = await cloud.handleAuthUrl(raw); }
+  catch(e){ r = {ok:false, said:"That sign-in could not be checked. Start again with a signal."}; }
+  if(attempt !== _authAttempt || cloud !== window.gridlockCloud) return true;
+  if(!(r && r.ok && r.oauth && r.user && r.user.id)){
+    set({mode:null, authSaid:(r && r.said) || "That sign-in was refused. Start again."});
+    return true;
+  }
+  // The account the server confirmed, kept so a relaunch knows this phone has
+  // one. No password: offline, the season opens as it was; signing in again
+  // needs a signal.
+  if(!writeAccount({kind:"oauth", provider:r.provider, uid:r.user.id, email:r.user.email || "", cloud:true})){
+    try{ if(cloud.signOut) await cloud.signOut(); }catch(e){}
+    if(attempt === _authAttempt) set({authSaid: ACCOUNT_SAVE_SAID});
+    return true;
+  }
+  set({entered:true, role:"staff", email:r.user.email || `${PROVIDER_WORD[r.provider]} account`, mode:null, authSaid:"", fmtAsk:!S.fmtDone});
+  try{ afterSignIn(); }catch(e){}
+  refreshAccountGrant(cloud, attempt);
+  return true;
+}
+// Linking adds Google or Apple to the account signed in now, by the coach's
+// own tap, so the same account and the same season answer to either. The app
+// never links two accounts because their emails look alike.
+window.linkProvider = async provider => {
+  const cloud = window.gridlockCloud;
+  if(!staffed() || !cloudProviders().includes(provider)) return flash("That sign-in is not set up on this build.");
+  let r;
+  try{ r = await cloud.startProvider(provider, "link"); }catch(e){ r = {ok:false}; }
+  if(!r || !r.ok) flash((r && r.offline) ? "No signal. Link it when you are online." : (r && r.said) || "Nothing was linked.");
+};
+async function finishLink(cloud, raw){
+  let r;
+  try{ r = await cloud.handleAuthUrl(raw); }catch(e){ r = {ok:false, said:"That link could not be checked. Nothing was linked."}; }
+  if(r && r.ok && r.linked) flash(`${PROVIDER_WORD[r.provider]} is linked. Either way of signing in opens this same account.`);
+  else flash((r && r.said) || "Nothing was linked.");
+  return true;
+}
 window.completePasswordReset = async () => {
   const cloud = window.gridlockCloud, user = _recoveryUser;
   if(_recoveryBusy) return;
@@ -10976,10 +11057,14 @@ function accountRecord(text, legacy = false){
   let a;
   try{ a = JSON.parse(text); }catch(e){ return {}; }
   if(!a || typeof a !== "object" || Array.isArray(a)) return {};
-  for(const key of ["email", "salt", "hash", "kind", "sub", "name", "phone", "uid", "pass"])
+  for(const key of ["email", "salt", "hash", "kind", "sub", "name", "phone", "uid", "pass", "provider"])
     if(a[key] != null && typeof a[key] !== "string") return {};
+  // kind "oauth" is a cloud account the coach signed in to with Google or
+  // Apple through the account server: no password on the phone, keyed on the
+  // server's account id. It is not the native Apple path (kind "apple").
   if(legacy ? a.email && a.pass :
-     (a.kind === "apple" && a.sub) || (a.email && a.salt && a.hash)) return a;
+     (a.kind === "apple" && a.sub) || (a.kind === "oauth" && a.uid && ["google","apple"].includes(a.provider) && a.cloud === true) ||
+     (a.email && a.salt && a.hash)) return a;
   return {};
 }
 // An email is one address whatever its capitals: "Coach@X.com" and
@@ -11026,7 +11111,7 @@ function writeAccount(acc){
 }
 window.gridlockRestoreAccount = text => {
   const have = readAccount();
-  if(have.email || have.sub) return false;          // this phone has one already
+  if(have.email || have.sub || have.uid) return false;          // this phone has one already
   const d = accountRecord(text);
   if(!(d.email || d.sub)) return false;
   return writeAccount(d);
@@ -16518,6 +16603,9 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
+  ["Can I sign in with Google or Apple?", () => cloudProviders().length
+    ? `Yes: Continue with ${cloudProviders().map(p => PROVIDER_WORD[p]).join(" or ")} on the sign-in screen. It opens the same kind of account as email and password, and your season stays on this phone either way. Already have an account with a password? Sign in with it, then More, Nexus, Link ${PROVIDER_WORD[cloudProviders()[0]]}, so both open the same account. If Apple hides your email, it gives us a private relay address, so an invite sent to your own email does not match it: sign in with the invited email and link Apple from Nexus.`
+    : "Not on this build. Sign in with your email and password."],
   ["How do I sign out?", "Tap STAFF at the top right (or More, then Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
@@ -17469,6 +17557,9 @@ function moreBody(k){
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
       </div>
       ${staffed() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="askSignOut()">Sign out</button>` : ""}
+      ${staffed() && cloudProviders().length ? `<p class="note" style="margin-top:var(--s3)">Also sign in to this same account with:</p>
+        <div class="btnrow">${cloudProviders().map(p => `<button type="button" class="btn btn--ghost grow" onclick="linkProvider('${p}')">Link ${PROVIDER_WORD[p]}</button>`).join("")}</div>
+        <p class="note">Your season and your plan stay with this account. A ${cloudProviders().map(p => PROVIDER_WORD[p]).join(" or ")} account that already has its own Gridlock account cannot be linked here.</p>` : ""}
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
@@ -17515,7 +17606,8 @@ function moreBody(k){
     <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
     ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
     S.syncOn ? "On" : "Off") : "")
-  + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
+  + (window.gridlockCloud?.deleteAccount && readAccount().cloud && readAccount().kind === "oauth" ? sec("Delete account",`<p class="note">This account signs in with ${esc(PROVIDER_WORD[readAccount().provider] || "Google or Apple")} and has no password, and deleting it asks for one so nobody else can do it from this phone. To delete it: sign out, tap Sign in, then Forgot password with ${readAccount().email ? esc(readAccount().email) : "the account's email"}, set a password from the email, sign in with it and come back here. Your season on this phone is not touched.</p>`) : "")
+  + (window.gridlockCloud?.deleteAccount && readAccount().cloud && readAccount().kind !== "oauth" ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>

@@ -28,6 +28,19 @@
  *     getEntitlement()           -> {ok, user, entitlement, said, offline}
  *     pushSeason(label, payload) -> {ok, said, offline}   // opt-in League sync
  *     deleteSeason()             -> {ok, said, offline}
+ *     providers()                -> ["google", "apple"]  // only those the owner switched on
+ *     startProvider(p, mode)     -> {ok, opened, said}    // mode "signin" or "link"
+ *     authUrlKind(raw)           -> "email" | "signin" | "link" | null
+ *
+ * Google and Apple sign-in use Supabase's PKCE code flow: this file makes the
+ * code verifier, sends only its SHA-256 challenge to /authorize, and on the
+ * way back exchanges the one-time ?code= with the verifier it kept. A callback
+ * that arrives without a verifier this phone made — someone else's link, a
+ * second tab, a reload — is refused. The account server's own checks (closed
+ * signups for the beta, identity, plans, administrators) decide who gets in;
+ * a callback is never proof of anything by itself. No provider secret is in
+ * here or in the generated config: the Google client secret and the Apple
+ * signing key live only in the Supabase dashboard. docs/SOCIAL-SIGN-IN.md.
  *
  * offline:true means the network failed, not that the coach is wrong — the app
  * then falls through to the copy on the phone and says nothing about it.
@@ -42,6 +55,7 @@
   var seasonTail = Promise.resolve(), deleting = false;
   var recoverySession = null, updatingPassword = false;
   var MAX_SEASON_BYTES = 2 * 1024 * 1024;
+  var PROVIDERS = ["google", "apple"], PENDING_KEY = "grindx.cloud.oauth", PENDING_MS = 10 * 60 * 1000;
   var seasonRevisions = Object.create(null);
   function revision(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
   function bindingKey(id) { return "grindx.cloud.season.v2:" + cfg().url + ":" + id; }
@@ -144,15 +158,20 @@
       if (!target || u.username || u.password) return null;
       var base = new URL(u.href); base.hash = ""; base.search = "";
       if (base.href !== target) return null;
-      var p = new URLSearchParams(u.hash.slice(1));
+      var p = new URLSearchParams(u.hash.slice(1)), q = new URLSearchParams(u.search);
+      // A provider sign-in comes back with ?code= (PKCE); its errors may sit
+      // in the query or the fragment.
+      if (q.has("code") || ((q.has("error") || q.has("error_code")) && pendingFlow()))
+        return { url: u, params: q.has("code") ? q : (q.has("error") || q.has("error_code") ? q : p), code: true };
       if (!p.has("access_token") && !p.has("error") && !p.has("error_code")) return null;
+      if ((p.has("error") || p.has("error_code")) && !p.has("access_token") && pendingFlow()) return { url: u, params: p, code: true };
       return { url: u, params: p };
     } catch (e) { return null; }
   }
   function clearAuthFragment(u) {
     try {
       if (window.location && window.location.href === u.href && window.history)
-        window.history.replaceState(null, "", u.pathname + u.search);
+        window.history.replaceState(null, "", u.pathname);
     } catch (e) {}
   }
   async function call(path, opts, token) {
@@ -211,7 +230,94 @@
     seasonTail = pending.catch(function () {});
     return pending;
   }
+  /* ---- Google and Apple (PKCE) ------------------------------------------ */
+  function configuredProviders() {
+    var c = cfg(), list = c && Array.isArray(c.providers) ? c.providers : [];
+    return PROVIDERS.filter(function (p) { return list.indexOf(p) >= 0; });
+  }
+  function nativeShell() {
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  }
+  // A provider page opened inside the app's own web view is refused by Google
+  // and is no way to sign in with Apple; a native build offers these buttons
+  // only when its shell can open the system browser (window.gridlockOpenAuth).
+  function canOpen() {
+    if (nativeShell()) return typeof window.gridlockOpenAuth === "function";
+    return !!(window.location && /^https?:$/.test(window.location.protocol));
+  }
+  function pendingFlow() {
+    try {
+      var f = JSON.parse(localStorage.getItem(PENDING_KEY) || "null");
+      if (!f || typeof f.v !== "string" || PROVIDERS.indexOf(f.p) < 0 || ["signin", "link"].indexOf(f.mode) < 0) return null;
+      if (typeof f.at !== "number" || Date.now() - f.at > PENDING_MS || Date.now() < f.at - 60000) return null;
+      return f;
+    } catch (e) { return null; }
+  }
+  function dropFlow() { try { localStorage.removeItem(PENDING_KEY); } catch (e) {} }
+  function verifier() {
+    var a = new Uint32Array(56); crypto.getRandomValues(a);
+    return Array.from(a, function (n) { return ("0" + n.toString(16)).slice(-2); }).join("");
+  }
+  async function challenge(v) {
+    var d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v))), b = "";
+    for (var i = 0; i < d.length; i++) b += String.fromCharCode(d[i]);
+    return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function providerWord(p) { return p === "apple" ? "Apple" : "Google"; }
+  function oauthError(params, p) {
+    var code = String(params.get("error_code") || params.get("error") || ""), text = String(params.get("error_description") || "");
+    if (/access_denied|cancel/i.test(code + " " + text)) return "Sign-in with " + providerWord(p) + " was cancelled. Nothing changed.";
+    if (/signup.*(disabled|not allowed)|not allowed for this instance/i.test(code + " " + text))
+      return "That " + providerWord(p) + " account is not on the beta list yet. Use the email you were invited with, or ask Gridlock PB LLC for an invite.";
+    if (/identity.*(already|exists)|already linked/i.test(code + " " + text))
+      return "That " + providerWord(p) + " account already belongs to a different Gridlock account. Nothing was linked.";
+    if (/manual.?linking/i.test(code + " " + text)) return "Linking is not switched on for this account server yet. Nothing changed.";
+    return "That sign-in expired or was refused. Start again.";
+  }
   var api = {
+    providers() { return canOpen() ? configuredProviders() : []; },
+    authUrlKind(raw) {
+      var link = authUrl(raw);
+      if (!link) return null;
+      if (!link.code) return "email";
+      var f = pendingFlow();
+      return f ? f.mode : "signin";
+    },
+    // Starts Google or Apple: "signin" from the welcome page, "link" from
+    // Nexus to add the provider to the account signed in now.
+    async startProvider(provider, mode) {
+      mode = mode === "link" ? "link" : "signin";
+      if (configuredProviders().indexOf(provider) < 0 || !canOpen()) return said(providerWord(provider) + " sign-in is not set up on this build.");
+      var redirect = redirectUrl(), c = cfg();
+      if (!redirect) return said("This build has no sign-in return address. Nothing changed.");
+      if (!(typeof crypto !== "undefined" && crypto.subtle && crypto.getRandomValues)) return said("This address is not a secure one, so sign-in cannot start here.");
+      var s = readSession(), g = generation, v = verifier(), ch = await challenge(v);
+      if (g !== generation || readSession() !== s) return cancelled();
+      if (mode === "link" && !(s && s.user && s.user.id)) return said("Sign in first, then link " + providerWord(provider) + ".");
+      var flow = { v: v, p: provider, mode: mode, at: Date.now(), r: redirect, uid: mode === "link" ? s.user.id : "" };
+      try { localStorage.setItem(PENDING_KEY, JSON.stringify(flow)); if (localStorage.getItem(PENDING_KEY) !== JSON.stringify(flow)) throw 0; }
+      catch (e) { return said("This phone could not save the sign-in step. Free some space and try again."); }
+      var query = "provider=" + encodeURIComponent(provider) + "&redirect_to=" + encodeURIComponent(redirect) +
+                  "&code_challenge=" + encodeURIComponent(ch) + "&code_challenge_method=s256";
+      var target;
+      if (mode === "link") {
+        var t = await token();
+        if (g !== generation || readSession() !== s || !t) { dropFlow(); return cancelled(); }
+        var r = await call("/auth/v1/user/identities/authorize?" + query + "&skip_http_redirect=true", {}, t);
+        if (g !== generation || readSession() !== s) { dropFlow(); return cancelled(); }
+        if (!r.net) { dropFlow(); return OFFLINE; }
+        if (!r.ok || !r.body || typeof r.body.url !== "string") { dropFlow(); return said(oauthError(new URLSearchParams({ error_description: authError(r.body) }), provider)); }
+        target = r.body.url;
+      } else {
+        target = c.url.replace(/\/+$/, "") + "/auth/v1/authorize?" + query;
+      }
+      try {
+        var u = new URL(target);
+        if (u.protocol !== "https:" || u.username || u.password) { dropFlow(); return said("The account server sent a sign-in address this app will not open."); }
+      } catch (e) { dropFlow(); return said("The account server sent a sign-in address this app will not open."); }
+      if (nativeShell()) window.gridlockOpenAuth(target); else window.location.assign(target);
+      return { ok: true, opened: true };
+    },
     async signUp(email, pass) {
       var g = beginAuth();
       var r = await call(authPath("/auth/v1/signup"), { method: "POST", body: JSON.stringify({ email: email, password: pass }) });
@@ -249,6 +355,7 @@
       var link = authUrl(raw);
       if (!link) return null;
       clearAuthFragment(link.url); // remove bearer tokens before any await or redraw
+      if (link.code) return api.finishProvider(link.params);
       var g = beginAuth(), p = link.params;
       if (p.has("error") || p.has("error_code")) return said("That email link has expired or was refused. Ask for a new one.");
       var type = p.get("type"), access = p.get("access_token"), refresh = p.get("refresh_token");
@@ -267,6 +374,40 @@
       if (type === "signup") return { ok: true, confirmed: true, user: s.user };
       recoverySession = s;
       return { ok: true, recovery: true, user: s.user };
+    },
+    // The way back from Google or Apple. The verifier this phone kept is used
+    // once and thrown away first, so a reload or a second tab cannot replay it.
+    async finishProvider(params) {
+      var f = pendingFlow(); dropFlow();
+      if (!f) return said("That sign-in was not started on this phone, or it took too long. Start again.");
+      if (params.has("error") || params.has("error_code")) return said(oauthError(params, f.p));
+      var code = params.get("code");
+      if (!code || code.length > 512) return said("That sign-in link is incomplete. Start again.");
+      var linking = f.mode === "link", before = readSession();
+      if (linking && !(before && before.user && before.user.id === f.uid)) return said("You signed out before " + providerWord(f.p) + " finished. Nothing was linked.");
+      var g = linking ? generation : beginAuth();
+      var r = await call("/auth/v1/token?grant_type=pkce", { method: "POST", body: JSON.stringify({ auth_code: code, code_verifier: f.v }) });
+      readSession();
+      if (g !== generation) return cancelled();
+      if (!r.net) return said("The account server could not be reached. Start the sign-in again when you are online.");
+      if (!r.ok || !r.body || !r.body.access_token || !r.body.user || typeof r.body.user.id !== "string")
+        return said(oauthError(new URLSearchParams({ error_description: authError(r.body) }), f.p));
+      // The exchange is checked against the account server once more: what the
+      // server says about this token is the identity, not the redirect.
+      var who = await call("/auth/v1/user", {}, r.body.access_token);
+      readSession();
+      if (g !== generation) return cancelled();
+      if (!who.net) return said("The account server could not be reached. Start the sign-in again when you are online.");
+      if (!who.ok || !who.body || who.body.id !== r.body.user.id) return said("That sign-in was refused. Start again.");
+      if (linking) {
+        var now = readSession();
+        if (!now || now.user.id !== f.uid || who.body.id !== f.uid)
+          return said("That " + providerWord(f.p) + " account belongs to a different Gridlock account. Nothing was linked, and you are still signed in as before.");
+        return { ok: true, linked: true, provider: f.p, user: now.user };
+      }
+      var s = sessionFrom({ access_token: r.body.access_token, refresh_token: r.body.refresh_token, expires_in: r.body.expires_in, user: { id: who.body.id, email: typeof who.body.email === "string" ? who.body.email : "" } });
+      if (!s.refresh_token || !writeSession(s)) return said("This phone could not save your sign-in. Free some space and try again.");
+      return { ok: true, oauth: true, provider: f.p, user: s.user };
     },
     cancelRecovery() { ++generation; recoverySession = null; },
     async updatePassword(pass) {
