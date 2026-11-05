@@ -18,6 +18,28 @@ the SMTP password in its [Supabase SMTP guide](https://resend.com/docs/send-with
 Email confirmation is required. Successful email delivery alone does not prove
 the complete account-creation or password-recovery flow has passed on a phone.
 
+## Fresh main required for every deployment
+
+Every production deployment must start from a fresh checkout of origin/main.
+Never deploy from a leftover feature-branch checkout or reuse an older dist/.
+In a new, isolated checkout with no uncommitted work, run:
+
+```sh
+git fetch origin
+git checkout main
+git reset --hard origin/main
+git log -1 --format='%H %s'
+npm install
+```
+
+Confirm that HEAD contains the intended release merge before running the cloud
+build below with the existing public configuration. Check the expected feature
+in both web/index.html and dist/cloud/index.html before uploading. Record HEAD
+and the built sw.js VERSION. After deployment, fetch the canonical app URL and
+sw.js and verify the feature and VERSION match that exact output. An upload
+request alone is not a completed release; report any unperformed cache purge
+separately from successful fresh-file verification.
+
 ## Build configuration
 
 The live app is https://app.gridlockpb.com/. The owner-confirmed public
