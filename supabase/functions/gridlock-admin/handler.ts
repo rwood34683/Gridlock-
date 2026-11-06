@@ -54,6 +54,44 @@ async function readBody(req: Request): Promise<unknown> {
   return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
 }
 
+/* How many coaches use the app, and where. Totals only: no id, email, team
+ * or season ever leaves this function. Accounts come from Auth; everything
+ * about events comes only from seasons coaches chose to share (League sync),
+ * so a coach who never turned it on is counted as an account and nothing more.
+ * A sheet counts at an event when it has a point scored on it; a watched game
+ * counts as a sheet watched there, not one played. Bounded so a large project
+ * answers in one request; `capped` says when the counts stopped short. */
+const USAGE_USER_PAGES = 50, USAGE_USER_PAGE = 1000, USAGE_SEASON_PAGE = 100, USAGE_SEASON_MAX = 5000;
+function seasonData(payload: unknown): any {
+  let p: any = payload;
+  if (typeof p === "string") { try { p = JSON.parse(p); } catch { return null; } }
+  if (!p || typeof p !== "object" || Array.isArray(p)) return null;
+  const d = p.data && typeof p.data === "object" && !Array.isArray(p.data) ? p.data : p;
+  return Array.isArray(d.matches) ? d : null;
+}
+export function usageOf(seasons: unknown[]) {
+  const events = new Map<string, { layout: string; accounts: number; sheets: number; watched: number; points: number }>();
+  let readable = 0;
+  for (const payload of seasons) {
+    const d = seasonData(payload); if (!d) continue;
+    readable++;
+    const scored = new Map<string, number>();
+    for (const r of Array.isArray(d.results) ? d.results : []) if (r && typeof r === "object" && typeof r.m === "string") scored.set(r.m, (scored.get(r.m) || 0) + 1);
+    const here = new Set<string>();
+    for (const m of d.matches) {
+      if (!m || typeof m !== "object" || typeof m.id !== "string" || !scored.has(m.id)) continue;
+      const raw = typeof m.layout === "string" && /^[a-z0-9:_-]{1,40}$/i.test(m.layout) ? m.layout : "unknown";
+      const layout = raw.startsWith("my:") ? "built" : raw;
+      const e = events.get(layout) || { layout, accounts: 0, sheets: 0, watched: 0, points: 0 };
+      if (m.watch === true) e.watched++; else e.sheets++;
+      e.points += scored.get(m.id) || 0;
+      if (!here.has(layout)) { here.add(layout); e.accounts++; }
+      events.set(layout, e);
+    }
+  }
+  return { readable, events: [...events.values()].sort((a, b) => b.accounts - a.accounts || b.sheets - a.sheets || a.layout.localeCompare(b.layout)) };
+}
+
 export function createAdminHandler(settings: Settings, createClient: ClientFactory, now = () => Date.now(), audit = (event: Record<string, unknown>) => console.info(JSON.stringify(event))) {
   const projectUrl = settings.get("SUPABASE_URL") || "", serviceKey = settings.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const ids = split(settings.get("ADMIN_USER_IDS")).map((s) => s.toLowerCase());
@@ -125,6 +163,34 @@ export function createAdminHandler(settings: Settings, createClient: ClientFacto
             .order("updated_at", { ascending: false }).order("owner", { ascending: true }).range(start, start + size);
           if (error || !Array.isArray(data)) return reply({ error: "Uploaded seasons could not be loaded." }, 502);
           return reply({ caller, seasons: data.slice(0, size).map((s: any) => ({ owner: s.owner, label: text(s.label), payload: s.payload, updated_at: text(s.updated_at) })), page, per_page:size, has_more: data.length > size });
+        }
+        if (action === "usage") {
+          let total = 0, confirmed = 0, active = 0, capped = false;
+          const since = now() - 30 * 86400000;
+          for (let p = 1; p <= USAGE_USER_PAGES; p++) {
+            const { data, error } = await db.auth.admin.listUsers({ page: p, perPage: USAGE_USER_PAGE });
+            if (error || !Array.isArray(data?.users)) return reply({ error: "User accounts could not be counted." }, 502);
+            for (const u of data.users) {
+              total++;
+              if (u?.email_confirmed_at) confirmed++;
+              const last = Date.parse(u?.last_sign_in_at || "");
+              if (Number.isFinite(last) && last >= since) active++;
+            }
+            if (data.users.length < USAGE_USER_PAGE) break;
+            if (p === USAGE_USER_PAGES) capped = true;
+          }
+          const payloads: unknown[] = [];
+          for (let start = 0; start < USAGE_SEASON_MAX; start += USAGE_SEASON_PAGE) {
+            const { data, error } = await db.from("seasons").select("payload").is("deleted_at", null)
+              .order("owner", { ascending: true }).range(start, start + USAGE_SEASON_PAGE - 1);
+            if (error || !Array.isArray(data)) return reply({ error: "Shared seasons could not be counted." }, 502);
+            for (const row of data) payloads.push(row?.payload);
+            if (data.length < USAGE_SEASON_PAGE) break;
+            if (start + USAGE_SEASON_PAGE >= USAGE_SEASON_MAX) capped = true;
+          }
+          const usage = usageOf(payloads);
+          return reply({ caller, accounts: { total, confirmed, active_30_days: active }, sharing: payloads.length,
+            readable: usage.readable, events: usage.events, capped, counted_at: new Date(now()).toISOString() });
         }
         return reply({ error: "Unknown administration action." }, 400);
       }

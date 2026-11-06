@@ -947,6 +947,31 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     guesses a delay. Nothing is fetched and no notification is sent — the app
     has no network; the screen is the plan. `test/review-nov6.cjs`.
 
+64. ~~The call with Rob, built.~~ Done — three of the four things it asked for.
+    **A tester's beta build** (`GRINDX_BETA_NAME`, `GRINDX_BETA_UNTIL`, `npm run
+    build:beta`, `betaOption` in `scripts/cloud-build.js`): one named tester and
+    a last day up to 180 days out, written to its own `dist/beta-<name>/` and
+    refused over `dist/cloud/`. In the app (`betaInfo`, `betaMark`, `betaNote`,
+    `betaEndedPage`) his name sits faintly across every screen with
+    `pointer-events:none`, the welcome page says the copy is confidential and
+    Gridlock PB LLC's, and after the last day the app closes to one page whose
+    one button is **Save everything** — his season is never held hostage. It is
+    a label, not a lock, and `docs/BETA.md` says so. **Usage in the admin
+    portal**: `action=usage` in `gridlock-admin` (`usageOf`) counts accounts,
+    confirmed, signed in in 30 days, sharing, and per event the coaches,
+    sheets played, games watched and points — totals only, from shared seasons
+    only, a sheet counted once a point is scored on it, built fields one
+    bucket; the Usage tab says what it is a count of. **Locked screens show
+    what they unlock** (`PAID_SHOWS`, `paidWaiting`): what the screen does and
+    what he has already logged that it would read, and a Team chip on a locked
+    More row; today's free / Team split is unchanged and billing stays off.
+    **Not built: Sightlines standing / kneeling / prone.** It needs each
+    inflatable's height and each stance's eye height, and the dealers' and
+    makers' pages are blocked from here; only the snake beam (~0.76 m), cake
+    (~1.0 m), cylinder (1.83 m) and standing eye height (~1.64 m) have two
+    agreeing sources. Never guess them. `test/rob-call.cjs`,
+    `test/admin-handler.mjs`, `test/admin.js`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

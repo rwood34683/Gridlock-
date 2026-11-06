@@ -89,6 +89,10 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
               entitlement: { plan: "free", expires_at: null } }],
             page: 1, per_page: 50, has_more: false
           });
+          if (url.searchParams.get("action") === "usage") return reply({
+            caller, accounts: { total: 12, confirmed: 10, active_30_days: 7 }, sharing: 5, readable: 5,
+            events: [{ layout: "nwc", accounts: 4, sheets: 9, watched: 3, points: 61 }, { layout: "built", accounts: 1, sheets: 2, watched: 0, points: 8 }],
+            capped: false, counted_at: "2026-11-06T12:00:00.000Z" });
           if (url.searchParams.get("action") === "seasons") return reply({
             caller, seasons: [{ owner: caller.id, label: "Cloud Garland",
               updated_at: "2026-10-29T00:00:00Z", payload: { format: "gridlock.coach.copy", data: {
@@ -166,7 +170,9 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
           .map(({ label }) => label),
         usersReady: !!document.querySelector(".user-card") && !!document.querySelector("form.plan-form select") &&
           !!document.querySelector("form.plan-form input[type=datetime-local]") &&
-          document.querySelectorAll("[role=tab]").length === 2,
+          document.querySelectorAll("[role=tab]").length === 3,
+        usageReady: document.querySelectorAll(".usage-row").length === 2 && /Totals only/.test(document.getElementById("root").innerText)
+          && /NXL World Cup · Kissimmee/.test(document.getElementById("root").innerText) && !/coach@|00000000-/.test(document.getElementById("root").innerText),
         importsReady: document.querySelectorAll(".season input[data-id]").length === 2 &&
           document.querySelectorAll("button[data-drop]").length === 2 && !!document.getElementById("clear") &&
           !!document.getElementById("cloudSeasons")
@@ -189,6 +195,13 @@ const seasonB = { format: "gridlock.coach.copy", v: 1, scope: "all", at: "2026-0
       check(`${name}: season controls stay within the page`, imports.overflow <= 1 && imports.outside.length === 0,
         JSON.stringify({ overflow: imports.overflow, outside: imports.outside }));
       check(`${name}: season controls have 44px touch targets`, imports.small.length === 0, imports.small.join("; "));
+      await page.locator("#usageTab").click();
+      if (!(await page.locator(".usage-row").count())) { await page.locator("#usageLoad").click(); await page.waitForSelector(".usage-row"); }
+      const use = await page.evaluate(adminLayout);
+      check(`${name}: usage counts render as totals with no names`, use.usageReady);
+      check(`${name}: usage controls stay within the page`, use.overflow <= 1 && use.outside.length === 0,
+        JSON.stringify({ overflow: use.overflow, outside: use.outside }));
+      check(`${name}: usage controls have 44px touch targets`, use.small.length === 0, use.small.join("; "));
     }
     await page.setViewportSize({ width: 1024, height: 900 });
 

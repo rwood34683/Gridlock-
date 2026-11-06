@@ -73,6 +73,8 @@ h1,h2,h3,p{margin:0}
    SHELL — header and tab bar pinned, only .main scrolls
    ============================================================ */
 #root{height:100%;overflow:hidden}
+.beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.beta-note{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
 .main{
   /* Layouts inside the column size off the column, not the screen: with the
@@ -547,6 +549,9 @@ svg.field{width:100%;height:auto;display:block}
   border-radius:var(--r-pill);padding:4px 11px;
 }
 .gate__name{font-size:var(--t-xl);font-weight:800;line-height:1.15;margin:0}
+.gate__shows{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.gate__waiting{margin:0;color:var(--ink)}
+.gate__chip{flex:none;font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:3px 9px}
 
 .help-btn{
   /* 44 px because a thumb needs it, even though the ring reads smaller: the
@@ -10910,6 +10915,7 @@ function promo(){
     ${/* A restored season lands here now, not inside the app, so the notice
            that it came back has to be here or he signs in thinking it is gone. */""}
     ${storeWarning()}
+    ${betaNote()}
     <div class="promo__mark">
       <div class="promo__name">${logoMark()}</div>
       <div class="promo__sys">SYSTEM · COACH EDITION</div>
@@ -16983,6 +16989,48 @@ function coachQuickStart(){
     </div></details>`, "Quick start");
 }
 
+/* A tester's beta build. scripts/cloud-build.js writes `beta: {name, until}`
+ * into the cloud config for one named tester, and nothing else turns it on.
+ * Every screen carries his name as a faint mark — a screenshot or a passed-on
+ * copy says whose it was — and the copy stops on its last day. A web page can
+ * never be made copy-proof, and this does not pretend to be: it makes a copy
+ * traceable and short-lived. When it ends, his season is not held hostage:
+ * Save everything stays on the page that says it has ended. */
+function betaInfo(){
+  const b = (window.GRIDLOCK_CLOUD || {}).beta;
+  if(!b || typeof b !== "object") return null;
+  const name = typeof b.name === "string" ? b.name.trim().slice(0, 40) : "";
+  const until = typeof b.until === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.until) ? b.until : "";
+  return name && until ? {name, until} : null;
+}
+// The copy works through its last day, on this phone's calendar.
+function betaOver(now = new Date()){
+  const b = betaInfo(); if(!b) return false;
+  const pad = n => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` > b.until;
+}
+function betaDay(){ const b = betaInfo(); return b ? dayName(b.until) : ""; }
+function betaMark(){
+  const b = betaInfo(); if(!b) return "";
+  const word = `Beta · ${esc(b.name)} · confidential`;
+  return `<div class="beta-mark" aria-hidden="true">${Array.from({length: 18}, () => `<span>${word}</span>`).join("")}</div>`;
+}
+function betaNote(){
+  const b = betaInfo(); if(!b) return "";
+  return `<p class="note beta-note">Beta copy for <b>${esc(b.name)}</b>, until ${esc(betaDay())}. Confidential — the property of Gridlock PB LLC. Please do not share it or show it to anyone outside your team.</p>`;
+}
+function betaEndedPage(){
+  const b = betaInfo();
+  return `<div class="promo">
+    <div class="promo__mark"><div class="promo__name">${logoMark()}</div><div class="promo__sys">SYSTEM · COACH EDITION</div></div>
+    <div class="panel">
+      <h3 class="panel__title">This beta ended on ${esc(betaDay())}</h3>
+      <p class="lede">Thank you, ${esc(b.name)}. Everything you logged is still on this phone. Save it now and it loads into the next build under Nexus › Load a copy.</p>
+      <button class="btn btn--block" onclick="saveCopy('all')">Save everything</button>
+      ${S.copyStatus ? `<p class="note">${esc(S.copyStatus)}</p>` : ""}
+      <p class="note">Ask Gridlock PB LLC for the next build.</p>
+    </div></div>`;
+}
 // Public pages are supplied only by a cloud build. Never trust a config value as markup.
 function cloudPageLinks(){
   const config = window.GRIDLOCK_CLOUD;
@@ -17125,12 +17173,38 @@ window.restorePlan = async () => {
 /* The wall itself. Never a dead end: it says what is behind it, what the
    coach keeps for nothing, and how to get back in on a phone he has already
    paid on. */
+/* What a locked screen does, said as what the coach would see, and what he
+ * has already logged that it would read. A free coach is shown the screen he
+ * is missing, never a blank wall: the reads are his own data, so the panel
+ * counts what is waiting for him — and nothing is ever hidden or deleted. */
+const PAID_SHOWS = {
+  "scout": ["What they run when ahead, behind, level, and after a timeout — with the count on every line",
+            "The read for the next point, and your call that has won most against it",
+            "Where their five plant, their shooter, and the lanes off the break",
+            "The Counter: your answer to each of their calls"],
+  "playbook/cards": ["One card a man: his bunker, his job in your words, his lanes", "Share the five to the squad chat in one tap"],
+  "playbook/rep": ["The field draws a break with nothing naming it", "Name it inside two seconds — the way it happens off the buzzer"],
+  "more/assess": ["Grade each man after the point, one to five", "His season average beside the breaks he made"],
+  "past-match": ["Every sheet you have kept, reopened on its last point", "Its review — what each call won and each man's breaks"],
+};
+function paidWaiting(key){
+  const calls = Object.values(S.scout || {}).reduce((n, p) => n + ((p && p.breaks) || []).filter(b => b && b.script).length, 0);
+  const teams = Object.values(S.scout || {}).filter(p => p && (((p.breaks || []).length) || (p.players || []).length)).length;
+  const n = {"scout": calls ? `${calls} call${calls === 1 ? "" : "s"} of theirs logged across ${teams} team${teams === 1 ? "" : "s"}` : "",
+             "playbook/cards": (S.roster || []).length ? `${Math.min(5, (S.roster || []).length)} cards ready from your roster` : "",
+             "playbook/rep": `${playKeys().length} calls ready to drill`,
+             "more/assess": (S.assessments || []).length ? `${(S.assessments || []).length} grades already given` : "",
+             "past-match": (S.matches || []).length > 1 ? `${(S.matches || []).length - 1} older sheets kept` : ""}[key] || "";
+  return n ? `<p class="gate__waiting"><b>Waiting for you:</b> ${esc(n)}.</p>` : "";
+}
 function upgradePanel(key){
-  const why = PAID_WHY[key] || "";
+  const why = PAID_WHY[key] || "", shows = PAID_SHOWS[key] || [];
   return `<div class="gate">
     <span class="gate__tag">Team</span>
     <h3 class="gate__name">${esc(MORE_TITLES[(key||"").replace("more/","")] || GATE_TITLE[key] || "This screen")} is part of Team</h3>
     ${why ? `<p class="lede">${esc(why)}</p>` : ""}
+    ${shows.length ? `<ul class="gate__shows">${shows.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${paidWaiting(key)}
     <p class="note">Calling the break, charting the point and the score stay free on every field,
       and so does Save a copy. Nothing you have logged is locked away.</p>
     <div class="btnrow">
@@ -17175,7 +17249,7 @@ function morePage(){
     return MORE_GROUPS.map(([title,rows])=>sec(title,`<div class="list">
       ${rows.map(([k,n,d])=>`<button class="list__row" onclick="set({more:'${k}'})">
         <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
-        ${moreCount(k)}<span class="list__go">›</span>
+        ${gateFor("more/" + k) ? `<span class="gate__chip">Team</span>` : moreCount(k)}<span class="list__go">›</span>
       </button>`).join("")}
     </div>`)).join("");
   }
@@ -18310,7 +18384,7 @@ function render(){
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
   const at = main && screen === _where ? main.scrollTop : 0;
   _lastPointMemo = new Map();
-  try { document.getElementById("root").innerHTML = S.entered ? shell() : S.joinOnly ? joinSheet() : promo(); }
+  try { document.getElementById("root").innerHTML = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
   // A field here is a <label> followed by its control, and the label carries
   // no `for`, so a screen reader read every select as "pop-up button" and

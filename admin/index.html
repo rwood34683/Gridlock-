@@ -97,6 +97,7 @@ details.cloud[open] summary{color:var(--ink)}
 .fld label{font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
 .fld input,.fld select{background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-sm);min-height:44px;padding:0 var(--s3);font:inherit;min-width:0;max-width:100%}
 .admin-login{max-width:520px}.status{margin:var(--s3) 0;color:var(--mute);overflow-wrap:anywhere}.status.error{color:#ff8b87}
+.usage-list{display:flex;flex-direction:column;gap:12px}.usage-row h3{margin:0;overflow-wrap:anywhere}
 .admin-tabs{margin:var(--s5) 0}.admin-tabs [aria-selected=true]{border-color:var(--accent-lit);color:var(--ink)}
 .user-list{display:grid;gap:var(--s3)}.user-card h3{font-size:var(--t-lg);overflow-wrap:anywhere}.user-meta{display:flex;flex-wrap:wrap;gap:var(--s3);margin:var(--s2) 0 var(--s4);font-size:var(--t-xs);color:var(--mute)}
 .plan-form{display:grid;grid-template-columns:minmax(120px,1fr) minmax(180px,2fr) auto;gap:var(--s3);align-items:end}.plan-form .fld{margin:0}
@@ -133,7 +134,9 @@ const COPY_FORMAT = "gridlock.coach.copy";
 // records, tokens and uploaded seasons are never written to browser storage.
 const LS = "gridlock.admin.manual.v2";
 const CLOUD = Object.freeze({url:"https://tldgxtrvbzlnydlysdln.supabase.co",anon:"sb_publishable_06JZ1yePx_pl22MXZfVF2Q_ye_LQ0Os",fn:"gridlock-admin"});
-const KNOWN_LAYOUTS = { lso:"Lone Star Open", mwo:"Midwest Open", tby:"Tampa Bay Open" };
+const KNOWN_LAYOUTS = { lso:"NXL Lone Star Open · Garland", tby:"NXL Tampa Bay Open · Tampa", mwo:"NXL Midwest Open · Cincinnati",
+  ujt:"USXBL JT Championship", ugp:"USXBL GP Championships · Waxahachie", wch:"WCPPL Championship · Chino", nwc:"NXL World Cup · Kissimmee",
+  built:"Fields coaches built themselves", unknown:"No field recorded" };
 const layoutName = k => Object.prototype.hasOwnProperty.call(KNOWN_LAYOUTS,k) ? KNOWN_LAYOUTS[k] : (k ? String(k).toUpperCase() : "—");
 
 let seasons = load();   // Manual imports only: [{id, label, at, app, data}].
@@ -142,6 +145,7 @@ let epoch = 0, expiryTimer = null, activeTab = "users", busy = false;
 let userPage = 1, userMore = false, seasonPage = 0, seasonMore = false;
 let status = "", statusError = false;
 let mfaPending = null;
+let usage = null;   // Totals only, held in page memory like everything else here.
 const pending = new Set();
 const allSeasons = () => {
   const cloud=token?cloudSeasons:[];
@@ -160,7 +164,7 @@ function localDate(value){value=dateValue(value);const d=new Date(value);if(valu
 function say(message,error=false){status=message;statusError=error;render();}
 function clearCloud(message="Signed out. Cloud data has been cleared from this page."){
   ++epoch;for(const c of pending)c.abort();pending.clear();clearTimeout(expiryTimer);expiryTimer=null;
-  token="";expiresAt=0;caller=null;users=[];cloudSeasons=[];busy=false;userPage=1;userMore=false;seasonPage=0;seasonMore=false;
+  token="";expiresAt=0;caller=null;users=[];cloudSeasons=[];usage=null;busy=false;userPage=1;userMore=false;seasonPage=0;seasonMore=false;
   mfaPending=null;
   status=message;statusError=false;render();
 }
@@ -251,8 +255,8 @@ function render(){
     wire();return;
   }
   root.innerHTML = accountSection() + `<p class="status ${statusError?"error":""}" role="status" aria-live="polite">${esc(status)}</p>`
-    + (token ? `<nav class="row admin-tabs" role="tablist" aria-label="Administration"><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="users"}" id="usersTab">Users</button><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="seasons"}" id="seasonsTab">Seasons</button></nav>` : "")
-    + (token&&activeTab==="users" ? usersSection() : sourceSection() + (allSeasons().length ? dashboard() : emptyState())) + footer();
+    + (token ? `<nav class="row admin-tabs" role="tablist" aria-label="Administration"><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="users"}" id="usersTab">Users</button><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="seasons"}" id="seasonsTab">Seasons</button><button class="btn btn--ghost" role="tab" aria-selected="${activeTab==="usage"}" id="usageTab">Usage</button></nav>` : "")
+    + (token&&activeTab==="users" ? usersSection() : token&&activeTab==="usage" ? usageSection() : sourceSection() + (allSeasons().length ? dashboard() : emptyState())) + footer();
   wire();
 }
 function accountSection(){
@@ -265,6 +269,35 @@ function usersSection(){
     const plan=["free","team","program"].includes(u.entitlement?.plan)?u.entitlement.plan:"free";
     return `<article class="panel user-card"><div class="row"><h3>${esc(u.email||"No email address")}</h3><span class="badge">${u.email_confirmed_at?"Email confirmed":"Awaiting confirmation"}</span></div><div class="user-meta"><span>Created ${esc(dateText(u.created_at))}</span><span>Last sign-in ${esc(u.last_sign_in_at?dateText(u.last_sign_in_at):"Not signed in yet")}</span><span>Plan expiry ${esc(u.entitlement?.expires_at?dateText(u.entitlement.expires_at):"No expiry")}</span></div><form class="plan-form" data-user-index="${i}"><div class="fld"><label for="plan-${i}">Plan</label><select id="plan-${i}" ${busy?"disabled":""}>${["free","team","program"].map(p=>`<option value="${p}" ${p===plan?"selected":""}>${p[0].toUpperCase()+p.slice(1)}</option>`).join("")}</select></div><div class="fld"><label for="expiry-${i}">Expires (optional, local time)</label><input id="expiry-${i}" type="datetime-local" value="${esc(localDate(u.entitlement?.expires_at))}" ${plan==="free"||busy?"disabled":""}></div><button class="btn btn--ghost" type="submit" ${busy?"disabled":""}>Save plan</button></form></article>`;
   }).join("")||`<div class="empty">No users on this page.</div>`}</div><div class="section-actions"><button class="btn btn--quiet" id="usersPrev" ${userPage<=1||busy?"disabled":""}>Previous</button><button class="btn btn--quiet" id="usersNext" ${!userMore||busy?"disabled":""}>Next</button><button class="btn btn--quiet" id="usersRefresh" ${busy?"disabled":""}>Refresh users</button></div></section>`;
+}
+/* How many coaches use the app, and where: totals the server counted, never a
+   name. Events come only from seasons coaches chose to share, and the page
+   says so beside the numbers, because a number for promotion has to say what
+   it is a count of. */
+function usageSection(){
+  const n=v=>Number.isFinite(v)?v:0, u=usage;
+  const head=`<section class="sec"><div class="sec__head"><h2>Usage</h2>${u?`<span class="sec__note">Counted ${esc(dateText(u.counted_at))}</span>`:""}</div>
+    <p class="lede" style="margin-bottom:16px">Totals only — no names, emails or teams. Events are counted only from coaches who turned on backup (League sync), so they are a floor, not the whole picture.</p>
+    <div class="section-actions"><button class="btn" id="usageLoad" ${busy?"disabled":""}>${u?"Count again":"Count usage"}</button></div>`;
+  if(!u)return head+`<div class="empty">Tap Count usage to count accounts and sheets.</div></section>`;
+  const ev=Array.isArray(u.events)?u.events:[];
+  return head+`<div class="row" style="flex-wrap:wrap;gap:12px;margin:16px 0">
+      <div class="panel"><b style="font-size:var(--t-xl)">${n(u.accounts?.total)}</b><div class="note">Accounts</div></div>
+      <div class="panel"><b style="font-size:var(--t-xl)">${n(u.accounts?.confirmed)}</b><div class="note">Email confirmed</div></div>
+      <div class="panel"><b style="font-size:var(--t-xl)">${n(u.accounts?.active_30_days)}</b><div class="note">Signed in, last 30 days</div></div>
+      <div class="panel"><b style="font-size:var(--t-xl)">${n(u.sharing)}</b><div class="note">Sharing a season</div></div>
+    </div>
+    ${ev.length?`<div class="usage-list">${ev.map(e=>`<article class="panel usage-row"><h3>${esc(layoutName(scalar(e.layout)))}</h3><p class="note" style="margin-top:6px"><b>${n(e.accounts)}</b> coach${n(e.accounts)===1?"":"es"} · <b>${n(e.sheets)}</b> sheet${n(e.sheets)===1?"":"s"} played · <b>${n(e.watched)}</b> game${n(e.watched)===1?"":"s"} watched · <b>${n(e.points)}</b> point${n(e.points)===1?"":"s"} scored</p></article>`).join("")}</div>`:`<div class="empty">No shared season has a scored sheet yet.</div>`}
+    <p class="note" style="margin-top:12px">A sheet counts at an event once a point is scored on it. ${n(u.sharing)-n(u.readable)>0?`${n(u.sharing)-n(u.readable)} shared season${n(u.sharing)-n(u.readable)===1?" was":"s were"} unreadable and not counted. `:""}${u.capped?"<b>The count stopped at its limit; the real numbers are higher.</b>":""}</p></section>`;
+}
+async function loadUsage(){
+  if(busy)return;const current=epoch;busy=true;status="Counting usage…";statusError=false;render();
+  try{
+    const data=await api("usage");if(current!==epoch)return;
+    if(!data||typeof data.accounts!=="object"||!Array.isArray(data.events))throw new Error("The usage counts could not be read.");
+    usage=data;status="Usage counted.";
+  }catch(e){if(current!==epoch)return;status=e.name==="AbortError"?"The request timed out. Try again.":e.message||"Could not count usage.";statusError=true;}
+  finally{if(current===epoch){busy=false;render();}}
 }
 function sourceSection(){
   return `<section class="sec">
@@ -505,7 +538,7 @@ function wire(){
   if(clear) clear.onclick = () => { if(confirm("Remove all imported copies from this browser? This does not delete anyone's cloud season or original export.")){ seasons = []; persist(); render(); } };
   const bind=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
   const login=document.getElementById("adminSignIn");if(login)login.onsubmit=e=>{e.preventDefault();signIn();};
-  bind("signOut",()=>clearCloud());bind("usersTab",()=>{activeTab="users";render();});bind("seasonsTab",()=>{activeTab="seasons";render();});
+  bind("signOut",()=>clearCloud());bind("usersTab",()=>{activeTab="users";render();});bind("seasonsTab",()=>{activeTab="seasons";render();});bind("usageTab",()=>{activeTab="usage";render();});bind("usageLoad",()=>loadUsage());
   bind("mfaEnroll",()=>enrollMfa());const mfaForm=document.getElementById("adminMfa");if(mfaForm)mfaForm.onsubmit=e=>{e.preventDefault();verifyMfa();};
   bind("usersPrev",()=>loadUsers(Math.max(1,userPage-1)));bind("usersNext",()=>loadUsers(userPage+1));bind("usersRefresh",()=>loadUsers(userPage));
   bind("cloudSeasons",()=>loadSeasons(false));bind("moreSeasons",()=>loadSeasons(true));

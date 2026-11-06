@@ -105,5 +105,33 @@ test('database, auth service, and write failures do not leak internal errors',as
 test('password-only admin cannot read records or change plans',async()=>{const h=harness({aal:'aal1'});assert.equal((await h.request()).status,403);noDataCalls(h.state);const identity=await h.request('?action=identity');assert.equal(identity.status,200);assert.equal(identity.body.mfa_required,true);assert.equal(identity.body.users,undefined);});
 test('unverified claims fail closed',async()=>{const h=harness({claimsError:{message:'invalid'}});assert.equal((await h.request()).status,401);noDataCalls(h.state);});
 test('plan and durable audit use one service-only RPC',async()=>{const h=harness();await h.request('',{method:'POST',body:payload()});assert.equal(h.state.calls.filter(c=>c[0]==='rpc'&&c[1]==='gridlock_admin_set_entitlement').length,1);});
+const season=(matches,results,wrap=true)=>{const data={matches,results,roster:[{name:'Private Player'}]};return wrap?{format:'gridlock.coach.copy',data}:data;};
+test('usage counts accounts and where scored sheets were played, and returns no name, email, team or id',async()=>{
+  const h=harness({users:[
+      {id:TARGET,email:'coach@example.test',email_confirmed_at:'2026-10-01T00:00:00Z',last_sign_in_at:'2026-10-20T00:00:00Z'},
+      {id:OTHER,email:'other@example.test',email_confirmed_at:null,last_sign_in_at:'2026-08-01T00:00:00Z'}],
+    seasons:[
+      {payload:season([{id:'a',layout:'nwc',vs:'Secret Team'},{id:'b',layout:'nwc',vs:'Secret Team'},{id:'w',layout:'nwc',watch:true,home:'H',away:'A'},{id:'blank',layout:'tby',vs:'Nobody'}],
+        [{m:'a',pt:1,won:'us'},{m:'a',pt:2,won:'them'},{m:'b',pt:1,won:'us'},{m:'w',pt:1,won:'us'}])},
+      {payload:JSON.stringify(season([{id:'c',layout:'nwc',vs:'X'},{id:'d',layout:'my:k1',vs:'Y'}],[{m:'c',pt:1,won:'us'},{m:'d',pt:1,won:'them'}]))},
+      {payload:'not json'},{payload:null}]});
+  const r=await h.request('?action=usage');
+  assert.equal(r.status,200);
+  assert.deepEqual(r.body.accounts,{total:2,confirmed:1,active_30_days:1});
+  assert.equal(r.body.sharing,4);assert.equal(r.body.readable,2);assert.equal(r.body.capped,false);
+  const nwc=r.body.events.find(e=>e.layout==='nwc');
+  assert.deepEqual(nwc,{layout:'nwc',accounts:2,sheets:3,watched:1,points:5});
+  assert.ok(r.body.events.some(e=>e.layout==='built'&&e.accounts===1),'a built field is one bucket, never its key');
+  assert.ok(!r.body.events.some(e=>e.layout==='tby'),'a sheet with no point scored is not counted');
+  const out=JSON.stringify({...r.body,caller:null});
+  for(const leak of ['coach@example.test','other@example.test',TARGET,OTHER,'Secret Team','Private Player','my:k1'])assert.ok(!out.includes(leak),'leaked '+leak);
+});
+test('usage needs a verified administrator with MFA like every other action',async()=>{
+  const h=harness({user:{id:OTHER,email:'x@example.test',email_confirmed_at:'today'}});assert.equal((await h.request('?action=usage')).status,403);noDataCalls(h.state);
+  const m=harness({aal:'aal1'});assert.equal((await m.request('?action=usage')).status,403);
+});
+test('usage fails closed when a count cannot be read',async()=>{
+  const h=harness({dbError:{message:'private'}});const r=await h.request('?action=usage');assert.equal(r.status,502);assert.ok(!JSON.stringify(r.body).includes('private'));
+});
 for (const [name,run] of checks) { await run(); passed++; console.log('PASS '+name); }
 console.log(`${passed}/${checks.length} admin backend checks passed.`);
