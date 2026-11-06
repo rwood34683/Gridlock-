@@ -910,6 +910,31 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     a finished sheet offers **Review this match** on the point sheet. A
     watched game names both teams and has no "you". `test/match-review.cjs`.
 
+62. ~~The eighth pass, and speed with a full season.~~ Done — three readers on
+    6 Nov 2026 (Tally/Scout, Playbook/More, accounts/storage), each confirming
+    in a browser, and a profile of a 40-sheet season at 6x CPU. Speed: `manRead`
+    reads the season through `pointIndex()` (rows and outs by `match|point`,
+    built once a draw) instead of rescanning it per row per man; `scoredBefore`,
+    `ourEnd` and `mirrorBunkerId` are kept for one draw (`drawOnce`); the tab's
+    own journal is built from the season in hand and written compact. Scout
+    264 → 96 ms, Tally 243 → 83 ms, a tapped out 299 → 155 ms. Fixes: Back to
+    fix a scored point leaves the live point's men where they were charted, and
+    a carry moves their five with them (`syncTallyFive`); Undo on the out log
+    and on self-scout acts on the row's key, once; the review counts their call
+    only on scored points and names bunkers by `cardName`; the cloud adapter
+    reads a Wi-Fi login page, a 5xx, 408 or 429 as no signal, so the phone's
+    own sign-in still opens; `matchState` is escaped; Replace and a cloud
+    restore keep `billing` / `preview`; Watch this game keeps the Team wall on
+    an older sheet; a cancelled second restore question puts sharing back; a
+    merge leaves out plays, fields and calendar entries deleted on this phone
+    (`S.goneIds`, `markGone`, this phone only, cleared by Replace) and counts
+    calendar entries and words it did bring; Codes' picked bunker clears with
+    the event; a word on a bunker taken off a built field is free again; a play
+    edited onto a deleted play's name takes its record (`rekeyPlay`); the
+    header's call shrinks at 1 so the section stays on screen. The unused
+    `supabase/functions/admin-seasons`, which checked admins by email, is gone.
+    `test/review-nov6.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

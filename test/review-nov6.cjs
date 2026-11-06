@@ -92,6 +92,50 @@ const SEED = require("../scripts/seed.js");
       });
       assert.equal(plan, "team");
     });
+    await check("a merge leaves out a play, a field and a calendar entry deleted on this phone, and says what it did bring", async p => {
+      const r = await p.evaluate(() => {
+        window.confirm = () => true;
+        S.plays = [{ k: "my:rk", name: "Rocket", read: "", aggr: 3, plants: { lso: curLayout().bunkers.slice(0, 5).map(b => b.id) }, at: 1 }];
+        S.calEvents = [{ id: "ev1", kind: "practice", d: "2026-11-20", t: "", title: "Practice" }];
+        const copy = JSON.stringify({ format: COPY_FORMAT, v: COPY_VERSION, scope: "all", at: new Date().toISOString(), app: "Gridlock Coach", data: { plays: S.plays, calEvents: S.calEvents } });
+        dropPlay("my:rk"); S.calEvents = S.calEvents.filter(x => x.id !== "ev1"); markGone("calEvents", "ev1");
+        set({ tab: "more", more: "nexus" });
+        window.loadCopy("merge", copy);
+        const back = customPlays().some(x => x.k === "my:rk") || (S.calEvents || []).some(x => x.id === "ev1");
+        const said1 = S.copyStatus;
+        const copy2 = JSON.stringify({ format: COPY_FORMAT, v: COPY_VERSION, scope: "all", at: new Date().toISOString(), app: "Gridlock Coach", data: { calEvents: [{ id: "ev2", kind: "practice", d: "2026-11-21", t: "", title: "Walk" }] } });
+        window.loadCopy("merge", copy2);
+        return { back, said1, said2: S.copyStatus };
+      });
+      assert.equal(r.back, false, "nothing deleted came back");
+      assert.match(r.said1, /you deleted on this phone left out/);
+      assert.match(r.said2, /1 calendar event/); assert.doesNotMatch(r.said2, /already had all of it/);
+    });
+    await check("a bunker picked on Codes is dropped when the event changes", async p => {
+      const r = await p.evaluate(() => { set({ tab: "more", more: "codes", codePick: curLayout().bunkers[3].id, codeName: "Rocket" }); set({ layoutKey: "tbo" }); return [S.codePick, S.codeName]; });
+      assert.deepEqual(r, [null, ""]);
+    });
+    await check("a word on a bunker taken off a built field is free for another bunker", async p => {
+      const r = await p.evaluate(() => {
+        const ids = curLayout().bunkers.map(b => b.id);
+        S.bunkerCalls = { ...(S.bunkerCalls || {}), lso: { "no-such-bunker": "Rocket" } };
+        return [bunkerWordTaken("Rocket", ids[2]), (S.bunkerCalls.lso.x = "Zed", bunkerWordTaken("Zed", ids[2]))];
+      });
+      assert.deepEqual(r, [null, null]);
+    });
+    await check("a play edited and renamed onto a deleted play's name takes that play's record", async p => {
+      const r = await p.evaluate(() => {
+        window.confirm = () => true;
+        const five = curLayout().bunkers.slice(0, 5).map(b => b.id), five2 = curLayout().bunkers.slice(5, 10).map(b => b.id);
+        S.plays = [{ k: "my:a", name: "Rocket", read: "", aggr: 3, plants: { lso: five }, at: 1 }, { k: "my:b", name: "Blitz Two", read: "", aggr: 3, plants: { lso: five2 }, at: 2 }];
+        S.calls.push({ m: S.matchId, pt: 1, script: "my:a", layout: "lso", vs: "Rejects", at: 5 });
+        dropPlay("my:a");
+        S.building = { k: "my:b", name: "Rocket", read: "", aggr: 3, plants: [...five2], layout: "lso" };
+        savePlay();
+        return { keys: [...new Set(S.calls.filter(c => /^my:/.test(c.script)).map(c => c.script))], name: callName("my:b") };
+      });
+      assert.deepEqual(r.keys, ["my:b"]); assert.equal(r.name, "Rocket");
+    });
     await check("the cloud adapter reads a venue's Wi-Fi login page or a server error as no signal, not a refusal", async () => {
       const src = fs.readFileSync(path.resolve(__dirname, "../native/gridlock-cloud.js"), "utf8");
       const run = async res => {
