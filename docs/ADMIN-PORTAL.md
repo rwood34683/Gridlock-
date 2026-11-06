@@ -13,6 +13,14 @@ not make someone an administrator.
 - Load seasons coaches explicitly chose to upload and review the counted
   matches, results, calls, penalties, events and opponents.
 - Import copies coaches shared manually, without sending those files anywhere.
+- Count usage (the **Usage** tab): accounts, confirmed accounts, accounts
+  signed in during the last 30 days, accounts sharing a season, and for each
+  event how many coaches scored a sheet there, how many sheets and watched
+  games, and how many points. These are totals only. No id, email, team or
+  season leaves the server. Events come only from seasons coaches chose to
+  share, so they are a floor, not the whole picture. Say so wherever a number
+  is used for promotion. The function must be redeployed (`gridlock-admin`)
+  for the Usage tab to answer.
 
 This portal does not invite users, change passwords, ban or delete users, or
 delete cloud seasons. Account recovery uses the coach app. Any account setup
