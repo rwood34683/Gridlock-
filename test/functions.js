@@ -2721,8 +2721,8 @@ const ROSTER = [
     return ss.tell >= 0.5 && document.getElementById("root").textContent.includes("Anyone filming you has that too");
   }));
   check("a logged call can be taken back", await ev(() => {
-    const before = selfScout().n;
-    window.unlogCall(0);
+    const before = selfScout().n, c = selfScout().recent[0];
+    window.unlogCall([c.m, c.pt, c.at, c.script].join("|"));
     return selfScout().n === before - 1;
   }));
   check("the calls travel in a saved copy", await ev(() =>

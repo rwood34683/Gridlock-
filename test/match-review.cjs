@@ -43,7 +43,8 @@ const SEED = require("../scripts/seed.js");
     ];
     S.assessments = [{ who: "Reyes", score: 4, pt: 1, m: "shot-m1", at: 5 }];
     save(S); render();
-    return { a: bunkerLabel(a), d: bunkerLabel(d), f: bunkerLabel(f) };
+    const nm = id => cardName(curLayout().bunkers.find(x => x.id === id));
+    return { a: nm(a), d: nm(d), f: nm(f) };
   });
   try {
     await check("the sheet on now has a review with the score and what each call won", async p => {

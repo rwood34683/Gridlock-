@@ -170,9 +170,17 @@
         method: opts.method || "GET", headers: headers, body: opts.body,
         ...(controller?{signal:controller.signal}:{}),
       });
-      try{body=await res.json();}catch(e){if(controller?.signal.aborted)return {net:false};}
+      if (typeof res.text === "function") {
+        var text = await res.text();
+        if (text) { try { body = JSON.parse(text); } catch (e) { body = undefined; } }
+      } else { try { body = await res.json(); } catch (e) { body = undefined; } }
     } catch (e) { return { net: false }; }
     finally {if(timer!==null)clearTimeout(timer);}
+    // Not the account server answering: a venue's Wi-Fi login page (200 with
+    // HTML), the server down (5xx) or rate-limited. None of that is a refusal
+    // of this coach, so it reads as no signal and the phone's own copy of the
+    // sign-in still opens the app. Only the server's own JSON answer refuses.
+    if (body === undefined || res.status >= 500 || res.status === 408 || res.status === 429) return { net: false };
     return { net: true, ok: res.ok, status: res.status, body: body };
   }
 
