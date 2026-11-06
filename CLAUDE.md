@@ -935,6 +935,18 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `supabase/functions/admin-seasons`, which checked admins by email, is gone.
     `test/review-nov6.cjs`.
 
+63. ~~Who to scout, and when.~~ Done — Lucas, a pro coach handed the app on
+    6 Nov 2026, asked for the schedule to be about his team: he plays at 2:00,
+    the team he must scout plays at 2:30 in the other pit, and a pit running
+    behind moves both. More › Schedule opens on **Your team's day**
+    (`yourDaySec`, `teamDay`): pick the team once (`S.myTeam`), and each of
+    its games lists the team across the tape and every game of theirs before
+    it at this event, each said free to watch or clashing with one of his own
+    (within `SLOT_MIN`), with Watch on the row. **A pit running late?** sets
+    minutes per day and pit (`S.runLate`, `lateBy`, `gameAt`); the app never
+    guesses a delay. Nothing is fetched and no notification is sent — the app
+    has no network; the screen is the plan. `test/review-nov6.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

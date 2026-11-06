@@ -2283,12 +2283,86 @@ function allGames(){
   return [...seeded, ...mine].filter(g => !gone.has(g.id))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
+function yourDaySec(games){
+  const teams = [...new Map(games.flatMap(g => [g.h, g.a]).filter(Boolean).map(t => [foldName(t), t])).values()].sort((a, b) => a.localeCompare(b));
+  const team = S.myTeam && teams.find(t => foldName(t) === foldName(S.myTeam)) || "";
+  const pick = `<div class="fld"><label for="my-team">Your team at this event</label>
+    <select id="my-team" onchange="setMyTeam(this.value)"><option value="">Pick your team</option>${
+      teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
+  if(!team) return sec("Your team's day", `<p class="lede">Pick your team and this lists every game you play,
+    who is across the tape, and every game of theirs you can watch before then — and which of those clash
+    with your own.</p>${pick}`);
+  const now = Date.now(), day = teamDay(team);
+  const watch = id => `<button class="btn btn--quiet" onclick="watchGame(${jsq(id)})">Watch</button>`;
+  const rows = day.map(({g, opp, scout}) => {
+    const past = gameAt(g) + SLOT_MIN * 60000 < now;
+    const sc = scout.length ? `<div class="assigns">${scout.map(({g: x, clash}) => `<div class="assign"${gameAt(x) + SLOT_MIN * 60000 < now ? ' style="opacity:.6"' : ""}>
+        <span class="assign__body"><span class="assign__job">${esc(opp)} v ${esc(across(x, opp))}</span>
+        <span class="assign__who">${esc(dayName(x.d).split(",")[0])} ${esc(gameClock(x))}${x.f ? " · " + esc(x.f) : ""}<br>${clash
+          ? `<b style="color:var(--warn)">Clashes with your ${esc(clockName(new Date(gameAt(clash)).toTimeString().slice(0, 5)))} game — send someone</b>`
+          : "Free for you to watch"}</span></span>
+        ${watch(x.id)}</div>`).join("")}</div>`
+      : `<p class="note">No game of ${esc(opp)}'s on this schedule before this one.</p>`;
+    return `<div class="panel"${past ? ' style="opacity:.6"' : ""}>
+      <h3 class="panel__title">${esc(dayName(g.d))} · ${esc(gameClock(g))} · v ${esc(opp)}</h3>
+      <p class="note">${esc(gameSub(g))}</p>
+      <p class="aid" style="margin-top:var(--s2)">Scout ${esc(opp)} before then</p>${sc}</div>`;
+  }).join("");
+  // Running late: the pits on the next day he plays, set by him.
+  const next = day.find(d => gameAt(d.g) + SLOT_MIN * 60000 >= now) || day[day.length - 1];
+  const pits = next ? [...new Set(games.filter(g => g.d === next.g.d).map(g => g.f || ""))] : [];
+  const late = next && pits.length ? `<details class="coach-terms"><summary>A pit running late?</summary>
+      <p class="note">${esc(dayName(next.g.d))}. Set how far behind a pit is and every time above moves with it.</p>
+      ${pits.map(f => { const key = next.g.d + "|" + f, v = +((S.runLate || {})[key] || 0);
+        return `<div class="fld"><label>${esc(f || "No pit printed")}</label><select onchange="setRunLate(${jsq(key)},this.value)">${
+          [0, 10, 15, 20, 30, 45, 60, 90].map(m => `<option value="${m}"${m === v ? " selected" : ""}>${m ? m + " min late" : "On time"}</option>`).join("")}</select></div>`; }).join("")}
+    </details>` : "";
+  return sec("Your team's day", `${pick}${day.length ? rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
+    day.length + (day.length === 1 ? " game" : " games"));
+}
 // What a row says under its two teams: the division where it is not the
 // schedule's own, the field and pit as printed, and the bracket.
 function gameSub(g){
   return [g.dv || "", g.f || "", g.g ? g.g + " Prelims" : (g.seed ? "Prelims" : "")].filter(Boolean).join(" · ");
 }
 function gameById(id){ return allGames().find(g => g.id === id) || null; }
+/* His team's day at an event. A coach is in two places at once: his own game
+ * at 2:00 and the team he has to scout playing at 2:30 in the other pit — and
+ * when one pit runs behind, both move. He picks his team once (`myTeam`);
+ * every game of his is listed with the team across the tape and every game of
+ * theirs before it that he could watch, each said free or clashing with one
+ * of his own. A pit running late is set by him (`runLate`, minutes, keyed on
+ * the day and the pit as the schedule prints it) — the app never guesses one. */
+const SLOT_MIN = 60;   // a game holds its pit for the hour it is scheduled in
+function lateBy(g){ return +(((S.runLate || {})[g.d + "|" + (g.f || "")]) || 0); }
+function gameAt(g){ return (Date.parse(`${g.d}T${g.t || "00:00"}`) || 0) + lateBy(g) * 60000; }
+function gameClock(g){
+  const late = lateBy(g); if(!late) return clockName(g.t);
+  const t = new Date(gameAt(g)), hh = String(t.getHours()).padStart(2, "0"), mm = String(t.getMinutes()).padStart(2, "0");
+  return `${clockName(hh + ":" + mm)} (${late} late)`;
+}
+function teamGames(team){
+  const f = foldName(team); if(!f) return [];
+  return allGames().filter(g => foldName(g.h) === f || foldName(g.a) === f).sort((x, y) => gameAt(x) - gameAt(y));
+}
+const across = (g, team) => foldName(g.h) === foldName(team) ? g.a : g.h;
+function teamDay(team){
+  const mine = teamGames(team);
+  return mine.map(g => {
+    const opp = across(g, team);
+    // Theirs before this game, at this event, not against him.
+    const scout = teamGames(opp).filter(x => x.id !== g.id && gameAt(x) < gameAt(g)
+      && foldName(x.h) !== foldName(team) && foldName(x.a) !== foldName(team))
+      .map(x => ({g: x, clash: mine.find(y => y.d === x.d && Math.abs(gameAt(y) - gameAt(x)) < SLOT_MIN * 60000) || null}));
+    return {g, opp, scout};
+  });
+}
+window.setMyTeam = v => { set({myTeam: String(v || "").slice(0, 60)}); };
+window.setRunLate = (key, v) => {
+  const n = Math.max(0, Math.min(180, parseInt(v, 10) || 0)), r = {...(S.runLate || {})};
+  if(n) r[key] = n; else delete r[key];
+  set({runLate: r});
+};
 // The field a game is played on: the league's rows are the event's field, and
 // one he added is the field he was on when he added it. A game opened from
 // another field took that field, and its fives were charted on the wrong bunkers.
@@ -15908,7 +15982,8 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
+    how:["Your team's day, at the top: pick your team once and every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
+         "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
@@ -15965,6 +16040,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
@@ -16490,7 +16566,7 @@ function moreBody(k){
     const byClock = [...games].sort((x, y) => at(x) - at(y));
     const nextG = byClock.find(g => at(g) >= nowMs - 15 * 60000) || null;
     const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">Next game · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
-    return jump + calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
+    return yourDaySec(games) + jump + calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
         teams in the pits and opens a sheet that counts against them and never against you — it is how
         you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
         the two is across the tape.</p>
