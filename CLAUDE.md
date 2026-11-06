@@ -972,6 +972,26 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     agreeing sources. Never guess them. `test/rob-call.cjs`,
     `test/admin-handler.mjs`, `test/admin.js`.
 
+65. ~~Reports: graphs and spreadsheets.~~ Done — the owner asked where the
+    scouting data can be read as graphs and spreadsheets by the staff and the
+    players. More › Reports (`reportsPage`, Team like Scout) has four tabs:
+    **Your team** (record, what each call won, net points by the bunker broken
+    to, each man's breaks), **Opponent** (a team picked from any sheet or book:
+    what they ran split ahead / level / behind from their side, your calls
+    against them, where they plant, who shot your men), **Player** (one man
+    sheet by sheet, Share his report without grades) and **Season** (points by
+    sheet and the running point difference). Bars are HTML (`repBars`,
+    `repNet`) so the type is the screen's own; the line is the only SVG
+    (`repLine`); every bar has its count beside it and every chart its numbers
+    as text. His own sheets only (`repSheets`), this event unless **Every
+    event**; a watched game is never his and counts only as the other team's
+    film; bunker counts are this field's. Every list exports a CSV built at the
+    tap (`REPORT_CSV`, `exportReport`): a download with a BOM in the browser,
+    `gridlockExportTable` (the share sheet, `.csv`) on the phone, the text box
+    when neither works; a cell that starts like a formula is written as text
+    (`csvCell`). Season has Every sheet, Every point and Every man charted.
+    `test/reports.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
