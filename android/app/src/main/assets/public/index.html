@@ -551,6 +551,37 @@ svg.field{width:100%;height:auto;display:block}
 .gate__name{font-size:var(--t-xl);font-weight:800;line-height:1.15;margin:0}
 .gate__shows{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
 .gate__waiting{margin:0;color:var(--ink)}
+/* Reports: bars in HTML so the type is the screen's own size; colour is
+   never the only reading — the count is printed beside every bar. */
+.rchart{margin:0 0 var(--s3)}
+.rlegend{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s4);font-size:var(--t-xs);color:var(--ink);margin-bottom:var(--s2)}
+.rlegend span{display:inline-flex;align-items:center;gap:6px}
+.rkey{width:12px;height:12px;border-radius:3px;display:inline-block}
+.rkey--us,.rbar__seg--us{background:var(--red)}
+.rkey--them,.rbar__seg--them{background:var(--blue)}
+.rkey--none,.rbar__seg--none{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.rbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px var(--s2);padding:6px 0;border-top:1px solid var(--line)}
+.rlegend + .rbar,.rchart > .rbar:first-child{border-top:0}
+.rbar__k{font-weight:700;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.rbar__v{color:var(--ink);font-size:var(--t-sm);text-align:right}
+.rbar__track,.rdiv{grid-column:1/-1;display:flex;gap:2px;height:12px;align-items:stretch}
+.rbar__seg{display:block;height:100%;min-width:3px;border-radius:0}
+.rbar__track .rbar__seg:first-child{border-radius:4px 0 0 4px}
+.rbar__track .rbar__seg:last-child{border-radius:0 4px 4px 0}
+.rbar__track .rbar__seg:only-child{border-radius:4px}
+.rbar__none{font-size:var(--t-xs);color:var(--mute);line-height:12px}
+.rdiv{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.rdiv__half{display:flex;border-left:2px solid var(--ink)}
+.rdiv__half--neg{justify-content:flex-end;border-left:0}
+.rdiv__half .rbar__seg{border-radius:0 4px 4px 0}
+.rdiv__half--neg .rbar__seg{border-radius:4px 0 0 4px}
+.rline{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;gap:0 var(--s2);align-items:center;color:var(--ink);font-size:var(--t-xs)}
+.rline__hi{grid-row:1;grid-column:1;align-self:start}
+.rline__lo{grid-row:2;grid-column:1;align-self:end}
+.rline__svg{grid-row:1/3;grid-column:2;width:100%;height:120px;display:block}
+.rline__zero{stroke:var(--line-lit);stroke-width:1;vector-effect:non-scaling-stroke}
+.rline__path{fill:none;stroke:var(--red);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.rline__ends{display:flex;justify-content:space-between;font-size:var(--t-xs);color:var(--ink);margin-top:4px}
 .gate__chip{flex:none;font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:3px 9px}
 
 .help-btn{
@@ -16021,6 +16052,14 @@ const HELP = {
          "Played against moves a whole sheet to the team you actually played — every out, call and read on it — when the wrong team was picked at the gate.",
          "Delete takes a sheet off for good — a practice sheet, a game charted twice — with everything logged on it. It asks first.",
          "Match review, under the sheet: the score, what each of your calls won, what they ran, where men were lost and each man's breaks. Review on a kept sheet reads that one back. Share the review sends it to the squad as text, without the grades."]},
+  "more/reports": {t:"Reports", w:"The season as graphs, and as spreadsheets.",
+    how:["Your team: your record, what each call won, the bunkers your points come from and each man's breaks.",
+         "Opponent: pick a team — what they run, split by whether they were ahead, level or behind, your calls against them, where they plant and who shoots your men.",
+         "Player: one man sheet by sheet, and Share his report to hand it to him. Grades stay off the shared text.",
+         "Season: points on every sheet, and the running point difference over the season.",
+         "The field name at the top reads this event only; Every event reads every sheet. Bunker counts are always this field's, because a bunker is a different bunker on another field.",
+         "Spreadsheet (CSV) under a list saves it as a file that opens in Excel, Numbers or Google Sheets. Season has Every point and Every man charted, one row each."],
+    watch:"Every bar is a count of what was logged, with the count beside it. Nothing is predicted. Games you watched are not in your numbers."},
   "more/classes": {t:"Classes", w:"A clinic sign-in sheet.",
     how:["Sign in to create one.",
          "Joining does not need an account. Scan the code or type it.",
@@ -16047,6 +16086,7 @@ const HELP = {
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
+  ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
@@ -16347,6 +16387,7 @@ const PAID = {
   "playbook/cards": "team",
   "playbook/rep":   "team",
   "more/assess":    "team",
+  "more/reports":   "team",
 };
 const PAID_WHY = {
   "scout":          "Everything you know about the other team — their five, the calls they run, your answer to each one, and the season board.",
@@ -16354,6 +16395,7 @@ const PAID_WHY = {
   "playbook/rep":   "The recognition drill, with a clock that holds you to two seconds.",
   "more/assess":    "Grade a player after the point, and keep his season average.",
   "past-match":     "Every sheet you have kept, not just the one you are on.",
+  "more/reports":   "The season as graphs, and as spreadsheets your staff can open.",
 };
 
 function planOf(){
@@ -16424,6 +16466,8 @@ const PAID_SHOWS = {
   "playbook/rep": ["The field draws a break with nothing naming it", "Name it inside two seconds — the way it happens off the buzzer"],
   "more/assess": ["Grade each man after the point, one to five", "His season average beside the breaks he made"],
   "past-match": ["Every sheet you have kept, reopened on its last point", "Its review — what each call won and each man's breaks"],
+  "more/reports": ["What each of your calls won, and where your points come from, as bars", "Each opponent: what they run when ahead, level and behind, and where they plant",
+                   "One page a player, sheet by sheet, to hand him", "Every list as a spreadsheet for Excel, Numbers or Google Sheets"],
 };
 function paidWaiting(key){
   const calls = Object.values(S.scout || {}).reduce((n, p) => n + ((p && p.breaks) || []).filter(b => b && b.script).length, 0);
@@ -16432,7 +16476,8 @@ function paidWaiting(key){
              "playbook/cards": (S.roster || []).length ? `${Math.min(5, (S.roster || []).length)} cards ready from your roster` : "",
              "playbook/rep": `${playKeys().length} calls ready to drill`,
              "more/assess": (S.assessments || []).length ? `${(S.assessments || []).length} grades already given` : "",
-             "past-match": (S.matches || []).length > 1 ? `${(S.matches || []).length - 1} older sheets kept` : ""}[key] || "";
+             "past-match": (S.matches || []).length > 1 ? `${(S.matches || []).length - 1} older sheets kept` : "",
+             "more/reports": (S.results || []).length ? `${(S.results || []).length} point${(S.results || []).length === 1 ? "" : "s"} scored to read` : ""}[key] || "";
   return n ? `<p class="gate__waiting"><b>Waiting for you:</b> ${esc(n)}.</p>` : "";
 }
 function upgradePanel(key){
@@ -16454,6 +16499,438 @@ function upgradePanel(key){
 }
 const GATE_TITLE = {"scout":"Scout", "playbook/cards":"Cards", "playbook/rep":"Rep", "past-match":"An older sheet"};
 
+/* ============================================================
+   Reports — the season read back as graphs, and as spreadsheets
+   ============================================================
+
+   Between events a coach wants the whole season on one screen, and his staff
+   want it in a spreadsheet. Every bar here is a count of what was logged, with
+   its sample printed beside it ("won 3 of 5"), and every chart has the same
+   numbers as text under it, because a colour is never the only way a number
+   is read. Nothing is modelled. Each list exports as a CSV file that opens in
+   Excel, Numbers or Google Sheets — the file is built from the season at the
+   moment of the tap, never from what was drawn.
+
+   His own sheets only: a game he watched is somebody else's film, and it is
+   read on Opponent, where it is theirs. Bunker counts are this field's only,
+   because a bunker id names a different bunker on every other field. */
+const REPORT_TABS = [["team","Your team"], ["opp","Opponent"], ["player","Player"], ["season","Season"]];
+function repTab(){ return REPORT_TABS.some(t => t[0] === S.repTab) ? S.repTab : "team"; }
+// The sheets a report reads, oldest first: his own, with an opponent, on this
+// event unless he asked for every event.
+function repSheets(){
+  return drawOnce("repSheets|" + (S.repAll ? 1 : 0) + "|" + S.layoutKey, () => (S.matches || [])
+    .filter(m => m && typeof m === "object" && !m.watch && m.vs && (S.repAll || !m.layout || m.layout === S.layoutKey))
+    .sort((a, b) => (a.at || 0) - (b.at || 0)));
+}
+function repIds(){ return drawOnce("repIds|" + (S.repAll ? 1 : 0) + "|" + S.layoutKey, () => new Set(repSheets().map(m => m.id))); }
+const repOn = r => !!(r && typeof r === "object" && repIds().has(r.m));
+function repWon(mid, pt){ return wonAt(mid, pt); }
+// A bunker named the way the coach names it, for a frame id on this field.
+function repBunker(id){
+  const shown = shownBunker(id), b = curLayout().bunkers.find(x => x.id === shown);
+  return b ? cardName(b) : String(shown || "");
+}
+function repTeamBunker(id, team){
+  const shown = shownTeamBunker(id, team), b = curLayout().bunkers.find(x => x.id === shown);
+  return b ? cardName(b) : String(shown || "");
+}
+const repOf = (a, n) => `${a} of ${n}`;
+const repTally = (list, f) => Object.entries(list.reduce((a, x) => { const k = f(x); if(k) a[k] = (a[k] || 0) + 1; return a; }, {}))
+  .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+
+/* ---------- what is counted ---------- */
+
+// The record: every sheet with a point scored on it, and how it ended.
+function repRecord(sheets){
+  const rows = sheets.map(m => ({m, sc: scoreOf(m.id), over: matchOver(m.id)})).filter(x => x.sc.us + x.sc.them);
+  return {rows, won: rows.filter(x => x.over === "us").length, lost: rows.filter(x => x.over === "them").length,
+          tie: rows.filter(x => x.over === "tie").length, open: rows.filter(x => !x.over).length,
+          pf: rows.reduce((n, x) => n + x.sc.us, 0), pa: rows.reduce((n, x) => n + x.sc.them, 0)};
+}
+// His calls, joined with who won the point.
+function repCalls(test){
+  const by = {};
+  (S.calls || []).filter(c => repOn(c) && c.script && (!test || test(c))).forEach(c => {
+    const t = by[c.script] = by[c.script] || {key: c.script, n: 0, won: 0, lost: 0};
+    t.n++; const w = repWon(c.m, c.pt); if(w === "us") t.won++; else if(w === "them") t.lost++;
+  });
+  return Object.values(by).sort((a, b) => b.n - a.n || b.won - a.won || callName(a.key).localeCompare(callName(b.key)));
+}
+// One side's men: breaks charted, made it, shot on the break, out, first out,
+// and for his own men the grade he gave. Named men only.
+function repMen(side, test){
+  const rows = (S.breakouts || []).filter(r => repOn(r) && r.side === side && r.player && (!test || test(r)));
+  const outs = (S.tally || []).filter(o => repOn(o) && o.side === side && o.name && (!test || test(o)));
+  const firstOf = new Map();
+  outs.forEach(o => { const k = o.m + "|" + o.pt, f = firstOf.get(k); if(!f || (o.at || 0) < (f.at || 0)) firstOf.set(k, o); });
+  const order = side === "us" ? (S.roster || []).map(p => p.name) : [];
+  const names = [...new Set([...rows.map(r => r.player), ...outs.map(o => o.name)])]
+    .sort((a, b) => ((order.indexOf(a) + 1) || 999) - ((order.indexOf(b) + 1) || 999) || String(a).localeCompare(String(b)));
+  return names.map(name => {
+    const mine = rows.filter(r => r.player === name), out = outs.filter(o => o.name === name);
+    const grades = side === "us" ? (S.assessments || []).filter(a => repOn(a) && a.who === name && a.score > 0) : [];
+    return {name, n: mine.length, made: mine.filter(r => r.alive === true).length, shot: mine.filter(r => r.alive === false).length,
+            out: out.length, first: out.filter(o => firstOf.get(o.m + "|" + o.pt) === o).length,
+            grade: grades.length ? Math.round(grades.reduce((s, a) => s + a.score, 0) / grades.length * 10) / 10 : 0, graded: grades.length};
+  });
+}
+// Where his points come from on this field, by the bunker a man broke to.
+function repBunkers(){
+  return (S.breakouts || []).filter(r => repOn(r) && r.side === "us" && r.bunker && r.layout === S.layoutKey).reduce((by, r) => {
+    const k = frameId(r.bunker, r.m, r.pt), t = by[k] = by[k] || {id: k, n: 0, made: 0, shot: 0, won: 0, lost: 0};
+    t.n++; if(r.alive === true) t.made++; else if(r.alive === false) t.shot++;
+    const w = repWon(r.m, r.pt); if(w === "us") t.won++; else if(w === "them") t.lost++;
+    return by;
+  }, {});
+}
+function repBunkerRows(){
+  return Object.values(repBunkers()).map(t => ({...t, net: t.won - t.lost, name: repBunker(t.id)}))
+    .sort((a, b) => b.net - a.net || b.n - a.n || a.name.localeCompare(b.name));
+}
+// The teams there is anything on: a sheet against them or a book on them.
+function repTeams(){
+  const names = new Map();
+  const add = n => { const k = foldName(n); if(k && !names.has(k)) names.set(k, n); };
+  repSheets().forEach(m => add(m.vs));
+  Object.entries(S.scout || {}).forEach(([t, p]) => { if(p && (((p.breaks || []).length) || ((p.players || []).length))) add(t); });
+  return [...names.values()].sort((a, b) => a.localeCompare(b));
+}
+function repTeamPicked(){
+  const list = repTeams(), want = S.repTeam || (pitNamed("right") ? S.right.name : "");
+  return list.find(t => foldName(t) === foldName(want)) || list[0] || "";
+}
+// Their named calls, with the score state they ran each one in. On a watched
+// game they may have been the home side, and the score is read from theirs.
+function repTheirCalls(team){
+  const p = (S.scout || {})[team] || Object.entries(S.scout || {}).find(([t]) => foldName(t) === foldName(team))?.[1] || {};
+  const rows = (p.breaks || []).filter(b => b && b.script && (S.repAll || !b.layout || b.layout === S.layoutKey));
+  const by = {};
+  rows.forEach(b => {
+    const t = by[b.script] = by[b.script] || {key: b.script, n: 0, ahead: 0, level: 0, behind: 0, first: 0, won: 0, decided: 0};
+    t.n++;
+    const m = b.m && matchById(b.m); if(!m || b.m !== m.id) return;
+    const theirs = m.watch && foldName(m.home || "") === foldName(team) ? "us" : "them", mine = theirs === "us" ? "them" : "us";
+    if(b.pt === 1) t.first++;
+    const sc = scoreBefore(m.id, b.pt), lead = sc[theirs] - sc[mine];
+    if(lead > 0) t.ahead++; else if(lead < 0) t.behind++; else t.level++;
+    const w = repWon(m.id, b.pt); if(w){ t.decided++; if(w === theirs) t.won++; }
+  });
+  return Object.values(by).sort((a, b) => b.n - a.n || callName(a.key).localeCompare(callName(b.key)));
+}
+// Where they plant on this field: every man of every five logged.
+function repPlants(team){
+  const p = (S.scout || {})[team] || {};
+  const at = {};
+  let fives = 0;
+  (p.breaks || []).filter(b => b && Array.isArray(b.plants) && b.plants.length && b.layout === S.layoutKey).forEach(b => {
+    fives++;
+    b.plants.forEach(id => { const k = b.m && matchById(b.m) ? teamFrame(id, b.m, b.pt, team) : id; at[k] = (at[k] || 0) + 1; });
+  });
+  return {fives, rows: Object.entries(at).map(([id, n]) => ({id, n, name: repTeamBunker(id, team)})).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))};
+}
+// Who of theirs has shot your men, and where on this field.
+function repShooters(team){
+  const outs = (S.tally || []).filter(o => repOn(o) && o.side === "us" && foldName(o.vs) === foldName(team));
+  return {n: outs.length, who: repTally(outs, o => o.by), where: repTally(outs.filter(o => o.shotAt && o.layout === S.layoutKey), o => frameId(o.shotAt, o.m, o.pt))
+    .map(([id, n]) => [repBunker(id), n])};
+}
+// One of his men across the season, sheet by sheet.
+function repManSheets(name){
+  return repSheets().map(m => {
+    const rows = (S.breakouts || []).filter(r => r && r.m === m.id && r.side === "us" && r.player === name);
+    const outs = (S.tally || []).filter(o => o && o.m === m.id && o.side === "us" && o.name === name);
+    const grades = (S.assessments || []).filter(a => a && a.m === m.id && a.who === name && a.score > 0);
+    return {m, n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
+            out: outs.length, grade: grades.length ? Math.round(grades.reduce((s, a) => s + a.score, 0) / grades.length * 10) / 10 : 0, graded: grades.length};
+  }).filter(x => x.n || x.out || x.graded);
+}
+function repManBunkers(name){
+  const rows = (S.breakouts || []).filter(r => repOn(r) && r.side === "us" && r.player === name && r.layout === S.layoutKey);
+  return {to: repTally(rows.filter(r => r.bunker), r => frameId(r.bunker, r.m, r.pt)).map(([id, n]) => [repBunker(id), n]),
+          from: repTally(rows.filter(r => r.alive === false && r.shotFrom), r => frameId(r.shotFrom, r.m, r.pt)).map(([id, n]) => [repBunker(id), n]), n: rows.length};
+}
+
+/* ---------- drawing ---------- */
+
+// Horizontal bars in HTML, so the type stays the size of the rest of the
+// screen on any phone. A bar is segments of one track, scaled to the largest
+// total in the chart; the count is printed beside it in words.
+function repBars(title, rows, legend){
+  if(!rows.length) return "";
+  const max = Math.max(1, ...rows.map(r => r.segs.reduce((n, s) => n + s.n, 0)));
+  const say = rows.map(r => `${r.label}: ${r.text}`).join("; ");
+  return `<figure class="rchart" role="img" aria-label="${esc(title + ". " + say)}">
+    ${legend ? `<div class="rlegend" aria-hidden="true">${legend.map(([cls, word]) => `<span><i class="rkey rkey--${cls}"></i>${esc(word)}</span>`).join("")}</div>` : ""}
+    ${rows.map(r => { const total = r.segs.reduce((n, s) => n + s.n, 0);
+      return `<div class="rbar" title="${esc(r.label + " · " + r.text)}" aria-hidden="true">
+        <span class="rbar__k">${esc(r.label)}</span><span class="rbar__v">${esc(r.text)}</span>
+        <span class="rbar__track">${r.segs.filter(s => s.n > 0).map(s => `<span class="rbar__seg rbar__seg--${s.cls}" style="width:${(s.n / max * 100).toFixed(2)}%"></span>`).join("")}${total ? "" : `<span class="rbar__none">none</span>`}</span>
+      </div>`; }).join("")}
+  </figure>`;
+}
+// Diverging bars: a bunker's net points, won to the right in red, lost to
+// the left in blue, about one centre line.
+function repNet(title, rows){
+  if(!rows.length) return "";
+  const max = Math.max(1, ...rows.map(r => Math.abs(r.net)));
+  return `<figure class="rchart" role="img" aria-label="${esc(title + ". " + rows.map(r => `${r.name}: net ${r.net > 0 ? "+" : ""}${r.net}`).join("; "))}">
+    <div class="rlegend" aria-hidden="true"><span><i class="rkey rkey--them"></i>more points lost</span><span><i class="rkey rkey--us"></i>more points won</span></div>
+    ${rows.map(r => `<div class="rbar" title="${esc(r.name + " · net " + r.net)}" aria-hidden="true">
+      <span class="rbar__k">${esc(r.name)}</span><span class="rbar__v">${r.net > 0 ? "+" : ""}${r.net} · won ${r.won}, lost ${r.lost}</span>
+      <span class="rdiv"><span class="rdiv__half rdiv__half--neg">${r.net < 0 ? `<span class="rbar__seg rbar__seg--them" style="width:${(-r.net / max * 100).toFixed(2)}%"></span>` : ""}</span><span class="rdiv__half">${r.net > 0 ? `<span class="rbar__seg rbar__seg--us" style="width:${(r.net / max * 100).toFixed(2)}%"></span>` : ""}</span></span>
+    </div>`).join("")}
+  </figure>`;
+}
+// A line over the sheets, oldest to newest, about a zero line. The line is
+// the only thing drawn in SVG, stretched to the box; the numbers are text.
+function repLine(title, points, labels){
+  if(points.length < 2) return "";
+  const lo = Math.min(0, ...points), hi = Math.max(0, ...points), span = Math.max(1, hi - lo);
+  const x = i => (i / (points.length - 1) * 100).toFixed(2), y = v => ((hi - v) / span * 40).toFixed(2);
+  return `<figure class="rchart" role="img" aria-label="${esc(title + ". " + points.map((v, i) => `${labels[i]}: ${v > 0 ? "+" : ""}${v}`).join("; "))}">
+    <div class="rline" aria-hidden="true">
+      <span class="rline__hi">${hi > 0 ? "+" : ""}${hi}</span>
+      <svg viewBox="0 0 100 40" preserveAspectRatio="none" class="rline__svg">
+        <line x1="0" x2="100" y1="${y(0)}" y2="${y(0)}" class="rline__zero"/>
+        <polyline points="${points.map((v, i) => x(i) + "," + y(v)).join(" ")}" class="rline__path"/>
+      </svg>
+      <span class="rline__lo">${lo > 0 ? "+" : ""}${lo}</span>
+    </div>
+    <div class="rline__ends" aria-hidden="true"><span>${esc(labels[0])}</span><span>${esc(labels[labels.length - 1])}</span></div>
+  </figure>`;
+}
+// The same numbers as rows of text, the way every list in the app reads.
+function repList(rows){
+  return rows.length ? `<div class="kv">${rows.map(([k, v]) => `<div class="kv__row"><span class="kv__k">${esc(k)}</span><span class="kv__v">${esc(v)}</span></div>`).join("")}</div>` : "";
+}
+function repCsvBtn(key, label){
+  return `<button class="btn btn--quiet btn--block" onclick="exportReport(${jsq(key)})">${esc(label || "Spreadsheet (CSV)")}</button>`;
+}
+
+/* ---------- the screen ---------- */
+
+function reportsPage(){
+  const tab = repTab(), sheets = repSheets();
+  const head = `<div class="seg seg--wrap" role="tablist" aria-label="Reports">${REPORT_TABS.map(([k, w]) =>
+      `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" onclick="set({repTab:'${k}'})">${w}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Which sheets" style="margin-top:var(--s2)">
+      <button class="${S.repAll ? "" : "on"}" aria-pressed="${!S.repAll}" onclick="set({repAll:false})">${esc(curLayout().name)}</button>
+      <button class="${S.repAll ? "on" : ""}" aria-pressed="${!!S.repAll}" onclick="set({repAll:true})">Every event</button>
+    </div>`;
+  const body = tab === "opp" ? repOppPage() : tab === "player" ? repPlayerPage() : tab === "season" ? repSeasonPage(sheets) : repTeamPage(sheets);
+  return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}`,
+      `${sheets.length} sheet${sheets.length === 1 ? "" : "s"} · ${S.repAll ? "every event" : curLayout().name}`)
+    + body;
+}
+function repEmpty(what){
+  return `<div class="empty">${esc(what)}
+    <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({tab:'tally'})">Go to Tally</button></div>`;
+}
+function repTeamPage(sheets){
+  const rec = repRecord(sheets), calls = repCalls(), men = repMen("us"), bunkers = repBunkerRows();
+  if(!rec.rows.length && !calls.length && !men.length) return sec("Your team", repEmpty("Nothing logged on your sheets here yet. Score points, log the call and chart the break on Tally, and this fills in."));
+  const out = [];
+  out.push(sec("Your record", `<div class="facts">
+      <span class="fact"><b>${rec.won}–${rec.lost}${rec.tie ? "–" + rec.tie : ""}</b><span>Won–lost${rec.tie ? "–tied" : ""}</span></span>
+      <span class="fact"><b>${rec.pf}–${rec.pa}</b><span>Points for–against</span></span>
+      ${rec.open ? `<span class="fact"><b>${rec.open}</b><span>Not finished</span></span>` : ""}
+    </div>`, `${rec.rows.length} sheet${rec.rows.length === 1 ? "" : "s"} scored`));
+  out.push(sec("Your calls", calls.length
+    ? repBars("Points won and lost on each of your calls", calls.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
+        segs: [{n: c.won, cls: "us"}, {n: c.lost, cls: "them"}, {n: c.n - c.won - c.lost, cls: "none"}]})), [["us", "won"], ["them", "lost"], ["none", "no result"]])
+      + repCsvBtn("calls")
+    : `<p class="note">No calls logged on these sheets. Log the call on the point sheet and each one shows what it won.</p>`, calls.length ? `${calls.reduce((n, c) => n + c.n, 0)} logged` : ""));
+  out.push(sec("Where your points come from", bunkers.length
+    ? repNet("Net points by the bunker your man broke to", bunkers.slice(0, 12))
+      + (bunkers.length > 12 ? `<p class="note">The top and bottom are in the spreadsheet with the other ${bunkers.length - 12}.</p>` : "")
+      + repCsvBtn("bunkers")
+    : `<p class="note">No breaks charted on ${esc(curLayout().name)} yet.</p>`, `${curLayout().name} only`));
+  out.push(sec("Your men", men.length
+    ? repBars("Breaks each man made, of the breaks charted", men.filter(x => x.n).map(x => ({label: x.name, text: `made it ${repOf(x.made, x.n)}${x.shot ? ` · shot ${x.shot}` : ""}`,
+        segs: [{n: x.made, cls: "us"}, {n: x.shot, cls: "them"}, {n: x.n - x.made - x.shot, cls: "none"}]})), [["us", "made it"], ["them", "shot on the break"], ["none", "not told"]])
+      + repList(men.map(x => [x.name, [x.n ? `${x.n} break${x.n === 1 ? "" : "s"}` : "", x.out ? `out ${x.out}` : "", x.first ? `first out ${x.first}` : "", x.graded ? `your grade ${x.grade} (${x.graded})` : ""].filter(Boolean).join(" · ") || "—"]))
+      + repCsvBtn("men")
+    : `<p class="note">No men charted yet.</p>`));
+  return out.join("");
+}
+function repOppPage(){
+  const teams = repTeams();
+  if(!teams.length) return sec("Opponent", repEmpty("No team has a sheet or a scouting book yet. Name who you play on Tally, or chart them on Scout."));
+  const team = repTeamPicked();
+  const pick = `<div class="fld"><label for="rep-team">Team</label><select id="rep-team" onchange="set({repTeam:this.value})">
+      ${teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
+  const vs = repSheets().filter(m => foldName(m.vs) === foldName(team)), rec = repRecord(vs);
+  const theirs = repTheirCalls(team), mine = repCalls(c => foldName(c.vs || (matchById(c.m) || {}).vs) === foldName(team));
+  const plants = repPlants(team), sh = repShooters(team), men = repMen("them", r => foldName(r.vs || (matchById(r.m) || {}).vs) === foldName(team));
+  const out = [sec("Opponent", pick + `<div class="facts">
+      <span class="fact"><b>${rec.won}–${rec.lost}${rec.tie ? "–" + rec.tie : ""}</b><span>You v them</span></span>
+      <span class="fact"><b>${rec.pf}–${rec.pa}</b><span>Points</span></span>
+      <span class="fact"><b>${theirs.reduce((n, c) => n + c.n, 0)}</b><span>Their calls logged</span></span>
+    </div>`, team)];
+  out.push(sec(`What ${team} run`, theirs.length
+    ? repBars(`Calls ${team} ran`, theirs.map(c => ({label: callName(c.key), text: `ran ${c.n}${c.decided ? ` · won ${repOf(c.won, c.decided)}` : ""}`, segs: [{n: c.n, cls: "them"}]})))
+      + repList(theirs.map(c => [callName(c.key), [`ahead ${c.ahead}`, `level ${c.level}`, `behind ${c.behind}`, c.first ? `first point ${c.first}` : ""].filter(Boolean).join(" · ")]))
+      + `<p class="aid">Ahead, level and behind are the score before the point, from their side. A call logged off a sheet counts in the total only.</p>`
+      + repCsvBtn("their-calls")
+    : `<p class="note">No calls of theirs logged${S.repAll ? "" : " on this field"}. Name their call on Scout › Breakouts.</p>`));
+  if(mine.length) out.push(sec(`Your calls against ${team}`, repBars(`Your calls against ${team}`, mine.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
+      segs: [{n: c.won, cls: "us"}, {n: c.lost, cls: "them"}, {n: c.n - c.won - c.lost, cls: "none"}]})), [["us", "won"], ["them", "lost"], ["none", "no result"]]) + repCsvBtn("calls-vs")));
+  out.push(sec("Where they plant", plants.rows.length
+    ? repBars(`Where ${team} plant`, plants.rows.slice(0, 12).map(r => ({label: r.name, text: `${r.n} of ${plants.fives} five${plants.fives === 1 ? "" : "s"}`, segs: [{n: r.n, cls: "them"}]}))) + repCsvBtn("plants")
+    : `<p class="note">No five of theirs logged on ${esc(curLayout().name)}.</p>`, `${curLayout().name} only`));
+  if(sh.n) out.push(sec("How they get you", (sh.who.length ? `<h3 class="panel__title">Who shot your men</h3>` + repBars("Who shot your men", sh.who.slice(0, 8).map(([w, n]) => ({label: w, text: `${n} of ${sh.n}`, segs: [{n, cls: "them"}]}))) : "")
+      + (sh.where.length ? `<h3 class="panel__title">Where your men went out</h3>` + repList(sh.where.slice(0, 8).map(([b, n]) => [b, `${n} ${n === 1 ? "man" : "men"}`])) : ""), `${sh.n} out${sh.n === 1 ? "" : "s"}`));
+  if(men.length) out.push(sec("Their men", repList(men.map(x => [x.name, [x.n ? `${x.n} break${x.n === 1 ? "" : "s"}` : "", x.made ? `made it ${repOf(x.made, x.n)}` : "", x.shot ? `shot ${x.shot}` : "", x.out ? `out ${x.out}` : ""].filter(Boolean).join(" · ") || "—"])) + repCsvBtn("their-men")));
+  return out.join("");
+}
+function repManPicked(){
+  const names = [...new Set([...(S.roster || []).map(p => p.name), ...repMen("us").map(x => x.name)])].filter(Boolean);
+  return {names, name: names.includes(S.repMan) ? S.repMan : names[0] || ""};
+}
+function repPlayerPage(){
+  const {names, name} = repManPicked();
+  if(!names.length) return sec("Player", `<div class="empty">No squad yet.
+    <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`);
+  const pick = `<div class="fld"><label for="rep-man">Player</label><select id="rep-man" onchange="set({repMan:this.value})">
+      ${names.map(n => `<option value="${esc(n)}"${n === name ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div>`;
+  const per = repManSheets(name), b = repManBunkers(name);
+  const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
+  const out = [sec("Player", pick + (per.length ? `<div class="facts">
+      <span class="fact"><b>${tot.n}</b><span>Breaks charted</span></span>
+      <span class="fact"><b>${repOf(tot.made, tot.n)}</b><span>Made it</span></span>
+      <span class="fact"><b>${tot.out}</b><span>Times out</span></span>
+    </div>` : `<p class="note">Nothing charted for ${esc(name)} on these sheets yet.</p>`), name)];
+  if(!per.length) return out.join("");
+  out.push(sec("Sheet by sheet", repBars(`${name}, sheet by sheet`, per.map(x => ({label: matchLabel(x.m), text: x.n ? `made it ${repOf(x.made, x.n)}${x.out ? ` · out ${x.out}` : ""}` : `out ${x.out}`,
+      segs: [{n: x.made, cls: "us"}, {n: x.shot, cls: "them"}, {n: x.n - x.made - x.shot, cls: "none"}]})), [["us", "made it"], ["them", "shot on the break"], ["none", "not told"]])
+    + repList(per.filter(x => x.graded).map(x => [matchLabel(x.m), `your grade ${x.grade} (${x.graded})`])) + repCsvBtn("player")));
+  if(b.n) out.push(sec("Where he breaks", (b.to.length ? repBars(`Where ${name} breaks to`, b.to.slice(0, 8).map(([k, n]) => ({label: k, text: `${n} of ${b.n}`, segs: [{n, cls: "us"}]}))) : "")
+    + (b.from.length ? `<h3 class="panel__title">Shot on the break from</h3>` + repList(b.from.slice(0, 6).map(([k, n]) => [k, `${n}`])) : ""), `${curLayout().name} only`));
+  out.push(`<button class="btn btn--block" onclick="shareManReport()">Share ${esc(name)}'s report</button>`);
+  return out.join("");
+}
+function repSeasonPage(sheets){
+  const rec = repRecord(sheets);
+  if(!rec.rows.length) return sec("Season", repEmpty("No points scored on your sheets here yet. Tap who won each point on Tally and the season builds itself."));
+  let run = 0;
+  const diff = rec.rows.map(x => (run += x.sc.us - x.sc.them));
+  const res = (S.results || []).filter(repOn), reads = res.filter(r => r.read);
+  const word = x => x.over === "tie" ? "tie" : x.over === "us" ? "won" : x.over === "them" ? "lost" : "open";
+  return [sec("Season", `<div class="facts">
+      <span class="fact"><b>${rec.won}–${rec.lost}${rec.tie ? "–" + rec.tie : ""}</b><span>Won–lost${rec.tie ? "–tied" : ""}</span></span>
+      <span class="fact"><b>${rec.pf}–${rec.pa}</b><span>Points</span></span>
+      ${reads.length ? `<span class="fact"><b>${repOf(reads.filter(r => r.read === "right").length, reads.length)}</b><span>Right read</span></span>` : ""}
+    </div>`, `${rec.rows.length} sheet${rec.rows.length === 1 ? "" : "s"}`),
+    sec("Points by sheet", repBars("Points won and lost on each sheet, oldest first", rec.rows.map(x => ({label: matchLabel(x.m), text: `${x.sc.us}–${x.sc.them} · ${word(x)}`,
+        segs: [{n: x.sc.us, cls: "us"}, {n: x.sc.them, cls: "them"}]})), [["us", "points won"], ["them", "points lost"]])),
+    rec.rows.length > 1 ? sec("Running point difference", repLine("Points for minus points against, added up sheet by sheet", diff, rec.rows.map(x => dayOf(x.m.at)))
+      + `<p class="aid">Above the line you have scored more than you have given up, counting every sheet so far.</p>`) : "",
+    sec("Spreadsheets", `<p class="note">Each one opens in Excel, Numbers or Google Sheets. They are built from what is logged now.</p>
+      <div class="btnrow" style="flex-direction:column">${repCsvBtn("sheets", "Every sheet")}${repCsvBtn("points", "Every point")}${repCsvBtn("breakouts", "Every man charted")}</div>`)].join("");
+}
+
+/* ---------- spreadsheets ---------- */
+
+// One cell. A typed name that starts like a formula is written as text, or a
+// spreadsheet would run it.
+function csvCell(v){
+  if(v === null || v === undefined) return "";
+  if(typeof v === "number") return Number.isFinite(v) ? String(v) : "";
+  let s = String(v);
+  if(/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function csvText(head, rows){ return [head, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n"; }
+const repDate = t => t ? new Date(t).toISOString().slice(0, 10) : "";
+const repField = m => (LAYOUTS[m && m.layout] || {}).name || "";
+const REPORT_CSV = {
+  calls: () => ["your-calls", csvText(["Call", "Called", "Won", "Lost", "No result"], repCalls().map(c => [callName(c.key), c.n, c.won, c.lost, c.n - c.won - c.lost]))],
+  bunkers: () => ["where-points-come-from", csvText(["Bunker", "Breaks", "Made it", "Shot on the break", "Points won", "Points lost", "Net"],
+    repBunkerRows().map(r => [r.name, r.n, r.made, r.shot, r.won, r.lost, r.net]))],
+  men: () => ["your-men", csvText(["Player", "Breaks charted", "Made it", "Shot on the break", "Times out", "First out", "Average grade", "Grades"],
+    repMen("us").map(x => [x.name, x.n, x.made, x.shot, x.out, x.first, x.graded ? x.grade : "", x.graded]))],
+  "their-calls": () => { const t = repTeamPicked(); return ["calls-" + t, csvText(["Team", "Call", "Ran", "Ahead", "Level", "Behind", "First point", "Won", "Decided"],
+    repTheirCalls(t).map(c => [t, callName(c.key), c.n, c.ahead, c.level, c.behind, c.first, c.won, c.decided]))]; },
+  "calls-vs": () => { const t = repTeamPicked(); return ["your-calls-vs-" + t, csvText(["Against", "Your call", "Called", "Won", "Lost"],
+    repCalls(c => foldName(c.vs || (matchById(c.m) || {}).vs) === foldName(t)).map(c => [t, callName(c.key), c.n, c.won, c.lost]))]; },
+  plants: () => { const t = repTeamPicked(), p = repPlants(t); return ["plants-" + t, csvText(["Team", "Bunker", "Men planted", "Fives logged"], p.rows.map(r => [t, r.name, r.n, p.fives]))]; },
+  "their-men": () => { const t = repTeamPicked(); return ["men-" + t, csvText(["Team", "Player", "Breaks charted", "Made it", "Shot on the break", "Times out"],
+    repMen("them", r => foldName(r.vs || (matchById(r.m) || {}).vs) === foldName(t)).map(x => [t, x.name, x.n, x.made, x.shot, x.out]))]; },
+  player: () => { const n = repManPicked().name; return ["player-" + n, csvText(["Player", "Date", "Sheet", "Field", "Breaks charted", "Made it", "Shot on the break", "Times out", "Average grade"],
+    repManSheets(n).map(x => [n, repDate(x.m.at), matchLabel(x.m), repField(x.m), x.n, x.made, x.shot, x.out, x.graded ? x.grade : ""]))]; },
+  sheets: () => ["sheets", csvText(["Date", "Opponent", "Sheet name", "Field", "Points for", "Points against", "Result", "Calls logged", "Men charted"],
+    repSheets().map(m => { const sc = scoreOf(m.id), o = matchOver(m.id);
+      return [repDate(m.at), m.vs, m.note || "", repField(m), sc.us, sc.them, o === "us" ? "won" : o === "them" ? "lost" : o === "tie" ? "tie" : sc.us + sc.them ? "open" : "not scored",
+              (S.calls || []).filter(c => c && c.m === m.id).length, (S.breakouts || []).filter(r => r && r.m === m.id).length]; }))],
+  points: () => { const rows = [];
+    repSheets().forEach(m => {
+      const pts = new Set();
+      [S.results, S.calls, S.tally, S.breakouts, S.pens, S.timeouts].forEach(l => (l || []).forEach(r => { if(r && r.m === m.id && r.pt > 0) pts.add(r.pt); }));
+      const theirs = ((S.scout || {})[m.vs] || {}).breaks || [];
+      [...pts].sort((a, b) => a - b).forEach(pt => {
+        const sc = scoreBefore(m.id, pt), res = (S.results || []).find(r => r && r.m === m.id && r.pt === pt) || {};
+        const call = (S.calls || []).find(c => c && c.m === m.id && c.pt === pt), tb = theirs.find(b => b && b.m === m.id && b.pt === pt);
+        const pens = (S.pens || []).filter(p => p && p.m === m.id && p.pt === pt);
+        const outs = (S.tally || []).filter(o => o && o.m === m.id && o.pt === pt);
+        rows.push([repDate(m.at), m.vs, repField(m), pt, sc.us, sc.them, call ? callName(call.script) : "", tb && tb.script ? callName(tb.script) : "",
+          res.won === "us" ? "us" : res.won === "them" ? m.vs : "", res.read || "",
+          pens.filter(p => p.side === "us").reduce((n, p) => n + (p.cost || 0), 0), pens.filter(p => p.side === "them").reduce((n, p) => n + (p.cost || 0), 0),
+          (S.timeouts || []).filter(t => t && t.m === m.id && t.pt === pt).map(t => t.side === "us" ? "us" : m.vs).join(" "),
+          outs.filter(o => o.side === "us").length, outs.filter(o => o.side === "them").length,
+          (S.breakouts || []).filter(r => r && r.m === m.id && r.pt === pt).length]);
+      });
+    });
+    return ["every-point", csvText(["Date", "Opponent", "Field", "Point", "Score before (us)", "Score before (them)", "Your call", "Their call", "Won by", "Read",
+      "Penalty men (us)", "Penalty men (them)", "Timeout", "Outs (us)", "Outs (them)", "Men charted"], rows)]; },
+  breakouts: () => { const rows = [];
+    repSheets().forEach(m => { const lay = LAYOUTS[m.layout] || curLayout(), nm = id => { if(!id) return ""; const b = lay.bunkers.find(x => x.id === id); return b ? (b.id || b.n) : id; };
+      (S.breakouts || []).filter(r => r && r.m === m.id).sort((a, b) => a.pt - b.pt || (a.at || 0) - (b.at || 0)).forEach(r =>
+        rows.push([repDate(m.at), m.vs, repField(m), r.pt, r.side === "us" ? "us" : m.vs, r.player || "", nm(r.bunker),
+          r.alive === true ? "made it" : r.alive === false ? "shot on the break" : "", nm(r.shotFrom), r.entry === "battle" ? "battling in" : r.entry === "clean" ? "no pressure" : "",
+          r.delayed ? "yes" : "", nm(r.movedTo)])); });
+    return ["every-man-charted", csvText(["Date", "Opponent", "Field", "Point", "Side", "Player", "Broke to", "Result", "Shot from", "Entry", "Delayed", "Moved to"], rows)]; },
+};
+window.exportReport = async key => {
+  const make = REPORT_CSV[key]; if(!make) return;
+  const [stem, text] = make();
+  const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${new Date().toISOString().slice(0, 10)}.csv`;
+  const lines = text.split("\r\n").filter(Boolean).length - 1;
+  if(lines < 1){ flash("Nothing in that list yet, so there is no spreadsheet to make."); return; }
+  if(typeof window.gridlockExportTable === "function"){
+    try {
+      const r = await window.gridlockExportTable(text, name);
+      if(r && r.status === "shared"){ flash(`Spreadsheet sent · ${lines} row${lines === 1 ? "" : "s"}. It opens in Excel, Numbers or Google Sheets.`); return; }
+      if(r && r.status === "cancelled"){ flash("Share cancelled. Nothing was sent."); return; }
+    } catch(e){}
+    handOff("Spreadsheet (CSV)", text); return;
+  }
+  let saved = false;
+  try {
+    const a = document.createElement("a");
+    // The byte-order mark tells Excel the file is UTF-8, so a name with an
+    // accent in it is not garbled.
+    a.href = URL.createObjectURL(new Blob(["﻿" + text], {type: "text/csv;charset=utf-8"}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    saved = true;
+  } catch(e){}
+  if(saved) flash(`Saved ${name} · ${lines} row${lines === 1 ? "" : "s"}. Look in your downloads; it opens in Excel, Numbers or Google Sheets.`);
+  else handOff("Spreadsheet (CSV)", text);
+};
+// One man's report as text, to hand him.
+function manReportText(name){
+  const per = repManSheets(name), b = repManBunkers(name);
+  const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
+  const L = [`${name} · ${S.repAll ? "every event" : curLayout().name}`, `${tot.n} breaks charted · made it ${repOf(tot.made, tot.n)} · shot on the break ${tot.shot} · out ${tot.out}`];
+  if(b.to.length) L.push(`Breaks to: ${b.to.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
+  if(b.from.length) L.push(`Shot on the break from: ${b.from.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
+  if(per.length){ L.push("", "Sheet by sheet:"); per.forEach(x => L.push(`- ${matchLabel(x.m)}: ${x.n ? `made it ${repOf(x.made, x.n)}` : "no breaks charted"}${x.out ? `, out ${x.out}` : ""}`)); }
+  L.push("", "Counted from what was logged on the sideline.");
+  return L.join("\n");
+}
+window.shareManReport = () => { const n = repManPicked().name; if(n) handOff(`${n}'s report`, manReportText(n)); };
+
 const MORE_GROUPS=[
   ["The field",[
     ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
@@ -16470,6 +16947,8 @@ const MORE_GROUPS=[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
     ["matches","Matches","Every sheet you have kept"]]],
+  ["Reading the season",[
+    ["reports","Reports","Graphs and spreadsheets from what you logged"]]],
   ["App",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
@@ -16505,6 +16984,7 @@ function moreBody(k){
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
+  if(k==="reports") return reportsPage();
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you

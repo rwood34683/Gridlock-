@@ -63,6 +63,32 @@
       }).then(function (result) { exportPending = null; return result; });
       return exportPending;
     };
+    /* A spreadsheet from Reports: the same share sheet, as a .csv the coach
+       opens in Excel, Numbers or Google Sheets. The byte-order mark tells
+       Excel the file is UTF-8. */
+    var tablePending = null;
+    window.gridlockExportTable = function (text, filename) {
+      if (tablePending) return tablePending;
+      tablePending = Promise.resolve().then(function () {
+        if (!P.Filesystem || !P.Share) throw new Error("File sharing is unavailable in this app build.");
+        if (typeof text !== "string" || !text.length) throw new Error("The spreadsheet is empty.");
+        var name = String(filename || "Gridlock-report.csv").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/^\.+/, "").slice(0, 120);
+        if (!name) name = "Gridlock-report.csv";
+        if (!/\.csv$/i.test(name)) name += ".csv";
+        var file = "gridlock-exports/" + name;
+        return P.Filesystem.writeFile({ path: file, data: "\ufeff" + text, directory: "CACHE", encoding: "utf8", recursive: true }).then(function (written) {
+          if (written && written.uri) return written;
+          return P.Filesystem.getUri({ path: file, directory: "CACHE" });
+        }).then(function (written) {
+          if (!written || !/^file:\/\//.test(written.uri || "")) throw new Error("The spreadsheet file could not be located.");
+          return P.Share.share({ title: "Gridlock report", files: [written.uri], dialogTitle: "Save or share the spreadsheet" });
+        }).then(function () { return { status: "shared" }; });
+      }).catch(function (error) {
+        if (error && (error.name === "AbortError" || /cancel/i.test(error.message || ""))) return { status: "cancelled" };
+        return { status: "failed", message: error && error.message ? error.message : "The spreadsheet could not be shared." };
+      }).then(function (result) { tablePending = null; return result; });
+      return tablePending;
+    };
   }
 
   /* The durable copy of the season.
