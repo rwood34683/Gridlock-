@@ -1,0 +1,113 @@
+"use strict";
+/* The review of 6 Nov 2026: each check is a fault a reader reproduced in a
+   browser, and the speed of a full season on a phone. */
+const assert = require("node:assert/strict"), path = require("node:path"), vm = require("node:vm"), fs = require("node:fs");
+const { chromium } = require("playwright-core"), { launchOptions } = require("../scripts/browser");
+const { createServer } = require("../scripts/serve");
+const SEED = require("../scripts/seed.js");
+(async () => {
+  const server = createServer({ root: path.resolve(__dirname, "../web") });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  const url = `http://127.0.0.1:${server.address().port}/`, browser = await chromium.launch(launchOptions());
+  let failed = 0, passed = 0;
+  async function check(name, fn, opts = {}) {
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, serviceWorkers: "block" });
+    const p = await c.newPage(), errors = [];
+    p.on("pageerror", e => errors.push(e.message)); p.on("dialog", d => d.accept());
+    try {
+      await p.goto(url);
+      await p.evaluate(s => { localStorage.clear(); localStorage.setItem("gridlock.coach.v2", JSON.stringify(s)); }, { ...SEED, ...(opts.seed || {}) });
+      await p.goto(url); await p.waitForFunction(() => typeof S === "object");
+      await fn(p);
+      assert.deepEqual(errors.filter(e => !opts.allowErrors), []);
+      passed++; console.log("PASS " + name);
+    } catch (e) { failed++; console.error("FAIL " + name + ": " + e.message); }
+    finally { await c.close(); }
+  }
+  const root = p => p.evaluate(() => document.getElementById("root").innerText);
+  try {
+    await check("Back to fix a scored point leaves the live point's men where they were charted", async p => {
+      const got = await p.evaluate(() => {
+        set({ tab: "tally" }); const b = curLayout().bunkers;
+        placeAt(b[40]); placeAt(b[41]);
+        const before = S.breakouts.filter(r => r.m === S.matchId && r.pt === 4).length;
+        backPoint();
+        return { before, on4: S.breakouts.filter(r => r.m === S.matchId && r.pt === 4).length, on3: S.breakouts.filter(r => r.m === S.matchId && r.pt === 3).length, point: S.point };
+      });
+      assert.equal(got.before, 2); assert.equal(got.on4, 2); assert.equal(got.on3, 0); assert.equal(got.point, 3);
+      assert.match(await root(p), /stay on point 4/);
+    });
+    await check("Next point by mistake and Back still carry the men, and their five on Scout moves with them", async p => {
+      const got = await p.evaluate(() => {
+        set({ tab: "tally" }); nextPoint();          // point 5, nobody scored point 4
+        const b = curLayout().bunkers, far = b.filter(x => x.x > 100);
+        S.tallyPlace = "them"; placeAt(far[0]); placeAt(far[1]);
+        backPoint();
+        const brk = (S.scout.Rejects.breaks || []).filter(x => x.m === S.matchId);
+        return { on4: S.breakouts.filter(r => r.m === S.matchId && r.pt === 4).length, five4: brk.some(x => x.pt === 4 && x.tallied), five5: brk.some(x => x.pt === 5 && x.tallied) };
+      });
+      assert.equal(got.on4, 2); assert.ok(got.five4, "their five is on point 4"); assert.ok(!got.five5, "and not left on point 5");
+    });
+    await check("a double tap on Undo in the out log takes off one out, not two", async p => {
+      await p.evaluate(() => set({ tab: "tally", tallyAllOuts: true }));
+      const n = await p.evaluate(() => S.tally.filter(o => o.m === S.matchId).length);
+      const html = await p.evaluate(() => [...document.querySelectorAll("#root button")].filter(b => /undoOut\(/.test(b.getAttribute("onclick") || "")).map(b => b.getAttribute("onclick"))[0]);
+      assert.ok(html, "an Undo in the log");
+      await p.evaluate(h => { (0, eval)(h); (0, eval)(h); }, html);
+      assert.equal(await p.evaluate(() => S.tally.filter(o => o.m === S.matchId).length), n - 1);
+    });
+    await check("Undo on self-scout takes the call it is beside, once", async p => {
+      await p.evaluate(() => set({ tab: "playbook" }));
+      const n = await p.evaluate(() => S.calls.length);
+      const on = await p.evaluate(() => [...document.querySelectorAll("#root button")].map(b => b.getAttribute("onclick") || "").find(h => /unlogCall\(/.test(h)));
+      assert.ok(on, "an Undo on self-scout");
+      await p.evaluate(h => { (0, eval)(h); (0, eval)(h); }, on);
+      assert.equal(await p.evaluate(() => S.calls.length), n - 1);
+      await p.evaluate(() => unlogCall("no|such|call"));
+      assert.equal(await p.evaluate(() => S.calls.length), n - 1, "a stale button takes nothing");
+    });
+    await check("the review counts their call only on points that were scored, and names bunkers apart", async p => {
+      const t = await p.evaluate(() => {
+        S.scout.Rejects.breaks = [{ m: "shot-m1", pt: 4, script: "blitz", layout: "lso", at: 1 }];
+        const md = curLayout().bunkers.filter(b => b.n === "MD").slice(0, 2);
+        S.tally.push({ m: "shot-m1", pt: 1, side: "us", name: "Okafor", shotAt: md[0].id, layout: "lso", at: 1 },
+                     { m: "shot-m1", pt: 2, side: "us", name: "Vance", shotAt: md[1].id, layout: "lso", at: 2 });
+        save(S); return reviewText("shot-m1");
+      });
+      assert.match(t, /Blitz: ran 1\n|Blitz: ran 1$/m); assert.doesNotMatch(t, /Blitz: ran 1, won 0 of 1/);
+      const lost = (t.match(/Where we lost men: (.*)/) || [])[1] || "";
+      assert.ok(lost && !/MD 1, MD 1|MD 2/.test(lost), "two MD bunkers are not one name: " + lost);
+    });
+    await check("a match state from a copy is printed as text, never run", async p => {
+      await p.evaluate(() => { window.__ran = 0; S.matchState = '<img src=x onerror="window.__ran=1">'; save(S); set({ tab: "scout", scoutTab: "counter" }); });
+      await p.waitForTimeout(100);
+      assert.equal(await p.evaluate(() => window.__ran), 0);
+    });
+    await check("Replace keeps this phone's store plan", async p => {
+      const plan = await p.evaluate(() => {
+        S.billing = { plan: "team", exp: 0, source: "store", at: Date.now() };
+        const copy = JSON.stringify({ format: COPY_FORMAT, v: COPY_VERSION, scope: "all", at: new Date().toISOString(), app: "Gridlock Coach", data: { roster: [{ name: "Solo", num: 1 }] } });
+        window.loadCopy("replace", copy);
+        return (S.billing || {}).plan;
+      });
+      assert.equal(plan, "team");
+    });
+    await check("the cloud adapter reads a venue's Wi-Fi login page or a server error as no signal, not a refusal", async () => {
+      const src = fs.readFileSync(path.resolve(__dirname, "../native/gridlock-cloud.js"), "utf8");
+      const run = async res => {
+        const data = new Map(), localStorage = { getItem: k => data.get(k) || null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) };
+        const sandbox = { window: { GRIDLOCK_CLOUD: { url: "https://example.test", anonKey: "test-only" } }, localStorage, Date, JSON, Promise, TextEncoder, fetch: async () => res };
+        vm.runInNewContext(src, sandbox);
+        return sandbox.window.gridlockCloud.signIn("a@b.co", "pw");
+      };
+      const portal = await run({ ok: true, status: 200, text: async () => "<html>Accept the terms</html>" });
+      const down = await run({ ok: false, status: 503, text: async () => "<html>down</html>" });
+      const refused = await run({ ok: false, status: 400, text: async () => JSON.stringify({ error: "invalid_grant", error_description: "Invalid login credentials" }) });
+      assert.equal(portal.offline, true, "portal"); assert.equal(down.offline, true, "5xx"); assert.ok(!refused.offline && refused.ok === false, "a real refusal still refuses");
+    });
+  } finally {
+    await browser.close(); server.close();
+    console.log(`${passed}/${passed + failed} review checks passed.`);
+    if (failed) process.exitCode = 1;
+  }
+})();

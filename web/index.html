@@ -3082,8 +3082,11 @@ function tabAlive(){
 }
 setInterval(() => { if(_tabCopyAt){ tabAlive(); verifyTabCopy(); } }, 10000);
 // Another tab's save that this store no longer holds: kept as a copy.
-function keepSnapshot(text, own = false){
-  let d = null; try{ d = JSON.parse(text); }catch(e){ return true; }
+function keepSnapshot(text, own = false, from = null, season = null){
+  // This tab's own journal is written on every save: it is built from the
+  // season in hand rather than by parsing back the 1 MB just written.
+  let d = from;
+  if(!d){ try{ d = JSON.parse(text); }catch(e){ return true; } }
   if(!plainRecord(d)) return true;
   const data = {};
   KEEP_ALL.forEach(k => { if(d[k] !== undefined) data[k] = d[k]; });
@@ -3096,7 +3099,7 @@ function keepSnapshot(text, own = false){
                 at: new Date(stamp).toISOString(), app: "Gridlock Coach", data};
   if(typeof d.seasonId === "string" && /^[a-f0-9]{32}$/i.test(d.seasonId)) copy.seasonId = d.seasonId;
   if(own) copy.journalId=saveIdOf(text);
-  const out = JSON.stringify(copy, null, 1),
+  const out = own ? JSON.stringify(copy) : JSON.stringify(copy, null, 1),
         key = own ? TAB_COPY + TAB_ID : TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
@@ -3108,7 +3111,7 @@ function keepSnapshot(text, own = false){
     return false;
   }
   if(own){
-    _tabCopyFail=""; _tabCopyAt=Date.now(); _tabCopyText=out; _tabCopySeason=seasonText(S); tabAlive();
+    _tabCopyFail=""; _tabCopyAt=Date.now(); _tabCopyText=out; _tabCopySeason=season !== null ? season : seasonText(S); tabAlive();
     return true;
   }
   _snapPending = _snapPending.filter(t => t !== text);
@@ -3269,7 +3272,7 @@ function save(s){
   // be delayed until after every tab has closed, so they cannot be the first
   // place an overwritten point gets its recovery copy. One key per tab keeps
   // this bounded instead of adding a new snapshot for every point.
-  if(s === S && !keepSnapshot(text, true)) return;
+  if(s === S && !keepSnapshot(text, true, {...s, savedAt: s.savedAt, saveId}, season)) return;
   try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
        if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; _baseId = _head = saveId; _headMine = true; saveHere(s); } }
   catch(e){ storeRefused(e); }
@@ -4610,7 +4613,10 @@ window.setRaceTo = n => {
 // not move them. So the switch follows the score, not the point number.
 function scoredBefore(pt, m){
   m = m || curMatch(); if(!m) return 0;
-  return (S.results || []).filter(r => r.m === m.id && r.pt < pt).length;
+  // Asked once a charted row through ourEnd(); the points a sheet scored are
+  // read once a draw.
+  const pts = drawOnce("scored|" + m.id, () => (S.results || []).filter(r => r && r.m === m.id).map(r => r.pt));
+  return pts.filter(p => p < pt).length;
 }
 function endSwapped(pt, m){
   if(!(m && m.swapEnds)) return false;
@@ -4638,6 +4644,11 @@ function ourEnd(pt, m){
   // On a finished sheet the point he is on is the last one played: the
   // cursor sits past the end, and that point's end may be the other one.
   pt = pt || sheetPoint(); m = m === undefined ? curMatch() : m;
+  // shownBunker() asks this once a bunker named on screen; within one draw
+  // the answer for a sheet and a point does not change.
+  return drawOnce("ourEnd|" + (m ? m.id : "") + "|" + pt, () => ourEndFresh(pt, m));
+}
+function ourEndFresh(pt, m){
   const base = m && m.end === "right" ? "right" : "left";
   const turned = endSwapped(pt, m) !== flippedAt(pt, m);
   return turned ? (base === "left" ? "right" : "left") : base;
@@ -4692,6 +4703,13 @@ window.setSwapEnds = on => {
 };
 const mirrorFt = q => [150 - q[0], q[1]];
 function mirrorBunkerId(id){
+  // Every count across points turns a row through here; within one draw the
+  // field cannot change, so each twin is worked out once.
+  const twins = drawOnce("twins|" + S.layoutKey, () => new Map());
+  if(twins.has(id)) return twins.get(id);
+  const v = mirrorBunkerIdFresh(id); twins.set(id, v); return v;
+}
+function mirrorBunkerIdFresh(id){
   const bl = curLayout().bunkers, b = bl.find(x => x.id === id); if(!b) return id;
   let best = null, bd = Infinity;
   for(const o of bl){ const d = Math.hypot(o.x - (150 - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
@@ -6393,7 +6411,9 @@ window.loadCopy = (mode, suppliedText) => {
   const backedUp = S.copiedAt;
   // Replace swaps the data, not the session: you stay signed in, on this screen,
   // looking at the message that says what just happened.
-  const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus"];
+  // The store plan is this phone's purchase, not the season's: a Replace or a
+  // cloud restore walled a paying coach out of Scout until Restore purchases.
+  const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus","billing","preview"];
   const held = {};
   SESSION.forEach(k => { held[k] = S[k]; });
   /* A merge takes their records, never their place in the day.
@@ -9096,21 +9116,36 @@ function manRead(side, who, team){
   // first out read the outs tallied on the points he was charted on. Each is
   // over his charted breaks, and printed with that sample.
   const opp = side === "us" ? "them" : "us";
-  const all = S.breakouts || [], outs = (S.tally || []).filter(o => o && typeof o === "object");
-  const outOf = r => outs.find(o => o.m === r.m && o.pt === r.pt && o.side === side && (o.name === r.player || (tag.startsWith("#") && String(o.name).split(" ")[0] === tag.split(" ")[0])));
+  // Every man's read asks the same few questions of the rows on each of his
+  // points: Anticipate and Matchup ask them for fifteen men in one draw, and
+  // scanning the whole season once a row per man was most of what a full
+  // season cost a tap on Scout. The season is indexed by point once a draw.
+  const at = pointIndex(), on = r => at.get(r.m + "|" + r.pt) || NO_POINT;
+  const outOf = r => on(r).outs.find(o => o.side === side && (o.name === r.player || (tag.startsWith("#") && String(o.name).split(" ")[0] === tag.split(" ")[0])));
   const firstOut = r => { const mine = outOf(r); if(!mine) return false;
-    const first = outs.filter(o => o.m === r.m && o.pt === r.pt && o.side === side).sort((x, y) => (x.at || 0) - (y.at || 0))[0];
+    const first = on(r).outs.filter(o => o.side === side).sort((x, y) => (x.at || 0) - (y.at || 0))[0];
     return first === mine; };
   return {n: rows.length, made: rows.filter(r => r.alive === true).length, shot: rows.filter(r => r.alive === false).length,
           delayed: rows.filter(r => r.delayed).length, battling: rows.filter(r => r.entry === "battle").length,
           bunker: top("bunker"), shotFrom: top("shotFrom"),
           gunUp: rows.filter(r => (r.dir !== null && r.dir !== undefined && r.dir !== "") || r.shootAt).length,
-          took: rows.reduce((n, r) => n + all.filter(o => o && o.m === r.m && o.pt === r.pt && o.side === opp && o.alive === false && o.shotFrom && o.shotFrom === r.bunker).length, 0),
+          took: rows.reduce((n, r) => n + on(r).rows.filter(o => o.side === opp && o.alive === false && o.shotFrom && o.shotFrom === r.bunker).length, 0),
           // Only points with an out tallied on them say anything about who
           // was left standing; a point nobody tallied would read as alive.
-          tallied: rows.filter(r => outs.some(o => o.m === r.m && o.pt === r.pt)).length,
-          alive: rows.filter(r => outs.some(o => o.m === r.m && o.pt === r.pt) && r.alive !== false && !outOf(r)).length,
+          tallied: rows.filter(r => on(r).outs.length).length,
+          alive: rows.filter(r => on(r).outs.length && r.alive !== false && !outOf(r)).length,
           first: rows.filter(firstOut).length};
+}
+// The charted rows and the tallied outs of each point, keyed "match|point",
+// built once a draw (and on every call outside one, as before).
+const NO_POINT = {rows: [], outs: []};
+function pointIndex(){
+  return drawOnce("pointIndex", () => {
+    const at = new Map(), get = (m, pt) => { const k = m + "|" + pt; let v = at.get(k); if(!v){ v = {rows: [], outs: []}; at.set(k, v); } return v; };
+    (S.breakouts || []).forEach(r => { if(r && typeof r === "object") get(r.m, r.pt).rows.push(r); });
+    (S.tally || []).forEach(o => { if(o && typeof o === "object") get(o.m, o.pt).outs.push(o); });
+    return at;
+  });
 }
 // The read as one line, or nothing when there is nothing counted.
 function manLine(side, who, team){
@@ -10733,7 +10768,7 @@ window.reviewCloudSeason = async () => {
   if(checked.error) return back("The cloud copy is not a readable season. Your phone is unchanged.");
   if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
   if(!keepPreRestore()) return back("There is not enough room to preserve this phone's season. Save a copy before restoring.");
-  if(window.loadCopy("replace",raw)!==true) return;
+  if(window.loadCopy("replace",raw)!==true) return back("Nothing restored. Your phone is unchanged.");
   if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
   syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
 };
@@ -11065,7 +11100,7 @@ function playbook(){
             <span class="assign__n" style="background:var(--panel-2);color:var(--mute);font-size:11px">${c.pt}</span>
             <span class="assign__body"><span class="assign__job">${esc(callName(c.script))}</span>
             <span class="assign__who">point ${c.pt}${c.vs?" · vs "+esc(c.vs):""}${(w => w ? ` · ${w === "us" ? "won" : "lost"}` : "")(((S.results||[]).find(r => r && r.m === c.m && r.pt === c.pt) || {}).won)}</span></span>
-            <button class="btn btn--danger" onclick="unlogCall(${i})">Undo</button>
+            <button class="btn btn--danger" onclick="unlogCall(${jsq([c.m, c.pt, c.at, c.script].join("|"))})">Undo</button>
           </div>`).join("")}
         </div>`
       : `<div class="empty">Nothing logged on ${esc(curLayout().name)} yet. Tap <b>Log the call</b> the
@@ -12525,8 +12560,8 @@ function tally(){
         return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__n" style="background:${o.side==="them"?"var(--blue)":o.side?"var(--red)":"var(--line-lit)"};font-size:11px">${o.pt||"·"}</span>
         <span class="assign__body"><span class="assign__job">${esc(o.name)}</span>
-        <span class="assign__who">${o.side==="us"?"your player":o.side?esc(o.vs||matchVs()):"logged before matches"}${where?" · "+where:""}</span></span>
-        <button class="btn btn--danger" onclick="undoOut(${i})">Undo</button>
+        <span class="assign__who">${o.side==="us"?((curMatch()||{}).watch?esc(sideWord("us")):"your player"):o.side?esc((curMatch()||{}).watch?sideWord("them"):(o.vs||matchVs())):"logged before matches"}${where?" · "+where:""}</span></span>
+        <button class="btn btn--danger" onclick="undoOut(${i}, ${jsq([o.m, o.pt, o.side, o.name].join("|"))})">Undo</button>
         ${live?`<div class="who2" style="flex-basis:100%;margin-top:6px">
           ${bunkerPick("Shot at", i, "shotAt", o.shotAt)}
           ${bunkerPick("Moved to", i, "movedTo", o.movedTo)}
@@ -12774,7 +12809,15 @@ function releaseOut(o){
   const charted = (S.breakouts || []).find(r => r && r.m === o.m && r.pt === o.pt && r.side === o.side && r.player === o.name && r.alive === false);
   if(charted){ S.breakouts = S.breakouts.map(r => r === charted ? {...r, alive: true, shotFrom: ""} : r); flash(`${o.name} is back in — his break chart reads made it now.`); }
 }
-window.undoOut = i => { releaseOut((S.tally||[])[i]); save(S); render(); };
+// The index draws the row's pickers; the key says which out the tap meant, so
+// a double tap — the list has moved up under the thumb — takes off one out, not two.
+window.undoOut = (i, key) => {
+  const k = o => o && typeof o === "object" ? [o.m, o.pt, o.side, o.name].join("|") : "";
+  let o = (S.tally || [])[i];
+  if(key !== undefined && k(o) !== String(key)) o = (S.tally || []).find(x => k(x) === String(key));
+  if(!o) return flash("That out is already taken off.");
+  releaseOut(o); save(S); render();
+};
 // Next point with no result. Everything half-done on this point goes with
 // it, exactly as it does when a result ends the point: a Right read ticked
 // and never used was riding onto the next point and recorded against its
@@ -12902,12 +12945,20 @@ window.backPoint = () => {
   let carried = "";
   if(from > to && !(S.results || []).some(r => r && r.m === mid && r.pt === from)){
     const left = (S.breakouts || []).filter(r => r && r.m === mid && r.pt === from);
+    // Only Next point by mistake carries them: the point he goes back to has
+    // no result either. Back to fix the winner of a point already played
+    // leaves them on the point they were charted on — moved, they stood on a
+    // point nobody charted them on, broken from the other end.
+    const toScored = (S.results || []).some(r => r && r.m === mid && r.pt === to);
     if(left.length){
-      if(!(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
+      if(!toScored && !(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
         S.breakouts = S.breakouts.map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
         S.tally = (S.tally || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
+        // Their men placed on Tally are their five on Scout: it moves with them.
+        try{ syncTallyFive(mid, from); syncTallyFive(mid, to); }catch(e){}
         carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`;
-      } else carried = `Point ${from} still has ${left.length} ${left.length === 1 ? "man" : "men"} charted — Next point to tell them, or take them off there.`;
+      } else if(toScored) carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} stay on point ${from}. Score point ${to} again and you are back on them.`;
+      else carried = `Point ${from} still has ${left.length} ${left.length === 1 ? "man" : "men"} charted — Next point to tell them, or take them off there.`;
     }
   }
   // The result goes with it. Otherwise the score still counts a point he is
@@ -13065,6 +13116,8 @@ window.watchGame = id => {
   const had = (S.matches || []).find(m => m && m.watch && m.sched === g.id);
   if(had){
     const moved = toGameField(g);
+    // An older sheet is the same wall as opening it from Matches.
+    if(had.id !== S.matchId && !entitled("team")) return set({tab:"more", more:"plan", billingSaid:""});
     if(had.id !== S.matchId) openMatchNow(had.id);
     set({tab:"scout", scoutTab:"breakouts", more:null, gameOpen:null});
     flash(((moved || "").trim() + " Back on the sheet you were watching.").trim());
@@ -13444,10 +13497,12 @@ window.logCall = () => {
              ...(S.calls || []).filter(c => !(c.m === S.matchId && c.pt === pt))];
   save(S); render();
 };
-window.unlogCall = i => {
-  const all = [...(S.calls || [])];
-  all.splice((S.calls || []).indexOf(loggedCalls()[i]), 1);
-  S.calls = all; save(S); render();
+// By the row itself, never by its place in a list: a double tap took two
+// calls, and a stale index (-1) spliced the last call off another field.
+window.unlogCall = key => {
+  const k = c => c && [c.m, c.pt, c.at, c.script].join("|");
+  if(!(S.calls || []).some(c => k(c) === String(key))) return flash("That call is already taken off.");
+  S.calls = (S.calls || []).filter(c => k(c) !== String(key)); save(S); render();
 };
 
 /* ============================================================
@@ -14854,8 +14909,9 @@ function matchReview(mid){
   // field is named off that field's own map.
   const key = (id, pt) => here ? frameId(id, m.id, pt) : id;
   const label = id => { if(!id) return "";
-    if(here) return bunkerLabel(m.id === S.matchId ? shownBunker(id) : id);
-    const b = lay.bunkers.find(x => x.id === id); return b ? b.n : id; };
+    // The word for it, else its code: "MD" is three bunkers on some fields.
+    const shown = here && m.id === S.matchId ? shownBunker(id) : id;
+    const b = lay.bunkers.find(x => x.id === shown); return b ? (here ? cardName(b) : (b.id || b.n)) : shown; };
   const tally = (list, f) => Object.entries(list.reduce((a, x) => { const k = f(x); if(k) a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]);
   const sideName = s => m.watch ? (s === "us" ? m.home || "Home" : m.away || "Away") : s === "us" ? "You" : m.vs || "Them";
   // Calls: his own, joined with who won the point. None on a watched game.
@@ -14869,7 +14925,7 @@ function matchReview(mid){
   Object.entries(S.scout || {}).forEach(([team, p]) => (p && p.breaks || []).forEach(b => { if(on(b) && b.script) theirs.push({...b, team}); }));
   const teamSide = team => m.watch ? (foldName(team) === foldName(m.home || "") ? "us" : "them") : "them";
   const theirRows = Object.values(theirs.reduce((a, b) => { const k = b.team + "|" + b.script, w = wonOn(b.pt);
-    a[k] = a[k] || {team: b.team, key: b.script, n: 0, won: 0}; a[k].n++; if(w && w === teamSide(b.team)) a[k].won++; return a; }, {}))
+    a[k] = a[k] || {team: b.team, key: b.script, n: 0, won: 0, decided: 0}; a[k].n++; if(w){ a[k].decided++; if(w === teamSide(b.team)) a[k].won++; } return a; }, {}))
     .sort((a, b) => b.n - a.n);
   const outs = (S.tally || []).filter(on), charted = (S.breakouts || []).filter(on);
   // Where each side lost men: an out with the bunker he was shot at, else a
@@ -14939,7 +14995,7 @@ function reviewSec(mid){
       `<div class="kv__row"><span class="kv__k">${callName2(c.key)}</span><span class="kv__v">called ${c.n} · ${rec(c.won, c.won + c.lost)}</span></div>`).join("")}</div>`
     : `<p class="note">No calls logged on this sheet. Log it on the point sheet and the review says what each call won.</p>`);
   if(r.theirs.length) blocks.push(`<h3 class="panel__title">${watch ? "What they ran" : `What ${esc(them)} ran`}</h3><div class="kv">${r.theirs.map(c =>
-      `<div class="kv__row"><span class="kv__k">${watch ? esc(c.team) + " · " : ""}${callName2(c.key)}</span><span class="kv__v">ran ${c.n} · ${rec(c.won, c.n)}</span></div>`).join("")}</div>`);
+      `<div class="kv__row"><span class="kv__k">${watch ? esc(c.team) + " · " : ""}${callName2(c.key)}</span><span class="kv__v">ran ${c.n}${c.decided ? ` · ${rec(c.won, c.decided)}` : ""}</span></div>`).join("")}</div>`);
   const lost = (side, title) => r.lost[side].length ? `<h3 class="panel__title">${title}</h3><div class="kv">${r.lost[side].slice(0, 5).map(([b, n]) =>
       `<div class="kv__row"><span class="kv__k">${esc(b)}</span><span class="kv__v">${n} ${n === 1 ? "man" : "men"}</span></div>`).join("")}</div>` : "";
   blocks.push(lost("us", watch ? `Where ${esc(us)} lost men` : "Where you lost men") + lost("them", `Where ${esc(them)} lost men`));
@@ -14949,7 +15005,7 @@ function reviewSec(mid){
   blocks.push(menList("us", watch ? esc(us) : "Your men") + menList("them", watch ? esc(them) : `${esc(poss(them))} men`));
   if(!r.charted && !r.calls.length && !r.theirs.length && !(r.outs.us + r.outs.them))
     blocks.push(`<p class="note">Only the score is on this sheet. Chart the break on Tally and log the call, and the review fills in — who made it, where men were lost, what each call won.</p>`);
-  const extra = [r.pens.n ? `Penalties: ${watch ? esc(us) : "you"} −${r.pens.us}, ${esc(them)} −${r.pens.them}` : "",
+  const extra = [r.pens.n ? `Penalties: ${[r.pens.us ? `${watch ? esc(us) : "you"} −${r.pens.us}` : "", r.pens.them ? `${esc(them)} −${r.pens.them}` : ""].filter(Boolean).join(", ")}` : "",
                  r.tos.length ? `Timeouts: ${r.tos.map(s => esc(r.sideName(s))).join(", ")}` : ""].filter(Boolean);
   if(extra.length) blocks.push(`<p class="note">${extra.join(" · ")}</p>`);
   return `<div id="match-review">` + sec("Match review", blocks.join("") + `
@@ -14963,7 +15019,7 @@ function reviewText(mid){
   const L = [`${watch ? `${us} v ${them}` : `vs ${them}`} · ${dayOf(m.at)}${m.note ? " · " + m.note : ""}`, `${reviewResult(r)} · ${r.field}`];
   if(r.reads.n) L.push(`Right read ${r.reads.right} of ${r.reads.n}`);
   if(r.calls.length){ L.push("", "Our calls:"); r.calls.forEach(c => L.push(`- ${callName(c.key)}: called ${c.n}, won ${c.won} of ${c.won + c.lost}`)); }
-  if(r.theirs.length){ L.push("", watch ? "What they ran:" : `What ${them} ran:`); r.theirs.forEach(c => L.push(`- ${watch ? c.team + " · " : ""}${callName(c.key)}: ran ${c.n}, won ${c.won} of ${c.n}`)); }
+  if(r.theirs.length){ L.push("", watch ? "What they ran:" : `What ${them} ran:`); r.theirs.forEach(c => L.push(`- ${watch ? c.team + " · " : ""}${callName(c.key)}: ran ${c.n}${c.decided ? `, won ${c.won} of ${c.decided}` : ""}`)); }
   if(r.lost.us.length) L.push("", `${watch ? `Where ${us}` : "Where we"} lost men: ${r.lost.us.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
   if(r.lost.them.length) L.push(`Where ${them} lost men: ${r.lost.them.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
   const men = (side, title) => { if(!r.men[side].length) return; L.push("", title); r.men[side].forEach(x => L.push(`- ${x.name}: ${manBits(x).join(", ") || "charted"}`)); };
@@ -15021,7 +15077,7 @@ window.toggleLayer = k => {
 };
 
 function scoutCounter(){
-  const R=pitOf("right"), state=S.matchState||"Even";
+  const R=pitOf("right"), state=["Ahead","Even","Must-score"].includes(S.matchState) ? S.matchState : "Even";
   // Counted first: a call you have run against them on this field is ranked by
   // what it won, and the heuristic only orders the ones you have never run.
   // The call to counter is the counted read for the moment he is in — what
@@ -15048,7 +15104,7 @@ function scoutCounter(){
           has two named sides here. */""}
     <p class="lede">${(curMatch()||{}).watch && pitNamed("left") ? `<b style="color:var(--ink)">${esc(pitOf("left").name)}</b> against` : "Against"} <b style="color:var(--ink)">${esc(R.name)}</b>${/s$/i.test(R.name || "") ? "'" : "'s"} ${read
         ? `<b style="color:var(--ink)">${esc(callName(read.call))}</b> — ${read.n} of ${read.of} ${esc(read.basis)}${read.alt ? `, ${esc(callName(read.alt[0]))} ${read.alt[1]}` : ""} —`
-        : R.tendKnown ? `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,` : `next break (no film read yet),`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${state.toLowerCase()}</b>.${read && R.tendKnown ? ` Film read: ${esc(R.tend)}.` : ""}</p>
+        : R.tendKnown ? `likely <b style="color:var(--ink)">${esc(R.tend)}</b> break,` : `next break (no film read yet),`} and ${(curMatch()||{}).watch ? "they are" : "you are"} <b style="color:var(--ink)">${esc(state.toLowerCase())}</b>.${read && R.tendKnown ? ` Film read: ${esc(R.tend)}.` : ""}</p>
     ${(()=>{const f=breakFreq("right"), n=f.reduce((a,[,c])=>a+c,0);
       // Out of the calls named: a five with no call is never counted as one.
       return f.length?`<p class="note">You have named their call ${n} time${n===1?"":"s"} — most often
