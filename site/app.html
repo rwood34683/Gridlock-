@@ -582,6 +582,15 @@ svg.field{width:100%;height:auto;display:block}
 .rline__zero{stroke:var(--line-lit);stroke-width:1;vector-effect:non-scaling-stroke}
 .rline__path{fill:none;stroke:var(--red);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .rline__ends{display:flex;justify-content:space-between;font-size:var(--t-xs);color:var(--ink);margin-top:4px}
+/* The opponent box on Tally, lit when a tap on the field needs a team first.
+   Outline and shadow only, so lighting it never moves anything under a thumb. */
+#tally-opp.opp-nudge{outline:2px solid var(--accent-lit);outline-offset:8px;border-radius:var(--r-md)}
+#tally-opp.opp-pulse{animation:oppPulse .6s ease-out 1}
+@keyframes oppPulse{0%{box-shadow:0 0 0 0 rgba(229,37,42,.55)}100%{box-shadow:0 0 0 14px rgba(229,37,42,0)}}
+@media (prefers-reduced-motion:reduce){#tally-opp.opp-pulse{animation:none}}
+.opp-lede{display:grid}
+.opp-lede>span{grid-area:1/1}
+.opp-lede>.opp-off{visibility:hidden}
 .gate__chip{flex:none;font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:3px 9px}
 
 .help-btn{
@@ -12622,9 +12631,20 @@ window.needOpponent = () => {
   if(moved){ S.tab = "tally"; S.more = null; }
   const say = moved && !S.quick;
   S.quick = false; S.quickPick = false;
-  S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render();
+  // Already on the sheet with the box lit: every further tap on the field
+  // redrew the whole screen and smooth-scrolled to a box that was already in
+  // view, and on an iPad the page lurched under his finger on every tap. Now
+  // a repeat tap only pulses the box, and scrolls only when it is off screen.
+  const lit = !moved && S.tallyNudge && !S.tallySel && !S.tallyDraft && document.getElementById("tally-opp");
+  if(!lit){ S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render(); }
   if(say) flash("Pick the other team first — then it is logged against them.");
-  requestAnimationFrame(() => { const el = document.getElementById("tally-opp"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+  const show = () => {
+    const el = document.getElementById("tally-opp"); if(!el) return;
+    const box = el.getBoundingClientRect(), main = el.closest(".main"), view = main ? main.getBoundingClientRect() : {top: 0, bottom: innerHeight};
+    if(box.top < view.top || box.top > view.bottom - 120) el.scrollIntoView({behavior: moved ? "auto" : "smooth", block: "start"});
+    el.classList.remove("opp-pulse"); void el.offsetWidth; el.classList.add("opp-pulse");
+  };
+  if(lit) show(); else requestAnimationFrame(show);
 };
 // One tap: the team Scout already has in the right pit becomes the opponent.
 window.playPit = () => {
@@ -13214,9 +13234,10 @@ function tally(){
         playing. Tallying against nobody logs a break the app can never attach to
         a team — so before the field, the sheet asks who, right here, and one tap
         names them. Once named it steps aside. */""}
-  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' style="outline:2px solid var(--accent-lit);outline-offset:8px;border-radius:var(--r-md)"' : ""}>` + sec("Who are you playing?", `<p class="lede">${S.tallyNudge
-        ? "Name them first. A break logged against nobody can never be attached to a team."
-        : "Set the other team before you tally. Every out on this sheet is logged against them, and everything you learn is kept against their name."}</p>
+  ${/* Both sentences sit in one grid cell and only the one in force is
+        visible, so the box is the same height nudged or not: a tap on the
+        field that lit it used to grow it, and the field slid under his thumb. */""}
+  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Set the other team before you tally. Every out on this sheet is logged against them, and everything you learn is kept against their name.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Name them first. A break logged against nobody can never be attached to a team.</span></p>
     ${pitNamed("right") ? `<button class="btn btn--lg btn--block" onclick="playPit()">Play ${esc(pitOf("right").name)}</button>
     <p class="note">The team in the right pit on Scout. Or someone else:</p>` : ""}
     <select onchange="setPitTeam('right',this.value)" aria-label="The team you are playing">
