@@ -82,6 +82,9 @@ h1,h2,h3,p{margin:0}
      columns at a 720 px *viewport* was squeezed to half of that. */
   container-type:inline-size;container-name:main;
   flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  /* Keep the actual scroll offset on an update; anchoring a changed score
+     would move the sticky result bar up into its confirmation message. */
+  overflow-anchor:none;
   padding:var(--s4) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))) var(--s6) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)));
   display:flex;flex-direction:column;gap:var(--s5);
 }
@@ -2106,10 +2109,14 @@ function routeClear(from, to, targetId, obstacles){
 
   const N = nodes.length;
   const dist = nodes.map(() => Infinity), prev = nodes.map(() => -1), done = nodes.map(() => false);
+  // The straight-line distance is a lower bound on the distance still to run.
+  // A* keeps the same shortest clear route without exploring corners behind
+  // the player that cannot improve it (especially costly on a new call).
+  const remaining = nodes.map(p => Math.hypot(to[0]-p[0], to[1]-p[1]));
   dist[0] = 0;
   for(;;){
     let u = -1;
-    for(let i = 0; i < N; i++) if(!done[i] && dist[i] < (u < 0 ? Infinity : dist[u])) u = i;
+    for(let i = 0; i < N; i++) if(!done[i] && dist[i]+remaining[i] < (u < 0 ? Infinity : dist[u]+remaining[u])) u = i;
     if(u < 0 || u === 1) break;
     done[u] = true;
     for(let v = 0; v < N; v++){
@@ -3954,7 +3961,7 @@ function tabAlive(){
 }
 setInterval(() => { if(_tabCopyAt){ tabAlive(); verifyTabCopy(); } }, 10000);
 // Another tab's save that this store no longer holds: kept as a copy.
-function keepSnapshot(text, own = false, from = null, season = null){
+function keepSnapshot(text, own = false, from = null, season = null, parts = null){
   // This tab's own journal is written on every save: it is built from the
   // season in hand rather than by parsing back the 1 MB just written.
   let d = from;
@@ -3971,7 +3978,15 @@ function keepSnapshot(text, own = false, from = null, season = null){
                 at: new Date(stamp).toISOString(), app: "Gridlock Coach", data};
   if(typeof d.seasonId === "string" && /^[a-f0-9]{32}$/i.test(d.seasonId)) copy.seasonId = d.seasonId;
   if(own) copy.journalId=saveIdOf(text);
-  const out = own ? JSON.stringify(copy) : JSON.stringify(copy, null, 1),
+  // The same large lists go into the season and its journal. During this one
+  // synchronous save, reuse their serialized values; never reuse them across
+  // taps (a row can be changed in place). Fields still include their map copy.
+  const out = own && parts
+    ? JSON.stringify({...copy, data:undefined}).slice(0,-1) + ',"data":{' + Object.keys(data).map(k => {
+        const value = k !== "fields" && parts.has(k) ? parts.get(k) : JSON.stringify(data[k]);
+        return value === undefined ? null : JSON.stringify(k) + ":" + value;
+      }).filter(v => v !== null).join(",") + "}}"
+    : own ? JSON.stringify(copy) : JSON.stringify(copy, null, 1),
         key = own ? TAB_COPY + TAB_ID : TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
@@ -4078,10 +4093,14 @@ function scratchKeys(){
   if(!_scratchKeys){ const o = {}; clearScratch(o); _scratchKeys = new Set(Object.keys(o)); }
   return _scratchKeys;
 }
-function seasonText(s){
+function seasonText(s, parts=null){
   const skip = scratchKeys(), out = {};
   for(const k of Object.keys(s)) if(k !== "savedAt" && k !== "prevAt" && k !== "by" && k !== "prevId" && k !== "saveId" && !skip.has(k) && !NAV_KEYS.includes(k)) out[k] = s[k];
-  return JSON.stringify(out);
+  if(!parts) return JSON.stringify(out);
+  return "{" + Object.keys(out).map(k => {
+    const value = JSON.stringify(out[k]); parts.set(k, value);
+    return value === undefined ? null : JSON.stringify(k) + ":" + value;
+  }).filter(v => v !== null).join(",") + "}";
 }
 // It names the season it sits on — when it was written and how long it is —
 // so a season written or wiped behind its back is never read through it.
@@ -4113,7 +4132,7 @@ function readHere(parsed, raw){
 function save(s){
   // A slow native restore must not overwrite work already started this launch.
   _hadLocal = true;
-  const season = seasonText(s);
+  const parts = new Map(), season = seasonText(s, parts);
   if(s === S && !_stale && season === _lastSeason && hereHolds(s)){ saveHere(s); return; }
   if(s === S && !_stale){
     // Nothing stored at all is not newer work: the store was cleared under
@@ -4144,7 +4163,7 @@ function save(s){
   // be delayed until after every tab has closed, so they cannot be the first
   // place an overwritten point gets its recovery copy. One key per tab keeps
   // this bounded instead of adding a new snapshot for every point.
-  if(s === S && !keepSnapshot(text, true, {...s, savedAt: s.savedAt, saveId}, season)) return;
+  if(s === S && !keepSnapshot(text, true, {...s, savedAt: s.savedAt, saveId}, season, parts)) return;
   try{ localStorage.setItem(STORE_KEY, text); storeKept("season");
        if(s === S){ _lastSeason = season; _lastLen = text.length; _baseStamp = s.savedAt; _baseId = _head = saveId; _headMine = true; saveHere(s); } }
   catch(e){ storeRefused(e); }
@@ -9360,8 +9379,10 @@ function bunkerAt(at){
 // playing a break. fieldSVG draws the whole thing once; paintField swaps only
 // what moves.
 function fieldRunners(opts={}){
-  const parts = fieldSVG(opts, true);
-  return parts;
+  const previous = _lastPointMemo;
+  _lastPointMemo = previous || new Map();
+  try { return fieldSVG(opts, true); }
+  finally { _lastPointMemo = previous; }
 }
 function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
@@ -9523,6 +9544,9 @@ function fieldSVG(opts={}, runnersOnly){
           + aimed.by.map(o=>`<circle cx="${(o.x*sx).toFixed(1)}" cy="${(o.y*sy).toFixed(1)}" r="6" fill="none" stroke="#e0a33a" stroke-width="1.6"/>`).join("") : "");
     }
   }
+  // Animation updates only the moving layer. Do not build bunker shapes or
+  // overlays that would be thrown away on every frame.
+  if(runnersOnly) return paths;
   // The handle sits above the tap surface, or it could never be grabbed.
   let aimHandle = "";
   if(opts.sightFrom && opts.sightTo){
@@ -9728,8 +9752,6 @@ function fieldSVG(opts={}, runnersOnly){
       their += `<g class="shooter-ring"><rect x="${(b.x*sx-s2.h-4).toFixed(1)}" y="${(b.y*sy-s2.v-4).toFixed(1)}" width="${(s2.h*2+8).toFixed(1)}" height="${(s2.v*2+8).toFixed(1)}" rx="4" fill="none" stroke="#e0a33a" stroke-width="1.8"/>`
              + `<text x="${(b.x*sx).toFixed(1)}" y="${(b.y*sy-s2.v-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#e0a33a" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${esc(sh.tag)}</text></g>`; } }
   }
-
-  if(runnersOnly) return paths;
 
   return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}">
     <defs>
@@ -16918,7 +16940,10 @@ const toMainTop = () => requestAnimationFrame(() => { const m = document.querySe
  * field on a phone, so the chip takes him to it rather than doing nothing. */
 window.openPointSheet = () => {
   if(S.tab !== "tally" || S.more) set({tab:"tally", more:null});
-  requestAnimationFrame(() => { const el = document.getElementById("point-sheet"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+  // A retained scroller can still have an earlier smooth scroll in flight.
+  // This sideline shortcut must land now, including a second tap after the
+  // coach has scrolled back to the field.
+  requestAnimationFrame(() => { const el = document.getElementById("point-sheet"); if(el) el.scrollIntoView({behavior:"instant", block:"start"}); });
 };
 window.showHints = () => { S.tips = {}; S.helpFor = ""; save(S); render(); };
 function helpCard(k){
@@ -18844,13 +18869,42 @@ window.setAwake = on => {
   render();
 };
 
-// Every tap rebuilds the whole screen, and the browser puts a rebuilt scroller
-// back at the top. So grading a man at the bottom of a long card, or dropping a
-// row off a pasted roster, threw the coach back to the head of the tab. Between
-// points on a sideline that is the difference between using this and putting it
-// down. Hold the place unless the screen itself changed — a new tab does belong
-// at the top.
-let _where = "";
+// Keep unchanged elements on a same-screen update. Replacing the whole sheet
+// then reading/restoring scrollTop forced a full layout on every sideline tap.
+// The existing scroller keeps its place without measuring it. A new screen
+// still gets a new scroller at the top.
+function patchScreen(current, next){
+  let old = current.firstChild, fresh = next.firstChild;
+  while(old || fresh){
+    const after = old && old.nextSibling, following = fresh && fresh.nextSibling;
+    if(!fresh) old.remove();
+    else if(!old) current.appendChild(fresh.cloneNode(true));
+    else if(old.nodeType !== fresh.nodeType || old.nodeName !== fresh.nodeName || old.namespaceURI !== fresh.namespaceURI)
+      old.replaceWith(fresh.cloneNode(true));
+    else if(!old.isEqualNode(fresh)){
+      if(old.nodeType === Node.ELEMENT_NODE){
+        for(const a of Array.from(old.attributes)) if(!fresh.hasAttribute(a.name)) old.removeAttribute(a.name);
+        for(const a of fresh.attributes) if(old.getAttribute(a.name) !== a.value) old.setAttributeNS(a.namespaceURI, a.name, a.value);
+        patchScreen(old, fresh);
+      } else old.nodeValue = fresh.nodeValue;
+    }
+    old = after; fresh = following;
+  }
+}
+let _where = "", _screenMarkup = "";
+let _screenControls = [];
+function labelFields(root){
+  root.querySelectorAll(".fld > label:not([for])").forEach((l, i) => {
+    const c = l.nextElementSibling;
+    if(c && /^(SELECT|INPUT|TEXTAREA)$/.test(c.tagName) && !c.hasAttribute("aria-label") && !c.hasAttribute("aria-labelledby")){
+      if(!l.id) l.id = "fl-" + i;
+      c.setAttribute("aria-labelledby", l.id);
+    }
+  });
+}
+function controlValues(root){
+  return Array.from(root.querySelectorAll("input,textarea,select"), c => ({value:c.value, checked:c.checked, selectedIndex:c.selectedIndex}));
+}
 function render(){
   fixScreen();
   // The call key is guarded at the same door: a key this build does not have
@@ -18860,27 +18914,28 @@ function render(){
   fixBreak();
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
-  const main = document.querySelector(".main");
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
-  const at = main && screen === _where ? main.scrollTop : 0;
+  const root = document.getElementById("root");
+  let html;
   _lastPointMemo = new Map();
-  try { document.getElementById("root").innerHTML = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
+  try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
-  // A field here is a <label> followed by its control, and the label carries
-  // no `for`, so a screen reader read every select as "pop-up button" and
-  // nothing else. One pass ties each one to the label above it.
-  document.querySelectorAll("#root .fld > label:not([for])").forEach((l, i) => {
-    const c = l.nextElementSibling;
-    if(c && /^(SELECT|INPUT|TEXTAREA)$/.test(c.tagName) && !c.hasAttribute("aria-label") && !c.hasAttribute("aria-labelledby")){
-      if(!l.id) l.id = "fl-" + i;
-      c.setAttribute("aria-labelledby", l.id);
-    }
+  if(screen !== _where){
+    // A new screen is parsed once, directly into the live document.
+    root.innerHTML = html; labelFields(root); _screenControls = controlValues(root);
+  } else if(html !== _screenMarkup){
+    const page = document.createElement("div"); page.innerHTML = html;
+    labelFields(page); _screenControls = controlValues(page); patchScreen(root, page);
+  }
+  // Even unchanged markup must reset a dirty control to the rendered value.
+  // A lazy bunker picker may have filled its options, so use value, not index.
+  root.querySelectorAll("input,textarea,select").forEach((old, i) => {
+    const fresh = _screenControls[i];
+    if(old.value !== fresh.value || (old.tagName === "SELECT" && old.selectedIndex < 0 && fresh.selectedIndex >= 0)) old.value = fresh.value;
+    if(old.tagName === "SELECT" && fresh.selectedIndex < 0) old.selectedIndex = -1;
+    if(old.tagName === "INPUT") old.checked = fresh.checked;
   });
-  const next = document.querySelector(".main");
-  // The new scroller already starts at zero. Writing zero forces layout of
-  // the entire rebuilt sheet before the browser can paint it. Restore only
-  // a real offset; a different screen starts at the top without a layout read.
-  if(next && screen === _where && at !== 0) next.scrollTop = at;
+  _screenMarkup = html;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   watchTallyField();
