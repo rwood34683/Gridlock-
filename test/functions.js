@@ -3857,7 +3857,7 @@ const ROSTER = [
   check("no copy ever saved: a finished sheet says so once there is something to lose", await ev(() => {
     window.set({ copiedAt: null, tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     const t = document.getElementById("root").textContent;
-    return /No copy of this season has been saved yet/.test(t) && /Save a copy · Nexus/.test(t);
+    return /No copy of this season has been saved yet/.test(t) && /Save now/.test(t);
   }));
   check("Show it as text is not a backup; a fresh export quiets the nudge, a week-old one brings it back", await ev(() => {
     window.showCopy("all");
@@ -3865,13 +3865,13 @@ const ROSTER = [
     window.set({ copiedAt: Date.now(), copyText: "" });
     const quiet = !/No copy of this season/.test(document.getElementById("root").textContent) && !/Last copy saved/.test(document.getElementById("root").textContent);
     window.set({ copiedAt: Date.now() - 9 * 86400000 });
-    return still && quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
+    return still && quiet && /since your last copy \(9 days ago\) is only on this phone/.test(document.getElementById("root").textContent);
   }));
   check("the nudge never shows while a point is on, and Matches carries it too", await ev(() => {
     window.newMatch();
-    const quiet = !/Last copy saved/.test(document.getElementById("root").textContent);
+    const quiet = !/since your last copy/.test(document.getElementById("root").textContent);
     window.set({ tab: "more", more: "matches" });
-    return quiet && /Last copy saved 9 days ago/.test(document.getElementById("root").textContent);
+    return quiet && /since your last copy \(9 days ago\)/.test(document.getElementById("root").textContent);
   }));
   check("the score chip in the header is a tap to the point sheet from any tab", await ev(() => {
     window.set({ tab: "playbook" });

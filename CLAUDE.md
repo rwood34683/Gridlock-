@@ -1073,6 +1073,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     show, **Show all** the rest (`statAll`, scratch). Still physical, still his
     own sheets, watched games still out. `test/ux-tally-review.cjs`.
 
+72. ~~The weak spots before the World Cup.~~ Done — two of the four named on
+    7 Nov 2026. **Bunker stats reads like the rest of the app**: `statKeep()`
+    carries `frame`, so `bunkerTraffic()` counts each row in its point's
+    own-end frame and draws it on the end shown now (`shownBunker(frameId())`)
+    — one job broken from both ends is one bunker, as on *Where the points come
+    from*; **As played** (`S.statAsPlayed`, a preference, shown only once a
+    break on this field came from the far end, `statEndsMoved()`) keeps the
+    physical picture. **Won–lost** beside each bunker: with a man of that side
+    broken there, who won the point, each point once a bunker a side (`wonAt`).
+    Under three logged (`STAT_THIN`, `statThin`) the row, the number and the
+    ring are faint and the note says too few to read. Layers and every other
+    heat stay physical. **A backup after every match**: `copyNudge()` speaks on
+    a finished sheet and on Matches as soon as anything logged (`newestLogged`,
+    by `at`) is newer than the last full copy or the last confirmed League sync
+    — not after a week — and **Save now** (`nudgeSave`) saves everything there
+    and then, or goes to Nexus when it could not. `test/ux-tally-review.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
@@ -2020,8 +2037,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   stays physical because it is already on the end they break from now. An
   out is counted the same way — How they get you, the bunker book's men lost
   and a man's shot-from bunker all read `frameId(shotAt, m, pt)`.
-  Bunker stats stays physical: it is a heat map of where on the field things
-  happened.
+  Bunker stats counts the same way by default and keeps **As played** for
+  the heat map of where on the field things happened.
 - Let Switch ends rewrite the points already played. It flipped point one's
   end, so a switch made at the half turned every earlier point round — their
   outs tallied back to front and their routes drawn from the wrong goal line,
