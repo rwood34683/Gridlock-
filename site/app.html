@@ -838,6 +838,11 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
  * phone, with Threat behind an edge nobody swipes. */
 .tbl td.team{white-space:normal;min-width:7em}
 .tbl--stats tr.on td{background:rgba(255,255,255,.06)}
+.tbl--stats tr.thin td{opacity:.55}
+.tbl--stats{min-width:0;width:100%}
+.tbl--stats th{white-space:normal;line-height:1.2;vertical-align:bottom}
+.tbl--stats th,.tbl--stats td{padding-left:8px;padding-right:8px}
+.tbl--stats .tbl__pick{gap:6px;flex-wrap:wrap}
 .tbl__pick{appearance:none;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;padding:4px 0;display:flex;align-items:center;gap:10px}
 .tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
 .tbl__sub{font-size:12px;color:var(--mute)}
@@ -7275,18 +7280,42 @@ window.openSentSheet = () => {
 // Text on the screen is not a backup until he has copied it somewhere, and
 // the app cannot know that he did: showing it says nothing about copiedAt.
 window.showCopy = scope => { S.copyText = copyPayload(scope); save(S); render(); };
-/* The one thing protecting a season is the copy, and nothing ever said how
- * long it had been. Said where he has a minute — a finished sheet, and the
- * record under Matches — only when there is something to lose and the last
- * copy is a week old or was never made. Never while a point is on. */
+/* The one thing protecting a season is the copy. Said where he has a minute —
+ * a finished sheet, and the record under Matches — never while a point is on.
+ * At an event the week-old rule was too slow: a phone lost on day two lost day
+ * one and two. So it speaks as soon as anything logged is newer than the last
+ * copy (or the last confirmed League sync), and one tap saves everything
+ * there and then. Rows from before \`at\` was stamped fall back to the week. */
+// Saved from the nudge: a copy that went is said where he is; one that did not
+// goes to Nexus, where the text box and the reason are.
+window.nudgeSave = async () => {
+  const before = S.copiedAt || 0;
+  await window.saveCopy("all");
+  if((S.copiedAt || 0) > before) flash("Saved. Keep the file somewhere off this phone — Files, Drive or a text to yourself.");
+  else set({tab: "more", more: "nexus"});
+};
+function newestLogged(){
+  let newest = 0, any = false;
+  [S.results, S.tally, S.breakouts, S.calls, S.assessments, S.moves].forEach(l => (l || []).forEach(r => {
+    if(!r || typeof r !== "object") return; any = true;
+    if(typeof r.at === "number" && r.at > newest && r.at <= Date.now() + 60000) newest = r.at;
+  }));
+  return any ? newest || 1 : 0;
+}
 function copyNudge(){
-  const logged = (S.results || []).length + (S.tally || []).length + (S.breakouts || []).length;
-  if(!logged) return "";
+  const newest = newestLogged();
+  if(!newest) return "";
+  const synced = S.syncOn && S.syncAt ? S.syncAt : 0, kept = Math.max(S.copiedAt || 0, synced);
   const days = S.copiedAt ? Math.floor((Date.now() - S.copiedAt) / 86400000) : null;
-  if(days !== null && days < 7) return "";
-  const when = days === null ? "No copy of this season has been saved yet." : `Last copy saved ${days} days ago.`;
-  return `<div class="fld" style="margin-top:var(--s3)"><p class="note" style="margin:0 0 var(--s2)">${when} It is the only thing that protects it.</p>
-    <button class="btn btn--quiet btn--block" onclick="set({tab:'more',more:'nexus'})">Save a copy · Nexus</button></div>`;
+  const since = newest > 1 && newest > kept;
+  if(!since && (synced || (days !== null && days < 7))) return "";
+  const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? `${Math.max(1, m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.floor(m / 1440)} days ago`; };
+  const when = since
+    ? (kept ? `What you logged since your last copy (${ago(kept)}) is only on this phone.` : "No copy of this season has been saved yet — nothing you have logged is anywhere but this phone.")
+    : (days === null ? "No copy of this season has been saved yet." : `Last copy saved ${days} days ago.`);
+  return `<div class="fld copy-nudge" style="margin-top:var(--s3)"><p class="note" style="margin:0 0 var(--s2)">${when} Save a copy after each match — a lost or broken phone is a lost season.</p>
+    <div class="btnrow"><button class="btn grow" onclick="nudgeSave()">Save now</button>
+    <button class="btn btn--quiet grow" onclick="set({tab:'more',more:'nexus'})">Nexus</button></div></div>`;
 }
 // Is there a season on this phone worth asking about: a sheet with anything
 // logged or scored, a roster, a team scouted, a play of his own.
@@ -8970,20 +8999,36 @@ function bunkerTraffic(keep){
   // watched game it wants (Layers on a watched sheet reads that game alone).
   const watched = m => watchedMatch(m) && !(keep && keep.withWatched);
   const t = {};
-  const bump = (id, key) => {
+  // Bunker stats counts in each point's own-end frame and draws it on the end
+  // shown now (\`keep.frame\`), so one job broken from both ends is one bunker,
+  // the way Where the points come from counts; Layers and the heat elsewhere
+  // stay physical.
+  const at = (id, r) => keep && keep.frame && id && r ? shownBunker(frameId(id, r.m, r.pt)) : id;
+  const bump = (id, key, r) => {
+    id = at(id, r);
     if(!id || !here.has(id)) return;
-    t[id] = t[id] || {outs:0, visits:0};
+    t[id] = t[id] || {outs:0, visits:0, w:0, l:0};
     t[id][key]++;
+  };
+  // Points won and lost with a man of that side broken to the bunker: one
+  // point once a bunker a side, read off the result. A point with no result
+  // says nothing.
+  const pts = new Set();
+  const wonBy = r => {
+    if(!keep || !keep.results) return;
+    const id = at(r.bunker, r), w = wonAt(r.m, r.pt), side = r.side || "us", k = [id, r.m, r.pt, side].join("|");
+    if(!id || !here.has(id) || !w || pts.has(k)) return;
+    pts.add(k); t[id][w === side ? "w" : "l"]++;
   };
   // Ids repeat across fields — T#1 is on all three — so a row from another
   // field must go on its own field's T#1, not this one's.
   const elsewhere = x => x.layout && x.layout !== S.layoutKey;
   (S.tally || []).forEach(o => {
     if(!o || typeof o !== 'object' || elsewhere(o) || watched(o.m) || !ok(o)) return;
-    bump(o.shotAt, 'outs');
-    bump(o.movedTo, 'visits');
+    bump(o.shotAt, 'outs', o);
+    bump(o.movedTo, 'visits', o);
   });
-  (S.moves || []).forEach(m => { if(m && !elsewhere(m) && !watched(m.m) && ok(m)) bump(m.to, 'visits'); });
+  (S.moves || []).forEach(m => { if(m && !elsewhere(m) && !watched(m.m) && ok(m)) bump(m.to, 'visits', m); });
   // A named man charted shot on the break is also the out the tally records,
   // at the same bunker: counted once, not once from each log.
   // Indexed once: a scan of every out for every man charted was O(n²) and
@@ -8996,10 +9041,11 @@ function bunkerTraffic(keep){
   // where he moved to is a visit too. A watched game's traffic is not his.
   (S.breakouts || []).forEach(r => {
     if(!r || typeof r !== 'object' || elsewhere(r) || watched(r.m) || !ok(r)) return;
-    bump(r.bunker, 'visits');
+    bump(r.bunker, 'visits', r);
+    wonBy(r);
     if(r.alive === false && tallied(r)) return;
-    if(r.alive === false) bump(r.bunker, 'outs');
-    bump(r.movedTo, 'visits');
+    if(r.alive === false) bump(r.bunker, 'outs', r);
+    bump(r.movedTo, 'visits', r);
   });
   return t;
 }
@@ -9067,7 +9113,18 @@ const STAT_SIDES = [["us","Yours"],["them","Theirs"],["both","Both"]];
 function statRowTeam(r){ const m = r && r.m ? matchById(r.m) : null; return (r && r.vs) || (m && m.vs) || ""; }
 function statKeep(){
   const side = S.statSide || "both", team = S.statTeam || "";
-  return r => (side === "both" || (r.side || "us") === side) && (!team || foldName(statRowTeam(r)) === foldName(team));
+  const keep = r => (side === "both" || (r.side || "us") === side) && (!team || foldName(statRowTeam(r)) === foldName(team));
+  keep.frame = !S.statAsPlayed; keep.results = true;
+  return keep;
+}
+// Under three logged a bunker's count is a coincidence, not a read: drawn
+// faint and said so, the rule every read in the app keeps.
+const STAT_THIN = 3;
+const statThin = v => !v || v.visits + v.outs < STAT_THIN;
+// Has any break on this field been charted from the far end? Only then is
+// "turned to your end" different from "as played", and the switch shows.
+function statEndsMoved(){
+  return (S.breakouts || []).some(r => r && r.m && (!r.layout || r.layout === S.layoutKey) && !watchedMatch(r.m) && ourEnd(r.pt, matchById(r.m)) === "right");
 }
 function statTeams(){
   const seen = new Map();
@@ -9094,7 +9151,7 @@ function statsOverlay(t){
     let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
     if(v){
       const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v.visits;
-      o += `<g class="stat-n"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
+      o += `<g class="stat-n${statThin(v) ? " stat-n--thin" : ""}"${statThin(v) ? ` opacity=".5"` : ""}><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
          + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
     }
     return o;
@@ -9114,23 +9171,30 @@ function statsPage(){
       <option value="" ${S.statTeam ? "" : "selected"}>Every team</option>${teams.map(x => `<option value="${esc(x)}" ${foldName(x) === foldName(S.statTeam) ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div>` : "";
   const word = b => callOf(b), code = b => word(b) === b.id ? "" : b.id;
   const pickedB = S.statPick && list.find(b => b.id === S.statPick);
-  const pv = pickedB ? (t[pickedB.id] || {visits: 0, outs: 0}) : null;
+  const pv = pickedB ? (t[pickedB.id] || {visits: 0, outs: 0, w: 0, l: 0}) : null;
+  const wl = v => v.w + v.l ? `${v.w}–${v.l}` : "—";
   const pickLine = pickedB
     ? `<div class="note stat-pick"><b>${esc(word(pickedB))}</b>${code(pickedB) ? ` (${esc(pickedB.id)})` : ""}: ${whose}${against} went there <b>${pv.visits}</b> time${pv.visits === 1 ? "" : "s"}, shot there <b>${pv.outs}</b>.${
+        pv.w + pv.l ? ` With a man broken here the point was won <b>${pv.w}</b>, lost <b>${pv.l}</b>.` : ""}${
+        statThin(pv) ? " Too few logged to read yet." : ""}${
         (book => book ? ` ${book.charAt(0).toUpperCase() + book.slice(1)}.` : "")(bunkerBook(pickedB.id, true))}
         <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="set({tab:'sightlines',sightFrom:${jsq(pickedB.id)},sightTo:null,sightAim:null})">Lanes from here</button>
         <button class="btn btn--quiet" onclick="statPick(${jsq(pickedB.id)})">Clear</button></div></div>`
     : `<p class="note">The number on a bunker is how many times men went there; a red edge means men were shot there too. Tap a bunker, or a row below, to read it.</p>`;
   const shown = S.statAll ? rows : rows.slice(0, 8);
-  const lede = `<p class="lede">Where ${whose} went${against} on this field, counted from your own sheets. Watched games are left out.</p>`;
+  const moved = statEndsMoved();
+  const lede = `<p class="lede">Where ${whose} went${against} on this field, counted from your own sheets. Watched games are left out.${
+    moved ? (S.statAsPlayed ? " Shown where it happened on the field, end by end." : " Every point is turned to the end you break from now, so one job from either end is one bunker.") : ""}</p>`;
+  const endSeg = moved ? `<div class="seg seg--wrap" role="group" aria-label="Ends" style="margin-top:var(--s2)">${[[false, "Turned to your end"], [true, "As played"]].map(([k, w]) =>
+    `<button class="${!!S.statAsPlayed === k ? "on" : ""}" aria-pressed="${!!S.statAsPlayed === k}" onclick="set({statAsPlayed:${k},statPick:null})">${w}</button>`).join("")}</div>` : "";
   const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,noPaths:true,names:true,pick:true,overlay:statsOverlay(t)})}</div>`;
-  if(!rows.length) return sec("Bunker stats", `${lede}${sideSeg}${teamPick}${field}${pickLine}
+  if(!rows.length) return sec("Bunker stats", `${lede}${sideSeg}${endSeg}${teamPick}${field}${pickLine}
     <div class="empty">${(side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
       <div class="btnrow" style="margin-top:var(--s3)">
         <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
         <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
       </div></div>`, layoutName);
-  return sec("Bunker stats", `${lede}${sideSeg}${teamPick}
+  return sec("Bunker stats", `${lede}${sideSeg}${endSeg}${teamPick}
     ${field}${pickLine}
     <div class="facts">
       <span class="fact"><b>${rows.reduce((n, r) => n + r.visits, 0)}</b><span>Went there</span></span>
@@ -9138,10 +9202,11 @@ function statsPage(){
       <span class="fact"><b>${rows.length}</b><span>Bunkers used</span></span>
     </div>
     <div class="tblwrap"><table class="tbl tbl--stats">
-      <thead><tr><th>Bunker</th><th class="num">Went there</th><th class="num">Shot there</th></tr></thead>
-      <tbody>${shown.map(r => `<tr class="${r.id === S.statPick ? "on" : ""}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(word(r.b))}${code(r.b) ? `<span class="tbl__sub">${esc(r.id)}</span>` : ""}</button></td>
-        <td class="num">${r.visits}</td><td class="num">${r.outs}</td></tr>`).join("")}</tbody>
+      <thead><tr><th>Bunker</th><th class="num">Went there</th><th class="num">Shot there</th><th class="num">Won–lost</th></tr></thead>
+      <tbody>${shown.map(r => `<tr class="${r.id === S.statPick ? "on" : ""}${statThin(r) ? " thin" : ""}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(word(r.b))}${code(r.b) ? `<span class="tbl__sub">${esc(r.id)}</span>` : ""}</button></td>
+        <td class="num">${r.visits}</td><td class="num">${r.outs}</td><td class="num">${wl(r)}</td></tr>`).join("")}</tbody>
     </table></div>
+    ${rows.some(statThin) ? `<p class="note">Faint: fewer than ${STAT_THIN} logged at that bunker — too few to read yet. Points won–lost counts each point once a bunker, from who won it.</p>` : `<p class="note">Points won–lost counts each point once a bunker, from who won it.</p>`}
     ${rows.length > 8 ? `<button class="btn btn--quiet" style="margin-top:var(--s2)" onclick="set({statAll:!S.statAll})">${S.statAll ? "Show the busiest 8" : `Show all ${rows.length} bunkers`}</button>` : ""}`,
     layoutName);
 }
@@ -9718,9 +9783,9 @@ function fieldSVG(opts={}, runnersOnly){
     heat = layout.bunkers.map(b=>{
       const v = t[b.id]; if(!v) return "";
       const s2 = bunkerSize(b, sx, sy);
-      const k = (v.outs+v.visits)/peak;
+      const k = (v.outs+v.visits)/peak, faint = opts.heat && opts.heat.results && statThin(v);
       // A ring, not a tint: a red wash would vanish on a red bunker.
-      return `<rect x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffb020" stroke-width="${(1.2+k*3).toFixed(1)}" opacity="${(0.5+k*0.5).toFixed(2)}"/>`;
+      return `<rect x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffb020" stroke-width="${(1.2+k*3).toFixed(1)}" opacity="${faint ? ".3" : (0.5+k*0.5).toFixed(2)}"${faint ? ` stroke-dasharray="3 2"` : ""}/>`;
     }).join("");
   }
 
@@ -16954,6 +17019,9 @@ const HELP = {
     how:["Counted from the breaks you charted, the outs and the rotations you logged on this field, on your own sheets. Watched games are left out.",
          "Yours, Theirs or Both picks whose men; Against picks one team you played here.",
          "The number on a bunker is how many times men went there. The gold ring gets heavier the busier it is; a red edge on the number means men were shot there.",
+         "Points won–lost: with a man of that side broken to the bunker, who won the point. Each point counts once a bunker.",
+         "Once ends have switched on this field, every point is turned to the end you break from now, so one job from either end is one bunker. As played shows where on the field it happened.",
+         "A faint row or number has fewer than three logged: too few to read yet.",
          "Tap a bunker or a row to read it, and Lanes from here to stand in it on Sightlines."],
     watch:"Nothing shows until you have charted a break on Tally or logged a rotation."},
   "more/lineups": {t:"Lineups", w:"Who is on this point.",

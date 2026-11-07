@@ -176,6 +176,50 @@ const SEED = require("../scripts/seed.js");
       assert.equal(await p.evaluate(() => S.statPick), null, "tapping its row again clears it");
     });
 
+    // "Fix the weak spots", 7 Nov 2026: a job broken from both ends is one
+    // bunker, what it won is beside it, and a count under three reads faint.
+    await check("Bunker stats turns every point to your end, says what each bunker won, and marks thin counts", async p => {
+      const r = await p.evaluate(() => {
+        const L = S.layoutKey, bl = curLayout().bunkers, a = bl.find(b => b.x < 60), twin = mirrorBunkerId(a.id);
+        S.matches = [{ id: "a", at: Date.now(), vs: "Rejects", layout: L, end: "left", swapEnds: true }];
+        S.matchId = "a"; S.right = { name: "Rejects" }; S.point = 5;
+        S.results = [1, 2, 3, 4].map(pt => ({ m: "a", pt, won: pt === 4 ? "them" : "us", at: 1 }));
+        // Points 1 and 3 broken from the left, 2 and 4 from the right: the same job.
+        S.breakouts = [1, 2, 3, 4].map(pt => ({ id: "x" + pt, m: "a", pt, side: "us", bunker: ourEnd(pt, S.matches[0]) === "left" ? a.id : twin, alive: true, layout: L, at: 1 }));
+        save(S); set({ tab: "more", more: "stats", statSide: "us" });
+        const row = id => { const tr = [...document.querySelectorAll(".tbl--stats tbody tr")].find(t => t.textContent.includes(id)); return tr ? [...tr.cells].map(c => c.innerText.trim()) : null; };
+        const shown = shownBunker(a.id), turned = row(shown);
+        set({ statAsPlayed: true }); const played = [row(a.id), row(twin)];
+        set({ statAsPlayed: false });
+        return { turned, played, thinRows: document.querySelectorAll(".tbl--stats tr.thin").length, ends: /Turned to your end/.test(document.getElementById("root").innerText) };
+      });
+      assert.ok(r.ends, "the ends switch shows once ends have moved");
+      assert.deepEqual(r.turned.slice(1), ["4", "0", "3–1"], "one bunker: four breaks, won 3 lost 1");
+      assert.deepEqual(r.played.map(x => x && x[1]), ["2", "2"], "as played it is two bunkers");
+      assert.equal(r.thinRows, 0, "four logged is not thin");
+      const thin = await p.evaluate(() => { S.breakouts = S.breakouts.slice(0, 2); save(S); set({ statAsPlayed: true });
+        return { rows: document.querySelectorAll(".tbl--stats tr.thin").length, note: /too few to read/.test(document.getElementById("root").innerText) }; });
+      assert.equal(thin.rows, 2); assert.ok(thin.note);
+    });
+    await check("after a match, the backup nudge speaks for anything logged since the last copy, and a working League sync quiets it", async p => {
+      const said = await p.evaluate(() => {
+        S.matches = [{ id: "a", at: Date.now(), vs: "Rejects", layout: S.layoutKey, raceTo: 1 }]; S.matchId = "a"; S.right = { name: "Rejects" };
+        S.copiedAt = Date.now() - 3 * 3600000; S.results = [{ m: "a", pt: 1, won: "us", at: Date.now() }]; S.point = 2;
+        save(S); set({ tab: "tally" });
+        const t1 = document.getElementById("root").innerText;
+        set({ copiedAt: Date.now() + 1000 }); const t2 = document.getElementById("root").innerText;
+        set({ copiedAt: Date.now() - 3 * 3600000, syncOn: true, syncAt: Date.now() + 1000 }); const t3 = document.getElementById("root").innerText;
+        return [t1, t2, t3].map(t => /since your last copy \(3 h ago\) is only on this phone/.test(t) || /since your last copy/.test(t));
+      });
+      assert.deepEqual(said, [true, false, false]);
+      assert.equal(await p.locator("#root .copy-nudge").count(), 0);
+      await p.evaluate(() => set({ syncOn: false }));
+      assert.equal(await p.getByRole("button", { name: "Save now", exact: true }).count(), 1, "one tap saves from the sheet");
+      const after = await p.evaluate(async () => { const before = S.copiedAt; await nudgeSave();
+        return { saved: S.copiedAt > before, tab: S.tab, gone: !document.querySelector("#root .copy-nudge"), said: /Saved\. Keep the file/.test(document.getElementById("root").innerText) }; });
+      assert.deepEqual(after, { saved: true, tab: "tally", gone: true, said: true }, "saved where he is, and the nudge goes");
+    });
+
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);
