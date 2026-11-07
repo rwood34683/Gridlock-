@@ -1001,7 +1001,28 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     and Kiritimati, plus the evening when UTC is already a day ahead. Never
     derive a local-calendar expiry fixture from the runner's UTC date.
 
-67. ~~The field held still with nobody named.~~ Fixed — filmed on an iPad on
+67. Sideline rendering performance: reuse unchanged DOM elements and keep the
+    same-screen scroller rather than measuring and restoring its position.
+    A different screen gets a new scroller. Synchronize edited form properties
+    as well as attributes, and keep accessible labels. Skip DOM work only when
+    the complete newly generated markup matches the last draw, while still
+    resetting dirty controls; never cache mutable season answers between draws.
+    Observe partial DOM updates too: an expired notice or an animation paint
+    invalidates that shortcut even if the next generated markup matches.
+    The moving field layer returns before constructing static bunkers and
+    overlays, with its read memo scoped to one frame. Route search uses a
+    straight-line lower bound to visit fewer corners while preserving the
+    shortest clear path. Every tap still saves synchronously with its recovery
+    journal and native mirror. Serialized list values may be shared by the
+    season and journal during that save only, never across taps; keep embedded
+    field maps in the journal. Keep the load-test workload and budgets intact.
+    Disable automatic scroll anchoring on the retained scroller, and make the
+    score-chip jump immediate so a cancelled smooth scroll cannot swallow it.
+    Raw-coordinate result-bar tests must await its first fitted layout and
+    verify the intended button is on screen before tapping. Keep both taps at
+    the same coordinates and assert one result and one point advance.
+
+68. ~~The field held still with nobody named.~~ Fixed — filmed on an iPad on
     7 Nov 2026: with no opponent on the sheet, every tap on the Tally field
     redrew the screen and smooth-scrolled to the "Who are you playing?" box
     even when it was already in view, and the first tap swapped its sentence
@@ -1011,7 +1032,7 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     sentences share one grid cell (`.opp-lede`), so lighting the box
     (`opp-nudge`, an outline) never changes its height. `test/ux-tally-review.cjs`.
 
-68. ~~A swipe on the field scrolls.~~ Fixed — screenshotted on an iPhone on
+69. ~~A swipe on the field scrolls.~~ Fixed — screenshotted on an iPhone on
     7 Nov 2026: Tally's field could not be scrolled past. Every field a bunker
     is picked on (Tally, Scout › Breakouts, Sightlines, Walk, Movement, Team,
     Codes, the play builder, the field builder) acted on `pointerdown`, so a

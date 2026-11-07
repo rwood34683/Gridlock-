@@ -42,8 +42,11 @@ function generated(out){const sandbox={window:{}};vm.runInNewContext(fs.readFile
     const descriptor=Object.getOwnPropertyDescriptor(Element.prototype,'scrollTop');let zeroWrites=0;
     const previous=document.querySelector('.main');
     Object.defineProperty(Element.prototype,'scrollTop',{...descriptor,set(value){if(this.classList.contains('main')&&value===0)zeroWrites++;return descriptor.set.call(this,value);}});
-    try{render();return document.querySelector('.main')!==previous && zeroWrites===0;}
-    finally{Object.defineProperty(Element.prototype,'scrollTop',descriptor);}
+    try{
+      S.flash='Redraw fixture';render();
+      return document.querySelector('.main')===previous && zeroWrites===0 && document.querySelector('.flash').textContent==='Redraw fixture';
+    }
+    finally{Object.defineProperty(Element.prototype,'scrollTop',descriptor);S.flash='';render();}
   }),'a real redraw at the top does not force layout by restoring zero');
   assert.equal(await page.locator('[aria-label="Privacy and support"] a').count(),0);
   await page.evaluate(()=>{window.GRIDLOCK_CLOUD={privacyUrl:'https://example.com/privacy?a=1&b=%22tag%22',supportUrl:'https://example.com/support'};render();});
