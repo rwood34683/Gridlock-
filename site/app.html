@@ -16943,7 +16943,7 @@ window.openPointSheet = () => {
   // A retained scroller can still have an earlier smooth scroll in flight.
   // This sideline shortcut must land now, including a second tap after the
   // coach has scrolled back to the field.
-  requestAnimationFrame(() => { const el = document.getElementById("point-sheet"); if(el) el.scrollIntoView({behavior:"instant", block:"start"}); });
+  requestAnimationFrame(() => { const el = document.getElementById("point-sheet"); if(el) el.scrollIntoView({behavior:"auto", block:"start"}); });
 };
 window.showHints = () => { S.tips = {}; S.helpFor = ""; save(S); render(); };
 function helpCard(k){
@@ -18893,6 +18893,17 @@ function patchScreen(current, next){
 }
 let _where = "", _screenMarkup = "";
 let _screenControls = [];
+// Animation and timed notices also change the live DOM between renders. A
+// matching markup string alone does not prove that screen is still in place.
+// Tally's observer-owned sizing is the one intentional layout-only difference.
+let _screenDirty = false;
+function screenChanged(records){
+  return records.some(r => r.type !== "attributes" || !(
+    (r.attributeName === "style" && r.target.matches("#tally-map svg.field")) ||
+    (r.attributeName === "class" && r.target.matches(".resultbar"))));
+}
+const _screenObserver = new MutationObserver(records => { if(screenChanged(records)) _screenDirty = true; });
+_screenObserver.observe(document.getElementById("root"), {childList:true, subtree:true, characterData:true, attributes:true});
 function labelFields(root){
   root.querySelectorAll(".fld > label:not([for])").forEach((l, i) => {
     const c = l.nextElementSibling;
@@ -18916,6 +18927,7 @@ function render(){
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
   const root = document.getElementById("root");
+  const dirty = _screenDirty || screenChanged(_screenObserver.takeRecords());
   let html;
   _lastPointMemo = new Map();
   try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
@@ -18923,7 +18935,7 @@ function render(){
   if(screen !== _where){
     // A new screen is parsed once, directly into the live document.
     root.innerHTML = html; labelFields(root); _screenControls = controlValues(root);
-  } else if(html !== _screenMarkup){
+  } else if(dirty || html !== _screenMarkup){
     const page = document.createElement("div"); page.innerHTML = html;
     labelFields(page); _screenControls = controlValues(page); patchScreen(root, page);
   }
@@ -18939,6 +18951,7 @@ function render(){
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   watchTallyField();
+  _screenObserver.takeRecords(); _screenDirty = false;
 }
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }

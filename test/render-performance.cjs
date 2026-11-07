@@ -21,6 +21,23 @@ const SEED = require("../scripts/seed");
     finally { await context.close(); }
   }
   try {
+    await check("a repeated expired notice and a partially painted field are restored", async p => {
+      await p.clock.install();
+      await p.evaluate(() => flash("Same notice"));
+      assert.equal(await p.locator(".flash").textContent(), "Same notice");
+      await p.clock.runFor(3700);
+      assert.equal(await p.locator(".flash").count(), 0);
+      await p.evaluate(() => flash("Same notice"));
+      assert.equal(await p.locator(".flash").textContent(), "Same notice");
+      assert.equal(await p.evaluate(() => {
+        set({tab:"playbook",t:1});
+        const expected = document.querySelector("g.live").innerHTML;
+        S.t = 0; paintField();
+        const moved = document.querySelector("g.live").innerHTML !== expected;
+        S.t = 1; render();
+        return moved && document.querySelector("g.live").innerHTML === expected;
+      }), true);
+    });
     await check("route search keeps the shortest clear path around a wall", async p => {
       const route = await p.evaluate(() => {
         const from = [10,60], to = [140,60], wall = {x:75,y:60,hw:10,hh:20,ids:new Set(["wall"])};

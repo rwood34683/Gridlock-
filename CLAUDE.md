@@ -1007,6 +1007,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     as well as attributes, and keep accessible labels. Skip DOM work only when
     the complete newly generated markup matches the last draw, while still
     resetting dirty controls; never cache mutable season answers between draws.
+    Observe partial DOM updates too: an expired notice or an animation paint
+    invalidates that shortcut even if the next generated markup matches.
     The moving field layer returns before constructing static bunkers and
     overlays, with its read memo scoped to one frame. Route search uses a
     straight-line lower bound to visit fewer corners while preserving the
