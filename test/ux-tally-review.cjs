@@ -69,6 +69,33 @@ const SEED = require("../scripts/seed.js");
       assert.ok(await p.locator("#tally-sheet").isVisible(), "opens the bunker sheet");
       assert.equal(await p.evaluate(() => JSON.stringify({ point: S.point, results: S.results })), before);
     }, { width: 375, height: 667 });
+    // Filmed on an iPad, 7 Nov 2026: with nobody named, every tap on the field
+    // redrew the screen and smooth-scrolled to a box already in view, and the
+    // first tap grew the box — the field lurched under each tap.
+    for (const vp of [{ width: 820, height: 1180 }, { width: 390, height: 844 }])
+      await check(`taps on the field with no opponent hold the screen still at ${vp.width}x${vp.height}`, async p => {
+        await p.evaluate(() => { S.matches = [{ id: "blank", at: Date.now(), layout: "lso" }]; S.matchId = "blank";
+          S.right = { name: "" }; S.left = { name: "" }; S.point = 1; save(S); set({ tab: "tally" }); });
+        await p.waitForTimeout(300);
+        const field = () => p.evaluate(() => Math.round(document.querySelector("#root [data-pick]").getBoundingClientRect().top));
+        const boxH = () => p.evaluate(() => Math.round(document.getElementById("tally-opp").getBoundingClientRect().height));
+        // The iPad taps the field where it stands, under the box; a phone has to scroll down to it.
+        const at = await p.evaluate(phone => { if (phone) document.querySelector("#root [data-pick]").scrollIntoView({ block: "center" });
+          const r = document.querySelector("#root [data-pick]").getBoundingClientRect();
+          window.__renders = 0; const r0 = window.render; window.render = (...a) => { window.__renders++; return r0(...a); };
+          return { x: r.x + r.width * 0.3, y: r.y + r.height * 0.6 }; }, vp.width < 600);
+        await p.waitForTimeout(150); const top0 = await field(), h0 = await boxH();
+        for (let i = 0; i < 3; i++) { await p.touchscreen.tap(at.x + i * 20, at.y); await p.waitForTimeout(700); }
+        assert.equal(await boxH(), h0, "the box is the same height lit or not");
+        assert.ok(await p.evaluate(() => S.tallyNudge === true && !S.tallySel));
+        assert.match(await p.evaluate(() => document.querySelector("#tally-opp .opp-lede").innerText), /^Name them first/);
+        assert.ok(await p.evaluate(() => window.__renders) <= 1, "only the first tap redraws");
+        if (vp.width > 600) assert.equal(await field(), top0, "the field stays where it was on an iPad, with the box in view");
+        const o = await p.evaluate(() => { const b = document.getElementById("tally-opp").getBoundingClientRect(),
+          m = document.querySelector(".main").getBoundingClientRect(); return b.top >= m.top - 1 && b.top < m.bottom; });
+        assert.ok(o, "the box is on screen");
+      }, vp);
+
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);

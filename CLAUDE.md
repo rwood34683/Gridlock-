@@ -1001,6 +1001,16 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     and Kiritimati, plus the evening when UTC is already a day ahead. Never
     derive a local-calendar expiry fixture from the runner's UTC date.
 
+67. ~~The field held still with nobody named.~~ Fixed — filmed on an iPad on
+    7 Nov 2026: with no opponent on the sheet, every tap on the Tally field
+    redrew the screen and smooth-scrolled to the "Who are you playing?" box
+    even when it was already in view, and the first tap swapped its sentence
+    for a shorter one, so the field slid under his thumb on every tap.
+    `needOpponent()` now redraws only the first time; a repeat tap pulses the
+    box (`opp-pulse`, shadow only) and scrolls only when it is off screen. Both
+    sentences share one grid cell (`.opp-lede`), so lighting the box
+    (`opp-nudge`, an outline) never changes its height. `test/ux-tally-review.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
