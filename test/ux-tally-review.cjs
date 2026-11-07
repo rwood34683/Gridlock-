@@ -13,7 +13,8 @@ const SEED = require("../scripts/seed.js");
   const url = `http://127.0.0.1:${server.address().port}/`, browser = await chromium.launch(launchOptions());
   let failed = 0, passed = 0;
   async function check(name, fn, vp = { width: 390, height: 844 }) {
-    const c = await browser.newContext({ viewport: vp, hasTouch: true, serviceWorkers: "block" });
+    const { mobile, ...size } = vp;
+    const c = await browser.newContext({ viewport: size, hasTouch: true, isMobile: !!mobile, serviceWorkers: "block" });
     const p = await c.newPage(), errors = [];
     p.on("pageerror", e => errors.push(e.message)); p.on("dialog", d => d.accept());
     try {
@@ -95,6 +96,36 @@ const SEED = require("../scripts/seed.js");
           m = document.querySelector(".main").getBoundingClientRect(); return b.top >= m.top - 1 && b.top < m.bottom; });
         assert.ok(o, "the box is on screen");
       }, vp);
+
+    // Screenshotted on an iPhone, 7 Nov 2026: every field acted on the touch
+    // itself, so a swipe that began on the field was a tap — on a phone the
+    // field fills the screen and the page could not be scrolled past it.
+    for (const where of ["tally", "breakouts"])
+      await check(`a swipe on the ${where} field scrolls the page and taps nothing; a tap still taps`, async p => {
+        const map = where === "tally" ? "#tally-map" : "#their-map";
+        await p.evaluate(w => w === "tally" ? set({ tab: "tally", tallySel: null, tallyDraft: null })
+          : set({ tab: "scout", scoutTab: "breakouts", theirPick: [] }), where);
+        await p.waitForTimeout(300);
+        const state = () => p.evaluate(() => ({ sel: S.tallySel || null, pick: (S.theirPick || []).length, rows: (S.breakouts || []).length }));
+        const start = await p.evaluate(m => { const main = document.querySelector(".main"), svg = document.querySelector(m + " svg.field");
+          main.scrollTop = Math.max(0, main.scrollTop + svg.getBoundingClientRect().top - 120);
+          const r = svg.getBoundingClientRect(); const y = r.top + Math.min(r.height * 0.6, 240), hit = document.elementFromPoint(r.x + r.width / 2, y);
+          return { x: r.x + r.width / 2, y, top: main.scrollTop, onField: !!(hit && hit.closest(m + " [data-pick]")) }; }, map);
+        assert.ok(start.onField, "the swipe starts on the field itself");
+        const before = await state(), cdp = await p.context().newCDPSession(p);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: start.x, y: start.y }] });
+        for (let i = 1; i <= 12; i++) { await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: start.x, y: start.y - i * 25 }] }); await p.waitForTimeout(16); }
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await p.waitForTimeout(500);
+        assert.deepEqual(await state(), before, "the swipe picked nothing");
+        assert.ok(await p.evaluate(() => document.querySelector(".main").scrollTop) > start.top + 100, "the page scrolled");
+        const at = await p.evaluate(m => { const svg = document.querySelector(m + " svg.field"); svg.scrollIntoView({ block: "center" });
+          const b = curLayout().bunkers[4], q = new DOMPoint(b.x * 2, b.y * 2).matrixTransform(svg.getScreenCTM()); return { x: q.x, y: q.y }; }, map);
+        await p.waitForTimeout(200);
+        await p.touchscreen.tap(at.x, at.y); await p.waitForTimeout(300);
+        const after = await state();
+        assert.ok(where === "tally" ? after.sel : after.pick === 1, "a tap still picks the bunker");
+      }, { width: 390, height: 844, mobile: true });
 
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });

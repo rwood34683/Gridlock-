@@ -1011,6 +1011,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     sentences share one grid cell (`.opp-lede`), so lighting the box
     (`opp-nudge`, an outline) never changes its height. `test/ux-tally-review.cjs`.
 
+68. ~~A swipe on the field scrolls.~~ Fixed — screenshotted on an iPhone on
+    7 Nov 2026: Tally's field could not be scrolled past. Every field a bunker
+    is picked on (Tally, Scout › Breakouts, Sightlines, Walk, Movement, Team,
+    Codes, the play builder, the field builder) acted on `pointerdown`, so a
+    swipe that began on the field was a tap that redrew the screen and killed
+    the scroll, and on a phone the field fills the screen. One detector
+    (`fieldTaps`) turns a finger that lifts within `FIELD_TAP_SLOP` (10 px) of
+    where it landed into a `fieldtap` event on the same surface; a finger that
+    moves further, or that the browser takes for a scroll (`pointercancel`),
+    picks nothing. Every pick handler listens for `fieldtap`; real drags — the
+    aim handle, path corners, the whiteboard — keep their own pointerdown. A
+    test that taps a field sends the lift as well as the touch.
+    `test/ux-tally-review.cjs` swipes Tally and Breakouts in a phone context.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
