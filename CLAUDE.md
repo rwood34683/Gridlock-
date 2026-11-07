@@ -1001,6 +1001,24 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     and Kiritimati, plus the evening when UTC is already a day ahead. Never
     derive a local-calendar expiry fixture from the runner's UTC date.
 
+67. Sideline rendering performance: reuse unchanged DOM elements and keep the
+    same-screen scroller rather than measuring and restoring its position.
+    A different screen gets a new scroller. Synchronize edited form properties
+    as well as attributes, and keep accessible labels. Skip DOM work only when
+    the complete newly generated markup matches the last draw, while still
+    resetting dirty controls; never cache mutable season answers between draws.
+    Observe partial DOM updates too: an expired notice or an animation paint
+    invalidates that shortcut even if the next generated markup matches.
+    The moving field layer returns before constructing static bunkers and
+    overlays, with its read memo scoped to one frame. Route search uses a
+    straight-line lower bound to visit fewer corners while preserving the
+    shortest clear path. Every tap still saves synchronously with its recovery
+    journal and native mirror. Serialized list values may be shared by the
+    season and journal during that save only, never across taps; keep embedded
+    field maps in the journal. Keep the load-test workload and budgets intact.
+    Disable automatic scroll anchoring on the retained scroller, and make the
+    score-chip jump immediate so a cancelled smooth scroll cannot swallow it.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
