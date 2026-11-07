@@ -1057,6 +1057,22 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     (`placeFlash()`, after each draw, only when one is up). `test/ux-tally-review.cjs`
     holds both at 393x780 and 430x860, where the old fit covered the row.
 
+71. ~~Bunker stats a coach can read.~~ Fixed — screenshotted on an iPhone on
+    7 Nov 2026: "how do we make this more user friendly", "explain this more"
+    and "points sorted out by each team". The rings had no numbers, the table
+    printed the bunker's kind and its code as two columns (two rows read "T"),
+    "Moves in" and "Outs" said nothing plain, and both sides' men were added
+    together. `statsPage()` now says what it counts in one line; **Yours ·
+    Theirs · Both** (`S.statSide`) and **Against** (`S.statTeam`, the teams
+    played on this field) filter every count through `statKeep()` (a row's
+    `side`, else his; its `vs`, else its sheet's); `statsOverlay()` puts the
+    count on each busy bunker, red-edged when men were shot there; columns are
+    **Went there** and **Shot there**, the word with its code beside it; a tap
+    on the field or a row (`statPick`, scratch) rings the bunker white and
+    reads it with `bunkerBook()` and **Lanes from here**; the busiest eight
+    show, **Show all** the rest (`statAll`, scratch). Still physical, still his
+    own sheets, watched games still out. `test/ux-tally-review.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

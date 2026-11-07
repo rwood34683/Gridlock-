@@ -146,6 +146,36 @@ const SEED = require("../scripts/seed.js");
         assert.ok(b.flash && b.flash.bottom <= b.field.top + 1, "the message stands clear of the field");
       }, vp);
 
+    // Screenshotted on an iPhone, 7 Nov 2026: "how do we make this more user
+    // friendly" and "points sorted out by each team". Bunker stats reads one
+    // side and one team, numbers its rings, and a tap reads one bunker.
+    await check("Bunker stats splits yours and theirs and each team, and a tap on the field reads a bunker", async p => {
+      const ids = await p.evaluate(() => {
+        const bl = curLayout().bunkers, L = S.layoutKey;
+        S.matches = [{ id: "a", at: Date.now(), vs: "Rejects", layout: L }, { id: "b", at: Date.now(), vs: "Dynasty", layout: L },
+                     { id: "w", at: Date.now(), watch: true, home: "Rejects", away: "Dynasty", layout: L }];
+        S.matchId = "a"; S.right = { name: "Rejects" };
+        const row = (id, m, side, k, alive) => ({ id, m, pt: 1, side, bunker: bl[k].id, alive, layout: L, at: 1 });
+        S.breakouts = [row("1", "a", "us", 5, true), row("2", "a", "them", 9, false), row("3", "b", "them", 9, true), row("4", "w", "them", 9, true)];
+        save(S); set({ tab: "more", more: "stats" }); return [bl[5].id, bl[9].id, bl[9]];
+      });
+      const counts = () => p.evaluate(() => Object.fromEntries([...document.querySelectorAll(".tbl--stats tbody tr")]
+        .map(r => [r.querySelector(".tbl__sub") ? r.querySelector(".tbl__sub").textContent : r.cells[0].innerText.trim(), [+r.cells[1].innerText, +r.cells[2].innerText]])));
+      assert.deepEqual(await counts(), { [ids[0]]: [1, 0], [ids[1]]: [2, 1] }, "both sides, every team; the watched game is left out");
+      assert.equal(await p.locator("#stats-map .stat-n").count(), 2, "a number on each busy bunker");
+      await p.getByRole("button", { name: "Theirs", exact: true }).click();
+      assert.deepEqual(await counts(), { [ids[1]]: [2, 1] });
+      await p.locator("#root select").filter({ has: p.locator("option", { hasText: "Every team" }) }).selectOption("Dynasty");
+      assert.deepEqual(await counts(), { [ids[1]]: [1, 0] }, "theirs against Dynasty");
+      const at = await p.evaluate(b => { const svg = document.querySelector("#stats-map svg.field"); svg.scrollIntoView({ block: "center" });
+        const q = new DOMPoint(b.x * 2, b.y * 2).matrixTransform(svg.getScreenCTM()); return { x: q.x, y: q.y }; }, ids[2]);
+      await p.mouse.click(at.x, at.y);
+      assert.equal(await p.evaluate(() => S.statPick), ids[1], "a tap on the field picks the bunker");
+      assert.match(await p.evaluate(() => document.querySelector(".stat-pick").innerText), /their men against Dynasty went there 1 time, shot there 0/);
+      await p.locator(".tbl__pick").first().click();
+      assert.equal(await p.evaluate(() => S.statPick), null, "tapping its row again clears it");
+    });
+
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);

@@ -837,6 +837,11 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
  * as a number — the Division board was 433 px in a 356 px wrap on every
  * phone, with Threat behind an edge nobody swipes. */
 .tbl td.team{white-space:normal;min-width:7em}
+.tbl--stats tr.on td{background:rgba(255,255,255,.06)}
+.tbl__pick{appearance:none;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;padding:4px 0;display:flex;align-items:center;gap:10px}
+.tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
+.tbl__sub{font-size:12px;color:var(--mute)}
+.tbl--stats td{padding-top:2px;padding-bottom:2px}
 .tbl .th-num{display:none}
 @container main (max-width:620px){
   .tbl{min-width:0}
@@ -4919,7 +4924,7 @@ function clearScratch(s = S){
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.pickAside = null; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
-  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null; s.statPick = null; s.statAll = false;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -6265,7 +6270,7 @@ function set(patch){
   }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
-             moveFrom: null, moveTo: null, callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
+             moveFrom: null, moveTo: null, statPick: null, callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -9052,6 +9057,95 @@ window.logMove = () => {
   S.moveFrom = null; S.moveTo = null; S.moveWho = null;
   save(S); render();
 };
+// ---- Bunker stats ----
+// Where men went and where they were shot, on this field, from his own sheets.
+// The rows already say whose man it was and who the sheet was against, so the
+// screen reads one side and one team at a time (`S.statSide`, `S.statTeam`,
+// preferences) and a tap on a bunker or a row says what is known about it
+// (`S.statPick`, scratch). A rotation is always his own man.
+const STAT_SIDES = [["us","Yours"],["them","Theirs"],["both","Both"]];
+function statRowTeam(r){ const m = r && r.m ? matchById(r.m) : null; return (r && r.vs) || (m && m.vs) || ""; }
+function statKeep(){
+  const side = S.statSide || "both", team = S.statTeam || "";
+  return r => (side === "both" || (r.side || "us") === side) && (!team || foldName(statRowTeam(r)) === foldName(team));
+}
+function statTeams(){
+  const seen = new Map();
+  (S.matches || []).forEach(m => { if(m && !m.watch && m.vs && (m.layout || S.layoutKey) === S.layoutKey && !seen.has(foldName(m.vs))) seen.set(foldName(m.vs), m.vs); });
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+window.statPick = id => { S.statPick = S.statPick === id ? null : id; render(); };
+(function statTapping(){
+  document.addEventListener("fieldtap", ev => {
+    if(S.tab !== "more" || S.more !== "stats") return;
+    const surface = ev.target.closest("#stats-map [data-pick]"); if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    const b = nearestBunker(fieldFeet(svg, ev)); if(b) statPick(b.id);
+  });
+})();
+// The count beside each busy bunker, so the ring and the row are one thing,
+// and the picked bunker ringed white.
+function statsOverlay(t){
+  const sx = 2, sy = 2;
+  return curLayout().bunkers.map(b => {
+    const v = t[b.id], picked = b.id === S.statPick; if(!v && !picked) return "";
+    const s2 = bunkerSize(b, sx, sy);
+    let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
+    if(v){
+      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v.visits;
+      o += `<g class="stat-n"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
+         + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
+    }
+    return o;
+  }).join("");
+}
+function statsPage(){
+  const layoutName = curLayout().name, list = curLayout().bunkers, keep = statKeep(), t = bunkerTraffic(keep), side = S.statSide || "both", team = S.statTeam || "";
+  const teams = statTeams();
+  if(team && !teams.some(x => foldName(x) === foldName(team))) S.statTeam = "";
+  const rows = Object.entries(t).map(([id, v]) => ({b: list.find(x => x.id === id), id, ...v}))
+    .filter(r => r.b).sort((a, b) => (b.outs + b.visits) - (a.outs + a.visits) || a.id.localeCompare(b.id));
+  const whose = side === "us" ? "your men" : side === "them" ? "their men" : "both sides' men";
+  const against = S.statTeam ? ` against ${esc(S.statTeam)}` : "";
+  const sideSeg = `<div class="seg seg--wrap" role="group" aria-label="Whose men">${STAT_SIDES.map(([k, w]) =>
+    `<button class="${side === k ? "on" : ""}" aria-pressed="${side === k}" onclick="set({statSide:'${k}',statPick:null})">${w}</button>`).join("")}</div>`;
+  const teamPick = teams.length ? `<div class="fld" style="margin-top:var(--s2)"><label>Against</label><select onchange="set({statTeam:this.value,statPick:null})">
+      <option value="" ${S.statTeam ? "" : "selected"}>Every team</option>${teams.map(x => `<option value="${esc(x)}" ${foldName(x) === foldName(S.statTeam) ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div>` : "";
+  const word = b => callOf(b), code = b => word(b) === b.id ? "" : b.id;
+  const pickedB = S.statPick && list.find(b => b.id === S.statPick);
+  const pv = pickedB ? (t[pickedB.id] || {visits: 0, outs: 0}) : null;
+  const pickLine = pickedB
+    ? `<div class="note stat-pick"><b>${esc(word(pickedB))}</b>${code(pickedB) ? ` (${esc(pickedB.id)})` : ""}: ${whose}${against} went there <b>${pv.visits}</b> time${pv.visits === 1 ? "" : "s"}, shot there <b>${pv.outs}</b>.${
+        (book => book ? ` ${book.charAt(0).toUpperCase() + book.slice(1)}.` : "")(bunkerBook(pickedB.id, true))}
+        <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="set({tab:'sightlines',sightFrom:${jsq(pickedB.id)},sightTo:null,sightAim:null})">Lanes from here</button>
+        <button class="btn btn--quiet" onclick="statPick(${jsq(pickedB.id)})">Clear</button></div></div>`
+    : `<p class="note">The number on a bunker is how many times men went there; a red edge means men were shot there too. Tap a bunker, or a row below, to read it.</p>`;
+  const shown = S.statAll ? rows : rows.slice(0, 8);
+  const lede = `<p class="lede">Where ${whose} went${against} on this field, counted from your own sheets. Watched games are left out.</p>`;
+  const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,noPaths:true,names:true,pick:true,overlay:statsOverlay(t)})}</div>`;
+  if(!rows.length) return sec("Bunker stats", `${lede}${sideSeg}${teamPick}${field}${pickLine}
+    <div class="empty">${(side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
+      <div class="btnrow" style="margin-top:var(--s3)">
+        <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
+        <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
+      </div></div>`, layoutName);
+  return sec("Bunker stats", `${lede}${sideSeg}${teamPick}
+    ${field}${pickLine}
+    <div class="facts">
+      <span class="fact"><b>${rows.reduce((n, r) => n + r.visits, 0)}</b><span>Went there</span></span>
+      <span class="fact"><b>${rows.reduce((n, r) => n + r.outs, 0)}</b><span>Shot there</span></span>
+      <span class="fact"><b>${rows.length}</b><span>Bunkers used</span></span>
+    </div>
+    <div class="tblwrap"><table class="tbl tbl--stats">
+      <thead><tr><th>Bunker</th><th class="num">Went there</th><th class="num">Shot there</th></tr></thead>
+      <tbody>${shown.map(r => `<tr class="${r.id === S.statPick ? "on" : ""}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(word(r.b))}${code(r.b) ? `<span class="tbl__sub">${esc(r.id)}</span>` : ""}</button></td>
+        <td class="num">${r.visits}</td><td class="num">${r.outs}</td></tr>`).join("")}</tbody>
+    </table></div>
+    ${rows.length > 8 ? `<button class="btn btn--quiet" style="margin-top:var(--s2)" onclick="set({statAll:!S.statAll})">${S.statAll ? "Show the busiest 8" : `Show all ${rows.length} bunkers`}</button>` : ""}`,
+    layoutName);
+}
+
 // Two taps on the field: where he left, where he went. A third starts over.
 window.moveTap = at => {
   const b = nearestBunker(at); if(!b) return;
@@ -16857,9 +16951,10 @@ const HELP = {
          "Log the move. Green arrows on the field are what you logged.",
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
-    how:["Counted from the breaks you charted, the outs and the rotations you logged on this field.",
-         "A break to a bunker is a visit; a man shot there on the break is an out there.",
-         "The ring on a bunker gets heavier the more traffic it has seen."],
+    how:["Counted from the breaks you charted, the outs and the rotations you logged on this field, on your own sheets. Watched games are left out.",
+         "Yours, Theirs or Both picks whose men; Against picks one team you played here.",
+         "The number on a bunker is how many times men went there. The gold ring gets heavier the busier it is; a red edge on the number means men were shot there.",
+         "Tap a bunker or a row to read it, and Lanes from here to stand in it on Sightlines."],
     watch:"Nothing shows until you have charted a break on Tally or logged a rotation."},
   "more/lineups": {t:"Lineups", w:"Who is on this point.",
     how:["Tap the slot, then tap the man. Each slot names the job it plays on the call you are on.",
@@ -18271,31 +18366,7 @@ function moreBody(k){
           </div>`;
         }).join("")}</div>`, matchLabel(curMatch())):"");
   }
-  if(k==="stats"){
-    const list=curLayout().bunkers, t=bunkerTraffic();
-    const rows=Object.entries(t).map(([id,v])=>({b:list.find(x=>x.id===id), id, ...v}))
-      .filter(r=>r.b).sort((a,b)=>(b.outs+b.visits)-(a.outs+a.visits));
-    return sec("Bunker stats", rows.length
-      ? `<div class="facts">
-          <span class="fact"><b>${rows.length}</b><span>Bunkers hit</span></span>
-          <span class="fact"><b>${rows.reduce((n,r)=>n+r.outs,0)}</b><span>Outs</span></span>
-          <span class="fact"><b>${rows.reduce((n,r)=>n+r.visits,0)}</b><span>Moves in</span></span>
-        </div>
-        <div class="field-wrap">${fieldSVG({static:true,heat:true,noPaths:true,names:true})}</div>
-        <div class="tblwrap"><table class="tbl">
-          <thead><tr><th>Bunker</th><th>Code</th><th>Outs</th><th>Moves in</th></tr></thead>
-          <tbody>${rows.map(r=>`<tr><td>${esc(callOf(r.b))}</td><td class="num">${esc(r.id)}</td>
-            <td class="num">${r.outs}</td><td class="num">${r.visits}</td></tr>`).join("")}</tbody>
-        </table></div>`
-      : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
-         <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>
-         <div class="empty">Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here.
-           <div class="btnrow" style="margin-top:var(--s3)">
-             <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
-             <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
-           </div></div>`,
-      layoutName);
-  }
+  if(k==="stats") return statsPage();
   if(k==="assess"){
     if((curMatch()||{}).watch) return sec("Assess", watchedNote(), matchLabel(curMatch()));
     if(sheetField()) return sec("Assess", offFieldNote(), matchLabel(curMatch()));
