@@ -992,6 +992,15 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     (`csvCell`). Season has Every sheet, Every point and Every man charted.
     `test/reports.cjs`.
 
+66. ~~Beta expiration checks use the phone's day.~~ Fixed the regression test's
+    UTC/local-calendar mismatch: after UTC midnight, its "yesterday" could
+    still be today on an Eastern-time phone, so a valid last day was expected
+    to be expired. Keep the app's whole-local-day behavior. `test/rob-call.cjs`
+    fixes the browser clock and time zone, keeps the closed-app and working
+    backup assertions, and checks either side of midnight in New York, UTC
+    and Kiritimati, plus the evening when UTC is already a day ahead. Never
+    derive a local-calendar expiry fixture from the runner's UTC date.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

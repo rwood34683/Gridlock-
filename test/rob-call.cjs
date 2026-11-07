@@ -34,9 +34,10 @@ const cloud = require("../scripts/cloud-build.js");
   await new Promise(r => server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${server.address().port}/`, browser = await chromium.launch(launchOptions());
   async function check(name, fn, opts = {}) {
-    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, serviceWorkers: "block" });
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, serviceWorkers: "block", timezoneId: opts.timezoneId || "America/New_York" });
     if (opts.beta) await c.addInitScript(b => { window.GRIDLOCK_CLOUD = { beta: b }; }, opts.beta);
     const p = await c.newPage(), errors = [];
+    if (opts.now) await p.clock.setFixedTime(opts.now);
     p.on("pageerror", e => errors.push(e.message)); p.on("dialog", d => d.accept());
     try {
       await p.goto(url);
@@ -69,11 +70,32 @@ const cloud = require("../scripts/cloud-build.js");
       await p.getByRole("button", { name: "Save everything" }).click();
       assert.equal(await p.evaluate(() => window.__saved), "all");
       assert.ok(await p.evaluate(() => S.matches.length > 0), "nothing was taken off the phone");
-    }, { beta: { name: "Lucas Haden", until: plus(-1) } });
+    // A UTC "yesterday" can still be today on the phone. Use a fixed local
+    // midnight for the expiry check instead of deriving its date from the host.
+    }, { beta: { name: "Lucas Haden", until: "2026-11-06" }, now: "2026-11-07T05:00:00.000Z" });
     await check("the last day itself still opens", async p => {
       assert.doesNotMatch(await root(p), /This beta ended/);
       assert.equal(await p.locator(".tabs").count(), 1);
-    }, { beta: { name: "Lucas Haden", until: iso(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12)) } });
+    }, { beta: { name: "Lucas Haden", until: "2026-11-06" }, now: "2026-11-07T04:59:59.999Z" });
+    await check("UTC has changed day but the phone's last evening still opens", async p => {
+      assert.doesNotMatch(await root(p), /This beta ended/);
+      assert.equal(await p.locator(".tabs").count(), 1);
+    }, { beta: { name: "Lucas Haden", until: "2026-11-06" }, now: "2026-11-07T00:30:00.000Z" });
+    for (const [timezoneId, lastMoment, nextDay] of [
+      ["UTC", "2026-11-06T23:59:59.999Z", "2026-11-07T00:00:00.000Z"],
+      ["Pacific/Kiritimati", "2026-11-06T09:59:59.999Z", "2026-11-06T10:00:00.000Z"]
+    ]) {
+      await check(`${timezoneId}: the last millisecond of the last day still opens`, async p => {
+        assert.doesNotMatch(await root(p), /This beta ended/);
+        assert.equal(await p.locator(".tabs").count(), 1);
+      }, { timezoneId, now: lastMoment, beta: { name: "Lucas Haden", until: "2026-11-06" } });
+      await check(`${timezoneId}: midnight closes the app and leaves the season backup`, async p => {
+        assert.match(await root(p), /This beta ended on/);
+        assert.equal(await p.locator(".tabs").count(), 0);
+        assert.equal(await p.getByRole("button", { name: "Save everything" }).count(), 1);
+        assert.ok(await p.evaluate(() => S.matches.length > 0));
+      }, { timezoneId, now: nextDay, beta: { name: "Lucas Haden", until: "2026-11-06" } });
+    }
     await check("a normal build shows no beta mark and no beta notice", async p => {
       assert.equal(await p.locator(".beta-mark").count(), 0);
       await p.evaluate(() => set({ entered: false }));
