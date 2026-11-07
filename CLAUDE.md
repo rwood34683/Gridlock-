@@ -1046,6 +1046,17 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     test that taps a field sends the lift as well as the touch.
     `test/ux-tally-review.cjs` swipes Tally and Breakouts in a phone context.
 
+70. ~~The ends row and the message on Tally.~~ Fixed — screenshotted on an
+    iPhone on 7 Nov 2026: the row under the field (Breaking from the … ·
+    Switch ends · Swap every point) sat behind the result bar, because
+    `fitTallyField()` fitted the field alone above it; and a message sat over
+    the foot of the field, on the bunkers being tapped. The fit now also leaves
+    room for that row, measured from the field's foot to the row's, unless
+    that would take the field below `TALLY_FIELD_MIN`, when the field comes
+    first. A message on Tally (`flash--high`) stands under the header instead
+    (`placeFlash()`, after each draw, only when one is up). `test/ux-tally-review.cjs`
+    holds both at 393x780 and 430x860, where the old fit covered the row.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

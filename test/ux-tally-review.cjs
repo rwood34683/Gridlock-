@@ -127,6 +127,25 @@ const SEED = require("../scripts/seed.js");
         assert.ok(where === "tally" ? after.sel : after.pick === 1, "a tap still picks the bunker");
       }, { width: 390, height: 844, mobile: true });
 
+    // Screenshotted on an iPhone, 7 Nov 2026: the ends row under the field sat
+    // behind the result bar, and a message covered the foot of the field.
+    for (const vp of [{ width: 393, height: 780 }, { width: 430, height: 860 }])
+      await check(`the ends row clears the result bar and a message clears the field at ${vp.width}x${vp.height}`, async p => {
+        await p.evaluate(() => { S.matches = [{ id: "m1", at: Date.now(), vs: "Rejects", layout: S.layoutKey, raceTo: 4 }]; S.matchId = "m1";
+          S.right = { name: "Rejects" }; S.point = 2; S.results = [{ m: "m1", pt: 1, won: "them" }]; save(S); set({ tab: "tally" }); });
+        await p.waitForFunction(() => { const b = document.querySelector(".resultbar"); return b && !b.classList.contains("resultbar--flow"); });
+        await p.waitForTimeout(200);
+        const box = () => p.evaluate(() => { const r = e => { const q = e.getBoundingClientRect(); return { top: q.top, bottom: q.bottom }; };
+          const fl = document.querySelector("#root .flash");
+          return { field: r(document.querySelector("#tally-map svg.field")), ends: r(document.querySelector("#tally-map").nextElementSibling),
+                   bar: r(document.querySelector(".resultbar")), flash: fl ? r(fl) : null }; });
+        let b = await box();
+        assert.ok(b.ends.bottom <= b.bar.top + 1, `ends row ${Math.round(b.ends.bottom)} under the bar at ${Math.round(b.bar.top)}`);
+        await p.evaluate(() => flash("Theirs: all 5 placed. Take one off with his \u00d7 under the field, or go on to 2 \u00b7 What happened."));
+        b = await box();
+        assert.ok(b.flash && b.flash.bottom <= b.field.top + 1, "the message stands clear of the field");
+      }, vp);
+
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);

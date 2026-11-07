@@ -12817,7 +12817,25 @@ function fitTallyField(svg, bar, main){
   const room = Math.floor(main.clientHeight - br.height - top - 8);
   const fits = fr.height <= room || room >= TALLY_FIELD_MIN;
   bar.classList.toggle("resultbar--flow", !fits);
-  if(fr.height > room && fits){ svg.style.maxHeight = room + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; }
+  // The ends row (Breaking from the … · Switch ends · Swap every point) sits
+  // straight under the field, and fitting the field alone left it behind the
+  // bar on an iPhone (screenshotted 7 Nov 2026). Leave it room too, unless
+  // that would shrink the field below its least; then the field comes first.
+  const ends = (svg.closest("#tally-map") || {}).nextElementSibling;
+  // Everything from the field's foot to the row's: the wrap's padding, the
+  // gap and the row itself, measured rather than added up.
+  const endsH = ends && ends.classList && ends.classList.contains("btnrow")
+    ? Math.max(0, Math.ceil(ends.getBoundingClientRect().bottom - fr.bottom)) : 0;
+  const target = room - endsH >= TALLY_FIELD_MIN ? room - endsH : room;
+  if(fr.height > target && fits){ svg.style.maxHeight = target + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; }
+}
+// A message on Tally sat over the foot of the field, above the result bar,
+// on the bunkers the coach was tapping (screenshotted 7 Nov 2026). There it
+// stands under the header instead, over the score line, which he has read.
+function placeFlash(){
+  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .hdr");
+  if(!el || !hdr) return;
+  el.style.top = Math.round(hdr.getBoundingClientRect().bottom + 8) + "px"; el.style.bottom = "auto";
 }
 // Measuring a newly rebuilt sheet in render() forces its whole layout into
 // every tap. Wait for the browser's layout pass, and measure only that sheet.
@@ -18242,6 +18260,7 @@ function render(){
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   watchTallyField();
+  placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;
 }
 render();
