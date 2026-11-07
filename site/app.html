@@ -585,6 +585,16 @@ svg.field{width:100%;height:auto;display:block}
 .rline__zero{stroke:var(--line-lit);stroke-width:1;vector-effect:non-scaling-stroke}
 .rline__path{fill:none;stroke:var(--red);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .rline__ends{display:flex;justify-content:space-between;font-size:var(--t-xs);color:var(--ink);margin-top:4px}
+/* The opponent box on Tally, lit when a tap on the field needs a team first.
+   Outline and shadow only, so lighting it never moves anything under a thumb. */
+#tally-opp.opp-nudge{outline:2px solid var(--accent-lit);outline-offset:8px;border-radius:var(--r-md)}
+#tally-opp.opp-pulse{animation:oppPulse .6s ease-out 1}
+@keyframes oppPulse{0%{box-shadow:0 0 0 0 rgba(229,37,42,.55)}100%{box-shadow:0 0 0 14px rgba(229,37,42,0)}}
+@media (prefers-reduced-motion:reduce){#tally-opp.opp-pulse{animation:none}}
+.opp-lede{display:grid}
+.opp-lede>span{grid-area:1/1}
+.opp-lede>.opp-off{visibility:hidden}
+svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .gate__chip{flex:none;font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:3px 9px}
 
 .help-btn{
@@ -827,6 +837,11 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
  * as a number — the Division board was 433 px in a 356 px wrap on every
  * phone, with Threat behind an edge nobody swipes. */
 .tbl td.team{white-space:normal;min-width:7em}
+.tbl--stats tr.on td{background:rgba(255,255,255,.06)}
+.tbl__pick{appearance:none;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px;padding:4px 0;display:flex;align-items:center;gap:10px}
+.tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
+.tbl__sub{font-size:12px;color:var(--mute)}
+.tbl--stats td{padding-top:2px;padding-bottom:2px}
 .tbl .th-num{display:none}
 @container main (max-width:620px){
   .tbl{min-width:0}
@@ -4870,7 +4885,7 @@ function fieldBuilder(){
   </div>`;
 }
 (function fieldBuilding(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(!S.fieldEdit) return;
     const surface = ev.target.closest("#fieldbuild-map [data-pick]");
     if(!surface) return;
@@ -4909,7 +4924,7 @@ function clearScratch(s = S){
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
   s.theirPick = []; s.theirFix = null; s.theirLast = 0; _pickHist = []; s.sightAim = null; s.scoutSide = "right"; s.pickAside = null; s.joinOnly = false; s.joinSaid = "";
   s.gameOpen = null; s.gamePaste = ""; s.gameNew = null; s.penOpen = false; s.flash = "";
-  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null;
+  s.quick = false; s.quickPick = false; s.syncSaid = ""; s.tallyNudge = false; s.clockEnd = 0; s.whoOn = false; s.pitOpen = null; s.moveFrom = null; s.moveTo = null; s.tallyPickFor = null; s.callPick = null; s.walkPick = null; s.walkShut = null; s.calAt = null; s.calDay = null; s.calMenu = null; s.calNew = null; s.calOpen = null; s.calCustom = null; s.bcName = ""; s.bcWho = ""; s.billingSaid = ""; s.asWho = null; s.asScore = 0; s.slotPick = null; s.moveWho = null; s.statPick = null; s.statAll = false;
   // The season copy shown as text is the whole season again, saved inside the
   // season; the Sightlines tap mode and Playbook's Cards / Rep view are places he
   // was standing. None of them is a record, so none of them rides a relaunch.
@@ -6255,7 +6270,7 @@ function set(patch){
   }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
-             moveFrom: null, moveTo: null, callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
+             moveFrom: null, moveTo: null, statPick: null, callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -8294,7 +8309,7 @@ window.resetAllPaths = () => {
 // itself takes the tap and the nearest bunker wins — a coach points at where he
 // is standing, he does not aim at a shape.
 (function sightPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "sightlines") return;
     const surface = ev.target.closest("[data-pick]");
     if(!surface) return;
@@ -8516,7 +8531,7 @@ function walkRender(focus){
 window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
 window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
 (function walkTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "walk") return;
     const surface = ev.target.closest("#walk-map [data-pick]");
     if(!surface) return;
@@ -8726,7 +8741,7 @@ window.clearLineup = () => {
 // Team's bunker-calls field: tap a bunker and it is the one being named.
 window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; render(); const el = document.getElementById("bcName"); if(el) el.focus(); } };
 (function callTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "team") return;
     const surface = ev.target.closest("#calls-map [data-pick]");
     if(!surface) return;
@@ -8741,7 +8756,7 @@ window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; 
 const codesKey = () => LAYOUTS[S.codesField] ? S.codesField : S.layoutKey;
 const onCodesField = fn => { const keep = S.layoutKey; S.layoutKey = codesKey(); try { return fn(); } finally { S.layoutKey = keep; } };
 (function codeTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "codes") return;
     const surface = ev.target.closest("#codes-map [data-pick]");
     if(!surface) return;
@@ -9042,6 +9057,95 @@ window.logMove = () => {
   S.moveFrom = null; S.moveTo = null; S.moveWho = null;
   save(S); render();
 };
+// ---- Bunker stats ----
+// Where men went and where they were shot, on this field, from his own sheets.
+// The rows already say whose man it was and who the sheet was against, so the
+// screen reads one side and one team at a time (`S.statSide`, `S.statTeam`,
+// preferences) and a tap on a bunker or a row says what is known about it
+// (`S.statPick`, scratch). A rotation is always his own man.
+const STAT_SIDES = [["us","Yours"],["them","Theirs"],["both","Both"]];
+function statRowTeam(r){ const m = r && r.m ? matchById(r.m) : null; return (r && r.vs) || (m && m.vs) || ""; }
+function statKeep(){
+  const side = S.statSide || "both", team = S.statTeam || "";
+  return r => (side === "both" || (r.side || "us") === side) && (!team || foldName(statRowTeam(r)) === foldName(team));
+}
+function statTeams(){
+  const seen = new Map();
+  (S.matches || []).forEach(m => { if(m && !m.watch && m.vs && (m.layout || S.layoutKey) === S.layoutKey && !seen.has(foldName(m.vs))) seen.set(foldName(m.vs), m.vs); });
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+window.statPick = id => { S.statPick = S.statPick === id ? null : id; render(); };
+(function statTapping(){
+  document.addEventListener("fieldtap", ev => {
+    if(S.tab !== "more" || S.more !== "stats") return;
+    const surface = ev.target.closest("#stats-map [data-pick]"); if(!surface) return;
+    const svg = surface.closest("svg.field"); if(!svg) return;
+    ev.preventDefault();
+    const b = nearestBunker(fieldFeet(svg, ev)); if(b) statPick(b.id);
+  });
+})();
+// The count beside each busy bunker, so the ring and the row are one thing,
+// and the picked bunker ringed white.
+function statsOverlay(t){
+  const sx = 2, sy = 2;
+  return curLayout().bunkers.map(b => {
+    const v = t[b.id], picked = b.id === S.statPick; if(!v && !picked) return "";
+    const s2 = bunkerSize(b, sx, sy);
+    let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
+    if(v){
+      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v.visits;
+      o += `<g class="stat-n"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
+         + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
+    }
+    return o;
+  }).join("");
+}
+function statsPage(){
+  const layoutName = curLayout().name, list = curLayout().bunkers, keep = statKeep(), t = bunkerTraffic(keep), side = S.statSide || "both", team = S.statTeam || "";
+  const teams = statTeams();
+  if(team && !teams.some(x => foldName(x) === foldName(team))) S.statTeam = "";
+  const rows = Object.entries(t).map(([id, v]) => ({b: list.find(x => x.id === id), id, ...v}))
+    .filter(r => r.b).sort((a, b) => (b.outs + b.visits) - (a.outs + a.visits) || a.id.localeCompare(b.id));
+  const whose = side === "us" ? "your men" : side === "them" ? "their men" : "both sides' men";
+  const against = S.statTeam ? ` against ${esc(S.statTeam)}` : "";
+  const sideSeg = `<div class="seg seg--wrap" role="group" aria-label="Whose men">${STAT_SIDES.map(([k, w]) =>
+    `<button class="${side === k ? "on" : ""}" aria-pressed="${side === k}" onclick="set({statSide:'${k}',statPick:null})">${w}</button>`).join("")}</div>`;
+  const teamPick = teams.length ? `<div class="fld" style="margin-top:var(--s2)"><label>Against</label><select onchange="set({statTeam:this.value,statPick:null})">
+      <option value="" ${S.statTeam ? "" : "selected"}>Every team</option>${teams.map(x => `<option value="${esc(x)}" ${foldName(x) === foldName(S.statTeam) ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div>` : "";
+  const word = b => callOf(b), code = b => word(b) === b.id ? "" : b.id;
+  const pickedB = S.statPick && list.find(b => b.id === S.statPick);
+  const pv = pickedB ? (t[pickedB.id] || {visits: 0, outs: 0}) : null;
+  const pickLine = pickedB
+    ? `<div class="note stat-pick"><b>${esc(word(pickedB))}</b>${code(pickedB) ? ` (${esc(pickedB.id)})` : ""}: ${whose}${against} went there <b>${pv.visits}</b> time${pv.visits === 1 ? "" : "s"}, shot there <b>${pv.outs}</b>.${
+        (book => book ? ` ${book.charAt(0).toUpperCase() + book.slice(1)}.` : "")(bunkerBook(pickedB.id, true))}
+        <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="set({tab:'sightlines',sightFrom:${jsq(pickedB.id)},sightTo:null,sightAim:null})">Lanes from here</button>
+        <button class="btn btn--quiet" onclick="statPick(${jsq(pickedB.id)})">Clear</button></div></div>`
+    : `<p class="note">The number on a bunker is how many times men went there; a red edge means men were shot there too. Tap a bunker, or a row below, to read it.</p>`;
+  const shown = S.statAll ? rows : rows.slice(0, 8);
+  const lede = `<p class="lede">Where ${whose} went${against} on this field, counted from your own sheets. Watched games are left out.</p>`;
+  const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,noPaths:true,names:true,pick:true,overlay:statsOverlay(t)})}</div>`;
+  if(!rows.length) return sec("Bunker stats", `${lede}${sideSeg}${teamPick}${field}${pickLine}
+    <div class="empty">${(side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
+      <div class="btnrow" style="margin-top:var(--s3)">
+        <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
+        <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
+      </div></div>`, layoutName);
+  return sec("Bunker stats", `${lede}${sideSeg}${teamPick}
+    ${field}${pickLine}
+    <div class="facts">
+      <span class="fact"><b>${rows.reduce((n, r) => n + r.visits, 0)}</b><span>Went there</span></span>
+      <span class="fact"><b>${rows.reduce((n, r) => n + r.outs, 0)}</b><span>Shot there</span></span>
+      <span class="fact"><b>${rows.length}</b><span>Bunkers used</span></span>
+    </div>
+    <div class="tblwrap"><table class="tbl tbl--stats">
+      <thead><tr><th>Bunker</th><th class="num">Went there</th><th class="num">Shot there</th></tr></thead>
+      <tbody>${shown.map(r => `<tr class="${r.id === S.statPick ? "on" : ""}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(word(r.b))}${code(r.b) ? `<span class="tbl__sub">${esc(r.id)}</span>` : ""}</button></td>
+        <td class="num">${r.visits}</td><td class="num">${r.outs}</td></tr>`).join("")}</tbody>
+    </table></div>
+    ${rows.length > 8 ? `<button class="btn btn--quiet" style="margin-top:var(--s2)" onclick="set({statAll:!S.statAll})">${S.statAll ? "Show the busiest 8" : `Show all ${rows.length} bunkers`}</button>` : ""}`,
+    layoutName);
+}
+
 // Two taps on the field: where he left, where he went. A third starts over.
 window.moveTap = at => {
   const b = nearestBunker(at); if(!b) return;
@@ -9051,7 +9155,7 @@ window.moveTap = at => {
   render();
 };
 (function moveTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "movement") return;
     const surface = ev.target.closest("#move-map [data-pick]");
     if(!surface) return;
@@ -10520,7 +10624,7 @@ function fiveSquares(ids, sx, sy, colour){
 // Tap the field while writing a play: the bunker becomes the next man, and
 // tapping one that already has a man doubles it up; Take off is on his row.
 (function playPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(!S.building) return;
     const surface = ev.target.closest("#build-map [data-pick]");
     if(!surface) return;
@@ -10593,7 +10697,7 @@ function trimFiveMen(rowSide, mid, pt, ids){
   });
 }
 (function theirPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "scout" || S.scoutTab !== "breakouts") return;
     const surface = ev.target.closest("#their-map [data-pick]");
     if(!surface) return;
@@ -12644,9 +12748,20 @@ window.needOpponent = () => {
   if(moved){ S.tab = "tally"; S.more = null; }
   const say = moved && !S.quick;
   S.quick = false; S.quickPick = false;
-  S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render();
+  // Already on the sheet with the box lit: every further tap on the field
+  // redrew the whole screen and smooth-scrolled to a box that was already in
+  // view, and on an iPad the page lurched under his finger on every tap. Now
+  // a repeat tap only pulses the box, and scrolls only when it is off screen.
+  const lit = !moved && S.tallyNudge && !S.tallySel && !S.tallyDraft && document.getElementById("tally-opp");
+  if(!lit){ S.tallyNudge = true; S.tallySel = null; S.tallyDraft = null; save(S); render(); }
   if(say) flash("Pick the other team first — then it is logged against them.");
-  requestAnimationFrame(() => { const el = document.getElementById("tally-opp"); if(el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+  const show = () => {
+    const el = document.getElementById("tally-opp"); if(!el) return;
+    const box = el.getBoundingClientRect(), main = el.closest(".main"), view = main ? main.getBoundingClientRect() : {top: 0, bottom: innerHeight};
+    if(box.top < view.top || box.top > view.bottom - 120) el.scrollIntoView({behavior: moved ? "auto" : "smooth", block: "start"});
+    el.classList.remove("opp-pulse"); void el.offsetWidth; el.classList.add("opp-pulse");
+  };
+  if(lit) show(); else requestAnimationFrame(show);
 };
 // One tap: the team Scout already has in the right pit becomes the opponent.
 window.playPit = () => {
@@ -12986,10 +13101,41 @@ function tallyOverlay(){
   }
   return out;
 }
+/* A tap on a field is a finger that lands and lifts in one place. Every
+ * field a bunker is picked on acted on the touch itself (pointerdown), so a
+ * swipe that started on the field was taken as a tap and redrew the screen
+ * under it: on a phone the field fills the screen, and the page could never
+ * be scrolled past it (filmed and screenshotted on an iPhone and an iPad,
+ * 7 Nov 2026). One detector turns a finger that lifts within FIELD_TAP_SLOP
+ * of where it landed into a "fieldtap" on the same surface; a finger that
+ * moves further, or that the browser takes for a scroll (pointercancel), is a
+ * scroll and taps nothing. Every pick handler listens for "fieldtap". Drags
+ * that mean to drag — the aim handle, path corners, the whiteboard — keep
+ * their own pointerdown. */
+const FIELD_TAP_SLOP = 10;
+(function fieldTaps(){
+  let down = null;
+  const far = (ev, d) => Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > FIELD_TAP_SLOP;
+  document.addEventListener("pointerdown", ev => {
+    down = null;
+    if(ev.button > 0) return;
+    const t = ev.target && ev.target.closest ? ev.target.closest("svg.field [data-pick]") : null;
+    if(t) down = {id: ev.pointerId, x: ev.clientX, y: ev.clientY, t};
+  }, true);
+  document.addEventListener("pointermove", ev => { if(down && ev.pointerId === down.id && far(ev, down)) down = null; }, true);
+  document.addEventListener("pointercancel", ev => { if(down && ev.pointerId === down.id) down = null; }, true);
+  document.addEventListener("pointerup", ev => {
+    const d = down; down = null;
+    if(!d || ev.pointerId !== d.id || far(ev, d)) return;
+    const t = d.t.isConnected ? d.t : null; if(!t) return;
+    t.dispatchEvent(new PointerEvent("fieldtap", {bubbles: true, cancelable: true, clientX: ev.clientX, clientY: ev.clientY,
+      pointerId: ev.pointerId, pointerType: ev.pointerType}));
+  }, true);
+})();
 // Tap the field on Tally: while tracing a route the tap is a point on it;
 // otherwise the nearest bunker opens for logging.
 (function tallyTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "tally") return;
     const surface = ev.target.closest("#tally-map [data-pick]");
     if(!surface) return;
@@ -13236,9 +13382,10 @@ function tally(){
         playing. Tallying against nobody logs a break the app can never attach to
         a team — so before the field, the sheet asks who, right here, and one tap
         names them. Once named it steps aside. */""}
-  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' style="outline:2px solid var(--accent-lit);outline-offset:8px;border-radius:var(--r-md)"' : ""}>` + sec("Who are you playing?", `<p class="lede">${S.tallyNudge
-        ? "Name them first. A break logged against nobody can never be attached to a team."
-        : "Set the other team before you tally. Every out on this sheet is logged against them, and everything you learn is kept against their name."}</p>
+  ${/* Both sentences sit in one grid cell and only the one in force is
+        visible, so the box is the same height nudged or not: a tap on the
+        field that lit it used to grow it, and the field slid under his thumb. */""}
+  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Set the other team before you tally. Every out on this sheet is logged against them, and everything you learn is kept against their name.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Name them first. A break logged against nobody can never be attached to a team.</span></p>
     ${pitNamed("right") ? `<button class="btn btn--lg btn--block" onclick="playPit()">Play ${esc(pitOf("right").name)}</button>
     <p class="note">The team in the right pit on Scout. Or someone else:</p>` : ""}
     <select onchange="setPitTeam('right',this.value)" aria-label="The team you are playing">
@@ -13526,7 +13673,25 @@ function fitTallyField(svg, bar, main){
   const room = Math.floor(main.clientHeight - br.height - top - 8);
   const fits = fr.height <= room || room >= TALLY_FIELD_MIN;
   bar.classList.toggle("resultbar--flow", !fits);
-  if(fr.height > room && fits){ svg.style.maxHeight = room + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; }
+  // The ends row (Breaking from the … · Switch ends · Swap every point) sits
+  // straight under the field, and fitting the field alone left it behind the
+  // bar on an iPhone (screenshotted 7 Nov 2026). Leave it room too, unless
+  // that would shrink the field below its least; then the field comes first.
+  const ends = (svg.closest("#tally-map") || {}).nextElementSibling;
+  // Everything from the field's foot to the row's: the wrap's padding, the
+  // gap and the row itself, measured rather than added up.
+  const endsH = ends && ends.classList && ends.classList.contains("btnrow")
+    ? Math.max(0, Math.ceil(ends.getBoundingClientRect().bottom - fr.bottom)) : 0;
+  const target = room - endsH >= TALLY_FIELD_MIN ? room - endsH : room;
+  if(fr.height > target && fits){ svg.style.maxHeight = target + "px"; svg.style.width = "auto"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; }
+}
+// A message on Tally sat over the foot of the field, above the result bar,
+// on the bunkers the coach was tapping (screenshotted 7 Nov 2026). There it
+// stands under the header instead, over the score line, which he has read.
+function placeFlash(){
+  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .hdr");
+  if(!el || !hdr) return;
+  el.style.top = Math.round(hdr.getBoundingClientRect().bottom + 8) + "px"; el.style.bottom = "auto";
 }
 // Measuring a newly rebuilt sheet in render() forces its whole layout into
 // every tap. Wait for the browser's layout pass, and measure only that sheet.
@@ -16786,9 +16951,10 @@ const HELP = {
          "Log the move. Green arrows on the field are what you logged.",
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
-    how:["Counted from the breaks you charted, the outs and the rotations you logged on this field.",
-         "A break to a bunker is a visit; a man shot there on the break is an out there.",
-         "The ring on a bunker gets heavier the more traffic it has seen."],
+    how:["Counted from the breaks you charted, the outs and the rotations you logged on this field, on your own sheets. Watched games are left out.",
+         "Yours, Theirs or Both picks whose men; Against picks one team you played here.",
+         "The number on a bunker is how many times men went there. The gold ring gets heavier the busier it is; a red edge on the number means men were shot there.",
+         "Tap a bunker or a row to read it, and Lanes from here to stand in it on Sightlines."],
     watch:"Nothing shows until you have charted a break on Tally or logged a rotation."},
   "more/lineups": {t:"Lineups", w:"Who is on this point.",
     how:["Tap the slot, then tap the man. Each slot names the job it plays on the call you are on.",
@@ -18200,31 +18366,7 @@ function moreBody(k){
           </div>`;
         }).join("")}</div>`, matchLabel(curMatch())):"");
   }
-  if(k==="stats"){
-    const list=curLayout().bunkers, t=bunkerTraffic();
-    const rows=Object.entries(t).map(([id,v])=>({b:list.find(x=>x.id===id), id, ...v}))
-      .filter(r=>r.b).sort((a,b)=>(b.outs+b.visits)-(a.outs+a.visits));
-    return sec("Bunker stats", rows.length
-      ? `<div class="facts">
-          <span class="fact"><b>${rows.length}</b><span>Bunkers hit</span></span>
-          <span class="fact"><b>${rows.reduce((n,r)=>n+r.outs,0)}</b><span>Outs</span></span>
-          <span class="fact"><b>${rows.reduce((n,r)=>n+r.visits,0)}</b><span>Moves in</span></span>
-        </div>
-        <div class="field-wrap">${fieldSVG({static:true,heat:true,noPaths:true,names:true})}</div>
-        <div class="tblwrap"><table class="tbl">
-          <thead><tr><th>Bunker</th><th>Code</th><th>Outs</th><th>Moves in</th></tr></thead>
-          <tbody>${rows.map(r=>`<tr><td>${esc(callOf(r.b))}</td><td class="num">${esc(r.id)}</td>
-            <td class="num">${r.outs}</td><td class="num">${r.visits}</td></tr>`).join("")}</tbody>
-        </table></div>`
-      : `<p class="lede">Outs and bunker traffic, from the tally sheet.</p>
-         <div class="field-wrap">${fieldSVG({static:true,noPaths:true,names:true})}</div>
-         <div class="empty">Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here.
-           <div class="btnrow" style="margin-top:var(--s3)">
-             <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
-             <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
-           </div></div>`,
-      layoutName);
-  }
+  if(k==="stats") return statsPage();
   if(k==="assess"){
     if((curMatch()||{}).watch) return sec("Assess", watchedNote(), matchLabel(curMatch()));
     if(sheetField()) return sec("Assess", offFieldNote(), matchLabel(curMatch()));
@@ -18951,6 +19093,7 @@ function render(){
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   watchTallyField();
+  placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;
 }
 render();
