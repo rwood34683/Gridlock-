@@ -591,6 +591,7 @@ svg.field{width:100%;height:auto;display:block}
 .opp-lede{display:grid}
 .opp-lede>span{grid-area:1/1}
 .opp-lede>.opp-off{visibility:hidden}
+svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .gate__chip{flex:none;font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line-lit);border-radius:var(--r-pill);padding:3px 9px}
 
 .help-btn{
@@ -4860,7 +4861,7 @@ function fieldBuilder(){
   </div>`;
 }
 (function fieldBuilding(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(!S.fieldEdit) return;
     const surface = ev.target.closest("#fieldbuild-map [data-pick]");
     if(!surface) return;
@@ -8284,7 +8285,7 @@ window.resetAllPaths = () => {
 // itself takes the tap and the nearest bunker wins — a coach points at where he
 // is standing, he does not aim at a shape.
 (function sightPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "sightlines") return;
     const surface = ev.target.closest("[data-pick]");
     if(!surface) return;
@@ -8506,7 +8507,7 @@ function walkRender(focus){
 window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
 window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
 (function walkTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "walk") return;
     const surface = ev.target.closest("#walk-map [data-pick]");
     if(!surface) return;
@@ -8716,7 +8717,7 @@ window.clearLineup = () => {
 // Team's bunker-calls field: tap a bunker and it is the one being named.
 window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; render(); const el = document.getElementById("bcName"); if(el) el.focus(); } };
 (function callTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "team") return;
     const surface = ev.target.closest("#calls-map [data-pick]");
     if(!surface) return;
@@ -8731,7 +8732,7 @@ window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; 
 const codesKey = () => LAYOUTS[S.codesField] ? S.codesField : S.layoutKey;
 const onCodesField = fn => { const keep = S.layoutKey; S.layoutKey = codesKey(); try { return fn(); } finally { S.layoutKey = keep; } };
 (function codeTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "codes") return;
     const surface = ev.target.closest("#codes-map [data-pick]");
     if(!surface) return;
@@ -9041,7 +9042,7 @@ window.moveTap = at => {
   render();
 };
 (function moveTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "movement") return;
     const surface = ev.target.closest("#move-map [data-pick]");
     if(!surface) return;
@@ -10507,7 +10508,7 @@ function fiveSquares(ids, sx, sy, colour){
 // Tap the field while writing a play: the bunker becomes the next man, and
 // tapping one that already has a man doubles it up; Take off is on his row.
 (function playPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(!S.building) return;
     const surface = ev.target.closest("#build-map [data-pick]");
     if(!surface) return;
@@ -10580,7 +10581,7 @@ function trimFiveMen(rowSide, mid, pt, ids){
   });
 }
 (function theirPicking(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "scout" || S.scoutTab !== "breakouts") return;
     const surface = ev.target.closest("#their-map [data-pick]");
     if(!surface) return;
@@ -12984,10 +12985,41 @@ function tallyOverlay(){
   }
   return out;
 }
+/* A tap on a field is a finger that lands and lifts in one place. Every
+ * field a bunker is picked on acted on the touch itself (pointerdown), so a
+ * swipe that started on the field was taken as a tap and redrew the screen
+ * under it: on a phone the field fills the screen, and the page could never
+ * be scrolled past it (filmed and screenshotted on an iPhone and an iPad,
+ * 7 Nov 2026). One detector turns a finger that lifts within FIELD_TAP_SLOP
+ * of where it landed into a "fieldtap" on the same surface; a finger that
+ * moves further, or that the browser takes for a scroll (pointercancel), is a
+ * scroll and taps nothing. Every pick handler listens for "fieldtap". Drags
+ * that mean to drag — the aim handle, path corners, the whiteboard — keep
+ * their own pointerdown. */
+const FIELD_TAP_SLOP = 10;
+(function fieldTaps(){
+  let down = null;
+  const far = (ev, d) => Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > FIELD_TAP_SLOP;
+  document.addEventListener("pointerdown", ev => {
+    down = null;
+    if(ev.button > 0) return;
+    const t = ev.target && ev.target.closest ? ev.target.closest("svg.field [data-pick]") : null;
+    if(t) down = {id: ev.pointerId, x: ev.clientX, y: ev.clientY, t};
+  }, true);
+  document.addEventListener("pointermove", ev => { if(down && ev.pointerId === down.id && far(ev, down)) down = null; }, true);
+  document.addEventListener("pointercancel", ev => { if(down && ev.pointerId === down.id) down = null; }, true);
+  document.addEventListener("pointerup", ev => {
+    const d = down; down = null;
+    if(!d || ev.pointerId !== d.id || far(ev, d)) return;
+    const t = d.t.isConnected ? d.t : null; if(!t) return;
+    t.dispatchEvent(new PointerEvent("fieldtap", {bubbles: true, cancelable: true, clientX: ev.clientX, clientY: ev.clientY,
+      pointerId: ev.pointerId, pointerType: ev.pointerType}));
+  }, true);
+})();
 // Tap the field on Tally: while tracing a route the tap is a point on it;
 // otherwise the nearest bunker opens for logging.
 (function tallyTapping(){
-  document.addEventListener("pointerdown", ev => {
+  document.addEventListener("fieldtap", ev => {
     if(S.tab !== "tally") return;
     const surface = ev.target.closest("#tally-map [data-pick]");
     if(!surface) return;
