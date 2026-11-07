@@ -136,9 +136,15 @@ const SEED = require("../scripts/seed.js");
     });
     await check("review: a double tap on point 1 scores point 1 once and never lands on a back button", async p => {
       await p.evaluate(() => { openSheet({ vs: "Rejects" }); set({ tab: "tally" }); });
+      // Raw coordinates do not get Playwright's click actionability checks.
+      // Wait for the first layout, as the bar-position check above does:
+      // measuring the initial in-flow bar can target y=2643 on an 844px phone.
+      await p.waitForFunction(() => getComputedStyle(document.querySelector(".resultbar")).position === "sticky");
       const btn = p.locator(".resultbar button", { hasText: "We won it" });
       const box = await btn.boundingBox();
       const x = box.x + 12, y = box.y + box.height / 2;      // its left edge, where ‹ 1 would appear
+      assert.ok(y >= 0 && y < p.viewportSize().height, "first tap is on the phone screen");
+      assert.equal(await p.evaluate(({x,y}) => document.elementFromPoint(x,y)?.closest("button")?.getAttribute("onclick"), {x,y}), "tapResult('us')", "first tap reaches We won it");
       await p.mouse.click(x, y); await p.mouse.click(x, y);
       const got = await p.evaluate(() => ({ pt: S.point, n: S.results.filter(r => r.m === S.matchId).length }));
       assert.deepEqual(got, { pt: 2, n: 1 });

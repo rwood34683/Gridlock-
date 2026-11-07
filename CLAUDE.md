@@ -1018,6 +1018,9 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     field maps in the journal. Keep the load-test workload and budgets intact.
     Disable automatic scroll anchoring on the retained scroller, and make the
     score-chip jump immediate so a cancelled smooth scroll cannot swallow it.
+    Raw-coordinate result-bar tests must await its first fitted layout and
+    verify the intended button is on screen before tapping. Keep both taps at
+    the same coordinates and assert one result and one point advance.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
