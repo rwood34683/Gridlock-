@@ -8982,13 +8982,13 @@ const ROSTER = [
     const svg = document.querySelector("#their-map svg.field"); if(!svg) return false;
     const b = curLayout().bunkers[4];
     const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
-    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); document.dispatchEvent(new PointerEvent("pointerup", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return (S.theirPick || [])[0] === b.id;
   }));
   check("tapping it again puts a second man there, a third makes three, and each draws as its own square", await ev(() => {
     const tap = () => { const svg = document.querySelector("#their-map svg.field"), b = curLayout().bunkers[4];
       const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
-      svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); };
+      svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); document.dispatchEvent(new PointerEvent("pointerup", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); };
     const id = curLayout().bunkers[4].id;
     tap(); const two = (S.theirPick || []).length === 2 && S.theirPick.every(x => x === id);
     tap(); const three = S.theirPick.length === 3 && S.theirPick.every(x => x === id);
@@ -9012,7 +9012,7 @@ const ROSTER = [
     const svg = document.querySelector("#their-map svg.field");
     const b = curLayout().bunkers[7];
     const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
-    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); document.dispatchEvent(new PointerEvent("pointerup", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return S.theirPick.length === 5 && !S.theirPick.includes(b.id) && /All five are placed/.test(S.flash);
   }));
   check("a five with two men on one bunker logs both and counts the bunker twice", await ev(() => {
@@ -9119,7 +9119,7 @@ const ROSTER = [
   const tapTally = ft => ev(ft => {
     const svg = document.querySelector("#tally-map svg.field"); if(!svg) return false;
     const p = new DOMPoint(ft[0]*2, ft[1]*2).matrixTransform(svg.getScreenCTM());
-    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); document.dispatchEvent(new PointerEvent("pointerup", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     return true;
   }, ft);
   await ev(() => window.set({ tab:"tally", tallyStep:"record", tallySel:null, tallyDraft:null, tallyLast:"", tallyRead:"", breakouts:[], tally:[], results:[], point:1 }));
@@ -10705,7 +10705,7 @@ const ROSTER = [
     const sc = pt.matrixTransform(svg.getScreenCTM());
     const hit = document.elementFromPoint(sc.x, sc.y);
     const onSurface = !!(hit && hit.closest("[data-pick]"));
-    if(hit) hit.dispatchEvent(new PointerEvent("pointerdown", { clientX: sc.x, clientY: sc.y, bubbles: true, pointerId: 1 }));
+    if(hit){ hit.dispatchEvent(new PointerEvent("pointerdown", { clientX: sc.x, clientY: sc.y, bubbles: true, pointerId: 1 })); document.dispatchEvent(new PointerEvent("pointerup", { clientX: sc.x, clientY: sc.y, bubbles: true, pointerId: 1 })); }
     const picked = S.sightFrom === "Br#2";
     window.set({ tab: "playbook" });
     const bar = document.querySelector("#root svg.field rect[data-end]");
@@ -10860,7 +10860,7 @@ const ROSTER = [
     window.set({ tab: "scout", scoutTab: "breakouts", theirPick: ids });
     const svg = document.querySelector("#their-map svg.field"), b = curLayout().bunkers.filter(x => x.x > 90)[5];
     const p = new DOMPoint(b.x*2, b.y*2).matrixTransform(svg.getScreenCTM());
-    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
+    svg.querySelector("[data-pick]").dispatchEvent(new PointerEvent("pointerdown", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1})); document.dispatchEvent(new PointerEvent("pointerup", {clientX:p.x, clientY:p.y, bubbles:true, pointerId:1}));
     const ok = S.theirPick.length === 3 && /All 3/.test(S.flash);
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
     return ok || JSON.stringify({ pick: S.theirPick, flash: S.flash });
