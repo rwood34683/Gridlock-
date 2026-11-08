@@ -5006,7 +5006,13 @@ function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || n
 // One formatter, made once: toLocaleDateString builds a new one every call,
 // and a sheet's name is printed in every game picker, chip and kept row.
 const DAY_FMT = new Intl.DateTimeFormat([], {month:"short", day:"numeric"});
-const dayOf = t => DAY_FMT.format(new Date(t));
+function recordedDate(t){
+  if(t == null || t === "" || typeof t === "boolean") return null;
+  const d = new Date(t);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+const dayOf = t => { const d = recordedDate(t); return d ? DAY_FMT.format(d) : "Date not recorded"; };
+const dateStamp = t => { const d = recordedDate(t); return d ? d.toISOString().slice(0, 10) : ""; };
 function gameNth(m){
   if(!m) return "";
   // Read once a sheet a draw: every label read the whole list of sheets.
@@ -7074,6 +7080,7 @@ function copyDataError(data){
 let copyExporting = false;
 window.saveCopy = async scope => {
   if(copyExporting) return;
+  const capturedAt = Date.now();
   const text = copyPayload(scope);
   const stamp = new Date().toISOString().slice(0, 10);
   const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
@@ -7085,7 +7092,7 @@ window.saveCopy = async scope => {
       const result = await window.gridlockExportFile(text, name);
       if(result && result.status === "shared"){
         S.copyStatus = `Backup file sent to the share sheet · ${copySummary(JSON.parse(text).data)}. Keep ${name} in Files or your chosen destination.`;
-        if(scope !== "squad") S.copiedAt = Date.now();
+        if(scope !== "squad") S.copiedAt = capturedAt;
       } else if(result && result.status === "cancelled"){
         S.copyStatus = "Share cancelled. Tap Save a copy to try again, or use Show it as text.";
       } else {
@@ -7119,7 +7126,7 @@ window.saveCopy = async scope => {
              : `Use Show it as text below and keep it somewhere safe.`);
   // Only the whole season, actually handed off, is a backup. A squad file is
   // a roster for an assistant, not his season.
-  if(saved && scope !== "squad") S.copiedAt = Date.now();
+  if(saved && scope !== "squad") S.copiedAt = capturedAt;
   save(S);
   render();
 };
@@ -7251,7 +7258,7 @@ window.sendSheet = async () => {
   if(!m || !sheetSize(m)){ flash("Nothing on this sheet yet — send it once a point is on it."); return; }
   const text = sheetPayload(m.id);
   const who = m.watch ? `${m.home || "home"}-v-${m.away || "away"}` : (m.vs || "sheet");
-  const name = `gridlock-sheet-${who.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${new Date(m.at).toISOString().slice(0, 10)}.json`;
+  const name = `gridlock-sheet-${who.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${dateStamp(m.at) || "undated"}.json`;
   const what = `${matchLabel(m)} · ${copySummary(JSON.parse(text).data)}`;
   if(typeof window.gridlockExportFile === "function"){
     try {
@@ -11944,7 +11951,7 @@ function syncLabel(){
   return String(S.syncLabel || pitName("left", "") || S.teamCode || S.email || "Coach").slice(0, 60);
 }
 let _lastAutoSync = 0, _syncEpoch = 0;
-let _syncTail = Promise.resolve(), _syncDeleting = false;
+let _syncTail = Promise.resolve(), _syncDeleting = false, _syncReviewing = false;
 let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
 function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
 function syncStatus(data){
@@ -11995,7 +12002,7 @@ function scheduleSync(delay){
 }
 async function sendSeason(manual){
   if(!syncAllowed() || _syncSending) return;
-  const t = syncTicket();
+  const t = syncTicket(), capturedAt = Date.now();
   clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
   if(manual) syncStatus({syncSaid:"Sending your season to your account server…"});
@@ -12005,7 +12012,8 @@ async function sendSeason(manual){
   if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
   if(r && r.ok === true){
     syncYes(true);
-    syncStatus({syncAt:Date.now(),syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
+    // A slow send covers the snapshot it took, not edits made while it waited.
+    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
     scheduleSync();return;
   }
   if(r && r.conflict){
@@ -12019,30 +12027,38 @@ window.syncNow = () => sendSeason(true);
 window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);}});
 window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
 window.reviewCloudSeason = async () => {
+  if(_syncReviewing || _syncDeleting || _accountDeleting || _stale) return;
+  if(!S.entered || S.role !== "staff") return;
   const cloud=window.gridlockCloud, attempt=_authAttempt;
   if(!cloud || !cloud.getSeason) return set({syncSaid:"Sign in online to review your cloud copy."});
   const wasOn=!!S.syncOn;
+  _syncReviewing=true;
   clearSyncRetry();++_syncEpoch;S.syncOn=false;
-  // Looking and then saying no changes nothing: sharing goes back the way it was.
-  const back=said=>{if(wasOn&&S.entered&&S.role==="staff"&&canSync()&&!_syncDeleting&&!_stale){S.syncOn=true;_syncDirty=true;}syncStatus({syncSaid:said+(wasOn?(S.syncOn?" Sharing is back on.":""):" Sharing stays off.")});if(S.syncOn)scheduleSync(0);};
-  syncStatus({syncSaid:"Loading your cloud copy…"});
-  await _syncTail;
-  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
-  let r;try{r=await cloud.getSeason();}catch(e){}
-  if(attempt!==_authAttempt || cloud!==window.gridlockCloud) return;
-  if(!r || !r.ok) return back((r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged.");
-  if(r.missing || r.removed){
-    if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
-    if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
-    S.syncOn=true;return syncNow();
-  }
-  const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
-  if(checked.error) return back("The cloud copy is not a readable season. Your phone is unchanged.");
-  if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
-  if(!keepPreRestore()) return back("There is not enough room to preserve this phone's season. Save a copy before restoring.");
-  if(window.loadCopy("replace",raw)!==true) return back("Nothing restored. Your phone is unchanged.");
-  if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
-  syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
+  const t=syncTicket(), current=()=>attempt===_authAttempt && sameSync(t) && !_stale;
+  // Delete, pause, another tab or a new sign-in wins over an old download.
+  try{
+    // Looking and then saying no changes nothing: sharing goes back the way it was.
+    const back=said=>{if(wasOn&&S.entered&&S.role==="staff"&&canSync()&&!_syncDeleting&&!_stale){S.syncOn=true;_syncDirty=true;}syncStatus({syncSaid:said+(wasOn?(S.syncOn?" Sharing is back on.":""):" Sharing stays off.")});if(S.syncOn)scheduleSync(0);};
+    syncStatus({syncSaid:"Loading your cloud copy…"});
+    await _syncTail;
+    if(!current()) return;
+    let r;try{r=await cloud.getSeason();}catch(e){}
+    if(!current()) return;
+    if(!r || !r.ok) return back((r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged.");
+    if(r.missing || r.removed){
+      if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
+      if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
+      S.syncOn=true;return syncNow();
+    }
+    const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
+    if(checked.error) return back("The cloud copy is not a readable season. Your phone is unchanged.");
+    if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
+    if(!keepPreRestore()) return back("There is not enough room to preserve this phone's season. Save a copy before restoring.");
+    if(window.loadCopy("replace",raw)!==true) return back("Nothing restored. Your phone is unchanged.");
+    syncYes(false); // A restored season stays paused after the next sign-in too.
+    if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"Restored, but the cloud revision could not be saved. Sharing stays paused."});
+    syncStatus({syncOn:false,syncSaid:"Cloud season restored. Sharing is paused; turn it on when you are ready."});
+  }finally{ _syncReviewing=false; render(); }
 };
 /* The season on this phone before a cloud restore. A second restore used to
    write over the first one's copy, so the season the phone had before any
@@ -12055,9 +12071,13 @@ function keepPreRestore(){
   try{
     for(let i = PRE_RESTORE_KEEP; i > 0; i--){
       const older = localStorage.getItem(preRestoreKey(i-1));
-      if(older != null) localStorage.setItem(preRestoreKey(i), older);
+      if(older != null){
+        localStorage.setItem(preRestoreKey(i), older);
+        if(localStorage.getItem(preRestoreKey(i)) !== older) return false;
+      }
     }
     localStorage.setItem(preRestoreKey(0), text);
+    if(localStorage.getItem(preRestoreKey(0)) !== text) return false;
   }catch(e){ return false; }
   return true;
 }
@@ -18033,7 +18053,7 @@ function csvCell(v){
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function csvText(head, rows){ return [head, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n"; }
-const repDate = t => t ? new Date(t).toISOString().slice(0, 10) : "";
+const repDate = dateStamp;
 const repField = m => (LAYOUTS[m && m.layout] || {}).name || "";
 const REPORT_CSV = {
   calls: () => ["your-calls", csvText(["Call", "Called", "Won", "Lost", "No result"], repCalls().map(c => [callName(c.key), c.n, c.won, c.lost, c.n - c.won - c.lost]))],
@@ -18776,7 +18796,7 @@ function moreBody(k){
       your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
       password never does. You can pause it, or delete what you sent, at any time.</p>
     <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
-    <button class="btn btn--quiet" onclick="reviewCloudSeason()">Review or restore cloud season</button>
+    <button class="btn btn--quiet" onclick="reviewCloudSeason()" ${_syncReviewing || _syncDeleting || _accountDeleting ? "disabled" : ""}>${_syncReviewing ? "Loading your cloud copy…" : "Review or restore cloud season"}</button>
     <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
     ${Array.from({length: Math.max(0, preRestoreCount()-1)}, (_, k) => `<button class="btn btn--quiet" onclick="showPreRestoreCopy(${k+1})">Show the one before that${k ? " (" + (k+1) + ")" : ""}</button>`).join("")}
     <div class="fld"><label for="syncLabel">Season copy name</label>

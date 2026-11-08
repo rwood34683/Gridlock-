@@ -2832,6 +2832,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   needs an authenticated server success. Failed removal keeps a visible retry.
   `test/account-sync.js` and `test/cloud-session.js` hold these failure cases.
 
+- Let a late cloud-review reply undo a newer pause, deletion, sign-out or tab
+  change. Review is single-flight and its reply belongs to the sync epoch that
+  requested it. A successful restore clears remembered consent to resume sync:
+  sharing stays paused until the coach turns it on again. Read recovery copies
+  back before replacing the phone's season. Backup times name when the snapshot
+  was captured, not when an upload or share sheet finished; edits made while it
+  waited still need a backup. `test/season-safety.cjs` and `test/sync-ask.cjs`
+  cover these cases.
+
 - Treat a confirmation-required signup as a completed sign-in. Wait for a real
   session; confirm-email links return to sign-in. Recovery and invitation links
   must be checked by the account server before showing the new-password form.
@@ -2846,6 +2855,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   replaces an old paid cache just as a paid restore does. Malformed or expired
   store expiration dates never mean lifetime access; only a missing/null expiry
   does. `test/billing-security.js` pins those cases.
+- Crash a kept sheet or its spreadsheet because an imported date is missing or
+  unreadable. Show “Date not recorded”, leave its spreadsheet date blank and use
+  “undated” in a shared sheet's filename. Never substitute today's date or the
+  Unix epoch for a date nobody recorded. `test/reports.cjs` covers the import,
+  report and both exports.
 - Let a cloud build accept a secret/service-role key, overwrite source folders,
   or reuse an offline cache after its adapter or public configuration changed.
   Accept public keys only, restrict cloud output to a child of dist, and hash

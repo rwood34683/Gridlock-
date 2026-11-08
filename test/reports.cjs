@@ -118,6 +118,22 @@ const SEED = require("../scripts/seed.js");
       const bo = rowsOf((await csv(p, "breakouts")).text);
       assert.equal(bo.length, 4); assert.equal(bo[2][7], "shot on the break");
     });
+    for(const badDate of [null, "not-a-date", 1e100])
+      await check(`an imported sheet with an unreadable date stays usable and exports (${badDate})`, async p => {
+        const restored=await p.evaluate(at => {
+          const copy=JSON.parse(copyPayload("all"));copy.data.matches[0].at=at;
+          return loadCopy("replace",JSON.stringify(copy));
+        },badDate);
+        assert.equal(restored,true);
+        await p.evaluate(() => set({repTab:"season"}));
+        assert.match(await root(p),/Date not recorded/);
+        const sheets=(await csv(p,"sheets")).text;
+        assert.match(sheets,/(?:^|\r\n),Rejects,/);
+        assert.doesNotMatch(sheets,/NaN|Invalid Date|1970-01-01/);
+        await p.evaluate(() => { S.matchId="m1";window.gridlockExportFile=async(_text,name)=>{window.__sheetName=name;return {status:"shared"};}; });
+        await p.evaluate(() => sendSheet());
+        assert.match(await p.evaluate(() => __sheetName),/-undated\.json$/);
+      });
     await check("in a browser the spreadsheet downloads as a UTF-8 .csv", async p => {
       const [dl] = await Promise.all([p.waitForEvent("download"), p.evaluate(() => exportReport("calls"))]);
       assert.match(dl.suggestedFilename(), /^gridlock-your-calls-\d{4}-\d{2}-\d{2}\.csv$/);

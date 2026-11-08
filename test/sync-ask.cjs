@@ -3,7 +3,7 @@
    right after sign-in and before the format; nothing leaves the phone until the
    coach taps Yes, and Not now is remembered. A build without League sync never
    asks. Each check signs in through the real sign-in form with a mocked adapter. */
-const assert = require("node:assert/strict"), path = require("node:path");
+const assert = require("node:assert/strict"), path = require("node:path"), fs = require("node:fs");
 const { chromium } = require("playwright-core"), { launchOptions } = require("../scripts/browser");
 const { createServer } = require("../scripts/serve");
 (async () => {
@@ -117,6 +117,38 @@ const { createServer } = require("../scripts/serve");
       await p.evaluate(() => reviewCloudSeason());
       const kept = await p.evaluate(() => Object.keys(localStorage).filter(k => k.includes("before-cloud-restore")).map(k => localStorage.getItem(k)).join("\n"));
       assert.match(kept, /PhoneOnlyMan/, "the first phone season is still kept");
+      await p.evaluate(() => staffSignOut()); await signIn(p);
+      assert.equal(await p.evaluate(() => S.syncOn), false, "a restored season stays paused on sign-in");
+    });
+    await check("Nexus shows a busy review and a late reply cannot undo Remove", async p => {
+      await signIn(p); await p.getByRole("button", { name: "Not now" }).click();
+      await p.evaluate(() => {
+        set({ fmtAsk:false, fmtDone:true, tab:"more", more:"nexus", syncOn:true });
+        Object.assign(window.gridlockCloud, {
+          getSeason: () => new Promise(resolve => { window.__finishReview = resolve; }),
+          deleteSeason: async () => ({ok:true})
+        });
+      });
+      if(process.env.GRIDLOCK_TEST_SHOTS){
+        await p.locator(".flash").waitFor({state:"hidden",timeout:6000});
+        fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS, {recursive:true});
+        await p.getByRole("button", {name:"Review or restore cloud season",exact:true}).locator("..").locator("..").screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"cloud-review-ready.png")});
+      }
+      await p.getByRole("button", { name: "Review or restore cloud season", exact:true }).click();
+      await p.waitForFunction(() => typeof __finishReview === "function");
+      assert.equal(await p.getByRole("button", { name: "Loading your cloud copy…", exact:true }).isDisabled(), true);
+      if(process.env.GRIDLOCK_TEST_SHOTS){
+        fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS, {recursive:true});
+        const section=p.getByRole("button", {name:"Loading your cloud copy…", exact:true}).locator("..").locator("..");
+        await section.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"cloud-review-loading.png")});
+      }
+      await p.getByRole("button", { name:"Remove what I sent", exact:true }).click();
+      await p.waitForFunction(() => /has been removed/.test(S.syncSaid));
+      await p.evaluate(() => __finishReview({ok:false,said:"No signal"}));
+      await p.waitForFunction(() => !_syncReviewing);
+      assert.equal(await p.evaluate(() => S.syncOn), false);
+      assert.match(await root(p), /has been removed/);
+      assert.equal(await p.getByRole("button", {name:"Review or restore cloud season",exact:true}).isDisabled(), false);
     });
     await check("a build without League sync never asks", async p => {
       await p.evaluate(() => { window.gridlockCloud = { signIn: async e => ({ ok: true, user: { id: "x", email: e } }), signOut: async () => {} }; });
