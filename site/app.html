@@ -73,6 +73,9 @@ h1,h2,h3,p{margin:0}
    SHELL — header and tab bar pinned, only .main scrolls
    ============================================================ */
 #root{height:100%;overflow:hidden}
+#tool-menu [hidden],#tool-clear[hidden],#tool-status[hidden]{display:none}
+#tool-menu{display:flex;flex-direction:column;gap:var(--s5)}
+#tool-find{min-width:0}
 .beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .beta-note{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -710,7 +713,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .list__row:active{background:var(--panel-2)}
 .list__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .list__name{font-size:var(--t-md);font-weight:600}
-.list__desc{font-size:var(--t-xs);color:var(--dim);line-height:1.35}
+.list__desc{font-size:var(--t-sm);color:var(--dim);line-height:1.5}
 .list__go{color:var(--dim);font-size:var(--t-lg);flex:none}
 .list__count{
   flex:none;font-size:var(--t-xs);font-weight:700;color:var(--mute);
@@ -7303,7 +7306,9 @@ window.nudgeSave = async () => {
 };
 function newestLogged(){
   let newest = 0, any = false;
-  [S.results, S.tally, S.breakouts, S.calls, S.assessments, S.moves].forEach(l => (l || []).forEach(r => {
+  // A scout's five or a penalty may be the only thing logged on the sheet.
+  const lists = [...SHEET_LISTS.map(k => S[k]), ...Object.values(S.scout || {}).map(p => p && p.breaks)];
+  lists.forEach(l => (l || []).forEach(r => {
     if(!r || typeof r !== "object") return; any = true;
     if(typeof r.at === "number" && r.at > newest && r.at <= Date.now() + 60000) newest = r.at;
   }));
@@ -9687,9 +9692,16 @@ function aimLane(fromId, aim){
   return {src, aim, blocked:by.length>0, by, ft:Math.round(Math.hypot(aim[0]-src.x, aim[1]-src.y))};
 }
 function sightLines(fromId, sx, sy){
+  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy,
+    () => sightLinesFresh(fromId, sx, sy));
+}
+function sightLinesFresh(fromId, sx, sy){
   const list = curLayout().bunkers;
   const src  = list.find(b=>b.id===fromId) || list[0];
   if(!src) return {src:null, lines:[], clear:0};
+  // Every lane uses the same footprints. Build them once, not again for
+  // every possible target; keep the angled beam's exact box spacing.
+  const boxes = new Map(list.map(b => [b, bunkerBoxes(b)]));
   const ox=src.x*sx, oy=src.y*sy;
   const lines = list.filter(b=>b!==src).map(b=>{
     const tx=b.x*sx, ty=b.y*sy;
@@ -9698,7 +9710,7 @@ function sightLines(fromId, sx, sy){
     // nothing he can act on.
     const by = list.filter(o=>{
       if(o===src||o===b) return false;
-      return bunkerBoxes(o).some(k =>
+      return boxes.get(o).some(k =>
         segHitsBox(ox,oy,tx,ty,k.x*sx,k.y*sy,(k.w*sx)/2,(k.h*sy)/2));
     }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
     return {to:b, x:tx, y:ty, blocked:by.length>0, by,
@@ -10131,7 +10143,7 @@ function fieldSVG(opts={}, runnersOnly){
     <line x1="4" y1="0" x2="4" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
     <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
 
-    <g filter="url(#bnkLift)">${bunks}</g>
+    <!--field-bunkers--><g filter="url(#bnkLift)">${bunks}</g><!--/field-bunkers-->
     ${heat}
     ${outs}
     ${moveArrows}
@@ -10207,6 +10219,9 @@ function profileOf(name){
  * "Pick a team" is right on a picker.
  */
 function pitOf(side){
+  return drawOnce("pit|" + side, () => pitOfFresh(side));
+}
+function pitOfFresh(side){
   const name = ((S[side] || {}).name) || "";
   // A team nobody scored reads as a dash, never as a guess: the default three
   // stars and "Balanced" are what the profile starts from, not his read. Every
@@ -12520,10 +12535,8 @@ function playBuilder(){
       puts him. Take a man off on his row, then tap where you want him — he keeps his
       number. Tap a bunker that already has a man to double it up. Give it the name your team shouts.</p>
       ${elsewhere.length ? `<p class="note">It comes with the same call's five on ${esc(elsewhere.join(", "))}, so it is built there too. Edit it on that field to move a man there.</p>` : ""}`
-    : `<p class="lede">Tap the bunker each man plants on, in order — one is the
-      first name you tap, five is the last. Tap a bunker that already has a man to
-      double it up; take a man off on his row.
-      The app draws the runs and works out who leaves on the buzzer; Go on each man's row says otherwise.</p>`}
+    : `<p class="lede">Tap a bunker for player 1, then players 2–5. Tap the same bunker
+      again to put two players there. Use <b>Take off</b> to change a pick.</p>`}
     <div class="fld"><label for="pl-name">What you call it</label>
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
         onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
@@ -12552,6 +12565,8 @@ function playBuilder(){
         ready ? "Save this play" : taken ? "Already a call — pick another name" : placed === 5 ? "Name it first" : `Pick ${5 - placed} more`}</button>
       <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
     </div>
+    <p class="note">The app draws the routes. After saving, use <b>Go</b> on each player's row
+      in Playbook to change when they leave.</p>
     <p class="note">A play is the five bunkers, and those change from field to field — so this is
       saved against ${esc(curLayout().name)}. On another event it will ask you to build it there.</p>`,
     curLayout().name);
@@ -17281,7 +17296,7 @@ const HELP = {
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
-  "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
+  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
     get how(){return ["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
@@ -17293,6 +17308,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Where do I find a tool?", "Open More and use Find a tool. Try roster, reports, backup or sign out. Tools are also grouped by before, during and after the game. Clear shows the full list again."],
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
@@ -17326,7 +17342,7 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
-  ["How do I sign out?", "Tap STAFF at the top right (or More, then Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
+  ["How do I sign out?", "Tap Account at the top right (or More, then Account & backups, also called Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
@@ -17811,10 +17827,14 @@ function repTeamPicked(){
   const list = repTeams(), want = S.repTeam || (pitNamed("right") ? S.right.name : "");
   return list.find(t => foldName(t) === foldName(want)) || list[0] || "";
 }
+// The sheet and scout book may spell the same team differently.
+function repBook(team){
+  return (S.scout || {})[team] || Object.entries(S.scout || {}).find(([t]) => foldName(t) === foldName(team))?.[1] || {};
+}
 // Their named calls, with the score state they ran each one in. On a watched
 // game they may have been the home side, and the score is read from theirs.
 function repTheirCalls(team){
-  const p = (S.scout || {})[team] || Object.entries(S.scout || {}).find(([t]) => foldName(t) === foldName(team))?.[1] || {};
+  const p = repBook(team);
   const rows = (p.breaks || []).filter(b => b && b.script && (S.repAll || !b.layout || b.layout === S.layoutKey));
   const by = {};
   rows.forEach(b => {
@@ -17831,7 +17851,7 @@ function repTheirCalls(team){
 }
 // Where they plant on this field: every man of every five logged.
 function repPlants(team){
-  const p = (S.scout || {})[team] || {};
+  const p = repBook(team);
   const at = {};
   let fives = 0;
   (p.breaks || []).filter(b => b && Array.isArray(b.plants) && b.plants.length && b.layout === S.layoutKey).forEach(b => {
@@ -18023,7 +18043,9 @@ function repPlayerPage(){
 }
 function repSeasonPage(sheets){
   const rec = repRecord(sheets);
-  if(!rec.rows.length) return sec("Season", repEmpty("No points scored on your sheets here yet. Tap who won each point on Tally and the season builds itself."));
+  const spreadsheets = sheets.length ? sec("Spreadsheets", `<p class="note">Each one opens in Excel, Numbers or Google Sheets. They are built from what is logged now.</p>
+      <div class="btnrow" style="flex-direction:column">${repCsvBtn("sheets", "Every sheet")}${repCsvBtn("points", "Every point")}${repCsvBtn("breakouts", "Every man charted")}</div>`) : "";
+  if(!rec.rows.length) return sec("Season", repEmpty("No points scored on your sheets here yet. Tap who won each point on Tally and the season builds itself.")) + spreadsheets;
   let run = 0;
   const diff = rec.rows.map(x => (run += x.sc.us - x.sc.them));
   const res = (S.results || []).filter(repOn), reads = res.filter(r => r.read);
@@ -18037,8 +18059,7 @@ function repSeasonPage(sheets){
         segs: [{n: x.sc.us, cls: "us"}, {n: x.sc.them, cls: "them"}]})), [["us", "points won"], ["them", "points lost"]])),
     rec.rows.length > 1 ? sec("Running point difference", repLine("Points for minus points against, added up sheet by sheet", diff, rec.rows.map(x => dayOf(x.m.at)))
       + `<p class="aid">Above the line you have scored more than you have given up, counting every sheet so far.</p>`) : "",
-    sec("Spreadsheets", `<p class="note">Each one opens in Excel, Numbers or Google Sheets. They are built from what is logged now.</p>
-      <div class="btnrow" style="flex-direction:column">${repCsvBtn("sheets", "Every sheet")}${repCsvBtn("points", "Every point")}${repCsvBtn("breakouts", "Every man charted")}</div>`)].join("");
+    spreadsheets].join("");
 }
 
 /* ---------- spreadsheets ---------- */
@@ -18053,6 +18074,22 @@ function csvCell(v){
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function csvText(head, rows){ return [head, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n"; }
+// A note may span several lines inside one quoted cell. Count records, not
+// line breaks, so the share/download message agrees with the spreadsheet.
+function csvRows(text){
+  let quoted = false, rows = 0, start = 0;
+  for(let i = 0; i < text.length; i++){
+    if(text[i] === '"'){
+      if(quoted && text[i + 1] === '"') i++;
+      else quoted = !quoted;
+    } else if(text[i] === "\n" && !quoted){
+      if(i > start) rows++;
+      start = i + 1;
+    }
+  }
+  if(start < text.length) rows++;
+  return Math.max(0, rows - 1); // The first record is the heading.
+}
 const repDate = dateStamp;
 const repField = m => (LAYOUTS[m && m.layout] || {}).name || "";
 const REPORT_CSV = {
@@ -18077,8 +18114,12 @@ const REPORT_CSV = {
   points: () => { const rows = [];
     repSheets().forEach(m => {
       const pts = new Set();
-      [S.results, S.calls, S.tally, S.breakouts, S.pens, S.timeouts].forEach(l => (l || []).forEach(r => { if(r && r.m === m.id && r.pt > 0) pts.add(r.pt); }));
-      const theirs = ((S.scout || {})[m.vs] || {}).breaks || [];
+      const theirs = repBook(m.vs).breaks || [];
+      // Scout, movement, grades and voice notes can be the only record of a
+      // point. Keep that row too, without making up its result or a call.
+      [...SHEET_LISTS.map(k => S[k]), theirs].forEach(l => (l || []).forEach(r => {
+        if(r && r.m === m.id && Number.isInteger(r.pt) && r.pt > 0) pts.add(r.pt);
+      }));
       [...pts].sort((a, b) => a - b).forEach(pt => {
         const sc = scoreBefore(m.id, pt), res = (S.results || []).find(r => r && r.m === m.id && r.pt === pt) || {};
         const call = (S.calls || []).find(c => c && c.m === m.id && c.pt === pt), tb = theirs.find(b => b && b.m === m.id && b.pt === pt);
@@ -18106,7 +18147,7 @@ window.exportReport = async key => {
   const make = REPORT_CSV[key]; if(!make) return;
   const [stem, text] = make();
   const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${new Date().toISOString().slice(0, 10)}.csv`;
-  const lines = text.split("\r\n").filter(Boolean).length - 1;
+  const lines = csvRows(text);
   if(lines < 1){ flash("Nothing in that list yet, so there is no spreadsheet to make."); return; }
   if(typeof window.gridlockExportTable === "function"){
     try {
@@ -18143,43 +18184,70 @@ function manReportText(name){
 window.shareManReport = () => { const n = repManPicked().name; if(n) handOff(`${n}'s report`, manReportText(n)); };
 
 const MORE_GROUPS=[
-  ["The field",[
-    ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
-    ["walk","Walk","Notes from walking the field"],
-    ["movement","Movement","Bunker to bunker after the break"],
-    ["stats","Bunker stats","Where men go, and where they go out"]]],
-  ["The team",[
-    ["lineups","Lineups","Who is on this point"],
+  ["Before the game",[
     ["team","Team","Roster, numbers and positions"],
-    ["assess","Assess","Grade a player after the point"],
-    ["codes","Codes","Your code words, every event"],
-    ["messages","Messages","Squad notes that stay with the team"]]],
-  ["Running the day",[
-    ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["lineups","Lineups","Who is on this point"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
-    ["matches","Matches","Every sheet you have kept"]]],
-  ["Reading the season",[
-    ["reports","Reports","Graphs and spreadsheets from what you logged"]]],
+    ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["walk","Walk","Notes from walking the field"],
+    ["codes","Codes","Your code words, every event"]]],
+  ["During the game",[
+    ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
+    ["movement","Movement","Bunker to bunker after the break"]]],
+  ["After the game",[
+    ["matches","Matches","Review every match sheet you have kept"],
+    ["reports","Reports","Graphs and spreadsheets from what you logged"],
+    ["stats","Bunker stats","Where men go, and where they go out"],
+    ["assess","Assess","Grade a player after the point"],
+    ["messages","Messages","Squad notes that stay with the team"]]],
   ["App",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
-  ["Account & backups",[
-    ["nexus","Nexus","Your account, cloud sharing, saved copies and privacy"]]]
+  ["Your account",[
+    ["nexus","Account & backups","Nexus · Sign out, saved copies, cloud sharing and privacy"]]]
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
 const MORE_HIDDEN = {classes:"Classes", league:"League"};
 const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
+let _moreQuery = "";
+window.filterTools = value => {
+  const menu = document.getElementById("tool-menu"); if(!menu) return;
+  _moreQuery = String(value || "").slice(0,100);
+  const words = foldName(_moreQuery).split(/\s+/).filter(Boolean);
+  let count = 0;
+  menu.querySelectorAll(".list__row").forEach(row => {
+    const name = foldName(row.textContent);
+    row.hidden = !words.every(word => name.includes(word));
+    if(!row.hidden) count++;
+  });
+  menu.querySelectorAll("[data-tools-group]").forEach(group => {
+    group.hidden = !group.querySelector(".list__row:not([hidden])");
+  });
+  const status = document.getElementById("tool-status");
+  if(status){ status.hidden = !words.length; status.textContent = count ? `${count} ${count === 1 ? "tool" : "tools"} found.` : "No tools found. Try Team, Schedule, Reports or Account."; }
+  const clear = document.getElementById("tool-clear"); if(clear) clear.hidden = !_moreQuery;
+};
+window.clearTools = () => {
+  const input = document.getElementById("tool-find");
+  if(input){ input.value = ""; filterTools(""); input.focus(); }
+};
 function morePage(){
   if(!S.more){
-    return MORE_GROUPS.map(([title,rows])=>sec(title,`<div class="list">
+    return `<div class="fld"><label for="tool-find">Find a tool</label>
+      <div class="btnrow" style="margin:0"><input id="tool-find" type="search" class="grow" value="${esc(_moreQuery)}"
+        maxlength="100" placeholder="Team, reports, backup…" autocomplete="off" oninput="filterTools(this.value)"
+        onkeydown="if(event.key==='Escape'){event.preventDefault();clearTools()}"/>
+      <button id="tool-clear" class="btn btn--quiet" onclick="clearTools()"${_moreQuery ? "" : " hidden"}>Clear</button></div>
+      <p id="tool-status" class="note" role="status" aria-live="polite" hidden></p></div>
+      <div id="tool-menu">` + MORE_GROUPS.map(([title,rows])=>`<div data-tools-group>` + sec(title,`<div class="list">
       ${rows.map(([k,n,d])=>`<button class="list__row" onclick="set({more:'${k}'})">
         <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
         ${gateFor("more/" + k) ? `<span class="gate__chip">Team</span>` : moreCount(k)}<span class="list__go">›</span>
       </button>`).join("")}
-    </div>`)).join("");
+    </div>`) + `</div>`).join("") + `</div>`;
   }
   return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({more:null})">‹ More</button>
     ${moreBody(S.more)}`;
@@ -18761,7 +18829,7 @@ function moreBody(k){
   if(k==="league") return leaguePage();
   if(k==="plan") return planPage();
   if(k==="help") return helpPage();
-  if(k==="nexus") return sec("Nexus", `<div class="panel">
+  if(k==="nexus") return sec("Account & backups", `<p class="note">Nexus · Your sign-in and saved season.</p><div class="panel">
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
       </div>
@@ -18967,7 +19035,7 @@ function shell(){
         ${/* The chip read like a button and did nothing; sign-out sat at the foot of
               Nexus. It is the door to the account now: Nexus, with Sign out at the
               top — or, on a screen with no tabs, the sign-out question itself. */""}${staffed()
-          ? `<button class="who-btn" onclick="${asking ? "askSignOut()" : "openAccount()"}" aria-label="Staff — signed in as ${esc(S.email || "staff")}, account and sign out"><span class="who-chip staff">Staff</span></button>`
+          ? `<button class="who-btn" onclick="${asking ? "askSignOut()" : "openAccount()"}" aria-label="Staff — signed in as ${esc(S.email || "staff")}, account and sign out"><span class="who-chip staff">${asking ? "Sign out" : "Account"}</span></button>`
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
@@ -19293,6 +19361,62 @@ function patchScreen(current, next){
 }
 let _where = "", _screenMarkup = "";
 let _screenControls = [];
+// Field drawings contain hundreds of SVG nodes and usually stay identical
+// while a score, read or menu changes. Reuse a parsed drawing, never a live
+// node: animation and editing must not change the cached original. Exact
+// markup is the key, so changing a bunker, name, lane or player is a miss.
+const _fieldNodes = new Map();
+let _fieldNodeChars = 0;
+function fieldNode(markup, group = false){
+  let node = _fieldNodes.get(markup);
+  if(node){ _fieldNodes.delete(markup); _fieldNodes.set(markup, node); return node; }
+  const layers = [];
+  const body = group ? `<svg>${markup}</svg>` : markup.replace(/<!--field-bunkers-->([\s\S]*?)<!--\/field-bunkers-->/g, (all, layer) => {
+    layers.push(fieldNode(layer, true));
+    return `<!--field-bunkers--><g data-field-layer="${layers.length - 1}"></g><!--/field-bunkers-->`;
+  });
+  const drawing = document.createElement("template"); drawing.innerHTML = body;
+  drawing.content.querySelectorAll("g[data-field-layer]").forEach(slot =>
+    slot.replaceWith(layers[Number(slot.getAttribute("data-field-layer"))].cloneNode(true)));
+  node = group ? drawing.content.firstElementChild.firstElementChild : drawing.content.firstElementChild;
+  if(markup.length <= 300000){
+    _fieldNodes.set(markup, node); _fieldNodeChars += markup.length;
+    while(_fieldNodes.size > 12 || _fieldNodeChars > 300000){
+      const first = _fieldNodes.keys().next().value;
+      _fieldNodeChars -= first.length; _fieldNodes.delete(first);
+    }
+  }
+  return node;
+}
+// Going back to a recently opened screen should not parse its controls again.
+// Keep only exact, inert markup; fill fresh field clones into a fresh page.
+// Nothing here is a saved season, and sign-out releases every cached page.
+const _screenPages = new Map();
+let _screenPageChars = 0;
+function screenPage(html){
+  const fields = [];
+  const body = html.replace(/<svg class="field"[\s\S]*?<\/svg>/g, markup => {
+    fields.push(fieldNode(markup));
+    return `<svg data-field-slot="${fields.length - 1}"></svg>`;
+  });
+  let original = _screenPages.get(body);
+  if(original){ _screenPages.delete(body); _screenPages.set(body, original); }
+  else {
+    const template = document.createElement("template"); template.innerHTML = body;
+    original = template.content;
+    if(S.entered && body.length <= 150000){
+      _screenPages.set(body, original); _screenPageChars += body.length;
+      while(_screenPages.size > 3 || _screenPageChars > 150000){
+        const first = _screenPages.keys().next().value;
+        _screenPageChars -= first.length; _screenPages.delete(first);
+      }
+    }
+  }
+  const page = original.cloneNode(true);
+  page.querySelectorAll("svg[data-field-slot]").forEach(slot =>
+    slot.replaceWith(fields[Number(slot.getAttribute("data-field-slot"))].cloneNode(true)));
+  return page;
+}
 // Animation and timed notices also change the live DOM between renders. A
 // matching markup string alone does not prove that screen is still in place.
 // Tally's observer-owned sizing is the one intentional layout-only difference.
@@ -19318,6 +19442,8 @@ function controlValues(root){
 }
 function render(){
   fixScreen();
+  if(!S.entered || S.tab !== "more") _moreQuery = "";
+  if(!S.entered){ _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
   // The call key is guarded at the same door: a key this build does not have
   // was only repaired at launch and in a loaded copy, so set live — a merge, a
   // turned-off play, anything a later build wires — the header printed the raw
@@ -19332,16 +19458,23 @@ function render(){
   _lastPointMemo = new Map();
   try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
-  if(screen !== _where){
-    // A new screen is parsed once, directly into the live document.
-    root.innerHTML = html; labelFields(root); _screenControls = controlValues(root);
+  const newScreen = screen !== _where;
+  if(newScreen){
+    // Build the new screen off-page, then insert it once. Parsing hundreds
+    // of controls into the live root makes first entry to Tally expensive.
+    // The new scroller still starts at the top; same-screen taps keep theirs.
+    const page = screenPage(html);
+    labelFields(page); _screenControls = controlValues(page);
+    root.replaceChildren(page);
   } else if(dirty || html !== _screenMarkup){
-    const page = document.createElement("div"); page.innerHTML = html;
+    const page = screenPage(html);
     labelFields(page); _screenControls = controlValues(page); patchScreen(root, page);
   }
   // Even unchanged markup must reset a dirty control to the rendered value.
   // A lazy bunker picker may have filled its options, so use value, not index.
-  root.querySelectorAll("input,textarea,select").forEach((old, i) => {
+  // A new screen's controls already have these values. Reapplying them
+  // only matters when keeping controls the coach could have edited.
+  if(!newScreen) root.querySelectorAll("input,textarea,select").forEach((old, i) => {
     const fresh = _screenControls[i];
     if(old.value !== fresh.value || (old.tagName === "SELECT" && old.selectedIndex < 0 && fresh.selectedIndex >= 0)) old.value = fresh.value;
     if(old.tagName === "SELECT" && fresh.selectedIndex < 0) old.selectedIndex = -1;
@@ -19350,6 +19483,7 @@ function render(){
   _screenMarkup = html;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
+  if(S.tab === "more" && !S.more) filterTools(_moreQuery);
   watchTallyField();
   placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;

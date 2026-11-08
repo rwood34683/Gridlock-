@@ -95,7 +95,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Plan, Help · and under **Admin**, Nexus — where admin and staff sign in, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
+More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
@@ -1090,6 +1090,37 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     by `at`) is newer than the last full copy or the last confirmed League sync
     — not after a week — and **Save now** (`nudgeSave`) saves everything there
     and then, or goes to Nexus when it could not. `test/ux-tally-review.cjs`.
+
+73. Sideline polish: new screens are parsed in a detached template and inserted
+    once, so first entry to Tally does not parse its controls into the live root.
+    Same-screen patches still retain the scroller, and every tap keeps its
+    synchronous save and recovery copy. Keep the existing load-test limits.
+    New controls already carry their rendered values; only reused controls
+    need resetting. Sightlines builds each footprint once per calculation,
+    and its geometry and the pit profile are reused only within that draw,
+    never across a field or team edit. Keep the angled beams' box spacing.
+    Reuse parsed field drawings and bunker layers by their exact SVG text.
+    Clone the cached original so live animation cannot dirty it. Keep that
+    cache bounded to 12 entries and 300,000 source characters, drop it on
+    sign-out, and always redraw changed geometry, names, paths and players.
+    Reuse up to three exact screen bodies (150,000 source characters total)
+    as inert originals too; clone controls and insert fresh field drawings.
+    Drop those pages on sign-out. Neither cache changes the save or journal.
+    The header says **Account** (or **Sign out** during setup), and More says
+    **Account & backups**, with **Nexus** retained in its description so old
+    help directions remain findable. Menu descriptions use the readable small
+    type size. More groups tools by before, during and after the game and
+    lets a coach find a tool by its name or description. Search stays only
+    in memory, survives Back within More, and clears on another tab or sign-out.
+    Filtering must not save the season or replace the input on every letter.
+    Play-building directions name the visible Take off control; Go timing is
+    on Playbook after saving, not on the builder itself. Keep the owner's red
+    secondary text. CSV confirmation messages
+    count records outside quoted cells, so a multiline note or escaped quote
+    never adds a spreadsheet row. `test/reports.cjs`, `test/ux-players.cjs` and
+    the rendering/device suites cover these changes. The observer-led field
+    tryout is in `docs/SIDELINE-TRYOUT.txt`; do not claim real coach feedback
+    from automated browser checks.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
@@ -2860,6 +2891,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   “undated” in a shared sheet's filename. Never substitute today's date or the
   Unix epoch for a date nobody recorded. `test/reports.cjs` covers the import,
   report and both exports.
+- Leave a point out of Reports because only Scout, movement, a grade or a
+  voice note was logged on it. Every point reads every sheet record and the
+  opponent's scout book, leaving an unknown result blank. Opponent calls,
+  plants and spreadsheets use the same team-name match, so a different
+  capitalization never hides a logged five. `test/reports.cjs` holds both.
+  A sheet with no score still offers its spreadsheets under Season; scouting
+  does not have to wait for a result before the coach can take it with him.
+  The save reminder reads those records too: a scout's five, a sighting, a
+  shot, a penalty or a timeout still needs a backup even without a scored
+  point. A confirmed sync or a newer saved file quiets the reminder.
 - Let a cloud build accept a secret/service-role key, overwrite source folders,
   or reuse an offline cache after its adapter or public configuration changed.
   Accept public keys only, restrict cloud output to a child of dist, and hash
