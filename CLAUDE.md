@@ -1095,6 +1095,10 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     once, so first entry to Tally does not parse its controls into the live root.
     Same-screen patches still retain the scroller, and every tap keeps its
     synchronous save and recovery copy. Keep the existing load-test limits.
+    New controls already carry their rendered values; only reused controls
+    need resetting. Sightlines builds each footprint once per calculation,
+    and its geometry and the pit profile are reused only within that draw,
+    never across a field or team edit. Keep the angled beams' box spacing.
     The header says **Account** (or **Sign out** during setup), and More says
     **Account & backups**, with **Nexus** retained in its description so old
     help directions remain findable. Menu descriptions use the readable small

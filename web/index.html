@@ -8927,9 +8927,16 @@ function aimLane(fromId, aim){
   return {src, aim, blocked:by.length>0, by, ft:Math.round(Math.hypot(aim[0]-src.x, aim[1]-src.y))};
 }
 function sightLines(fromId, sx, sy){
+  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy,
+    () => sightLinesFresh(fromId, sx, sy));
+}
+function sightLinesFresh(fromId, sx, sy){
   const list = curLayout().bunkers;
   const src  = list.find(b=>b.id===fromId) || list[0];
   if(!src) return {src:null, lines:[], clear:0};
+  // Every lane uses the same footprints. Build them once, not again for
+  // every possible target; keep the angled beam's exact box spacing.
+  const boxes = new Map(list.map(b => [b, bunkerBoxes(b)]));
   const ox=src.x*sx, oy=src.y*sy;
   const lines = list.filter(b=>b!==src).map(b=>{
     const tx=b.x*sx, ty=b.y*sy;
@@ -8938,7 +8945,7 @@ function sightLines(fromId, sx, sy){
     // nothing he can act on.
     const by = list.filter(o=>{
       if(o===src||o===b) return false;
-      return bunkerBoxes(o).some(k =>
+      return boxes.get(o).some(k =>
         segHitsBox(ox,oy,tx,ty,k.x*sx,k.y*sy,(k.w*sx)/2,(k.h*sy)/2));
     }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
     return {to:b, x:tx, y:ty, blocked:by.length>0, by,
@@ -9447,6 +9454,9 @@ function profileOf(name){
  * "Pick a team" is right on a picker.
  */
 function pitOf(side){
+  return drawOnce("pit|" + side, () => pitOfFresh(side));
+}
+function pitOfFresh(side){
   const name = ((S[side] || {}).name) || "";
   // A team nobody scored reads as a dash, never as a guess: the default three
   // stars and "Balanced" are what the profile starts from, not his read. Every
@@ -18597,7 +18607,8 @@ function render(){
   _lastPointMemo = new Map();
   try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
-  if(screen !== _where){
+  const newScreen = screen !== _where;
+  if(newScreen){
     // Build the new screen off-page, then insert it once. Parsing hundreds
     // of controls into the live root makes first entry to Tally expensive.
     // The new scroller still starts at the top; same-screen taps keep theirs.
@@ -18610,7 +18621,9 @@ function render(){
   }
   // Even unchanged markup must reset a dirty control to the rendered value.
   // A lazy bunker picker may have filled its options, so use value, not index.
-  root.querySelectorAll("input,textarea,select").forEach((old, i) => {
+  // A new screen's controls already have these values. Reapplying them
+  // only matters when keeping controls the coach could have edited.
+  if(!newScreen) root.querySelectorAll("input,textarea,select").forEach((old, i) => {
     const fresh = _screenControls[i];
     if(old.value !== fresh.value || (old.tagName === "SELECT" && old.selectedIndex < 0 && fresh.selectedIndex >= 0)) old.value = fresh.value;
     if(old.tagName === "SELECT" && fresh.selectedIndex < 0) old.selectedIndex = -1;

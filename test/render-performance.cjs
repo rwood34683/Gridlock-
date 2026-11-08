@@ -38,6 +38,34 @@ const SEED = require("../scripts/seed");
         return moved && document.querySelector("g.live").innerHTML === expected;
       }), true);
     });
+    await check("Sightlines builds footprints once per draw and refreshes after a field edit", async p => {
+      const result = await p.evaluate(() => {
+        const originalLayout = curLayout, originalBoxes = bunkerBoxes, previous = _lastPointMemo;
+        const list = [
+          {id:"from",x:0,y:0,w:2,h:2}, {id:"to",x:20,y:0,w:2,h:2},
+          {id:"block",x:10,y:0,w:2,h:2}, {id:"aside",x:10,y:12,w:2,h:2}
+        ];
+        let calls = 0;
+        curLayout = () => ({bunkers:list});
+        bunkerBoxes = b => { calls++; return originalBoxes(b); };
+        try {
+          _lastPointMemo = new Map();
+          const first = sightLines("from",2,2), again = sightLines("from",2,2);
+          const blocked = first.lines.find(l => l.to.id === "to");
+          const built = calls;
+          _lastPointMemo = null;
+          list[2].y = 12;
+          const cleared = sightLines("from",2,2).lines.find(l => l.to.id === "to");
+          return {built, count:list.length, same:JSON.stringify(first) === JSON.stringify(again),
+            blockers:blocked.by.map(b=>b.id), distance:blocked.ft, clear:!cleared.blocked};
+        } finally { curLayout = originalLayout; bunkerBoxes = originalBoxes; _lastPointMemo = previous; }
+      });
+      assert.equal(result.built, result.count);
+      assert.equal(result.same, true);
+      assert.deepEqual(result.blockers, ["block"]);
+      assert.equal(result.distance, 20);
+      assert.equal(result.clear, true);
+    });
     await check("route search keeps the shortest clear path around a wall", async p => {
       const route = await p.evaluate(() => {
         const from = [10,60], to = [140,60], wall = {x:75,y:60,hw:10,hh:20,ids:new Set(["wall"])};
