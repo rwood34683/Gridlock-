@@ -225,6 +225,24 @@ const SEED = require("../scripts/seed.js");
       assert.deepEqual(after, { saved: true, tab: "tally", gone: true, said: true }, "saved where he is, and the nudge goes");
     });
 
+    // Verified 8 Nov 2026: on the shortest phones the field comes first and
+    // the ends row sits under the result bar until he scrolls. It must still
+    // be reachable — scrolled into view, a real tap on Switch ends switches.
+    for (const vp of [{ width: 375, height: 667, mobile: true }, { width: 320, height: 568, mobile: true }])
+      await check(`Switch ends scrolls into reach and a tap switches at ${vp.width}x${vp.height}`, async p => {
+        await p.evaluate(() => { S.matches = [{ id: "m1", at: Date.now(), vs: "Rejects", layout: S.layoutKey, raceTo: 4 }]; S.matchId = "m1";
+          S.right = { name: "Rejects" }; S.point = 1; S.results = []; save(S); set({ tab: "tally" }); });
+        await p.waitForTimeout(500);
+        const at = await p.evaluate(() => { const row = document.querySelector("#tally-map").nextElementSibling;
+          const b = [...row.querySelectorAll("button")].find(x => /Switch ends/.test(x.textContent)); b.scrollIntoView({ block: "center" });
+          const q = b.getBoundingClientRect(), bar = document.querySelector(".resultbar").getBoundingClientRect(), tabs = document.querySelector("nav.tabs");
+          const top = Math.min(bar.top, tabs ? tabs.getBoundingClientRect().top : innerHeight);
+          return { x: q.x + q.width / 2, y: q.y + q.height / 2, clear: q.bottom <= top + 1, end: ourEnd() }; });
+        assert.ok(at.clear, "the button is clear of the result bar and the tabs once scrolled to");
+        await p.touchscreen.tap(at.x, at.y); await p.waitForTimeout(300);
+        assert.notEqual(await p.evaluate(() => ourEnd()), at.end, "the tap switched ends");
+      }, vp);
+
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
       const mid = await p.evaluate(() => S.matchId);
