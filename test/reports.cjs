@@ -156,13 +156,25 @@ const SEED = require("../scripts/seed.js");
       assert.match(await root(p),/2 of 2 fives/);
       assert.equal(rowsOf((await csv(p,"points")).text)[1][7],"Blitz");
     });
-    for(const badDate of [null, "not-a-date", 1e100])
-      await check(`an imported sheet with an unreadable date stays usable and exports (${badDate})`, async p => {
+    for(const badDate of [null, "not-a-date", 1e100, 0, -5])
+      await check(`an imported undated sheet stays honest in Matches, Reports and exports (${badDate})`, async p => {
         const restored=await p.evaluate(at => {
-          const copy=JSON.parse(copyPayload("all"));copy.data.matches[0].at=at;
+          const copy=JSON.parse(copyPayload("all"));
+          copy.data.matches[0].at=at;copy.data.matches[1].at=at;
           return loadCopy("replace",JSON.stringify(copy));
         },badDate);
         assert.equal(restored,true);
+        await p.evaluate(() => set({more:"matches"}));
+        const current=p.locator("section.sec").filter({has:p.getByRole("heading",{name:"This match",exact:true})});
+        assert.match(await current.locator(".panel > .note").innerText(),/1–2 · Date not recorded ·/,
+          "This match must not substitute today, 1970 or Invalid Date");
+        const kept=p.locator("section.sec").filter({has:p.getByRole("heading",{name:"Kept",exact:true})});
+        for(const label of [/^Rejects.*4–1/,/^Dynasty.*1–2/]){
+          const row=kept.locator(".assign").filter({has:p.locator(".assign__job").filter({hasText:label})});
+          assert.equal(await row.locator(".assign__who").innerText(),"Date not recorded",
+            "both the current and previously kept sheet must keep their date unknown");
+        }
+        await p.evaluate(() => set({more:"reports"}));
         await p.evaluate(() => set({repTab:"season"}));
         assert.match(await root(p),/Date not recorded/);
         const sheets=(await csv(p,"sheets")).text;
@@ -172,6 +184,25 @@ const SEED = require("../scripts/seed.js");
         await p.evaluate(() => sendSheet());
         assert.match(await p.evaluate(() => __sheetName),/-undated\.json$/);
       });
+    await check("Matches keeps a recorded date and time when a season copy is replaced", async p => {
+      const at=Date.UTC(2026,10,3,14,35);
+      const restored=await p.evaluate(at => {
+        const copy=JSON.parse(copyPayload("all"));
+        copy.data.matches[0].at=at;copy.data.matches[1].at=at;
+        return loadCopy("replace",JSON.stringify(copy));
+      },at);
+      assert.equal(restored,true);
+      await p.evaluate(() => set({more:"matches"}));
+      const expected=await p.evaluate(at => new Date(at).toLocaleString([],
+        {weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}),at);
+      const current=p.locator("section.sec").filter({has:p.getByRole("heading",{name:"This match",exact:true})});
+      assert.ok((await current.locator(".panel > .note").innerText()).includes(expected));
+      const kept=p.locator("section.sec").filter({has:p.getByRole("heading",{name:"Kept",exact:true})});
+      for(const label of [/^Rejects.*4–1/,/^Dynasty.*1–2/]){
+        const row=kept.locator(".assign").filter({has:p.locator(".assign__job").filter({hasText:label})});
+        assert.equal(await row.locator(".assign__who").innerText(),expected);
+      }
+    });
     await check("an imported multiline note counts as one spreadsheet row", async p => {
       for(const note of ['First line\r\nSecond line', 'He said "hold", then\r\n"go"', 'First line\nSecond line']){
         const restored=await p.evaluate(note => {

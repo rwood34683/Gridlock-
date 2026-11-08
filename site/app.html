@@ -5009,12 +5009,15 @@ function curMatch(){ return (S.matches || []).find(m => m.id === S.matchId) || n
 // One formatter, made once: toLocaleDateString builds a new one every call,
 // and a sheet's name is printed in every game picker, chip and kept row.
 const DAY_FMT = new Intl.DateTimeFormat([], {month:"short", day:"numeric"});
+const MATCH_TIME_FMT = new Intl.DateTimeFormat([], {weekday:"short", month:"short", day:"numeric",
+  hour:"numeric", minute:"2-digit"});
 function recordedDate(t){
   if(t == null || t === "" || typeof t === "boolean") return null;
   const d = new Date(t);
-  return Number.isFinite(d.getTime()) ? d : null;
+  return Number.isFinite(d.getTime()) && d.getTime() > 0 ? d : null;
 }
 const dayOf = t => { const d = recordedDate(t); return d ? DAY_FMT.format(d) : "Date not recorded"; };
+const matchWhen = t => { const d = recordedDate(t); return d ? MATCH_TIME_FMT.format(d) : "Date not recorded"; };
 const dateStamp = t => { const d = recordedDate(t); return d ? d.toISOString().slice(0, 10) : ""; };
 function gameNth(m){
   if(!m) return "";
@@ -18493,9 +18496,7 @@ function moreBody(k){
         <h3 class="panel__title"${matchVs()?"":` style="color:var(--dim)"`}>${
           esc(matchVs()||"No opponent yet")}</h3>
         <p class="note">${(sc => sc.us+sc.them
-            ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(new Date((curMatch()||{}).at || Date.now())
-            .toLocaleString([], {weekday:"short", month:"short", day:"numeric",
-                                 hour:"numeric", minute:"2-digit"}))} ·
+            ? `${sc.us}–${sc.them} · ` : "")(matchScore())}${esc(matchWhen((curMatch()||{}).at))} ·
           point ${sheetPoint()}${raceTo() ? ` · race to ${raceTo()}` : mercy() ? ` · mercy at ${mercy()}` : ""} · ${sheetSize(curMatch())} logged</p>
       </div>
       <div class="fld"><label>Name this sheet</label>
@@ -18531,8 +18532,7 @@ function moreBody(k){
             (sc => sc.us+sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}${
             !m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}${
             m.watch?" · watched":""}${on?" · on now":""}</span>
-          <span class="assign__who">${esc(new Date(m.at).toLocaleString([], {weekday:"short", month:"short",
-            day:"numeric", hour:"numeric", minute:"2-digit"}))}${m.note?" · "+esc(m.note):""}${
+          <span class="assign__who">${esc(matchWhen(m.at))}${m.note?" · "+esc(m.note):""}${
             untoldOn(m.id) ? ` · <b style="color:var(--warn)">${untoldOn(m.id)} still to tell</b>` : ""}</span></span>
           ${on?"":`<span class="assign__acts">${n ? `<button class="btn btn--quiet" onclick="openReview(${jsq(m.id)})">${entitled("team")?"Review":"Review · Team"}</button>` : ""}<button class="btn btn--quiet" onclick="openMatch(${jsq(m.id)})">${entitled("team")?"Open":"Open · Team"}</button>
           <button class="btn btn--quiet" style="color:var(--warn)" aria-label="Delete ${esc(matchLabel(m))}" onclick="delSheet(${jsq(m.id)})">Delete</button></span>`}
