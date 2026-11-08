@@ -1140,7 +1140,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     "in 40 min" / "on now" on the day, `scoutWhen`), the field and pit as the
     schedule prints them or "Field not printed on the schedule", which of his
     games it is for, free or clashing with one of his own (send someone), and
-    Watch. A game between two teams he plays later scouts both. The game-by-game
+    Watch. A game between two teams he plays later scouts both. The owner then
+    asked for lights: the list is **Play and scout, by the clock** (`dayLights`),
+    his games mixed in, and every row a light with its word beside it, never
+    colour alone (`DAY_LIGHT`) — red **Up to play** is his next game on now or
+    inside the hour, green **You play** a game of his further off, yellow
+    **Scout** a team he still plays; his own rows carry Start sheet
+    (`playGame`). The game-by-game
     cards follow under it. Times are the league's, moved only by a pit he set as
     running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
 
