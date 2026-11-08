@@ -1082,8 +1082,9 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     break on this field came from the far end, `statEndsMoved()`) keeps the
     physical picture. **Won–lost** beside each bunker: with a man of that side
     broken there, who won the point, each point once a bunker a side (`wonAt`).
-    Under three logged (`STAT_THIN`, `statThin`) the row, the number and the
-    ring are faint and the note says too few to read. Layers and every other
+    Under three men logged (`STAT_THIN`, `statThin` — men, not entries: a
+    man shot on the break is a visit and an out, never two) the row, the
+    number and the ring are faint and the note says too few to read. Layers and every other
     heat stay physical. **A backup after every match**: `copyNudge()` speaks on
     a finished sheet and on Matches as soon as anything logged (`newestLogged`,
     by `at`) is newer than the last full copy or the last confirmed League sync

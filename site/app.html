@@ -9120,7 +9120,9 @@ function statKeep(){
 // Under three logged a bunker's count is a coincidence, not a read: drawn
 // faint and said so, the rule every read in the app keeps.
 const STAT_THIN = 3;
-const statThin = v => !v || v.visits + v.outs < STAT_THIN;
+// Counted in men, not entries: a man shot on the break is a visit and an out at
+// the same bunker, so the two are never added — two men, one shot, are two.
+const statThin = v => !v || Math.max(v.visits, v.outs) < STAT_THIN;
 // Has any break on this field been charted from the far end? Only then is
 // "turned to your end" different from "as played", and the switch shows.
 function statEndsMoved(){

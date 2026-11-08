@@ -200,6 +200,11 @@ const SEED = require("../scripts/seed.js");
       const thin = await p.evaluate(() => { S.breakouts = S.breakouts.slice(0, 2); save(S); set({ statAsPlayed: true });
         return { rows: document.querySelectorAll(".tbl--stats tr.thin").length, note: /too few to read/.test(document.getElementById("root").innerText) }; });
       assert.equal(thin.rows, 2); assert.ok(thin.note);
+      // A man shot on the break is a visit and an out at one bunker: two men,
+      // one of them shot, are two men logged, not three.
+      const shot = await p.evaluate(() => { S.breakouts = S.breakouts.slice(0, 2).map((r, i) => ({ ...r, alive: i !== 0 })); save(S); set({ statAsPlayed: false });
+        const tr = document.querySelector(".tbl--stats tbody tr"); return { cells: [...tr.cells].slice(1, 3).map(c => c.innerText.trim()), thin: tr.classList.contains("thin") }; });
+      assert.deepEqual(shot, { cells: ["2", "1"], thin: true }, "two men, one shot, is still too few to read");
     });
     await check("after a match, the backup nudge speaks for anything logged since the last copy, and a working League sync quiets it", async p => {
       const said = await p.evaluate(() => {
@@ -219,6 +224,24 @@ const SEED = require("../scripts/seed.js");
         return { saved: S.copiedAt > before, tab: S.tab, gone: !document.querySelector("#root .copy-nudge"), said: /Saved\. Keep the file/.test(document.getElementById("root").innerText) }; });
       assert.deepEqual(after, { saved: true, tab: "tally", gone: true, said: true }, "saved where he is, and the nudge goes");
     });
+
+    // Verified 8 Nov 2026: on the shortest phones the field comes first and
+    // the ends row sits under the result bar until he scrolls. It must still
+    // be reachable — scrolled into view, a real tap on Switch ends switches.
+    for (const vp of [{ width: 375, height: 667, mobile: true }, { width: 320, height: 568, mobile: true }])
+      await check(`Switch ends scrolls into reach and a tap switches at ${vp.width}x${vp.height}`, async p => {
+        await p.evaluate(() => { S.matches = [{ id: "m1", at: Date.now(), vs: "Rejects", layout: S.layoutKey, raceTo: 4 }]; S.matchId = "m1";
+          S.right = { name: "Rejects" }; S.point = 1; S.results = []; save(S); set({ tab: "tally" }); });
+        await p.waitForTimeout(500);
+        const at = await p.evaluate(() => { const row = document.querySelector("#tally-map").nextElementSibling;
+          const b = [...row.querySelectorAll("button")].find(x => /Switch ends/.test(x.textContent)); b.scrollIntoView({ block: "center" });
+          const q = b.getBoundingClientRect(), bar = document.querySelector(".resultbar").getBoundingClientRect(), tabs = document.querySelector("nav.tabs");
+          const top = Math.min(bar.top, tabs ? tabs.getBoundingClientRect().top : innerHeight);
+          return { x: q.x + q.width / 2, y: q.y + q.height / 2, clear: q.bottom <= top + 1, end: ourEnd() }; });
+        assert.ok(at.clear, "the button is clear of the result bar and the tabs once scrolled to");
+        await p.touchscreen.tap(at.x, at.y); await p.waitForTimeout(300);
+        assert.notEqual(await p.evaluate(() => ourEnd()), at.end, "the tap switched ends");
+      }, vp);
 
     await check("a double tap on the winning point does not close the sheet", async p => {
       await p.evaluate(() => { set({ tab: "tally" }); tapResult("us"); _lastEnd.at -= RESULT_GUARD_MS + 1; });
