@@ -1,52 +1,48 @@
 {
   "format": "gridlock-preview-manifest",
   "v": 1,
-  "sourceCommit": "f2acb5f049fc41a3cabade16800a7b3cfd31de6d",
+  "sourceCommit": "869fbb10733ea56f4e4e5905730fe22b2c6bf9a2",
   "sourceTrees": {
-    "web": "e09fa419e91f47c579f4159a45e0c8a5a0105fa4",
-    "site": "824346d48bc32d1ce9cd3fe70d739a9da9a14d21"
+    "web": "df5d6775768aae57e5e32987df1abaef57ac5340",
+    "site": "6d975deae34a729412ebae884da99bbd6168ba4e"
   },
   "dirtyTracked": false,
-  "liveApp": "https://app.gridlockpb.com/",
   "edits": [
     "index.html: notice style",
     "index.html: notice",
-    "index.html: link fallback",
     "index.html: scope no-server line",
     "index.html: scope no-cloud line",
     "support.html: notice style",
     "support.html: notice",
-    "support.html: link fallback",
     "support.html: scope account line",
     "support.html: scope sync line",
     "privacy.html: notice style",
     "privacy.html: notice",
-    "privacy.html: link fallback",
     "app.html: notice style",
     "app.html: notice",
-    "app.html: link fallback and export handling"
+    "app.html: export handling"
   ],
   "inputs": {
-    "site/index.html": "92e6e034795bba0c3bd2f5fa94e17da4d7fe3026f4db28e6de43cf9992b12230",
-    "site/support.html": "355e56c9bfec27cead0fa9340fde80decd3599c4bc1c5064a982385b331b80d7",
-    "site/privacy.html": "fe8d415ce5a28579118ad2d06827252aae0b93d6d8e795a2351e2c86a91d15da",
-    "web/index.html": "fec8176b85f64e87051588e88493e2d038145b112db8ddcf0308b4e7fb4a3280"
+    "site/index.html": "8e2bf3260a5755be2ce51015a3d19cb62596e018b8d36ca005392d6dfcef0b2f",
+    "site/support.html": "31e73ad1034f23a5c9410e1ffe8857ff8da00c98f5f3092b2fb1bce47a51ea49",
+    "site/privacy.html": "92612984b08359e979661c00bc4a0e5044662e21bc51bccf11ccc4a6eb62ce9b",
+    "web/index.html": "3e1a389a8e86be350423c86d275be03f1e497be63d769577cbaa4a836568e76f"
   },
   "outputs": {
-    "site/index.html": "e94396adccf3949d37334f16ff912ade8d66468b5d1185145b8163d42f9c7022",
-    "site/support.html": "a3bb1e7df2c66b95526226a6edb7f06b416d5d152a95816745b12a81104a5114",
-    "site/privacy.html": "9ba8350197fbfb8bb6887961ed98d98154c4e517094f80bded91e7eb41bb2742",
-    "site/app.html": "eca3bd12109d953ca5192fa3c3879c12915c33e51f3cc13153ec1107b9a531e9",
-    "artifact.html": "e49aa9ae03a52371d1d6d6be8a05278869b15dbbd148a3d5fb83f12c29a336aa",
-    "bytes": 2309667
+    "site/index.html": "9c3fe1a301f9c3df4c9c4d9f78e39a11835edeeedf056459ad866ae47ce15c51",
+    "site/support.html": "ae9234814f3a85b164c94c18462e783f34c52b3fb7cd9b54df20ad83e0eb5b8c",
+    "site/privacy.html": "580c7d3f29d757fe1c90ee14a073fd2fd6405c547a6bc28035ab6a051251f79a",
+    "site/app.html": "965627be9c5484ea99f8721b34d9619a44e53ce7f9f8bd881c8ef6b1cb99c4f0",
+    "artifact.html": "c985683ba7cea3852b49497ad553427b18bfefdd11b0ae872209bc692883adf3",
+    "bytes": 2507288
   },
-  "buildLog": "dist/preview/artifact.html: 2.20 MB; four embedded pages (Gridlock Coach)",
-  "script": "e24884f0ccf83fed747f949c831d952ffa891360058a223b791e97dc133254b4",
+  "buildLog": "dist/preview/artifact.html: 2.39 MB; four embedded pages (Gridlock Coach)",
+  "script": "f3076e15b8d65be6e3d7b78e20e45d7b0a20187caca4c53d89b15360101aa2ab",
   "packager": "scripts/package-preview.js",
-  "builtAt": "2026-11-02T14:44:44.160Z",
+  "builtAt": "2026-11-08T13:39:12.176Z",
   "published": {
     "url": "https://claude.ai/artifact/JoZQM9DA52jnHbKQJTu4UP",
-    "version": 179,
-    "versionId": "1793630651-3b0e"
+    "version": 180,
+    "versionId": "1794145143-40df"
   }
 }
