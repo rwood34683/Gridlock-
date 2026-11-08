@@ -520,6 +520,14 @@ svg.field{width:100%;height:auto;display:block}
 .assign__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .assign__acts{display:flex;flex-direction:column;gap:6px;flex:none}
 .assign__job{font-size:var(--t-md);font-weight:600;line-height:1.25}
+/* Play and scout lights: a dot and its word, and a stripe down the row. */
+.daylight{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;box-shadow:0 0 0 2px #0b0c0d,0 0 8px currentColor}
+.daylight__word{font-size:var(--t-sm);letter-spacing:.06em;text-transform:uppercase;vertical-align:middle;margin-right:8px}
+.daylight__key .daylight__word{margin-right:2px}
+.daylight__line{display:block;margin-bottom:2px}
+.daylight--up{box-shadow:inset 4px 0 0 var(--red)}
+.daylight--play{box-shadow:inset 4px 0 0 var(--ok)}
+.daylight--scout{box-shadow:inset 4px 0 0 var(--warn)}
 .assign__who{font-size:var(--t-xs);color:var(--dim);letter-spacing:.04em}
 /* The job is the thing being read; the controls act on it. On a phone there is
    not room for both on one line once every control is 44 px, so the controls
@@ -2383,8 +2391,80 @@ function yourDaySec(games){
         return `<div class="fld"><label>${esc(f || "No pit printed")}</label><select onchange="setRunLate(${jsq(key)},this.value)">${
           [0, 10, 15, 20, 30, 45, 60, 90].map(m => `<option value="${m}"${m === v ? " selected" : ""}>${m ? m + " min late" : "On time"}</option>`).join("")}</select></div>`; }).join("")}
     </details>` : "";
-  return sec("Your team's day", `${pick}${day.length ? rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
+  return sec("Your team's day", `${pick}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
     day.length + (day.length === 1 ? " game" : " games"));
+}
+/* Who to scout, in the order it happens. The game-by-game cards answer "who
+ * do we play and what of theirs can we see"; between games a coach wants the
+ * other question — where does somebody need to be next. Every game of a team
+ * he still has to play, before he plays them, not yet over, once each and by
+ * the clock: the field and pit as the schedule prints them, which game of his
+ * it is for, and whether he is free or must send someone. A game between two
+ * teams he plays later scouts both. Nothing here is fetched or guessed: the
+ * times are the schedule's, moved only by a pit he said is running late. */
+function scoutPlan(day, now){
+  const at = new Map();
+  day.forEach(({g, opp, scout}) => {
+    if(gameAt(g) + SLOT_MIN * 60000 < now) return;          // a game of his already played
+    scout.forEach(({g: x, clash}) => {
+      if(gameAt(x) + SLOT_MIN * 60000 < now) return;        // their game already over
+      const row = at.get(x.id) || {g: x, clash, for: []};
+      if(!row.for.some(f => foldName(f.opp) === foldName(opp))) row.for.push({opp, mine: g});
+      at.set(x.id, row);
+    });
+  });
+  return [...at.values()].sort((a, b) => gameAt(a.g) - gameAt(b.g));
+}
+const SCOUT_SHOW = 6;
+function scoutWhen(g, now){
+  const t = gameAt(g), mins = Math.round((t - now) / 60000);
+  const when = `${dayName(g.d).split(",")[0]} ${gameClock(g)}`;
+  if(mins < 0) return `${when} — on now`;                    // started, still inside its slot
+  return mins >= 0 && mins < 180 && new Date(t).toDateString() === new Date(now).toDateString()
+    ? `${when} — in ${mins < 60 ? Math.max(1, mins) + " min" : Math.floor(mins / 60) + " h " + (mins % 60) + " min"}` : when;
+}
+/* One light a row, so the day reads at a glance in the sun: red is his next
+ * game when it is on now or inside the hour — get to the pit; green is a game
+ * of his further off; yellow is a game of a team he still plays — scout it.
+ * The light always carries its word too, never colour alone. Every row says
+ * the field and pit the schedule prints and the time. */
+const DAY_LIGHT = {up:["Up to play","var(--red)"], play:["You play","var(--ok)"], scout:["Scout","var(--warn)"]};
+function dayLights(day, now){
+  const mine = day.filter(({g}) => gameAt(g) + SLOT_MIN * 60000 >= now);
+  const own = mine.map(({g, opp}, i) => ({kind: i === 0 && gameAt(g) - now < SLOT_MIN * 60000 ? "up" : "play", g, opp}));
+  const scout = scoutPlan(day, now).map(x => ({kind:"scout", ...x}));
+  // Same minute: his own game first — he cannot be in two places, and his own comes first.
+  return [...own, ...scout].sort((a, b) => gameAt(a.g) - gameAt(b.g) || (a.kind === "scout") - (b.kind === "scout"));
+}
+const lightDot = k => `<span class="daylight" style="background:${DAY_LIGHT[k][1]}" aria-hidden="true"></span><b class="daylight__word" style="color:${DAY_LIGHT[k][1]}">${DAY_LIGHT[k][0]}</b>`;
+function scoutPlanSec(team, day, now){
+  const rows = dayLights(day, now);
+  if(!rows.length) return `<p class="note">${esc(team)}'s games on this schedule are all played.</p>`;
+  const where = g => g.f ? esc(g.f) : "Field not printed on the schedule";
+  const side = (g, opp) => foldName(g.h) === foldName(opp) ? "home" : "away";
+  const row = r => {
+    const g = r.g, head = `<span class="assign__job"><span class="daylight__line">${lightDot(r.kind)}</span>${esc(scoutWhen(g, now))}<br>${where(g)}</span>`;
+    if(r.kind !== "scout") return `<div class="assign daylight--${r.kind}">
+      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span></span>
+      <button class="btn btn--quiet" onclick="playGame(${jsq(g.id)},'${side(g, r.opp)}')">Start sheet</button></div>`;
+    return `<div class="assign daylight--scout">
+      <span class="assign__body">${head}
+      <span class="assign__who"><b>Scout ${esc(r.for.map(f => f.opp).join(" and "))}</b> — ${esc(g.h)} v ${esc(g.a)}<br>${
+        r.for.map(f => `You play ${esc(f.opp)} ${esc(dayName(f.mine.d).split(",")[0])} ${esc(gameClock(f.mine))}`).join(" · ")}<br>${r.clash
+        ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — send someone</b>`
+        : "Free for you to watch"}</span></span>
+      <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
+  };
+  const up = rows.find(r => r.kind === "up"), nextScout = rows.find(r => r.kind === "scout");
+  const lead = [up ? `<b style="color:var(--red)">Up to play:</b> v ${esc(up.opp)} at ${esc(scoutWhen(up.g, now))}, ${where(up.g)}.` : "",
+    nextScout ? `Next to scout: <b>${esc(nextScout.for.map(f => f.opp).join(" and "))}</b> at ${esc(scoutWhen(nextScout.g, now))}, ${where(nextScout.g)}.`
+      : "Nobody you still play has a game on this schedule before you meet them."].filter(Boolean).map(x => `<p class="note" style="margin:0 0 var(--s1)">${x}</p>`).join("");
+  const shown = rows.slice(0, SCOUT_SHOW + 2), more = rows.slice(SCOUT_SHOW + 2);
+  return `<div class="panel scout-plan"><h3 class="panel__title">Play and scout, by the clock</h3>${lead}
+    <p class="note daylight__key">${lightDot("up")} next game, on now or inside the hour · ${lightDot("play")} a game of yours · ${lightDot("scout")} a team you still play</p>
+    <div class="assigns">${shown.map(row).join("")}</div>
+    ${more.length ? `<details class="coach-terms"><summary>${more.length} more today and after</summary><div class="assigns">${more.map(row).join("")}</div></details>` : ""}
+    <p class="note">Times are the league's schedule${Object.keys(S.runLate || {}).length ? ", moved by the pits you said are running late" : ""}. A pit running behind? Set it below and every time moves.</p></div>`;
 }
 // What a row says under its two teams: the division where it is not the
 // schedule's own, the field and pit as printed, and the bracket.
@@ -16483,7 +16563,7 @@ const HELP = {
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["Your team's day, at the top: pick your team once and every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
+    how:["Your team's day, at the top: pick your team once. Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Under it, game by game, every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
@@ -16550,7 +16630,7 @@ const HELP = {
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
   ["Where do I find a tool?", "Open More and use Find a tool. Try players, score, export, League sync or sign out. Search includes Playbook, Tally, Scout and Sightlines too. Tools are also grouped by before, during and after the game. Clear shows the full list again. Back to More returns to the tool you opened."],
-  ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
+  ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
