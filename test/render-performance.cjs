@@ -124,14 +124,52 @@ const SEED = require("../scripts/seed");
       });
       assert.equal(result.rebuilt,0); assert.equal(result.changed,true); assert.equal(result.bunkers,true);
     });
-    await check("sign-out discards cached field drawings and keeps the saved season", async p => {
+    await check("returning to an unchanged screen reuses its controls with fresh field and input copies", async p => {
+      const result = await p.evaluate(() => {
+        const html = '<section data-screen-test><input value="Kept"/><svg class="field"><text>First</text></svg></section>';
+        const first = screenPage(html);
+        first.querySelector("input").value = "Not saved";
+        first.querySelector("input").setAttribute("value", "Changed live");
+        const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+        let parsed = 0;
+        Object.defineProperty(Element.prototype, "innerHTML", {...descriptor, set(markup){
+          if(String(markup).includes("data-screen-test")) parsed++;
+          descriptor.set.call(this, markup);
+        }});
+        let next;
+        try { screenPage('<section>Another screen</section>'); next = screenPage(html.replace("First", "Second")); }
+        finally { Object.defineProperty(Element.prototype, "innerHTML", descriptor); }
+        return {parsed, value:next.querySelector("input").value, field:next.querySelector("text").textContent,
+          separate:first.querySelector("input") !== next.querySelector("input")};
+      });
+      assert.deepEqual(result, {parsed:0, value:"Kept", field:"Second", separate:true});
+    });
+    await check("screen reuse stays bounded and changed content is never taken from an older page", async p => {
+      const result = await p.evaluate(() => {
+        const expected = document.createElement("template");
+        let same = true;
+        for(let i=0;i<20;i++){
+          const html = `<section><p>Point ${i}</p><input value="${i}"/></section>`;
+          expected.innerHTML = html;
+          same = same && screenPage(html).isEqualNode(expected.content);
+        }
+        const huge = '<section>' + 'x'.repeat(150001) + '</section>';
+        return {same, size:_screenPages.size, chars:_screenPageChars,
+          large:screenPage(huge).textContent.length, keptLarge:_screenPages.has(huge)};
+      });
+      assert.equal(result.same,true); assert.ok(result.size <= 3); assert.ok(result.chars <= 150000);
+      assert.equal(result.large,150001); assert.equal(result.keptLarge,false);
+    });
+    await check("sign-out discards cached drawings and screens and keeps the saved season", async p => {
       await p.evaluate(() => set({tab:"tally"}));
-      assert.ok(await p.evaluate(() => _fieldNodes.size > 0));
+      assert.ok(await p.evaluate(() => _fieldNodes.size > 0 && _screenPages.size > 0));
       p.once("dialog", d => d.accept());
       await p.evaluate(() => askSignOut());
       const after = await p.evaluate(() => ({entered:S.entered,drawings:_fieldNodes.size,chars:_fieldNodeChars,
+        pages:_screenPages.size,pageChars:_screenPageChars,
         matches:S.matches.length,stored:JSON.parse(localStorage.getItem("gridlock.coach.v2")).matches.length}));
       assert.equal(after.entered,false); assert.equal(after.drawings,0); assert.equal(after.chars,0);
+      assert.equal(after.pages,0); assert.equal(after.pageChars,0);
       assert.ok(after.matches>0); assert.equal(after.matches,after.stored);
     });
     await check("route search keeps the shortest clear path around a wall", async p => {

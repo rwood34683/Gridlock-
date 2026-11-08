@@ -73,6 +73,9 @@ h1,h2,h3,p{margin:0}
    SHELL — header and tab bar pinned, only .main scrolls
    ============================================================ */
 #root{height:100%;overflow:hidden}
+#tool-menu [hidden],#tool-clear[hidden],#tool-status[hidden]{display:none}
+#tool-menu{display:flex;flex-direction:column;gap:var(--s5)}
+#tool-find{min-width:0}
 .beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .beta-note{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -12532,10 +12535,8 @@ function playBuilder(){
       puts him. Take a man off on his row, then tap where you want him — he keeps his
       number. Tap a bunker that already has a man to double it up. Give it the name your team shouts.</p>
       ${elsewhere.length ? `<p class="note">It comes with the same call's five on ${esc(elsewhere.join(", "))}, so it is built there too. Edit it on that field to move a man there.</p>` : ""}`
-    : `<p class="lede">Tap the bunker each man plants on, in order — one is the
-      first name you tap, five is the last. Tap a bunker that already has a man to
-      double it up; take a man off on his row.
-      The app draws the runs and works out who leaves on the buzzer; Go on each man's row says otherwise.</p>`}
+    : `<p class="lede">Tap a bunker for player 1, then players 2–5. Tap the same bunker
+      again to put two players there. Use <b>Take off</b> to change a pick.</p>`}
     <div class="fld"><label for="pl-name">What you call it</label>
       <input id="pl-name" value="${esc(b.name || "")}" maxlength="28" placeholder="Rocket"
         onchange="setPlayField('name', this.value)" ${onEnter("setPlayField('name', this.value); savePlay()")}/></div>
@@ -12564,6 +12565,8 @@ function playBuilder(){
         ready ? "Save this play" : taken ? "Already a call — pick another name" : placed === 5 ? "Name it first" : `Pick ${5 - placed} more`}</button>
       <button class="btn btn--ghost" onclick="cancelPlay()">Cancel</button>
     </div>
+    <p class="note">The app draws the routes. After saving, use <b>Go</b> on each player's row
+      in Playbook to change when they leave.</p>
     <p class="note">A play is the five bunkers, and those change from field to field — so this is
       saved against ${esc(curLayout().name)}. On another event it will ask you to build it there.</p>`,
     curLayout().name);
@@ -17305,6 +17308,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Where do I find a tool?", "Open More and use Find a tool. Try roster, reports, backup or sign out. Tools are also grouped by before, during and after the game. Clear shows the full list again."],
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
@@ -18180,23 +18184,22 @@ function manReportText(name){
 window.shareManReport = () => { const n = repManPicked().name; if(n) handOff(`${n}'s report`, manReportText(n)); };
 
 const MORE_GROUPS=[
-  ["The field",[
-    ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
-    ["walk","Walk","Notes from walking the field"],
-    ["movement","Movement","Bunker to bunker after the break"],
-    ["stats","Bunker stats","Where men go, and where they go out"]]],
-  ["The team",[
-    ["lineups","Lineups","Who is on this point"],
+  ["Before the game",[
     ["team","Team","Roster, numbers and positions"],
-    ["assess","Assess","Grade a player after the point"],
-    ["codes","Codes","Your code words, every event"],
-    ["messages","Messages","Squad notes that stay with the team"]]],
-  ["Running the day",[
-    ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["lineups","Lineups","Who is on this point"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
-    ["matches","Matches","Every sheet you have kept"]]],
-  ["Reading the season",[
-    ["reports","Reports","Graphs and spreadsheets from what you logged"]]],
+    ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["walk","Walk","Notes from walking the field"],
+    ["codes","Codes","Your code words, every event"]]],
+  ["During the game",[
+    ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
+    ["movement","Movement","Bunker to bunker after the break"]]],
+  ["After the game",[
+    ["matches","Matches","Review every match sheet you have kept"],
+    ["reports","Reports","Graphs and spreadsheets from what you logged"],
+    ["stats","Bunker stats","Where men go, and where they go out"],
+    ["assess","Assess","Grade a player after the point"],
+    ["messages","Messages","Squad notes that stay with the team"]]],
   ["App",[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
@@ -18209,14 +18212,42 @@ const MORE_GROUPS=[
 const MORE_HIDDEN = {classes:"Classes", league:"League"};
 const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
+let _moreQuery = "";
+window.filterTools = value => {
+  const menu = document.getElementById("tool-menu"); if(!menu) return;
+  _moreQuery = String(value || "").slice(0,100);
+  const words = foldName(_moreQuery).split(/\s+/).filter(Boolean);
+  let count = 0;
+  menu.querySelectorAll(".list__row").forEach(row => {
+    const name = foldName(row.textContent);
+    row.hidden = !words.every(word => name.includes(word));
+    if(!row.hidden) count++;
+  });
+  menu.querySelectorAll("[data-tools-group]").forEach(group => {
+    group.hidden = !group.querySelector(".list__row:not([hidden])");
+  });
+  const status = document.getElementById("tool-status");
+  if(status){ status.hidden = !words.length; status.textContent = count ? `${count} ${count === 1 ? "tool" : "tools"} found.` : "No tools found. Try Team, Schedule, Reports or Account."; }
+  const clear = document.getElementById("tool-clear"); if(clear) clear.hidden = !_moreQuery;
+};
+window.clearTools = () => {
+  const input = document.getElementById("tool-find");
+  if(input){ input.value = ""; filterTools(""); input.focus(); }
+};
 function morePage(){
   if(!S.more){
-    return MORE_GROUPS.map(([title,rows])=>sec(title,`<div class="list">
+    return `<div class="fld"><label for="tool-find">Find a tool</label>
+      <div class="btnrow" style="margin:0"><input id="tool-find" type="search" class="grow" value="${esc(_moreQuery)}"
+        maxlength="100" placeholder="Team, reports, backup…" autocomplete="off" oninput="filterTools(this.value)"
+        onkeydown="if(event.key==='Escape'){event.preventDefault();clearTools()}"/>
+      <button id="tool-clear" class="btn btn--quiet" onclick="clearTools()"${_moreQuery ? "" : " hidden"}>Clear</button></div>
+      <p id="tool-status" class="note" role="status" aria-live="polite" hidden></p></div>
+      <div id="tool-menu">` + MORE_GROUPS.map(([title,rows])=>`<div data-tools-group>` + sec(title,`<div class="list">
       ${rows.map(([k,n,d])=>`<button class="list__row" onclick="set({more:'${k}'})">
         <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
         ${gateFor("more/" + k) ? `<span class="gate__chip">Team</span>` : moreCount(k)}<span class="list__go">›</span>
       </button>`).join("")}
-    </div>`)).join("");
+    </div>`) + `</div>`).join("") + `</div>`;
   }
   return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({more:null})">‹ More</button>
     ${moreBody(S.more)}`;
@@ -19357,16 +19388,34 @@ function fieldNode(markup, group = false){
   }
   return node;
 }
+// Going back to a recently opened screen should not parse its controls again.
+// Keep only exact, inert markup; fill fresh field clones into a fresh page.
+// Nothing here is a saved season, and sign-out releases every cached page.
+const _screenPages = new Map();
+let _screenPageChars = 0;
 function screenPage(html){
   const fields = [];
   const body = html.replace(/<svg class="field"[\s\S]*?<\/svg>/g, markup => {
     fields.push(fieldNode(markup));
     return `<svg data-field-slot="${fields.length - 1}"></svg>`;
   });
-  const page = document.createElement("template"); page.innerHTML = body;
-  page.content.querySelectorAll("svg[data-field-slot]").forEach(slot =>
+  let original = _screenPages.get(body);
+  if(original){ _screenPages.delete(body); _screenPages.set(body, original); }
+  else {
+    const template = document.createElement("template"); template.innerHTML = body;
+    original = template.content;
+    if(S.entered && body.length <= 150000){
+      _screenPages.set(body, original); _screenPageChars += body.length;
+      while(_screenPages.size > 3 || _screenPageChars > 150000){
+        const first = _screenPages.keys().next().value;
+        _screenPageChars -= first.length; _screenPages.delete(first);
+      }
+    }
+  }
+  const page = original.cloneNode(true);
+  page.querySelectorAll("svg[data-field-slot]").forEach(slot =>
     slot.replaceWith(fields[Number(slot.getAttribute("data-field-slot"))].cloneNode(true)));
-  return page.content;
+  return page;
 }
 // Animation and timed notices also change the live DOM between renders. A
 // matching markup string alone does not prove that screen is still in place.
@@ -19393,7 +19442,8 @@ function controlValues(root){
 }
 function render(){
   fixScreen();
-  if(!S.entered){ _fieldNodes.clear(); _fieldNodeChars = 0; }
+  if(!S.entered || S.tab !== "more") _moreQuery = "";
+  if(!S.entered){ _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
   // The call key is guarded at the same door: a key this build does not have
   // was only repaired at launch and in a loaded copy, so set live — a merge, a
   // turned-off play, anything a later build wires — the header printed the raw
@@ -19433,6 +19483,7 @@ function render(){
   _screenMarkup = html;
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
+  if(S.tab === "more" && !S.more) filterTools(_moreQuery);
   watchTallyField();
   placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;

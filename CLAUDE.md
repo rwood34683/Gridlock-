@@ -1103,11 +1103,19 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Clone the cached original so live animation cannot dirty it. Keep that
     cache bounded to 12 entries and 300,000 source characters, drop it on
     sign-out, and always redraw changed geometry, names, paths and players.
-    The cache changes screen construction only, never the save or journal.
+    Reuse up to three exact screen bodies (150,000 source characters total)
+    as inert originals too; clone controls and insert fresh field drawings.
+    Drop those pages on sign-out. Neither cache changes the save or journal.
     The header says **Account** (or **Sign out** during setup), and More says
     **Account & backups**, with **Nexus** retained in its description so old
     help directions remain findable. Menu descriptions use the readable small
-    type size; keep the owner's red secondary text. CSV confirmation messages
+    type size. More groups tools by before, during and after the game and
+    lets a coach find a tool by its name or description. Search stays only
+    in memory, survives Back within More, and clears on another tab or sign-out.
+    Filtering must not save the season or replace the input on every letter.
+    Play-building directions name the visible Take off control; Go timing is
+    on Playbook after saving, not on the builder itself. Keep the owner's red
+    secondary text. CSV confirmation messages
     count records outside quoted cells, so a multiline note or escaped quote
     never adds a spreadsheet row. `test/reports.cjs`, `test/ux-players.cjs` and
     the rendering/device suites cover these changes. The observer-led field

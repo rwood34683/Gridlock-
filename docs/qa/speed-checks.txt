@@ -2,7 +2,7 @@ SIDELINE PROCESSING COMPARISON
 8 November 2026
 
 Baseline: be80e558399d8b9287daa09ae00a7f5f1572a7e0 (earlier PR #303).
-Candidate: this PR's exact-markup field and bunker-layer cache.
+Candidate: this PR's exact-markup field, bunker-layer and screen caches.
 
 Method
 - Local Chromium, 390 x 844, device scale 2, CPU throttled 4x.
@@ -20,19 +20,21 @@ Method
 
 Pooled results (80 interactions per version)
                          Before       After
-Mean                       189.1 ms     178.6 ms
-Median                     176.8 ms     174.2 ms
-95th percentile            312.7 ms     303.7 ms
+Mean                        96.2 ms      77.2 ms
+Median                      85.9 ms      71.6 ms
+95th percentile            219.8 ms     132.6 ms
 
 Per-run median / 95th percentile
-Before 1: 178.1 / 312.7 ms
-After 1:  174.2 / 265.9 ms
-After 2:  174.5 / 316.6 ms
-Before 2: 149.4 / 328.2 ms
+Before 1: 108.9 / 234.1 ms
+After 1:   74.3 / 133.9 ms
+After 2:   71.5 / 132.6 ms
+Before 2:  74.6 / 150.0 ms
 
-Average processing time was about 6% lower in this local comparison.
-The variation is substantial; this is a modest improvement, not a claim
-that all phones or all taps will be faster by that amount. Slow interactions
+Average processing time was about 20% lower in this local comparison.
+The variation is substantial, and the second baseline overlaps the candidate.
+This does not establish a 20% gain on all phones or all taps. An earlier
+comparison of field reuse alone measured about 6%, with different run times.
+These are local observations, not a guaranteed speed increase. Slow interactions
 remain. These measurements cover local processing; account-server latency
 and physical-device field testing are separate checks.
 
@@ -41,8 +43,22 @@ bunker layer when paths change. Cached originals are cloned, bounded to
 12 entries / 300,000 source characters and cleared on sign-out. Changes
 to field geometry, paths, names or players still require the current SVG.
 Save timing, recovery journals and the load/device thresholds are unchanged.
+Up to three screen bodies (150,000 source characters total) are also kept
+as inert originals; each return gets independent controls and current field
+drawings. These pages are also discarded on sign-out.
+
+The first final full run of field reuse alone failed Tally at 288.3 ms
+against the unchanged 250 ms limit, despite green CI. That failure was not
+discarded. After the screen reuse change, the focused load run passed with
+Tally at 209.0 ms; slow warnings remained. The final full run is reported
+in the PR with its exact commit.
+
+One comparison attempt stopped after a local startup script failed to load
+(guardVoiceSession was unavailable). It produced no candidate measurements.
+The complete alternating block above was then run afresh, checking startup
+before timing. All four included runs loaded correctly and had no page errors.
 
 Regression checks cover unchanged-field parsing, changed paths/geometry,
 fresh clones after live edits, cache limits, sign-out cleanup, scroll and
-form behavior, and immediate persistence. Phone Tally and tablet Scout
+form behavior, screen reuse, tool search and immediate persistence. Phone Tally and tablet Scout
 screenshots are included alongside this report.
