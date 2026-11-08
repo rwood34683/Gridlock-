@@ -1132,7 +1132,7 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Scout view for assistive technology. Search hints are not saved or sent.
     `test/ux-players.cjs` holds these routes and the phone/tablet return path.
 
-74. ~~Who to scout next.~~ Done — the owner asked the schedule to say when
+75. ~~Who to scout next.~~ Done — the owner asked the schedule to say when
     somebody has to scout, and what field and time the teams he faces next
     play on. Your team's day opens on **Who to scout next** (`scoutPlan`,
     `scoutPlanSec`): every game of a team he still has to play, before he
