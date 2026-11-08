@@ -1122,6 +1122,16 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     tryout is in `docs/SIDELINE-TRYOUT.txt`; do not claim real coach feedback
     from automated browser checks.
 
+74. Finding the next tool: More search accepts a coach's words, including players,
+    score, League sync and export, and can open the four main coaching screens.
+    Those shortcuts appear only while searching; the ordinary menu stays grouped.
+    Use the same navigation and plan checks as the tabs. Back to More restores
+    focus to the tool just opened and brings that row into view, keeping the
+    search. A new screen reached from a focused control puts focus on its named
+    main area; same-screen typing keeps focus. Name the active main screen and
+    Scout view for assistive technology. Search hints are not saved or sent.
+    `test/ux-players.cjs` holds these routes and the phone/tablet return path.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
