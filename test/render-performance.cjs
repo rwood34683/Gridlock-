@@ -66,6 +66,74 @@ const SEED = require("../scripts/seed");
       assert.equal(result.distance, 20);
       assert.equal(result.clear, true);
     });
+    await check("a changed Tally read does not parse the same field drawing again", async p => {
+      const result = await p.evaluate(() => {
+        set({tab:"tally",tallyRead:""});
+        const before = document.querySelector("#tally-map svg.field").outerHTML;
+        const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+        let parsed = 0;
+        Object.defineProperty(Element.prototype, "innerHTML", {...descriptor, set(html){
+          if(String(html).includes('<svg class="field"')) parsed++;
+          descriptor.set.call(this, html);
+        }});
+        try { set({tallyRead:"right"}); }
+        finally { Object.defineProperty(Element.prototype, "innerHTML", descriptor); }
+        return {parsed, same:before === document.querySelector("#tally-map svg.field").outerHTML,
+          chosen:[...document.querySelectorAll("button.on")].some(b=>b.textContent.includes("Right read"))};
+      });
+      assert.equal(result.parsed, 0);
+      assert.equal(result.same, true);
+      assert.equal(result.chosen, true);
+    });
+    await check("cached fields match fresh parsing, refresh changed drawings and cannot be dirtied by a live copy", async p => {
+      const result = await p.evaluate(() => {
+        const original = '<section><svg class="field" viewBox="0 0 100 100"><g><circle cx="5" cy="6" r="3"/></g><text>A &amp; B</text></svg><button onclick="set({tab:\'more\'})">Menu</button></section>';
+        const changed = original.replace('cx="5"','cx="15"').replace('A &amp; B','New name');
+        const expected = document.createElement("template"); expected.innerHTML = original;
+        const first = screenPage(original);
+        const same = first.isEqualNode(expected.content);
+        first.querySelector("circle").setAttribute("cx","999");
+        first.querySelector("text").textContent = "live edit";
+        const pristine = screenPage(original).isEqualNode(expected.content);
+        expected.innerHTML = changed;
+        const updated = screenPage(changed).isEqualNode(expected.content);
+        for(let i=0;i<30;i++) screenPage(original.replace('cx="5"',`cx="${i}"`));
+        const bounded = _fieldNodes.size <= 12 && _fieldNodeChars <= 300000;
+        const huge = original.replace('A &amp; B', 'x'.repeat(300001));
+        const large = screenPage(huge).querySelector("text").textContent.length;
+        return {same,pristine,updated,bounded,large,keptLarge:[..._fieldNodes.keys()].some(k=>k.length>300000)};
+      });
+      assert.equal(result.same,true); assert.equal(result.pristine,true); assert.equal(result.updated,true);
+      assert.equal(result.bounded,true); assert.equal(result.large,300001); assert.equal(result.keptLarge,false);
+    });
+    await check("changing the call redraws its paths without reparsing unchanged bunkers", async p => {
+      const result = await p.evaluate(() => {
+        set({tab:"playbook",script:"hold",t:1});
+        const before = document.querySelector("g.live").innerHTML;
+        const descriptor = Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");
+        let rebuilt = 0;
+        Object.defineProperty(Element.prototype,"innerHTML",{...descriptor,set(html){
+          if(String(html).includes('<g class="bnk"')) rebuilt++;
+          descriptor.set.call(this,html);
+        }});
+        try { set({script:"flood"}); }
+        finally { Object.defineProperty(Element.prototype,"innerHTML",descriptor); }
+        const expected=document.createElement("template"); expected.innerHTML=fieldSVG({});
+        return {rebuilt,changed:before !== document.querySelector("g.live").innerHTML,
+          bunkers:document.querySelector(".field [filter]").isEqualNode(expected.content.querySelector("[filter]"))};
+      });
+      assert.equal(result.rebuilt,0); assert.equal(result.changed,true); assert.equal(result.bunkers,true);
+    });
+    await check("sign-out discards cached field drawings and keeps the saved season", async p => {
+      await p.evaluate(() => set({tab:"tally"}));
+      assert.ok(await p.evaluate(() => _fieldNodes.size > 0));
+      p.once("dialog", d => d.accept());
+      await p.evaluate(() => askSignOut());
+      const after = await p.evaluate(() => ({entered:S.entered,drawings:_fieldNodes.size,chars:_fieldNodeChars,
+        matches:S.matches.length,stored:JSON.parse(localStorage.getItem("gridlock.coach.v2")).matches.length}));
+      assert.equal(after.entered,false); assert.equal(after.drawings,0); assert.equal(after.chars,0);
+      assert.ok(after.matches>0); assert.equal(after.matches,after.stored);
+    });
     await check("route search keeps the shortest clear path around a wall", async p => {
       const route = await p.evaluate(() => {
         const from = [10,60], to = [140,60], wall = {x:75,y:60,hw:10,hh:20,ids:new Set(["wall"])};

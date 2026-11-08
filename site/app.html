@@ -10140,7 +10140,7 @@ function fieldSVG(opts={}, runnersOnly){
     <line x1="4" y1="0" x2="4" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
     <line x1="${W-4}" y1="0" x2="${W-4}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" opacity=".22"/>
 
-    <g filter="url(#bnkLift)">${bunks}</g>
+    <!--field-bunkers--><g filter="url(#bnkLift)">${bunks}</g><!--/field-bunkers-->
     ${heat}
     ${outs}
     ${moveArrows}
@@ -19330,6 +19330,44 @@ function patchScreen(current, next){
 }
 let _where = "", _screenMarkup = "";
 let _screenControls = [];
+// Field drawings contain hundreds of SVG nodes and usually stay identical
+// while a score, read or menu changes. Reuse a parsed drawing, never a live
+// node: animation and editing must not change the cached original. Exact
+// markup is the key, so changing a bunker, name, lane or player is a miss.
+const _fieldNodes = new Map();
+let _fieldNodeChars = 0;
+function fieldNode(markup, group = false){
+  let node = _fieldNodes.get(markup);
+  if(node){ _fieldNodes.delete(markup); _fieldNodes.set(markup, node); return node; }
+  const layers = [];
+  const body = group ? `<svg>${markup}</svg>` : markup.replace(/<!--field-bunkers-->([\s\S]*?)<!--\/field-bunkers-->/g, (all, layer) => {
+    layers.push(fieldNode(layer, true));
+    return `<!--field-bunkers--><g data-field-layer="${layers.length - 1}"></g><!--/field-bunkers-->`;
+  });
+  const drawing = document.createElement("template"); drawing.innerHTML = body;
+  drawing.content.querySelectorAll("g[data-field-layer]").forEach(slot =>
+    slot.replaceWith(layers[Number(slot.getAttribute("data-field-layer"))].cloneNode(true)));
+  node = group ? drawing.content.firstElementChild.firstElementChild : drawing.content.firstElementChild;
+  if(markup.length <= 300000){
+    _fieldNodes.set(markup, node); _fieldNodeChars += markup.length;
+    while(_fieldNodes.size > 12 || _fieldNodeChars > 300000){
+      const first = _fieldNodes.keys().next().value;
+      _fieldNodeChars -= first.length; _fieldNodes.delete(first);
+    }
+  }
+  return node;
+}
+function screenPage(html){
+  const fields = [];
+  const body = html.replace(/<svg class="field"[\s\S]*?<\/svg>/g, markup => {
+    fields.push(fieldNode(markup));
+    return `<svg data-field-slot="${fields.length - 1}"></svg>`;
+  });
+  const page = document.createElement("template"); page.innerHTML = body;
+  page.content.querySelectorAll("svg[data-field-slot]").forEach(slot =>
+    slot.replaceWith(fields[Number(slot.getAttribute("data-field-slot"))].cloneNode(true)));
+  return page.content;
+}
 // Animation and timed notices also change the live DOM between renders. A
 // matching markup string alone does not prove that screen is still in place.
 // Tally's observer-owned sizing is the one intentional layout-only difference.
@@ -19355,6 +19393,7 @@ function controlValues(root){
 }
 function render(){
   fixScreen();
+  if(!S.entered){ _fieldNodes.clear(); _fieldNodeChars = 0; }
   // The call key is guarded at the same door: a key this build does not have
   // was only repaired at launch and in a loaded copy, so set live — a merge, a
   // turned-off play, anything a later build wires — the header printed the raw
@@ -19374,11 +19413,11 @@ function render(){
     // Build the new screen off-page, then insert it once. Parsing hundreds
     // of controls into the live root makes first entry to Tally expensive.
     // The new scroller still starts at the top; same-screen taps keep theirs.
-    const page = document.createElement("template"); page.innerHTML = html;
-    labelFields(page.content); _screenControls = controlValues(page.content);
-    root.replaceChildren(page.content);
+    const page = screenPage(html);
+    labelFields(page); _screenControls = controlValues(page);
+    root.replaceChildren(page);
   } else if(dirty || html !== _screenMarkup){
-    const page = document.createElement("div"); page.innerHTML = html;
+    const page = screenPage(html);
     labelFields(page); _screenControls = controlValues(page); patchScreen(root, page);
   }
   // Even unchanged markup must reset a dirty control to the rendered value.

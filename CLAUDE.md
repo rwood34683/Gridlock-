@@ -1099,6 +1099,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     need resetting. Sightlines builds each footprint once per calculation,
     and its geometry and the pit profile are reused only within that draw,
     never across a field or team edit. Keep the angled beams' box spacing.
+    Reuse parsed field drawings and bunker layers by their exact SVG text.
+    Clone the cached original so live animation cannot dirty it. Keep that
+    cache bounded to 12 entries and 300,000 source characters, drop it on
+    sign-out, and always redraw changed geometry, names, paths and players.
+    The cache changes screen construction only, never the save or journal.
     The header says **Account** (or **Sign out** during setup), and More says
     **Account & backups**, with **Nexus** retained in its description so old
     help directions remain findable. Menu descriptions use the readable small
