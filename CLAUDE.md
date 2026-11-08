@@ -2899,8 +2899,11 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Crash a kept sheet or its spreadsheet because an imported date is missing or
   unreadable. Show “Date not recorded”, leave its spreadsheet date blank and use
   “undated” in a shared sheet's filename. Never substitute today's date or the
-  Unix epoch for a date nobody recorded. `test/reports.cjs` covers the import,
-  report and both exports.
+  Unix epoch for a date nobody recorded. Non-positive timestamps are unrecorded
+  too. Matches' “This match” and “Kept” dates go through `recordedDate`, just as
+  the review and exports do. `test/reports.cjs` replaces a season copy with each
+  bad date and checks both Matches displays, the report and both exports;
+  a real date keeps its date and time.
 - Leave a point out of Reports because only Scout, movement, a grade or a
   voice note was logged on it. Every point reads every sheet record and the
   opponent's scout book, leaving an unknown result blank. Opponent calls,
