@@ -1,0 +1,71 @@
+GRIDLOCK SIDELINE TRYOUT
+
+Purpose: find where a coach hesitates, needs help, or stops trusting the app.
+Allow about 10 minutes per person. Rob and Robert should each try it separately.
+Use a TEST account and a test season, never a coach's real season. Record the
+app version, phone/tablet, browser and whether it is indoors or outside.
+Use the reviewed build. A draft PR's changes are not on the live app until released.
+
+FOR THE OBSERVER
+Read each task below without naming the buttons or explaining where to tap.
+Stay quiet while the coach tries. Ask him to say what he expects to happen.
+If he needs help, record where and what he expected before giving it.
+Do not treat an automated pass as a coach completing this tryout.
+
+1. GET READY
+   "Set up a test game on the World Cup field against Test Opponent. Choose
+   your format and the five players you want on the field. Keep cloud sharing
+   off for this tryout."
+   Observe: can he get through sign-in/setup and tell which field and game
+   are active? Does he understand that declining backup leaves it off?
+
+2. CHART THREE POINTS
+   "Chart the same named player in three points: made it, shot on the break,
+   made it. Your team wins the first and third points and loses the second.
+   Choose and log the call you made on each point."
+   Observe: can he reach the lower bunkers without scoring accidentally?
+   Does he understand how to finish a point? The score should be 2-1.
+   Record any visible delay, missed tap, accidental action or instruction he
+   has to reread. Let him correct one mistaken entry without starting over.
+
+3. READ IT BACK
+   "Tell that player what you recorded about his three breaks. Show which
+   calls won points, then make a spreadsheet you could send to an assistant."
+   Observe: can he find the player and team reports and explain the counts?
+   The named player's three recorded breaks should show two made and one shot.
+   An unlogged fact must stay unknown. Check that he finds the downloaded file
+   or completes the share sheet; a toast alone is not proof he received a file.
+
+4. KEEP THE WORK
+   "Save a full backup you control. Tell me where you would look if you changed
+   phones, and whether this test season is being sent to your account."
+   Observe: can he find Account & backups and tell a file backup from League
+   sync? Verify that the saved file exists. Do not turn sharing on for him or
+   replace/delete a real season. Cloud restore needs a separate test account
+   with a known uploaded copy and its own explicit test.
+
+5. LEAVE SAFELY
+   "Start signing out, cancel it, and confirm your work is still there. Now
+   sign out and sign back in."
+   Observe: does Cancel keep him signed in? Is the same test season still there?
+   The coach enters his own password; do not record it or any reset link.
+
+AFTERWARDS
+Ask: "What was easiest? Where did you hesitate? What would slow you down at
+the field? What would make you trust this with a whole event?"
+Try the same tasks on a tablet. Check red helper text and field labels outside
+at the brightness he normally uses. Pod Wars is optional after the coaching
+tasks; ask whether its controls and rules make sense without coaching him.
+
+RECORD FOR EACH TASK
+Completed without help / needed help / could not finish:
+Time and extra taps:
+Exact words the coach used:
+Expected action versus what happened:
+Device, screen orientation and app version:
+
+RELEASE DECISION
+Resolve lost work, accidental scores, blocked sign-in and misleading backup
+status before release. Prioritize repeated hesitation and unreadable text next.
+Keep performance tests and phone/tablet layout checks intact. A pleasant
+experience needs this observed feedback as well as passing automated tests.

@@ -70,7 +70,110 @@ const SEED = require("../scripts/seed.js");
       assert.match(got.t, /Rocket 1/); assert.match(got.card, /Rocket 1/, "the card in his hand says it too");
       assert.deepEqual(got.ambiguous, [], "every bunker on a card is one bunker on this field");
     });
-    await check("the STAFF badge opens the account, and Sign out asks before it signs out", async p => {
+    await check("account and backups are named on the header and More menu", async p => {
+      assert.equal((await p.locator('.who-btn').textContent()).trim(), 'Account');
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      const account=p.getByRole('button',{name:/Account & backups.*Nexus/});
+      assert.equal(await account.count(),1);
+      await account.click();
+      assert.equal(await p.evaluate(()=>S.more),'nexus');
+      assert.match(await root(p),/Account & backups/i);
+      assert.equal(await p.getByRole('button',{name:'Sign out',exact:true}).count(),1);
+    });
+    await check("tools can be found by a coach's words without saving or losing the search on Back", async p => {
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      const before = await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2'));
+      await p.getByLabel('Find a tool').fill('sign out');
+      assert.equal(await p.locator('#tool-menu .list__row:visible').count(),1);
+      assert.match(await p.locator('#tool-menu .list__row:visible').textContent(),/Account & backups/);
+      assert.equal(await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2')),before);
+      await p.locator('#tool-menu .list__row:visible').click();
+      assert.equal(await p.evaluate(()=>S.more),'nexus');
+      await p.getByRole('button',{name:'‹ More',exact:true}).click();
+      assert.equal(await p.getByLabel('Find a tool').inputValue(),'sign out');
+      assert.equal(await p.locator('#tool-menu .list__row:visible').count(),1);
+      await p.getByLabel('Find a tool').fill('roster');
+      assert.match(await p.locator('#tool-menu .list__row:visible').textContent(),/Team/);
+      await p.getByLabel('Find a tool').fill('<img src=x>');
+      assert.equal(await p.locator('#tool-menu .list__row:visible').count(),0);
+      assert.match(await p.locator('#tool-status').textContent(),/No tools found/);
+      assert.equal(await p.locator('#tool-menu img').count(),0);
+      await p.getByLabel('Find a tool').press('Escape');
+      const keys=await p.evaluate(()=>MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>r[0])));
+      assert.equal(await p.locator('#tool-menu .list__row:visible').count(),keys.length);
+      assert.equal(new Set(keys).size,keys.length);
+      assert.ok(!keys.includes('classes') && !keys.includes('league'));
+      await p.getByLabel('Find a tool').fill('reports');
+      await p.evaluate(()=>set({tab:'tally'}));
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      assert.equal(await p.getByLabel('Find a tool').inputValue(),'');
+    });
+    await check("a coach can find players, the score, League sync and spreadsheets by their everyday names", async p => {
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      const before=await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2'));
+      for(const [words,tool] of [['players','team'],['score','tally'],['league sync','nexus'],['export','reports'],['starting five','lineups'],['shooting lanes','sightlines']]){
+        await p.getByLabel('Find a tool').fill(words);
+        assert.equal(await p.locator(`#tool-menu [data-tool="${tool}"]:visible`).count(),1,words+' finds '+tool);
+        assert.equal(await p.getByLabel('Find a tool').evaluate(el=>el===document.activeElement),true,'typing keeps focus');
+      }
+      assert.equal(await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2')),before,'finding a tool does not rewrite the season');
+      await p.getByLabel('Find a tool').fill('score');
+      await p.locator('#tool-menu [data-tool="tally"]').click();
+      assert.equal(await p.evaluate(()=>S.tab),'tally');
+      await p.locator('.tabs button').filter({hasText:/^More$/}).click();
+      assert.equal(await p.getByLabel('Find a tool').inputValue(),'','another main screen clears the query');
+      assert.equal(await p.locator('#tool-menu [data-main-tool]:visible').count(),0,'main screens do not clutter the ordinary menu');
+    });
+    await check("Back to More restores the chosen tool within the visible phone or tablet menu", async p => {
+      for(const [width,height] of [[390,844],[1024,768],[667,375]]){
+        await p.setViewportSize({width,height});
+        await p.evaluate(()=>set({tab:'more',more:null}));
+        await p.locator('#tool-menu [data-tool="reports"]').click();
+        await p.getByRole('button',{name:'‹ More',exact:true}).click();
+        const got=await p.locator('#tool-menu [data-tool="reports"]').evaluate(el=>{
+          const r=el.getBoundingClientRect(),m=document.querySelector('.main').getBoundingClientRect();
+          return {focused:el===document.activeElement,visible:r.top>=m.top-1 && r.bottom<=m.bottom+1};
+        });
+        assert.equal(got.focused,true,width+'px: focus returns to Reports');
+        assert.equal(got.visible,true,width+'px: the Reports row is in view');
+      }
+    });
+    await check("keyboard navigation announces the chosen screen and leaves typing alone", async p => {
+      const more=p.getByRole('navigation',{name:'Main screens'}).getByRole('button',{name:'More',exact:true});
+      await more.focus();await more.press('Enter');
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'More tools');
+      assert.equal(await p.locator('main').evaluate(el=>el===document.activeElement),true);
+      await p.getByLabel('Find a tool').fill('score');
+      await p.evaluate(()=>flash('A test notice'));
+      assert.equal(await p.getByLabel('Find a tool').evaluate(el=>el===document.activeElement),true,'same-screen feedback keeps the input');
+      const tally=p.locator('#tool-menu [data-tool="tally"]');await tally.focus();await tally.press('Enter');
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'Tally');
+      assert.equal(await p.locator('main').evaluate(el=>el===document.activeElement),true);
+      assert.equal(await p.locator('.tabs [aria-current="page"]').textContent(),'Tally');
+      await p.getByRole('navigation',{name:'Main screens'}).getByRole('button',{name:'Scout',exact:true}).click();
+      await p.locator('[aria-label="Scout views"]').getByRole('button',{name:'Breakouts',exact:true}).click();
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'Scout · Breakouts');
+      assert.equal(await p.locator('[aria-label="Scout views"] [aria-pressed="true"]').textContent(),'Breakouts');
+    });
+    await check("play-building instructions match the controls on this screen and the saved play", async p => {
+      await p.evaluate(()=>{set({tab:'playbook'});newPlay();});
+      const text=await root(p);
+      assert.match(text,/Tap a bunker for player 1, then players 2–5/);
+      assert.match(text,/After saving, use Go/);
+      assert.doesNotMatch(text,/first name you tap|row says otherwise/);
+      await p.evaluate(()=>{
+        const ids=curLayout().bunkers.slice(0,5).map(b=>b.id);
+        ids.forEach(id=>playPick(id));
+      });
+      const takeOff=p.getByRole('button',{name:'Take man 1 off',exact:true});
+      await takeOff.click();
+      assert.equal(await p.evaluate(()=>S.building.plants[0]),null);
+      await p.evaluate(()=>{playPick(curLayout().bunkers[0].id);setPlayField('name','Test breakout');savePlay();});
+      assert.equal(await p.evaluate(()=>S.building),null);
+      assert.match(await root(p),/Test breakout/);
+      assert.ok(await p.getByRole('button',{name:/When he goes:/}).count()>0);
+    });
+    await check("the account badge opens the account, and Sign out asks before it signs out", async p => {
       await p.getByRole("button", { name: /account and sign out/ }).click();
       assert.equal(await p.evaluate(() => S.more), "nexus");
       const box = await p.getByRole("button", { name: "Sign out", exact: true }).boundingBox();

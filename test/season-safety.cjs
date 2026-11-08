@@ -8,7 +8,7 @@ const response=(body={},status=200)=>({ok:status>=200&&status<300,status,json:as
 const copy=(n=1)=>({format:'gridlock.coach.copy',data:{matches:Array.from({length:n},(_,i)=>({id:'m'+i}))}});
 const tick=()=>new Promise(r=>setImmediate(r));
 const deferred=()=>{let resolve;return{promise:new Promise(r=>{resolve=r;}),resolve:v=>resolve(v)};};
-let passed=0;async function test(name,fn){await fn();passed++;console.log('PASS '+name);}
+let passed=0,failed=0;async function test(name,fn){try{await fn();passed++;console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+'\n'+e.stack);process.exitCode=1;}}
 function server(){let row=null;return{get row(){return row;},async route(url,opts){
   if(url.includes('/rpc/gridlock_write_season')){
     const b=JSON.parse(opts.body),current=row?.revision||0;
@@ -26,18 +26,21 @@ function device(route,store=new Map()){
   return{api:window.gridlockCloud,requests,store,login:()=>window.gridlockCloud.signIn('owner@example.test','fixture-password')};
 }
 function syncHarness(){
-  let clock=1000000,nextTimer=0;const timers=new Map(),uploads=[],events=new Map();
+  let clock=1000000,nextTimer=0;const timers=new Map(),uploads=[],events=new Map(),store=new Map(),prompts=[],restores=[];
   const state={entered:true,role:'staff',email:'owner@example.test',syncOn:true,syncAt:null};
-  const cloud={pushSeason:async(_label,payload)=>{uploads.push(payload);return{ok:true};}};
-  const context=vm.createContext({window:{gridlockCloud:cloud,addEventListener:(name,fn)=>events.set(name,fn)},S:state,
+  const cloud={pushSeason:async(_label,payload)=>{uploads.push(payload);return{ok:true};},deleteSeason:async()=>({ok:true}),acceptSeason:()=>true};
+  const context=vm.createContext({window:{gridlockCloud:cloud,addEventListener:(name,fn)=>events.set(name,fn),loadCopy:(_mode,raw)=>{restores.push(raw);return true;}},S:state,
     Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_stale:false,_recoveryUser:null,_recoveryBusy:false,
+    STORE_KEY:'fixture.season',localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
+    confirm:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
     copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},
     setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{at:clock+ms,fn});return id;},clearTimeout:id=>timers.delete(id)});
-  const start=app.indexOf('const canSync ='),end=app.indexOf('window.toggleSync =',start);
+  const start=app.indexOf('const canSync ='),end=app.indexOf('window.deleteCloudAccount =',start);
   vm.runInContext(app.slice(start,end),context);
+  Object.assign(context,context.window);
   context.save=()=>vm.runInContext('maybeSync()',context);
   context.set=values=>Object.assign(state,values);
-  return{run:code=>vm.runInContext(code,context),state,cloud,uploads,events,timers,
+  return{run:code=>vm.runInContext(code,context),state,cloud,uploads,events,timers,store,prompts,restores,
     async advance(ms){clock+=ms;for(const [id,t]of [...timers])if(t.at<=clock){timers.delete(id);t.fn();}await tick();}};
 }
 (async()=>{
@@ -89,6 +92,74 @@ function syncHarness(){
   await test('logout cancels a pending trailing upload',async()=>{
     const h=syncHarness();h.run('maybeSync()');await h.advance(0);h.run('maybeSync()');assert.equal(h.timers.size,1);h.run('window.staffSignOut()');await h.advance(90000);assert.equal(h.uploads.length,1);
   });
+  await test('a late review cannot restart sharing after cloud deletion',async()=>{
+    const h=syncHarness(),gate=deferred();h.cloud.getSeason=()=>gate.promise;
+    const reviewing=h.run('window.reviewCloudSeason()');await tick();
+    await h.run('window.deleteSynced()');const removed=h.state.syncSaid;
+    gate.resolve({ok:false,said:'Review failed'});await reviewing;
+    assert.equal(h.state.syncOn,false);assert.equal(h.state.syncSaid,removed);
+    await h.advance(90000);assert.equal(h.uploads.length,0);
+  });
+  await test('a late review cannot restore data after a newer sync choice',async()=>{
+    const h=syncHarness(),gate=deferred();h.cloud.getSeason=()=>gate.promise;
+    const reviewing=h.run('window.reviewCloudSeason()');await tick();
+    h.run('window.toggleSync();window.toggleSync()');
+    gate.resolve({ok:true,payload:copy(),revision:1,user:{id:'owner'}});await reviewing;
+    assert.equal(h.state.syncOn,false);assert.equal(h.restores.length,0);assert.equal(h.prompts.length,0);
+  });
+  await test('repeated review taps load once and restore the original sync choice on failure',async()=>{
+    const h=syncHarness(),gate=deferred();let reads=0;
+    h.cloud.getSeason=()=>{reads++;return gate.promise;};
+    const first=h.run('window.reviewCloudSeason()');await tick();
+    const second=h.run('window.reviewCloudSeason()');await tick();
+    gate.resolve({ok:false,said:'No signal'});await Promise.all([first,second]);
+    assert.equal(reads,1);assert.equal(h.state.syncOn,true);
+  });
+  await test('restoring a cloud season keeps sharing paused on the next sign-in',async()=>{
+    const h=syncHarness();h.run('syncYes(true)');
+    h.cloud.getSeason=async()=>({ok:true,payload:copy(),revision:1,user:{id:'owner'}});
+    await h.run('window.reviewCloudSeason()');assert.equal(h.restores.length,1);
+    h.run('afterSignIn()');assert.equal(h.state.syncOn,false);assert.equal(h.uploads.length,0);
+  });
+  await test('an upload acknowledges its snapshot, not edits made while it was sending',async()=>{
+    const h=syncHarness(),gate=deferred();h.cloud.pushSeason=()=>gate.promise;
+    const sentAt=h.run('Date.now()'),sending=h.run('window.syncNow()');await tick();
+    await h.advance(5000);h.state.results=[{at:h.run('Date.now()')}];h.run('maybeSync()');
+    gate.resolve({ok:true});await sending;
+    assert.equal(h.state.syncAt,sentAt);assert(h.state.syncAt<h.state.results[0].at);
+    assert.match(h.state.syncSaid,/latest changes are waiting/);assert.equal(h.timers.size,1);
+  });
+  await test('a silently refused recovery-copy write prevents cloud replacement',async()=>{
+    const h=syncHarness();h.cloud.getSeason=async()=>({ok:true,payload:copy(),revision:1,user:{id:'owner'}});
+    h.run('localStorage.setItem=()=>{}');await h.run('window.reviewCloudSeason()');
+    assert.equal(h.restores.length,0);assert.match(h.state.syncSaid,/preserve this phone/);
+  });
+  await test('a delayed file share only backs up the season captured when it opened',async()=>{
+    let clock=1000000;const gate=deferred(),state={copiedAt:0,results:[]};
+    const context=vm.createContext({window:{gridlockExportFile:()=>gate.promise},S:state,
+      Date:class extends Date{constructor(){super(clock);}static now(){return clock;}},
+      copyPayload:()=>JSON.stringify({data:{results:state.results}}),copySummary:()=>'',save(){},render(){}});
+    const start=app.indexOf('let copyExporting = false;'),end=app.indexOf('/* Two phones on one match',start);
+    vm.runInContext(app.slice(start,end),context);
+    const saving=vm.runInContext('window.saveCopy("all")',context);clock+=5000;state.results.push({at:clock});
+    gate.resolve({status:'shared'});await saving;
+    assert.equal(state.copiedAt,1000000);assert(state.copiedAt<state.results[0].at);
+  });
+  await test('Scout-only and other sheet records ask for backup until their snapshot is kept',async()=>{
+    const clock=1700000000000,start=app.indexOf('function newestLogged()'),end=app.indexOf('// Is there a season',start);
+    for(const key of ['pens','timeouts','arrivalSightings','arrivalShots','voiceEvents','scout']){
+      const state={copiedAt:clock-3600000,syncOn:false};
+      if(key==='scout') state.scout={Rejects:{breaks:[{m:'a',pt:1,at:clock-1000}]}};
+      else state[key]=[{m:'a',pt:1,at:clock-1000}];
+      const context=vm.createContext({S:state,Date:{now:()=>clock},SHEET_LISTS:['tally','breakouts','calls','moves','assessments','results','pens','timeouts','arrivalSightings','arrivalShots','voiceEvents']});
+      vm.runInContext(app.slice(start,end),context);
+      assert.match(vm.runInContext('copyNudge()',context),/since your last copy/,key);
+      state.syncOn=true;state.syncAt=clock;
+      assert.equal(vm.runInContext('copyNudge()',context),'',key+' is covered by confirmed sync');
+      state.syncOn=false;state.copiedAt=clock;
+      assert.equal(vm.runInContext('copyNudge()',context),'',key+' is covered by the saved file');
+    }
+  });
   const start=app.indexOf('async function hashPass('),end=app.indexOf('\nfunction newSalt()',start);
   const ctx=vm.createContext({crypto:webcrypto,TextEncoder,Uint8Array,parseInt});vm.runInContext(app.slice(start,end),ctx);
   const salt='00112233445566778899aabbccddeeff';let verifier;
@@ -104,5 +175,5 @@ function syncHarness(){
     assert.equal(await ctx.verifyAccountPassword('fixture-password',{salt,hash:legacy}),true);assert.equal(await ctx.verifyAccountPassword('wrong',{salt,hash:legacy}),false);
     assert(app.includes('if(!acc.hash.startsWith("pbkdf2-sha256$"))'));
   });
-  console.log(`${passed} season and password safety checks passed.`);
+  console.log(`${passed}/${passed+failed} season and password safety checks passed.`);
 })().catch(e=>{console.error(e);process.exitCode=1;});
