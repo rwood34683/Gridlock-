@@ -108,6 +108,53 @@ const SEED = require("../scripts/seed.js");
       await p.evaluate(()=>set({tab:'more',more:null}));
       assert.equal(await p.getByLabel('Find a tool').inputValue(),'');
     });
+    await check("a coach can find players, the score, League sync and spreadsheets by their everyday names", async p => {
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      const before=await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2'));
+      for(const [words,tool] of [['players','team'],['score','tally'],['league sync','nexus'],['export','reports'],['starting five','lineups'],['shooting lanes','sightlines']]){
+        await p.getByLabel('Find a tool').fill(words);
+        assert.equal(await p.locator(`#tool-menu [data-tool="${tool}"]:visible`).count(),1,words+' finds '+tool);
+        assert.equal(await p.getByLabel('Find a tool').evaluate(el=>el===document.activeElement),true,'typing keeps focus');
+      }
+      assert.equal(await p.evaluate(()=>localStorage.getItem('gridlock.coach.v2')),before,'finding a tool does not rewrite the season');
+      await p.getByLabel('Find a tool').fill('score');
+      await p.locator('#tool-menu [data-tool="tally"]').click();
+      assert.equal(await p.evaluate(()=>S.tab),'tally');
+      await p.locator('.tabs button').filter({hasText:/^More$/}).click();
+      assert.equal(await p.getByLabel('Find a tool').inputValue(),'','another main screen clears the query');
+      assert.equal(await p.locator('#tool-menu [data-main-tool]:visible').count(),0,'main screens do not clutter the ordinary menu');
+    });
+    await check("Back to More restores the chosen tool within the visible phone or tablet menu", async p => {
+      for(const [width,height] of [[390,844],[1024,768],[667,375]]){
+        await p.setViewportSize({width,height});
+        await p.evaluate(()=>set({tab:'more',more:null}));
+        await p.locator('#tool-menu [data-tool="reports"]').click();
+        await p.getByRole('button',{name:'‹ More',exact:true}).click();
+        const got=await p.locator('#tool-menu [data-tool="reports"]').evaluate(el=>{
+          const r=el.getBoundingClientRect(),m=document.querySelector('.main').getBoundingClientRect();
+          return {focused:el===document.activeElement,visible:r.top>=m.top-1 && r.bottom<=m.bottom+1};
+        });
+        assert.equal(got.focused,true,width+'px: focus returns to Reports');
+        assert.equal(got.visible,true,width+'px: the Reports row is in view');
+      }
+    });
+    await check("keyboard navigation announces the chosen screen and leaves typing alone", async p => {
+      const more=p.getByRole('navigation',{name:'Main screens'}).getByRole('button',{name:'More',exact:true});
+      await more.focus();await more.press('Enter');
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'More tools');
+      assert.equal(await p.locator('main').evaluate(el=>el===document.activeElement),true);
+      await p.getByLabel('Find a tool').fill('score');
+      await p.evaluate(()=>flash('A test notice'));
+      assert.equal(await p.getByLabel('Find a tool').evaluate(el=>el===document.activeElement),true,'same-screen feedback keeps the input');
+      const tally=p.locator('#tool-menu [data-tool="tally"]');await tally.focus();await tally.press('Enter');
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'Tally');
+      assert.equal(await p.locator('main').evaluate(el=>el===document.activeElement),true);
+      assert.equal(await p.locator('.tabs [aria-current="page"]').textContent(),'Tally');
+      await p.getByRole('navigation',{name:'Main screens'}).getByRole('button',{name:'Scout',exact:true}).click();
+      await p.locator('[aria-label="Scout views"]').getByRole('button',{name:'Breakouts',exact:true}).click();
+      assert.equal(await p.locator('main').getAttribute('aria-label'),'Scout · Breakouts');
+      assert.equal(await p.locator('[aria-label="Scout views"] [aria-pressed="true"]').textContent(),'Breakouts');
+    });
     await check("play-building instructions match the controls on this screen and the saved play", async p => {
       await p.evaluate(()=>{set({tab:'playbook'});newPlay();});
       const text=await root(p);

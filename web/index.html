@@ -14173,7 +14173,7 @@ function scout(){
   const PRIMARY = ["matchup","breakouts","arrival","counter","games","board"];
   const extraTabs = SCOUT_TABS.filter(([k]) => !PRIMARY.includes(k));
   const showExtra = S.scoutNavMore || extraTabs.some(([k]) => k === view);
-  const navBtn = ([k,n]) => `<button class="${view===k?"on":""}" onclick="set({scoutTab:'${k}'})">${n}</button>`;
+  const navBtn = ([k,n]) => `<button class="${view===k?"on":""}" aria-pressed="${view===k}" onclick="set({scoutTab:'${k}'})">${n}</button>`;
   const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${
       SCOUT_TABS.filter(([k]) => PRIMARY.includes(k)).map(navBtn).join("")}
       <button class="${showExtra?"on":""}" onclick="set({scoutNavMore:!S.scoutNavMore})" aria-expanded="${showExtra}">More ${showExtra?"\u25b4":"\u25be"}</button></div>${
@@ -16546,7 +16546,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
-  ["Where do I find a tool?", "Open More and use Find a tool. Try roster, reports, backup or sign out. Tools are also grouped by before, during and after the game. Clear shows the full list again."],
+  ["Where do I find a tool?", "Open More and use Find a tool. Try players, score, export, League sync or sign out. Search includes Playbook, Tally, Scout and Sightlines too. Tools are also grouped by before, during and after the game. Clear shows the full list again. Back to More returns to the tool you opened."],
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
@@ -17450,6 +17450,25 @@ const MORE_GROUPS=[
 const MORE_HIDDEN = {classes:"Classes", league:"League"};
 const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
+// The words a coach looks for need not be the name printed on a tab.
+// These are search hints only: they never change a tool's access or saved data.
+const TOOL_WORDS={
+  playbook:"plays breakout calls break plan", tally:"score scoring points won lost chart break clock",
+  scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
+  team:"players squad jerseys names add player roster", lineups:"starting five who plays",
+  format:"rules division game length", schedule:"calendar games fixtures times",
+  walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
+  movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
+  stats:"bunker statistics outs survival", assess:"grades grading players", messages:"team notes",
+  plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
+  nexus:"league sync backup backups save file restore recovery account sign out logout log out privacy support"
+};
+const MAIN_TOOLS=[
+  ["playbook","Playbook","Pick a call or build your own play"],
+  ["tally","Tally","Chart the break and keep the score"],
+  ["scout","Scout","Read the other team"],
+  ["sightlines","Sightlines","Check shooting lanes between bunkers"]
+];
 let _moreQuery = "";
 window.filterTools = value => {
   const menu = document.getElementById("tool-menu"); if(!menu) return;
@@ -17457,8 +17476,8 @@ window.filterTools = value => {
   const words = foldName(_moreQuery).split(/\s+/).filter(Boolean);
   let count = 0;
   menu.querySelectorAll(".list__row").forEach(row => {
-    const name = foldName(row.textContent);
-    row.hidden = !words.every(word => name.includes(word));
+    const name = foldName(row.textContent + " " + (TOOL_WORDS[row.dataset.tool] || ""));
+    row.hidden = (row.hasAttribute("data-main-tool") && !words.length) || !words.every(word => name.includes(word));
     if(!row.hidden) count++;
   });
   menu.querySelectorAll("[data-tools-group]").forEach(group => {
@@ -17472,6 +17491,14 @@ window.clearTools = () => {
   const input = document.getElementById("tool-find");
   if(input){ input.value = ""; filterTools(""); input.focus(); }
 };
+window.backTools = () => {
+  const key = S.more;
+  set({more:null});
+  // Return to the actual row, not an old pixel offset that a search can change.
+  const row = [...document.querySelectorAll("#tool-menu [data-tool]")].find(r => r.dataset.tool === key && !r.hidden);
+  if(row){ row.focus({preventScroll:true}); row.scrollIntoView({block:"nearest", inline:"nearest"}); }
+  else document.getElementById("tool-find")?.focus({preventScroll:true});
+};
 function morePage(){
   if(!S.more){
     return `<div class="fld"><label for="tool-find">Find a tool</label>
@@ -17480,14 +17507,18 @@ function morePage(){
         onkeydown="if(event.key==='Escape'){event.preventDefault();clearTools()}"/>
       <button id="tool-clear" class="btn btn--quiet" onclick="clearTools()"${_moreQuery ? "" : " hidden"}>Clear</button></div>
       <p id="tool-status" class="note" role="status" aria-live="polite" hidden></p></div>
-      <div id="tool-menu">` + MORE_GROUPS.map(([title,rows])=>`<div data-tools-group>` + sec(title,`<div class="list">
-      ${rows.map(([k,n,d])=>`<button class="list__row" onclick="set({more:'${k}'})">
+      <div id="tool-menu"><div data-tools-group hidden>` + sec("Main screens",`<div class="list">
+      ${MAIN_TOOLS.map(([k,n,d])=>`<button class="list__row" data-tool="${k}" data-main-tool hidden onclick="set({tab:'${k}',more:null,evPick:false})">
+        <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
+        ${gateFor(k) ? `<span class="gate__chip">Team</span>` : ""}<span class="list__go">›</span>
+      </button>`).join("")}</div>`) + `</div>` + MORE_GROUPS.map(([title,rows])=>`<div data-tools-group>` + sec(title,`<div class="list">
+      ${rows.map(([k,n,d])=>`<button class="list__row" data-tool="${k}" onclick="set({more:'${k}'})">
         <span class="list__body"><span class="list__name">${n}</span><span class="list__desc">${d}</span></span>
         ${gateFor("more/" + k) ? `<span class="gate__chip">Team</span>` : moreCount(k)}<span class="list__go">›</span>
       </button>`).join("")}
     </div>`) + `</div>`).join("") + `</div>`;
   }
-  return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="set({more:null})">‹ More</button>
+  return `<button class="btn btn--quiet" style="align-self:flex-start" onclick="backTools()">‹ More</button>
     ${moreBody(S.more)}`;
 }
 function moreCount(k){
@@ -18228,6 +18259,10 @@ function shell(){
   const blocked = gateKey();
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
   const askSync = syncAskShown(), asking = askSync || !!S.fmtAsk;
+  const screenLabel = askSync ? "Back up your season" : asking ? "Match format"
+    : S.tab === "more" ? MORE_TITLES[S.more] || "More tools"
+    : S.tab === "scout" ? "Scout · " + (SCOUT_TABS.find(([k])=>k===(S.scoutTab || "matchup")) || [, "Matchup"])[1]
+    : (tabs.find(([k])=>k===S.tab) || [, "Coaching"])[1];
   const page = askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
                        : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
@@ -18286,10 +18321,10 @@ function shell(){
       ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
         Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${evLogo(k)}${esc(l.name)}</button>`).join("")}</div>` : ""}
     </header>
-    <main class="main">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
+    <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
-    ${asking ? "" : `<nav class="tabs">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}" onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
+    ${asking ? "" : `<nav class="tabs" aria-label="Main screens">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}"${S.tab===k ? ' aria-current="page"' : ""} onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
     ${S.flash ? `<div class="flash${resultBarShown() ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
@@ -18697,6 +18732,7 @@ function render(){
   try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
   const newScreen = screen !== _where;
+  const moveFocus = newScreen && root.contains(document.activeElement);
   if(newScreen){
     // Build the new screen off-page, then insert it once. Parsing hundreds
     // of controls into the live root makes first entry to Tally expensive.
@@ -18722,6 +18758,7 @@ function render(){
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   if(S.tab === "more" && !S.more) filterTools(_moreQuery);
+  if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
   watchTallyField();
   placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;
