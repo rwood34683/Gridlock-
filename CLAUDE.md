@@ -2803,6 +2803,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   not the score. On a phone on its side the picker and the names stand beside
   the field. Focus goes to Tuck where it shows, else the field, and to Play when
   the game stops; the buzzer's pause says so in head to head too.
+  **Arcade** adds a complete three-stage run: four outs in each of the first
+  two stages, then Captain Bonusball with three arcade shields. Every hit
+  comes from a shot that landed; all paint lands before a win is decided.
+  A loss, pause or replay never becomes a saved season or a solo best
+  (`g.noBest`). The masks, stadium and paint effects belong to this fictional
+  arena, not the measured coaching fields. Static stadium art is cached;
+  splashes are bounded, and reduced motion removes trails and flying paint.
+  Sound is off until the player turns it on, is made locally, and stops on
+  pause, blur, hide or Close. Arrow keys aim, Enter fires from the field,
+  R reloads, G grabs a dropped pod, holding Space tucks, P pauses and Escape closes; typing a team
+  name still types. Tuck and reload block a shot immediately, before the
+  next frame. The four modes keep the same secret entry and never change
+  a coaching score. `test/pod-wars.cjs` plays the run through its real engine,
+  checks replay, loss, controls, sound, reduced motion and phone/tablet fit;
+  the original solo, fair-duel and head-to-head checks still apply.
 - Return a check's detail as its result. `check()` took `ok ||
   JSON.stringify({...})` as a pass, because a string is truthy: thirty-two
   checks could never fail, and two had been failing unseen. A returned

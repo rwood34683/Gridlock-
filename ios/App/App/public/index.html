@@ -6900,8 +6900,8 @@ window.readCopyFile = input => {
    Tap the name in the header seven times inside a few seconds. It is a game,
    so it keeps nothing but its best score: it draws over the app on a layer of
    its own outside #root, so a render underneath never touches it and closing
-   it leaves the coach exactly where he was. Their men are blue squares behind
-   their bunkers, as on every Scout field; you are the red dot behind yours.
+   it leaves the coach exactly where he was. This is a made-up arcade arena,
+   never a measured event field. Masks, paint and commentary belong only here.
    Tap a man to shoot him. Paint coming back at you: hold Tuck. The hopper
    holds twenty; Pod reloads, and a pod someone dropped is worth a tap. One hit
    and you are out, the way the game is. It stops the moment the app is hidden
@@ -6923,7 +6923,66 @@ const POD_BUNKERS = [
 const POD_ME = {x: 180, y: 470};
 function podFresh(){
   return {phase: "ready", t: 0, score: 0, level: 1, hopper: POD.hopperMax, pods: 3, tucked: false, held: false,
-          reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", dry: ""};
+          reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", dry: "",
+          shots:0, hits:0, combo:0, bestCombo:0, lastHit:-10000, aim:0, quip:"", quipUntil:0};
+}
+const POD_STAGES = ["The rental rebellion", "The bonus-ball committee", "Captain Bonusball"];
+function podArcadeFresh(){ return {...podFresh(), arcade:true, noBest:true, stage:1, bossHp:3, intermission:0}; }
+const POD_QUIPS = {
+  hit:["Paint delivered. No signature needed.","Promoted to spectator.","That jersey was too clean anyway.","A brief meeting with the net.","Walk it off. Dramatically."],
+  miss:["That bunker owes you rent.","Excellent shot. Wrong species.","The inflatable has filed a complaint."],
+  reload:["Reloading. Please hold your opinions.","Expensive confetti, coming right up."],
+  pod:["Pod secured. Crisis averted.","Finders keepers. Loaders weepers."],
+  out:["You have been promoted to spectator.","The walk of shame has free parking.","Your pod pack would like a new owner."]
+};
+function podQuip(g, kind, text){
+  const lines=POD_QUIPS[kind];
+  g.quip=text || (lines && lines[(g.shots+g.score)%lines.length]) || ""; g.quipUntil=g.t+2200;
+}
+function podHit(g, e){
+  g.hits++;g.combo=g.t-g.lastHit<2600?g.combo+1:1;g.lastHit=g.t;g.bestCombo=Math.max(g.bestCombo,g.combo);
+  if(e.boss && g.bossHp>1){g.bossHp--;podQuip(g,"hit",`${g.bossHp} shield${g.bossHp===1?"":"s"} left. He wants a recount.`);}
+  else{g.enemies=g.enemies.filter(x=>x!==e);g.score++;if(e.boss)g.bossHp=0;podQuip(g,"hit");}
+  podSound("hit");
+}
+function podArcadeTick(g){
+  if(!g.arcade || g.phase!=="play" || g.intermission) return;
+  if(g.stage===3 && !g.bossHp){g.phase="won";g.why="Captain Bonusball has left the group chat.";g.balls=[];podSound("win");return;}
+  if(g.stage<3 && g.score>=g.stage*4){
+    g.stage++;g.intermission=1800;g.enemies=[];g.balls=[];g.drop=null;g.dry="";
+    g.hopper=POD.hopperMax;g.pods=Math.max(2,g.pods);g.reload=0;g.nextSpawn=750;
+    podQuip(g,"hit",g.stage===3?"Final boss. Three shields. Zero humility.":"Fresh paint. Same questionable decisions.");podSound("round");
+  }
+}
+// Sound is off until a tap opts in. No files, microphone, speech service or network.
+function podAudioStop(close=false){
+  if(!pod)return;
+  for(const n of pod.voices||[])try{n.stop();}catch(e){}
+  if(pod.voices)pod.voices.clear();
+  const a=pod.audio;
+  if(a)try{Promise.resolve(close?a.close():a.suspend()).catch(()=>{});}catch(e){}
+  if(close)pod.audio=null;
+}
+function podSound(kind){
+  if(!pod || !pod.sound || !pod.audio || pod.audio.state!=="running" || pod.voices.size>12)return;
+  const a=pod.audio, notes={shot:[180],hit:[660,880],reload:[120,180],pod:[550,740],round:[440,660,880],win:[440,550,660,880],out:[180,120]};
+  try{(notes[kind]||[]).forEach((hz,i)=>{
+    const o=a.createOscillator(),v=a.createGain(),t=a.currentTime+i*.075;
+    o.type=kind==="shot"?"triangle":"sine";o.frequency.setValueAtTime(hz,t);o.frequency.exponentialRampToValueAtTime(Math.max(50,hz*.7),t+.07);
+    v.gain.setValueAtTime(.0001,t);v.gain.exponentialRampToValueAtTime(.055,t+.006);v.gain.exponentialRampToValueAtTime(.0001,t+.09);
+    o.connect(v);v.connect(a.destination);pod.voices.add(o);const voices=pod.voices;
+    o.onended=()=>{voices.delete(o);o.disconnect();v.disconnect();};o.start(t);o.stop(t+.1);
+  });}catch(e){}
+}
+function podToggleSound(){
+  if(!pod)return;pod.sound=!pod.sound;
+  if(pod.sound){
+    try{const A=window.AudioContext||window.webkitAudioContext;if(!A)throw Error("No audio");
+      pod.audio=pod.audio||new A();const owner=pod;
+      Promise.resolve(pod.audio.resume()).catch(()=>{if(pod===owner){pod.sound=false;podDraw();}});
+    }catch(e){pod.sound=false;}
+  }else podAudioStop();
+  podDraw();
 }
 // Whether a ball landing at (x, y) is on the bunker itself, by its shape.
 function podInBunker(b, x, y){
@@ -6939,7 +6998,7 @@ function podLean(b, side, out){ return b.x + side * (podHalf(b) - 9 + 15 * out);
 function podOut(e){ return Math.min(1, e.age / 140) * Math.min(1, Math.max(0, e.stay - e.age) / 140); }
 // A duel's level runs on the clock, not the score: a level that rose with
 // his outs gave the better player faster men than the turn he was matched with.
-function podLevel(g){ return g.deal !== undefined ? 1 + Math.floor(g.t / 12000) : 1 + Math.floor(g.score / 5); }
+function podLevel(g){ return g.arcade ? g.stage*2-1 : g.deal !== undefined ? 1 + Math.floor(g.t / 12000) : 1 + Math.floor(g.score / 5); }
 function podStay(g){ return Math.max(700, 1500 - (g.level - 1) * 110); }
 function podSpawnGap(g){ return Math.max(450, 1300 - (g.level - 1) * 120); }
 function podR(g){ return podRand(); }
@@ -6949,6 +7008,10 @@ function podR(g){ return podRand(); }
 // other did not, and from then on the two turns met different men.
 const podDealt = (g, what) => podRng(g.deal * 31 + what * 100003 + (what ? g.dropK++ : g.spawnK++));
 function podSpawn(g){
+  if(g.arcade && g.stage===3){
+    if(!g.enemies.length){podPut(g,Math.floor(podR(g)*POD_BUNKERS.length),podR(g)<.5?-1:1,.3,1);g.enemies[0].boss=true;}
+    return;
+  }
   const most = Math.min(3, 1 + Math.floor((g.level - 1) / 2));
   if(g.deal !== undefined){
     const r = podDealt(g, 0), pick = Math.floor(r() * POD_BUNKERS.length), side = r() < .5 ? -1 : 1, fire = r(), num = Math.floor(r() * 7), gap = r();
@@ -6974,6 +7037,7 @@ function podStep(g, dt){
   if(!g || g.phase !== "play") return;
   if(g.kind === "h2h") return podH2HStep(g, dt);
   g.t += dt;
+  if(g.intermission>0){g.intermission=Math.max(0,g.intermission-dt);return;}
   g.level = podLevel(g);
   g.tucked = g.held || g.reload > 0;
   if(g.reload > 0){ g.reload -= dt; if(g.reload <= 0){ g.reload = 0; g.hopper = POD.hopperMax; } }
@@ -7012,16 +7076,16 @@ function podStep(g, dt){
       // covered, and one barely leaning out shows too little to hit.
       const cover = POD_BUNKERS.find(k => podInBunker(k, b.x1, b.y1));
       const hit = !cover && g.enemies.find(e => (e.out === undefined ? podOut(e) : e.out) > .25 && Math.hypot(e.x - b.x1, e.y - b.y1) < 17);
-      if(hit){ g.enemies = g.enemies.filter(e => e !== hit); g.score++; g.splats.push({x: hit.x, y: hit.y, c: "#e5342f", age: 0, big: true}); }
-      else g.splats.push({x: b.x1, y: b.y1, c: "#e5342f", age: 0});
+      if(hit){ podHit(g,hit);g.splats.push({x: hit.x, y: hit.y, c: "#ff5a52", age: 0, big: true}); }
+      else{g.splats.push({x: b.x1, y: b.y1, c: "#e5342f", age: 0});if(cover && g.shots%4===0)podQuip(g,"miss");}
     } else if(!g.tucked){
       if(!shotBy){ shotBy = b.from; g.splats.push({x: POD_ME.x - 18, y: POD_ME.y - 6, c: "#3d8bff", age: 0, big: true}); }
     } else g.splats.push({x: POD_ME.x, y: POD_ME.y - 26, c: "#3d8bff", age: 0});
   }
-  if(shotBy !== null){ g.phase = "out"; g.why = `Shot by #${shotBy}`; podOver(g); }
+  if(shotBy !== null){ g.phase = "out"; g.why = `Shot by #${shotBy}`;podQuip(g,"out");podSound("out"); podOver(g); }
   g.balls = g.balls.filter(b => b.age < b.dur);
   g.splats.forEach(s => { s.age += dt; });
-  g.splats = g.splats.filter(s => s.age < 1400);
+  g.splats = g.splats.filter(s => s.age < 1400).slice(-32);
   // Dry — nothing in the hopper, no pods, nothing loading, nothing in the
   // air — is not over while a pod is coming: the next drop is brought up to
   // now, and only when that one has come and gone uncollected is he out.
@@ -7039,15 +7103,15 @@ function podOver(g){
   if(g.score > (S.podBest || 0)){ S.podBest = g.score; save(S); g.best = !_storeFail; }
 }
 function podTapAt(g, x, y){
-  if(!g || g.phase !== "play") return;
-  if(g.drop && Math.hypot(g.drop.x - x, g.drop.y - y) < 26){ g.drop = null; g.pods = Math.min(POD.podsMax, g.pods + 1); return; }
-  if(g.tucked || !g.hopper || y > 430) return;
-  g.hopper--;
+  if(!g || g.phase !== "play" || g.intermission || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  if(g.drop && Math.hypot(g.drop.x - x, g.drop.y - y) < 26){ g.drop = null; g.pods = Math.min(POD.podsMax, g.pods + 1);podQuip(g,"pod");podSound("pod");return; }
+  if(g.held || g.reload || g.tucked || !g.hopper || y > 430 || y<0 || x<0 || x>POD.W) return;
+  g.hopper--;g.shots++;podSound("shot");
   g.balls.push({mine: true, x0: POD_ME.x - 18, y0: POD_ME.y - 8, x1: x, y1: y, age: 0, dur: 230});
 }
 function podReload(g){
   if(!g || g.phase !== "play" || g.reload || !g.pods || g.hopper === POD.hopperMax) return;
-  g.pods--; g.reload = 700;
+  g.pods--; g.reload = 700;podQuip(g,"reload");podSound("reload");
 }
 /* The duel: two teams pass the phone. Each player gets one life, the teams
    turn about, and both turns of a round are dealt from one seed so the same
@@ -7070,7 +7134,7 @@ function podDuelTick(){
   d.turn++;
   if(d.turn >= d.per * 2) d.done = true;
 }
-function podAdvance(g, dt){ podStep(g, dt); podDuelTick(); }
+function podAdvance(g, dt){ podStep(g, dt);podArcadeTick(g); podDuelTick(); }
 
 /* Head to head: two players, one screen. Red is at the bottom; blue sits at
    the top and everything of his is drawn turned round, so each reads his own
@@ -7096,7 +7160,7 @@ function podH2HStep(g, dt){
   if(g.lull > 0){ g.lull -= dt; if(g.lull <= 0) podH2HRound(g); return; }
   g.p.forEach(m => {
     if(m.reload > 0){ m.reload -= dt; if(m.reload <= 0){ m.reload = 0; m.hopper = POD_H2H.hopper; } }
-    if(!m.hopper && !m.reload && m.pods){ m.pods--; m.reload = 700; }   // an empty hopper reloads itself
+    if(!m.hopper && !m.reload && m.pods){ m.pods--; m.reload = 700;podSound("reload"); }   // an empty hopper reloads itself
     m.tucked = m.holds > 0 || m.reload > 0;
   });
   g.balls.forEach(b => { b.age += dt; });
@@ -7110,12 +7174,14 @@ function podH2HStep(g, dt){
   }
   g.balls = g.balls.filter(b => b.age < b.dur);
   if(hit[0] || hit[1]){
+    podSound("hit");
     if(hit[0] && hit[1]) g.why = "A trade — nobody takes it";
     else { const w = hit[1] ? 0 : 1; g.score[w]++; g.why = `${podName(w)} takes it`; }
     const top = Math.max(g.score[0], g.score[1]);
     if(top >= POD_H2H.first){
       g.winner = g.score[0] > g.score[1] ? 0 : 1; g.phase = "out";
       g.why = `${podName(g.winner)} wins ${g.score[g.winner]}–${g.score[1 - g.winner]}`;
+      podSound("win");
       return;
     }
     g.lull = POD_H2H.lull; return;
@@ -7126,7 +7192,7 @@ function podH2HStep(g, dt){
 function podH2HShoot(g, i, x){
   if(!g || g.kind !== "h2h" || g.phase !== "play" || g.lull) return;
   const m = g.p[i]; if(m.tucked || !m.hopper) return;
-  m.hopper--;
+  m.hopper--;podSound("shot");
   g.balls.push({from: i, x0: 180 + POD_SIDE[i].out, y0: POD_SIDE[i].y, x1: Math.max(20, Math.min(POD.W - 20, x)), y1: POD_SIDE[1 - i].y, age: 0, dur: POD_H2H.dur});
 }
 // A finger on his own end tucks him for as long as it stays down; a tap in
@@ -7144,9 +7210,9 @@ function podH2HUp(g, id){
   if(g && g.kind === "h2h") g.p[i].holds = Math.max(0, g.p[i].holds - 1);
 }
 function podSetMode(m){
-  if(!pod || !["solo", "duel", "h2h"].includes(m) || pod.g.phase === "play" || pod.g.phase === "paused") return;
+  if(!pod || !["solo", "arcade", "duel", "h2h"].includes(m) || pod.g.phase === "play" || pod.g.phase === "paused") return;
   pod.mode = m; pod.duel = m === "duel" ? podDuelNew() : null; pod.holds = new Map();
-  pod.g = m === "h2h" ? podH2HFresh() : podFresh();
+  pod.g = m === "h2h" ? podH2HFresh() : m === "arcade" ? podArcadeFresh() : podFresh();
   podDraw();
 }
 function podSetPer(n){
@@ -7156,35 +7222,87 @@ function podSetPer(n){
   podDraw();
 }
 function podGround(ctx, mid){
-  ctx.fillStyle = "#0b0c0d"; ctx.fillRect(0, 0, POD.W, POD.H);
-  ctx.fillStyle = "#101111"; ctx.fillRect(10, 40, POD.W - 20, POD.H - 70);
-  ctx.strokeStyle = "#1d2022"; ctx.lineWidth = 1;
-  for(let x = 10; x <= POD.W - 10; x += 40){ ctx.beginPath(); ctx.moveTo(x, 40); ctx.lineTo(x, POD.H - 30); ctx.stroke(); }
-  for(let y = 40; y <= POD.H - 30; y += 40){ ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(POD.W - 10, y); ctx.stroke(); }
-  ctx.fillStyle = "#3d8bff"; ctx.fillRect(10, 40, POD.W - 20, 3);
-  ctx.fillStyle = "#e5342f"; ctx.fillRect(10, POD.H - 33, POD.W - 20, 3);
-  ctx.setLineDash([6, 8]); ctx.strokeStyle = "rgba(239,237,235,.25)"; ctx.beginPath(); ctx.moveTo(10, mid); ctx.lineTo(POD.W - 10, mid); ctx.stroke(); ctx.setLineDash([]);
+  const cached=pod&&pod.ground;
+  if(cached && cached.mid===mid && cached.cv.width===ctx.canvas.width && cached.cv.height===ctx.canvas.height){ctx.drawImage(cached.cv,0,0,POD.W,POD.H);return;}
+  ctx.fillStyle="#090b10";ctx.fillRect(0,0,POD.W,POD.H);
+  const glow=ctx.createRadialGradient(180,110,5,180,220,420);glow.addColorStop(0,"#192335");glow.addColorStop(.6,"#10141d");glow.addColorStop(1,"#090a0d");
+  ctx.fillStyle=glow;ctx.fillRect(10,40,340,490);
+  // Floodlights, net posts and quiet court markings: an arena, not a map.
+  for(const x of [18,342]){
+    const light=ctx.createRadialGradient(x,64,0,x,100,200);light.addColorStop(0,x<180?"#3d8bff30":"#ff5a5228");light.addColorStop(1,"#00000000");
+    ctx.fillStyle=light;ctx.fillRect(0,40,360,380);ctx.strokeStyle="#3d8bff35";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,58);ctx.lineTo(x,516);ctx.stroke();
+    for(let y=70;y<510;y+=28){ctx.fillStyle="#efedeb28";ctx.fillRect(x-2,y,4,2);}
+    for(let i=0;i<4;i++){ctx.fillStyle="#efedeb";ctx.fillRect(x-6+i*4,51,3,6);}
+  }
+  ctx.strokeStyle="#efedeb0b";ctx.lineWidth=1;
+  for(let x=-80;x<480;x+=56){ctx.beginPath();ctx.moveTo(180+(x-180)*.5,72);ctx.lineTo(x,520);ctx.stroke();}
+  for(let y=90;y<520;y+=48){ctx.beginPath();ctx.moveTo(24,y);ctx.lineTo(336,y);ctx.stroke();}
+  ctx.strokeStyle="#efedeb18";ctx.strokeRect(30,76,300,420);ctx.beginPath();ctx.ellipse(180,mid,72,32,0,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([5,9]);ctx.beginPath();ctx.moveTo(30,mid);ctx.lineTo(330,mid);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#3d8bff";ctx.fillRect(30,76,300,2);ctx.fillStyle="#e5342f";ctx.fillRect(30,494,300,2);
+  ctx.save();ctx.translate(180,mid+58);ctx.rotate(-.12);ctx.font="900 38px system-ui";ctx.textAlign="center";ctx.fillStyle="#efedeb06";ctx.fillText("POD WARS",0,0);ctx.restore();
+  for(let i=0;i<18;i++){ctx.fillStyle=i%2?"#e5342f15":"#3d8bff15";ctx.beginPath();ctx.ellipse(35+(i*73)%290,200+(i*31)%250,3+i%6,2+i%4,i,0,Math.PI*2);ctx.fill();}
+  if(pod){const cv=document.createElement("canvas");cv.width=ctx.canvas.width;cv.height=ctx.canvas.height;cv.getContext("2d").drawImage(ctx.canvas,0,0);pod.ground={mid,cv};}
+}
+function podRound(ctx,x,y,w,h,r=8){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+function podMask(ctx,x,y,c,scale=1,boss=false){
+  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+  ctx.fillStyle="#00000066";ctx.beginPath();ctx.ellipse(0,16,16,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=c;podRound(ctx,-13,4,26,14,5);ctx.fill();ctx.fillStyle="#151921";podRound(ctx,-6,6,12,13,3);ctx.fill();
+  ctx.strokeStyle="#07090d";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(6,8);ctx.lineTo(17,4);ctx.lineTo(22,-1);ctx.stroke();
+  ctx.strokeStyle="#efedeb90";ctx.lineWidth=1;ctx.stroke();ctx.fillStyle="#0a0d13";ctx.beginPath();ctx.ellipse(17,1,5,3,-.4,0,Math.PI*2);ctx.fill();
+  const shell=ctx.createLinearGradient(-10,-14,10,10);shell.addColorStop(0,"#647082");shell.addColorStop(.3,"#232d3b");shell.addColorStop(1,"#080b10");
+  ctx.fillStyle=shell;ctx.strokeStyle=c;ctx.lineWidth=1.3;podRound(ctx,-11,-13,22,24,8);ctx.fill();ctx.stroke();
+  const visor=ctx.createLinearGradient(-9,-8,8,1);visor.addColorStop(0,"#effcff");visor.addColorStop(.25,boss?"#ffdc8a":"#75caff");visor.addColorStop(.65,boss?"#ae6322":"#2e64a2");visor.addColorStop(1,"#091d33");
+  ctx.fillStyle=visor;podRound(ctx,-9,-8,18,9,3);ctx.fill();ctx.strokeStyle="#efedebbb";ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(-7,-6);ctx.lineTo(2,-6);ctx.stroke();
+  ctx.strokeStyle="#efedeb55";for(let i=-5;i<=5;i+=5){ctx.beginPath();ctx.moveTo(i,3);ctx.lineTo(i,7);ctx.stroke();}
+  if(boss){ctx.fillStyle="#ffd17c";ctx.beginPath();ctx.moveTo(-11,-15);ctx.lineTo(-14,-24);ctx.lineTo(-4,-19);ctx.lineTo(0,-28);ctx.lineTo(5,-19);ctx.lineTo(14,-24);ctx.lineTo(10,-15);ctx.closePath();ctx.fill();}
+  ctx.restore();
 }
 function podBunker(ctx, b){
   const gr = ctx.createLinearGradient(0, b.y - 18, 0, b.y + 18);
-  gr.addColorStop(0, b.c === "r" ? "#c2453d" : "#4a49c4"); gr.addColorStop(1, b.c === "r" ? "#7d1512" : "#25246e");
-  ctx.fillStyle = gr; ctx.strokeStyle = b.c === "r" ? "#5c0f0d" : "#1b1a55"; ctx.lineWidth = 1.5;
+  gr.addColorStop(0, b.c === "r" ? "#fa655e" : "#6ab3ff");gr.addColorStop(.25,b.c === "r" ? "#c72f35" : "#295cac"); gr.addColorStop(1, b.c === "r" ? "#53121c" : "#0e244c");
+  ctx.save();ctx.fillStyle="#00000088";ctx.beginPath();ctx.ellipse(b.x+3,b.y+15,podHalf(b)+5,7,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle = gr; ctx.strokeStyle = b.c === "r" ? "#ff817955" : "#89c8ff55"; ctx.lineWidth = 1.5;
   ctx.beginPath();
   if(b.t === "can") ctx.arc(b.x, b.y, 15, 0, Math.PI * 2);
   else if(b.t === "temple"){ ctx.moveTo(b.x, b.y - 18); ctx.lineTo(b.x + 16, b.y); ctx.lineTo(b.x, b.y + 18); ctx.lineTo(b.x - 16, b.y); ctx.closePath(); }
   else ctx.rect(b.x - 22, b.y - 12, 44, 24);
-  ctx.fill(); ctx.stroke();
+  ctx.fill(); ctx.stroke();ctx.clip();
+  ctx.fillStyle="#efedebbb";ctx.fillRect(b.x-24,b.y-2,48,4);ctx.fillStyle="#ffffff20";ctx.fillRect(b.x-11,b.y-20,3,40);ctx.restore();
 }
 function podBalls(ctx, g){
   g.balls.forEach(b => {
     const f = Math.min(1, b.age / b.dur), x = b.x0 + (b.x1 - b.x0) * f, y = b.y0 + (b.y1 - b.y0) * f;
+    const c=(b.mine || b.from === 0) ? "#ff5a52" : "#68b4ff",tail=Math.max(0,f-.09);
+    if(pod&&pod.motion){ctx.strokeStyle=c+"75";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x0+(b.x1-b.x0)*tail,b.y0+(b.y1-b.y0)*tail);ctx.lineTo(x,y);ctx.stroke();}
     ctx.fillStyle = "#0b0c0d"; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = (b.mine || b.from === 0) ? "#e5342f" : "#3d8bff"; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();ctx.fillStyle="#ffffff";ctx.fillRect(x-1,y-2,1.5,1.5);
   });
   g.splats.forEach(s => {
     ctx.globalAlpha = Math.max(0, 1 - s.age / 1400); ctx.fillStyle = s.c;
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8,r=(s.big?12:5)*(i%2?.6:1);const x=s.x+Math.cos(a)*r,y=s.y+Math.sin(a)*r;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.fill();
+    if(pod&&pod.motion&&s.big)for(let i=0;i<8;i++){const a=i*Math.PI/4+s.x,rad=7+Math.min(s.age,350)*.08;ctx.beginPath();ctx.arc(s.x+Math.cos(a)*rad,s.y+Math.sin(a)*rad,Math.max(1,3-s.age/700),0,Math.PI*2);ctx.fill();}
+    ctx.globalAlpha = 1;
   });
+}
+function podCard(ctx,g,t){
+  ctx.fillStyle="rgba(5,8,13,.78)";ctx.fillRect(0,40,POD.W,POD.H-70);
+  const ready=g.phase==="ready",win=g.phase==="won";
+  if(ready){
+    const halo=ctx.createRadialGradient(180,162,10,180,162,115);halo.addColorStop(0,"#3d8bff55");halo.addColorStop(.65,"#ad151525");halo.addColorStop(1,"#00000000");ctx.fillStyle=halo;ctx.fillRect(30,55,300,230);
+    ctx.save();ctx.translate(180,164);ctx.rotate(-.08);podMask(ctx,0,0,"#e5342f",4,g.arcade);ctx.restore();
+    ctx.textAlign="center";ctx.font="900 49px system-ui";ctx.fillStyle="#efedeb";ctx.fillText("POD",102,287);ctx.fillStyle="#ff5a52";ctx.fillText("WARS",237,287);
+    ctx.font="800 10px system-ui";ctx.fillStyle="#ff8e85";ctx.fillText("PAINT. PANIC. REPEAT.",180,312);
+  }else{
+    podMask(ctx,180,153,win?"#ffd17c":"#e5342f",3,win);
+    ctx.fillStyle=win?"#ffd17c":"#efedeb";ctx.textAlign="center";podFitFont(ctx,t.title,320,34,900);ctx.fillText(t.title,180,259);
+  }
+  const y=ready?334:286;
+  ctx.fillStyle="#0c111be8";ctx.strokeStyle="#efedeb20";podRound(ctx,20,y,320,Math.min(158,t.lines.length*22+32),12);ctx.fill();ctx.stroke();
+  t.lines.forEach((l,i)=>{ctx.fillStyle=i===0?"#efedeb":"#ff8e85";podFitFont(ctx,l,292,13,600);ctx.fillText(l,180,y+26+i*22);});
+  if(ready){ctx.fillStyle="#ff8e85";ctx.font="600 10px system-ui";ctx.fillText("← → aim · Enter fire · R reload",180,499);ctx.fillText("Hold Space tuck · G grab pod · P pause",180,515);}
 }
 // A line in the biggest size up to `size` that fits `max` wide: a team's name
 // is whatever was typed, and the canvas does not wrap.
@@ -7195,6 +7313,11 @@ function podFitFont(ctx, text, max, size, weight){
 // What the cover over a stopped solo game or duel says.
 function podSoloText(g){
   if(g.phase === "paused") return {title: "PAUSED", lines: [...(g.buzz ? ["The break clock is out."] : []), "Tap Resume to pick up where you left off."]};
+  if(g.arcade){
+    if(g.phase==="won")return {title:"POD ROYALTY",lines:[g.why,`${g.score} out · ${g.hits} hits from ${g.shots} shots`,`Best streak ${g.bestCombo} · ${Math.ceil(g.t/1000)} seconds`,"Your prize: everyone else's empty pods."]};
+    if(g.phase==="out")return {title:"SPECTATOR MODE",lines:[g.why,g.quip,`Stage ${g.stage}/3 · ${g.score} out · ${g.hits} hits from ${g.shots} shots`,"Run it back. The pods believe in you."]};
+    return {title:"ARCADE RUN",lines:["Three stages. One very smug final boss.","Tap masks. Hold Tuck to dodge paint.","Pod reloads. Grab the glowing refills.","One hit ends your run. Boss has 3 shields."]};
+  }
   const d = pod.mode === "duel" && pod.duel;
   if(d){
     const sum = podDuelSums(d), score = `${podName(0)} ${sum[0]} · ${podName(1)} ${sum[1]}`;
@@ -7210,8 +7333,8 @@ function podSoloText(g){
     return {title: "DUEL", lines: [`${podName(0)} v ${podName(1)} · ${d.per} a side`, "One life each, the teams turn about.",
       "Both turns of a round get the same deal. Most outs wins.", `First up: ${podName(0)} · player 1`]};
   }
-  if(g.phase === "out") return {title: "YOU'RE OUT", lines: [g.why, `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`]};
-  return {title: "POD WARS", lines: ["Tap their men to shoot.", "Hold Tuck when paint comes at you.", "Pod reloads. Grab the pods they drop.", "One hit and you're out."]};
+  if(g.phase === "out") return {title: "YOU'RE OUT", lines: [g.why,g.quip||"The walk of shame has free parking.", `${g.score} out${g.best ? " · a new best" : ` · best ${S.podBest || 0}`}`,`${g.hits} hits from ${g.shots} shots · streak ${g.bestCombo}`]};
+  return {title: "POD WARS", lines: ["SOLO · One life. An unreasonable amount of paint.","Tap masks. Hold Tuck when paint comes back.", "Pod reloads. Grab the glowing refills.", "Try Arcade for a three-stage boss run."]};
 }
 function podH2HText(g){
   if(g.phase === "paused") return {title: "PAUSED", lines: [...(g.buzz ? ["The break clock is out."] : []), "Tap Resume when you are both ready."]};
@@ -7222,44 +7345,51 @@ function podSoloDraw(ctx, g){
   podGround(ctx, 300);
   // Their men are drawn first, so the bunker covers the half still behind it.
   g.enemies.forEach(e => {
-    const x = e.x;
-    ctx.fillStyle = "#3d8bff"; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 1.5;
-    ctx.fillRect(x - 9, e.y - 9, 18, 18); ctx.strokeRect(x - 9, e.y - 9, 18, 18);
-    ctx.fillStyle = "#0b0c0d"; ctx.font = "700 9px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(e.num), x, e.y + 3);
+    podMask(ctx,e.x,e.y,e.boss?"#ffd17c":"#3d8bff",1,e.boss);
+    if(!e.fired && e.age>e.fireAt-250){ctx.strokeStyle="#ffb483";ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,19,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,(e.age-e.fireAt+250)/250));ctx.stroke();}
   });
   POD_BUNKERS.forEach(b => podBunker(ctx, b));
+  if(g.enemies[g.aim] && document.activeElement?.id==="pod-canvas"){
+    const e=g.enemies[g.aim];ctx.strokeStyle="#efedeb";ctx.lineWidth=1;ctx.strokeRect(e.x-19,e.y-19,38,38);
+  }
   if(g.drop){
+    ctx.strokeStyle="#ffce7c";ctx.lineWidth=2;ctx.beginPath();ctx.arc(g.drop.x,g.drop.y,23+(pod.motion?Math.sin(g.t/150)*2:0),0,Math.PI*2);ctx.stroke();
     ctx.save(); ctx.translate(g.drop.x, g.drop.y); ctx.rotate(.5);
     ctx.fillStyle = "#efedeb"; ctx.fillRect(-6, -14, 12, 28); ctx.fillStyle = "#e5342f"; ctx.fillRect(-6, -14, 12, 6);
     ctx.restore();
+    ctx.fillStyle="#ffce7c";ctx.textAlign="center";ctx.font="800 9px system-ui";ctx.fillText("FREE PAINT",g.drop.x,g.drop.y+36);
   }
   const meX = POD_ME.x + (g.tucked ? 0 : -18);
-  ctx.fillStyle = "#e5342f"; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(meX, POD_ME.y - 6, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  podMask(ctx,meX,POD_ME.y-6,"#e5342f");
   podBunker(ctx, {x: POD_ME.x, y: POD_ME.y - 28, t: "brick", c: "r"});
   podBalls(ctx, g);
+  if(g.phase==="play"){
+    ctx.textAlign="center";ctx.fillStyle="#ff8e85";ctx.font="800 11px system-ui";
+    const stage=g.arcade?`STAGE ${g.stage}/3 · ${POD_STAGES[g.stage-1].toUpperCase()}`:"HOLD TUCK WHEN THE BLUE PAINT COMES BACK";
+    podFitFont(ctx,stage,316,11,800);ctx.fillText(stage,180,66);
+    if(g.arcade&&g.stage===3){ctx.fillStyle="#ffd17c";ctx.font="800 11px system-ui";ctx.fillText(`CAPTAIN BONUSBALL · ${g.bossHp} SHIELDS`,180,220);}
+    else if(g.arcade){for(let i=0;i<4;i++){ctx.fillStyle=g.score%4>i?"#ff5a52":"#efedeb25";podRound(ctx,147+i*18,211,12,5,2);ctx.fill();}}
+    if(g.t<6000&&!g.quip){ctx.font="700 12px system-ui";ctx.fillStyle="#efedeb";ctx.fillText("Tap an exposed mask. The bunker is cover.",180,335);}
+    if(g.quipUntil>g.t){ctx.fillStyle="#101621e8";podRound(ctx,22,343,316,44,9);ctx.fill();ctx.fillStyle="#ff9c90";podFitFont(ctx,g.quip,295,12,700);ctx.fillText(g.quip,180,370);}
+    if(g.combo>1&&g.t-g.lastHit<2600){ctx.fillStyle="#ffce7c";ctx.font="900 24px system-ui";ctx.fillText(`${g.combo} HIT STREAK`,180,286);}
+    if(g.tucked){ctx.fillStyle="#efedeb";ctx.font="800 9px system-ui";ctx.fillText(g.reload?"POD IN. EGO OUT.":"TUCKED · NICE AND BORING",180,518);}
+    if(g.intermission){ctx.fillStyle="#090d16dd";ctx.fillRect(12,88,336,330);ctx.fillStyle="#ffce7c";ctx.font="800 12px system-ui";ctx.fillText(`STAGE ${g.stage} / 3`,180,208);ctx.fillStyle="#efedeb";podFitFont(ctx,POD_STAGES[g.stage-1].toUpperCase(),310,28,900);ctx.fillText(POD_STAGES[g.stage-1].toUpperCase(),180,250);ctx.fillStyle="#ff8e85";ctx.font="600 12px system-ui";ctx.fillText("Fresh hopper. Deeply suspicious confidence.",180,283);}
+  }
   ctx.fillStyle = "#efedeb"; ctx.font = "800 15px system-ui, sans-serif"; ctx.textAlign = "left";
   ctx.fillText(`OUT ${g.score}`, 14, 26);
-  ctx.textAlign = "right"; ctx.fillStyle = "#8d9092"; ctx.font = "700 12px system-ui, sans-serif";
+  ctx.textAlign = "right"; ctx.fillStyle = "#ff8e85"; ctx.font = "700 12px system-ui, sans-serif";
   const d = pod.mode === "duel" && pod.duel;
   const sums = d && podDuelSums(d);
   const corner = d ? (d.done ? `${podName(0).toUpperCase()} ${sums[0]} · ${podName(1).toUpperCase()} ${sums[1]}` : `${podName(d.turn % 2).toUpperCase()} ${Math.floor(d.turn / 2) + 1}/${d.per} · LEVEL ${g.level}`)
-    : `BEST ${Math.max(S.podBest || 0, g.score)} · LEVEL ${g.level}`;
+    : g.arcade ? `ARCADE · STAGE ${g.stage}/3` : `BEST ${Math.max(S.podBest || 0, g.score)} · LEVEL ${g.level}`;
   podFitFont(ctx, corner, POD.W - 110, 12, 700);   // never over OUT on the left
   ctx.fillText(corner, POD.W - 14, 26);
   // The hopper, along the bottom.
   ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
-  ctx.fillStyle = g.reload ? "#8d9092" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
-  ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
+  ctx.fillStyle = g.reload ? "#ff8e85" : "#e5342f"; ctx.fillRect(14, POD.H - 22, 160 * (g.reload ? 1 - g.reload / 700 : g.hopper / POD.hopperMax), 8);
+  ctx.textAlign = "left"; ctx.fillStyle = "#ff8e85"; ctx.font = "700 10px system-ui, sans-serif";
   ctx.fillText(g.reload ? "LOADING" : g.hopper ? `${g.hopper} IN THE HOPPER` : g.pods ? "EMPTY · TAP POD" : "EMPTY · GRAB A POD", 180, POD.H - 14);
-  if(g.phase !== "play"){
-    const t = podSoloText(g);
-    ctx.fillStyle = "rgba(11,12,13,.82)"; ctx.fillRect(0, 0, POD.W, POD.H);
-    ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, t.title, POD.W - 30, 40, 900);
-    ctx.fillText(t.title, POD.W / 2, 210);
-    ctx.fillStyle = "#8d9092";
-    t.lines.forEach((l, i) => { podFitFont(ctx, l, POD.W - 24, 14, 600); ctx.fillText(l, POD.W / 2, 248 + i * 22); });
-  }
+  if(g.phase !== "play") podCard(ctx,g,podSoloText(g));
 }
 function podH2HDraw(ctx, g){
   podGround(ctx, POD_H2H.mid);
@@ -7269,15 +7399,14 @@ function podH2HDraw(ctx, g){
   each(i => {
     const m = g.p[i], c = i ? "#3d8bff" : "#e5342f";
     ctx.fillStyle = "rgba(239,237,235,.035)"; ctx.fillRect(10, 410, POD.W - 20, POD.H - 443);
-    ctx.fillStyle = "rgba(239,237,235,.3)"; ctx.font = "700 10px system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "#ff8e85"; ctx.font = "700 10px system-ui, sans-serif"; ctx.textAlign = "center";
     ctx.fillText("TAP HERE, UNDER HIS MAN, TO SHOOT", POD.W / 2, 384);
     ctx.fillText("HOLD YOUR END TO TUCK", POD.W / 2, 512);
-    ctx.fillStyle = c; ctx.strokeStyle = "#efedeb"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(180 + (m.tucked ? 0 : -18), POD_SIDE[0].y, 11, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    podMask(ctx,180+(m.tucked?0:-18),POD_SIDE[0].y,c);
     podBunker(ctx, {x: 180, y: POD_SIDE[0].brick, t: "brick", c: i ? "b" : "r"});
     ctx.fillStyle = "#1d2022"; ctx.fillRect(14, POD.H - 22, 160, 8);
-    ctx.fillStyle = m.reload ? "#8d9092" : c; ctx.fillRect(14, POD.H - 22, 160 * (m.reload ? 1 - m.reload / 700 : m.hopper / POD_H2H.hopper), 8);
-    ctx.textAlign = "left"; ctx.fillStyle = "#8d9092"; ctx.font = "700 10px system-ui, sans-serif";
+    ctx.fillStyle = m.reload ? "#ff8e85" : c; ctx.fillRect(14, POD.H - 22, 160 * (m.reload ? 1 - m.reload / 700 : m.hopper / POD_H2H.hopper), 8);
+    ctx.textAlign = "left"; ctx.fillStyle = "#ff8e85"; ctx.font = "700 10px system-ui, sans-serif";
     ctx.fillText(m.reload ? "LOADING" : m.hopper ? `${m.hopper} LEFT · ${m.pods} POD${m.pods === 1 ? "" : "S"}` : "DRY", 180, POD.H - 14);
     // The score, on his own side of the fifty, his name first.
     const sc = `${podName(i)} ${g.score[i]} · ${g.score[1 - i]} ${podName(1 - i)}`;
@@ -7295,7 +7424,7 @@ function podH2HDraw(ctx, g){
     each(() => {
       ctx.textAlign = "center"; ctx.fillStyle = "#efedeb"; podFitFont(ctx, t.title, POD.W - 30, 32, 900);
       ctx.fillText(t.title, POD.W / 2, 350);
-      ctx.fillStyle = "#8d9092";
+      ctx.fillStyle = "#ff8e85";
       t.lines.forEach((l, i) => { podFitFont(ctx, l, POD.W - 24, 14, 600); ctx.fillText(l, POD.W / 2, 382 + i * 20); });
     });
   }
@@ -7317,7 +7446,7 @@ function podChrome(cv, g){
   const tuck = el.querySelector("#pod-tuck"), re = el.querySelector("#pod-pod"), go = el.querySelector("#pod-go");
   // The game picker and the names show only between games, never mid-duel.
   show(el.querySelector(".pod-modes"), idle && !duelOn);
-  show(el.querySelector(".pod-setup"), idle && !duelOn && pod.mode !== "solo");
+  show(el.querySelector(".pod-setup"), idle && !duelOn && ["duel","h2h"].includes(pod.mode));
   show(el.querySelector(".pod-per"), pod.mode === "duel");
   el.querySelectorAll("[data-mode]").forEach(b => press(b, b.dataset.mode === pod.mode));
   el.querySelectorAll("[data-per]").forEach(b => press(b, Number(b.dataset.per) === (d ? d.per : podPer)));
@@ -7335,21 +7464,37 @@ function podChrome(cv, g){
   } else {
     const sum = d && podDuelSums(d);
     label = d ? `Duel: ${podName(0)} ${sum[0]}, ${podName(1)} ${sum[1]}. ${d.done ? "" : `${podName(d.turn % 2)} player ${Math.floor(d.turn / 2) + 1} of ${d.per}: `}${g.score} out, ${g.hopper} in the hopper.`
+      : g.arcade ? `Arcade stage ${g.stage} of 3, ${POD_STAGES[g.stage-1]}. ${g.score} out, ${g.hopper} in the hopper, ${g.stage===3?g.bossHp+" boss shields.":""}`
       : `Pod Wars field: tap their men to shoot. ${g.score} out, best ${Math.max(S.podBest || 0, g.score)}, level ${g.level}, ${g.hopper} in the hopper.`;
     if(g.phase === "paused") line = `Paused.${g.buzz ? " The break clock is out." : ""}`;
-    else if(g.phase === "out"){ const t = podSoloText(g); line = `${t.title}. ${t.lines.join(". ")}.`; }
+    else if(g.phase === "out" || g.phase === "won"){ const t = podSoloText(g); line = `${t.title}. ${t.lines.join(". ")}.`; }
+    else if(g.arcade&&g.intermission)line=`Stage ${g.stage}: ${POD_STAGES[g.stage-1]}. Fresh hopper and at least two pods.`;
   }
   if(cv.getAttribute("aria-label") !== label) cv.setAttribute("aria-label", label);
   const say = el.querySelector("#pod-say");
   if(say && say.textContent !== line) say.textContent = line;
   // Pod says when it cannot load: nothing to load, loading already, or a full hopper.
-  if(re && kit){ re.textContent = `Pod · ${g.pods}`; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
+  if(re && kit){ const word=`Pod · ${g.pods}`;if(re.textContent!==word)re.textContent=word; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
   if(go){
     go.hidden = g.phase === "play";
     const word = g.phase === "paused" ? "Resume" : h2h ? (g.phase === "out" ? "Rematch" : "Play")
       : d ? (d.done ? "Duel again" : d.turn ? `Play · ${podName(d.turn % 2)} ${Math.floor(d.turn / 2) + 1}` : "Start the duel")
-      : g.phase === "out" ? "Play again" : "Play";
+      : g.phase === "won" ? "Run it back" : g.phase === "out" ? "Play again" : g.arcade ? "Start arcade" : "Play";
     if(go.textContent !== word) go.textContent = word;
+  }
+  const sound=el.querySelector("#pod-sound"),pause=el.querySelector("#pod-pause");
+  if(sound){
+    press(sound,!!pod.sound);const label=pod.sound?"Sound on. Mute sound":"Sound off. Turn sound on",mark=pod.sound?"♫":"♪";
+    if(sound.getAttribute("aria-label")!==label)sound.setAttribute("aria-label",label);
+    sound.title=pod.sound?"Sound on":"Sound off";if(sound.textContent!==mark)sound.textContent=mark;
+  }
+  if(pause)pause.disabled=g.phase!=="play";
+  const guide=el.querySelector(".pod-guide");
+  if(guide){const text=g.arcade?`Arcade · stage ${g.stage}/3. Tap exposed masks. Hold Tuck to dodge. Reload between shots. Captain Bonusball has three shields.`
+    :h2h?"Head to head · lay the phone between you. Tap your half to shoot; hold your end to tuck. First to three."
+    :d?"Duel · pass the phone. Each side gets the same deal. Most outs wins. Tap masks, hold Tuck, reload."
+    :"Solo · tap exposed masks. Hold Tuck when blue paint comes back. Reload with Pod. One hit ends the run.";
+    if(guide.textContent!==text)guide.textContent=text;
   }
   // The game stopped under his thumb: the next press is Play, not Tuck — and
   // not nothing, when the button he pressed hid itself and focus fell away.
@@ -7364,13 +7509,13 @@ function podLoop(now){
   // the game stops instead, so the buzzer finds him on the sideline.
   // Once a buzzer: Resume after it plays on, rather than stopping again every
   // frame while the clock sits at zero behind a header he cannot reach.
-  if(pod.g.phase === "play" && S.clockEnd && clockLeft() === 0 && podBuzzed !== S.clockEnd){ podBuzzed = S.clockEnd; pod.g.phase = "paused"; pod.g.held = false; pod.g.buzz = true; }
+  if(pod.g.phase === "play" && S.clockEnd && clockLeft() === 0 && podBuzzed !== S.clockEnd){ podBuzzed = S.clockEnd; pod.g.phase = "paused"; pod.g.held = false; pod.g.buzz = true;podAudioStop(); }
   podDraw();
   pod.raf = pod.g.phase === "play" ? requestAnimationFrame(podLoop) : 0;
 }
 function podFit(){
   const cv = document.getElementById("pod-canvas"), box = document.getElementById("pod-stage"); if(!cv || !box) return;
-  const r = box.getBoundingClientRect(), k = Math.min(r.width / POD.W, r.height / POD.H) || 1, dpr = window.devicePixelRatio || 1;
+  const r = box.getBoundingClientRect(), k = Math.min(r.width / POD.W, r.height / POD.H) || 1, dpr = Math.min(2,window.devicePixelRatio || 1);
   cv.style.width = Math.floor(POD.W * k) + "px"; cv.style.height = Math.floor(POD.H * k) + "px";
   cv.width = Math.round(POD.W * k * dpr); cv.height = Math.round(POD.H * k * dpr);
   podDraw();
@@ -7381,55 +7526,62 @@ window.podWars = {
     const el = document.createElement("div");
     el.id = "podwars"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Pod Wars");
     el.innerHTML = `<style>
-      #podwars{position:fixed;inset:0;z-index:9999;background:#0b0c0d;color:#efedeb;display:flex;flex-direction:column;
+      #podwars{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 15% 10%,#182238 0,transparent 55%),radial-gradient(ellipse at 90% 85%,#301217 0,transparent 50%),#0b0c0d;color:#efedeb;display:flex;flex-direction:column;
         padding:calc(env(safe-area-inset-top,0px) + 8px) 12px calc(env(safe-area-inset-bottom,0px) + 10px);gap:8px;touch-action:none;user-select:none;-webkit-user-select:none}
-      #podwars .pod-top{display:flex;align-items:center;gap:10px}
-      #podwars .pod-top b{font-weight:900;letter-spacing:.2em;font-size:15px;white-space:nowrap}
-      @media (max-width:359px){ #podwars .pod-top b{letter-spacing:.08em;font-size:13px} #podwars .pod-clock{font-size:13px} }
+      #podwars .pod-top{display:flex;align-items:center;gap:6px;width:100%;max-width:1040px;margin:0 auto}
+      #podwars .pod-top b{font-weight:900;letter-spacing:.09em;font-size:15px;white-space:nowrap}
+      @media (max-width:359px){ #podwars .pod-top b{letter-spacing:0;font-size:12px} #podwars .pod-clock{font-size:10px;display:flex;flex-direction:column} }
       #podwars .pod-top > span{flex:1;text-align:center}
       #pod-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-      #pod-canvas{border:1px solid #2a2e30;border-radius:6px;touch-action:none}
+      #pod-canvas{border:1px solid #465571;border-radius:16px;touch-action:none;box-shadow:0 18px 60px #0009,0 0 50px #3d8bff12;outline-offset:3px}
+      #podwars button:focus-visible,#pod-canvas:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
       #podwars .pod-bar{display:flex;gap:10px;width:100%;max-width:640px;margin:0 auto}
       #podwars .pod-bar button,#podwars .pod-top button{min-height:52px;border-radius:8px;border:1px solid #2a2e30;background:#141617;color:#efedeb;
         font:800 14px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:0 16px;-webkit-touch-callout:none}
-      #podwars .pod-top button{min-height:44px;font-size:12px}
+      #podwars .pod-top button{min-height:44px;min-width:44px;font-size:12px;padding:0 8px}
+      #podwars #pod-sound,#podwars #pod-pause{font-size:19px;padding:0;width:44px;flex:0 0 44px}
+      #podwars #pod-sound[aria-pressed="true"]{border-color:#ff5a52;background:#33191c}
+      #podwars .pod-top button:disabled{opacity:.4}
       #podwars .pod-bar button{flex:1;min-width:0;white-space:nowrap;padding:0 6px;letter-spacing:.06em;text-align:center;
         font-size:clamp(12px,3.6vw,14px);overflow:hidden;text-overflow:ellipsis}
-      #podwars .pod-bar #pod-go{flex:1.4}
-      #podwars #pod-go{background:#ad1515;border-color:#ad1515}
+      #podwars .pod-bar #pod-go{flex:1.4;white-space:normal;line-height:1.15;overflow-wrap:anywhere}
+      #podwars #pod-go{background:linear-gradient(135deg,#e5342f,#ad1515);border-color:#e5342f;box-shadow:0 4px 18px #ad151533}
       #podwars #pod-tuck.on{background:#efedeb;color:#0b0c0d}
       #podwars .pod-bar button:disabled{opacity:.4}
-      #podwars .pod-clock{font:800 15px system-ui,sans-serif;letter-spacing:.06em;color:#8d9092;white-space:nowrap}
+      #podwars .pod-clock{font:800 12px system-ui,sans-serif;letter-spacing:.04em;color:#ff8e85;white-space:nowrap}
       #podwars .pod-clock [data-clock]{color:#efedeb}
       #podwars .pod-clock .clock--late{color:#e0a33a}
       #podwars .pod-clock .clock--out{color:#e5252a}
       #podwars .pod-modes,#podwars .pod-setup{display:flex;gap:8px;width:100%;max-width:640px;margin:0 auto;flex-wrap:wrap}
       #podwars .pod-modes[hidden],#podwars .pod-setup[hidden],#podwars .pod-per[hidden]{display:none}
-      #podwars .pod-modes button,#podwars .pod-per button{flex:1;min-height:44px;min-width:44px;border-radius:8px;border:1px solid #2a2e30;background:#141617;color:#8d9092;
+      #podwars .pod-modes button,#podwars .pod-per button{flex:1;min-height:44px;min-width:44px;border-radius:8px;border:1px solid #384252;background:#121923;color:#ff8e85;
         font:800 clamp(11px,3.1vw,12px) system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;line-height:1.1;padding:0 4px;text-align:center}
-      #podwars .pod-modes button[aria-pressed="true"],#podwars .pod-per button[aria-pressed="true"]{color:#efedeb;border-color:#ad1515;background:#2a1213}
+      #podwars .pod-modes button[aria-pressed="true"],#podwars .pod-per button[aria-pressed="true"]{color:#efedeb;border-color:#e5342f;background:#3b1a20;box-shadow:inset 0 -3px #e5342f}
       #podwars .pod-setup input{flex:1 1 130px;min-width:0;min-height:44px;border-radius:8px;border:1px solid #e5342f;background:#141617;color:#efedeb;
         font:600 16px system-ui,sans-serif;padding:0 12px}
       #podwars .pod-setup input + input{border-color:#3d8bff}
       #podwars .pod-per{display:flex;gap:6px;align-items:center;flex:1 1 100%}
+      #podwars .pod-guide{display:none}
       @media (max-height:500px) and (orientation:landscape){
         #podwars{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,42%);grid-template-rows:auto minmax(0,1fr) auto auto auto;column-gap:12px}
         #podwars .pod-top{grid-column:1 / -1}
         #pod-stage{grid-column:1;grid-row:2 / 6}
         #podwars .pod-setup{grid-column:2;grid-row:3} #podwars .pod-modes{grid-column:2;grid-row:4} #podwars .pod-bar{grid-column:2;grid-row:5}
         #podwars .pod-setup input{flex-basis:90px;min-height:40px}
+        #podwars .pod-guide{display:block;grid-column:2;grid-row:2;align-self:center;color:#ff9c90;font:600 12px/1.5 system-ui;margin:0}
       }
-      #podwars .pod-per span{font:800 11px system-ui,sans-serif;letter-spacing:.12em;color:#8d9092;white-space:nowrap;padding-right:4px}
+      #podwars .pod-per span{font:800 11px system-ui,sans-serif;letter-spacing:.12em;color:#ff8e85;white-space:nowrap;padding-right:4px}
     </style>
-    <div class="pod-top"><b>POD WARS</b><span>${S.clockEnd ? `<span class="pod-clock">BREAK <span class="${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock>${mmss(clockLeft())}</span></span>` : ""}</span><button type="button" id="pod-close">Close</button></div>
-    <div id="pod-stage"><canvas id="pod-canvas" role="img" tabindex="-1" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
+    <div class="pod-top"><b>POD WARS</b><span>${S.clockEnd ? `<span class="pod-clock">BREAK <span class="${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock>${mmss(clockLeft())}</span></span>` : ""}</span><button type="button" id="pod-sound" aria-pressed="false" aria-label="Sound off. Turn sound on">♪</button><button type="button" id="pod-pause" aria-label="Pause game" title="Pause game" disabled>Ⅱ</button><button type="button" id="pod-close">Close</button></div>
+    <div id="pod-stage"><canvas id="pod-canvas" role="img" tabindex="0" aria-label="Pod Wars field: tap their men to shoot"></canvas></div>
     <p id="pod-say" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0"></p>
+    <p class="pod-guide"></p>
     <div class="pod-setup" hidden>
       <input id="pod-n0" aria-label="Red team's name" placeholder="Red team" maxlength="${POD_NAME_MAX}" autocomplete="off" value="${esc(podNames[0])}">
       <input id="pod-n1" aria-label="Blue team's name" placeholder="Blue team" maxlength="${POD_NAME_MAX}" autocomplete="off" value="${esc(podNames[1])}">
       <div class="pod-per" role="group" aria-label="Players a side" hidden><span>A SIDE</span>${[1, 2, 3, 4, 5].map(n => `<button type="button" data-per="${n}" aria-pressed="false">${n}</button>`).join("")}</div>
     </div>
-    <div class="pod-modes" role="group" aria-label="Which game"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duel" aria-pressed="false">Duel</button><button type="button" data-mode="h2h" aria-pressed="false">Head to head</button></div>
+    <div class="pod-modes" role="group" aria-label="Which game"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="arcade" aria-pressed="false">Arcade</button><button type="button" data-mode="duel" aria-pressed="false">Duel</button><button type="button" data-mode="h2h" aria-pressed="false">Head to head</button></div>
     <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck" aria-pressed="false">Tuck</button></div>`;
     // A dialog in fact as well as in name: the app underneath takes no focus,
     // no tap and no key while it is up, and focus goes back where it was.
@@ -7437,7 +7589,8 @@ window.podWars = {
     const under = [...document.body.children].filter(c => c.tagName !== "SCRIPT" && !c.inert);
     under.forEach(c => { c.inert = true; });
     document.body.appendChild(el);
-    pod = {g: podFresh(), raf: 0, last: 0, el, back, under, mode: "solo", duel: null, holds: new Map(), refit: false};
+    pod = {g: podFresh(), raf: 0, last: 0, el, back, under, mode: "solo", duel: null, holds: new Map(), refit: false,
+      motion:!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,sound:false,audio:null,voices:new Set()};
     // Holding Tuck is a long press, and a long press opens the phone's menu,
     // which cancels the press and stands him up into the paint.
     el.addEventListener("contextmenu", ev => ev.preventDefault());
@@ -7459,6 +7612,8 @@ window.podWars = {
     el.querySelector("#pod-pod").addEventListener("click", () => podReload(pod && pod.g));
     el.querySelector("#pod-go").addEventListener("click", () => window.podWars.play());
     el.querySelector("#pod-close").addEventListener("click", () => window.podWars.close());
+    el.querySelector("#pod-sound").addEventListener("click",podToggleSound);
+    el.querySelector("#pod-pause").addEventListener("click",()=>window.podWars.pause());
     window.addEventListener("resize", podFit);
     // The game picker and the names come and go between games, and the
     // field takes whatever height they leave it.
@@ -7471,7 +7626,8 @@ window.podWars = {
   },
   play(){
     if(!pod || pod.g.phase === "play") return;
-    if(pod.g.phase !== "paused") pod.g = pod.mode === "h2h" ? podH2HFresh() : pod.mode === "duel" ? podDuelTurn() : podFresh();
+    if(pod.g.phase !== "paused") pod.g = pod.mode === "h2h" ? podH2HFresh() : pod.mode === "duel" ? podDuelTurn() : pod.mode === "arcade" ? podArcadeFresh() : podFresh();
+    if(pod.sound&&pod.audio)try{Promise.resolve(pod.audio.resume()).catch(()=>{});}catch(e){}
     pod.holds = new Map();
     if(pod.g.kind === "h2h") pod.g.p.forEach(m => { m.holds = 0; m.tucked = m.reload > 0; });
     pod.g.phase = "play"; pod.g.buzz = false; pod.last = 0;
@@ -7484,7 +7640,7 @@ window.podWars = {
       (t && !t.hidden ? t : pod.el.querySelector("#pod-canvas")).focus({preventScroll: true});
     }
   },
-  pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0;
+  pause(){ if(pod && pod.g.phase === "play"){ pod.g.phase = "paused"; pod.g.held = false; cancelAnimationFrame(pod.raf); pod.raf = 0;podAudioStop();
     // A finger held down when the app went away never comes up here.
     pod.holds = new Map(); if(pod.g.kind === "h2h") pod.g.p.forEach(m => { m.holds = 0; });
     // Hidden is the last moment the game is sure to run: the system may close
@@ -7492,7 +7648,7 @@ window.podWars = {
     podOver(pod.g); podDraw(); } },
   close(){
     if(!pod) return;
-    cancelAnimationFrame(pod.raf);
+    cancelAnimationFrame(pod.raf);podAudioStop(true);
     // Closing mid-game is not losing what he scored: a best is a best.
     if(pod.g.phase === "play" || pod.g.phase === "paused") podOver(pod.g);
     const {back, under, ro} = pod;
@@ -7526,6 +7682,18 @@ function podKey(ev){
   if(ev.key === "Escape" && ev.type === "keydown"){ ev.preventDefault(); window.podWars.close(); return; }
   // A team's name is being typed: Space is a space and R is a letter.
   if(ev.target instanceof HTMLInputElement) return;
+  if(ev.type==="keydown" && !ev.repeat && (ev.key==="p"||ev.key==="P")){ev.preventDefault();if(pod.g.phase==="play")window.podWars.pause();else if(pod.g.phase==="paused")window.podWars.play();return;}
+  if(pod.g.kind!=="h2h" && pod.g.phase==="play"){
+    if(ev.type==="keydown"&&!ev.repeat&&(ev.key==="g"||ev.key==="G")){
+      ev.preventDefault();const g=pod.g;if(g.drop)podTapAt(g,g.drop.x,g.drop.y);return;
+    }
+    if(ev.type==="keydown"&&["ArrowLeft","ArrowRight"].includes(ev.key)){
+      ev.preventDefault();const n=pod.g.enemies.length;pod.g.aim=n?(pod.g.aim+(ev.key==="ArrowRight"?1:n-1))%n:0;document.getElementById("pod-canvas").focus();return;
+    }
+    if(ev.type==="keydown"&&!ev.repeat&&ev.key==="Enter"&&ev.target.id==="pod-canvas"){
+      ev.preventDefault();const g=pod.g,e=g.enemies[g.aim];if(e)podTapAt(g,e.x,e.y);return;
+    }
+  }
   // Space presses the button it is on, as anywhere; it is Tuck only on Tuck or on no button.
   const onButton = ev.target instanceof HTMLButtonElement && ev.target.id !== "pod-tuck";
   if(ev.key === "ArrowDown" || (ev.key === " " && !onButton)){ ev.preventDefault(); pod.g.held = ev.type === "keydown"; }
