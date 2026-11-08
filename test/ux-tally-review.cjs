@@ -200,6 +200,11 @@ const SEED = require("../scripts/seed.js");
       const thin = await p.evaluate(() => { S.breakouts = S.breakouts.slice(0, 2); save(S); set({ statAsPlayed: true });
         return { rows: document.querySelectorAll(".tbl--stats tr.thin").length, note: /too few to read/.test(document.getElementById("root").innerText) }; });
       assert.equal(thin.rows, 2); assert.ok(thin.note);
+      // A man shot on the break is a visit and an out at one bunker: two men,
+      // one of them shot, are two men logged, not three.
+      const shot = await p.evaluate(() => { S.breakouts = S.breakouts.slice(0, 2).map((r, i) => ({ ...r, alive: i !== 0 })); save(S); set({ statAsPlayed: false });
+        const tr = document.querySelector(".tbl--stats tbody tr"); return { cells: [...tr.cells].slice(1, 3).map(c => c.innerText.trim()), thin: tr.classList.contains("thin") }; });
+      assert.deepEqual(shot, { cells: ["2", "1"], thin: true }, "two men, one shot, is still too few to read");
     });
     await check("after a match, the backup nudge speaks for anything logged since the last copy, and a working League sync quiets it", async p => {
       const said = await p.evaluate(() => {
