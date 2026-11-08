@@ -1132,6 +1132,18 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Scout view for assistive technology. Search hints are not saved or sent.
     `test/ux-players.cjs` holds these routes and the phone/tablet return path.
 
+74. ~~Who to scout next.~~ Done — the owner asked the schedule to say when
+    somebody has to scout, and what field and time the teams he faces next
+    play on. Your team's day opens on **Who to scout next** (`scoutPlan`,
+    `scoutPlanSec`): every game of a team he still has to play, before he
+    plays them and not yet over, once each and by the clock — the time (and
+    "in 40 min" / "on now" on the day, `scoutWhen`), the field and pit as the
+    schedule prints them or "Field not printed on the schedule", which of his
+    games it is for, free or clashing with one of his own (send someone), and
+    Watch. A game between two teams he plays later scouts both. The game-by-game
+    cards follow under it. Times are the league's, moved only by a pit he set as
+    running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

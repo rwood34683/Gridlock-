@@ -151,6 +151,35 @@ const SEED = require("../scripts/seed.js");
       await p.reload(); await p.waitForFunction(() => typeof S === "object");
       assert.equal(await p.evaluate(() => S.myTeam), "Seattle Uprising", "his team is remembered");
     });
+    await check("Who to scout next lists, by the clock, each game of a team he still plays, with its field and pit, once a game", async p => {
+      const r = await p.evaluate(() => {
+        const L = S.layoutKey, g = (id, t, h, a, f) => ({id, d:"2026-11-12", t, h, a, f, layout:L});
+        S.games = [g("t1","09:00","Alpha","Bravo","Field 2 · Pit 1"), g("t2","10:00","Bravo","Charlie",""),
+          g("t3","10:30","Test Squad","Alpha","Field 1 · Pit 2"), g("t4","11:00","Alpha","Delta","Field 3"),
+          g("t5","11:15","Bravo","Echo","Field 2 · Pit 2"), g("t6","12:00","Test Squad","Bravo","Field 1 · Pit 2")];
+        S.runLate = {}; S.myTeam = "Test Squad"; save(S);
+        const day = teamDay("Test Squad"), at = t => Date.parse("2026-11-12T" + t);
+        const plan = now => scoutPlan(day, at(now)).map(x => [x.g.id, x.for.map(f => f.opp).join("+"), !!x.clash]);
+        const early = plan("08:30"), late = plan("11:40");
+        const real = Date.now; Date.now = () => at("08:30");
+        try { set({ tab:"more", more:"schedule" }); } finally { Date.now = real; }
+        const box = document.querySelector(".scout-plan"), text = box ? box.innerText : "";
+        return { early, late, text, watch: box ? [...box.querySelectorAll("button")].filter(b => /Watch/.test(b.textContent)).length : 0 };
+      });
+      // Alpha v Bravo scouts both; Bravo's game with no field still counts; Alpha
+      // after you have played them does not; a game about Test Squad never does.
+      assert.deepEqual(r.early, [["t1","Alpha+Bravo",false], ["t2","Bravo",true], ["t5","Bravo",true]]);
+      assert.deepEqual(r.late, [["t5","Bravo",true]], "games already over drop off");
+      assert.match(r.text, /Next: Alpha and Bravo at Thursday 9:00 AM — in 30 min, Field 2 · Pit 1/);
+      assert.match(r.text, /Scout Alpha and Bravo/);
+      assert.match(r.text, /You play Alpha Thursday 10:30 AM · You play Bravo Thursday 12:00 PM/);
+      assert.match(r.text, /Field not printed on the schedule/);
+      assert.match(r.text, /Clashes with your 10:30 AM game — send someone/);
+      assert.equal(r.watch, 3, "every row has Watch");
+      const on = await p.evaluate(() => scoutWhen(gameById("t1"), Date.parse("2026-11-12T09:20")));
+      assert.equal(on, "Thursday 9:00 AM — on now", "a game under way says so");
+      await p.evaluate(() => { S.games = []; S.myTeam = ""; save(S); });
+    });
     await check("the cloud adapter reads a venue's Wi-Fi login page or a server error as no signal, not a refusal", async () => {
       const src = fs.readFileSync(path.resolve(__dirname, "../native/gridlock-cloud.js"), "utf8");
       const run = async res => {
