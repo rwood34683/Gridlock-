@@ -118,6 +118,44 @@ const SEED = require("../scripts/seed.js");
       const bo = rowsOf((await csv(p, "breakouts")).text);
       assert.equal(bo.length, 4); assert.equal(bo[2][7], "shot on the break");
     });
+    await check("Every point includes Scout-only observations without inventing a score", async p => {
+      await p.evaluate(() => {
+        S.scout.Rejects.breaks.push({m:"m1",pt:9,script:"blitz",layout:"lso",at:9});
+        S.arrivalSightings=[{m:"m1",pt:10,team:"Rejects",layout:"lso",at:10}];
+        S.arrivalShots=[{m:"m1",pt:11,team:"Rejects",layout:"lso",at:11}];
+        S.moves=[{m:"m1",pt:12,at:12}];
+        S.assessments.push({m:"m1",pt:13,who:S.roster[0].name,score:4,at:13});
+        S.voiceEvents=[{m:"m1",pt:14,at:14}];
+        save(S);render();
+      });
+      const rows=rowsOf((await csv(p,"points")).text).slice(1).filter(r=>r[1]==="Rejects");
+      assert.deepEqual(rows.map(r=>Number(r[3])),[1,2,3,4,5,9,10,11,12,13,14]);
+      assert.equal(rows.find(r=>r[3]==="9")[7],"Blitz");
+      for(const row of rows.filter(r=>Number(r[3])>=9)){
+        assert.deepEqual(row.slice(4,6),["4","1"]);
+        assert.equal(row[8],"", "an observed point has no invented winner");
+      }
+    });
+    await check("an unscored scouting sheet still offers its spreadsheets", async p => {
+      await p.evaluate(() => {
+        S.matches=S.matches.filter(m=>m.id==="m1");S.matchId="m1";
+        S.results=[];S.calls=[];S.breakouts=[];S.tally=[];S.assessments=[];
+        S.scout={Rejects:{breaks:[{m:"m1",pt:1,script:"blitz",layout:"lso",at:1}]}};
+        window.gridlockExportTable=async(text,name)=>{window.__csv={text,name};return {status:"shared"};};
+        save(S);set({repTab:"season"});
+      });
+      assert.match(await root(p),/No points scored/);
+      await p.getByRole("button",{name:"Every point",exact:true}).click();
+      const rows=rowsOf(await p.evaluate(()=>__csv.text));
+      assert.equal(rows.length,2);
+      assert.deepEqual(rows[1].slice(3,9),["1","0","0","","Blitz",""]);
+      assert.equal(await p.locator(".rline__path").count(),0);
+    });
+    await check("Opponent plants and exported calls use the same team spelling match", async p => {
+      await p.evaluate(() => { S.scout.rejects=S.scout.Rejects;delete S.scout.Rejects;set({repTab:"opp",repTeam:"Rejects"}); });
+      assert.match(await root(p),/2 of 2 fives/);
+      assert.equal(rowsOf((await csv(p,"points")).text)[1][7],"Blitz");
+    });
     for(const badDate of [null, "not-a-date", 1e100])
       await check(`an imported sheet with an unreadable date stays usable and exports (${badDate})`, async p => {
         const restored=await p.evaluate(at => {

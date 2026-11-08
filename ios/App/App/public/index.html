@@ -6541,7 +6541,9 @@ window.nudgeSave = async () => {
 };
 function newestLogged(){
   let newest = 0, any = false;
-  [S.results, S.tally, S.breakouts, S.calls, S.assessments, S.moves].forEach(l => (l || []).forEach(r => {
+  // A scout's five or a penalty may be the only thing logged on the sheet.
+  const lists = [...SHEET_LISTS.map(k => S[k]), ...Object.values(S.scout || {}).map(p => p && p.breaks)];
+  lists.forEach(l => (l || []).forEach(r => {
     if(!r || typeof r !== "object") return; any = true;
     if(typeof r.at === "number" && r.at > newest && r.at <= Date.now() + 60000) newest = r.at;
   }));
@@ -17049,10 +17051,14 @@ function repTeamPicked(){
   const list = repTeams(), want = S.repTeam || (pitNamed("right") ? S.right.name : "");
   return list.find(t => foldName(t) === foldName(want)) || list[0] || "";
 }
+// The sheet and scout book may spell the same team differently.
+function repBook(team){
+  return (S.scout || {})[team] || Object.entries(S.scout || {}).find(([t]) => foldName(t) === foldName(team))?.[1] || {};
+}
 // Their named calls, with the score state they ran each one in. On a watched
 // game they may have been the home side, and the score is read from theirs.
 function repTheirCalls(team){
-  const p = (S.scout || {})[team] || Object.entries(S.scout || {}).find(([t]) => foldName(t) === foldName(team))?.[1] || {};
+  const p = repBook(team);
   const rows = (p.breaks || []).filter(b => b && b.script && (S.repAll || !b.layout || b.layout === S.layoutKey));
   const by = {};
   rows.forEach(b => {
@@ -17069,7 +17075,7 @@ function repTheirCalls(team){
 }
 // Where they plant on this field: every man of every five logged.
 function repPlants(team){
-  const p = (S.scout || {})[team] || {};
+  const p = repBook(team);
   const at = {};
   let fives = 0;
   (p.breaks || []).filter(b => b && Array.isArray(b.plants) && b.plants.length && b.layout === S.layoutKey).forEach(b => {
@@ -17261,7 +17267,9 @@ function repPlayerPage(){
 }
 function repSeasonPage(sheets){
   const rec = repRecord(sheets);
-  if(!rec.rows.length) return sec("Season", repEmpty("No points scored on your sheets here yet. Tap who won each point on Tally and the season builds itself."));
+  const spreadsheets = sheets.length ? sec("Spreadsheets", `<p class="note">Each one opens in Excel, Numbers or Google Sheets. They are built from what is logged now.</p>
+      <div class="btnrow" style="flex-direction:column">${repCsvBtn("sheets", "Every sheet")}${repCsvBtn("points", "Every point")}${repCsvBtn("breakouts", "Every man charted")}</div>`) : "";
+  if(!rec.rows.length) return sec("Season", repEmpty("No points scored on your sheets here yet. Tap who won each point on Tally and the season builds itself.")) + spreadsheets;
   let run = 0;
   const diff = rec.rows.map(x => (run += x.sc.us - x.sc.them));
   const res = (S.results || []).filter(repOn), reads = res.filter(r => r.read);
@@ -17275,8 +17283,7 @@ function repSeasonPage(sheets){
         segs: [{n: x.sc.us, cls: "us"}, {n: x.sc.them, cls: "them"}]})), [["us", "points won"], ["them", "points lost"]])),
     rec.rows.length > 1 ? sec("Running point difference", repLine("Points for minus points against, added up sheet by sheet", diff, rec.rows.map(x => dayOf(x.m.at)))
       + `<p class="aid">Above the line you have scored more than you have given up, counting every sheet so far.</p>`) : "",
-    sec("Spreadsheets", `<p class="note">Each one opens in Excel, Numbers or Google Sheets. They are built from what is logged now.</p>
-      <div class="btnrow" style="flex-direction:column">${repCsvBtn("sheets", "Every sheet")}${repCsvBtn("points", "Every point")}${repCsvBtn("breakouts", "Every man charted")}</div>`)].join("");
+    spreadsheets].join("");
 }
 
 /* ---------- spreadsheets ---------- */
@@ -17315,8 +17322,12 @@ const REPORT_CSV = {
   points: () => { const rows = [];
     repSheets().forEach(m => {
       const pts = new Set();
-      [S.results, S.calls, S.tally, S.breakouts, S.pens, S.timeouts].forEach(l => (l || []).forEach(r => { if(r && r.m === m.id && r.pt > 0) pts.add(r.pt); }));
-      const theirs = ((S.scout || {})[m.vs] || {}).breaks || [];
+      const theirs = repBook(m.vs).breaks || [];
+      // Scout, movement, grades and voice notes can be the only record of a
+      // point. Keep that row too, without making up its result or a call.
+      [...SHEET_LISTS.map(k => S[k]), theirs].forEach(l => (l || []).forEach(r => {
+        if(r && r.m === m.id && Number.isInteger(r.pt) && r.pt > 0) pts.add(r.pt);
+      }));
       [...pts].sort((a, b) => a - b).forEach(pt => {
         const sc = scoreBefore(m.id, pt), res = (S.results || []).find(r => r && r.m === m.id && r.pt === pt) || {};
         const call = (S.calls || []).find(c => c && c.m === m.id && c.pt === pt), tb = theirs.find(b => b && b.m === m.id && b.pt === pt);

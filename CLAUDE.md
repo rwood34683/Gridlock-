@@ -2860,6 +2860,16 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   “undated” in a shared sheet's filename. Never substitute today's date or the
   Unix epoch for a date nobody recorded. `test/reports.cjs` covers the import,
   report and both exports.
+- Leave a point out of Reports because only Scout, movement, a grade or a
+  voice note was logged on it. Every point reads every sheet record and the
+  opponent's scout book, leaving an unknown result blank. Opponent calls,
+  plants and spreadsheets use the same team-name match, so a different
+  capitalization never hides a logged five. `test/reports.cjs` holds both.
+  A sheet with no score still offers its spreadsheets under Season; scouting
+  does not have to wait for a result before the coach can take it with him.
+  The save reminder reads those records too: a scout's five, a sighting, a
+  shot, a penalty or a timeout still needs a backup even without a scored
+  point. A confirmed sync or a newer saved file quiets the reminder.
 - Let a cloud build accept a secret/service-role key, overwrite source folders,
   or reuse an offline cache after its adapter or public configuration changed.
   Accept public keys only, restrict cloud output to a child of dist, and hash

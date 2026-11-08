@@ -145,6 +145,21 @@ function syncHarness(){
     gate.resolve({status:'shared'});await saving;
     assert.equal(state.copiedAt,1000000);assert(state.copiedAt<state.results[0].at);
   });
+  await test('Scout-only and other sheet records ask for backup until their snapshot is kept',async()=>{
+    const clock=1700000000000,start=app.indexOf('function newestLogged()'),end=app.indexOf('// Is there a season',start);
+    for(const key of ['pens','timeouts','arrivalSightings','arrivalShots','voiceEvents','scout']){
+      const state={copiedAt:clock-3600000,syncOn:false};
+      if(key==='scout') state.scout={Rejects:{breaks:[{m:'a',pt:1,at:clock-1000}]}};
+      else state[key]=[{m:'a',pt:1,at:clock-1000}];
+      const context=vm.createContext({S:state,Date:{now:()=>clock},SHEET_LISTS:['tally','breakouts','calls','moves','assessments','results','pens','timeouts','arrivalSightings','arrivalShots','voiceEvents']});
+      vm.runInContext(app.slice(start,end),context);
+      assert.match(vm.runInContext('copyNudge()',context),/since your last copy/,key);
+      state.syncOn=true;state.syncAt=clock;
+      assert.equal(vm.runInContext('copyNudge()',context),'',key+' is covered by confirmed sync');
+      state.syncOn=false;state.copiedAt=clock;
+      assert.equal(vm.runInContext('copyNudge()',context),'',key+' is covered by the saved file');
+    }
+  });
   const start=app.indexOf('async function hashPass('),end=app.indexOf('\nfunction newSalt()',start);
   const ctx=vm.createContext({crypto:webcrypto,TextEncoder,Uint8Array,parseInt});vm.runInContext(app.slice(start,end),ctx);
   const salt='00112233445566778899aabbccddeeff';let verifier;
