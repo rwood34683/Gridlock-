@@ -95,7 +95,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Plan, Help · and under **Admin**, Nexus — where admin and staff sign in, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
+More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
@@ -1090,6 +1090,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     by `at`) is newer than the last full copy or the last confirmed League sync
     — not after a week — and **Save now** (`nudgeSave`) saves everything there
     and then, or goes to Nexus when it could not. `test/ux-tally-review.cjs`.
+
+73. Sideline polish: new screens are parsed in a detached template and inserted
+    once, so first entry to Tally does not parse its controls into the live root.
+    Same-screen patches still retain the scroller, and every tap keeps its
+    synchronous save and recovery copy. Keep the existing load-test limits.
+    The header says **Account** (or **Sign out** during setup), and More says
+    **Account & backups**, with **Nexus** retained in its description so old
+    help directions remain findable. Menu descriptions use the readable small
+    type size; keep the owner's red secondary text. CSV confirmation messages
+    count records outside quoted cells, so a multiline note or escaped quote
+    never adds a spreadsheet row. `test/reports.cjs`, `test/ux-players.cjs` and
+    the rendering/device suites cover these changes. The observer-led field
+    tryout is in `docs/SIDELINE-TRYOUT.txt`; do not claim real coach feedback
+    from automated browser checks.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

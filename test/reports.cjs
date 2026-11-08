@@ -172,6 +172,24 @@ const SEED = require("../scripts/seed.js");
         await p.evaluate(() => sendSheet());
         assert.match(await p.evaluate(() => __sheetName),/-undated\.json$/);
       });
+    await check("an imported multiline note counts as one spreadsheet row", async p => {
+      for(const note of ['First line\r\nSecond line', 'He said "hold", then\r\n"go"', 'First line\nSecond line']){
+        const restored=await p.evaluate(note => {
+          const copy=JSON.parse(copyPayload("all"));copy.data.matches[0].note=note;
+          return loadCopy("replace",JSON.stringify(copy));
+        },note);
+        assert.equal(restored,true);
+        const sheets=(await csv(p,"sheets")).text;
+        assert.ok(sheets.includes('"'+note.replace(/"/g,'""')+'"'),"the note is kept as one quoted cell");
+        assert.match(await p.evaluate(()=>S.flash),/Spreadsheet sent · 3 rows\./);
+      }
+    });
+    await check("a downloaded multiline spreadsheet reports its actual number of sheets", async p => {
+      await p.evaluate(()=>{S.matches[0].note='Two lines\r\nin one sheet';save(S);});
+      const [dl]=await Promise.all([p.waitForEvent("download"),p.evaluate(()=>exportReport("sheets"))]);
+      assert.ok(fs.readFileSync(await dl.path(),'utf8').includes('"Two lines\r\nin one sheet"'));
+      assert.match(await p.evaluate(()=>S.flash),/ · 3 rows\./);
+    });
     await check("in a browser the spreadsheet downloads as a UTF-8 .csv", async p => {
       const [dl] = await Promise.all([p.waitForEvent("download"), p.evaluate(() => exportReport("calls"))]);
       assert.match(dl.suggestedFilename(), /^gridlock-your-calls-\d{4}-\d{2}-\d{2}\.csv$/);

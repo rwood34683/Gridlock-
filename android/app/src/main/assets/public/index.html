@@ -710,7 +710,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .list__row:active{background:var(--panel-2)}
 .list__body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .list__name{font-size:var(--t-md);font-weight:600}
-.list__desc{font-size:var(--t-xs);color:var(--dim);line-height:1.35}
+.list__desc{font-size:var(--t-sm);color:var(--dim);line-height:1.5}
 .list__go{color:var(--dim);font-size:var(--t-lg);flex:none}
 .list__count{
   flex:none;font-size:var(--t-xs);font-weight:700;color:var(--mute);
@@ -16521,7 +16521,7 @@ const HELP = {
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
-  "more/nexus": {t:"Nexus", w:"The account, the backup and the fields.",
+  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
     get how(){return ["Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
@@ -16566,7 +16566,7 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
-  ["How do I sign out?", "Tap STAFF at the top right (or More, then Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
+  ["How do I sign out?", "Tap Account at the top right (or More, then Account & backups, also called Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
@@ -17298,6 +17298,22 @@ function csvCell(v){
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function csvText(head, rows){ return [head, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n"; }
+// A note may span several lines inside one quoted cell. Count records, not
+// line breaks, so the share/download message agrees with the spreadsheet.
+function csvRows(text){
+  let quoted = false, rows = 0, start = 0;
+  for(let i = 0; i < text.length; i++){
+    if(text[i] === '"'){
+      if(quoted && text[i + 1] === '"') i++;
+      else quoted = !quoted;
+    } else if(text[i] === "\n" && !quoted){
+      if(i > start) rows++;
+      start = i + 1;
+    }
+  }
+  if(start < text.length) rows++;
+  return Math.max(0, rows - 1); // The first record is the heading.
+}
 const repDate = dateStamp;
 const repField = m => (LAYOUTS[m && m.layout] || {}).name || "";
 const REPORT_CSV = {
@@ -17355,7 +17371,7 @@ window.exportReport = async key => {
   const make = REPORT_CSV[key]; if(!make) return;
   const [stem, text] = make();
   const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${new Date().toISOString().slice(0, 10)}.csv`;
-  const lines = text.split("\r\n").filter(Boolean).length - 1;
+  const lines = csvRows(text);
   if(lines < 1){ flash("Nothing in that list yet, so there is no spreadsheet to make."); return; }
   if(typeof window.gridlockExportTable === "function"){
     try {
@@ -17413,8 +17429,8 @@ const MORE_GROUPS=[
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
-  ["Account & backups",[
-    ["nexus","Nexus","Your account, cloud sharing, saved copies and privacy"]]]
+  ["Your account",[
+    ["nexus","Account & backups","Nexus · Sign out, saved copies, cloud sharing and privacy"]]]
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
@@ -18010,7 +18026,7 @@ function moreBody(k){
   if(k==="league") return leaguePage();
   if(k==="plan") return planPage();
   if(k==="help") return helpPage();
-  if(k==="nexus") return sec("Nexus", `<div class="panel">
+  if(k==="nexus") return sec("Account & backups", `<p class="note">Nexus · Your sign-in and saved season.</p><div class="panel">
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
       </div>
@@ -18216,7 +18232,7 @@ function shell(){
         ${/* The chip read like a button and did nothing; sign-out sat at the foot of
               Nexus. It is the door to the account now: Nexus, with Sign out at the
               top — or, on a screen with no tabs, the sign-out question itself. */""}${staffed()
-          ? `<button class="who-btn" onclick="${asking ? "askSignOut()" : "openAccount()"}" aria-label="Staff — signed in as ${esc(S.email || "staff")}, account and sign out"><span class="who-chip staff">Staff</span></button>`
+          ? `<button class="who-btn" onclick="${asking ? "askSignOut()" : "openAccount()"}" aria-label="Staff — signed in as ${esc(S.email || "staff")}, account and sign out"><span class="who-chip staff">${asking ? "Sign out" : "Account"}</span></button>`
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
@@ -18582,8 +18598,12 @@ function render(){
   try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
   if(screen !== _where){
-    // A new screen is parsed once, directly into the live document.
-    root.innerHTML = html; labelFields(root); _screenControls = controlValues(root);
+    // Build the new screen off-page, then insert it once. Parsing hundreds
+    // of controls into the live root makes first entry to Tally expensive.
+    // The new scroller still starts at the top; same-screen taps keep theirs.
+    const page = document.createElement("template"); page.innerHTML = html;
+    labelFields(page.content); _screenControls = controlValues(page.content);
+    root.replaceChildren(page.content);
   } else if(dirty || html !== _screenMarkup){
     const page = document.createElement("div"); page.innerHTML = html;
     labelFields(page); _screenControls = controlValues(page); patchScreen(root, page);

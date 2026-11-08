@@ -70,7 +70,17 @@ const SEED = require("../scripts/seed.js");
       assert.match(got.t, /Rocket 1/); assert.match(got.card, /Rocket 1/, "the card in his hand says it too");
       assert.deepEqual(got.ambiguous, [], "every bunker on a card is one bunker on this field");
     });
-    await check("the STAFF badge opens the account, and Sign out asks before it signs out", async p => {
+    await check("account and backups are named on the header and More menu", async p => {
+      assert.equal((await p.locator('.who-btn').textContent()).trim(), 'Account');
+      await p.evaluate(()=>set({tab:'more',more:null}));
+      const account=p.getByRole('button',{name:/Account & backups.*Nexus/});
+      assert.equal(await account.count(),1);
+      await account.click();
+      assert.equal(await p.evaluate(()=>S.more),'nexus');
+      assert.match(await root(p),/Account & backups/i);
+      assert.equal(await p.getByRole('button',{name:'Sign out',exact:true}).count(),1);
+    });
+    await check("the account badge opens the account, and Sign out asks before it signs out", async p => {
       await p.getByRole("button", { name: /account and sign out/ }).click();
       assert.equal(await p.evaluate(() => S.more), "nexus");
       const box = await p.getByRole("button", { name: "Sign out", exact: true }).boundingBox();
