@@ -6,6 +6,7 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
+  "pod-wars": "test/pod-wars.cjs",
   "render-performance": "test/render-performance.cjs",
   "cloud-pages": "test/cloud-pages.js",
   "format-regressions": "test/format-regressions.cjs", "ux-section1": "test/ux-section1.cjs", "ux-section3": "test/ux-section3.cjs", "sync-ask": "test/sync-ask.cjs", "ux-players": "test/ux-players.cjs", "match-review": "test/match-review.cjs", "review-nov6": "test/review-nov6.cjs", "rob-call": "test/rob-call.cjs", "reports": "test/reports.cjs", "ux-tally-review": "test/ux-tally-review.cjs", "ux-review-scout": "test/ux-review-scout.cjs", "ios-cloud": "test/ios-cloud.cjs", "site-links": "test/site-links.cjs",
