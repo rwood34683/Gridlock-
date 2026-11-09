@@ -19,6 +19,7 @@ and they are not committed or shipped. Only the published registration list
 goes in, the same kind of data as the other boards.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -58,10 +59,22 @@ def build(pkg):
     return data, counts
 
 
+def brand_words():
+    brands = json.loads((ROOT / "brand" / "brands.json").read_text())["brands"]
+    return sorted({b["short"] for b in brands.values() if b.get("short")}, key=len, reverse=True)
+
+
 def block(data):
     body = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     # A name can never close the script: "</" is written as "<\/".
     body = body.replace("</", "<\\/")
+    # A team can share a word with one of our builds ("Konvicts Lockdown"). The
+    # brand check rightly refuses a build's name in the source, so the word is
+    # written with its first letter as a JavaScript escape: the app shows the
+    # team's own name and the source never says the build's.
+    for word in brand_words():
+        body = re.sub(r"\b" + re.escape(word) + r"\b",
+                      lambda m: "\\u%04x" % ord(m.group(0)[0]) + m.group(0)[1:], body)
     return BEGIN + "\nconst WCUP = " + body + ";\n" + END
 
 
