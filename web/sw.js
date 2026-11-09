@@ -1,6 +1,6 @@
 /* Cache only the public app shell. Season data stays in the app's own storage. */
 "use strict";
-const VERSION = "gridlock-shell-v8";
+const VERSION = "gridlock-shell-v9";
 const SCOPE = self.registration.scope;
 const PREFIX = "gridlock:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;

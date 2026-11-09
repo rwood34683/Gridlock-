@@ -20,6 +20,12 @@ async function test(name,fn){try{await fn();passed++;console.log("PASS "+name);}
   assert.equal(fs.readFileSync(path.join(ROOT,"web/fflate.js"),"utf8"),"/* fflate 0.8.3\n"+fs.readFileSync(path.join(lib,"LICENSE"),"utf8")+"\n*/\n"+fs.readFileSync(path.join(lib,"umd/index.js"),"utf8"));
   assert.ok(fs.readFileSync(path.join(ROOT,"web/fflate-LICENSE.txt")).equals(fs.readFileSync(path.join(lib,"LICENSE"))));
  });
+ await test("no person's age, payment, personal link or token is shipped",()=>{
+  const {PRIVATE_FIELDS}=require("../scripts/import-world-cup.js");
+  assert.deepEqual(PRIVATE_FIELDS,["age_as_published","registration_fee_paid","person_event_link","event_person_token"]);
+  for(const k of PRIVATE_FIELDS)assert.ok(d.memberships.every(m=>!Object.hasOwn(m,k)),k+" is in the bundle");
+  assert.equal((JSON.stringify(d).match(/[?&]EPID=/gi)||[]).length,0,"a personal token survives in an address");
+ });
  const browser=await chromium.launch(launchOptions()),url=process.env.APP_URL||"http://localhost:5173/";
  async function pageTest(name,fn,opts={}){await test(name,async()=>{
   const ctx=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:opts.offline?"allow":"block"});const p=await ctx.newPage(),errors=[],remote=[];
