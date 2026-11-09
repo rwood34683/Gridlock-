@@ -1150,6 +1150,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     cards follow under it. Times are the league's, moved only by a pit he set as
     running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
 
+76. **World Cup team directory.** The owner's 8 Nov 2026 JSON snapshot is a
+    read-only tool under More › World Cup teams and Scout › Division. Keep
+    all 680 registration entries separate by entry ID, including clubs in
+    more than one division; the two empty NCPA packages are explicit. Player,
+    Coach, Staff and Media remain separate. Missing jerseys and player
+    hometowns stay missing; a team's hometown is never a player's. The
+    supplied history is classification records, not match scores or a full
+    career. Sources, retrieval times, original IDs and coverage statuses
+    stay with the records. `scripts/import-world-cup.js` compiles the supplied
+    JSON into `web/world-cup-data.js`; `data/world-cup-2026-manifest.json`
+    records the input hashes and counts. Decode only when this tool opens,
+    keep it out of `S`, saves and exports, page long lists, and retain search
+    and focus when going back. `cupView` is scratch state. The bundled fflate
+    decoder and its MIT notice travel with every build; never fetch the data
+    or a decoder from a CDN. The service worker must cache all three files.
+    `test/world-cup.cjs` covers the directory and its offline/standalone paths.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
