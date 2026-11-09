@@ -1188,6 +1188,30 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     only (`addEventPlayers`); a man already there under the same name with no
     ID is left alone and named. `test/event-data.cjs` runs on a made-up package.
 
+78. ~~Before you play them.~~ Done — the owner asked whether a coach feels the
+    edge at his fingertips, and the answer was not yet: what was known about the
+    next opponent was spread over five screens, an empty read said only that it
+    was empty, and nothing reached the players. **Before you play them**
+    (`more/prep`, hidden from the menu like Classes, `prepPage`, `prepFacts`,
+    Team like Reports) is one card a team: when and where he plays them, what
+    they run and in which score state, where they plant, his calls ranked by
+    lanes against the five bunkers they plant on most (`lanesBetween`, the
+    measured field, never odds), who shoots his men, his calls against them,
+    their roster from the event data, their games still to watch, and **What
+    you don't know yet**. Nothing under three (`PREP_MIN`, `GHOST_MIN`) is said
+    as a read. A game on another field says so and offers that field, because
+    every count is this field's. It opens from his game rows on Schedule and
+    from the right pit's card; **Send to your staff** hands it over as text
+    (`prepText`). An empty read is a plan (`scoutNext`, `scoutNextLine`): how
+    many more logged breaks start it and the next game of theirs to watch, on
+    the point sheet's read line and on Anticipate. **Tell the team** on each of
+    his games and **Send the day plan to the team** (`tellText`, `dayPlanText`)
+    are group-chat messages through `handOff`: the game, the field, and when to
+    be at the pit — his rule (`pitLead`, `PIT_LEADS`, 30 by default, or Don't
+    say), never the league's — and who is scouting what, asking who goes to a
+    clash. The schedule still has the Pro field only; the card says so where it
+    matters. `test/game-prep.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

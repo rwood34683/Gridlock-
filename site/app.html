@@ -3165,6 +3165,8 @@ function yourDaySec(games){
     return `<div class="panel"${past ? ' style="opacity:.6"' : ""}>
       <h3 class="panel__title">${esc(dayName(g.d))} · ${esc(gameClock(g))} · v ${esc(opp)}</h3>
       <p class="note">${esc(gameSub(g))}</p>
+      ${past ? "" : `<div class="btnrow"><button class="btn btn--quiet grow" onclick="openPrep(${jsq(opp)})">Before you play ${esc(opp)}</button>
+        <button class="btn btn--quiet grow" onclick="tellTeam(${jsq(g.id)})">Tell the team</button></div>`}
       <p class="aid" style="margin-top:var(--s2)">Scout ${esc(opp)} before then</p>${sc}</div>`;
   }).join("");
   // Running late: the pits on the next day he plays, set by him.
@@ -3176,7 +3178,12 @@ function yourDaySec(games){
         return `<div class="fld"><label>${esc(f || "No pit printed")}</label><select onchange="setRunLate(${jsq(key)},this.value)">${
           [0, 10, 15, 20, 30, 45, 60, 90].map(m => `<option value="${m}"${m === v ? " selected" : ""}>${m ? m + " min late" : "On time"}</option>`).join("")}</select></div>`; }).join("")}
     </details>` : "";
-  return sec("Your team's day", `${pick}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
+  const lead = pitLead();
+  const plan = day.some(d => gameAt(d.g) + SLOT_MIN * 60000 >= now) ? `<div class="fld"><label for="pit-lead">Players at the pit</label>
+      <select id="pit-lead" onchange="setPitLead(this.value)">${PIT_LEADS.map(m => `<option value="${m}"${m === lead ? " selected" : ""}>${m ? m + " min before the game" : "Don't say"}</option>`).join("")}</select></div>
+    <button class="btn btn--block" onclick="sendDayPlan()">Send the day plan to the team</button>
+    <p class="note">Your games with where and when to be, and who is scouting what — for the team chat. Tell the team on each game sends just that one.</p>` : "";
+  return sec("Your team's day", `${pick}${plan}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
     day.length + (day.length === 1 ? " game" : " games"));
 }
 /* Who to scout, in the order it happens. The game-by-game cards answer "who
@@ -3230,7 +3237,9 @@ function scoutPlanSec(team, day, now){
   const row = r => {
     const g = r.g, head = `<span class="assign__job"><span class="daylight__line">${lightDot(r.kind)}</span>${esc(scoutWhen(g, now))}<br>${where(g)}</span>`;
     if(r.kind !== "scout") return `<div class="assign daylight--${r.kind}">
-      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span></span>
+      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span>
+        <span class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="openPrep(${jsq(r.opp)})">Before you play them</button>
+        <button class="btn btn--quiet" onclick="tellTeam(${jsq(g.id)})">Tell the team</button></span></span>
       <button class="btn btn--quiet" onclick="playGame(${jsq(g.id)},'${side(g, r.opp)}')">Start sheet</button></div>`;
     return `<div class="assign daylight--scout">
       <span class="assign__body">${head}
@@ -3289,6 +3298,199 @@ function teamDay(team){
   });
 }
 window.setMyTeam = v => { set({myTeam: String(v || "").slice(0, 60)}); };
+/* ============================================================
+   Before you play them — everything known about one team, on one screen
+   ============================================================
+
+   What a coach wants an hour out is one answer: what do I know about the team
+   I play next, and what don't I know yet. It was spread over the pit card,
+   Anticipate, Counter, Reports and the schedule. This card gathers it, counted
+   the way those screens count it — the sample on every line, nothing under
+   three said as a read — and the lanes are the measured field against where
+   they usually plant, never odds. Where something is missing it says what to
+   do about it: which of their games to watch, and how many logged breaks
+   start the read. */
+const PREP_MIN = 3;
+window.openPrep = team => { set({tab: "more", more: "prep", prepTeam: String(team || "").slice(0, 60)}); toMainTop(); };
+// Their games still to come at this event that he is not in.
+function theirGamesToWatch(team, now = Date.now()){
+  const me = S.myTeam ? foldName(S.myTeam) : "";
+  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
+}
+// His next game against them, if both are on the schedule.
+function myGameVs(team, now = Date.now()){
+  if(!S.myTeam) return null;
+  return teamGames(S.myTeam).find(g => foldName(across(g, S.myTeam)) === foldName(team) && gameAt(g) + SLOT_MIN * 60000 >= now) || null;
+}
+/* An empty read is a scouting plan, not a dead end: how many more logged
+ * breaks start it, and the next game of theirs he could watch to get them. */
+function scoutNext(team, logged){
+  const need = Math.max(0, PREP_MIN - (logged || 0));
+  const g = theirGamesToWatch(team)[0];
+  const how = need ? `${need} more of their break${need === 1 ? "" : "s"} logged and the read starts.` : "";
+  const where = g ? `Next chance: <b>${esc(g.h)} v ${esc(g.a)}</b>, ${esc(scoutWhen(g, Date.now()))}, ${esc(g.f || "field not printed")}.`
+    : `None of ${esc(team)}'s games is on the schedule in the app (it has ${esc(SCHEDULE.div)} only), so watch them wherever they play and log the break on Scout › Breakouts.`;
+  return {html: [how, where].filter(Boolean).join(" "), game: g};
+}
+function scoutNextLine(team, logged){
+  const n = scoutNext(team, logged);
+  return `<p class="note read-line">${n.html}${n.game ? ` <button class="btn btn--quiet read-line__go" onclick="watchGame(${jsq(n.game.id)})">Watch it</button>` : ""}</p>`;
+}
+function prepTeams(){
+  const seen = new Map(), add = n => { const k = foldName(n); if(k && !seen.has(k)) seen.set(k, n); };
+  if(S.myTeam) teamDay(S.myTeam).filter(d => gameAt(d.g) + SLOT_MIN * 60000 >= Date.now()).forEach(d => add(d.opp));
+  if(pitNamed("right")) add(S.right.name);
+  repTeams().forEach(add);
+  if(S.prepTeam) add(S.prepTeam);
+  return [...seen.values()];
+}
+function prepTeam(){ const t = String(S.prepTeam || "").trim(); return t || prepTeams()[0] || ""; }
+function prepFacts(team){
+  const calls = repTheirCalls(team), total = calls.reduce((n, c) => n + c.n, 0);
+  const states = [["ahead", "When they are ahead"], ["level", "Level"], ["behind", "When they are behind"]].map(([s, label]) => {
+    const n = calls.reduce((a, c) => a + c[s], 0), top = [...calls].sort((a, b) => b[s] - a[s])[0];
+    return {label, n, top: top && top[s] ? [top.key, top[s]] : null};
+  }).filter(x => x.n >= PREP_MIN && x.top);
+  const plants = repPlants(team), sh = repShooters(team);
+  const rec = repRecord(repSheets().filter(m => foldName(m.vs) === foldName(team)));
+  const mine = repCalls(c => foldName(c.vs || (matchById(c.m) || {}).vs) === foldName(team));
+  // Lanes: each call he runs here, planted against the five bunkers they plant on most.
+  let lanes = null;
+  if(plants.fives >= GHOST_MIN){
+    const theirIds = plants.rows.slice(0, 5).map(r => r.id);
+    lanes = Object.keys(pickPlays()).map(k => { const ids = plantIdsFor(k); return ids ? {k, ...lanesBetween(ids, theirIds)} : null; }).filter(Boolean)
+      .sort((a, b) => b.onThem - a.onThem || a.onYou - b.onYou || callName(a.k).localeCompare(callName(b.k))).slice(0, 3);
+  }
+  const entries = evdEntriesFor(team);
+  return {calls, total, states, plants, sh, rec, mine, lanes, entries, game: myGameVs(team), watch: theirGamesToWatch(team)};
+}
+function prepGaps(team, f){
+  const gaps = [];
+  if(f.total < PREP_MIN) gaps.push(`What they run: ${f.total} of their calls logged, ${PREP_MIN} start the read.`);
+  if(f.plants.fives < GHOST_MIN) gaps.push(`Where they plant: ${f.plants.fives} of their fives logged on ${curLayout().name}, ${GHOST_MIN} start it — and the lanes with it.`);
+  if(!f.sh.n) gaps.push("Who shoots your men: nothing tallied against them yet.");
+  if(!f.entries.length) gaps.push(EVD ? "Their roster: not in the event data on this phone." : "Their roster: load the event data file under Account & backups.");
+  if(!f.watch.length) gaps.push(`Their games: none on the schedule in the app (it has ${SCHEDULE.div} only).`);
+  return gaps;
+}
+function prepPage(){
+  const opts = prepTeams(), team = prepTeam();
+  const pick = `<div class="fld"><label for="prep-team">Team</label><select id="prep-team" onchange="set({prepTeam:this.value})">
+      ${opts.length ? "" : `<option value="">No team yet</option>`}${opts.map(t => `<option value="${esc(t)}"${foldName(t) === foldName(team) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
+  if(!team) return sec("Before you play them", `<p class="lede">Pick your team on Schedule, or put who you play in the right pit, and this
+      card gathers everything you know about them — and what you don't yet.</p>${pick}
+    <button class="btn btn--block" onclick="set({more:'schedule'})">Schedule</button>`);
+  const f = prepFacts(team), now = Date.now(), field = curLayout().name;
+  const out = [];
+  const when = f.game ? `<p class="lede">You play ${esc(team)} <b>${esc(scoutWhen(f.game, now))}</b>, ${esc(f.game.f || "field not printed")}.</p>`
+    : `<p class="note">${S.myTeam ? `No game of ${esc(S.myTeam)}'s against ${esc(team)} is on the schedule in the app.` : "Pick your team on Schedule and this says when and where you play them."}</p>`;
+  // Counts are this field's; a game on another field is read on that one.
+  const gf = f.game ? gameField(f.game) : null;
+  const elsewhere = gf && gf !== S.layoutKey && LAYOUTS[gf] ? `<div class="warn">You play them on <b>${esc(LAYOUTS[gf].name)}</b>; everything below is counted on ${esc(field)}.
+      <button class="btn btn--block" style="margin-top:var(--s2)" onclick="pickEvent(${jsq(gf)})">Read it on ${esc(LAYOUTS[gf].name)}</button></div>` : "";
+  out.push(sec(`Before you play ${team}`, `${pick}${when}${elsewhere}
+    <div class="facts">
+      <span class="fact"><b>${f.total}</b><span>Their calls logged</span></span>
+      <span class="fact"><b>${f.plants.fives}</b><span>Their fives here</span></span>
+      <span class="fact"><b>${f.sh.n}</b><span>Your men they shot</span></span>
+      ${f.rec.won + f.rec.lost + f.rec.tie ? `<span class="fact"><b>${f.rec.won}–${f.rec.lost}${f.rec.tie ? "–" + f.rec.tie : ""}</b><span>You v them</span></span>`
+        : f.rec.pf + f.rec.pa ? `<span class="fact"><b>${f.rec.pf}–${f.rec.pa}</b><span>Points v them</span></span>` : ""}
+    </div>
+    <div class="btnrow">
+      <button class="btn grow" onclick="prepToPit()">Put them in the right pit</button>
+      ${f.game ? `<button class="btn btn--quiet grow" onclick="tellTeam(${jsq(f.game.id)})">Tell the team</button>` : ""}
+      <button class="btn btn--quiet grow" onclick="sharePrep()">Send to your staff</button>
+    </div>`, field));
+  out.push(sec("What they run", f.total >= PREP_MIN
+    ? `<div class="kv">${f.calls.slice(0, 3).map(c => `<div class="kv__row"><span class="kv__k">${esc(callName(c.key))}</span><span class="kv__v">${c.n} of ${f.total} logged${c.decided ? ` · won ${c.won} of ${c.decided}` : ""}</span></div>`).join("")}
+      ${f.states.map(s => `<div class="kv__row"><span class="kv__k">${esc(s.label)}</span><span class="kv__v"><b>${esc(callName(s.top[0]))}</b> — ${s.top[1]} of ${s.n}</span></div>`).join("")}</div>
+      <p class="aid">Counted from what was logged on ${esc(field)}. A count, not a prediction.</p>`
+    : scoutNextLine(team, f.total), f.total ? `${f.total} logged` : ""));
+  out.push(sec("Where they plant", f.plants.fives >= GHOST_MIN
+    ? `<div class="kv">${f.plants.rows.slice(0, 5).map(r => `<div class="kv__row"><span class="kv__k">${esc(r.name)}</span><span class="kv__v">${r.n} of ${f.plants.fives} fives</span></div>`).join("")}</div>`
+    : `<p class="note">${f.plants.fives} of their fives logged on ${esc(field)} — ${GHOST_MIN} start this. Tap where their five end up on Scout › Breakouts.</p>`, field));
+  out.push(sec("Lanes off the break", f.lanes && f.lanes.length
+    ? `<div class="kv">${f.lanes.map(l => `<div class="kv__row"><span class="kv__k">${esc(callName(l.k))}</span><span class="kv__v">${l.onThem} of your ${l.mine} with a lane on them · ${l.onYou} of theirs on you</span></div>`).join("")}</div>
+      <p class="aid">Your calls on the measured ${esc(field)} against the five bunkers they plant on most. Geometry, not odds — where they stand off the buzzer is your read.</p>`
+    : `<p class="note">Needs ${GHOST_MIN} of their fives logged on ${esc(field)}, then each of your calls is counted for lanes against where they plant.</p>`));
+  if(f.sh.n) out.push(sec("How they get you", repList([
+      ...(f.sh.who.length ? [["Shot your men most", f.sh.who.slice(0, 3).map(([w, n]) => `${w} ${n}`).join(", ")]] : []),
+      ...(f.sh.where.length ? [["Where your men went out", f.sh.where.slice(0, 3).map(([b, n]) => `${b} ${n}`).join(", ")]] : [])]), `${f.sh.n} out${f.sh.n === 1 ? "" : "s"}`));
+  if(f.mine.length) out.push(sec(`Your calls against ${team}`, repList(f.mine.slice(0, 5).map(c => [callName(c.key), `called ${c.n} · won ${c.won} of ${c.won + c.lost}`]))));
+  out.push(sec("Their roster", f.entries.length
+    ? f.entries.map(e => { const pl = evdPlayers(e), hist = pl.filter(m => ((EVD.people[m.pid] || {}).obs || []).length).length;
+        return `<p class="note"><b>${esc(e.divName)}</b> · ${e.members ? `${pl.length} player${pl.length === 1 ? "" : "s"}${pl.length ? `, published history read for ${hist}` : ""}` : esc(evdRosterWord(e.roster.status))}</p>`; }).join("")
+      + `<p class="aid">Names and history are on their pit card. History is published classification rows, not a career.</p>`
+    : `<p class="note">${EVD ? "Not in the event data on this phone." : "Load the event data file under Account & backups to see their roster here."}</p>`));
+  out.push(sec("Their games to watch", f.watch.length
+    ? `<div class="assigns">${f.watch.slice(0, 5).map(g => `<div class="assign"><span class="assign__body"><span class="assign__job">${esc(g.h)} v ${esc(g.a)}</span>
+        <span class="assign__who">${esc(scoutWhen(g, now))} · ${esc(g.f || "field not printed")}</span></span>
+        <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`).join("")}</div>`
+    : `<p class="note">None on the schedule in the app (it has ${esc(SCHEDULE.div)} only).</p>`));
+  const gaps = prepGaps(team, f);
+  if(gaps.length) out.push(sec("What you don't know yet", `<ul class="gate__shows">${gaps.map(g => `<li>${esc(g)}</li>`).join("")}</ul>`));
+  return out.join("");
+}
+window.prepToPit = () => {
+  const t = boardTeam(prepTeam()); if(!t) return;
+  if(!(pitNamed("right") && foldName(S.right.name) === foldName(t))){
+    if(otherPitHas("right", t)) S.left = {name: ""};
+    S.right = {name: t}; adoptPitAsOpponent();
+  }
+  set({tab: "scout", scoutTab: "matchup", more: null}); toMainTop();
+};
+// The card as text for the staff chat: the counts with their samples, and the gaps.
+function prepText(team){
+  const f = prepFacts(team), field = curLayout().name, L = [`Before we play ${team}`];
+  if(f.game) L.push(`${scoutWhen(f.game, Date.now())}, ${f.game.f || "field not printed"}`);
+  L.push("");
+  if(f.total >= PREP_MIN){
+    L.push(`What they run (${f.total} logged on ${field}):`);
+    f.calls.slice(0, 3).forEach(c => L.push(`- ${callName(c.key)}: ${c.n} of ${f.total}`));
+    f.states.forEach(s => L.push(`- ${s.label}: ${callName(s.top[0])} ${s.top[1]} of ${s.n}`));
+  }
+  if(f.plants.fives >= GHOST_MIN) L.push(`Where they plant (${f.plants.fives} fives): ${f.plants.rows.slice(0, 5).map(r => `${r.name} ${r.n}`).join(", ")}`);
+  if(f.lanes && f.lanes.length) L.push(`Lanes off the break: ${f.lanes.map(l => `${callName(l.k)} ${l.onThem} on them / ${l.onYou} on us`).join("; ")}`);
+  if(f.sh.who.length) L.push(`Shot our men most: ${f.sh.who.slice(0, 3).map(([w, n]) => `${w} ${n}`).join(", ")}`);
+  if(f.watch.length) L.push(`Watch: ${f.watch.slice(0, 3).map(g => `${g.h} v ${g.a} ${scoutWhen(g, Date.now())} ${g.f || ""}`.trim()).join("; ")}`);
+  const gaps = prepGaps(team, f).filter(g => !/roster/i.test(g));
+  if(gaps.length){ L.push("", "Still to find out:"); gaps.forEach(g => L.push("- " + g)); }
+  L.push("", "Counted from what we logged. Not a prediction.");
+  return L.join("\n");
+}
+window.sharePrep = () => { const t = prepTeam(); if(t) handOff(`Before you play ${t}`, prepText(t)); };
+
+/* ---- Tell the team: the group-chat message ----
+ * The players do not have the app; they have the team chat. Each game of his
+ * on the schedule hands over one message — who, when, where, and when to be at
+ * the pit — and the day plan lists his games and who is scouting what. When to
+ * be at the pit is his rule (`pitLead`, minutes before), never the league's. */
+const PIT_LEADS = [0, 15, 20, 30, 45, 60];
+const pitLead = () => (typeof S.pitLead === "number" && PIT_LEADS.includes(S.pitLead)) ? S.pitLead : 30;
+window.setPitLead = v => { const n = parseInt(v, 10); set({pitLead: PIT_LEADS.includes(n) ? n : 30}); };
+const clockAt = t => { const d = new Date(t); return clockName(String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")); };
+function tellText(g){
+  const me = S.myTeam || "Us", opp = across(g, me), lead = pitLead(), late = lateBy(g);
+  return `${me} v ${opp} — ${dayName(g.d).split(",")[0]} ${gameClock(g)}, ${g.f || "field not printed"}.`
+    + (lead ? ` At the pit by ${clockAt(gameAt(g) - lead * 60000)}.` : "")
+    + (late ? ` The pit is running ${late} min late; the times above already include it.` : "");
+}
+window.tellTeam = id => { const g = gameById(id); if(g) handOff("Tell the team", tellText(g)); };
+function dayPlanText(team, now = Date.now()){
+  const day = teamDay(team), next = day.find(d => gameAt(d.g) + SLOT_MIN * 60000 >= now);
+  if(!next) return "";
+  const d = next.g.d, lead = pitLead(), L = [`${team} — ${dayName(d)}`, ""];
+  day.filter(x => x.g.d === d).forEach(({g, opp}) =>
+    L.push(`${gameClock(g)} v ${opp} · ${g.f || "field not printed"}${lead ? ` · at the pit by ${clockAt(gameAt(g) - lead * 60000)}` : ""}`));
+  const scout = scoutPlan(day, now).filter(r => r.g.d === d);
+  if(scout.length){
+    L.push("", "Scouting:");
+    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? " (clashes with our game — who's going?)" : ""}`));
+  }
+  if(Object.keys(S.runLate || {}).some(k => k.startsWith(d + "|"))) L.push("", "Times include the pits running late.");
+  return L.join("\n");
+}
+window.sendDayPlan = () => { const t = S.myTeam; const text = t ? dayPlanText(t) : ""; if(!text){ flash("No game of yours left on the schedule."); return; } handOff("The day plan", text); };
 window.setRunLate = (key, v) => {
   const n = Math.max(0, Math.min(180, parseInt(v, 10) || 0)), r = {...(S.runLate || {})};
   if(n) r[key] = n; else delete r[key];
@@ -10653,8 +10855,7 @@ function readLine(compact){
       <button class="btn btn--quiet read-line__go" onclick="setPitTeam('right',${jsq(matchVs())})">Put ${esc(matchVs())} in the pit</button></p>`;
   const r = nextRead("right"); if(!r) return "";
   const them = esc(pitOf("right").name);
-  if(r.thin) return compact ? `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>` : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Breakouts and the read builds itself.
-      <button class="btn btn--quiet read-line__go" onclick="set({tab:'scout',scoutTab:'breakouts',more:null})">Breakouts ›</button></p>`;
+  if(r.thin) return compact ? `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>` : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>${scoutNextLine(pitOf("right").name, r.n)}`;
   const a = bestAnswer(r.call);
   const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
   // One tap calls it only if it is a play he runs: a turned-off built-in is
@@ -16214,6 +16415,7 @@ function pit(side,T,label){
       <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
 
+    ${side === "right" && T.named ? `<button class="btn btn--block" onclick="openPrep(${jsq(T.name)})">Before you play ${esc(T.name)} ›</button>` : ""}
     <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
         men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
@@ -16469,9 +16671,10 @@ function scoutAnticipate(){
       + roleLine(T.name);
     // A team nobody has read on film and nothing logged against has no read:
     // the Balanced card would be the app guessing.
+    const next = total < PREP_MIN ? `<div class="kv__row"><span class="kv__k">To read them</span><span class="kv__v">${scoutNext(T.name, total).html}${(g => g ? `<br><button class="btn btn--quiet read-line__go" onclick="watchGame(${jsq(g.id)})">Watch it</button>` : "")(scoutNext(T.name, total).game)}</span></div>` : "";
     if(!T.tendKnown && !total)
-      return [`No film read yet — set their Tendency on Matchup, or log the breaks you see on Breakouts.`, "—", "—", rows + lately, shooter];
-    return [`${counted}${T.tendKnown ? `<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>` : ""}`, T.tendKnown ? tells : "—", T.tendKnown ? counter : "—", rows + lately, shooter];
+      return [`No film read yet — set their Tendency on Matchup, or log the breaks you see on Breakouts.`, "—", "—", next + rows + lately, shooter];
+    return [`${counted}${T.tendKnown ? `<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>` : ""}`, T.tendKnown ? tells : "—", T.tendKnown ? counter : "—", next + rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
@@ -17663,6 +17866,12 @@ const HELP = {
          "Turn off the ones you don't run. They stop being offered; nothing you logged is lost.",
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
+  "more/prep": {t:"Before you play them", w:"Everything you know about one team, and what you don't yet.",
+    how:["Open it from your game on Schedule, or from the right pit's card on Scout.",
+         "What they run and where they plant are counts of what you logged on this field — nothing under three is said as a read.",
+         "Lanes off the break counts each of your calls against the five bunkers they plant on most: geometry, not odds.",
+         "What you don't know yet says which of their games to watch and what to log there.",
+         "Send to your staff hands the card over as text; Tell the team sends the game time and when to be at the pit."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
     how:["Your team's day, at the top: pick your team once. Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Under it, game by game, every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
@@ -18039,6 +18248,7 @@ const PAID = {
   "playbook/rep":   "team",
   "more/assess":    "team",
   "more/reports":   "team",
+  "more/prep":      "team",
 };
 const PAID_WHY = {
   "scout":          "Everything you know about the other team — their five, the calls they run, your answer to each one, and the season board.",
@@ -18047,6 +18257,7 @@ const PAID_WHY = {
   "more/assess":    "Grade a player after the point, and keep his season average.",
   "past-match":     "Every sheet you have kept, not just the one you are on.",
   "more/reports":   "The season as graphs, and as spreadsheets your staff can open.",
+  "more/prep":      "Everything you know about the team you play next on one screen, and what you don't know yet.",
 };
 
 function planOf(){
@@ -18119,6 +18330,8 @@ const PAID_SHOWS = {
   "past-match": ["Every sheet you have kept, reopened on its last point", "Its review — what each call won and each man's breaks"],
   "more/reports": ["What each of your calls won, and where your points come from, as bars", "Each opponent: what they run when ahead, level and behind, and where they plant",
                    "One page a player, sheet by sheet, to hand him", "Every list as a spreadsheet for Excel, Numbers or Google Sheets"],
+  "more/prep": ["What they run, where they plant and who shoots your men, with the count on every line",
+                "Your calls ranked by lanes against where they plant, on the measured field", "Their games to watch before you play them"],
 };
 function paidWaiting(key){
   const calls = Object.values(S.scout || {}).reduce((n, p) => n + ((p && p.breaks) || []).filter(b => b && b.script).length, 0);
@@ -18633,7 +18846,7 @@ const MORE_GROUPS=[
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
-const MORE_HIDDEN = {classes:"Classes", league:"League"};
+const MORE_HIDDEN = {classes:"Classes", league:"League", prep:"Before you play them"};
 const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
 // The words a coach looks for need not be the name printed on a tab.
@@ -18719,6 +18932,7 @@ function moreBody(k){
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
   if(k==="reports") return reportsPage();
+  if(k==="prep") return prepPage();
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
