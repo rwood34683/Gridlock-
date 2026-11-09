@@ -3936,6 +3936,20 @@ const BUNKER_KINDS = [
   {key:"gw", name:"Giant wing",   n:"GW", t:"gwing",   w:5.34,  h:5.66},
   {key:"gp", name:"Giant plus",   n:"GP", t:"plus",    w:11.31, h:11.09, k:4.02},
 ];
+// How tall a bunker stands, in metres, only for a kind that two published
+// sources put under a standing man's eyes (docs/SIGHTLINES-HEIGHTS.md). Every
+// other kind has no agreed height: makers print a Maya temple at 1.37 m and
+// at 2.5 m, a small dorito from 4.5 ft to 5 ft 7. A kind left out of here
+// blocks a lane as it always has, because a guessed height would open lanes
+// nobody can see down.
+const BUNKER_HEIGHT_M = {SB: 0.76, Ck: 1.0};
+// A standing adult's eye height: 1.64 m (US DoD anthropometric guidelines,
+// 64.7 in; a military survey, 163.6 cm). Kneeling and prone have no published
+// figure that was found, so Sightlines does not offer them.
+const EYE_STANDING_M = 1.64;
+// Two men standing look along a level line at eye height, so a bunker lower
+// than that line does not stand in the lane between them.
+const underEyes = b => BUNKER_HEIGHT_M[b.n] != null && BUNKER_HEIGHT_M[b.n] < EYE_STANDING_M;
 // The twelve calls as tools/plants.js writes them: five slots of a wire band
 // and a depth up the home half. Kept in step with the tool by the suite, which
 // runs this copy over the three measured fields and expects BREAK_PLANTS back.
@@ -9245,19 +9259,22 @@ function segHitsBox(x1,y1,x2,y2,cx,cy,hw,hh){
  * nothing is in the way, dashed when something is — including the bunker you
  * are aiming beside, if the line clips it. Geometry only, in feet.
  */
-function aimLane(fromId, aim){
+function aimLane(fromId, aim, standing = false){
   const list = curLayout().bunkers, src = list.find(b=>b.id===fromId);
   if(!src || !aim) return null;
-  const by = list.filter(o => o!==src && bunkerBoxes(o).some(k =>
+  const by = list.filter(o => o!==src && !(standing && underEyes(o)) && bunkerBoxes(o).some(k =>
       segHitsBox(src.x,src.y,aim[0],aim[1],k.x,k.y,k.w/2,k.h/2)))
     .sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
   return {src, aim, blocked:by.length>0, by, ft:Math.round(Math.hypot(aim[0]-src.x, aim[1]-src.y))};
 }
-function sightLines(fromId, sx, sy){
-  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy,
-    () => sightLinesFresh(fromId, sx, sy));
+// standing: both men on their feet, so a bunker under their eyes does not
+// block (underEyes). Off, every bunker blocks — the flat answer every other
+// screen uses.
+function sightLines(fromId, sx, sy, standing = false){
+  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy + "|" + (standing ? 1 : 0),
+    () => sightLinesFresh(fromId, sx, sy, standing));
 }
-function sightLinesFresh(fromId, sx, sy){
+function sightLinesFresh(fromId, sx, sy, standing){
   const list = curLayout().bunkers;
   const src  = list.find(b=>b.id===fromId) || list[0];
   if(!src) return {src:null, lines:[], clear:0};
@@ -9272,6 +9289,7 @@ function sightLinesFresh(fromId, sx, sy){
     // nothing he can act on.
     const by = list.filter(o=>{
       if(o===src||o===b) return false;
+      if(standing && underEyes(o)) return false;
       return boxes.get(o).some(k =>
         segHitsBox(ox,oy,tx,ty,k.x*sx,k.y*sy,(k.w*sx)/2,(k.h*sy)/2));
     }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
@@ -9434,12 +9452,12 @@ function fieldSVG(opts={}, runnersOnly){
   // Sightlines replace the break paths when a source bunker is picked.
   let sight = "";
   if(opts.sightFrom){
-    const S1 = sightLines(opts.sightFrom, sx, sy);
+    const S1 = sightLines(opts.sightFrom, sx, sy, !!opts.sightStand);
     paths = "";
     if(S1.src){
       const fx=(S1.src.x*sx).toFixed(1), fy=(S1.src.y*sy).toFixed(1);
       const lit = opts.sightTo;              // the one lane being asked about
-      const aimed = lit && opts.sightAim ? aimLane(opts.sightFrom, opts.sightAim) : null;
+      const aimed = lit && opts.sightAim ? aimLane(opts.sightFrom, opts.sightAim, !!opts.sightStand) : null;
       sight = S1.lines.map(l=>{
         const on = lit && l.to.id === lit && !aimed;
         const dim = lit && !on;
@@ -16548,9 +16566,11 @@ function sightDefault(){
 function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
-  const res=sightLines(from,300/150,240/120);
+  const standing=S.sightStand==="standing";
+  const res=sightLines(from,300/150,240/120,standing);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
-  const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim) : null;
+  const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim, standing) : null;
+  const over=standing ? [...new Set(curLayout().bunkers.filter(underEyes).map(b=>b.n))] : [];
   // Four bunkers on this field are called Tr. A coach's own call wins when he
   // has set one; otherwise the unique code does, because "SD to Tr" names
   // nothing he can stand in.
@@ -16565,7 +16585,15 @@ function sightlines(){
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
-    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true,noPaths:true,names:true})}</div>
+    <div class="seg seg--wrap" role="group" aria-label="How the lanes are judged">
+      <button class="${standing?"":"on"}" aria-pressed="${!standing}" onclick="set({sightStand:null})">Every bunker blocks</button>
+      <button class="${standing?"on":""}" aria-pressed="${standing}" onclick="set({sightStand:'standing'})">Both standing</button>
+    </div>
+    ${standing ? `<p class="note">Both men on their feet: ${over.length
+        ? over.map(n => `${esc((BUNKER_KINDS.find(k => k.n === n) || {name: n}).name.toLowerCase())}s`).join(" and ") + ` stand lower than a standing man's eyes, so a lane over them counts as clear`
+        : "no bunker on this field is known to stand lower than a standing man's eyes, so the lanes are the same"}.
+        Every other bunker still blocks: no height for it has two published sources that agree. Kneeling and prone are not here — there is no published eye height for either.</p>` : ""}
+    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,sightStand:standing,static:true,pick:true,noPaths:true,names:true})}</div>
     ${aimed
       ? `<div class="verdict ${aimed.blocked?"verdict--no":"verdict--yes"}">
            <b>${aimed.blocked?"Blocked":"Clear"}</b>
@@ -17110,7 +17138,8 @@ const HELP = {
          "Tap where you are standing. Every lane fans out: solid white is clear, dashed grey is blocked.",
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
-         "Dashed means something is in the way, and the blocker is ringed."]},
+         "Dashed means something is in the way, and the blocker is ringed.",
+         "Both standing judges the lanes with both men on their feet: snake beams and cakes are under a standing man's eyes, so a lane over them is clear. Every other bunker still blocks, because no height for it has two published sources that agree. There is no kneeling or prone: no published eye height was found for either."]},
   "more/wb": {t:"Whiteboard", w:"Draw the adjustment, then wipe it.",
     how:["Draw on the field with a finger — red, blue or white.",
          "X and O drop a mark where you tap, for who covers what.",

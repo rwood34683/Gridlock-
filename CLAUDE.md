@@ -1272,6 +1272,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     matters. `test/game-prep.cjs`.
 
 
+81. ~~Sightlines standing.~~ Done, standing only — the owner asked for
+    standing, kneeling and prone. **Both standing** on Sightlines
+    (`S.sightStand`, off by default) judges a lane with both men on their
+    feet: a bunker kind that two published sources put lower than a
+    standing man's eyes does not block (`BUNKER_HEIGHT_M`, `EYE_STANDING_M`
+    1.64 m, `underEyes`). Only the snake beam and the cake qualify; every
+    other kind still blocks, because makers disagree (a Maya temple is
+    printed at 1.37 m and 2.5 m). Kneeling and prone are not offered: no
+    published eye height was found for either. Never add a kind or a stance
+    on one source or a guess. Only Sightlines reads it: `sightLines` and
+    `aimLane` take it as a parameter, and `laneClear`, the lanes off the
+    break, the bunker book and Walk stay flat. `docs/SIGHTLINES-HEIGHTS.md`
+    has the sources and the disagreements. `test/sight-standing.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
