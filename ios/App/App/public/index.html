@@ -1094,6 +1094,17 @@ svg.field [data-pick]{cursor:crosshair}
   content:"";position:absolute;left:0;top:.55em;width:7px;height:2px;border-radius:1px;background:var(--accent-lit);
 }
 .stack{display:flex;flex-direction:column;gap:var(--s2)}
+.cup{min-width:0;width:100%}
+.cup .list__row{width:100%;min-width:0;text-align:left;white-space:normal}
+.cup .list__body{min-width:0}
+.cup>.btn{max-width:100%;white-space:normal;text-align:left}
+.cup select,.cup input{min-width:0;max-width:100%;width:100%}
+.cup p{max-width:72ch}
+.cup p,.cup a,.cup .list__name,.cup .list__desc,.cup h3{overflow-wrap:anywhere}
+.cup summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--ink)}
+.cup-about{margin-top:var(--s3)}
+.cup-pages{align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:var(--s3)}
+.cup-history article{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
 </style>
 <style>
 .voice-live,.voice-event{padding:14px;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--sunk);overflow-wrap:anywhere}
@@ -1112,6 +1123,9 @@ svg.field [data-pick]{cursor:crosshair}
 <script src="voice-parser.js"></script>
 <script src="speech.js"></script>
 <script src="voice.js"></script>
+<script src="fflate.js"></script>
+<script src="world-cup-data.js"></script>
+<script src="world-cup.js"></script>
 <script>
 const STORE_KEY = "gridlock.coach.v2";
 const BANNED = /gunz\s*up/ig;
@@ -4243,6 +4257,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  s.cupView = null;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
@@ -15843,7 +15858,8 @@ window.copyMatchup = () => {
 
 function scoutBoard(){
   const div=divisionOf(), list=teamsHere(), added=addedTeams(div.id).map(t=>t.name);
-  return sec("Division", `<div class="seg seg--wrap">
+  return sec("World Cup 2026", `<p class="note">All 34 competition divisions, team entries, rosters and supplied player history.</p><button class="btn btn--block" onclick="set({tab:'more',more:'worldcup'})">Find World Cup teams</button>`)
+  + sec("Division", `<div class="seg seg--wrap">
       ${DIVISIONS.map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
     </div>
     ${div.note?`<p class="note">${esc(div.note)}</p>`:""}
@@ -16519,6 +16535,12 @@ const HELP = {
          "Search by name when the list is long.",
          "Missing a team adds one; its name is a box you can fix, and Remove says what the board holds against them and asks first."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
+  "more/worldcup": {t:"World Cup teams", w:"The supplied November 8, 2026 event list, available with no signal.",
+    how:["Open More › World Cup teams, or Find World Cup teams on Scout › Division.",
+         "Choose a division and search for a team or person. Open an entry to read its players, coaches, staff and media.",
+         "Open a name for published classification records and sources. Missing history, hometowns and jerseys stay marked.",
+         "Back to the team list keeps your search. This directory does not change your squad or scouting notes."],
+    watch:"Entries can change. Classification scores are not match scores, and the supplied history is incomplete. Source links may require a PBLeagues sign-in."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
     how:["Once their five is known, their bunkers lead the lane table with a tag, their shooter's by name, and the count says how many of them are clear from where you stand.",
          "Under the counts, the bunker you are standing in says what was logged at it: how often their five have planted on it and the men lost there on either side.",
@@ -17510,6 +17532,7 @@ const MORE_GROUPS=[
     ["lineups","Lineups","Who is on this point"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
+    ["worldcup","World Cup teams","2026 divisions, entries and player history"],
     ["walk","Walk","Notes from walking the field"],
     ["codes","Codes","Your code words, every event"]]],
   ["During the game",[
@@ -17536,6 +17559,7 @@ const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map
 // The words a coach looks for need not be the name printed on a tab.
 // These are search hints only: they never change a tool's access or saved data.
 const TOOL_WORDS={
+  worldcup:"world cup nxl kissimmee pbleagues divisions entry entries teams players staff coaches media history hometown",
   playbook:"plays breakout calls break plan", tally:"score scoring points won lost chart break clock",
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
@@ -17616,6 +17640,8 @@ function moreBody(k){
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
   if(k==="reports") return reportsPage();
+  if(k==="worldcup") return window.WorldCup2026.page({esc,sec,view:()=>S.cupView,
+    change:(patch,paint=true)=>{ S.cupView={...(S.cupView||{}),...patch}; if(paint) render(); },top:toMainTop});
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you

@@ -1,0 +1,36 @@
+{
+  "event_id": "9322",
+  "snapshot": "2026-11-08T20:21:19.602931-05:00",
+  "input_sha256": {
+    "teams.json": "d65106e36d05cf6ec300ca399e85b903ebb909089bbfe4945d5c0a05c3631339",
+    "rosters.json": "9e5cc891af783bb3d44cfc03bd1918965c086a6842596368def33bd24f2e6895",
+    "people.json": "9c490f4bd3917d577e922c3092c67e4dffdc4d820b984ce37ad56f304d128cdb",
+    "player_profiles.json": "bbeb427f258615fa5d94e995676ec0fe5cabd21c56243b7c12fa26b8b6d2548f",
+    "person_event_history.json": "f79007b5e5a3a2eb13954afdc229c4f5e60ea5734c7f2c6c183134205dd8628e",
+    "team_locations.json": "dc7a77cd98f54976d448757add7ccc62a2f4bc5bfeaa68a4d65696ca4eca0c6f",
+    "sources.json": "109fa463154089781bcb100f7ea8e84dbb03ec25861ead531105544dca79afed",
+    "coverage-audit.json": "27f367510115250ac45d437ca10d42419f7e02b1160c6986832916dbe6741f02",
+    "missing-items.json": "09d9cea45736ba1ec67e3b067c17fd3028d02b294d00208df5172b2ecd4e9f22",
+    "roster-source-coverage.json": "895ee0b5ce7f8ee673535b6d46a783cede5d5f8dea49a20356499927f9d38a91",
+    "modern-legacy-differences.json": "7469944e48eca848db47680e3d85a64ec9c0c28a9168b783593bac41c80683ad"
+  },
+  "counts": {
+    "divisions": 36,
+    "entries": 680,
+    "locations": 680,
+    "rosters": 680,
+    "memberships": 5925,
+    "people": 4381,
+    "profiles": 4381,
+    "names": 12417,
+    "access": 1177,
+    "history": 10501,
+    "participation": 7389,
+    "sources": 3231,
+    "missing": 6500,
+    "rosterCoverage": 680,
+    "rosterDifferences": 601
+  },
+  "output_sha256": "e989d8741b3490e08817223f45ab7d1f1afb7356df0523044167f8539194ada9",
+  "output_bytes": 2547087
+}
