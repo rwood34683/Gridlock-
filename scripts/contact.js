@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const CONFIG = path.join(ROOT, 'site/contact.json');
-const KEYS = ['domain', 'email', 'appstore', 'play', 'sha256', 'app'];
+const KEYS = ['domain', 'email', 'appstore', 'play', 'sha256', 'app', 'appleTeam'];
 const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 function readContact(file = CONFIG) {
   const config = Object.fromEntries(KEYS.map(key => [key, null]));
@@ -20,11 +20,11 @@ function readContact(file = CONFIG) {
 // config; throws one sentence naming the first thing wrong.
 function apply(config, args) {
   const next = { ...config };
-  if (!args.length) throw new Error('Expected --domain, --email, --appstore, --play, --sha256 or --app followed by a value.');
+  if (!args.length) throw new Error('Expected --domain, --email, --appstore, --play, --sha256, --app or --appleTeam followed by a value.');
   for (let n = 0; n < args.length; n += 2) {
     const key = String(args[n]).replace(/^--/, '');
     const value = String(args[n + 1] || '').trim();
-    if (!KEYS.includes(key) || !String(args[n]).startsWith('--') || !value || value.startsWith('--')) throw new Error('Expected --domain, --email, --appstore, --play, --sha256 or --app followed by a value.');
+    if (!KEYS.includes(key) || !String(args[n]).startsWith('--') || !value || value.startsWith('--')) throw new Error('Expected --domain, --email, --appstore, --play, --sha256, --app or --appleTeam followed by a value.');
     if (key === 'domain' && !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(value)) throw new Error('Domain must be a hostname without a scheme or path.');
     if (key === 'email' && !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/i.test(value)) throw new Error('Enter a valid support email address.');
     if (key === 'appstore' && !/^(?:id)?[1-9]\d{4,}$/.test(value)) throw new Error('App Store ID must be the numeric ID assigned by Apple.');
@@ -39,7 +39,8 @@ function apply(config, args) {
       if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new Error('The app address must be the HTTPS address of the live web app, like https://app.example.com/.');
     }
     if (key === 'sha256' && !/^(?:[0-9a-f]{2}:){31}[0-9a-f]{2}$/i.test(value)) throw new Error('SHA-256 must contain 32 colon-separated hexadecimal pairs.');
-    next[key] = key === 'appstore' ? value.replace(/^id/, '') : key === 'domain' ? value.toLowerCase() : key === 'sha256' ? value.toUpperCase() : key === 'app' ? new URL(value).href : value;
+    if (key === 'appleTeam' && !/^[A-Z0-9]{10}$/i.test(value)) throw new Error('Apple Team ID is the 10-character ID in Apple Developer > Membership details.');
+    next[key] = key === 'appstore' ? value.replace(/^id/, '') : key === 'domain' ? value.toLowerCase() : key === 'sha256' || key === 'appleTeam' ? value.toUpperCase() : key === 'app' ? new URL(value).href : value;
   }
   return next;
 }
@@ -81,9 +82,26 @@ function appHref(config, fallback = 'app/') {
 function linkApp(text, config, fallback = 'app/') {
   return text.replaceAll('href="app.html"', `href="${esc(appHref(config, fallback))}"`);
 }
+// Android: app links, and the password a coach saved on the website offered in
+// the app (and the other way round) — get_login_creds.
 function assetLinks(config, appId) {
-  const association = config.sha256 ? [{relation:['delegate_permission/common.handle_all_urls'], target:{namespace:'android_app',package_name:appId,sha256_cert_fingerprints:[config.sha256]}}] : [];
+  const association = config.sha256 ? [{relation:['delegate_permission/common.handle_all_urls', 'delegate_permission/common.get_login_creds'], target:{namespace:'android_app',package_name:appId,sha256_cert_fingerprints:[config.sha256]}}] : [];
   return JSON.stringify(association, null, 2) + '\n';
+}
+// iPhone: the password a coach saved on the website, offered by iCloud Keychain
+// in the app. It names the app as <Team ID>.<bundle id>; with no Team ID set the
+// list is empty, which is valid and simply offers nothing.
+function appleAssociation(config, appId) {
+  const apps = config.appleTeam ? [`${config.appleTeam}.${appId}`] : [];
+  return JSON.stringify({webcredentials: {apps}}, null, 2) + '\n';
+}
+// The web hosts a coach can have saved a password on: the site's own domain
+// and the live web app's. The phone app and both files name the same list.
+function credentialHosts(config) {
+  const hosts = [];
+  if (config.domain) hosts.push(String(config.domain).toLowerCase());
+  if (config.app) { try { const h = new URL(config.app).hostname.toLowerCase(); if (!hosts.includes(h)) hosts.push(h); } catch {} }
+  return hosts;
 }
 function defaultShort() {
   try {
@@ -111,10 +129,11 @@ function main() {
   }
   const appId = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8')).appId;
   pending.set(path.join(ROOT, 'site/.well-known/assetlinks.json'), assetLinks(next, appId));
+  pending.set(path.join(ROOT, 'site/.well-known/apple-app-site-association'), appleAssociation(next, appId));
   pending.set(CONFIG, JSON.stringify(next, null, 2) + '\n');
   for (const [file, contents] of pending) fs.writeFileSync(file, contents);
   console.log(`Updated ${pending.size} local files. No registration, mailbox creation, submission or publication was performed.`);
   console.log('Regenerate artifacts and run npm run site:check -- --release before publishing.');
 }
 if (require.main === module) { try { main(); } catch (err) { console.error(err.message); process.exitCode = 1; } }
-module.exports = { appHref, linkApp, KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, stampSocial, assetLinks };
+module.exports = { appHref, linkApp, KEYS, readContact, apply, supportBlock, stampSupport, stampIndex, stampSocial, assetLinks, appleAssociation, credentialHosts };

@@ -84,8 +84,10 @@ that phone, so your gridlockpb.com account does not exist there. To run the
 iPhone app against the real account server, the one app.gridlockpb.com uses,
 use the cloud launcher instead.
 
-1. In the project folder, create a file named `.env.cloud` with the project's
-   two **public** values (Supabase › Project Settings › API Keys):
+1. The project's two **public** values come from `site/contact.json`
+   (`cloud`), so nothing is needed here. To point at another project instead,
+   create a file named `.env.cloud` in the project folder
+   (Supabase › Project Settings › API Keys):
 
    ```text
    GRINDX_SUPABASE_URL=https://<your project>.supabase.co
@@ -146,7 +148,7 @@ Source structure, plugin registration, JavaScript and web behavior were checked 
 4. Use “How did they get there?” on a field and confirm the controls remain above the system bars.
 5. Start voice scouting, grant microphone and speech permissions, speak one observation, then stop. Verify cancellation, backgrounding and denied permission leave the microphone off. Confirm finalized observations appear once and can be corrected. Speech may require the device's speech service and internet connection; no audio is retained by Gridlock.
 
-For distribution, set an appropriate build number and use Product → Archive with a device destination. Signing, provisioning, App Store records and publication remain account-specific steps.
+For distribution, run `npm run ios:cloud` first, set an appropriate build number and use Product → Archive with a device destination. The App target's first build step refuses to archive the offline build, so a store build always signs in with gridlockpb.com accounts; see [NATIVE-SIGN-IN.md](NATIVE-SIGN-IN.md), which also covers offering passwords saved on the website. Signing, provisioning, App Store records and publication remain account-specific steps.
 
 ## If setup stops
 

@@ -1167,6 +1167,34 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     or a decoder from a CDN. The service worker must cache all three files.
     `test/world-cup.cjs` covers the directory and its offline/standalone paths.
 
+77. ~~Sign in on the phone the way the web app does.~~ Done — the owner asked
+    for it to be seamless. Three pieces, `docs/NATIVE-SIGN-IN.md` the runbook.
+    **A store build is the cloud build**: the Xcode App target's first phase,
+    *Refuse an offline store build* (`IOS_RELEASE_GUARD`, run with sh by the
+    suite), stops a device Release or archive whose shell lacks the adapter,
+    its config or the `://auth/callback`, or carries a secret; Gradle's
+    `android/app/release-guard.gradle` stops any release task the same way
+    (run with real Gradle on a stand-in project). `GRIDLOCK_OFFLINE_RELEASE=1`
+    (Gradle also `-PgridlockOfflineRelease`) is the one way to ship offline on
+    purpose, for a variant brand, and it warns. `npm run bundle:android` /
+    `build:android` sync the cloud build, run Gradle and put the offline build
+    back even on failure (`buildPlan`). **Android has a cloud build**:
+    `npm run android:cloud`, the same flow as `ios:cloud` through
+    `scripts/native-cloud.js`; both read the public values from the
+    environment, then `.env.cloud`, then `site/contact.json` `cloud` — one
+    source for both values, never mixed. **A password saved on the website is
+    offered in the app**: `App.entitlements` asks `webcredentials:` for the
+    site's domain and the live app's host (`credentialHosts`), each served
+    `/.well-known/apple-app-site-association` names `<appleTeam>.<appId>`
+    (`appleAssociation`; `npm run contact -- --appleTeam`, empty until set and
+    pending in the site check); Android's `asset_statements` includes both
+    hosts' `assetlinks.json`, which grants `get_login_creds` beside app links.
+    The cloud web build writes both files into `dist/cloud/.well-known/`; the
+    phone builds leave them out. All of it is written by
+    `configure-native.js`, idempotent and per brand. Not verified here: an
+    Xcode archive, a Gradle release with the SDK, the files as served, and the
+    password offered on a phone. `test/native-sign-in.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

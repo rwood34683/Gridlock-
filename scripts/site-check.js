@@ -37,7 +37,14 @@ ok('Dot-directory is retained on static hosts', exists('.nojekyll'));
 let config = {};
 try { config = JSON.parse(read('contact.json')); ok('Contact configuration is valid', true); } catch (err) { ok('Contact configuration is valid', false, err.message); }
 let associations;
-try { associations = JSON.parse(read('.well-known/assetlinks.json')); ok('App-link association is valid JSON array', Array.isArray(associations)); } catch (err) { ok('App-link association is valid JSON array', false, err.message); }
+let apple;
+// Both association files in one check: Android's app links and password
+// sharing, and the iPhone's password sharing (webcredentials).
+try {
+  associations = JSON.parse(read('.well-known/assetlinks.json'));
+  apple = JSON.parse(read('.well-known/apple-app-site-association'));
+  ok('App-link and password-sharing associations are valid JSON', Array.isArray(associations) && Array.isArray(apple?.webcredentials?.apps));
+} catch (err) { ok('App-link and password-sharing associations are valid JSON', false, err.message); }
 for (const [key, label] of [['domain','Owned domain'], ['email','Monitored support email'], ['appstore','App Store listing ID'], ['play','Google Play listing URL'], ['sha256','Android release signing fingerprint']]) {
   if (!config[key]) { if (release) ok(label, false, 'not configured'); else warnings.push(`${label} is not configured.`); }
 }
@@ -53,6 +60,10 @@ if (config.sha256) {
   const appId = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8')).appId;
   ok('App links match app ID and signing fingerprint', associations?.some(item => item.target?.package_name === appId && item.target.sha256_cert_fingerprints?.includes(config.sha256)));
 }
+if (config.appleTeam) {
+  const appId = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8')).appId;
+  ok('iPhone password sharing names the app', apple?.webcredentials?.apps?.includes(`${config.appleTeam}.${appId}`));
+} else warnings.push('Apple Team ID is not configured, so the iPhone app cannot offer passwords saved on the website (npm run contact -- --appleTeam <ID>).');
 console.log('Gridlock site check' + (release ? ' (release)' : ' (local)'));
 for (const row of rows) console.log(`${row.pass ? 'PASS' : 'FAIL'} ${row.name}${row.detail ? ': '+row.detail : ''}`);
 for (const warning of warnings) console.log(`PENDING ${warning}`);

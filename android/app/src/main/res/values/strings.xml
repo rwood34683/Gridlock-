@@ -4,4 +4,5 @@
     <string name="title_activity_main">Gridlock Coach</string>
     <string name="package_name">com.upra.gridlock.coach</string>
     <string name="custom_url_scheme">gridlock</string>
+    <string name="asset_statements" translatable="false">[{\"include\": \"https://gridlockpb.com/.well-known/assetlinks.json\"}, {\"include\": \"https://app.gridlockpb.com/.well-known/assetlinks.json\"}]</string>
 </resources>
