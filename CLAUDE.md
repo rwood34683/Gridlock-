@@ -1291,6 +1291,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     break, the bunker book and Walk stay flat. `docs/SIGHTLINES-HEIGHTS.md`
     has the sources and the disagreements. `test/sight-standing.cjs`.
 
+82. ~~Division, then format.~~ Done — the owner asked to pick, say, D4 5v5
+    or D4 X-Ball and see everything that goes with it. The Format screen asks
+    the division (`FMT_LEVELS`), then what it plays (`FMT_FORMS`: X-Ball,
+    3-player X-Ball, 3v3, 5v5, 7v7, 10v10, Classic 5v5), and `fmtCard()`
+    shows the race, the game clock, the mercy and the clock between points
+    for the pair, each with its source. A pair is kept as one name in `div`
+    (`fmtKey` / `fmtParts`): the rulebook's own names where it has them
+    ("Division 4" is D4 X-Ball, "3v3 Amateur" is Amateur 3-player X-Ball),
+    else "Division 4 5v5", so every older save still reads. `fmtCombo()`
+    takes the numbers only from `FMT_RULES` or `FMT_REF`; the reference gives
+    each timed format one set for every division and the card says so. A
+    pair neither covers reads "Not published", clears the old game clock and
+    presets nothing else. **Every format at a glance** (`fmtGlance`) lists
+    each pair with published numbers, one tap to use it. Never fill a "Not
+    published" from memory: add it to `FMT_RULES` or `FMT_REF` with its
+    source. `test/format-regressions.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
