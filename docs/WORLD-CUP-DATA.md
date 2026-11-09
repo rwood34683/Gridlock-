@@ -1,53 +1,65 @@
-# NXL World Cup 2026 data package in Gridlock
+# World Cup 2026 team directory
 
-The owner's package (PBLeagues event 9322, read 8 Nov 2026) has two parts,
-and the two go to different places.
+More › World Cup teams opens the owner's supplied PBLeagues snapshot. Scout ›
+Division has the same shortcut. Search a team, person or team hometown, narrow
+the division, then open a registration entry and a roster member. Back keeps
+the list and search. The directory is reference data: it does not replace a
+coach's roster, opponent, schedule, notes or season.
 
-| Package | Where it lands in Gridlock | How |
-|---|---|---|
-| `teams.json`: divisions, entries, registration | Scout › Division › NXL World Cup 2026 (`WCUP`, committed) | `python3 -I tools/worldcup_2026.py <pkg> --write` |
-| `rosters.json`: event roster per entry | Pit card › the team's entries › Show the roster | `tools/worldcup_pack.py`, then loaded on the phone |
-| `people.json`: person IDs, name variants, hometown/history status | Pit card › a person | same file |
-| `person_event_history.json`: published scored-event rows | Pit card › a person › history table | same file |
-| `sources.json`: URL and read time | the Source line under each record | same file |
-| `coverage-audit.json`: counts and statuses | More › Account & backups › Event data | same file |
+The input was `world-cup-2026-gridlock-web (1).zip`, SHA256
+`6a3e3d47bc9f5db2bb8131ea7e1e0b09e33a05464ecd664482f5fb744f29134d`.
+The package's coverage audit is dated 8 November 2026 at 20:21:19 Eastern.
+This is the supplied snapshot, not a fresh scrape or a claim that an entry
+will attend. No database or account service is changed.
 
-Team names are published registration data and are committed. Rosters,
-people and histories come from login-only pages and include minors, so they
-are **never committed and never part of the app's source or a season copy**.
-They live only in the file the coach packs and loads onto his own phone.
+The directory preserves 680 entries, 592 distinct team IDs, 36 division/package
+records (34 with entries), 5,925 memberships and 4,381 people. Player, Coach,
+Staff and Media are distinct. The roster union retains names seen in either
+source view, with both source IDs. 602 rosters contain names and 78 were empty
+when read. Empty is not withdrawn or access denied.
+
+It also retains all 10,501 history observations, 7,389 participation-index
+rows, 12,417 name variants, 1,177 profile-access records, 3,231 sources,
+6,500 missing-field records and the per-entry roster comparison records.
+Repeated copies of the same classification event record are grouped only
+for display, retaining every observation and source. Classification scores
+are labeled as such. 950 players have history rows, 24 have retrieved pages
+with zero scored events and 2,645 have not been retrieved. No jersey or
+player hometown is invented; team locations remain team locations.
+
+## Refreshing the supplied snapshot
+
+Extract a new owner-supplied handoff to a separate directory and run:
 
 ```sh
-python3 -I tools/worldcup_pack.py /path/to/world-cup-2026 ~/wc-event-data.json
+node scripts/import-world-cup.js /path/to/world-cup-2026
+npm run sync
+npm run app:artifact
+npm run check
+npm run build
+npm run site:check
 ```
 
-On the phone, go to More › Account & backups › Event data and choose that
-file. To update it, pack a newer package and load that file the same way.
+The importer reads JSON only and does not run anything from the handoff. It
+checks IDs, foreign references, division counts and role totals against the
+coverage audit. Input hashes, output hash and table counts are recorded in
+`data/world-cup-2026-manifest.json`. The original handoff remains unchanged.
+Raw captures, SQL, PDFs and handoff instructions are not executable app code.
+Historical process reports are not presented as newer coverage evidence.
 
-## Rules the import keeps
+The generated file uses column tables, exact string references and a
+deterministic gzip stream. The pinned [fflate 0.8.3](https://github.com/101arrowz/fflate/releases/tag/v0.8.3) decoder is bundled locally
+with its MIT license. Decode/index construction happens once, on opening the
+directory. Neither the dataset nor its indexes go into localStorage, the
+native season mirror, season exports or League sync. Only the temporary
+search/view state is attached to `S`, through `clearScratch`.
 
-- **IDs.** Entry, team, division, person, source and observation IDs are kept
-  exactly as published. Records are keyed by these IDs, so loading a file
-  again updates records in place. It never adds a second copy.
-- **Entries in two divisions.** A team entered in two divisions has two
-  entries. Each is shown separately with its own roster. They are linked by
-  name and by team ID.
-- **Name matches.** People are never matched by name alone. Putting players on
-  a card matches by person ID only. A card man with the same name and no ID is
-  left alone, and the app says so.
-- **Hometowns.** A person's hometown is shown only when that person's own page
-  published one. The team's location is labelled as the team's.
-- **Missing data stays missing.** No jersey numbers are published, so none
-  are shown. Where a roster or history was not read, the app says "unknown". It
-  never shows that as an empty roster or as no history.
-- **History.** History is published classification and scored-event
-  participation. It is not a complete career and not a record of transfers.
-- **Classification scores** are not match scores.
-- **Newer files.** If a newer file has not read something that an older file
-  had, the older reading stays. An entry missing from the newer file is kept
-  and marked.
-- **Left out of the file.** Ages, a person's payment state, personal roster
-  links and tokens, and local file paths and hashes.
+All source URLs are displayed only as user-activated HTTPS links to PBLeagues
+or NXL, with no embedded credentials and `noopener noreferrer`. Source sites
+may require sign-in. The app makes no roster requests. Static files are
+cached with the app shell, and the standalone and offline-preview packagers
+inline them. The encoded source names remain exact in all brand builds.
 
-The SQLite database named in the package README is not in the zip. The JSON
-exports hold the same records, and the packer reads those.
+The screenshot and device checks use synthetic local accounts. No live coach
+account, Supabase setting, hosting setting or production deployment is needed
+to verify this directory.

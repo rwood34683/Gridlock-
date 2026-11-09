@@ -1150,69 +1150,24 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     cards follow under it. Times are the league's, moved only by a pit he set as
     running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
 
-76. ~~Who is playing at the World Cup.~~ Done — the owner handed over the
-    NXL World Cup 2026 data package (PBLeagues event 9322, read 8 Nov 2026)
-    and asked for it in the app; he chose teams only. `tools/worldcup_2026.py
-    <package> --write` writes the block between `/* worldcup:begin */` and
-    `/* worldcup:end */` (`WCUP`) from `teams.json`; never hand-edit it. Every
-    division with entries (34) and every entry (680) joins the board as
-    `wcup-<division id>` with `src:"reg"` and its registration as PAID, PEND,
-    DUE (entry fee not paid) or LATE (deadline passed) (`WCUP_REG`). The event
-    is one button on Division and a list of its divisions under it (`event`
-    on a division, `WCUP_EVENT`), not thirty-four buttons. No person from the
-    package is in the app or the repo: its rosters were read from login-only
-    pages and include minors, so they reach the phone only as a file (item 77). `test/review-nov6.cjs`.
+76. **World Cup team directory.** The owner's 8 Nov 2026 JSON snapshot is a
+    read-only tool under More › World Cup teams and Scout › Division. Keep
+    all 680 registration entries separate by entry ID, including clubs in
+    more than one division; the two empty NCPA packages are explicit. Player,
+    Coach, Staff and Media remain separate. Missing jerseys and player
+    hometowns stay missing; a team's hometown is never a player's. The
+    supplied history is classification records, not match scores or a full
+    career. Sources, retrieval times, original IDs and coverage statuses
+    stay with the records. `scripts/import-world-cup.js` compiles the supplied
+    JSON into `web/world-cup-data.js`; `data/world-cup-2026-manifest.json`
+    records the input hashes and counts. Decode only when this tool opens,
+    keep it out of `S`, saves and exports, page long lists, and retain search
+    and focus when going back. `cupView` is scratch state. The bundled fflate
+    decoder and its MIT notice travel with every build; never fetch the data
+    or a decoder from a CDN. The service worker must cache all three files.
+    `test/world-cup.cjs` covers the directory and its offline/standalone paths.
 
-77. ~~The World Cup rosters, people and history, on the phone.~~ Done — the
-    owner asked for the whole package: divisions, entries, rosters, people and
-    their published history. Those are names read from login-only pages, some
-    of them minors, so they are never in the repo, the source or a season copy.
-    `tools/worldcup_pack.py <package> OUT.json` packs them on the coach's own
-    machine, keeping every published ID (entry, team, division, person, source,
-    observation), source URLs with their read times and every missing-data
-    status, and leaving out ages, a person's payment, personal links and tokens,
-    and local paths. More › Account & backups › **Event data** loads the file
-    into its own IndexedDB store (`gridlock.coach.eventdata`, `evdDb`), read on
-    first need (`evdNeed`), never at launch and never mirrored: it is reference
-    data, and the file is its backup. Loading again puts each record over the
-    one with the same ID (`evdMergeEntry`, `evdMergePerson`): history merges by
-    observation ID, and a newer file that did not read something leaves what an
-    older one read; an entry the newer file lacks is kept and marked. The pit
-    card lists every entry of the team (by name as published and by team ID),
-    each division separately, its roster state said plainly — an unread roster
-    is unknown, not empty — the team's location as the team's, never a
-    player's, and the roster by role; a person shows name variants, jersey not
-    published, hometown status, and published classification and scored-event
-    rows with their sources, called not a career and a classification score
-    not a match score. **Put these players on their card** matches by person ID
-    only (`addEventPlayers`); a man already there under the same name with no
-    ID is left alone and named. `test/event-data.cjs` runs on a made-up package.
-
-78. ~~Before you play them.~~ Done — the owner asked whether a coach feels the
-    edge at his fingertips, and the answer was not yet: what was known about the
-    next opponent was spread over five screens, an empty read said only that it
-    was empty, and nothing reached the players. **Before you play them**
-    (`more/prep`, hidden from the menu like Classes, `prepPage`, `prepFacts`,
-    Team like Reports) is one card a team: when and where he plays them, what
-    they run and in which score state, where they plant, his calls ranked by
-    lanes against the five bunkers they plant on most (`lanesBetween`, the
-    measured field, never odds), who shoots his men, his calls against them,
-    their roster from the event data, their games still to watch, and **What
-    you don't know yet**. Nothing under three (`PREP_MIN`, `GHOST_MIN`) is said
-    as a read. A game on another field says so and offers that field, because
-    every count is this field's. It opens from his game rows on Schedule and
-    from the right pit's card; **Send to your staff** hands it over as text
-    (`prepText`). An empty read is a plan (`scoutNext`, `scoutNextLine`): how
-    many more logged breaks start it and the next game of theirs to watch, on
-    the point sheet's read line and on Anticipate. **Tell the team** on each of
-    his games and **Send the day plan to the team** (`tellText`, `dayPlanText`)
-    are group-chat messages through `handOff`: the game, the field, and when to
-    be at the pit — his rule (`pitLead`, `PIT_LEADS`, 30 by default, or Don't
-    say), never the league's — and who is scouting what, asking who goes to a
-    clash. The schedule still has the Pro field only; the card says so where it
-    matters. `test/game-prep.cjs`.
-
-79. ~~Sign in on the phone the way the web app does.~~ Done — the owner asked
+77. ~~Sign in on the phone the way the web app does.~~ Done — the owner asked
     for it to be seamless. Three pieces, `docs/NATIVE-SIGN-IN.md` the runbook.
     **A store build is the cloud build**: the Xcode App target's first phase,
     *Refuse an offline store build* (`IOS_RELEASE_GUARD`, run with sh by the
@@ -1239,6 +1194,72 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `configure-native.js`, idempotent and per brand. Not verified here: an
     Xcode archive, a Gradle release with the SDK, the files as served, and the
     password offered on a phone. `test/native-sign-in.cjs`.
+
+78. ~~Who is playing at the World Cup, on the board.~~ Done — the owner handed over the
+    NXL World Cup 2026 data package (PBLeagues event 9322, read 8 Nov 2026)
+    and asked for it in the app; he chose teams only. `tools/worldcup_2026.py
+    <package> --write` writes the block between `/* worldcup:begin */` and
+    `/* worldcup:end */` (`WCUP`) from `teams.json`; never hand-edit it. Every
+    division with entries (34) and every entry (680) joins the board as
+    `wcup-<division id>` with `src:"reg"` and its registration as PAID, PEND,
+    DUE (entry fee not paid) or LATE (deadline passed) (`WCUP_REG`). The event
+    is one button on Division and a list of its divisions under it (`event`
+    on a division, `WCUP_EVENT`), not thirty-four buttons. The rosters,
+    people and history are item 76's directory; the board carries the
+    teams so a team in any World Cup division can go in a pit. `test/review-nov6.cjs`.
+
+
+79. ~~The World Cup rosters, people and history, from a file.~~ Done — the
+    owner asked for the whole package: divisions, entries, rosters, people and
+    their published history. It was built before item 76 bundled the
+    directory, and stays as the way to load a newer, more complete package onto
+    one phone without a release; the file is never in a season copy.
+    `tools/worldcup_pack.py <package> OUT.json` packs them on the coach's own
+    machine, keeping every published ID (entry, team, division, person, source,
+    observation), source URLs with their read times and every missing-data
+    status, and leaving out ages, a person's payment, personal links and tokens,
+    and local paths. More › Account & backups › **Event data** loads the file
+    into its own IndexedDB store (`gridlock.coach.eventdata`, `evdDb`), read on
+    first need (`evdNeed`), never at launch and never mirrored: it is reference
+    data, and the file is its backup. Loading again puts each record over the
+    one with the same ID (`evdMergeEntry`, `evdMergePerson`): history merges by
+    observation ID, and a newer file that did not read something leaves what an
+    older one read; an entry the newer file lacks is kept and marked. The pit
+    card lists every entry of the team (by name as published and by team ID),
+    each division separately, its roster state said plainly — an unread roster
+    is unknown, not empty — the team's location as the team's, never a
+    player's, and the roster by role; a person shows name variants, jersey not
+    published, hometown status, and published classification and scored-event
+    rows with their sources, called not a career and a classification score
+    not a match score. **Put these players on their card** matches by person ID
+    only (`addEventPlayers`); a man already there under the same name with no
+    ID is left alone and named. `test/event-data.cjs` runs on a made-up package.
+
+
+80. ~~Before you play them.~~ Done — the owner asked whether a coach feels the
+    edge at his fingertips, and the answer was not yet: what was known about the
+    next opponent was spread over five screens, an empty read said only that it
+    was empty, and nothing reached the players. **Before you play them**
+    (`more/prep`, hidden from the menu like Classes, `prepPage`, `prepFacts`,
+    Team like Reports) is one card a team: when and where he plays them, what
+    they run and in which score state, where they plant, his calls ranked by
+    lanes against the five bunkers they plant on most (`lanesBetween`, the
+    measured field, never odds), who shoots his men, his calls against them,
+    their roster from the event data, their games still to watch, and **What
+    you don't know yet**. Nothing under three (`PREP_MIN`, `GHOST_MIN`) is said
+    as a read. A game on another field says so and offers that field, because
+    every count is this field's. It opens from his game rows on Schedule and
+    from the right pit's card; **Send to your staff** hands it over as text
+    (`prepText`). An empty read is a plan (`scoutNext`, `scoutNextLine`): how
+    many more logged breaks start it and the next game of theirs to watch, on
+    the point sheet's read line and on Anticipate. **Tell the team** on each of
+    his games and **Send the day plan to the team** (`tellText`, `dayPlanText`)
+    are group-chat messages through `handOff`: the game, the field, and when to
+    be at the pit — his rule (`pitLead`, `PIT_LEADS`, 30 by default, or Don't
+    say), never the league's — and who is scouting what, asking who goes to a
+    clash. The schedule still has the Pro field only; the card says so where it
+    matters. `test/game-prep.cjs`.
+
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
