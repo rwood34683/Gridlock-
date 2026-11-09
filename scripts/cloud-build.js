@@ -125,15 +125,16 @@ function build({ url, anonKey, redirectTo, outDir, beta, associations = true } =
     "window.GRIDLOCK_CLOUD = " + JSON.stringify({ url, anonKey, ...(redirectTo ? { redirectTo } : {}), ...pages, ...(beta ? { beta } : {}) }) + ";\n");
 
   // The live web app's host is where a coach's browser saved his password, so
-  // it carries the same association files as the site: the phone apps can then
-  // offer that password (iCloud Keychain, Google Password Manager). A phone
-  // shell is not a website, so the native builds leave them out.
-  if (associations) {
-    const contactLib = require("./contact");
-    const appId = JSON.parse(fs.readFileSync(path.join(ROOT, "capacitor.config.json"), "utf8")).appId;
+  // it serves the same association files as the site — the ones npm run
+  // contact keeps in site/.well-known — and the phone apps can offer that
+  // password (iCloud Keychain, Google Password Manager). Copied, never
+  // regenerated, so the two hosts cannot disagree. A phone shell is not a
+  // website, so the native builds leave them out.
+  const known = path.join(ROOT, "site", ".well-known");
+  if (associations && fs.existsSync(known)) {
     fs.mkdirSync(path.join(outDir, ".well-known"), { recursive: true });
-    fs.writeFileSync(path.join(outDir, ".well-known", "apple-app-site-association"), contactLib.appleAssociation(contact, appId));
-    fs.writeFileSync(path.join(outDir, ".well-known", "assetlinks.json"), contactLib.assetLinks(contact, appId));
+    for (const name of ["apple-app-site-association", "assetlinks.json"])
+      if (fs.existsSync(path.join(known, name))) fs.copyFileSync(path.join(known, name), path.join(outDir, ".well-known", name));
   }
 
   // Wire them in, config first, before the app boots.
