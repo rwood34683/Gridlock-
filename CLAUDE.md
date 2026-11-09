@@ -2678,8 +2678,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   again if another tab deleted it, before the banner or `beforeunload` say
   so. A stale tab with a copy says it is alive (`TAB_LIVE`), and Delete in
   another tab refuses that copy while it does.
+  A missing or old heartbeat is not proof that its tab closed: each document
+  also holds a browser Web Lock under its existing `TAB_LIVE + TAB_ID` name.
+  Delete takes that lock only if available, keeps it through confirmation,
+  and refuses if the ownership check fails or the copy changes while waiting.
+  The browser releases the claim when the document closes. Keep the heartbeat
+  guard for older builds and browsers without Web Locks; saves stay synchronous.
   `test/storage-safety.js` holds all of it with two real tabs, and plays the
-  races in a fixed order by holding storage events.
+  races in a fixed order by holding storage events and delaying heartbeat reads.
 - Read an email's capitals as a different account. Offline sign-in compares
   through `sameEmail()`, the way the account server already does.
 - Open Sightlines on whichever bunker the digitiser listed first. The
