@@ -4,6 +4,12 @@
 const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
 const {gzipSync} = require("fflate");
 const ROOT = path.resolve(__dirname, "..");
+const PRIVATE_FIELDS = ["age_as_published", "registration_fee_paid", "person_event_link", "event_person_token"];
+// "...rosterclass.cgi?ERID=x&EPID=y" -> "...rosterclass.cgi?ERID=x": the entry stays, the person goes.
+// Only a string that is one address: in a sentence, "[^&#]*" would run to the
+// end of the text and cut the rest of it off.
+const withoutPersonToken = s => /^https?:\/\/\S+$/i.test(s) && /[?&]EPID=/i.test(s)
+  ? s.replace(/&EPID=[^&#]*/gi, "").replace(/\?EPID=[^&#]*&?/i, "?").replace(/\?(#|$)/, "$1") : s;
 function compile(dir) {
   const hashes = {};
   const read = name => {
@@ -33,6 +39,15 @@ function compile(dir) {
     rosterCoverage: coverage.entries,
     rosterDifferences: differences.entries
   };
+  // What the app never ships about a person: a published age, whether they
+  // paid, their personal roster link and its token. They came off login-only
+  // pages, some of the people are minors, and no screen needs them. The token
+  // is also cut out of any source address that carries one.
+  for (const m of rows.memberships) for (const k of PRIVATE_FIELDS) delete m[k];
+  const scrub = v => typeof v === "string" ? withoutPersonToken(v)
+    : Array.isArray(v) ? v.map(scrub)
+    : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrub(x)])) : v;
+  for (const name of Object.keys(rows)) rows[name] = scrub(rows[name]);
   function unique(list, key) {
     if (new Set(list.map(x => x[key])).size !== list.length) throw new Error("Duplicate " + key);
   }
@@ -49,7 +64,8 @@ function compile(dir) {
   const data = {event:teams.event, retrieved_at:teams.retrieved_at, roster_updated_at:rosters.updated_at,
     coverage:without(audit, ["representative_spot_checks", "history_source_row_checks"]), missing_summary:without(missing,["items"]),
     history_scope:history.scope, tables:{}};
-  // Columns preserve every supplied field without repeating its name thousands
+  // Columns preserve every supplied field (except PRIVATE_FIELDS, dropped
+  // above) without repeating its name thousands
   // of times. References preserve repeated strings exactly, including nulls,
   // source IDs and the names that must never be rewritten by a brand build.
   for (const [name, list] of Object.entries(rows)) {
@@ -117,4 +133,4 @@ if (require.main === module) {
   fs.writeFileSync(path.join(ROOT,"data/world-cup-2026-manifest.json"),JSON.stringify(manifest,null,2)+"\n");
   console.log(JSON.stringify(manifest,null,2));
 }
-module.exports={compile};
+module.exports={compile, PRIVATE_FIELDS, withoutPersonToken};

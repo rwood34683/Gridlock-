@@ -1166,6 +1166,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     decoder and its MIT notice travel with every build; never fetch the data
     or a decoder from a CDN. The service worker must cache all three files.
     `test/world-cup.cjs` covers the directory and its offline/standalone paths.
+    The bundle never carries a person's published age, whether they paid,
+    their personal roster link or its token: those came off login-only pages,
+    some of the people are minors, and no screen needs them. The importer
+    drops the four fields (`PRIVATE_FIELDS`) and cuts `EPID=` out of every
+    source address (`withoutPersonToken`), and the suite fails if any returns.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
