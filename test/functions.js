@@ -1382,7 +1382,7 @@ const ROSTER = [
 
   // Exercise the actual file picker: setting the textarea in evaluate() hid a
   // repaint that discarded every selected file before Merge could read it.
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('input[type="file"][onchange^="readCopyFile"]').setInputFiles({
     name: "season.json", mimeType: "application/json", buffer: Buffer.from(copy),
   });
   await page.waitForFunction(() => /Read season.json/.test(S.copyStatus || ""));
