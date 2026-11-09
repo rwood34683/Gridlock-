@@ -46,7 +46,7 @@ npm run build:android
 npm run bundle:android
 ```
 
-Release signing is required. Credentials and keystores are git-ignored. No SDK compilation or signed release build was performed in this Windows delivery.
+Release signing is required. Credentials and keystores are git-ignored. Both release commands package the **cloud build**, so the store app signs in with gridlockpb.com accounts. They sync it before Gradle and put the offline build back afterwards, and `android/app/release-guard.gradle` refuses a release made from the offline copy. `npm run android:cloud` puts the cloud build in the shell to run it from Android Studio. See [NATIVE-SIGN-IN.md](NATIVE-SIGN-IN.md). No SDK compilation or signed release build was performed in this Windows delivery.
 
 ## Files, links and updates
 

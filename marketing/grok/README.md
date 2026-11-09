@@ -45,3 +45,14 @@ passing typecheck/build and phone/desktop development and built previews.
 For a future update, compare a fresh export, inspect its diff, typecheck,
 build and review all three pages before an owner-authorized publication
 through the existing Grok project.
+
+## Password sharing files
+
+The phone apps ask iOS and Android to treat gridlockpb.com as theirs, so a
+password saved there can be offered in the app. The site has to say the same
+back. Copy `site/.well-known/apple-app-site-association` and
+`site/.well-known/assetlinks.json` from this repo into the export's static
+`public/.well-known/` folder, with the same names, and publish. Then check that
+`https://gridlockpb.com/.well-known/apple-app-site-association` returns the JSON
+without a redirect. Re-copy them after `npm run contact -- --appleTeam` or
+`--sha256` changes them. See `docs/NATIVE-SIGN-IN.md`.

@@ -164,12 +164,13 @@ function stage(to, brands = loadBrands()) {
   const web = new Map();
   for (const rel of walk(WEB)) if (ships(rel, to.key, brands)) web.set(rel, transformFile(rel, fs.readFileSync(path.join(WEB, rel)), from, to, rel === "index.html"));
   const site = new Map();
-  const skip = r => r === "README.md" || r === "build" || r.startsWith("build/") || r === "app.html" || r === "CNAME" || /^contact(\.[a-z0-9]+)?\.json$/.test(r) || r === ".well-known/assetlinks.json";
+  const skip = r => r === "README.md" || r === "build" || r.startsWith("build/") || r === "app.html" || r === "CNAME" || /^contact(\.[a-z0-9]+)?\.json$/.test(r) || r === ".well-known/assetlinks.json" || r === ".well-known/apple-app-site-association";
   for (const rel of walk(SITE, skip)) if (ships(rel, to.key, brands)) site.set(rel, transformFile(rel, fs.readFileSync(path.join(SITE, rel)), from, to));
   for (const rel of ["support.html", "privacy.html"]) if (site.has(rel)) site.set(rel, Buffer.from(contactLib.stampSupport(site.get(rel).toString("utf8"), contact, to.short)));
   if (site.has("index.html")) site.set("index.html", Buffer.from(contactLib.stampIndex(site.get("index.html").toString("utf8"), contact)));
   if (contact.domain) site.set("CNAME", Buffer.from(contact.domain + "\n"));
   site.set(".well-known/assetlinks.json", Buffer.from(contactLib.assetLinks(contact, to.appId)));
+  site.set(".well-known/apple-app-site-association", Buffer.from(contactLib.appleAssociation(contact, to.appId)));
   site.set("contact.json", Buffer.from(JSON.stringify(contact, null, 2) + "\n"));
   // On Windows Git may check out CRLF while generated contact/association
   // text uses LF. The default build must retain the original bytes, without
@@ -352,6 +353,10 @@ function native(key, { dry = false, quiet = false } = {}) {
   }
   for (const [rel, text] of writes) fs.writeFileSync(path.join(ROOT, rel), text);
   for (const [rel, buf] of publicWrites) { if (buf) fs.writeFileSync(path.join(ROOT, rel), buf); else fs.rmSync(path.join(ROOT, rel)); }
+  // The password-sharing hosts, the release guards and the privacy manifest
+  // are per brand too. Without this a Lockdown archive made straight after
+  // the switch carried Gridlock's domains and declared an account it has not.
+  require("./configure-native").configureSignIn(to);
   return { from: from.key, to: to.key, files: [...writes.keys(), ...publicWrites.map(([r]) => r)] };
 }
 

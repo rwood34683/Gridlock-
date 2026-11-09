@@ -510,6 +510,13 @@ svg.field{width:100%;height:auto;display:block}
    ============================================================ */
 .assigns{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 .assign{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);background:var(--panel);min-height:56px}
+.evd-entry{padding:var(--s3);background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:var(--s2)}
+.evd-entry p{margin:2px 0}
+.evd-men{display:flex;flex-wrap:wrap;gap:6px}
+.evd-person{margin-top:var(--s3);padding:var(--s3);border-left:3px solid var(--accent)}
+.evd-src{display:block;overflow-wrap:anywhere}
+/* A wide history table scrolls inside its card and never widens the pits around it. */
+.evd-person .tblwrap{width:0;min-width:100%}
 .assign + .assign{border-top:1px solid var(--line)}
 .assign__n{
   flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
@@ -3164,6 +3171,22 @@ const DIVISIONS = [
   {name:"Rejects",pts:186,reg:"PAID",tend:"Snake",threat:4}
   ]}
 ];
+/* The NXL World Cup 2026, Kissimmee, 11–15 November: every division with
+ * entries, every team entered and its registration state, read off PBLeagues
+ * event 9322 on 8 Nov 2026 and handed over by the owner as a data package.
+ * The block between the markers is written by tools/worldcup_2026.py and never
+ * by hand. Teams only: no person from the package's rosters is in the app.
+ * The divisions join the board as one more event, picked from one button
+ * (`WCUP_EVENT`), so the picker is not thirty-four buttons. */
+/* worldcup:begin */
+const WCUP = {"read":"PBLeagues · NXL World Cup 2026 · event 9322 · 2026-11-08","divs":[{"id":"wcup-28331","name":"Championship - Pro X-Ball (Thu-Sun)","teams":[["Edmonton Impact","PAID"],["Ranger Warsaw","PAID"],["Red Legion","PAID"],["Tampa Bay Damage","PAID"]]},{"id":"wcup-28302","name":"Pro X-Ball (Thu-Sun)","teams":[["ALA Warsaw","PAID"],["Atlanta Jungle Cats","PAID"],["Chicago Aftershock","PAID"],["Chicago Distortion","PEND"],["CK Hurricanes","PAID"],["Detroit Infamous","PAID"],["Houston Heat","PAID"],["Los Angeles Collision","PEND"],["Los Angeles Ironmen","PEND"],["LTF","PAID"],["New Jersey Leverage","PAID"],["New York Xtreme","PEND"],["PaintballFIT","PAID"],["Perris ASG Aftermath","PAID"],["Puerto Rico tppcrew","PAID"],["Royal City Seadogs","PAID"],["San Antonio X-Factor","PAID"],["San Diego Dynasty","PAID"],["Seattle Uprising","PAID"],["TonTon Arsenal","PAID"]]},{"id":"wcup-28320","name":"WNXL X-Ball (Thu-Sun)","teams":[["Baltimore Nevermores","PAID"],["Bear Ridge Saints","PAID"],["Dallas Vibe","PAID"],["Drakaina","PAID"],["Femmes Fatale","PAID"],["New Jersey High Rollers","PAID"],["Northern Lights","PAID"],["San Francisco Sirens","PAID"],["The Heroines","PAID"],["The Immortal Angels","PEND"],["The Royals","PEND"],["Thunder Valley Voltage","PAID"]]},{"id":"wcup-28336","name":"Pro 3v3 X-Ball (Wed)","teams":[["ALA Warsaw","PAID"],["Aruba Madness","PAID"],["Brooklyn Wolfpack","PAID"],["Chicago Aftershock","PAID"],["Chicago Distortion","PAID"],["Dallas SUWT","PAID"],["Detroit Infamous","PAID"],["Edmonton Impact","PAID"],["Houston Heat","PAID"],["Las Vegas Shock","PAID"],["Los Angeles Collision","PAID"],["Los Angeles Ironmen","PAID"],["LTF","PAID"],["New Jersey Jesters","PAID"],["New Jersey Leverage","PAID"],["New York Wrecking Crew","PAID"],["Oregon IKONIK","PAID"],["Orlando Red Legion","PAID"],["Perris ASG Aftermath","PAID"],["Puerto Rico tppcrew","PAID"],["Ranger Warsaw","PAID"],["Royal City Seadogs","PAID"],["San Antonio X-Factor","PAID"],["San Diego Dynasty","PAID"],["Seattle Uprising","PAID"],["Shock","PAID"],["Tampa Bay Damage","PAID"],["Texas FIT","PAID"],["Texas Hurricanes","PAID"],["ZuriCaos","PAID"]]},{"id":"wcup-28335","name":"Amateur 3v3 X-Ball (Wed)","teams":[["Beerkats","PAID"],["Blackhawks D5","PAID"],["Brimstone Smoke","PAID"],["CBM","PAID"],["CBM Cubs Blue","LATE"],["El Clan","PAID"],["Ft Myers Collective","LATE"],["Gunshine X","PAID"],["Hasbeens","LATE"],["Havok","PAID"],["Life Alert","PAID"],["Rain City Rejects","PAID"],["Team Crowley","PAID"],["Veteran Militia Hotel","PAID"],["Veteran Militia Romeo","PAID"],["Veteran Militia Whiskey","PAID"],["WAR","PAID"]]},{"id":"wcup-28325","name":"Championship - Semi-Pro X-Ball (Fri-Sun)","teams":[["Blast Camp","PAID"],["Noobies","PAID"],["Preferred mob","PAID"],["Rejects","PAID"]]},{"id":"wcup-28326","name":"Championship - Division 2 X-Ball (Thu-Sun)","teams":[["AG Knights","PAID"],["Control","PAID"],["Corrupt","PAID"],["Gulf Coast Ragtag Army","PAID"]]},{"id":"wcup-28327","name":"Championship - Division 3 X-Ball (Thu-Sun)","teams":[["BR FACTORY","PAID"],["Legacy Gorillas","PAID"],["Raiders X Apex","PAID"],["Smoke","PAID"]]},{"id":"wcup-28328","name":"Championship - Division 4 X-Ball (Thu-Sun)","teams":[["Defy Kidz","PAID"],["Hydra Kidz","PAID"],["LORDS","PAID"],["OG Carolina Threat","PAID"]]},{"id":"wcup-28329","name":"Championship - Division 5 X-Ball (Thu-Sun)","teams":[["Bear Ridge 5","PAID"],["New Jersey Filthy 5","PAID"],["Shut Up They're Trying","PAID"],["Team Blank","PAID"]]},{"id":"wcup-28303","name":"Semi-Pro X-Ball (Thu-Sun)","teams":[["ARMADA","PAID"],["BEEFY BOYS","PAID"],["Brooklyn Wolfpack","PAID"],["CEP","PAID"],["Clutch City Oilers","PAID"],["Collision II","PAID"],["Denver Altitude","PAID"],["EAVL","PAID"],["FUSION TEAM","PAID"],["KC Missouri Allstars","PAID"],["Las Vegas Shock","PAID"],["Legacy Factory","PAID"],["Malicious","PAID"],["Miami Effect","PAID"],["Nasty","PAID"],["New Jersey Jesters","PAID"],["New York Wrecking Crew","PAID"],["Oregon IKONIK","PAID"],["PA Hawks 2","PAID"],["Pennsylvania Hawks","PAID"],["Pittsburgh Mastodon","PAID"],["Project x","PAID"],["Shut up we're trying","PAID"],["Sykaryos","PAID"],["Texas Demolition","PAID"],["Thunder Valley Blackout","PAID"],["Toulouse Purple","PAID"],["Trash Pandas","PAID"],["WILD DOGS LATINOAMERICA","PAID"]]},{"id":"wcup-28304","name":"Division 2 X-Ball (Thu-Sun)","teams":[["BC Riot","PAID"],["Brawl","PAID"],["Cleveland Chaos","PAID"],["CWE POWER","PAID"],["DILIGAF","PAID"],["Full Paintball Colombia","PAID"],["INCURSION","PAID"],["LVL","PAID"],["NARCOS","PEND"],["NME","PAID"],["Noobies","PAID"],["NR FACTORY","PAID"],["Omaha Jamz","PAID"],["PA Hawks D2","PAID"],["Panda Express Elite","PAID"],["PTN","PAID"],["Raze","PAID"],["Saints","PAID"],["STL Threat","PAID"],["TAKEOVER","PAID"]]},{"id":"wcup-28305","name":"Division 3 X-Ball (Thu-Sun)","teams":[["AG Knights","PAID"],["Aruba Madness","PAID"],["Beerkats","PAID"],["BREAKOUT","PAID"],["CARIBBEAN ALLSTARZ","PAID"],["Clutch City Oilers","PAID"],["Eastside","PAID"],["Elite IO","PAID"],["Free Smoke","PAID"],["Hustle","PAID"],["Ikonik Black","PAID"],["JACKALS","PAID"],["JakkBoyz","PAID"],["Kings and Queens","PAID"],["KNOXVILLE KNIGHTS","PAID"],["Nasty Dawgs","LATE"],["Nasty Mob","PAID"],["NCPA All-Stars","LATE"],["New England Storm","PAID"],["New Jersey Filthy 3","PAID"],["NFO FACTORY","PAID"],["Night Fury black","PAID"],["Noobies","PAID"],["Ontario Landsharks","PAID"],["Ottawa Luxury","PAID"],["Outlaw AP Prime","PAID"],["PHILIPPINES","PAID"],["Punishers Paintball","PAID"],["Raleigh Razorbacks","PAID"],["Rat Kings","PAID"],["Rejects.","PAID"],["RUFIANES","PAID"],["Smiles and Cries","LATE"],["Smoke Patrol 507","PAID"],["South Shore Reapers","PAID"],["Space City Laser Cats","LATE"],["Sykaryos 3","PAID"],["The Leftovers","PAID"],["Toronto Chargers","PAID"],["Trance","PAID"],["Veteran Militia Kilo","PAID"],["Virginia Irregulars","PAID"],["WAR","PAID"],["Washed Up Boyz","PAID"]]},{"id":"wcup-28306","name":"Division 4 X-Ball (Thu-Sun)","teams":[["302 DESTROYERS","PAID"],["316 Threat","PAID"],["Afterlife D4","PAID"],["APEX.","PAID"],["Atlanta OutKast","PAID"],["Beach Bandits","PAID"],["Care Bear Militia","PAID"],["CARIBBEAN LEGENDS","PAID"],["Carolina Threat","PAID"],["Chaos Crew","PAID"],["Complex White","PAID"],["Coup Athletics","PAID"],["DEFY Factory","PAID"],["Devious Dawgs","PAID"],["Ducks","PAID"],["Go-Getters","PAID"],["HAVOC","PAID"],["ICT Weekend Warriors","PAID"],["IKONIK Gold","PAID"],["IRONCLAD","PAID"],["Kahnawake warriors","PAID"],["Kick'N Factory","LATE"],["Konvicts \u004cockdown","PAID"],["LAX MACHINE","PEND"],["Level 7","LATE"],["Life Alert","PAID"],["Lot Lizard Wranglers","PAID"],["LOUISVILLE FUSION","PAID"],["Malicious","PAID"],["Matrix","PAID"],["MO Penetration","LATE"],["Nashville Coyotes","PAID"],["New Jersey Filthy 4","PAID"],["New York Aces","PAID"],["New York Khaos","PAID"],["New York Tyrants","PAID"],["NJ Jesters","PAID"],["NQ Sports Paintball","PAID"],["NYPD Finest Paintball","PAID"],["OCTANE Gold","PAID"],["ODIN","PAID"],["OG Killerz","PAID"],["PR Jesters","PAID"],["Raze D4","PAID"],["Reckless","PAID"],["Red Legion D4x","PAID"],["Relentless","PAID"],["Revolution","PAID"],["Ripper Crew","PAID"],["S.N.A.F.U.","PAID"],["SHARKS","PAID"],["SMSC","PAID"],["Splat Houston","PAID"],["Sunday Sleepers","PAID"],["TCP Micro Machine","PAID"],["Team Hyperion","PAID"],["TEMPLARIOS","PAID"],["The Goodfellaz","PAID"],["The Jokers","PAID"],["The Leftovers II","PAID"],["The Leftovers II.5","PAID"],["The Other Guys","PAID"],["TPP Factory","PAID"],["Tri-City Storm","PAID"],["TROPA","PAID"],["Upstate Avalanche","PAID"],["Veteran Militia Charlie","PAID"],["Veteran Militia Echo","PAID"],["Warped Army","PAID"],["Wasted","PAID"],["WILD DOGS","LATE"],["WRECKAGE","PAID"],["ZuriCaos","PAID"]]},{"id":"wcup-28316","name":"Division 5 X-Ball (Thu-Sun)","teams":[["AAA JACKALS 2","PAID"],["ANONYMOUS","PAID"],["APF FAMILY","PAID"],["BANDIDOS ELITE","PAID"],["Coup","PAID"],["Da Homies Rejects","PAID"],["Destiny Germany","PAID"],["Eastsidee","PAID"],["GRD","PAID"],["Gulf Coast Ragtag Army Red","PAID"],["Hostile goats featuring Colfax Creatures","PAID"],["Nashville Coyotes Ravenous","PAID"],["OG Boys Australia","PAID"],["Reapers.","PAID"],["Reckless techs","PAID"],["S.N.A.F.U. 2","PAID"],["Sacramento Legacy","PAID"],["San Diego Odyssey D-5","PAID"],["SHOCK","PAID"],["Spread Eagle Tavern","PAID"],["TCP Battle Machine","PAID"],["Tempest","LATE"],["The Leftovers III","PAID"],["The Leftovers III.5","PAID"],["The Leftovers IV","PAID"],["TPP Black swans","PAID"],["TROPA D5","PAID"],["West Coast Sharks 5","PAID"]]},{"id":"wcup-28318","name":"Masters X-Ball (Thu-Fri)","teams":[["Aftershock","PAID"],["Aggression","PAID"],["MB55 Purple","PAID"],["New England Old","PAID"],["OGB","PAID"],["Papeletto Team","PAID"],["Philippine Titos","PAID"],["Suricatos","PEND"],["TCP Vintage Machine","PAID"],["The Leftovers OG","PAID"],["The Leftovers OG II","PAID"],["The Leftovers OG III","PAID"],["Veteran Militia Mike","PAID"]]},{"id":"wcup-28307","name":"Division 3 5v5 (Sat-Sun)","teams":[["Autistic Trash Pandas","PAID"],["DeaD RaBBiTs","PAID"],["Free Smoke.","PAID"],["Medellin criminals","PEND"],["Miami Kings","PAID"],["NMI","PAID"],["OCTANE Elite","PAID"],["Outlaw AP Warriors","PAID"],["Papeletto","PAID"],["Papeletto Dark","PAID"],["Papeletto Legends","PAID"],["Raiders","PAID"],["STL Threat D3","PAID"],["TAKEOVER","PAID"],["Veteran Militia","PAID"],["Veteran Militia Zulu","PAID"]]},{"id":"wcup-28308","name":"Division 4 5v5 (Sat-Sun)","teams":[["Avalanche PB","PAID"],["Beach Bandits Humidity","PAID"],["Bethel Jesters","PAID"],["Bio-Hazard Purple","PAID"],["Carolina Warriors","PAID"],["CBM Cubs Blue","PAID"],["Cerberus","LATE"],["Coldblooded Quack Pack","PAID"],["ColdBlooded Warriors","PAID"],["Contra","PAID"],["Cunning Stunts","PAID"],["Dauntless Black","PAID"],["Elite Dynasty","PAID"],["Embry-Riddle Eagles","PAID"],["Enemy","PAID"],["Heathens","PAID"],["Hydra","PAID"],["INTENT","PAID"],["Killa Bees","PAID"],["Magic City Steel","PAID"],["Magic City Vulcans","PAID"],["Menteanah","PAID"],["Moisture Missiles","PAID"],["NEW YORK BANDITS","PAID"],["NFO NEW YORK","PAID"],["NMI","PAID"],["No Ceilings","PAID"],["Nola-Savage","PAID"],["ODIN JALK","PAID"],["ODIN VIDUR","PAID"],["Orlando Invaders","PAID"],["PHILIPPINES D4","PAID"],["PILIPINAS","PAID"],["Pionniers","PAID"],["Plaguebearers","PAID"],["PMDR Paintball Monkeys","PAID"],["POSTAL","PAID"],["Puffy Bunker Bois","PAID"],["Queen City Royals - Purple","PAID"],["Rain City Rejects","PAID"],["Rapinas","PAID"],["Reckoning","PAID"],["S.D.G. Hammer Cats","PAID"],["S.D.G.Hammer Cats Bravo","PAID"],["Spider team","PAID"],["Steel City Bombers","PAID"],["Surreal","PAID"],["Tampa Bay Exile","PAID"],["Tampa Bay Raptors","PAID"],["Tampa Bay Vengeance","PAID"],["Texas Sannin","PAID"],["TexeCutioners by PBGateway","PAID"],["The Leftovers IV.5","PAID"],["The Leftovers V","PAID"],["THE NOBODYS","PAID"],["THOSE GUYS","PAID"],["TIFUZI","PAID"],["TPP Most Wanted","PAID"],["Unhinged","PAID"],["University of Central Florida Knights","PAID"],["Veteran Militia Bravo","PAID"],["Veteran Militia Delta","PAID"],["Veteran Militia Fox","PAID"],["Vice City Mafia","PAID"],["West Coast Sharks 4","PAID"],["WOLF PACK","PAID"],["Wreckers","PAID"],["Xclusive X","PAID"],["Youngstown Dimension","PAID"]]},{"id":"wcup-28301","name":"Division 5 5v5 (Sat-Sun)","teams":[["5th Element","PAID"],["AGGRESSIVE","LATE"],["Alliance","PAID"],["Bethill Ballers","PAID"],["CBM Cubs","PAID"],["Cleantake Paintball","PAID"],["Cowboy Killers","PAID"],["DECEPTION D5","PAID"],["Donk's Disciples","PAID"],["Dyehard","PAID"],["El Clan","PAID"],["Golden Isles Ghost","PAID"],["Hot Garbage","PAID"],["HYPER","PAID"],["Nola Savages","PAID"],["NYK Black","PAID"],["Orlando Scream","LATE"],["PHANTOM","PAID"],["Pusher Boyz North","PAID"],["Ragtags","PAID"],["Rejected  Co","PAID"],["Savage Factory","PAID"],["Shock Kidz MW","PAID"],["South Florida Syndicate","PAID"],["Storm Riders","PAID"],["The Leftovers VI","PAID"],["The Other Guys 2","PAID"],["UCF Knights-Black","PAID"],["University of Maryland Terrapins","PAID"],["Veteran Militia Golf","PAID"],["ZuriCaos M.W.K.","PAID"]]},{"id":"wcup-28321","name":"WNXL Amateur 5v5 (Sat)","teams":[["BANDIDAS PK","PAID"],["Bear Ridge Saints","PAID"],["Chicago Cherubs","PAID"],["NJ High Rollers","PAID"],["OKC Vengeance","PAID"],["SMSC Ladyz","PAID"],["Sparrows","PAID"],["TCP Diamond Machine","PAID"],["The Leftovers Ladies","LATE"]]},{"id":"wcup-28317","name":"Amateur 10v10 (Sat-Sun)","teams":[["Alabama Paintball","PAID"],["Bear Ridge 10","PAID"],["Bricktown Bucks","PAID"],["Charm City's RAMPAGE","DUE"],["Chicago Aftershock","PEND"],["JUSTICE","PAID"],["Mayhem Tigers","PAID"],["Pathways Recovery Center powered by WAVY PINE MANAGEMENT","PAID"],["Pro Edge Goon Squad","PAID"],["Veteran Militia Geo","PAID"],["WARBIRDS","PAID"]]},{"id":"wcup-28309","name":"Amateur 10v10 (Sun)","teams":[["Anti Agg Agg Club","DUE"],["APEX","PAID"],["APEX X","PAID"],["Armada Black","DUE"],["ATK","DUE"],["Bethill Ballers","PAID"],["Blastcamp.com","PAID"],["Bleeding Blue","PAID"],["CARIBBEAN ALLSTARZ","PAID"],["CRBN","PAID"],["Cunning Stunts","PAID"],["Dirty.","PAID"],["Enemy for the Puzzle","PAID"],["Final Justice","PAID"],["Gladiators","PAID"],["Hostile GOATs","PAID"],["Hydra Mentality","PAID"],["Hydra.Fit","PAID"],["Jungle Cats D3","DUE"],["Kings Creations","PAID"],["LAX SMOKE","DUE"],["Mafia","DUE"],["Malediction","PAID"],["MAXT Moo-Dang Gang","PAID"],["MB55","PAID"],["Nashville Coyotes Rowdy","PAID"],["New York Khaos","PAID"],["OFP","PAID"],["PHILIPPINES","PAID"],["Requiem","DUE"],["RETURN OF BLACKOUT","DUE"],["S.F. CHAOS","DUE"],["Schlactet Die Gebrmutter","PAID"],["Smoke","DUE"],["SNDYCLB Devils","PAID"],["South Florida Syndicate","DUE"],["stinken die faust","DUE"],["TEMUJIN","DUE"],["The Leftovers 10v10","PEND"],["The Leftovers 10v10 II","PEND"],["TMNT","PAID"],["Veteran Militia India","PAID"],["Veteran Militia November","DUE"],["Veteran Militia Xray","PAID"]]},{"id":"wcup-28312","name":"Classic Mounds - Open 10v10 (Sat)","teams":[["All-Americans 2","DUE"],["Brimstone Smoke","PAID"],["Butchers Northwest","PAID"],["Doc's Raiders","PAID"],["Image","PAID"],["PHILIPPINES","PAID"],["Scattershot","PAID"],["SIERRA","PAID"],["THE FARM","PAID"],["The Leftovers Mech","DUE"],["The Union","PAID"],["The Wolverines","PAID"]]},{"id":"wcup-28315","name":"Classic Mounds - Open 7v7 (Sun)","teams":[["Adrenaline","PAID"],["Aftershock","PAID"],["All-Americans 2","PAID"],["Brimstone Smoke","PAID"],["Butchers Northwest","PAID"],["Doc's Raiders","DUE"],["Image","PAID"],["PTG Goat Squad","PAID"],["The Wolverines","PAID"]]},{"id":"wcup-28311","name":"Classic Mounds - Open 5v5 (Fri)","teams":[["Absolute Carnage","LATE"],["Aftershock","PAID"],["All-Americans 2","PAID"],["Avalanche PB Mech","PAID"],["Brimstone Smoke","PAID"],["BTA","PAID"],["Denver Purge","PAID"],["Desert Edge","LATE"],["Doc's Raiders","PAID"],["Image","PAID"],["Killa Bees","PAID"],["Mayhem Tigers","PAID"],["Panda Express","LATE"],["PHILIPPINES","PAID"],["Pusher Boyz North","PAID"],["S.D.G. Livewire","PAID"],["SMOKE","PAID"],["The Leftovers Mech","LATE"],["The Wolverines","PAID"],["Veteran Militia Oscar","PAID"]]},{"id":"wcup-28330","name":"Commander's Cup X-Ball (Fri-Sat)","teams":[["Air Force","PAID"],["Army","PAID"],["Marines","PAID"],["Navy","PAID"],["VETERANS ARMEE FRANCAISE","PAID"]]},{"id":"wcup-28324","name":"Youth Advanced 5v5 (Sat)","teams":[["AG Kids","PAID"],["Bear Ridge Kidz","PAID"],["Filthy Kids","LATE"],["NOLA Savages","PAID"],["Savage Patch Kids","PAID"],["The Leftovers Kidz","PAID"]]},{"id":"wcup-28314","name":"Women - WNXL 3v3 (Sun)","teams":[["Cheetahs","DUE"],["NJ High Rollers","DUE"],["SMSC Ladyz","PAID"]]},{"id":"wcup-28322","name":"Open 3v3 (Sun)","teams":[["Be someone","DUE"],["Boca Raton Boys","DUE"],["ODIN","DUE"],["Panda Express","DUE"],["Supreme","DUE"]]},{"id":"wcup-28310","name":"Amateur 3v3 (Sun)","teams":[["Asian Assassins","DUE"],["Extreme Rage","DUE"],["Hatred Cartel","DUE"],["LIMITOUT SQUAD","DUE"],["Mazalito Kings","DUE"],["New York Khaos","DUE"],["Notorious Ronin","DUE"],["Outlaw AP Society","DUE"],["Project x","DUE"],["TROPA","DUE"],["Veteran Militia Lima","PAID"]]},{"id":"wcup-28319","name":"Intermediate 3v3 (Sun)","teams":[["AG Torque","PAID"],["Armed Force","DUE"],["BANDIDOS ALPHA","PAID"],["Birmingham Bandits","DUE"],["Brotherhood of the Wulf by SquareOne","PAID"],["Caribbean Bloodline","DUE"],["Central Florida Conquer","DUE"],["Cerberus","DUE"],["County Line Bulldawgs","PAID"],["Cunning Stunts","DUE"],["Daytona Beach Xclusive","PAID"],["DECEPTION","DUE"],["Designated Hitters","PAID"],["FEARLESS","DUE"],["FL Plague","DUE"],["Hasbeens D4","DUE"],["Hormesis Hit Squad","DUE"],["Kinetic","PAID"],["MarkerHousePB","PAID"],["Moisture Missiles","DUE"],["NMI","DUE"],["Nola Savages","DUE"],["Nonsense","DUE"],["Off Constantly","PAID"],["OX Factory","DUE"],["Palm Beach Reapers","PAID"],["Plaguebearers","PAID"],["Puffy Bunker Bois","PAID"],["S.D.G. Hammer Cats","PAID"],["SNCS FACTORY","DUE"],["Sub Zero","PAID"],["Team Hyperion","PAID"],["THE FACTORY","DUE"],["The Leftovers INTERM","DUE"],["WOLF PACK","PAID"]]},{"id":"wcup-28313","name":"Novice 3v3 (Sun)","teams":[["Abyssaly","PAID"],["Aces of Fate","PAID"],["ANONYMOUS","PAID"],["ANONYMOUS II","PAID"],["ATP Factory","PAID"],["Augusta Malice","PAID"],["Bio-Hazard Red","PAID"],["BTA Rejects","PAID"],["Chicago Cherubs","PAID"],["Corn Fed Mafia","PAID"],["Crash Dummiez","PAID"],["Dirty Raccoons","PAID"],["Doomsday.","DUE"],["Embry-Riddle Eagles","PAID"],["Fishermen","PAID"],["Florida Plague","PAID"],["Fuel 2.0","PAID"],["Golden Isles Ghost","DUE"],["Headhunterz","PAID"],["Insane Ballerz","PAID"],["KDR","PAID"],["KDR silver","DUE"],["KNOXVILLE KNIGHTS","DUE"],["Legacy Bloodline","PAID"],["Lightning Hustle","PAID"],["Magic City Vulcans Rhodium","PAID"],["Nemesis  mn","DUE"],["New Jersey Bastards","PAID"],["NYK Black","PAID"],["OUTDOOR XTREME IGNITE","PAID"],["PC BLISS","PAID"],["Point Blank","PAID"],["Port City Revelers","PAID"],["Post Mortem (Golden Isles Ghost)","PAID"],["Pour Decisions","DUE"],["Pusher Boyz","PAID"],["Rat Kings","DUE"],["red headed step kids","PAID"],["SNDYCLB Butchers","PAID"],["Soul Hunters","PAID"],["South Florida Syndicate","PAID"],["Spartans","PAID"],["Still Warm (Golden Isles Ghost)","PAID"],["Supreme Verdict - Ballers","PAID"],["Sweaty Spaghetti","PAID"],["TEAM 3D","PAID"],["Team Hyperion Black","PAID"],["Team Hyperion Purple","PAID"],["The Holy Trinity","PAID"],["The Leftovers NOV","DUE"],["The Leftovers NOV II","DUE"],["The Leftovers NOV III","DUE"],["THE PYRE","PAID"],["Tiki's Revolution","PAID"],["TROPA 3","DUE"],["Under Pressure","PAID"],["Under Pressure 2","DUE"],["Valor Paintball","PAID"],["Vengeance","PAID"],["Veteran Militia Tango","PAID"],["WCS 3 Man","PAID"],["West Texas Chaos Elite","PAID"],["WRECKAG3","DUE"]]},{"id":"wcup-28323","name":"Youth 3v3 (Sun)","teams":[["Beach Bandits Kidz","PAID"],["NOLA Savages","DUE"],["Rampage Kids","DUE"],["Savage Patch Kids","PAID"],["SAVAGE PATCH KIDS 2","PAID"],["The Leftovers Kidz","DUE"],["The Leftovers Kidz II","DUE"]]},{"id":"wcup-29284","name":"Intermediate 3v3 X-Ball (Sat)","teams":[["Asian Assassins","DUE"],["Cloudy","PAID"],["Dyehard","DUE"],["Enemy","DUE"],["Hasbeens","DUE"],["KDR","DUE"],["Kill squad","DUE"],["Palm Beach Reapers","DUE"],["Requiem","DUE"],["S.D.G. Hammer Cats","DUE"],["SRQ Gringos","DUE"],["stinken die faust","DUE"],["SWFL Ball Busters","DUE"],["Valor Paintball","DUE"]]}]};
+/* worldcup:end */
+const WCUP_EVENT = "NXL World Cup 2026";
+const WCUP_REG = {PAID:"Payment Accepted", PEND:"Pending - Pay", DUE:"Entry fee not paid", LATE:"Registration deadline passed"};
+DIVISIONS.push(...WCUP.divs.map(d => ({id: d.id, name: d.name, event: WCUP_EVENT,
+  note: `Every team entered in ${d.name} at the NXL World Cup 2026, as the league's registration page lists it — the whole list, ${d.teams.length} entr${d.teams.length === 1 ? "y" : "ies"}. Reg is theirs: PAID is payment accepted, PEND pending, DUE entry fee not paid, LATE registration deadline passed. Points, tendency and threat are still yours to score.`,
+  read: WCUP.read + " · " + d.name,
+  teams: d.teams.map(([name, reg]) => ({name, src:"reg", reg}))})));
 /* ============================================================
    THE EVENT'S SCHEDULE
    ============================================================
@@ -3330,6 +3353,8 @@ function yourDaySec(games){
     return `<div class="panel"${past ? ' style="opacity:.6"' : ""}>
       <h3 class="panel__title">${esc(dayName(g.d))} · ${esc(gameClock(g))} · v ${esc(opp)}</h3>
       <p class="note">${esc(gameSub(g))}</p>
+      ${past ? "" : `<div class="btnrow"><button class="btn btn--quiet grow" onclick="openPrep(${jsq(opp)})">Before you play ${esc(opp)}</button>
+        <button class="btn btn--quiet grow" onclick="tellTeam(${jsq(g.id)})">Tell the team</button></div>`}
       <p class="aid" style="margin-top:var(--s2)">Scout ${esc(opp)} before then</p>${sc}</div>`;
   }).join("");
   // Running late: the pits on the next day he plays, set by him.
@@ -3341,7 +3366,12 @@ function yourDaySec(games){
         return `<div class="fld"><label>${esc(f || "No pit printed")}</label><select onchange="setRunLate(${jsq(key)},this.value)">${
           [0, 10, 15, 20, 30, 45, 60, 90].map(m => `<option value="${m}"${m === v ? " selected" : ""}>${m ? m + " min late" : "On time"}</option>`).join("")}</select></div>`; }).join("")}
     </details>` : "";
-  return sec("Your team's day", `${pick}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
+  const lead = pitLead();
+  const plan = day.some(d => gameAt(d.g) + SLOT_MIN * 60000 >= now) ? `<div class="fld"><label for="pit-lead">Players at the pit</label>
+      <select id="pit-lead" onchange="setPitLead(this.value)">${PIT_LEADS.map(m => `<option value="${m}"${m === lead ? " selected" : ""}>${m ? m + " min before the game" : "Don't say"}</option>`).join("")}</select></div>
+    <button class="btn btn--block" onclick="sendDayPlan()">Send the day plan to the team</button>
+    <p class="note">Your games with where and when to be, and who is scouting what — for the team chat. Tell the team on each game sends just that one.</p>` : "";
+  return sec("Your team's day", `${pick}${plan}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
     day.length + (day.length === 1 ? " game" : " games"));
 }
 /* Who to scout, in the order it happens. The game-by-game cards answer "who
@@ -3395,7 +3425,9 @@ function scoutPlanSec(team, day, now){
   const row = r => {
     const g = r.g, head = `<span class="assign__job"><span class="daylight__line">${lightDot(r.kind)}</span>${esc(scoutWhen(g, now))}<br>${where(g)}</span>`;
     if(r.kind !== "scout") return `<div class="assign daylight--${r.kind}">
-      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span></span>
+      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span>
+        <span class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="openPrep(${jsq(r.opp)})">Before you play them</button>
+        <button class="btn btn--quiet" onclick="tellTeam(${jsq(g.id)})">Tell the team</button></span></span>
       <button class="btn btn--quiet" onclick="playGame(${jsq(g.id)},'${side(g, r.opp)}')">Start sheet</button></div>`;
     return `<div class="assign daylight--scout">
       <span class="assign__body">${head}
@@ -3454,6 +3486,199 @@ function teamDay(team){
   });
 }
 window.setMyTeam = v => { set({myTeam: String(v || "").slice(0, 60)}); };
+/* ============================================================
+   Before you play them — everything known about one team, on one screen
+   ============================================================
+
+   What a coach wants an hour out is one answer: what do I know about the team
+   I play next, and what don't I know yet. It was spread over the pit card,
+   Anticipate, Counter, Reports and the schedule. This card gathers it, counted
+   the way those screens count it — the sample on every line, nothing under
+   three said as a read — and the lanes are the measured field against where
+   they usually plant, never odds. Where something is missing it says what to
+   do about it: which of their games to watch, and how many logged breaks
+   start the read. */
+const PREP_MIN = 3;
+window.openPrep = team => { set({tab: "more", more: "prep", prepTeam: String(team || "").slice(0, 60)}); toMainTop(); };
+// Their games still to come at this event that he is not in.
+function theirGamesToWatch(team, now = Date.now()){
+  const me = S.myTeam ? foldName(S.myTeam) : "";
+  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
+}
+// His next game against them, if both are on the schedule.
+function myGameVs(team, now = Date.now()){
+  if(!S.myTeam) return null;
+  return teamGames(S.myTeam).find(g => foldName(across(g, S.myTeam)) === foldName(team) && gameAt(g) + SLOT_MIN * 60000 >= now) || null;
+}
+/* An empty read is a scouting plan, not a dead end: how many more logged
+ * breaks start it, and the next game of theirs he could watch to get them. */
+function scoutNext(team, logged){
+  const need = Math.max(0, PREP_MIN - (logged || 0));
+  const g = theirGamesToWatch(team)[0];
+  const how = need ? `${need} more of their break${need === 1 ? "" : "s"} logged and the read starts.` : "";
+  const where = g ? `Next chance: <b>${esc(g.h)} v ${esc(g.a)}</b>, ${esc(scoutWhen(g, Date.now()))}, ${esc(g.f || "field not printed")}.`
+    : `None of ${esc(team)}'s games is on the schedule in the app (it has ${esc(SCHEDULE.div)} only), so watch them wherever they play and log the break on Scout › Breakouts.`;
+  return {html: [how, where].filter(Boolean).join(" "), game: g};
+}
+function scoutNextLine(team, logged){
+  const n = scoutNext(team, logged);
+  return `<p class="note read-line">${n.html}${n.game ? ` <button class="btn btn--quiet read-line__go" onclick="watchGame(${jsq(n.game.id)})">Watch it</button>` : ""}</p>`;
+}
+function prepTeams(){
+  const seen = new Map(), add = n => { const k = foldName(n); if(k && !seen.has(k)) seen.set(k, n); };
+  if(S.myTeam) teamDay(S.myTeam).filter(d => gameAt(d.g) + SLOT_MIN * 60000 >= Date.now()).forEach(d => add(d.opp));
+  if(pitNamed("right")) add(S.right.name);
+  repTeams().forEach(add);
+  if(S.prepTeam) add(S.prepTeam);
+  return [...seen.values()];
+}
+function prepTeam(){ const t = String(S.prepTeam || "").trim(); return t || prepTeams()[0] || ""; }
+function prepFacts(team){
+  const calls = repTheirCalls(team), total = calls.reduce((n, c) => n + c.n, 0);
+  const states = [["ahead", "When they are ahead"], ["level", "Level"], ["behind", "When they are behind"]].map(([s, label]) => {
+    const n = calls.reduce((a, c) => a + c[s], 0), top = [...calls].sort((a, b) => b[s] - a[s])[0];
+    return {label, n, top: top && top[s] ? [top.key, top[s]] : null};
+  }).filter(x => x.n >= PREP_MIN && x.top);
+  const plants = repPlants(team), sh = repShooters(team);
+  const rec = repRecord(repSheets().filter(m => foldName(m.vs) === foldName(team)));
+  const mine = repCalls(c => foldName(c.vs || (matchById(c.m) || {}).vs) === foldName(team));
+  // Lanes: each call he runs here, planted against the five bunkers they plant on most.
+  let lanes = null;
+  if(plants.fives >= GHOST_MIN){
+    const theirIds = plants.rows.slice(0, 5).map(r => r.id);
+    lanes = Object.keys(pickPlays()).map(k => { const ids = plantIdsFor(k); return ids ? {k, ...lanesBetween(ids, theirIds)} : null; }).filter(Boolean)
+      .sort((a, b) => b.onThem - a.onThem || a.onYou - b.onYou || callName(a.k).localeCompare(callName(b.k))).slice(0, 3);
+  }
+  const entries = evdEntriesFor(team);
+  return {calls, total, states, plants, sh, rec, mine, lanes, entries, game: myGameVs(team), watch: theirGamesToWatch(team)};
+}
+function prepGaps(team, f){
+  const gaps = [];
+  if(f.total < PREP_MIN) gaps.push(`What they run: ${f.total} of their calls logged, ${PREP_MIN} start the read.`);
+  if(f.plants.fives < GHOST_MIN) gaps.push(`Where they plant: ${f.plants.fives} of their fives logged on ${curLayout().name}, ${GHOST_MIN} start it — and the lanes with it.`);
+  if(!f.sh.n) gaps.push("Who shoots your men: nothing tallied against them yet.");
+  if(!f.entries.length) gaps.push(EVD ? "Their roster: not in the event data on this phone." : "Their roster: load the event data file under Account & backups.");
+  if(!f.watch.length) gaps.push(`Their games: none on the schedule in the app (it has ${SCHEDULE.div} only).`);
+  return gaps;
+}
+function prepPage(){
+  const opts = prepTeams(), team = prepTeam();
+  const pick = `<div class="fld"><label for="prep-team">Team</label><select id="prep-team" onchange="set({prepTeam:this.value})">
+      ${opts.length ? "" : `<option value="">No team yet</option>`}${opts.map(t => `<option value="${esc(t)}"${foldName(t) === foldName(team) ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
+  if(!team) return sec("Before you play them", `<p class="lede">Pick your team on Schedule, or put who you play in the right pit, and this
+      card gathers everything you know about them — and what you don't yet.</p>${pick}
+    <button class="btn btn--block" onclick="set({more:'schedule'})">Schedule</button>`);
+  const f = prepFacts(team), now = Date.now(), field = curLayout().name;
+  const out = [];
+  const when = f.game ? `<p class="lede">You play ${esc(team)} <b>${esc(scoutWhen(f.game, now))}</b>, ${esc(f.game.f || "field not printed")}.</p>`
+    : `<p class="note">${S.myTeam ? `No game of ${esc(S.myTeam)}'s against ${esc(team)} is on the schedule in the app.` : "Pick your team on Schedule and this says when and where you play them."}</p>`;
+  // Counts are this field's; a game on another field is read on that one.
+  const gf = f.game ? gameField(f.game) : null;
+  const elsewhere = gf && gf !== S.layoutKey && LAYOUTS[gf] ? `<div class="warn">You play them on <b>${esc(LAYOUTS[gf].name)}</b>; everything below is counted on ${esc(field)}.
+      <button class="btn btn--block" style="margin-top:var(--s2)" onclick="pickEvent(${jsq(gf)})">Read it on ${esc(LAYOUTS[gf].name)}</button></div>` : "";
+  out.push(sec(`Before you play ${esc(team)}`, `${pick}${when}${elsewhere}
+    <div class="facts">
+      <span class="fact"><b>${f.total}</b><span>Their calls logged</span></span>
+      <span class="fact"><b>${f.plants.fives}</b><span>Their fives here</span></span>
+      <span class="fact"><b>${f.sh.n}</b><span>Your men they shot</span></span>
+      ${f.rec.won + f.rec.lost + f.rec.tie ? `<span class="fact"><b>${f.rec.won}–${f.rec.lost}${f.rec.tie ? "–" + f.rec.tie : ""}</b><span>You v them</span></span>`
+        : f.rec.pf + f.rec.pa ? `<span class="fact"><b>${f.rec.pf}–${f.rec.pa}</b><span>Points v them</span></span>` : ""}
+    </div>
+    <div class="btnrow">
+      <button class="btn grow" onclick="prepToPit()">Put them in the right pit</button>
+      ${f.game ? `<button class="btn btn--quiet grow" onclick="tellTeam(${jsq(f.game.id)})">Tell the team</button>` : ""}
+      <button class="btn btn--quiet grow" onclick="sharePrep()">Send to your staff</button>
+    </div>`, field));
+  out.push(sec("What they run", f.total >= PREP_MIN
+    ? `<div class="kv">${f.calls.slice(0, 3).map(c => `<div class="kv__row"><span class="kv__k">${esc(callName(c.key))}</span><span class="kv__v">${c.n} of ${f.total} logged${c.decided ? ` · won ${c.won} of ${c.decided}` : ""}</span></div>`).join("")}
+      ${f.states.map(s => `<div class="kv__row"><span class="kv__k">${esc(s.label)}</span><span class="kv__v"><b>${esc(callName(s.top[0]))}</b> — ${s.top[1]} of ${s.n}</span></div>`).join("")}</div>
+      <p class="aid">Counted from what was logged on ${esc(field)}. A count, not a prediction.</p>`
+    : scoutNextLine(team, f.total), f.total ? `${f.total} logged` : ""));
+  out.push(sec("Where they plant", f.plants.fives >= GHOST_MIN
+    ? `<div class="kv">${f.plants.rows.slice(0, 5).map(r => `<div class="kv__row"><span class="kv__k">${esc(r.name)}</span><span class="kv__v">${r.n} of ${f.plants.fives} fives</span></div>`).join("")}</div>`
+    : `<p class="note">${f.plants.fives} of their fives logged on ${esc(field)} — ${GHOST_MIN} start this. Tap where their five end up on Scout › Breakouts.</p>`, field));
+  out.push(sec("Lanes off the break", f.lanes && f.lanes.length
+    ? `<div class="kv">${f.lanes.map(l => `<div class="kv__row"><span class="kv__k">${esc(callName(l.k))}</span><span class="kv__v">${l.onThem} of your ${l.mine} with a lane on them · ${l.onYou} of theirs on you</span></div>`).join("")}</div>
+      <p class="aid">Your calls on the measured ${esc(field)} against the five bunkers they plant on most. Geometry, not odds — where they stand off the buzzer is your read.</p>`
+    : `<p class="note">Needs ${GHOST_MIN} of their fives logged on ${esc(field)}, then each of your calls is counted for lanes against where they plant.</p>`));
+  if(f.sh.n) out.push(sec("How they get you", repList([
+      ...(f.sh.who.length ? [["Shot your men most", f.sh.who.slice(0, 3).map(([w, n]) => `${w} ${n}`).join(", ")]] : []),
+      ...(f.sh.where.length ? [["Where your men went out", f.sh.where.slice(0, 3).map(([b, n]) => `${b} ${n}`).join(", ")]] : [])]), `${f.sh.n} out${f.sh.n === 1 ? "" : "s"}`));
+  if(f.mine.length) out.push(sec(`Your calls against ${esc(team)}`, repList(f.mine.slice(0, 5).map(c => [callName(c.key), `called ${c.n} · won ${c.won} of ${c.won + c.lost}`]))));
+  out.push(sec("Their roster", f.entries.length
+    ? f.entries.map(e => { const pl = evdPlayers(e), hist = pl.filter(m => ((EVD.people[m.pid] || {}).obs || []).length).length;
+        return `<p class="note"><b>${esc(e.divName)}</b> · ${e.members ? `${pl.length} player${pl.length === 1 ? "" : "s"}${pl.length ? `, published history read for ${hist}` : ""}` : esc(evdRosterWord(e.roster.status))}</p>`; }).join("")
+      + `<p class="aid">Names and history are on their pit card. History is published classification rows, not a career.</p>`
+    : `<p class="note">${EVD ? "Not in the event data on this phone." : "Load the event data file under Account & backups to see their roster here."}</p>`));
+  out.push(sec("Their games to watch", f.watch.length
+    ? `<div class="assigns">${f.watch.slice(0, 5).map(g => `<div class="assign"><span class="assign__body"><span class="assign__job">${esc(g.h)} v ${esc(g.a)}</span>
+        <span class="assign__who">${esc(scoutWhen(g, now))} · ${esc(g.f || "field not printed")}</span></span>
+        <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`).join("")}</div>`
+    : `<p class="note">None on the schedule in the app (it has ${esc(SCHEDULE.div)} only).</p>`));
+  const gaps = prepGaps(team, f);
+  if(gaps.length) out.push(sec("What you don't know yet", `<ul class="gate__shows">${gaps.map(g => `<li>${esc(g)}</li>`).join("")}</ul>`));
+  return out.join("");
+}
+window.prepToPit = () => {
+  const t = boardTeam(prepTeam()); if(!t) return;
+  if(!(pitNamed("right") && foldName(S.right.name) === foldName(t))){
+    if(otherPitHas("right", t)) S.left = {name: ""};
+    S.right = {name: t}; adoptPitAsOpponent();
+  }
+  set({tab: "scout", scoutTab: "matchup", more: null}); toMainTop();
+};
+// The card as text for the staff chat: the counts with their samples, and the gaps.
+function prepText(team){
+  const f = prepFacts(team), field = curLayout().name, L = [`Before we play ${team}`];
+  if(f.game) L.push(`${scoutWhen(f.game, Date.now())}, ${f.game.f || "field not printed"}`);
+  L.push("");
+  if(f.total >= PREP_MIN){
+    L.push(`What they run (${f.total} logged on ${field}):`);
+    f.calls.slice(0, 3).forEach(c => L.push(`- ${callName(c.key)}: ${c.n} of ${f.total}`));
+    f.states.forEach(s => L.push(`- ${s.label}: ${callName(s.top[0])} ${s.top[1]} of ${s.n}`));
+  }
+  if(f.plants.fives >= GHOST_MIN) L.push(`Where they plant (${f.plants.fives} fives): ${f.plants.rows.slice(0, 5).map(r => `${r.name} ${r.n}`).join(", ")}`);
+  if(f.lanes && f.lanes.length) L.push(`Lanes off the break: ${f.lanes.map(l => `${callName(l.k)} ${l.onThem} on them / ${l.onYou} on us`).join("; ")}`);
+  if(f.sh.who.length) L.push(`Shot our men most: ${f.sh.who.slice(0, 3).map(([w, n]) => `${w} ${n}`).join(", ")}`);
+  if(f.watch.length) L.push(`Watch: ${f.watch.slice(0, 3).map(g => `${g.h} v ${g.a} ${scoutWhen(g, Date.now())} ${g.f || ""}`.trim()).join("; ")}`);
+  const gaps = prepGaps(team, f).filter(g => !/roster/i.test(g));
+  if(gaps.length){ L.push("", "Still to find out:"); gaps.forEach(g => L.push("- " + g)); }
+  L.push("", "Counted from what we logged. Not a prediction.");
+  return L.join("\n");
+}
+window.sharePrep = () => { const t = prepTeam(); if(t) handOff(`Before you play ${t}`, prepText(t)); };
+
+/* ---- Tell the team: the group-chat message ----
+ * The players do not have the app; they have the team chat. Each game of his
+ * on the schedule hands over one message — who, when, where, and when to be at
+ * the pit — and the day plan lists his games and who is scouting what. When to
+ * be at the pit is his rule (`pitLead`, minutes before), never the league's. */
+const PIT_LEADS = [0, 15, 20, 30, 45, 60];
+const pitLead = () => (typeof S.pitLead === "number" && PIT_LEADS.includes(S.pitLead)) ? S.pitLead : 30;
+window.setPitLead = v => { const n = parseInt(v, 10); set({pitLead: PIT_LEADS.includes(n) ? n : 30}); };
+const clockAt = t => { const d = new Date(t); return clockName(String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")); };
+function tellText(g){
+  const me = S.myTeam || "Us", opp = across(g, me), lead = pitLead(), late = lateBy(g);
+  return `${me} v ${opp} — ${dayName(g.d).split(",")[0]} ${gameClock(g)}, ${g.f || "field not printed"}.`
+    + (lead ? ` At the pit by ${clockAt(gameAt(g) - lead * 60000)}.` : "")
+    + (late ? ` The pit is running ${late} min late; the times above already include it.` : "");
+}
+window.tellTeam = id => { const g = gameById(id); if(g) handOff("Tell the team", tellText(g)); };
+function dayPlanText(team, now = Date.now()){
+  const day = teamDay(team), next = day.find(d => gameAt(d.g) + SLOT_MIN * 60000 >= now);
+  if(!next) return "";
+  const d = next.g.d, lead = pitLead(), L = [`${team} — ${dayName(d)}`, ""];
+  day.filter(x => x.g.d === d).forEach(({g, opp}) =>
+    L.push(`${gameClock(g)} v ${opp} · ${g.f || "field not printed"}${lead ? ` · at the pit by ${clockAt(gameAt(g) - lead * 60000)}` : ""}`));
+  const scout = scoutPlan(day, now).filter(r => r.g.d === d);
+  if(scout.length){
+    L.push("", "Scouting:");
+    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? " (clashes with our game — who's going?)" : ""}`));
+  }
+  if(Object.keys(S.runLate || {}).some(k => k.startsWith(d + "|"))) L.push("", "Times include the pits running late.");
+  return L.join("\n");
+}
+window.sendDayPlan = () => { const t = S.myTeam; const text = t ? dayPlanText(t) : ""; if(!text){ flash("No game of yours left on the schedule."); return; } handOff("The day plan", text); };
 window.setRunLate = (key, v) => {
   const n = Math.max(0, Math.min(180, parseInt(v, 10) || 0)), r = {...(S.runLate || {})};
   if(n) r[key] = n; else delete r[key];
@@ -4647,6 +4872,20 @@ const BUNKER_KINDS = [
   {key:"gw", name:"Giant wing",   n:"GW", t:"gwing",   w:5.34,  h:5.66},
   {key:"gp", name:"Giant plus",   n:"GP", t:"plus",    w:11.31, h:11.09, k:4.02},
 ];
+// How tall a bunker stands, in metres, only for a kind that two published
+// sources put under a standing man's eyes (docs/SIGHTLINES-HEIGHTS.md). Every
+// other kind has no agreed height: makers print a Maya temple at 1.37 m and
+// at 2.5 m, a small dorito from 4.5 ft to 5 ft 7. A kind left out of here
+// blocks a lane as it always has, because a guessed height would open lanes
+// nobody can see down.
+const BUNKER_HEIGHT_M = {SB: 0.76, Ck: 1.0};
+// A standing adult's eye height: 1.64 m (US DoD anthropometric guidelines,
+// 64.7 in; a military survey, 163.6 cm). Kneeling and prone have no published
+// figure that was found, so Sightlines does not offer them.
+const EYE_STANDING_M = 1.64;
+// Two men standing look along a level line at eye height, so a bunker lower
+// than that line does not stand in the lane between them.
+const underEyes = b => BUNKER_HEIGHT_M[b.n] != null && BUNKER_HEIGHT_M[b.n] < EYE_STANDING_M;
 // The twelve calls as tools/plants.js writes them: five slots of a wire band
 // and a depth up the home half. Kept in step with the tool by the suite, which
 // runs this copy over the three measured fields and expects BREAK_PLANTS back.
@@ -5214,6 +5453,7 @@ function clearScratch(s = S){
   // back, and the tutorial opened itself after sign-in.
   s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.pasteNoteTeam = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
+  s.evdOpen = null; s.evdPerson = null; s.evdSaid = "";
   s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false; s.reviewId = null;
   // A sighting or shot bunker tapped on How did they get there and not yet
   // recorded came back after a relaunch, one tap on Record from being logged
@@ -9955,19 +10195,22 @@ function segHitsBox(x1,y1,x2,y2,cx,cy,hw,hh){
  * nothing is in the way, dashed when something is — including the bunker you
  * are aiming beside, if the line clips it. Geometry only, in feet.
  */
-function aimLane(fromId, aim){
+function aimLane(fromId, aim, standing = false){
   const list = curLayout().bunkers, src = list.find(b=>b.id===fromId);
   if(!src || !aim) return null;
-  const by = list.filter(o => o!==src && bunkerBoxes(o).some(k =>
+  const by = list.filter(o => o!==src && !(standing && underEyes(o)) && bunkerBoxes(o).some(k =>
       segHitsBox(src.x,src.y,aim[0],aim[1],k.x,k.y,k.w/2,k.h/2)))
     .sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
   return {src, aim, blocked:by.length>0, by, ft:Math.round(Math.hypot(aim[0]-src.x, aim[1]-src.y))};
 }
-function sightLines(fromId, sx, sy){
-  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy,
-    () => sightLinesFresh(fromId, sx, sy));
+// standing: both men on their feet, so a bunker under their eyes does not
+// block (underEyes). Off, every bunker blocks — the flat answer every other
+// screen uses.
+function sightLines(fromId, sx, sy, standing = false){
+  return drawOnce("sight|" + S.layoutKey + "|" + fromId + "|" + sx + "|" + sy + "|" + (standing ? 1 : 0),
+    () => sightLinesFresh(fromId, sx, sy, standing));
 }
-function sightLinesFresh(fromId, sx, sy){
+function sightLinesFresh(fromId, sx, sy, standing){
   const list = curLayout().bunkers;
   const src  = list.find(b=>b.id===fromId) || list[0];
   if(!src) return {src:null, lines:[], clear:0};
@@ -9982,6 +10225,7 @@ function sightLinesFresh(fromId, sx, sy){
     // nothing he can act on.
     const by = list.filter(o=>{
       if(o===src||o===b) return false;
+      if(standing && underEyes(o)) return false;
       return boxes.get(o).some(k =>
         segHitsBox(ox,oy,tx,ty,k.x*sx,k.y*sy,(k.w*sx)/2,(k.h*sy)/2));
     }).sort((p,q)=>Math.hypot(p.x-src.x,p.y-src.y) - Math.hypot(q.x-src.x,q.y-src.y));
@@ -10144,12 +10388,12 @@ function fieldSVG(opts={}, runnersOnly){
   // Sightlines replace the break paths when a source bunker is picked.
   let sight = "";
   if(opts.sightFrom){
-    const S1 = sightLines(opts.sightFrom, sx, sy);
+    const S1 = sightLines(opts.sightFrom, sx, sy, !!opts.sightStand);
     paths = "";
     if(S1.src){
       const fx=(S1.src.x*sx).toFixed(1), fy=(S1.src.y*sy).toFixed(1);
       const lit = opts.sightTo;              // the one lane being asked about
-      const aimed = lit && opts.sightAim ? aimLane(opts.sightFrom, opts.sightAim) : null;
+      const aimed = lit && opts.sightAim ? aimLane(opts.sightFrom, opts.sightAim, !!opts.sightStand) : null;
       sight = S1.lines.map(l=>{
         const on = lit && l.to.id === lit && !aimed;
         const dim = lit && !on;
@@ -10818,8 +11062,7 @@ function readLine(compact){
       <button class="btn btn--quiet read-line__go" onclick="setPitTeam('right',${jsq(matchVs())})">Put ${esc(matchVs())} in the pit</button></p>`;
   const r = nextRead("right"); if(!r) return "";
   const them = esc(pitOf("right").name);
-  if(r.thin) return compact ? `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>` : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}. Log their call on Breakouts and the read builds itself.
-      <button class="btn btn--quiet read-line__go" onclick="set({tab:'scout',scoutTab:'breakouts',more:null})">Breakouts ›</button></p>`;
+  if(r.thin) return compact ? `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>` : `<p class="note read-line">${them}: ${r.n ? `${r.n} call${r.n === 1 ? "" : "s"} logged — not enough to read yet` : "no calls logged yet"}.</p>${scoutNextLine(pitOf("right").name, r.n)}`;
   const a = bestAnswer(r.call);
   const answer = a ? ` Your answer: <b>${esc(callName(a.call))}</b>${a.basis === "record" ? ` — won ${a.won} of ${a.n} against it` : " — what you wrote down"}.` : "";
   // One tap calls it only if it is a play he runs: a turned-off built-in is
@@ -11375,6 +11618,325 @@ window.addPublished = side => {
   S.paste = {side, found: r.men.map(p => ({num: p.num, name: p.name, wire: "Flex", note: "", threat: 0, from: "published"})), skipped: []};
   keepRoster();
 };
+
+/* ---- event data the coach loads from a file ----
+ * An event's data package — the NXL World Cup 2026 one, packed by
+ * tools/worldcup_pack.py — carries every entry's event roster, the people on
+ * them and their published scored-event history. Those are names read from
+ * login-only pages, some of them minors, so none of it is in the app's source
+ * or in a season copy: the coach loads the file on his own phone and it lives
+ * in a store of its own (IndexedDB `gridlock.coach.eventdata`), apart from the
+ * season. It is reference data, not his work: if the phone clears it, he loads
+ * the file again, and nothing he logged is lost.
+ *
+ * Organised the package's way — division → entry → roster → person → history —
+ * and keyed by the package's own published IDs (entry, team, person, source,
+ * observation). Loading a newer package puts each record over the one with the
+ * same ID, so nothing doubles; what the newer file has not read keeps what an
+ * older one had. A person is never matched by name: a man on their card is the
+ * league's person only when he carries the same person ID. */
+const EVD_KIND = "gridlock.event.data", EVD_DB = "gridlock.coach.eventdata";
+const EVD_STORES = ["meta", "entries", "people", "sources"];
+const EVD_ROLES = ["Player", "Coach", "Staff", "Media"];
+const EVD_PLURAL = {Player: "players", Coach: "coaches", Staff: "staff", Media: "media"};
+const EVD_HIST_READ = new Set(["scored_event_history_imported", "scored_event_history_imported_zero_rows"]);
+let EVD = null, EVD_STATE = "unread", EVD_ERR = "";
+// Every read, load and delete of the store runs one after another. A delete
+// tapped while a load was still writing left the store gone and the rosters
+// still on screen, or the load landed after the delete and brought them back;
+// two loads at once each merged into the same old records and the second
+// lost what the first had added.
+let EVD_Q = Promise.resolve();
+function evdQueue(job){ const p = EVD_Q.then(job, job); EVD_Q = p.catch(() => {}); return p; }
+// Lookups keyed by IDs and names out of a file: no prototype, so an ID
+// written "__proto__" or a team called "constructor" is an ordinary key.
+const evdMap = () => Object.create(null);
+function evdDb(){
+  return new Promise((ok, no) => {
+    let rq;
+    try { rq = indexedDB.open(EVD_DB, 1); } catch(e){ no(new Error("This phone cannot keep event data in this app.")); return; }
+    rq.onupgradeneeded = () => { const db = rq.result; EVD_STORES.forEach(n => { if(!db.objectStoreNames.contains(n)) db.createObjectStore(n); }); };
+    rq.onsuccess = () => { const db = rq.result; db.onversionchange = () => db.close(); ok(db); };
+    rq.onerror = () => no(rq.error || new Error("Could not open the event data."));
+  });
+}
+function evdReadAll(db){
+  return new Promise((ok, no) => {
+    const tx = db.transaction(EVD_STORES, "readonly"), got = {};
+    EVD_STORES.forEach(n => { const os = tx.objectStore(n), k = os.getAllKeys(), v = os.getAll();
+      got[n] = () => { const o = evdMap(); k.result.forEach((key, i) => { o[key] = v.result[i]; }); return o; }; });
+    tx.oncomplete = () => { const o = {}; EVD_STORES.forEach(n => { o[n] = got[n](); }); ok(o); };
+    tx.onerror = () => no(tx.error || new Error("Could not read the event data."));
+  });
+}
+// The lookups every screen reads: a team's entries by its name as published and
+// by its team ID, and every entry a person ID is on.
+function evdIndex(all){
+  const byName = evdMap(), byTeam = evdMap(), byPerson = evdMap();
+  for(const e of Object.values(all.entries)){
+    (byName[foldName(e.name)] = byName[foldName(e.name)] || []).push(e.id);
+    (byTeam[e.team] = byTeam[e.team] || []).push(e.id);
+    (e.members || []).forEach(m => { (byPerson[m.pid] = byPerson[m.pid] || []).push({entry: e.id, role: m.role}); });
+  }
+  return {...all, byName, byTeam, byPerson};
+}
+function evdLoadStore(){
+  if(typeof indexedDB === "undefined" || !indexedDB){ EVD_STATE = "none"; return; }
+  EVD_STATE = "reading";
+  evdQueue(() => evdDb().then(db => evdReadAll(db).then(all => { db.close(); return all; })))
+    .then(all => {
+      if(!Object.keys(all.meta).length){ EVD = null; EVD_STATE = "none"; return; }
+      EVD = evdIndex(all); EVD_STATE = "ready";
+      if(S.entered) render();
+    })
+    .catch(e => { EVD = null; EVD_STATE = "error"; EVD_ERR = String((e && e.message) || e); if(S.entered) render(); });
+}
+// Read on first need, never at launch: a coach who never loads a package
+// pays nothing for it.
+function evdNeed(){ if(EVD_STATE === "unread") evdLoadStore(); return EVD_STATE === "ready" ? EVD : null; }
+
+// The packed file, unpacked to records. Anything not shaped right is left out
+// and counted, never guessed at.
+function evdUnpack(text){
+  let d;
+  try { d = JSON.parse(text); } catch(e){ return {error: "That file is not event data — it is not readable JSON."}; }
+  if(!d || d.kind !== EVD_KIND) return {error: "That file is not a Gridlock event-data file. Pack the package with tools/worldcup_pack.py first."};
+  if(d.v !== 1) return {error: "That event-data file is a newer version than this app reads. Update the app."};
+  const str = Array.isArray(d.str) ? d.str : [], ev = d.event || {};
+  const T = i => (Number.isInteger(i) && i >= 0 && i < str.length && typeof str[i] === "string") ? str[i] : null;
+  const s = v => typeof v === "string" ? v : (typeof v === "number" ? String(v) : null);
+  const id = v => (typeof v === "string" || typeof v === "number") && String(v).length && String(v).length <= 80 ? String(v) : null;
+  if(!id(ev.id)) return {error: "That event-data file does not say which event it is."};
+  let refused = 0;
+  const sources = evdMap();
+  for(const [k, v] of Object.entries(d.src || {})) if(id(k) && Array.isArray(v) && T(v[0])) sources[k] = {url: T(v[0]), at: s(v[1])};
+  const divName = evdMap();
+  (Array.isArray(d.divs) ? d.divs : []).forEach(x => { if(Array.isArray(x) && id(x[0])) divName[x[0]] = s(x[1]) || ""; });
+  const entries = evdMap();
+  for(const [k, e] of Object.entries(d.entries || {})){
+    if(!id(k) || !e || !id(e.team) || !s(e.name)){ refused++; continue; }
+    const loc = e.loc || {}, r = e.roster || {};
+    entries[k] = {id: k, event: String(ev.id), team: String(e.team), div: s(e.div) || "", divName: divName[e.div] || "",
+      name: e.name, reg: s(e.reg), url: s(e.url), src: s(e.src), at: s(e.at),
+      loc: {town: s(loc.town), city: s(loc.city), region: s(loc.region), country: s(loc.country), field: s(loc.field),
+            fieldAt: s(loc.fieldAt), status: s(loc.status) || "not_retrieved", src: s(loc.src), at: s(loc.at)},
+      roster: {status: s(r.status) || "not_retrieved", src: s(r.src), at: s(r.at)}, members: null};
+  }
+  for(const m of Array.isArray(d.members) ? d.members : []){
+    const e = Array.isArray(m) && entries[m[0]];
+    if(!e || !id(m[1]) || !T(m[2])){ refused++; continue; }
+    (e.members = e.members || []).push({pid: String(m[1]), name: T(m[2]), role: T(m[3]) || "", cls: T(m[4]), inn: T(m[5]), src: id(m[6])});
+  }
+  // A roster page that was read and listed nobody is an empty list; one that
+  // was never read stays null — not an empty roster.
+  for(const e of Object.values(entries)) if(!e.members && /empty_roster$/.test(e.roster.status)) e.members = [];
+  const people = evdMap();
+  for(const [k, p] of Object.entries(d.people || {})){
+    if(!id(k) || !Array.isArray(p) || !T(p[0])){ refused++; continue; }
+    const town = Array.isArray(p[4]) && T(p[4][0]) ? {raw: T(p[4][0]), city: T(p[4][1]), region: T(p[4][2]), country: T(p[4][3]), src: id(p[4][4])} : null;
+    people[k] = {id: k, name: T(p[0]), player: !!p[1], hist: T(p[2]) || "not_retrieved", home: T(p[3]) || "not_retrieved", town,
+      histSrc: id(p[5]), variants: (Array.isArray(p[6]) ? p[6] : []).filter(v => Array.isArray(v) && T(v[0])).map(v => ({name: T(v[0]), kind: T(v[1]), src: id(v[2])})), obs: []};
+  }
+  for(const [k, o] of Object.entries(d.obs || {})){
+    const p = id(k) && Array.isArray(o) && people[o[0]];
+    if(!p){ refused++; continue; }
+    p.obs.push({id: k, date: T(o[1]), event: T(o[2]), eventId: T(o[3]), url: T(o[4]), team: T(o[5]), div: T(o[6]),
+      place: T(o[7]), score: T(o[8]), ctx: T(o[9]), role: T(o[10]), basis: T(o[11]), src: id(o[12])});
+  }
+  for(const p of Object.values(people)) p.obs.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const c = d.coverage && typeof d.coverage === "object" ? d.coverage : {};
+  const meta = {id: String(ev.id), name: s(ev.name) || "Event " + ev.id, start: s(ev.start), end: s(ev.end), read: s(ev.read),
+    coverage: JSON.parse(JSON.stringify(c)), entries: Object.keys(entries)};
+  return {meta, entries, people, sources, refused};
+}
+// One record over another with the same ID. The newer file wins wherever it
+// read something; where it did not, what an older file read stands.
+function evdMergePerson(old, p){
+  if(!old) return p;
+  const obs = evdMap(); old.obs.forEach(o => { obs[o.id] = o; }); p.obs.forEach(o => { obs[o.id] = o; });
+  const vs = evdMap(); [...old.variants, ...p.variants].forEach(v => { vs[[v.name, v.kind, v.src].join("|")] = v; });
+  const keepHist = !EVD_HIST_READ.has(p.hist) && EVD_HIST_READ.has(old.hist);
+  const keepHome = p.home === "not_retrieved" && old.home !== "not_retrieved";
+  return {...p, player: p.player || old.player,
+    hist: keepHist ? old.hist : p.hist, histSrc: keepHist ? old.histSrc : p.histSrc,
+    home: keepHome ? old.home : p.home, town: keepHome ? old.town : p.town,
+    variants: Object.values(vs), obs: Object.values(obs).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))};
+}
+function evdMergeEntry(old, e){
+  if(!old || e.members) return e;
+  return {...e, members: old.members, roster: old.members ? old.roster : e.roster};
+}
+window.loadEventFile = input => {
+  const f = input.files && input.files[0];
+  if(!f) return;
+  if(typeof indexedDB === "undefined" || !indexedDB){ set({evdSaid: "This phone cannot keep event data in this app."}); return; }
+  set({evdSaid: `Reading ${f.name}…`});
+  const fr = new FileReader();
+  fr.onerror = () => set({evdSaid: `Could not read ${f.name}. Choose the file again.`});
+  fr.onload = () => {
+    const pack = evdUnpack(String(fr.result || ""));
+    if(pack.error){ set({evdSaid: pack.error}); return; }
+    let db;
+    evdQueue(() => evdDb().then(d => { db = d; return evdReadAll(db); }).then(old => new Promise((ok, no) => {
+      const tx = db.transaction(EVD_STORES, "readwrite"), n = {entNew: 0, entUpd: 0, pplNew: 0, pplUpd: 0, obsNew: 0, gone: 0};
+      const prev = old.meta[pack.meta.id];
+      for(const e of Object.values(pack.entries)){ old.entries[e.id] ? n.entUpd++ : n.entNew++; tx.objectStore("entries").put(evdMergeEntry(old.entries[e.id], e), e.id); }
+      // An entry an older file of this event had and this one does not is kept
+      // and marked, never deleted: it may have withdrawn, or the read missed it.
+      for(const e of Object.values(old.entries)) if(e.event === pack.meta.id && !pack.entries[e.id]){ if(!e.notInLatest) n.gone++; tx.objectStore("entries").put({...e, notInLatest: true}, e.id); }
+      for(const p of Object.values(pack.people)){
+        const was = old.people[p.id], had = new Set(((was || {}).obs || []).map(o => o.id));
+        was ? n.pplUpd++ : n.pplNew++; n.obsNew += p.obs.filter(o => !had.has(o.id)).length;
+        tx.objectStore("people").put(evdMergePerson(was, p), p.id);
+      }
+      for(const [k, v] of Object.entries(pack.sources)) tx.objectStore("sources").put(v, k);
+      tx.objectStore("meta").put({...pack.meta, file: String(f.name).slice(0, 120), loadedAt: Date.now(), loads: ((prev || {}).loads || 0) + 1}, pack.meta.id);
+      tx.oncomplete = () => ok(n); tx.onerror = () => no(tx.error || new Error("The phone refused to keep the event data."));
+    })).then(n => evdReadAll(db).then(all => { db.close(); db = null; EVD = evdIndex(all); EVD_STATE = "ready"; return n; })))
+    .then(n => set({evdSaid: `Loaded ${pack.meta.name}: ${Object.keys(pack.entries).length} entries (${n.entNew} new, ${n.entUpd} updated), `
+        + `${Object.keys(pack.people).length} people (${n.pplNew} new, ${n.pplUpd} updated), ${n.obsNew} new history rows.`
+        + (n.gone ? ` ${n.gone} entr${n.gone === 1 ? "y" : "ies"} from an earlier file ${n.gone === 1 ? "is" : "are"} not in this one — kept and marked.` : "")
+        + (pack.refused ? ` ${pack.refused} malformed record${pack.refused === 1 ? "" : "s"} left out.` : "")}))
+    .catch(e => { if(db) db.close(); set({evdSaid: "Could not keep the event data: " + String((e && e.message) || e)}); });
+  };
+  fr.readAsText(f);
+};
+window.dropEventData = () => {
+  if(!confirm("Take the event data off this phone? Rosters and histories go; nothing you logged does, and you can load the file again.")) return;
+  set({evdSaid: "Taking the event data off this phone…"});
+  evdQueue(() => new Promise(ok => {
+    EVD = null; EVD_STATE = "none";
+    const done = said => { ok(); set({evdSaid: said}); };
+    try {
+      const rq = indexedDB.deleteDatabase(EVD_DB);
+      rq.onsuccess = () => done("Event data taken off this phone.");
+      rq.onerror = () => done("The phone would not take the event data off. Close the app and try again.");
+    } catch(e){ done("The phone would not take the event data off. Close the app and try again."); }
+  }));
+};
+
+// ---- what the statuses mean, said plainly ----
+const EVD_ROSTER_WORD = {
+  authenticated_event_roster: "Event roster read",
+  public_event_roster: "Event roster read",
+  authenticated_empty_roster: "Event roster page listed nobody — that is not proof they have no players",
+  public_empty_roster: "Event roster page listed nobody — that is not proof they have no players",
+};
+const evdRosterWord = st => EVD_ROSTER_WORD[st] || `Event roster not read (${st.replace(/_/g, " ")}) — unknown, not empty`;
+const EVD_HIST_WORD = {
+  scored_event_history_imported: "Published scored-event history read",
+  scored_event_history_imported_zero_rows: "Classification page read — it listed no scored events",
+  not_retrieved: "History not retrieved yet — that does not mean there is none",
+};
+const evdHistWord = st => EVD_HIST_WORD[st] || "History: " + st.replace(/_/g, " ");
+const EVD_HOME_WORD = {
+  not_published_in_retrieved_classification_page: "Hometown not published on the page that was read",
+  not_retrieved: "Hometown not retrieved — unknown",
+};
+const evdHomeWord = st => EVD_HOME_WORD[st] || "Hometown: " + st.replace(/_/g, " ");
+function evdSrcLine(srcId, url, at){
+  const src = srcId && EVD && EVD.sources[srcId];
+  const u = (src && src.url) || url, when = (src && src.at) || at;
+  return u ? `<span class="note evd-src">Source: ${esc(u)}${when ? " · read " + esc(String(when).slice(0, 16).replace("T", " ")) : ""}</span>` : "";
+}
+// A team's entries at the event: by its name as published, and every other
+// entry carrying the same published team ID — a team in two divisions is two
+// registrations, each with its own roster.
+function evdEntriesFor(name){
+  const D = evdNeed(); if(!D) return [];
+  const ids = new Set(D.byName[foldName(name)] || []);
+  [...ids].forEach(i => (D.byTeam[D.entries[i].team] || []).forEach(j => ids.add(j)));
+  return [...ids].map(i => D.entries[i]).sort((a, b) => a.divName.localeCompare(b.divName));
+}
+const evdPlayers = e => (e.members || []).filter(m => m.role === "Player");
+
+function evdPerson(pid){
+  const D = EVD, p = D && D.people[pid];
+  if(!p) return `<p class="note">Person ${esc(pid)} is on the roster but not in the people list of the file.</p>`;
+  const others = (D.byPerson[pid] || []).map(x => D.entries[x.entry] && `${esc(D.entries[x.entry].name)} · ${esc(D.entries[x.entry].divName)} · ${esc(x.role)}`).filter(Boolean);
+  const names = [...new Set(p.variants.map(v => v.name.replace(/\s+/g, " ")))];
+  return `<div class="evd-person" role="region" aria-label="${esc(p.name)}">
+    <p><b>${esc(p.name)}</b> <span class="note">· person ID ${esc(p.id)}</span></p>
+    ${names.length > 1 ? `<p class="note">Also published as ${names.filter(n => n !== p.name).map(esc).join(", ")}</p>` : ""}
+    <p class="note">Jersey: not published · ${p.town ? `Hometown as published: ${esc(p.town.raw)}` : esc(evdHomeWord(p.home))}</p>
+    ${p.town ? evdSrcLine(p.town.src) : ""}
+    <p class="note">On this event: ${others.join(" · ")}</p>
+    <p class="note"><b>${esc(evdHistWord(p.hist))}</b>${p.obs.length ? ` · ${p.obs.length} row${p.obs.length === 1 ? "" : "s"}. These are published classification and scored-event rows — not a complete career, not a transfer record.` : ""}</p>
+    ${p.histSrc ? evdSrcLine(p.histSrc) : ""}
+    ${p.obs.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Date</th><th>Event · team</th><th>Division</th><th>Place</th><th>Class. score</th></tr></thead><tbody>
+      ${p.obs.map(o => `<tr><td class="num">${esc(o.date || "—")}</td><td>${esc(o.event || "—")}<br><span class="note">${esc(o.team || "")}</span></td>
+        <td>${esc(o.div || "—")}${o.ctx ? `<br><span class="note">${esc(o.ctx)}</span>` : ""}</td><td>${esc(o.place || "—")}</td><td class="num">${esc(o.score || "—")}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">A classification score is the league's ranking score for that event — not a match score.</p>` : ""}
+    <button class="btn btn--quiet" onclick="set({evdPerson:null})">Close</button>
+  </div>`;
+}
+function evdEntryBlock(side, e){
+  const open = S.evdOpen === e.id, players = evdPlayers(e);
+  const roles = EVD_ROLES.map(r => [r, (e.members || []).filter(m => m.role === r)]).filter(([, l]) => l.length);
+  const loc = e.loc;
+  const where = loc.status === "published" ? [loc.town && "hometown " + loc.town, loc.field && "home field " + loc.field + (loc.fieldAt ? " (" + loc.fieldAt + ")" : "")].filter(Boolean).join(" · ") : "";
+  return `<div class="evd-entry">
+    <p><b>${esc(e.divName || "Division " + e.div)}</b> <span class="note">· ${esc(e.reg || "registration not read")}${e.notInLatest ? " · not in the latest file" : ""}</span></p>
+    <p class="note">${esc(evdRosterWord(e.roster.status))}${e.members ? ` · ${roles.map(([r, l]) => l.length + " " + (l.length === 1 ? r.toLowerCase() : EVD_PLURAL[r])).join(", ") || "nobody listed"}` : ""}</p>
+    ${where ? `<p class="note">Team's ${esc(where)} — the team's, never a player's</p>` : ""}
+    <p class="note">Entry ${esc(e.id)} · team ID ${esc(e.team)}</p>
+    ${e.members && e.members.length ? `<button class="btn btn--quiet" aria-expanded="${open}" onclick="set({evdOpen:${open ? "null" : jsq(e.id)}, evdPerson:null})">${open ? "Hide the roster" : "Show the roster"}</button>` : ""}
+    ${open ? `${roles.map(([r, l]) => `<p class="note" style="margin-top:8px"><b>${esc(EVD_PLURAL[r][0].toUpperCase() + EVD_PLURAL[r].slice(1))}</b></p><div class="evd-men">${l.map(m =>
+        `<button class="btn btn--quiet" onclick="set({evdPerson:${jsq(m.pid)}})">${esc(m.name)}${m.cls ? ` <span class="note">${esc(m.cls)}</span>` : ""}</button>`).join("")}</div>`).join("")}
+      ${S.evdPerson && (e.members || []).some(m => m.pid === S.evdPerson) ? evdPerson(S.evdPerson) : ""}
+      ${evdSrcLine(null, e.roster.src, e.roster.at)}
+      <p class="note">Classification and checked-in are copied as published. Jerseys are not published, so their numbers stay blank until you see them.</p>
+      ${side && players.length ? `<button class="btn btn--block" onclick="addEventPlayers('${side}', ${jsq(e.id)})">Put these ${players.length} players on their card</button>` : ""}` : ""}
+  </div>`;
+}
+function evdPitSec(side, T){
+  if(!T.named) return "";
+  const list = evdEntriesFor(T.name);
+  if(!list.length) return "";
+  return `<div class="fld"><label>${esc(EVD.meta[list[0].event] ? EVD.meta[list[0].event].name : "Event")} · ${list.length} entr${list.length === 1 ? "y" : "ies"} · from your event data</label>
+    ${list.map(e => evdEntryBlock(side, e)).join("")}</div>`;
+}
+// A man goes on their card from the league's roster only by his person ID. A
+// man already there under the same name with no ID is not assumed to be him —
+// two people share names — so he is left alone and the coach is told.
+window.addEventPlayers = (side, entryId) => {
+  const e = EVD && EVD.entries[entryId];
+  if(!e) return;
+  const men = pitOf(side).players, add = [];
+  let had = 0; const clash = [];
+  for(const m of evdPlayers(e)){
+    if(men.some(p => p.pid === m.pid) || add.some(p => p.pid === m.pid)){ had++; continue; }
+    if([...men, ...add].some(p => foldName(p.name) === foldName(m.name))){ clash.push(m.name); continue; }
+    add.push({num: "", name: m.name, wire: "Flex", note: "", threat: 0, from: "published", pid: m.pid});
+  }
+  if(add.length) editProfile(side, {players: [...men, ...add]});
+  flash(`${add.length} added from the event roster${had ? `, ${had} already on the card` : ""}.`
+    + (clash.length ? ` ${clash.length} not added — someone of the same name is already on the card without a league ID, and a name alone is not the same person: ${clash.join(", ")}.` : ""));
+};
+function evdSec(){
+  evdNeed();
+  const metas = EVD ? Object.values(EVD.meta) : [];
+  return sec("Event data", `<p class="lede">Load an event's data file — the NXL World Cup 2026 package packed with
+      <b>tools/worldcup_pack.py</b> — and every team's event roster, the people on it and their published history
+      show on the pit card. It stays on this phone, apart from your season: it is not in a copy and not shared.
+      Load a newer file of the same event and it updates the same records; nothing doubles.</p>
+    <div class="fld"><label for="evd-file">Event data file</label>
+      <input id="evd-file" type="file" accept="application/json,.json" onchange="loadEventFile(this)"/></div>
+    ${S.evdSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.evdSaid)}</p>` : ""}
+    ${EVD_STATE === "reading" ? `<p class="note">Reading the event data on this phone…</p>` : ""}
+    ${EVD_STATE === "error" ? `<p class="note">The event data on this phone could not be read: ${esc(EVD_ERR)}. Load the file again.</p>` : ""}
+    ${metas.map(m => { const c = m.coverage || {}, h = c.player_history_statuses || {}, ht = c.player_hometown_statuses || {};
+      const hist = (+h.scored_event_history_imported || 0) + (+h.scored_event_history_imported_zero_rows || 0);
+      return `<div class="evd-entry"><p><b>${esc(m.name)}</b> <span class="note">· event ${esc(m.id)}${m.start ? " · " + esc(m.start) + (m.end ? " to " + esc(m.end) : "") : ""}</span></p>
+        <p class="note">${esc(m.file || "")} · loaded ${esc(new Date(m.loadedAt).toLocaleString())}${m.loads > 1 ? ` · ${m.loads} loads` : ""}${c.generated_at ? " · package audited " + esc(String(c.generated_at).slice(0, 10)) : ""}</p>
+        <p class="note">${esc(c.event_entries)} entries · ${esc(c.distinct_team_ids)} team IDs · ${esc(c.distinct_people)} people · ${esc(c.distinct_current_players)} current players</p>
+        <p class="note">History read for ${esc(hist)} of ${esc(c.distinct_current_players)} players${h.not_retrieved ? `; ${esc(h.not_retrieved)} not retrieved yet — missing history does not mean no history` : ""}.
+          Hometowns: ${esc(ht.not_retrieved || 0)} not retrieved, ${esc(ht.not_published_in_retrieved_classification_page || 0)} not published. Jerseys: none published.</p>
+        ${c.overall ? `<p class="note">Package status: ${esc(String(c.overall).replace(/_/g, " "))}</p>` : ""}</div>`; }).join("")}
+    ${metas.length ? `<button class="btn btn--danger" onclick="dropEventData()">Take the event data off this phone</button>` : ""}`,
+    metas.length ? metas.length + " loaded" : "");
+}
 
 // ---- a roster read off a screenshot ----
 // Nothing is fetched: there is no network in this app and there is not going to
@@ -12044,7 +12606,11 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(r && r.ok && r.pendingConfirmation){
       S.mode = "login";
-      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation.");
+      /* On the phone the link comes back through the app's own address, which
+         a computer cannot open. Read on a computer, the link still confirms
+         the account before it fails to open the app, so say so. */
+      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation."
+        + (window.gridlockDurable ? " Opened on a computer, the link may say the page cannot open: your email is still confirmed, so come back here and sign in." : ""));
     }
     if(r && r.ok){
       const salt = newSalt(), hash = await hashPass(pass, salt);
@@ -16077,6 +16643,7 @@ function pit(side,T,label){
       <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
 
+    ${side === "right" && T.named ? `<button class="btn btn--block" onclick="openPrep(${jsq(T.name)})">Before you play ${esc(T.name)} ›</button>` : ""}
     <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
         men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
@@ -16113,6 +16680,7 @@ function pit(side,T,label){
         ? `<p class="note">No published roster in the app for ${esc(T.name)}. Paste theirs off PBLeagues below,
              or log them one at a time as you see them.</p>`
         : ""}
+      ${evdPitSec(side, T)}
       <div class="rost__add">
         <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
@@ -16331,9 +16899,10 @@ function scoutAnticipate(){
       + roleLine(T.name);
     // A team nobody has read on film and nothing logged against has no read:
     // the Balanced card would be the app guessing.
+    const next = total < PREP_MIN ? `<div class="kv__row"><span class="kv__k">To read them</span><span class="kv__v">${scoutNext(T.name, total).html}${(g => g ? `<br><button class="btn btn--quiet read-line__go" onclick="watchGame(${jsq(g.id)})">Watch it</button>` : "")(scoutNext(T.name, total).game)}</span></div>` : "";
     if(!T.tendKnown && !total)
-      return [`No film read yet — set their Tendency on Matchup, or log the breaks you see on Breakouts.`, "—", "—", rows + lately, shooter];
-    return [`${counted}${T.tendKnown ? `<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>` : ""}`, T.tendKnown ? tells : "—", T.tendKnown ? counter : "—", rows + lately, shooter];
+      return [`No film read yet — set their Tendency on Matchup, or log the breaks you see on Breakouts.`, "—", "—", next + rows + lately, shooter];
+    return [`${counted}${T.tendKnown ? `<span style="color:${total ? "var(--dim)" : "inherit"}">${total ? "Your film read: " : ""}${likely}</span>` : ""}`, T.tendKnown ? tells : "—", T.tendKnown ? counter : "—", next + rows + lately, shooter];
   };
   const named = ["left", "right"].filter(side => pitNamed(side));
   return sec("Anticipate",
@@ -16794,10 +17363,18 @@ window.copyMatchup = () => {
 
 function scoutBoard(){
   const div=divisionOf(), list=teamsHere(), added=addedTeams(div.id).map(t=>t.name);
+  // An event's divisions sit behind one button and a list, not thirty-four
+  // buttons: the World Cup alone has that many, and a phone shows six at a time.
+  const events = [...new Set(DIVISIONS.filter(d => d.event).map(d => d.event))];
   return sec("World Cup 2026", `<p class="note">All 34 competition divisions, team entries, rosters and supplied player history.</p><button class="btn btn--block" onclick="set({tab:'more',more:'worldcup'})">Find World Cup teams</button>`)
   + sec("Division", `<div class="seg seg--wrap">
-      ${DIVISIONS.map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
+      ${DIVISIONS.filter(d => !d.event).map(d=>`<button class="${d.id===div.id?"on":""}" onclick="setDivision('${d.id}')">${esc(d.name)}</button>`).join("")}
+      ${events.map(ev => { const first = DIVISIONS.find(d => d.event === ev);
+        return `<button class="${div.event===ev?"on":""}" onclick="setDivision(${jsq(div.event===ev ? div.id : first.id)})">${esc(ev)}</button>`; }).join("")}
     </div>
+    ${div.event ? `<div class="fld"><label for="div-in-event">${esc(div.event)} division</label>
+      <select id="div-in-event" onchange="setDivision(this.value)">${DIVISIONS.filter(d => d.event === div.event).map(d =>
+        `<option value="${esc(d.id)}"${d.id === div.id ? " selected" : ""}>${esc(d.name)} · ${d.teams.length}</option>`).join("")}</select></div>` : ""}
     ${div.note?`<p class="note">${esc(div.note)}</p>`:""}
     ${div.read?`<p class="note" style="color:var(--mute)">Read from ${esc(div.read)}</p>`:""}`,
     list.length+" teams")
@@ -16819,13 +17396,16 @@ function scoutBoard(){
           const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
           return seen.length >= 3 && top ? `<br><span class="note">${esc(callName(top[0]))} ${top[1]} of ${seen.length} logged</span>` : ""; })()}</td>
         <td class="num">${t.pts==null?`<span class="note">—</span>`:esc(t.pts)}</td>
-        <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}">${esc(t.reg)}</span>`:`<span class="note">—</span>`}</td>
+        <td>${t.reg?`<span class="tag ${t.reg==="PAID"?"tag--paid":"tag--pend"}"${WCUP_REG[t.reg] ? ` title="${esc(WCUP_REG[t.reg])}"` : ""}>${esc(t.reg)}</span>`:`<span class="note">—</span>`}</td>
         <td class="num col-opt">${(n => scouted(t.name) || n ? `${scouted(t.name) ? `<span class="tag tag--paid">FILM</span>` : ""}${n ? `<span class="note" style="margin-left:4px">${n} call${n === 1 ? "" : "s"}</span>` : ""}` : `<span class="note">—</span>`)((pr.breaks || []).filter(b => b.script).length)}</td>
         <td class="num col-opt">${(() => {
           const mine = (profileOf(t.name).players || []).length;
           const pub = published(t.name);
+          // An event division reads its own entry's roster, if the coach loaded the event's data.
+          const ent = div.event && evdEntriesFor(t.name).find(e => "wcup-" + e.div === div.id);
           return mine ? `<span class="tag tag--paid">${mine}</span>`
                : pub ? `<span class="tag tag--pend">${pub.men.length}</span>`
+               : ent && ent.members ? `<span class="tag tag--pend" title="Players on the event roster">${evdPlayers(ent).length}</span>`
                : `<span class="note">—</span>`;
         })()}</td>
         <td class="num">${pr.unscored&&!pr.tendSet?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
@@ -16922,9 +17502,11 @@ function sightDefault(){
 function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
-  const res=sightLines(from,300/150,240/120);
+  const standing=S.sightStand==="standing";
+  const res=sightLines(from,300/150,240/120,standing);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
-  const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim) : null;
+  const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim, standing) : null;
+  const over=standing ? [...new Set(curLayout().bunkers.filter(underEyes).map(b=>b.n))] : [];
   // Four bunkers on this field are called Tr. A coach's own call wins when he
   // has set one; otherwise the unique code does, because "SD to Tr" names
   // nothing he can stand in.
@@ -16939,7 +17521,15 @@ function sightlines(){
       <button class="${picking==="from"?"on":""}" onclick="setSightPick('from')">Standing in · ${esc(name(from))}</button>
       <button class="${picking==="to"?"on":""}" onclick="setSightPick('to')">Looking at · ${esc(S.sightTo?name(S.sightTo):"anything")}</button>
     </div>
-    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,static:true,pick:true,noPaths:true,names:true})}</div>
+    <div class="seg seg--wrap" role="group" aria-label="How the lanes are judged">
+      <button class="${standing?"":"on"}" aria-pressed="${!standing}" onclick="set({sightStand:null})">Every bunker blocks</button>
+      <button class="${standing?"on":""}" aria-pressed="${standing}" onclick="set({sightStand:'standing'})">Both standing</button>
+    </div>
+    ${standing ? `<p class="note">Both men on their feet: ${over.length
+        ? over.map(n => `${esc((BUNKER_KINDS.find(k => k.n === n) || {name: n}).name.toLowerCase())}s`).join(" and ") + ` stand lower than a standing man's eyes, so a lane over them counts as clear`
+        : "no bunker on this field is known to stand lower than a standing man's eyes, so the lanes are the same"}.
+        Every other bunker still blocks: no height for it has two published sources that agree. Kneeling and prone are not here — there is no published eye height for either.</p>` : ""}
+    <div class="field-wrap" id="sight-map">${fieldSVG({sightFrom:from,sightTo:S.sightTo,sightAim:S.sightAim,sightStand:standing,static:true,pick:true,noPaths:true,names:true})}</div>
     ${aimed
       ? `<div class="verdict ${aimed.blocked?"verdict--no":"verdict--yes"}">
            <b>${aimed.blocked?"Blocked":"Clear"}</b>
@@ -17469,6 +18059,7 @@ const HELP = {
          "Press and hold to put them in the left pit instead.",
          "Film says how many of their calls you have logged; once there are three, the call they ran most sits under the team's name with the count. Tend is still the film word you gave them.",
          "Search by name when the list is long.",
+         "NXL World Cup 2026 is one button: under it, pick the division from the list. Every team entered is there with its registration — PAID, PEND (pending), DUE (entry fee not paid) or LATE (deadline passed). Their rosters are not in the app itself: load the event data file under More › Account & backups › Event data, and each entry's roster, its people and their published history show on the pit card. Without it, paste a roster from a screenshot on the pit card, or log them as you see them.",
          "Missing a team adds one; its name is a box you can fix, and Remove says what the board holds against them and asks first."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   "more/worldcup": {t:"World Cup teams", w:"The supplied November 8, 2026 event list, available with no signal.",
@@ -17483,7 +18074,8 @@ const HELP = {
          "Tap where you are standing. Every lane fans out: solid white is clear, dashed grey is blocked.",
          "Tap a second bunker to ask about one lane.",
          "Drag the white handle off the bunker, because nobody shoots at the middle of it.",
-         "Dashed means something is in the way, and the blocker is ringed."]},
+         "Dashed means something is in the way, and the blocker is ringed.",
+         "Both standing judges the lanes with both men on their feet: snake beams and cakes are under a standing man's eyes, so a lane over them is clear. Every other bunker still blocks, because no height for it has two published sources that agree. There is no kneeling or prone: no published eye height was found for either."]},
   "more/wb": {t:"Whiteboard", w:"Draw the adjustment, then wipe it.",
     how:["Draw on the field with a finger — red, blue or white.",
          "X and O drop a mark where you tap, for who covers what.",
@@ -17520,6 +18112,12 @@ const HELP = {
          "Turn off the ones you don't run. They stop being offered; nothing you logged is lost.",
          "The five jobs inside a call are named on Playbook, on the man's row.",
          "The squad code lets a player join without an account."]},
+  "more/prep": {t:"Before you play them", w:"Everything you know about one team, and what you don't yet.",
+    how:["Open it from your game on Schedule, or from the right pit's card on Scout.",
+         "What they run and where they plant are counts of what you logged on this field — nothing under three is said as a read.",
+         "Lanes off the break counts each of your calls against the five bunkers they plant on most: geometry, not odds.",
+         "What you don't know yet says which of their games to watch and what to log there.",
+         "Send to your staff hands the card over as text; Tell the team sends the game time and when to be at the pit."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
     how:["Your team's day, at the top: pick your team once. Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Under it, game by game, every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
@@ -17587,6 +18185,8 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],
+  ["Why does a player have no history?", "The World Cup package has not read every player's history yet. Not retrieved means unknown, not none. What is there is published classification and scored-event rows, not a whole career, and a classification score is not a match score. Jerseys and most hometowns are not published, so they stay blank."],
   ["Where do I find a tool?", "Open More and use Find a tool. Try players, score, export, League sync or sign out. Search includes Playbook, Tally, Scout and Sightlines too. Tools are also grouped by before, during and after the game. Clear shows the full list again. Back to More returns to the tool you opened."],
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
@@ -17894,6 +18494,7 @@ const PAID = {
   "playbook/rep":   "team",
   "more/assess":    "team",
   "more/reports":   "team",
+  "more/prep":      "team",
 };
 const PAID_WHY = {
   "scout":          "Everything you know about the other team — their five, the calls they run, your answer to each one, and the season board.",
@@ -17902,6 +18503,7 @@ const PAID_WHY = {
   "more/assess":    "Grade a player after the point, and keep his season average.",
   "past-match":     "Every sheet you have kept, not just the one you are on.",
   "more/reports":   "The season as graphs, and as spreadsheets your staff can open.",
+  "more/prep":      "Everything you know about the team you play next on one screen, and what you don't know yet.",
 };
 
 function planOf(){
@@ -17974,6 +18576,8 @@ const PAID_SHOWS = {
   "past-match": ["Every sheet you have kept, reopened on its last point", "Its review — what each call won and each man's breaks"],
   "more/reports": ["What each of your calls won, and where your points come from, as bars", "Each opponent: what they run when ahead, level and behind, and where they plant",
                    "One page a player, sheet by sheet, to hand him", "Every list as a spreadsheet for Excel, Numbers or Google Sheets"],
+  "more/prep": ["What they run, where they plant and who shoots your men, with the count on every line",
+                "Your calls ranked by lanes against where they plant, on the measured field", "Their games to watch before you play them"],
 };
 function paidWaiting(key){
   const calls = Object.values(S.scout || {}).reduce((n, p) => n + ((p && p.breaks) || []).filter(b => b && b.script).length, 0);
@@ -18278,13 +18882,13 @@ function repOppPage(){
       <span class="fact"><b>${rec.pf}–${rec.pa}</b><span>Points</span></span>
       <span class="fact"><b>${theirs.reduce((n, c) => n + c.n, 0)}</b><span>Their calls logged</span></span>
     </div>`, team)];
-  out.push(sec(`What ${team} run`, theirs.length
+  out.push(sec(`What ${esc(team)} run`, theirs.length
     ? repBars(`Calls ${team} ran`, theirs.map(c => ({label: callName(c.key), text: `ran ${c.n}${c.decided ? ` · won ${repOf(c.won, c.decided)}` : ""}`, segs: [{n: c.n, cls: "them"}]})))
       + repList(theirs.map(c => [callName(c.key), [`ahead ${c.ahead}`, `level ${c.level}`, `behind ${c.behind}`, c.first ? `first point ${c.first}` : ""].filter(Boolean).join(" · ")]))
       + `<p class="aid">Ahead, level and behind are the score before the point, from their side. A call logged off a sheet counts in the total only.</p>`
       + repCsvBtn("their-calls")
     : `<p class="note">No calls of theirs logged${S.repAll ? "" : " on this field"}. Name their call on Scout › Breakouts.</p>`));
-  if(mine.length) out.push(sec(`Your calls against ${team}`, repBars(`Your calls against ${team}`, mine.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
+  if(mine.length) out.push(sec(`Your calls against ${esc(team)}`, repBars(`Your calls against ${team}`, mine.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
       segs: [{n: c.won, cls: "us"}, {n: c.lost, cls: "them"}, {n: c.n - c.won - c.lost, cls: "none"}]})), [["us", "won"], ["them", "lost"], ["none", "no result"]]) + repCsvBtn("calls-vs")));
   out.push(sec("Where they plant", plants.rows.length
     ? repBars(`Where ${team} plant`, plants.rows.slice(0, 12).map(r => ({label: r.name, text: `${r.n} of ${plants.fives} five${plants.fives === 1 ? "" : "s"}`, segs: [{n: r.n, cls: "them"}]}))) + repCsvBtn("plants")
@@ -18489,7 +19093,7 @@ const MORE_GROUPS=[
 ];
 // Off the menu at the owner's call, still reachable: a class deep link opens
 // Classes on a signed-in phone, so the screens stay and only the rows go.
-const MORE_HIDDEN = {classes:"Classes", league:"League"};
+const MORE_HIDDEN = {classes:"Classes", league:"League", prep:"Before you play them"};
 const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map(r=>[r[0],r[1]]))), ...MORE_HIDDEN};
 
 // The words a coach looks for need not be the name printed on a tab.
@@ -18576,6 +19180,7 @@ function moreBody(k){
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
   if(k==="reports") return reportsPage();
+  if(k==="prep") return prepPage();
   if(k==="worldcup") return window.WorldCup2026.page({esc,sec,view:()=>S.cupView,
     change:(patch,paint=true)=>{ S.cupView={...(S.cupView||{}),...patch}; if(paint) render(); },top:toMainTop});
   if(k==="walk"){
@@ -19246,6 +19851,7 @@ function moreBody(k){
       onclick="this.select()">${esc(_recoveryText)}</textarea></div>
     <button class="btn btn--danger" onclick="clearRecovery()">I have it — clear this</button>`) : "")
   + recoveryCopiesSec()
+  + evdSec()
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>

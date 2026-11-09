@@ -35,10 +35,10 @@ check("Ctrl-C or a closed Terminal during the sync still puts Capacitor's config
     assert.equal(fs.readFileSync(f, "utf8"), before, "restored after SIG" + sig);
   }
 });
-check("the environment wins over the file, and nothing set is empty", () => {
-  const s = m.settings({ GRINDX_SUPABASE_URL: "https://env.supabase.co" }, { GRINDX_SUPABASE_URL: "https://file.supabase.co", GRINDX_SUPABASE_ANON_KEY: "k" });
-  assert.deepEqual(s, { url: "https://env.supabase.co", anonKey: "k" });
-  assert.deepEqual(m.settings({}, {}), { url: "", anonKey: "" });
+check("the environment wins over the file, never paired with the file's key, and nothing set is empty", () => {
+  const s = m.settings({ GRINDX_SUPABASE_URL: "https://env.supabase.co" }, { GRINDX_SUPABASE_URL: "https://file.supabase.co", GRINDX_SUPABASE_ANON_KEY: "k" }, {});
+  assert.deepEqual(s, { url: "https://env.supabase.co", anonKey: "" });
+  assert.deepEqual(m.settings({}, {}, {}), { url: "", anonKey: "" });
 });
 check("Capacitor's config is put back exactly, even when the sync throws", () => {
   const f = path.join(tmp, "capacitor.config.json");

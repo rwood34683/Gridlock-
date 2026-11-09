@@ -1,5 +1,5 @@
 #!/bin/bash
-# The iPhone app with real gridlockpb.com accounts. Needs .env.cloud; see docs/XCODE.md.
+# The iPhone app with real gridlockpb.com accounts: the public values in site/contact.json, or .env.cloud. See docs/NATIVE-SIGN-IN.md.
 set -e
 cd "$(dirname "$0")"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"

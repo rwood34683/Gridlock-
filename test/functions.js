@@ -774,7 +774,10 @@ const ROSTER = [
     return JSON.stringify(got) === JSON.stringify(want) && sourced && !!found || JSON.stringify({got, sourced, found: !!found});
   }));
   check("every division on offer has teams in it", await ev(() =>
-    DIVISIONS.every(d => divisionTeams(d.id).length >= 11)));
+    // A season board keeps its eleven; an event's divisions are its whole
+    // entry, and a championship bracket of four is four, but never empty.
+    DIVISIONS.filter(d => !d.event).every(d => divisionTeams(d.id).length >= 11)
+      && DIVISIONS.filter(d => d.event).every(d => divisionTeams(d.id).length >= 1)));
   check("both pits draw on one field", await ev(() => {
     const svg = fieldSVG({ both: true }); return svg.includes("#e5342f") && svg.includes("#3d8bff");
   }));
@@ -1379,7 +1382,7 @@ const ROSTER = [
 
   // Exercise the actual file picker: setting the textarea in evaluate() hid a
   // repaint that discarded every selected file before Merge could read it.
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('input[type="file"][onchange^="readCopyFile"]').setInputFiles({
     name: "season.json", mimeType: "application/json", buffer: Buffer.from(copy),
   });
   await page.waitForFunction(() => /Read season.json/.test(S.copyStatus || ""));

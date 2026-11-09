@@ -1172,6 +1172,125 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     drops the four fields (`PRIVATE_FIELDS`) and cuts `EPID=` out of every
     source address (`withoutPersonToken`), and the suite fails if any returns.
 
+77. ~~Sign in on the phone the way the web app does.~~ Done — the owner asked
+    for it to be seamless. Three pieces, `docs/NATIVE-SIGN-IN.md` the runbook.
+    **A store build is the cloud build**: the Xcode App target's first phase,
+    *Refuse an offline store build* (`IOS_RELEASE_GUARD`, run with sh by the
+    suite), stops a device Release or archive whose shell lacks the adapter,
+    its config or the `://auth/callback`, or carries a secret; Gradle's
+    `android/app/release-guard.gradle` stops any release task the same way
+    (run with real Gradle on a stand-in project). `GRIDLOCK_OFFLINE_RELEASE=1`
+    (Gradle also `-PgridlockOfflineRelease`) is the one way to ship offline on
+    purpose, for a variant brand, and it warns. `npm run bundle:android` /
+    `build:android` sync the cloud build, run Gradle and put the offline build
+    back even on failure (`buildPlan`). **Android has a cloud build**:
+    `npm run android:cloud`, the same flow as `ios:cloud` through
+    `scripts/native-cloud.js`; both read the public values from the
+    environment, then `.env.cloud`, then `site/contact.json` `cloud` — one
+    source for both values, never mixed. **A password saved on the website is
+    offered in the app**: `App.entitlements` asks `webcredentials:` for the
+    site's domain and the live app's host (`credentialHosts`), each served
+    `/.well-known/apple-app-site-association` names `<appleTeam>.<appId>`
+    (`appleAssociation`; `npm run contact -- --appleTeam`, empty until set and
+    pending in the site check); Android's `asset_statements` includes both
+    hosts' `assetlinks.json`, which grants `get_login_creds` beside app links.
+    The cloud web build writes both files into `dist/cloud/.well-known/`; the
+    phone builds leave them out. All of it is written by
+    `configure-native.js`, idempotent and per brand. A store build is now the account build,
+    so the iPhone privacy manifest declares what it keeps (email, user ID, and
+    the season only with League sync on; `hasAccounts`, `withCollectedData`,
+    none for a brand with no `cloud` block), `docs/STORE-LISTING.md` describes
+    the account and asks for a review account entered only in the consoles,
+    and `site.yml` uploads with `include-hidden-files` or Pages drops
+    `.well-known/`. gridlockpb.com is the Grok site: its two files are copied
+    into the export by hand (`marketing/grok/README.md`). Not verified here: an
+    Xcode archive, a Gradle release with the SDK, the files as served, and the
+    password offered on a phone. `test/native-sign-in.cjs`.
+
+78. ~~Who is playing at the World Cup, on the board.~~ Done — the owner handed over the
+    NXL World Cup 2026 data package (PBLeagues event 9322, read 8 Nov 2026)
+    and asked for it in the app; he chose teams only. `tools/worldcup_2026.py
+    <package> --write` writes the block between `/* worldcup:begin */` and
+    `/* worldcup:end */` (`WCUP`) from `teams.json`; never hand-edit it. Every
+    division with entries (34) and every entry (680) joins the board as
+    `wcup-<division id>` with `src:"reg"` and its registration as PAID, PEND,
+    DUE (entry fee not paid) or LATE (deadline passed) (`WCUP_REG`). The event
+    is one button on Division and a list of its divisions under it (`event`
+    on a division, `WCUP_EVENT`), not thirty-four buttons. The rosters,
+    people and history are item 76's directory; the board carries the
+    teams so a team in any World Cup division can go in a pit. `test/review-nov6.cjs`.
+
+
+79. ~~The World Cup rosters, people and history, from a file.~~ Done — the
+    owner asked for the whole package: divisions, entries, rosters, people and
+    their published history. It was built before item 76 bundled the
+    directory, and stays as the way to load a newer, more complete package onto
+    one phone without a release; the file is never in a season copy.
+    `tools/worldcup_pack.py <package> OUT.json` packs them on the coach's own
+    machine, keeping every published ID (entry, team, division, person, source,
+    observation), source URLs with their read times and every missing-data
+    status, and leaving out ages, a person's payment, personal links and tokens,
+    and local paths. More › Account & backups › **Event data** loads the file
+    into its own IndexedDB store (`gridlock.coach.eventdata`, `evdDb`), read on
+    first need (`evdNeed`), never at launch and never mirrored: it is reference
+    data, and the file is its backup. Loading again puts each record over the
+    one with the same ID (`evdMergeEntry`, `evdMergePerson`): history merges by
+    observation ID, and a newer file that did not read something leaves what an
+    older one read; an entry the newer file lacks is kept and marked. The pit
+    card lists every entry of the team (by name as published and by team ID),
+    each division separately, its roster state said plainly — an unread roster
+    is unknown, not empty — the team's location as the team's, never a
+    player's, and the roster by role; a person shows name variants, jersey not
+    published, hometown status, and published classification and scored-event
+    rows with their sources, called not a career and a classification score
+    not a match score. **Put these players on their card** matches by person ID
+    only (`addEventPlayers`); a man already there under the same name with no
+    ID is left alone and named. Every read, load and delete of the store runs
+    one after another (`evdQueue`), so a delete tapped mid-load leaves it off
+    and two loads never merge into the same old records; every lookup keyed
+    by a file's IDs or names has no prototype (`evdMap`), so an ID written
+    `__proto__` or a team called `constructor` is an ordinary key. `test/event-data.cjs` runs on a made-up package.
+
+
+80. ~~Before you play them.~~ Done — the owner asked whether a coach feels the
+    edge at his fingertips, and the answer was not yet: what was known about the
+    next opponent was spread over five screens, an empty read said only that it
+    was empty, and nothing reached the players. **Before you play them**
+    (`more/prep`, hidden from the menu like Classes, `prepPage`, `prepFacts`,
+    Team like Reports) is one card a team: when and where he plays them, what
+    they run and in which score state, where they plant, his calls ranked by
+    lanes against the five bunkers they plant on most (`lanesBetween`, the
+    measured field, never odds), who shoots his men, his calls against them,
+    their roster from the event data, their games still to watch, and **What
+    you don't know yet**. Nothing under three (`PREP_MIN`, `GHOST_MIN`) is said
+    as a read. A game on another field says so and offers that field, because
+    every count is this field's. It opens from his game rows on Schedule and
+    from the right pit's card; **Send to your staff** hands it over as text
+    (`prepText`). An empty read is a plan (`scoutNext`, `scoutNextLine`): how
+    many more logged breaks start it and the next game of theirs to watch, on
+    the point sheet's read line and on Anticipate. **Tell the team** on each of
+    his games and **Send the day plan to the team** (`tellText`, `dayPlanText`)
+    are group-chat messages through `handOff`: the game, the field, and when to
+    be at the pit — his rule (`pitLead`, `PIT_LEADS`, 30 by default, or Don't
+    say), never the league's — and who is scouting what, asking who goes to a
+    clash. The schedule still has the Pro field only; the card says so where it
+    matters. `test/game-prep.cjs`.
+
+
+81. ~~Sightlines standing.~~ Done, standing only — the owner asked for
+    standing, kneeling and prone. **Both standing** on Sightlines
+    (`S.sightStand`, off by default) judges a lane with both men on their
+    feet: a bunker kind that two published sources put lower than a
+    standing man's eyes does not block (`BUNKER_HEIGHT_M`, `EYE_STANDING_M`
+    1.64 m, `underEyes`). Only the snake beam and the cake qualify; every
+    other kind still blocks, because makers disagree (a Maya temple is
+    printed at 1.37 m and 2.5 m). Kneeling and prone are not offered: no
+    published eye height was found for either. Never add a kind or a stance
+    on one source or a guess. Only Sightlines reads it: `sightLines` and
+    `aimLane` take it as a parameter, and `laneClear`, the lanes off the
+    break, the bunker book and Walk stay flat. `docs/SIGHTLINES-HEIGHTS.md`
+    has the sources and the disagreements. `test/sight-standing.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

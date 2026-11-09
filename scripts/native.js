@@ -27,6 +27,46 @@ function normalisePaths() {
     fs.writeFileSync(file, text);
   }
 }
+// Which web goes into a build: a release is the cloud build, so the store app
+// signs in with gridlockpb.com accounts. GRIDLOCK_OFFLINE_RELEASE=1 is the
+// deliberate exception (a variant brand, which has no account server), and
+// the release guard in android/app accepts it the same way.
+function buildPlan(task, env = process.env) {
+  if (!task || !task.endsWith("Release")) return "offline";
+  return env.GRIDLOCK_OFFLINE_RELEASE === "1" ? "offline-release" : "cloud";
+}
+function offlineSync(name) {
+  require("./configure-native").configure();
+  cap("sync", name);
+  normalisePaths();
+  require("./configure-native").configure();
+  // cap sync copies web/ as it is — the default brand — into the shell. A
+  // shell switched to another build gets that build's web back, or it ships
+  // the wrong name and the wrong deep link under its own app id.
+  const active = require("./configure-native").activeBrand();
+  if (active.key !== require("./brand").loadBrands().default) require("./brand").native(active.key, { quiet: true });
+}
+// Run fn with Ctrl-C, Terminal closing and kill held. With a listener on
+// the signal node does not die: the child it is blocked on gets the same
+// signal and stops, fn's finally runs, and node exits with the signal's code
+// afterwards. A signal that arrives while node is blocked in spawnSync is
+// only delivered once the event loop turns, so the listeners stay on until
+// the next turn has had its chance (poll runs before setImmediate's check).
+const SIGNALS = { SIGINT: 2, SIGTERM: 15, SIGHUP: 1 };
+function holdSignals(fn, proc = process, later = setImmediate) {
+  let caught = null;
+  const handlers = Object.keys(SIGNALS).map(sig => { const h = () => { caught = caught || sig; }; proc.on(sig, h); return [sig, h]; });
+  const settle = () => {
+    if (caught) return proc.exit(128 + SIGNALS[caught]);
+    for (const [sig, h] of handlers) proc.removeListener(sig, h);
+  };
+  try { return fn(); }
+  finally { if (caught) settle(); else later(settle); }
+}
+function gradle(task) {
+  if (process.platform === "win32") run(process.env.COMSPEC || "cmd.exe", ["/d", "/c", "gradlew.bat", task], path.join(ROOT, "android"));
+  else run("sh", ["./gradlew", task], path.join(ROOT, "android"));
+}
 function main() {
   const [action = "sync", platform, ...extra] = process.argv.slice(2);
   if (!["sync", "setup", "open", "build"].includes(action)) throw new Error("Use native.js sync|setup|open|build [android|ios].");
@@ -46,26 +86,32 @@ function main() {
       else cap("add", name);
     }
     if (action === "open") { cap("open", name); continue; }
-    require("./configure-native").configure();
-    cap("sync", name);
-    normalisePaths();
-    require("./configure-native").configure();
-    // cap sync copies web/ as it is — the default brand — into the shell. A
-    // shell switched to another build gets that build's web back, or it ships
-    // the wrong name and the wrong deep link under its own app id.
-    const active = require("./configure-native").activeBrand();
-    if (active.key !== require("./brand").loadBrands().default) require("./brand").native(active.key, { quiet: true });
+    const task = action === "build" ? (extra[0] || "assembleDebug") : null;
     if (action === "build") {
-      if (name !== "android") throw new Error("Archive the iOS app in Xcode after npm run ios:setup.");
-      const task = extra[0] || "assembleDebug";
+      if (name !== "android") throw new Error("Archive the iOS app in Xcode after npm run ios:cloud.");
       if (!["assembleDebug", "assembleRelease", "bundleRelease"].includes(task)) throw new Error("Unsupported Gradle task.");
       if (task.endsWith("Release") && !fs.existsSync(path.join(ROOT, "android/keystore.properties"))) throw new Error("Release signing is not configured. Copy android/keystore.properties.example to keystore.properties and provide your upload keystore. Use npm run build:android:debug for local testing.");
-      if (process.platform === "win32") run(process.env.COMSPEC || "cmd.exe", ["/d", "/c", "gradlew.bat", task], path.join(ROOT, "android"));
-      else run("sh", ["./gradlew", task], path.join(ROOT, "android"));
     }
+    const plan = buildPlan(task, process.env);
+    if (plan === "cloud") {
+      // A store build is the cloud build. It is synced for this build only and
+      // the offline build goes back afterwards, even when Gradle fails, so the
+      // committed shell never changes under the coach.
+      // The sync is inside the try because it changes the shell before it can
+      // still fail. The signals are held because Ctrl-C or closing Terminal
+      // during a Gradle build of several minutes would otherwise kill node
+      // before the finally ran.
+      holdSignals(() => {
+        try { require("./native-cloud").syncCloud("android"); gradle(task); }
+        finally { offlineSync(name); }
+      });
+      continue;
+    }
+    offlineSync(name);
+    if (action === "build") gradle(task);
     if (extra.includes("--open")) cap("open", name);
   }
   if (platforms.includes("ios") && process.platform !== "darwin") console.log("iOS source synced. Install pods and compile on a Mac using npm run ios:setup.");
 }
 if (require.main === module) { try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; } }
-module.exports = { normalisePaths };
+module.exports = { normalisePaths, buildPlan, holdSignals };

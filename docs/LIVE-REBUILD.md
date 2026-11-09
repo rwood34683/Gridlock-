@@ -35,6 +35,15 @@ Sites inspection on 3 November 2026 confirmed the existing project:
    environment. Output is `dist/ios-cloud/` with the same links. This does not
    compile, sign, or upload an iOS app. Native compilation requires a Mac.
 
+## Password sharing files
+
+`dist/cloud/.well-known/` holds `apple-app-site-association` and
+`assetlinks.json`. They let the phone apps offer a password a coach saved at
+app.gridlockpb.com. Upload them with the rest of `dist/cloud/`. Afterwards,
+confirm `https://app.gridlockpb.com/.well-known/apple-app-site-association`
+returns that JSON. Some hosts skip folders whose names start with a dot. See
+[NATIVE-SIGN-IN.md](NATIVE-SIGN-IN.md).
+
 ## Upload using the existing Sites project, only when the owner asks
 
 There is no standalone manual upload dashboard documented in this repo.

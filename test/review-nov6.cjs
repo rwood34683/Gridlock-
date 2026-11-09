@@ -191,6 +191,23 @@ const SEED = require("../scripts/seed.js");
       assert.equal(on, "Thursday 9:00 AM — on now", "a game under way says so");
       await p.evaluate(() => { S.games = []; S.myTeam = ""; save(S); });
     });
+    await check("the NXL World Cup 2026 entries sit on the board behind one button, sourced, with no person in them", async p => {
+      const r = await p.evaluate(() => {
+        const wc = DIVISIONS.filter(d => d.event === WCUP_EVENT);
+        set({ tab:"scout", scoutTab:"board", division: wc.find(d => /^Pro X-Ball/.test(d.name)).id });
+        const segs = [...document.querySelectorAll("#root .seg button")].filter(b => /World Cup/.test(b.textContent)).length;
+        const sel = document.getElementById("div-in-event");
+        return { divs: wc.length, entries: wc.reduce((n, d) => n + d.teams.length, 0), segs, opts: sel ? sel.options.length : 0,
+          rows: document.querySelectorAll("#boardRows tr").length, regs: [...new Set(wc.flatMap(d => d.teams.map(t => t.reg)))].sort(),
+          src: wc.every(d => d.teams.every(t => t.src === "reg")) && wc.every(d => /event 9322/.test(d.read)),
+          keys: Object.keys(WCUP).sort(), impact: published("Edmonton Impact") };
+      });
+      assert.equal(r.divs, 34); assert.equal(r.entries, 680); assert.equal(r.segs, 1, "one button for the event");
+      assert.equal(r.opts, 34, "its divisions in one list"); assert.equal(r.rows, 20, "Pro X-Ball has all 20 entries");
+      assert.deepEqual(r.regs, ["DUE", "LATE", "PAID", "PEND"]); assert.ok(r.src, "every entry is sourced to event 9322");
+      assert.deepEqual(r.keys, ["divs", "read"], "teams only: no roster or person in the data");
+      assert.equal(r.impact, null, "no published roster comes with a World Cup entry");
+    });
     await check("the cloud adapter reads a venue's Wi-Fi login page or a server error as no signal, not a refusal", async () => {
       const src = fs.readFileSync(path.resolve(__dirname, "../native/gridlock-cloud.js"), "utf8");
       const run = async res => {
