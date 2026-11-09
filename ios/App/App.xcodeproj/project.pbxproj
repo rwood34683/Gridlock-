@@ -107,6 +107,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
 			buildPhases = (
+				474C50524956414359000003 /* Refuse an offline store build */,
 				6634F4EFEBD30273BCE97C65 /* [CP] Check Pods Manifest.lock */,
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
@@ -176,6 +177,22 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		474C50524956414359000003 /* Refuse an offline store build */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Refuse an offline store build";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Refuse a store build that is the offline copy (scripts/configure-native.js).\nif [ \"${CONFIGURATION}\" != \"Release\" ] || [ \"${PLATFORM_NAME}\" = \"iphonesimulator\" ]; then exit 0; fi\nif [ \"${GRIDLOCK_OFFLINE_RELEASE}\" = \"1\" ]; then\n  echo \"warning: GRIDLOCK_OFFLINE_RELEASE = 1, so this release is the offline build: its sign-in is kept on the phone and gridlockpb.com accounts do not work in it.\"\n  exit 0\nfi\nP=\"${SRCROOT}/App/public\"\nfail() {\n  echo \"error: This is the offline build ($1). A store build must sign in with gridlockpb.com accounts: run npm run ios:cloud, then archive again. To ship the offline build on purpose, add the build setting GRIDLOCK_OFFLINE_RELEASE = 1.\"\n  exit 1\n}\n[ -f \"$P/gridlock-config.js\" ] || fail \"gridlock-config.js is missing\"\n[ -f \"$P/gridlock-cloud.js\" ] || fail \"gridlock-cloud.js is missing\"\ngrep -q 'src=\"gridlock-cloud.js\"' \"$P/index.html\" || fail \"index.html does not load the account adapter\"\ngrep -q '://auth/callback' \"$P/gridlock-config.js\" || fail \"gridlock-config.js does not name the app's sign-in callback\"\nif grep -Eq 'sb_secret_|service_role' \"$P/gridlock-config.js\"; then\n  echo \"error: gridlock-config.js carries a secret key, which must never ship. Rebuild with npm run ios:cloud.\"\n  exit 1\nfi\nexit 0\n";
+			showEnvVarsInLog = 0;
+		};
 		6634F4EFEBD30273BCE97C65 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -355,6 +372,7 @@
 			baseConfigurationReference = FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -375,6 +393,7 @@
 			baseConfigurationReference = AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;

@@ -54,3 +54,4 @@ try {
 }
 
 apply from: 'signing.gradle'
+apply from: 'release-guard.gradle'

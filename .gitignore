@@ -25,3 +25,7 @@ ios/DerivedData/
 # carry the Supabase project's public config and are rebuilt on every run.
 ios/App/App/public/gridlock-config.js
 ios/App/App/public/gridlock-cloud.js
+# The Android cloud build (npm run android:cloud, and every store build) writes
+# the same two files into its shell.
+android/app/src/main/assets/public/gridlock-config.js
+android/app/src/main/assets/public/gridlock-cloud.js

@@ -47,6 +47,7 @@
     "native:check": "node scripts/native-check.js",
     "ios:preflight": "node scripts/xcode.js preflight",
     "ios:cloud": "node scripts/ios-cloud.js",
+    "android:cloud": "node scripts/android-cloud.js",
     "build:ios:simulator": "node scripts/xcode.js build",
     "test:voice-parser": "node scripts/run-checks.js voice-parser",
     "test:voice": "node scripts/run-checks.js voice",
