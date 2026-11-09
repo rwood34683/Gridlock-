@@ -55,6 +55,13 @@ const SEED = require("../scripts/seed.js");
       const t = await root(p);
       assert.match(t, /1 more of their break logged and the read starts/);
       assert.doesNotMatch(t, /\b2 of 2 logged\b/);
+      const word = await p.evaluate(() => callName("blitz"));
+      assert.doesNotMatch(t, new RegExp(`\\b${word}\\b`, "i"), "their call is not named on two logged");
+    });
+    await check("a team typed with markup in its name prints as text on the card", async p => {
+      await p.evaluate(() => openPrep("<img id=pwn src=x>"));
+      assert.equal(await p.evaluate(() => !!document.getElementById("pwn")), false);
+      assert.match(await root(p), /Before you play <img id=pwn src=x>/i);
     });
     await check("with three logged the card counts what they run, where they plant, and ranks calls by lanes on the measured field", async p => {
       await logTheirs(p, "Rejects", 4, "blitz");

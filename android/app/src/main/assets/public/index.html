@@ -2640,7 +2640,7 @@ function prepPage(){
   const gf = f.game ? gameField(f.game) : null;
   const elsewhere = gf && gf !== S.layoutKey && LAYOUTS[gf] ? `<div class="warn">You play them on <b>${esc(LAYOUTS[gf].name)}</b>; everything below is counted on ${esc(field)}.
       <button class="btn btn--block" style="margin-top:var(--s2)" onclick="pickEvent(${jsq(gf)})">Read it on ${esc(LAYOUTS[gf].name)}</button></div>` : "";
-  out.push(sec(`Before you play ${team}`, `${pick}${when}${elsewhere}
+  out.push(sec(`Before you play ${esc(team)}`, `${pick}${when}${elsewhere}
     <div class="facts">
       <span class="fact"><b>${f.total}</b><span>Their calls logged</span></span>
       <span class="fact"><b>${f.plants.fives}</b><span>Their fives here</span></span>
@@ -2668,7 +2668,7 @@ function prepPage(){
   if(f.sh.n) out.push(sec("How they get you", repList([
       ...(f.sh.who.length ? [["Shot your men most", f.sh.who.slice(0, 3).map(([w, n]) => `${w} ${n}`).join(", ")]] : []),
       ...(f.sh.where.length ? [["Where your men went out", f.sh.where.slice(0, 3).map(([b, n]) => `${b} ${n}`).join(", ")]] : [])]), `${f.sh.n} out${f.sh.n === 1 ? "" : "s"}`));
-  if(f.mine.length) out.push(sec(`Your calls against ${team}`, repList(f.mine.slice(0, 5).map(c => [callName(c.key), `called ${c.n} · won ${c.won} of ${c.won + c.lost}`]))));
+  if(f.mine.length) out.push(sec(`Your calls against ${esc(team)}`, repList(f.mine.slice(0, 5).map(c => [callName(c.key), `called ${c.n} · won ${c.won} of ${c.won + c.lost}`]))));
   out.push(sec("Their roster", f.entries.length
     ? f.entries.map(e => { const pl = evdPlayers(e), hist = pl.filter(m => ((EVD.people[m.pid] || {}).obs || []).length).length;
         return `<p class="note"><b>${esc(e.divName)}</b> · ${e.members ? `${pl.length} player${pl.length === 1 ? "" : "s"}${pl.length ? `, published history read for ${hist}` : ""}` : esc(evdRosterWord(e.roster.status))}</p>`; }).join("")
@@ -10687,12 +10687,22 @@ const EVD_ROLES = ["Player", "Coach", "Staff", "Media"];
 const EVD_PLURAL = {Player: "players", Coach: "coaches", Staff: "staff", Media: "media"};
 const EVD_HIST_READ = new Set(["scored_event_history_imported", "scored_event_history_imported_zero_rows"]);
 let EVD = null, EVD_STATE = "unread", EVD_ERR = "";
+// Every read, load and delete of the store runs one after another. A delete
+// tapped while a load was still writing left the store gone and the rosters
+// still on screen, or the load landed after the delete and brought them back;
+// two loads at once each merged into the same old records and the second
+// lost what the first had added.
+let EVD_Q = Promise.resolve();
+function evdQueue(job){ const p = EVD_Q.then(job, job); EVD_Q = p.catch(() => {}); return p; }
+// Lookups keyed by IDs and names out of a file: no prototype, so an ID
+// written "__proto__" or a team called "constructor" is an ordinary key.
+const evdMap = () => Object.create(null);
 function evdDb(){
   return new Promise((ok, no) => {
     let rq;
     try { rq = indexedDB.open(EVD_DB, 1); } catch(e){ no(new Error("This phone cannot keep event data in this app.")); return; }
     rq.onupgradeneeded = () => { const db = rq.result; EVD_STORES.forEach(n => { if(!db.objectStoreNames.contains(n)) db.createObjectStore(n); }); };
-    rq.onsuccess = () => ok(rq.result);
+    rq.onsuccess = () => { const db = rq.result; db.onversionchange = () => db.close(); ok(db); };
     rq.onerror = () => no(rq.error || new Error("Could not open the event data."));
   });
 }
@@ -10700,7 +10710,7 @@ function evdReadAll(db){
   return new Promise((ok, no) => {
     const tx = db.transaction(EVD_STORES, "readonly"), got = {};
     EVD_STORES.forEach(n => { const os = tx.objectStore(n), k = os.getAllKeys(), v = os.getAll();
-      got[n] = () => { const o = {}; k.result.forEach((key, i) => { o[key] = v.result[i]; }); return o; }; });
+      got[n] = () => { const o = evdMap(); k.result.forEach((key, i) => { o[key] = v.result[i]; }); return o; }; });
     tx.oncomplete = () => { const o = {}; EVD_STORES.forEach(n => { o[n] = got[n](); }); ok(o); };
     tx.onerror = () => no(tx.error || new Error("Could not read the event data."));
   });
@@ -10708,7 +10718,7 @@ function evdReadAll(db){
 // The lookups every screen reads: a team's entries by its name as published and
 // by its team ID, and every entry a person ID is on.
 function evdIndex(all){
-  const byName = {}, byTeam = {}, byPerson = {};
+  const byName = evdMap(), byTeam = evdMap(), byPerson = evdMap();
   for(const e of Object.values(all.entries)){
     (byName[foldName(e.name)] = byName[foldName(e.name)] || []).push(e.id);
     (byTeam[e.team] = byTeam[e.team] || []).push(e.id);
@@ -10719,7 +10729,7 @@ function evdIndex(all){
 function evdLoadStore(){
   if(typeof indexedDB === "undefined" || !indexedDB){ EVD_STATE = "none"; return; }
   EVD_STATE = "reading";
-  evdDb().then(db => evdReadAll(db).then(all => { db.close(); return all; }))
+  evdQueue(() => evdDb().then(db => evdReadAll(db).then(all => { db.close(); return all; })))
     .then(all => {
       if(!Object.keys(all.meta).length){ EVD = null; EVD_STATE = "none"; return; }
       EVD = evdIndex(all); EVD_STATE = "ready";
@@ -10744,11 +10754,11 @@ function evdUnpack(text){
   const id = v => (typeof v === "string" || typeof v === "number") && String(v).length && String(v).length <= 80 ? String(v) : null;
   if(!id(ev.id)) return {error: "That event-data file does not say which event it is."};
   let refused = 0;
-  const sources = {};
+  const sources = evdMap();
   for(const [k, v] of Object.entries(d.src || {})) if(id(k) && Array.isArray(v) && T(v[0])) sources[k] = {url: T(v[0]), at: s(v[1])};
-  const divName = {};
+  const divName = evdMap();
   (Array.isArray(d.divs) ? d.divs : []).forEach(x => { if(Array.isArray(x) && id(x[0])) divName[x[0]] = s(x[1]) || ""; });
-  const entries = {};
+  const entries = evdMap();
   for(const [k, e] of Object.entries(d.entries || {})){
     if(!id(k) || !e || !id(e.team) || !s(e.name)){ refused++; continue; }
     const loc = e.loc || {}, r = e.roster || {};
@@ -10766,7 +10776,7 @@ function evdUnpack(text){
   // A roster page that was read and listed nobody is an empty list; one that
   // was never read stays null — not an empty roster.
   for(const e of Object.values(entries)) if(!e.members && /empty_roster$/.test(e.roster.status)) e.members = [];
-  const people = {};
+  const people = evdMap();
   for(const [k, p] of Object.entries(d.people || {})){
     if(!id(k) || !Array.isArray(p) || !T(p[0])){ refused++; continue; }
     const town = Array.isArray(p[4]) && T(p[4][0]) ? {raw: T(p[4][0]), city: T(p[4][1]), region: T(p[4][2]), country: T(p[4][3]), src: id(p[4][4])} : null;
@@ -10789,13 +10799,13 @@ function evdUnpack(text){
 // read something; where it did not, what an older file read stands.
 function evdMergePerson(old, p){
   if(!old) return p;
-  const obs = {}; old.obs.forEach(o => { obs[o.id] = o; }); p.obs.forEach(o => { obs[o.id] = o; });
-  const vs = {}; [...old.variants, ...p.variants].forEach(v => { vs[[v.name, v.kind, v.src].join("|")] = v; });
+  const obs = evdMap(); old.obs.forEach(o => { obs[o.id] = o; }); p.obs.forEach(o => { obs[o.id] = o; });
+  const vs = evdMap(); [...old.variants, ...p.variants].forEach(v => { vs[[v.name, v.kind, v.src].join("|")] = v; });
   const keepHist = !EVD_HIST_READ.has(p.hist) && EVD_HIST_READ.has(old.hist);
   const keepHome = p.home === "not_retrieved" && old.home !== "not_retrieved";
   return {...p, player: p.player || old.player,
     hist: keepHist ? old.hist : p.hist, histSrc: keepHist ? old.histSrc : p.histSrc,
-    home: keepHome ? old.home : p.home, town: p.town || old.town,
+    home: keepHome ? old.home : p.home, town: keepHome ? old.town : p.town,
     variants: Object.values(vs), obs: Object.values(obs).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))};
 }
 function evdMergeEntry(old, e){
@@ -10813,13 +10823,13 @@ window.loadEventFile = input => {
     const pack = evdUnpack(String(fr.result || ""));
     if(pack.error){ set({evdSaid: pack.error}); return; }
     let db;
-    evdDb().then(d => { db = d; return evdReadAll(db); }).then(old => new Promise((ok, no) => {
+    evdQueue(() => evdDb().then(d => { db = d; return evdReadAll(db); }).then(old => new Promise((ok, no) => {
       const tx = db.transaction(EVD_STORES, "readwrite"), n = {entNew: 0, entUpd: 0, pplNew: 0, pplUpd: 0, obsNew: 0, gone: 0};
       const prev = old.meta[pack.meta.id];
       for(const e of Object.values(pack.entries)){ old.entries[e.id] ? n.entUpd++ : n.entNew++; tx.objectStore("entries").put(evdMergeEntry(old.entries[e.id], e), e.id); }
       // An entry an older file of this event had and this one does not is kept
       // and marked, never deleted: it may have withdrawn, or the read missed it.
-      for(const e of Object.values(old.entries)) if(e.event === pack.meta.id && !pack.entries[e.id]){ n.gone++; tx.objectStore("entries").put({...e, notInLatest: true}, e.id); }
+      for(const e of Object.values(old.entries)) if(e.event === pack.meta.id && !pack.entries[e.id]){ if(!e.notInLatest) n.gone++; tx.objectStore("entries").put({...e, notInLatest: true}, e.id); }
       for(const p of Object.values(pack.people)){
         const was = old.people[p.id], had = new Set(((was || {}).obs || []).map(o => o.id));
         was ? n.pplUpd++ : n.pplNew++; n.obsNew += p.obs.filter(o => !had.has(o.id)).length;
@@ -10828,7 +10838,7 @@ window.loadEventFile = input => {
       for(const [k, v] of Object.entries(pack.sources)) tx.objectStore("sources").put(v, k);
       tx.objectStore("meta").put({...pack.meta, file: String(f.name).slice(0, 120), loadedAt: Date.now(), loads: ((prev || {}).loads || 0) + 1}, pack.meta.id);
       tx.oncomplete = () => ok(n); tx.onerror = () => no(tx.error || new Error("The phone refused to keep the event data."));
-    })).then(n => evdReadAll(db).then(all => { db.close(); EVD = evdIndex(all); EVD_STATE = "ready"; return n; }))
+    })).then(n => evdReadAll(db).then(all => { db.close(); db = null; EVD = evdIndex(all); EVD_STATE = "ready"; return n; })))
     .then(n => set({evdSaid: `Loaded ${pack.meta.name}: ${Object.keys(pack.entries).length} entries (${n.entNew} new, ${n.entUpd} updated), `
         + `${Object.keys(pack.people).length} people (${n.pplNew} new, ${n.pplUpd} updated), ${n.obsNew} new history rows.`
         + (n.gone ? ` ${n.gone} entr${n.gone === 1 ? "y" : "ies"} from an earlier file ${n.gone === 1 ? "is" : "are"} not in this one — kept and marked.` : "")
@@ -10839,9 +10849,16 @@ window.loadEventFile = input => {
 };
 window.dropEventData = () => {
   if(!confirm("Take the event data off this phone? Rosters and histories go; nothing you logged does, and you can load the file again.")) return;
-  EVD = null; EVD_STATE = "none";
-  try { const rq = indexedDB.deleteDatabase(EVD_DB); rq.onsuccess = rq.onerror = rq.onblocked = () => set({evdSaid: "Event data taken off this phone."}); }
-  catch(e){ set({evdSaid: "Event data taken off this phone."}); }
+  set({evdSaid: "Taking the event data off this phone…"});
+  evdQueue(() => new Promise(ok => {
+    EVD = null; EVD_STATE = "none";
+    const done = said => { ok(); set({evdSaid: said}); };
+    try {
+      const rq = indexedDB.deleteDatabase(EVD_DB);
+      rq.onsuccess = () => done("Event data taken off this phone.");
+      rq.onerror = () => done("The phone would not take the event data off. Close the app and try again.");
+    } catch(e){ done("The phone would not take the event data off. Close the app and try again."); }
+  }));
 };
 
 // ---- what the statuses mean, said plainly ----
@@ -10956,11 +10973,11 @@ function evdSec(){
     ${EVD_STATE === "reading" ? `<p class="note">Reading the event data on this phone…</p>` : ""}
     ${EVD_STATE === "error" ? `<p class="note">The event data on this phone could not be read: ${esc(EVD_ERR)}. Load the file again.</p>` : ""}
     ${metas.map(m => { const c = m.coverage || {}, h = c.player_history_statuses || {}, ht = c.player_hometown_statuses || {};
-      const hist = (h.scored_event_history_imported || 0) + (h.scored_event_history_imported_zero_rows || 0);
+      const hist = (+h.scored_event_history_imported || 0) + (+h.scored_event_history_imported_zero_rows || 0);
       return `<div class="evd-entry"><p><b>${esc(m.name)}</b> <span class="note">· event ${esc(m.id)}${m.start ? " · " + esc(m.start) + (m.end ? " to " + esc(m.end) : "") : ""}</span></p>
         <p class="note">${esc(m.file || "")} · loaded ${esc(new Date(m.loadedAt).toLocaleString())}${m.loads > 1 ? ` · ${m.loads} loads` : ""}${c.generated_at ? " · package audited " + esc(String(c.generated_at).slice(0, 10)) : ""}</p>
         <p class="note">${esc(c.event_entries)} entries · ${esc(c.distinct_team_ids)} team IDs · ${esc(c.distinct_people)} people · ${esc(c.distinct_current_players)} current players</p>
-        <p class="note">History read for ${hist} of ${esc(c.distinct_current_players)} players${h.not_retrieved ? `; ${esc(h.not_retrieved)} not retrieved yet — missing history does not mean no history` : ""}.
+        <p class="note">History read for ${esc(hist)} of ${esc(c.distinct_current_players)} players${h.not_retrieved ? `; ${esc(h.not_retrieved)} not retrieved yet — missing history does not mean no history` : ""}.
           Hometowns: ${esc(ht.not_retrieved || 0)} not retrieved, ${esc(ht.not_published_in_retrieved_classification_page || 0)} not published. Jerseys: none published.</p>
         ${c.overall ? `<p class="note">Package status: ${esc(String(c.overall).replace(/_/g, " "))}</p>` : ""}</div>`; }).join("")}
     ${metas.length ? `<button class="btn btn--danger" onclick="dropEventData()">Take the event data off this phone</button>` : ""}`,
@@ -17900,13 +17917,13 @@ function repOppPage(){
       <span class="fact"><b>${rec.pf}–${rec.pa}</b><span>Points</span></span>
       <span class="fact"><b>${theirs.reduce((n, c) => n + c.n, 0)}</b><span>Their calls logged</span></span>
     </div>`, team)];
-  out.push(sec(`What ${team} run`, theirs.length
+  out.push(sec(`What ${esc(team)} run`, theirs.length
     ? repBars(`Calls ${team} ran`, theirs.map(c => ({label: callName(c.key), text: `ran ${c.n}${c.decided ? ` · won ${repOf(c.won, c.decided)}` : ""}`, segs: [{n: c.n, cls: "them"}]})))
       + repList(theirs.map(c => [callName(c.key), [`ahead ${c.ahead}`, `level ${c.level}`, `behind ${c.behind}`, c.first ? `first point ${c.first}` : ""].filter(Boolean).join(" · ")]))
       + `<p class="aid">Ahead, level and behind are the score before the point, from their side. A call logged off a sheet counts in the total only.</p>`
       + repCsvBtn("their-calls")
     : `<p class="note">No calls of theirs logged${S.repAll ? "" : " on this field"}. Name their call on Scout › Breakouts.</p>`));
-  if(mine.length) out.push(sec(`Your calls against ${team}`, repBars(`Your calls against ${team}`, mine.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
+  if(mine.length) out.push(sec(`Your calls against ${esc(team)}`, repBars(`Your calls against ${team}`, mine.map(c => ({label: callName(c.key), text: `called ${c.n} · won ${repOf(c.won, c.won + c.lost)}`,
       segs: [{n: c.won, cls: "us"}, {n: c.lost, cls: "them"}, {n: c.n - c.won - c.lost, cls: "none"}]})), [["us", "won"], ["them", "lost"], ["none", "no result"]]) + repCsvBtn("calls-vs")));
   out.push(sec("Where they plant", plants.rows.length
     ? repBars(`Where ${team} plant`, plants.rows.slice(0, 12).map(r => ({label: r.name, text: `${r.n} of ${plants.fives} five${plants.fives === 1 ? "" : "s"}`, segs: [{n: r.n, cls: "them"}]}))) + repCsvBtn("plants")

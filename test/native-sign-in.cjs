@@ -144,7 +144,15 @@ check("the Gradle guard is applied and holds the same checks as the Xcode one", 
   assert.match(read("android/app/build.gradle"), /^apply from: 'release-guard\.gradle'$/m);
   const g = cn.ANDROID_RELEASE_GUARD;
   for (const bit of ["gridlock-config.js is missing", "gridlock-cloud.js is missing", "src=\"gridlock-cloud.js\"", "://auth/callback", "sb_secret_|service_role", "GRIDLOCK_OFFLINE_RELEASE", "gridlockOfflineRelease", "throw new GradleException"]) assert.ok(g.includes(bit), bit);
-  assert.match(g, /it\.name\.toLowerCase\(\)\.contains\('release'\)/, "only release tasks are checked");
+  // Only a task that makes something to ship: a release unit test or lint run
+  // after a plain sync is not a store build.
+  const ships = /it\.name ==~ \/(.+?)\/ \}/.exec(g);
+  assert.ok(ships, "the guard names the release tasks it checks");
+  const re = new RegExp("^" + ships[1].replace(/\\\\/g, "\\") + "$");
+  for (const t of ["assembleRelease", "bundleRelease", "installRelease"]) assert.ok(re.test(t), t);
+  for (const t of ["testReleaseUnitTest", "lintRelease", "assembleDebug", "compileReleaseJavaWithJavac"]) assert.ok(!re.test(t), t);
+  // -PgridlockOfflineRelease=false is not the override.
+  assert.match(g, /prop in \['false', '0', 'no'\]/);
 });
 
 check("a build with no domains asks for none, and every edit is undone cleanly", () => {

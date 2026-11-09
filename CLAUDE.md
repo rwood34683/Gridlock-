@@ -1240,7 +1240,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     rows with their sources, called not a career and a classification score
     not a match score. **Put these players on their card** matches by person ID
     only (`addEventPlayers`); a man already there under the same name with no
-    ID is left alone and named. `test/event-data.cjs` runs on a made-up package.
+    ID is left alone and named. Every read, load and delete of the store runs
+    one after another (`evdQueue`), so a delete tapped mid-load leaves it off
+    and two loads never merge into the same old records; every lookup keyed
+    by a file's IDs or names has no prototype (`evdMap`), so an ID written
+    `__proto__` or a team called `constructor` is an ordinary key. `test/event-data.cjs` runs on a made-up package.
 
 
 80. ~~Before you play them.~~ Done — the owner asked whether a coach feels the

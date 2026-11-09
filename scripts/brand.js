@@ -353,6 +353,10 @@ function native(key, { dry = false, quiet = false } = {}) {
   }
   for (const [rel, text] of writes) fs.writeFileSync(path.join(ROOT, rel), text);
   for (const [rel, buf] of publicWrites) { if (buf) fs.writeFileSync(path.join(ROOT, rel), buf); else fs.rmSync(path.join(ROOT, rel)); }
+  // The password-sharing hosts, the release guards and the privacy manifest
+  // are per brand too. Without this a Lockdown archive made straight after
+  // the switch carried Gridlock's domains and declared an account it has not.
+  require("./configure-native").configureSignIn(to);
   return { from: from.key, to: to.key, files: [...writes.keys(), ...publicWrites.map(([r]) => r)] };
 }
 

@@ -165,6 +165,36 @@ function writePackage(dir, {enriched = false} = {}) {
       fs.writeFileSync(path.join(tmp, "bad.json"), JSON.stringify({ kind: "something else" }));
       assert.match(await load(path.join(tmp, "bad.json")), /not a Gridlock event-data file/);
     });
+    await check("a crafted file cannot add markup or change every object in the app", async () => {
+      const d = JSON.parse(packed);
+      d.str.push("Hostile Person");
+      d.members.push(["__proto__", "666", d.str.length - 1]);
+      d.entries["constructor"] = { team: "constructor", name: "constructor", div: "constructor" };
+      d.people["__proto__"] = [d.str.length - 1, 1];
+      d.obs["x1"] = ["__proto__", null];
+      d.coverage = { ...(d.coverage || {}), player_history_statuses: { scored_event_history_imported: "<img id=pwn2 src=x>" } };
+      fs.writeFileSync(path.join(tmp, "hostile.json"), JSON.stringify(d));
+      assert.match(await load(path.join(tmp, "hostile.json")), /^Loaded/);
+      const r = await p.evaluate(() => ({ members: ({}).members, obs: ({}).obs, pwn: !!document.getElementById("pwn2"),
+        ctor: evdEntriesFor("constructor").map(e => e.name) }));
+      assert.equal(r.members, undefined, "Object.prototype untouched");
+      assert.equal(r.obs, undefined);
+      assert.equal(r.pwn, false, "a coverage count is printed as text");
+      assert.deepEqual(r.ctor, ["constructor"], "a team called constructor is an ordinary team");
+    });
+    await check("taking the data off while a file is still loading leaves it off, on screen and in the store", async () => {
+      await p.evaluate(() => set({ tab: "more", more: "nexus", evdSaid: "" }));
+      await p.setInputFiles("#evd-file", first);
+      await p.waitForFunction(() => /^Reading|^Loaded/.test(S.evdSaid));
+      await p.evaluate(() => dropEventData());
+      await p.waitForFunction(() => /taken off/.test(S.evdSaid));
+      await p.evaluate(() => EVD_Q);
+      assert.deepEqual(await p.evaluate(() => [EVD, EVD_STATE]), [null, "none"]);
+      assert.equal(await p.evaluate(() => new Promise(ok => { const rq = indexedDB.open(EVD_DB); rq.onsuccess = () => { const db = rq.result;
+        const n = db.objectStoreNames.length ? null : 0; if (n === 0) { db.close(); return ok(0); }
+        const tx = db.transaction("entries", "readonly"), c = tx.objectStore("entries").count(); c.onsuccess = () => { db.close(); ok(c.result); }; }; })), 0);
+      await load(first);
+    });
     await check("Take it off the phone empties the store", async () => {
       await p.evaluate(() => dropEventData());
       await p.waitForFunction(() => /taken off/.test(S.evdSaid));
