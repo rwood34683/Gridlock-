@@ -27,6 +27,13 @@ are labeled as such. 950 players have history rows, 24 have retrieved pages
 with zero scored events and 2,645 have not been retrieved. No jersey or
 player hometown is invented; team locations remain team locations.
 
+Four roster fields read from login-only pages are not shipped:
+`age_as_published`, `registration_fee_paid`, `person_event_link` and
+`event_person_token`. The importer drops them (`PRIVATE_FIELDS`) and takes
+the person token (`EPID=`) out of every source address, keeping the entry's
+own (`ERID=`). The bundle is public to anyone who loads the app, and the
+snapshot includes minors. `test/world-cup.cjs` fails if any of them returns.
+
 ## Refreshing the supplied snapshot
 
 Extract a new owner-supplied handoff to a separate directory and run:

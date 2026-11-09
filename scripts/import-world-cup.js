@@ -6,7 +6,9 @@ const {gzipSync} = require("fflate");
 const ROOT = path.resolve(__dirname, "..");
 const PRIVATE_FIELDS = ["age_as_published", "registration_fee_paid", "person_event_link", "event_person_token"];
 // "...rosterclass.cgi?ERID=x&EPID=y" -> "...rosterclass.cgi?ERID=x": the entry stays, the person goes.
-const withoutPersonToken = s => /[?&]EPID=/i.test(s)
+// Only a string that is one address: in a sentence, "[^&#]*" would run to the
+// end of the text and cut the rest of it off.
+const withoutPersonToken = s => /^https?:\/\/\S+$/i.test(s) && /[?&]EPID=/i.test(s)
   ? s.replace(/&EPID=[^&#]*/gi, "").replace(/\?EPID=[^&#]*&?/i, "?").replace(/\?(#|$)/, "$1") : s;
 function compile(dir) {
   const hashes = {};
@@ -62,7 +64,8 @@ function compile(dir) {
   const data = {event:teams.event, retrieved_at:teams.retrieved_at, roster_updated_at:rosters.updated_at,
     coverage:without(audit, ["representative_spot_checks", "history_source_row_checks"]), missing_summary:without(missing,["items"]),
     history_scope:history.scope, tables:{}};
-  // Columns preserve every supplied field without repeating its name thousands
+  // Columns preserve every supplied field (except PRIVATE_FIELDS, dropped
+  // above) without repeating its name thousands
   // of times. References preserve repeated strings exactly, including nulls,
   // source IDs and the names that must never be rewritten by a brand build.
   for (const [name, list] of Object.entries(rows)) {
