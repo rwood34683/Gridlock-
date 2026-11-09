@@ -181,9 +181,12 @@ const ANDROID_RELEASE_GUARD = `// Refuse a store build that is the offline copy.
 // scripts/configure-native.js; npm run build:android and bundle:android sync
 // the cloud build before Gradle and put the offline one back afterwards.
 gradle.taskGraph.whenReady { graph ->
-    def release = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }
+    // A task that makes a release to ship: assemble, bundle or install. A
+    // release unit test or lint run is not a store build.
+    def release = graph.allTasks.any { it.project == project && it.name ==~ /(assemble|bundle|install)\\w*Release\\w*/ }
     if (!release) return
-    if (System.getenv('GRIDLOCK_OFFLINE_RELEASE') == '1' || project.hasProperty('gridlockOfflineRelease')) {
+    def prop = project.hasProperty('gridlockOfflineRelease') ? project.property('gridlockOfflineRelease').toString().toLowerCase() : null
+    if (System.getenv('GRIDLOCK_OFFLINE_RELEASE') == '1' || (prop != null && !(prop in ['false', '0', 'no']))) {
         logger.warn('GRIDLOCK_OFFLINE_RELEASE: this release is the offline build. Its sign-in is kept on the phone and gridlockpb.com accounts do not work in it.')
         return
     }
@@ -247,7 +250,20 @@ function withIOSSignIn(text, hosts) {
   if (!text.includes(`\t\t\t\t${RELEASE_GUARD_ID} /* Refuse an offline store build */,`))
     text = text.replace(/(504EC3031FED79650016851F \/\* App \*\/ = \{[\s\S]*?buildPhases = \(\n)/, `$1\t\t\t\t${RELEASE_GUARD_ID} /* Refuse an offline store build */,\n`);
   text = text.replace(/\t\t\t\tCODE_SIGN_ENTITLEMENTS = App\/App\.entitlements;\n/g, "");
-  if (hosts.length) text = text.replace(/(\t\t\t\tCODE_SIGN_STYLE = Automatic;\n\t\t\t\tCURRENT_PROJECT_VERSION)/g, "\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n$1");
+  if (!hosts.length) return text;
+  // Every build configuration of the App target (the ones naming its
+  // Info.plist), whatever its signing style. The line goes where Xcode keeps
+  // it, before CODE_SIGN_STYLE, or before INFOPLIST_FILE when there is none.
+  let targets = 0;
+  text = text.replace(/buildSettings = \{\n[\s\S]*?\n\t\t\t\};/g, block => {
+    if (!block.includes("\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n")) return block;
+    targets++;
+    const line = "\t\t\t\tCODE_SIGN_ENTITLEMENTS = App/App.entitlements;\n";
+    return /\t\t\t\tCODE_SIGN_STYLE = /.test(block)
+      ? block.replace(/(\t\t\t\tCODE_SIGN_STYLE = )/, line + "$1")
+      : block.replace("\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n", line + "\t\t\t\tINFOPLIST_FILE = App/Info.plist;\n");
+  });
+  if (!targets) throw new Error("The Xcode project has no App build configuration to sign with App.entitlements; password sharing would be lost.");
   return text;
 }
 function withAssetStatements(manifest, strings, hosts) {
@@ -305,4 +321,4 @@ function configureSignIn(brand) {
   }
 }
 if (require.main === module) configure();
-module.exports = { configure, withAndroidDomain, activeBrand, withIOSSignIn, withCollectedData, hasAccounts, COLLECTED, withAssetStatements, entitlementsText, IOS_RELEASE_GUARD, ANDROID_RELEASE_GUARD, RELEASE_GUARD_ID };
+module.exports = { configure, configureSignIn, withAndroidDomain, activeBrand, withIOSSignIn, withCollectedData, hasAccounts, COLLECTED, withAssetStatements, entitlementsText, IOS_RELEASE_GUARD, ANDROID_RELEASE_GUARD, RELEASE_GUARD_ID };

@@ -46,6 +46,23 @@ function offlineSync(name) {
   const active = require("./configure-native").activeBrand();
   if (active.key !== require("./brand").loadBrands().default) require("./brand").native(active.key, { quiet: true });
 }
+// Run fn with Ctrl-C, Terminal closing and kill held. With a listener on
+// the signal node does not die: the child it is blocked on gets the same
+// signal and stops, fn's finally runs, and node exits with the signal's code
+// afterwards. A signal that arrives while node is blocked in spawnSync is
+// only delivered once the event loop turns, so the listeners stay on until
+// the next turn has had its chance (poll runs before setImmediate's check).
+const SIGNALS = { SIGINT: 2, SIGTERM: 15, SIGHUP: 1 };
+function holdSignals(fn, proc = process, later = setImmediate) {
+  let caught = null;
+  const handlers = Object.keys(SIGNALS).map(sig => { const h = () => { caught = caught || sig; }; proc.on(sig, h); return [sig, h]; });
+  const settle = () => {
+    if (caught) return proc.exit(128 + SIGNALS[caught]);
+    for (const [sig, h] of handlers) proc.removeListener(sig, h);
+  };
+  try { return fn(); }
+  finally { if (caught) settle(); else later(settle); }
+}
 function gradle(task) {
   if (process.platform === "win32") run(process.env.COMSPEC || "cmd.exe", ["/d", "/c", "gradlew.bat", task], path.join(ROOT, "android"));
   else run("sh", ["./gradlew", task], path.join(ROOT, "android"));
@@ -80,8 +97,14 @@ function main() {
       // A store build is the cloud build. It is synced for this build only and
       // the offline build goes back afterwards, even when Gradle fails, so the
       // committed shell never changes under the coach.
-      require("./native-cloud").syncCloud("android");
-      try { gradle(task); } finally { offlineSync(name); }
+      // The sync is inside the try because it changes the shell before it can
+      // still fail. The signals are held because Ctrl-C or closing Terminal
+      // during a Gradle build of several minutes would otherwise kill node
+      // before the finally ran.
+      holdSignals(() => {
+        try { require("./native-cloud").syncCloud("android"); gradle(task); }
+        finally { offlineSync(name); }
+      });
       continue;
     }
     offlineSync(name);
@@ -91,4 +114,4 @@ function main() {
   if (platforms.includes("ios") && process.platform !== "darwin") console.log("iOS source synced. Install pods and compile on a Mac using npm run ios:setup.");
 }
 if (require.main === module) { try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; } }
-module.exports = { normalisePaths, buildPlan };
+module.exports = { normalisePaths, buildPlan, holdSignals };

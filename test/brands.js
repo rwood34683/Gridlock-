@@ -150,6 +150,11 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
       const nc = node("scripts/native-check.js");
       check("native-check passes with the shells at Grind X", /checks passed/.test(nc) && /\(grindx\)/.test(nc), nc.split("\n").slice(-3).join(" | "));
     } else console.log("  SKIP  native-check passes with the shells at Grind X  — needs a synced tree (npm run sync); not run on a plain checkout");
+    const privacy = fs.readFileSync(path.join(ROOT, "ios/App/App/PrivacyInfo.xcprivacy"), "utf8");
+    const strings = fs.readFileSync(path.join(ROOT, "android/app/src/main/res/values/strings.xml"), "utf8");
+    check("the switch takes the default build's password sharing and privacy declarations with it",
+      !fs.existsSync(path.join(ROOT, "ios/App/App/App.entitlements")) && !pbx.includes("CODE_SIGN_ENTITLEMENTS")
+      && !strings.includes("asset_statements") && /<key>NSPrivacyCollectedDataTypes<\/key><array\/>/.test(privacy));
     const sc = node("scripts/store-check.js");
     check("store-check reads the shells as in step with Grind X", /iOS shell carries this web build\s+in step \(grindx\)/.test(sc) && /Android shell carries this web build\s+in step \(grindx\)/.test(sc));
     check("checking Grind X now reports the phones hold it", brand.check("grindx").every(r => r.pass));

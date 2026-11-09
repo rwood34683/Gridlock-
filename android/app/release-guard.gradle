@@ -2,9 +2,12 @@
 // scripts/configure-native.js; npm run build:android and bundle:android sync
 // the cloud build before Gradle and put the offline one back afterwards.
 gradle.taskGraph.whenReady { graph ->
-    def release = graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }
+    // A task that makes a release to ship: assemble, bundle or install. A
+    // release unit test or lint run is not a store build.
+    def release = graph.allTasks.any { it.project == project && it.name ==~ /(assemble|bundle|install)\w*Release\w*/ }
     if (!release) return
-    if (System.getenv('GRIDLOCK_OFFLINE_RELEASE') == '1' || project.hasProperty('gridlockOfflineRelease')) {
+    def prop = project.hasProperty('gridlockOfflineRelease') ? project.property('gridlockOfflineRelease').toString().toLowerCase() : null
+    if (System.getenv('GRIDLOCK_OFFLINE_RELEASE') == '1' || (prop != null && !(prop in ['false', '0', 'no']))) {
         logger.warn('GRIDLOCK_OFFLINE_RELEASE: this release is the offline build. Its sign-in is kept on the phone and gridlockpb.com accounts do not work in it.')
         return
     }
