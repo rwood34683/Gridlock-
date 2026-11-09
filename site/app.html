@@ -12571,7 +12571,11 @@ window.doAuth = async () => {
     if(attempt !== _authAttempt) return;
     if(r && r.ok && r.pendingConfirmation){
       S.mode = "login";
-      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation.");
+      /* On the phone the link comes back through the app's own address, which
+         a computer cannot open. Read on a computer, the link still confirms
+         the account before it fails to open the app, so say so. */
+      return say("Check your inbox and confirm your email, then sign in here. Your account is waiting for confirmation."
+        + (window.gridlockDurable ? " Opened on a computer, the link may say the page cannot open: your email is still confirmed, so come back here and sign in." : ""));
     }
     if(r && r.ok){
       const salt = newSalt(), hash = await hashPass(pass, salt);

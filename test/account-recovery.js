@@ -127,6 +127,16 @@ const { createServer } = require("../scripts/serve.js");
       assert.match(await page.locator("#root").innerText(), /confirm your email/i);
       await screenshot(page,"signup-confirmation-required");
     });
+    await check("on the phone, the confirmation note says a link opened on a computer still confirms", async page => {
+      await page.evaluate(() => { window.gridlockDurable = true; window.gridlockCloud = {signUp:async()=>({ok:true,pendingConfirmation:true,user:{id:"new"}})}; });
+      await auth(page, "create");
+      assert.match(await page.locator("#root").innerText(), /Opened on a computer[^.]*: your email is still confirmed/);
+    });
+    await check("in a browser, the confirmation note says nothing about computers", async page => {
+      await page.evaluate(() => { window.gridlockDurable = false; window.gridlockCloud = {signUp:async()=>({ok:true,pendingConfirmation:true,user:{id:"new"}})}; });
+      await auth(page, "create");
+      assert.doesNotMatch(await page.locator("#root").innerText(), /Opened on a computer/);
+    });
     await check("failed cloud signup does not manufacture an offline account", async page => {
       await page.evaluate(() => { window.gridlockCloud = {signUp:async()=>({offline:true})}; });
       await auth(page, "create");

@@ -126,7 +126,7 @@ const pending = PLACEHOLDERS.filter(([f, needle]) =>
 const contactFile = path.join(ROOT, 'site/contact.json');
 if (fs.existsSync(contactFile)) {
   const contact = JSON.parse(fs.readFileSync(contactFile, 'utf8'));
-  for (const [key, label] of [['domain', 'owned domain'], ['email', 'monitored support email'], ['appstore', 'App Store ID'], ['play', 'Google Play URL'], ['sha256', 'release signing fingerprint']]) {
+  for (const [key, label] of [['domain', 'owned domain'], ['email', 'monitored support email'], ['appstore', 'App Store ID'], ['play', 'Google Play URL'], ['sha256', 'release signing fingerprint'], ['appleTeam', 'Apple Team ID']]) {
     if (!contact[key]) pending.push(['site/contact.json', '', label]);
   }
 }

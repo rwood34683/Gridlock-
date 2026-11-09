@@ -259,10 +259,35 @@ function withAssetStatements(manifest, strings, hosts) {
   strings = strings.replace("</resources>", `    <string name="asset_statements" translatable="false">[${statements}]</string>\n</resources>`);
   return { manifest, strings };
 }
+// A build with an account server keeps three things a coach gives it, and
+// Apple's privacy manifest has to say so: his email and the account id it
+// signs in with, and — only if he turns on League sync — the season he
+// uploads (other user content). All linked to him, none for tracking, all for
+// the app to work. A brand with no account server collects nothing, so its
+// manifest says nothing. The store's privacy label is the owner's to match.
+const COLLECTED = ["NSPrivacyCollectedDataTypeEmailAddress", "NSPrivacyCollectedDataTypeUserID", "NSPrivacyCollectedDataTypeOtherUserContent"];
+function hasAccounts(brand) {
+  try { const c = JSON.parse(fs.readFileSync(path.join(ROOT, brand.contact), "utf8")).cloud; return !!(c && c.url && c.anonKey); }
+  catch { return false; }
+}
+function collectedText(accounts) {
+  if (!accounts) return "<key>NSPrivacyCollectedDataTypes</key><array/>";
+  return "<key>NSPrivacyCollectedDataTypes</key><array>" + COLLECTED.map(t => `
+        <dict>
+            <key>NSPrivacyCollectedDataType</key><string>${t}</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key><array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>`).join("") + "\n    </array>";
+}
+function withCollectedData(text, accounts) {
+  return text.replace(/<key>NSPrivacyCollectedDataTypes<\/key>\s*(?:<array\/>|<array>[\s\S]*?<\/array>(?=\s*<key>NSPrivacyAccessedAPITypes))/, collectedText(accounts));
+}
 function configureSignIn(brand) {
   const hosts = credentialHostsFor(brand);
   const iosApp = path.join(ROOT, "ios/App/App");
   if (fs.existsSync(iosApp)) {
+    update("ios/App/App/PrivacyInfo.xcprivacy", text => withCollectedData(text, hasAccounts(brand)));
     const ent = path.join(iosApp, "App.entitlements");
     if (hosts.length) writeIfChanged(ent, entitlementsText(hosts));
     else if (fs.existsSync(ent)) fs.rmSync(ent);
@@ -280,4 +305,4 @@ function configureSignIn(brand) {
   }
 }
 if (require.main === module) configure();
-module.exports = { configure, withAndroidDomain, activeBrand, withIOSSignIn, withAssetStatements, entitlementsText, IOS_RELEASE_GUARD, ANDROID_RELEASE_GUARD, RELEASE_GUARD_ID };
+module.exports = { configure, withAndroidDomain, activeBrand, withIOSSignIn, withCollectedData, hasAccounts, COLLECTED, withAssetStatements, entitlementsText, IOS_RELEASE_GUARD, ANDROID_RELEASE_GUARD, RELEASE_GUARD_ID };

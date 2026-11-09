@@ -30,11 +30,13 @@
 		<key>CFBundleURLSchemes</key><array><string>gridlock</string></array>
 	</dict></array>
 	<!-- Export compliance, answered once here instead of on every upload.
-	     false is the accurate answer: the app's only use of cryptography is
-	     SHA-256 hashing of the staff password with a random salt, entirely on
-	     the device. Hashing is not covered encryption, the app makes no network
-	     request of its own, and nothing is transmitted. Without this key App
-	     Store Connect stops and asks the question on every single build. -->
+	     false is the accurate answer. The app's own cryptography is SHA-256
+	     hashing of the staff password with a random salt, on the device, and
+	     hashing is not covered encryption. A store build is the cloud build,
+	     which signs in and syncs over HTTPS, and HTTPS through the system's
+	     own web view is encryption within Apple's operating system, which is
+	     exempt. Nothing in the app implements encryption of its own. Without
+	     this key App Store Connect stops and asks on every single build. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

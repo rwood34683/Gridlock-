@@ -1191,7 +1191,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     hosts' `assetlinks.json`, which grants `get_login_creds` beside app links.
     The cloud web build writes both files into `dist/cloud/.well-known/`; the
     phone builds leave them out. All of it is written by
-    `configure-native.js`, idempotent and per brand. Not verified here: an
+    `configure-native.js`, idempotent and per brand. A store build is now the account build,
+    so the iPhone privacy manifest declares what it keeps (email, user ID, and
+    the season only with League sync on; `hasAccounts`, `withCollectedData`,
+    none for a brand with no `cloud` block), `docs/STORE-LISTING.md` describes
+    the account and asks for a review account entered only in the consoles,
+    and `site.yml` uploads with `include-hidden-files` or Pages drops
+    `.well-known/`. gridlockpb.com is the Grok site: its two files are copied
+    into the export by hand (`marketing/grok/README.md`). Not verified here: an
     Xcode archive, a Gradle release with the SDK, the files as served, and the
     password offered on a phone. `test/native-sign-in.cjs`.
 
