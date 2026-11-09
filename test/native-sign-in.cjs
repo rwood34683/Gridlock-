@@ -163,7 +163,7 @@ check("a build with no domains asks for none, and every edit is undone cleanly",
 
 check("running the native setup again changes nothing in the committed shells", () => {
   const files = ["ios/App/App.xcodeproj/project.pbxproj", "ios/App/App/App.entitlements", "android/app/build.gradle", "android/app/release-guard.gradle",
-    "android/app/src/main/AndroidManifest.xml", "android/app/src/main/res/values/strings.xml", "ios/App/App/Info.plist"];
+    "android/app/src/main/AndroidManifest.xml", "android/app/src/main/res/values/strings.xml", "ios/App/App/Info.plist", "ios/App/App/PrivacyInfo.xcprivacy"];
   const before = files.map(read);
   cn.configure();
   assert.deepEqual(files.map(read), before);
@@ -176,6 +176,40 @@ check("the brand builds write their own password-sharing file, never this one's 
     const aasa = JSON.parse(staged.site.get(".well-known/apple-app-site-association").toString("utf8"));
     assert.deepEqual(aasa, { webcredentials: { apps: [] } }, key + " has no Team ID configured");
   }
+});
+
+check("the iPhone privacy manifest says what the account build keeps, and an offline brand keeps nothing", () => {
+  const manifest = read("ios/App/App/PrivacyInfo.xcprivacy");
+  const kinds = [...manifest.matchAll(/<key>NSPrivacyCollectedDataType<\/key><string>([^<]+)<\/string>/g)].map(m => m[1]);
+  assert.deepEqual(kinds, cn.COLLECTED, "a build with an account server declares email, user ID and the uploaded season");
+  assert.equal((manifest.match(/NSPrivacyCollectedDataTypeLinked<\/key><true\/>/g) || []).length, 3);
+  assert.equal((manifest.match(/NSPrivacyCollectedDataTypeTracking<\/key><false\/>/g) || []).length, 3);
+  assert.match(manifest, /<key>NSPrivacyTracking<\/key><false\/>/);
+  assert.ok(cn.hasAccounts({ contact: "site/contact.json" }), "the default brand has an account server");
+  for (const key of ["grindx", "lockdown"]) {
+    const brand = JSON.parse(read("brand/brands.json")).brands[key];
+    assert.equal(cn.hasAccounts(brand), false, key + " ships offline and collects nothing");
+  }
+  const none = cn.withCollectedData(manifest, false);
+  assert.match(none, /<key>NSPrivacyCollectedDataTypes<\/key><array\/>\s*<key>NSPrivacyAccessedAPITypes/);
+  assert.match(none, /NSPrivacyAccessedAPICategoryFileTimestamp/, "the accessed-API reasons survive");
+  assert.equal(cn.withCollectedData(none, true), manifest, "turning it back on gives the same file");
+  assert.equal(cn.withCollectedData(manifest, true), manifest);
+});
+
+check("the store notes and export answer no longer describe an app with no server", () => {
+  const plist = read("ios/App/App/Info.plist");
+  assert.doesNotMatch(plist, /makes no network/);
+  assert.match(plist, /<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/);
+  const listing = read("docs/STORE-LISTING.md");
+  assert.doesNotMatch(listing, /There is no live event feed, cloud sync|has no cloud database|create a local account with your own test credentials/);
+  assert.match(listing, /Demo account/);
+  assert.match(listing, /Delete account/);
+});
+
+check("publishing the site keeps the .well-known folder", () => {
+  const yml = read(".github/workflows/site.yml");
+  assert.match(yml, /upload-pages-artifact@[^\n]*\n\s*with:\n\s*path: dist\n\s*include-hidden-files: true/);
 });
 
 fs.rmSync(tmp, { recursive: true, force: true });

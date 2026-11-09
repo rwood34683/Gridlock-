@@ -70,5 +70,6 @@ refuses if a published page still says an offline-only thing, and
 `site:check` refuses a marked passage with no live text. Change what the live
 app sends up (`docs/SERVER.md`) and change `scripts/site-live.js` with it.
 
-Nothing about the app changes with the site. The app makes no network calls and
-never reads the site.
+Nothing about the app changes with the site. The app never reads the site; the
+one thing the site serves for it is `.well-known/`, which tells iOS and Android
+that the app and the site belong together (`docs/NATIVE-SIGN-IN.md`).

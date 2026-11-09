@@ -72,10 +72,10 @@ YOUR SQUAD
 Edit the roster, set lineups, record movements, grade players and keep field-walk notes. Give a bunker the name your team uses. Review player cards and bunker statistics built from your records.
 
 CLINICS AND LEAGUE NOTES
-Run a clinic sign-in sheet on the device that created it. Joining that local sheet needs no account. A local staff login gates creating a class and recording a league notice. Organize contacts into groups, keep notices and use your own messaging apps to share them. A saved notice is not a delivered message. Class codes do not sync a class to another device.
+Run a clinic sign-in sheet on the device that created it. Joining that sheet needs no account; creating a class and recording a league notice need yours. Organize contacts into groups, keep notices and use your own messaging apps to share them. A saved notice is not a delivered message. Class codes do not sync a class to another device.
 
-LOCAL FIRST
-The coaching tools calculate and save on your device without a cloud account. Installed native builds work without signal. A browser needs an initial load and an available local copy. There is no live event feed, cloud sync or remote recovery service.
+ONE ACCOUNT, ON THE PHONE AND THE WEB
+Sign in with the same Gridlock account you use at app.gridlockpb.com. After the first sign-in the phone remembers it, so the sideline keeps working without signal. Your season is saved on the device. League sync is off until you turn it on: then it uploads your full season and keeps one current copy with your account, which Gridlock PB LLC's administrators can review. Pausing does not delete it. You can review, restore or delete that copy, and Delete account removes your login and that copy. There is no live event feed.
 
 KEEP A COPY
 Use Save a copy to export your season to a file you control. Load a copy to merge with the current season or deliberately replace it. Keep a backup before changing devices, clearing browser data or uninstalling. Exported files may contain roster and participant information, so share them only with the people you intend.
@@ -92,19 +92,19 @@ Initial release candidate: local playbook, scouting, point sheets, field notes, 
 
 ### Privacy and encryption review
 
-The supplied app has no cloud database, analytics or advertising SDK. It keeps season data and the local staff account on the device, and provides exports and optional sharing through user-chosen services. The native privacy manifest and platform configuration must be reviewed alongside the final plugins and binary. If distribution adds analytics, a server, payments or other services, revise the disclosures and privacy notice before release. Device backups, hosting logs and copies shared by the user should be considered when completing the consoles' questionnaires.
+A store build is the cloud build (`docs/NATIVE-SIGN-IN.md`). It has no analytics or advertising SDK. Its account server keeps the coach's email address and account ID, and, only when he turns on League sync, one current copy of his full season, which Gridlock PB LLC's administrators can review. All three are linked to him, none is used for tracking, and all are for app functionality. The iPhone privacy manifest declares those three (`docs/XCODE.md`, "Privacy manifest and label"); the App Store privacy label and Google Play's Data safety form must say the same. Data is encrypted in transit. A coach can delete the uploaded season, and Delete account removes the login and that copy. The season itself stays on the device, and exports and sharing go through services the coach chooses. Device backups, hosting logs and copies shared by the user should be considered when completing the consoles' questionnaires. A variant brand shipped offline (`GRIDLOCK_OFFLINE_RELEASE`) has no account server and collects nothing.
 
 Optional **Scout → Voice log** uses microphone and speech-recognition permissions, requested only after Start listening. The device or browser's speech provider may process audio remotely and require internet. Gridlock retains finalized transcripts and event metadata locally, including original text after correction, but does not store audio. Full season exports include this history. Typed entry works without microphone permission. Include this feature and the final speech provider behavior when completing privacy and Data safety disclosures; do not describe the entire build as transmitting no audio. The supplied privacy page explains the feature.
 
-Local staff authentication hashes passwords using the platform cryptographic API. Review the final build's encryption declaration and the applicable console questions; this draft does not determine export-compliance treatment.
+The app hashes the local copy of the password with the platform's cryptographic API and reaches the account server over HTTPS through the system web view. `ITSAppUsesNonExemptEncryption` is false on that basis (`docs/XCODE.md`, "Export compliance"). Confirm it against the final build and the console's current questions.
 
 ### Review notes
 ```
-Guest tools and signing in to a clinic sheet do not need a cloud account. Staff tools use an account created on the current device: choose Staff and create a local account with your own test credentials.
+The app requires a Gridlock account. Demo account: [OWNER: a confirmed review account's email and password, entered only in App Store Connect]. The same account signs in at https://app.gridlockpb.com/. A new account can also be created in the app; its confirmation email opens the app through gridlock://auth/callback.
 
-The clinic sheet lives on the device that created it and can be passed around for sign-ins. A class code is not a remote invitation and does not sync to another phone. League notices are local records; the user must finish sharing in a separate app to send them.
+Signing in to a clinic sheet from a class link does not need an account. The clinic sheet lives on the device that created it and can be passed around for sign-ins. A class code is not a remote invitation and does not sync to another phone. League notices are local records; the user must finish sharing in a separate app to send them.
 
-The installed coaching tools calculate locally. There is no live event feed or cross-device account. Save a copy exports the local season; Load a copy imports it.
+The coaching tools calculate and save on the device, and keep working without signal after the first sign-in. League sync (Account & backups) is off until the user turns it on. Account deletion is in the app: More > Account & backups > Delete account. Save a copy exports the local season; Load a copy imports it.
 
 Break paths, scout reads and sightlines are training aids from the included layout geometry and entered observations. The UI identifies them as aids rather than live predictions.
 ```
@@ -129,7 +129,7 @@ Call the break, direct all five, and read the other pit between points.
 
 ### Full description — 4000 char limit
 
-Use the same description above. Review the actual Data safety, content rating, target audience, permissions, ads and pricing questions against the signed release. The supplied code implements no ads, purchases, remote messaging or public profile service. Personal information entered by a coach can still appear in local files and copies the coach chooses to share. The supplied privacy page explains the local storage and deletion behavior; configure and publish its real URL before submission.
+Use the same description above. Review the actual Data safety, content rating, target audience, permissions, ads and pricing questions against the signed release. The supplied code implements no ads, purchases, remote messaging or public profile service. Data safety must list the same three data types as the App Store label (email address, user ID, and the season uploaded only with League sync on), encrypted in transit, with account and upload deletion in the app. Personal information entered by a coach can still appear in local files and copies the coach chooses to share. The privacy page at the configured privacy URL explains it; publish it before submission.
 
 ### Graphics
 

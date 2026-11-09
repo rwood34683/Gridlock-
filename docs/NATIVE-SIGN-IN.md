@@ -83,11 +83,24 @@ app.gridlockpb.com should see it offered in the app.
     (`npm run contact -- --sha256 …`).
 
 Where the files are served from:
-- **gridlockpb.com:** `site/.well-known/` holds the files, and `npm run build`
-  publishes them.
-- **app.gridlockpb.com:** `npm run build:cloud` writes the same two files into
-  `dist/cloud/.well-known/`, so they upload with the web app. The phone builds
-  leave them out.
+- **app.gridlockpb.com** matters most, because that is where a coach signs in
+  and his browser saves the password. `npm run build:cloud` writes both files
+  into `dist/cloud/.well-known/`, and they upload with the web app
+  (`docs/LIVE-REBUILD.md`). Overlay the folder itself, dot and all: some
+  upload paths skip names that start with a dot. The phone builds leave them
+  out.
+- **gridlockpb.com** is the marketing site built in Grok
+  (`marketing/grok/README.md`), not this repo's `site/`. Copy both files from
+  `site/.well-known/` into the Grok export's static `public/.well-known/`
+  folder and publish it. Until that is done, gridlockpb.com is not associated
+  with the app. Nothing breaks: the site has no sign-in, so there is no saved
+  password there to offer.
+- **This repo's `site/`**, when it is published through `site.yml` (GitHub
+  Pages), carries them too: `npm run build` copies `site/.well-known/` into
+  `dist/`, and the upload step keeps hidden folders (`include-hidden-files`).
+
+Every file has to be served over HTTPS at exactly that path, with no
+redirect. `apple-app-site-association` has no file extension.
 
 ## What only a Mac, a phone or the owner can confirm
 
@@ -98,7 +111,15 @@ Where the files are served from:
 - **Served files.** After deploying, both `https://gridlockpb.com/.well-known/apple-app-site-association`
   and `https://app.gridlockpb.com/.well-known/apple-app-site-association` must
   return the JSON. Apple fetches them through its CDN, which can take a day to
-  refresh. Check the same for `assetlinks.json`.
+  refresh. Check the same for `assetlinks.json`. On 9 Nov 2026 all of them
+  returned 404 on both hosts, because none had been published yet.
+- **The store labels.** The iPhone privacy manifest now declares what the
+  account build collects (`docs/XCODE.md`, "Privacy manifest and label"). App
+  Store Connect's privacy label and Google Play's Data safety form are filled
+  in by hand, and must match it.
+- **A review account.** App Review needs a confirmed account to sign in with.
+  Enter it only in App Store Connect and the Play Console, never in this repo
+  (`docs/STORE-LISTING.md`, "Review notes").
 - **On a phone.** Save a password at app.gridlockpb.com in Safari, open the
   app's sign-in, and confirm the QuickType bar offers it. Do the same with
   Chrome and the Android app.

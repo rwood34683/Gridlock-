@@ -61,11 +61,29 @@ you type it, which is normal — type it blind, or paste it, and press Return.
 
 `Info.plist` declares `ITSAppUsesNonExemptEncryption` as `false`, so App Store
 Connect stops asking on every upload. That answer is accurate for this app and
-worth understanding rather than trusting: its only use of cryptography is
-SHA-256 hashing of the staff password with a random salt, on the device.
-Hashing is not covered encryption, the app makes no network request of its own,
-and nothing is transmitted anywhere. If the app ever gains real encryption or a
-server, this key has to be revisited.
+worth understanding rather than trusting. The app's own cryptography is
+SHA-256 hashing of the staff password with a random salt, on the device, and
+hashing is not covered encryption. A store build is the cloud build, which
+signs in and syncs with the account server over HTTPS. HTTPS through the
+system's web view is encryption within Apple's operating system, which is
+exempt. If the app ever implements encryption of its own, this key has to be
+revisited.
+
+## Privacy manifest and label
+
+`PrivacyInfo.xcprivacy` is written by `scripts/configure-native.js`. A brand
+with an account server (the `cloud` block in its contact file) declares three
+collected data types, each linked to the coach, none used for tracking, and
+all for app functionality:
+
+- the email address;
+- the account's user ID;
+- other user content: the season, only when the coach turns on League sync.
+
+A brand without an account server declares none. App Store Connect's privacy
+label is filled in by hand and must say the same. Google Play's Data safety
+form needs the same three, plus encryption in transit and the account and
+upload deletion paths.
 
 Double-click **OPEN-IN-XCODE.command**, or run this from the project folder in Terminal:
 
