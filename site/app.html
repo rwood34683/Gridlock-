@@ -1994,7 +1994,7 @@ SOFTWARE.
     const start=page*PAGE;
     return `<p class="note" role="status" aria-live="polite">${list.length ? `${list.length} entries · showing ${start+1}–${Math.min(start+PAGE,list.length)}` : "No entries found in this snapshot. Try another division or name."}</p>
       <div class="list">${list.slice(start,start+PAGE).map(teamButton).join("")}</div>
-      ${pages>1?`<div class="btnrow cup-pages"><button class="btn btn--quiet" onclick="WorldCup2026.pageBy(-1)" ${page===0?"disabled":""}>Previous teams</button><span class="note">Page ${page+1} of ${pages}</span><button class="btn btn--quiet" onclick="WorldCup2026.pageBy(1)" ${page===pages-1?"disabled":""}>Next teams</button></div>`:""}`;
+      ${pages>1?`<div class="btnrow cup-pages">${page>0?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(-1)">Previous teams</button>':""}<span class="note">Page ${page+1} of ${pages}</span>${page<pages-1?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(1)">Next teams</button>':""}</div>`:""}`;
   }
   function listPage() {
     const b=data(),v=view(),c=b.d.coverage,h=c.player_history_statuses;
@@ -2044,7 +2044,7 @@ SOFTWARE.
       ${[...new Set([m?.source_id,m?.legacy_source_id,p.source_id].filter(x=>x!=null))].map(id=>`<p class="note">${source(id)}</p>`).join("")}</details>`)
       +host.sec("Entries in this snapshot",`<div class="list">${p.current_entry_ids.map(id=>b.entries.get(id)).filter(Boolean).map(teamButton).join("")}</div>`)
       +host.sec("Classification event history",`<p class="note">${esc(historyNote)}</p>${rows.length?`<p class="note">${rows.length} distinct records from ${(b.history.get(p.person_id)||[]).length} supplied observations. Repeated copies of the same record share their sources below.</p><div class="cup-history">${rows.slice(page*HISTORY_PAGE,(page+1)*HISTORY_PAGE).map(r=>`<article><h3>${link(r.event_url,r.event_name || "Event not supplied")}</h3><p>${esc(r.event_date_as_published || r.event_date_iso || "Date not recorded")} · ${esc(r.team_name || "Team not supplied")}</p><p class="note">${esc(r.division_as_published || "Division not supplied")}<br>Place: ${esc(r.place_as_published || "Not supplied")}<br>Classification score: ${esc(r.classification_score_as_published || "Not supplied")}</p><details><summary>Sources · ${r.sources.size}</summary>${[...r.sources].map(id=>`<p class="note">${source(id)}</p>`).join("")}</details></article>`).join("")}</div>`:""}
-      ${pages>1?`<div class="btnrow cup-pages"><button class="btn btn--quiet" onclick="WorldCup2026.historyBy(-1)" ${page===0?"disabled":""}>Previous records</button><span class="note">${page+1} of ${pages}</span><button class="btn btn--quiet" onclick="WorldCup2026.historyBy(1)" ${page===pages-1?"disabled":""}>Next records</button></div>`:""}`);
+      ${pages>1?`<div class="btnrow cup-pages">${page>0?'<button class="btn btn--quiet" onclick="WorldCup2026.historyBy(-1)">Previous records</button>':""}<span class="note">${page+1} of ${pages}</span>${page<pages-1?'<button class="btn btn--quiet" onclick="WorldCup2026.historyBy(1)">Next records</button>':""}</div>`:""}`);
   }
   function refresh() {const el=document.getElementById("cup-results");if(el)el.innerHTML=results();}
   root.WorldCup2026={

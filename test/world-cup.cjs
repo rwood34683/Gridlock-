@@ -51,7 +51,9 @@ async function test(name,fn){try{await fn();passed++;console.log("PASS "+name);}
   });
   await pageTest("team and player search keeps focus, paging is bounded, and Back restores the filtered row",async p=>{
    await open(p);const first=await p.locator("#cup-results [data-entry]").first().getAttribute("data-entry");assert.equal(await p.locator("#cup-results [data-entry]").count(),30);
+   assert.equal(await p.getByRole("button",{name:"Previous teams",exact:true}).count(),0);assert.equal(await p.locator(".cup button:disabled").count(),0);
    await p.getByRole("button",{name:"Next teams",exact:true}).click();assert.notEqual(await p.locator("#cup-results [data-entry]").first().getAttribute("data-entry"),first);
+   assert.equal(await p.getByRole("button",{name:"Previous teams",exact:true}).count(),1);assert.equal(await p.locator(".cup button:disabled").count(),0);
    await p.locator("#cup-find").fill("Crista Gonzales");assert.ok(await p.locator("#cup-find").evaluate(e=>e===document.activeElement));
    await p.locator('[data-entry="236224"]').click();await p.getByRole("button",{name:/Team list/}).click();
    assert.equal(await p.locator("#cup-find").inputValue(),"Crista Gonzales");assert.equal(await p.evaluate(()=>document.activeElement.dataset.entry),"236224");
@@ -72,6 +74,7 @@ async function test(name,fn){try{await fn();passed++;console.log("PASS "+name);}
     await open(p);await personOpen(p,personWith(status));const t=await p.locator("main").innerText();
     assert.match(t,status==="not_retrieved"?/History has not been retrieved/:status.endsWith("zero_rows")?/listed no scored events/:/Classification score:/);
     if(status==="scored_event_history_imported"){
+     assert.equal(await p.getByRole("button",{name:"Previous records",exact:true}).count(),0);assert.equal(await p.locator(".cup button:disabled").count(),0);
      assert.ok(await p.locator(".cup-history article").count()<=15);const links=await p.locator(".cup a").evaluateAll(es=>es.map(e=>({href:e.href,target:e.target,rel:e.rel})));
      assert.ok(links.length);for(const l of links){assert.ok(l.href.startsWith("https://pbleagues.com/"));assert.equal(l.target,"_blank");assert.ok(l.rel.includes("noopener"));}
     }
