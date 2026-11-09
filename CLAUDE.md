@@ -1161,8 +1161,32 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     is one button on Division and a list of its divisions under it (`event`
     on a division, `WCUP_EVENT`), not thirty-four buttons. No person from the
     package is in the app or the repo: its rosters were read from login-only
-    pages and include minors, so a coach still pastes a team's roster from a
-    screenshot on the pit card. `test/review-nov6.cjs`.
+    pages and include minors, so they reach the phone only as a file (item 77). `test/review-nov6.cjs`.
+
+77. ~~The World Cup rosters, people and history, on the phone.~~ Done — the
+    owner asked for the whole package: divisions, entries, rosters, people and
+    their published history. Those are names read from login-only pages, some
+    of them minors, so they are never in the repo, the source or a season copy.
+    `tools/worldcup_pack.py <package> OUT.json` packs them on the coach's own
+    machine, keeping every published ID (entry, team, division, person, source,
+    observation), source URLs with their read times and every missing-data
+    status, and leaving out ages, a person's payment, personal links and tokens,
+    and local paths. More › Account & backups › **Event data** loads the file
+    into its own IndexedDB store (`gridlock.coach.eventdata`, `evdDb`), read on
+    first need (`evdNeed`), never at launch and never mirrored: it is reference
+    data, and the file is its backup. Loading again puts each record over the
+    one with the same ID (`evdMergeEntry`, `evdMergePerson`): history merges by
+    observation ID, and a newer file that did not read something leaves what an
+    older one read; an entry the newer file lacks is kept and marked. The pit
+    card lists every entry of the team (by name as published and by team ID),
+    each division separately, its roster state said plainly — an unread roster
+    is unknown, not empty — the team's location as the team's, never a
+    player's, and the roster by role; a person shows name variants, jersey not
+    published, hometown status, and published classification and scored-event
+    rows with their sources, called not a career and a classification score
+    not a match score. **Put these players on their card** matches by person ID
+    only (`addEventPlayers`); a man already there under the same name with no
+    ID is left alone and named. `test/event-data.cjs` runs on a made-up package.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

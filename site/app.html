@@ -510,6 +510,13 @@ svg.field{width:100%;height:auto;display:block}
    ============================================================ */
 .assigns{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 .assign{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);background:var(--panel);min-height:56px}
+.evd-entry{padding:var(--s3);background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:var(--s2)}
+.evd-entry p{margin:2px 0}
+.evd-men{display:flex;flex-wrap:wrap;gap:6px}
+.evd-person{margin-top:var(--s3);padding:var(--s3);border-left:3px solid var(--accent)}
+.evd-src{display:block;overflow-wrap:anywhere}
+/* A wide history table scrolls inside its card and never widens the pits around it. */
+.evd-person .tblwrap{width:0;min-width:100%}
 .assign + .assign{border-top:1px solid var(--line)}
 .assign__n{
   flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
@@ -5041,6 +5048,7 @@ function clearScratch(s = S){
   // back, and the tutorial opened itself after sign-in.
   s.paste = null; s.pasteSide = ""; s.pasteNote = ""; s.pasteNoteSide = ""; s.pasteNoteTeam = ""; s.showTutorial = false; s.replayMatch = null;
   // The folded tables under the sheet open on this point again.
+  s.evdOpen = null; s.evdPerson = null; s.evdSaid = "";
   s.tallyValueOpen = false; s.tallyAllBreaks = false; s.tallyAllOuts = false; s.sightAll = false; s.keptAll = false; s.reviewId = null;
   // A sighting or shot bunker tapped on How did they get there and not yet
   // recorded came back after a relaunch, one tap on Record from being logged
@@ -11203,6 +11211,308 @@ window.addPublished = side => {
   keepRoster();
 };
 
+/* ---- event data the coach loads from a file ----
+ * An event's data package — the NXL World Cup 2026 one, packed by
+ * tools/worldcup_pack.py — carries every entry's event roster, the people on
+ * them and their published scored-event history. Those are names read from
+ * login-only pages, some of them minors, so none of it is in the app's source
+ * or in a season copy: the coach loads the file on his own phone and it lives
+ * in a store of its own (IndexedDB `gridlock.coach.eventdata`), apart from the
+ * season. It is reference data, not his work: if the phone clears it, he loads
+ * the file again, and nothing he logged is lost.
+ *
+ * Organised the package's way — division → entry → roster → person → history —
+ * and keyed by the package's own published IDs (entry, team, person, source,
+ * observation). Loading a newer package puts each record over the one with the
+ * same ID, so nothing doubles; what the newer file has not read keeps what an
+ * older one had. A person is never matched by name: a man on their card is the
+ * league's person only when he carries the same person ID. */
+const EVD_KIND = "gridlock.event.data", EVD_DB = "gridlock.coach.eventdata";
+const EVD_STORES = ["meta", "entries", "people", "sources"];
+const EVD_ROLES = ["Player", "Coach", "Staff", "Media"];
+const EVD_PLURAL = {Player: "players", Coach: "coaches", Staff: "staff", Media: "media"};
+const EVD_HIST_READ = new Set(["scored_event_history_imported", "scored_event_history_imported_zero_rows"]);
+let EVD = null, EVD_STATE = "unread", EVD_ERR = "";
+function evdDb(){
+  return new Promise((ok, no) => {
+    let rq;
+    try { rq = indexedDB.open(EVD_DB, 1); } catch(e){ no(new Error("This phone cannot keep event data in this app.")); return; }
+    rq.onupgradeneeded = () => { const db = rq.result; EVD_STORES.forEach(n => { if(!db.objectStoreNames.contains(n)) db.createObjectStore(n); }); };
+    rq.onsuccess = () => ok(rq.result);
+    rq.onerror = () => no(rq.error || new Error("Could not open the event data."));
+  });
+}
+function evdReadAll(db){
+  return new Promise((ok, no) => {
+    const tx = db.transaction(EVD_STORES, "readonly"), got = {};
+    EVD_STORES.forEach(n => { const os = tx.objectStore(n), k = os.getAllKeys(), v = os.getAll();
+      got[n] = () => { const o = {}; k.result.forEach((key, i) => { o[key] = v.result[i]; }); return o; }; });
+    tx.oncomplete = () => { const o = {}; EVD_STORES.forEach(n => { o[n] = got[n](); }); ok(o); };
+    tx.onerror = () => no(tx.error || new Error("Could not read the event data."));
+  });
+}
+// The lookups every screen reads: a team's entries by its name as published and
+// by its team ID, and every entry a person ID is on.
+function evdIndex(all){
+  const byName = {}, byTeam = {}, byPerson = {};
+  for(const e of Object.values(all.entries)){
+    (byName[foldName(e.name)] = byName[foldName(e.name)] || []).push(e.id);
+    (byTeam[e.team] = byTeam[e.team] || []).push(e.id);
+    (e.members || []).forEach(m => { (byPerson[m.pid] = byPerson[m.pid] || []).push({entry: e.id, role: m.role}); });
+  }
+  return {...all, byName, byTeam, byPerson};
+}
+function evdLoadStore(){
+  if(typeof indexedDB === "undefined" || !indexedDB){ EVD_STATE = "none"; return; }
+  EVD_STATE = "reading";
+  evdDb().then(db => evdReadAll(db).then(all => { db.close(); return all; }))
+    .then(all => {
+      if(!Object.keys(all.meta).length){ EVD = null; EVD_STATE = "none"; return; }
+      EVD = evdIndex(all); EVD_STATE = "ready";
+      if(S.entered) render();
+    })
+    .catch(e => { EVD = null; EVD_STATE = "error"; EVD_ERR = String((e && e.message) || e); if(S.entered) render(); });
+}
+// Read on first need, never at launch: a coach who never loads a package
+// pays nothing for it.
+function evdNeed(){ if(EVD_STATE === "unread") evdLoadStore(); return EVD_STATE === "ready" ? EVD : null; }
+
+// The packed file, unpacked to records. Anything not shaped right is left out
+// and counted, never guessed at.
+function evdUnpack(text){
+  let d;
+  try { d = JSON.parse(text); } catch(e){ return {error: "That file is not event data — it is not readable JSON."}; }
+  if(!d || d.kind !== EVD_KIND) return {error: "That file is not a Gridlock event-data file. Pack the package with tools/worldcup_pack.py first."};
+  if(d.v !== 1) return {error: "That event-data file is a newer version than this app reads. Update the app."};
+  const str = Array.isArray(d.str) ? d.str : [], ev = d.event || {};
+  const T = i => (Number.isInteger(i) && i >= 0 && i < str.length && typeof str[i] === "string") ? str[i] : null;
+  const s = v => typeof v === "string" ? v : (typeof v === "number" ? String(v) : null);
+  const id = v => (typeof v === "string" || typeof v === "number") && String(v).length && String(v).length <= 80 ? String(v) : null;
+  if(!id(ev.id)) return {error: "That event-data file does not say which event it is."};
+  let refused = 0;
+  const sources = {};
+  for(const [k, v] of Object.entries(d.src || {})) if(id(k) && Array.isArray(v) && T(v[0])) sources[k] = {url: T(v[0]), at: s(v[1])};
+  const divName = {};
+  (Array.isArray(d.divs) ? d.divs : []).forEach(x => { if(Array.isArray(x) && id(x[0])) divName[x[0]] = s(x[1]) || ""; });
+  const entries = {};
+  for(const [k, e] of Object.entries(d.entries || {})){
+    if(!id(k) || !e || !id(e.team) || !s(e.name)){ refused++; continue; }
+    const loc = e.loc || {}, r = e.roster || {};
+    entries[k] = {id: k, event: String(ev.id), team: String(e.team), div: s(e.div) || "", divName: divName[e.div] || "",
+      name: e.name, reg: s(e.reg), url: s(e.url), src: s(e.src), at: s(e.at),
+      loc: {town: s(loc.town), city: s(loc.city), region: s(loc.region), country: s(loc.country), field: s(loc.field),
+            fieldAt: s(loc.fieldAt), status: s(loc.status) || "not_retrieved", src: s(loc.src), at: s(loc.at)},
+      roster: {status: s(r.status) || "not_retrieved", src: s(r.src), at: s(r.at)}, members: null};
+  }
+  for(const m of Array.isArray(d.members) ? d.members : []){
+    const e = Array.isArray(m) && entries[m[0]];
+    if(!e || !id(m[1]) || !T(m[2])){ refused++; continue; }
+    (e.members = e.members || []).push({pid: String(m[1]), name: T(m[2]), role: T(m[3]) || "", cls: T(m[4]), inn: T(m[5]), src: id(m[6])});
+  }
+  // A roster page that was read and listed nobody is an empty list; one that
+  // was never read stays null — not an empty roster.
+  for(const e of Object.values(entries)) if(!e.members && /empty_roster$/.test(e.roster.status)) e.members = [];
+  const people = {};
+  for(const [k, p] of Object.entries(d.people || {})){
+    if(!id(k) || !Array.isArray(p) || !T(p[0])){ refused++; continue; }
+    const town = Array.isArray(p[4]) && T(p[4][0]) ? {raw: T(p[4][0]), city: T(p[4][1]), region: T(p[4][2]), country: T(p[4][3]), src: id(p[4][4])} : null;
+    people[k] = {id: k, name: T(p[0]), player: !!p[1], hist: T(p[2]) || "not_retrieved", home: T(p[3]) || "not_retrieved", town,
+      histSrc: id(p[5]), variants: (Array.isArray(p[6]) ? p[6] : []).filter(v => Array.isArray(v) && T(v[0])).map(v => ({name: T(v[0]), kind: T(v[1]), src: id(v[2])})), obs: []};
+  }
+  for(const [k, o] of Object.entries(d.obs || {})){
+    const p = id(k) && Array.isArray(o) && people[o[0]];
+    if(!p){ refused++; continue; }
+    p.obs.push({id: k, date: T(o[1]), event: T(o[2]), eventId: T(o[3]), url: T(o[4]), team: T(o[5]), div: T(o[6]),
+      place: T(o[7]), score: T(o[8]), ctx: T(o[9]), role: T(o[10]), basis: T(o[11]), src: id(o[12])});
+  }
+  for(const p of Object.values(people)) p.obs.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  const c = d.coverage && typeof d.coverage === "object" ? d.coverage : {};
+  const meta = {id: String(ev.id), name: s(ev.name) || "Event " + ev.id, start: s(ev.start), end: s(ev.end), read: s(ev.read),
+    coverage: JSON.parse(JSON.stringify(c)), entries: Object.keys(entries)};
+  return {meta, entries, people, sources, refused};
+}
+// One record over another with the same ID. The newer file wins wherever it
+// read something; where it did not, what an older file read stands.
+function evdMergePerson(old, p){
+  if(!old) return p;
+  const obs = {}; old.obs.forEach(o => { obs[o.id] = o; }); p.obs.forEach(o => { obs[o.id] = o; });
+  const vs = {}; [...old.variants, ...p.variants].forEach(v => { vs[[v.name, v.kind, v.src].join("|")] = v; });
+  const keepHist = !EVD_HIST_READ.has(p.hist) && EVD_HIST_READ.has(old.hist);
+  const keepHome = p.home === "not_retrieved" && old.home !== "not_retrieved";
+  return {...p, player: p.player || old.player,
+    hist: keepHist ? old.hist : p.hist, histSrc: keepHist ? old.histSrc : p.histSrc,
+    home: keepHome ? old.home : p.home, town: p.town || old.town,
+    variants: Object.values(vs), obs: Object.values(obs).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))};
+}
+function evdMergeEntry(old, e){
+  if(!old || e.members) return e;
+  return {...e, members: old.members, roster: old.members ? old.roster : e.roster};
+}
+window.loadEventFile = input => {
+  const f = input.files && input.files[0];
+  if(!f) return;
+  if(typeof indexedDB === "undefined" || !indexedDB){ set({evdSaid: "This phone cannot keep event data in this app."}); return; }
+  set({evdSaid: `Reading ${f.name}…`});
+  const fr = new FileReader();
+  fr.onerror = () => set({evdSaid: `Could not read ${f.name}. Choose the file again.`});
+  fr.onload = () => {
+    const pack = evdUnpack(String(fr.result || ""));
+    if(pack.error){ set({evdSaid: pack.error}); return; }
+    let db;
+    evdDb().then(d => { db = d; return evdReadAll(db); }).then(old => new Promise((ok, no) => {
+      const tx = db.transaction(EVD_STORES, "readwrite"), n = {entNew: 0, entUpd: 0, pplNew: 0, pplUpd: 0, obsNew: 0, gone: 0};
+      const prev = old.meta[pack.meta.id];
+      for(const e of Object.values(pack.entries)){ old.entries[e.id] ? n.entUpd++ : n.entNew++; tx.objectStore("entries").put(evdMergeEntry(old.entries[e.id], e), e.id); }
+      // An entry an older file of this event had and this one does not is kept
+      // and marked, never deleted: it may have withdrawn, or the read missed it.
+      for(const e of Object.values(old.entries)) if(e.event === pack.meta.id && !pack.entries[e.id]){ n.gone++; tx.objectStore("entries").put({...e, notInLatest: true}, e.id); }
+      for(const p of Object.values(pack.people)){
+        const was = old.people[p.id], had = new Set(((was || {}).obs || []).map(o => o.id));
+        was ? n.pplUpd++ : n.pplNew++; n.obsNew += p.obs.filter(o => !had.has(o.id)).length;
+        tx.objectStore("people").put(evdMergePerson(was, p), p.id);
+      }
+      for(const [k, v] of Object.entries(pack.sources)) tx.objectStore("sources").put(v, k);
+      tx.objectStore("meta").put({...pack.meta, file: String(f.name).slice(0, 120), loadedAt: Date.now(), loads: ((prev || {}).loads || 0) + 1}, pack.meta.id);
+      tx.oncomplete = () => ok(n); tx.onerror = () => no(tx.error || new Error("The phone refused to keep the event data."));
+    })).then(n => evdReadAll(db).then(all => { db.close(); EVD = evdIndex(all); EVD_STATE = "ready"; return n; }))
+    .then(n => set({evdSaid: `Loaded ${pack.meta.name}: ${Object.keys(pack.entries).length} entries (${n.entNew} new, ${n.entUpd} updated), `
+        + `${Object.keys(pack.people).length} people (${n.pplNew} new, ${n.pplUpd} updated), ${n.obsNew} new history rows.`
+        + (n.gone ? ` ${n.gone} entr${n.gone === 1 ? "y" : "ies"} from an earlier file ${n.gone === 1 ? "is" : "are"} not in this one — kept and marked.` : "")
+        + (pack.refused ? ` ${pack.refused} malformed record${pack.refused === 1 ? "" : "s"} left out.` : "")}))
+    .catch(e => { if(db) db.close(); set({evdSaid: "Could not keep the event data: " + String((e && e.message) || e)}); });
+  };
+  fr.readAsText(f);
+};
+window.dropEventData = () => {
+  if(!confirm("Take the event data off this phone? Rosters and histories go; nothing you logged does, and you can load the file again.")) return;
+  EVD = null; EVD_STATE = "none";
+  try { const rq = indexedDB.deleteDatabase(EVD_DB); rq.onsuccess = rq.onerror = rq.onblocked = () => set({evdSaid: "Event data taken off this phone."}); }
+  catch(e){ set({evdSaid: "Event data taken off this phone."}); }
+};
+
+// ---- what the statuses mean, said plainly ----
+const EVD_ROSTER_WORD = {
+  authenticated_event_roster: "Event roster read",
+  public_event_roster: "Event roster read",
+  authenticated_empty_roster: "Event roster page listed nobody — that is not proof they have no players",
+  public_empty_roster: "Event roster page listed nobody — that is not proof they have no players",
+};
+const evdRosterWord = st => EVD_ROSTER_WORD[st] || `Event roster not read (${st.replace(/_/g, " ")}) — unknown, not empty`;
+const EVD_HIST_WORD = {
+  scored_event_history_imported: "Published scored-event history read",
+  scored_event_history_imported_zero_rows: "Classification page read — it listed no scored events",
+  not_retrieved: "History not retrieved yet — that does not mean there is none",
+};
+const evdHistWord = st => EVD_HIST_WORD[st] || "History: " + st.replace(/_/g, " ");
+const EVD_HOME_WORD = {
+  not_published_in_retrieved_classification_page: "Hometown not published on the page that was read",
+  not_retrieved: "Hometown not retrieved — unknown",
+};
+const evdHomeWord = st => EVD_HOME_WORD[st] || "Hometown: " + st.replace(/_/g, " ");
+function evdSrcLine(srcId, url, at){
+  const src = srcId && EVD && EVD.sources[srcId];
+  const u = (src && src.url) || url, when = (src && src.at) || at;
+  return u ? `<span class="note evd-src">Source: ${esc(u)}${when ? " · read " + esc(String(when).slice(0, 16).replace("T", " ")) : ""}</span>` : "";
+}
+// A team's entries at the event: by its name as published, and every other
+// entry carrying the same published team ID — a team in two divisions is two
+// registrations, each with its own roster.
+function evdEntriesFor(name){
+  const D = evdNeed(); if(!D) return [];
+  const ids = new Set(D.byName[foldName(name)] || []);
+  [...ids].forEach(i => (D.byTeam[D.entries[i].team] || []).forEach(j => ids.add(j)));
+  return [...ids].map(i => D.entries[i]).sort((a, b) => a.divName.localeCompare(b.divName));
+}
+const evdPlayers = e => (e.members || []).filter(m => m.role === "Player");
+
+function evdPerson(pid){
+  const D = EVD, p = D && D.people[pid];
+  if(!p) return `<p class="note">Person ${esc(pid)} is on the roster but not in the people list of the file.</p>`;
+  const others = (D.byPerson[pid] || []).map(x => D.entries[x.entry] && `${esc(D.entries[x.entry].name)} · ${esc(D.entries[x.entry].divName)} · ${esc(x.role)}`).filter(Boolean);
+  const names = [...new Set(p.variants.map(v => v.name.replace(/\s+/g, " ")))];
+  return `<div class="evd-person" role="region" aria-label="${esc(p.name)}">
+    <p><b>${esc(p.name)}</b> <span class="note">· person ID ${esc(p.id)}</span></p>
+    ${names.length > 1 ? `<p class="note">Also published as ${names.filter(n => n !== p.name).map(esc).join(", ")}</p>` : ""}
+    <p class="note">Jersey: not published · ${p.town ? `Hometown as published: ${esc(p.town.raw)}` : esc(evdHomeWord(p.home))}</p>
+    ${p.town ? evdSrcLine(p.town.src) : ""}
+    <p class="note">On this event: ${others.join(" · ")}</p>
+    <p class="note"><b>${esc(evdHistWord(p.hist))}</b>${p.obs.length ? ` · ${p.obs.length} row${p.obs.length === 1 ? "" : "s"}. These are published classification and scored-event rows — not a complete career, not a transfer record.` : ""}</p>
+    ${p.histSrc ? evdSrcLine(p.histSrc) : ""}
+    ${p.obs.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Date</th><th>Event · team</th><th>Division</th><th>Place</th><th>Class. score</th></tr></thead><tbody>
+      ${p.obs.map(o => `<tr><td class="num">${esc(o.date || "—")}</td><td>${esc(o.event || "—")}<br><span class="note">${esc(o.team || "")}</span></td>
+        <td>${esc(o.div || "—")}${o.ctx ? `<br><span class="note">${esc(o.ctx)}</span>` : ""}</td><td>${esc(o.place || "—")}</td><td class="num">${esc(o.score || "—")}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">A classification score is the league's ranking score for that event — not a match score.</p>` : ""}
+    <button class="btn btn--quiet" onclick="set({evdPerson:null})">Close</button>
+  </div>`;
+}
+function evdEntryBlock(side, e){
+  const open = S.evdOpen === e.id, players = evdPlayers(e);
+  const roles = EVD_ROLES.map(r => [r, (e.members || []).filter(m => m.role === r)]).filter(([, l]) => l.length);
+  const loc = e.loc;
+  const where = loc.status === "published" ? [loc.town && "hometown " + loc.town, loc.field && "home field " + loc.field + (loc.fieldAt ? " (" + loc.fieldAt + ")" : "")].filter(Boolean).join(" · ") : "";
+  return `<div class="evd-entry">
+    <p><b>${esc(e.divName || "Division " + e.div)}</b> <span class="note">· ${esc(e.reg || "registration not read")}${e.notInLatest ? " · not in the latest file" : ""}</span></p>
+    <p class="note">${esc(evdRosterWord(e.roster.status))}${e.members ? ` · ${roles.map(([r, l]) => l.length + " " + (l.length === 1 ? r.toLowerCase() : EVD_PLURAL[r])).join(", ") || "nobody listed"}` : ""}</p>
+    ${where ? `<p class="note">Team's ${esc(where)} — the team's, never a player's</p>` : ""}
+    <p class="note">Entry ${esc(e.id)} · team ID ${esc(e.team)}</p>
+    ${e.members && e.members.length ? `<button class="btn btn--quiet" aria-expanded="${open}" onclick="set({evdOpen:${open ? "null" : jsq(e.id)}, evdPerson:null})">${open ? "Hide the roster" : "Show the roster"}</button>` : ""}
+    ${open ? `${roles.map(([r, l]) => `<p class="note" style="margin-top:8px"><b>${esc(EVD_PLURAL[r][0].toUpperCase() + EVD_PLURAL[r].slice(1))}</b></p><div class="evd-men">${l.map(m =>
+        `<button class="btn btn--quiet" onclick="set({evdPerson:${jsq(m.pid)}})">${esc(m.name)}${m.cls ? ` <span class="note">${esc(m.cls)}</span>` : ""}</button>`).join("")}</div>`).join("")}
+      ${S.evdPerson && (e.members || []).some(m => m.pid === S.evdPerson) ? evdPerson(S.evdPerson) : ""}
+      ${evdSrcLine(null, e.roster.src, e.roster.at)}
+      <p class="note">Classification and checked-in are copied as published. Jerseys are not published, so their numbers stay blank until you see them.</p>
+      ${side && players.length ? `<button class="btn btn--block" onclick="addEventPlayers('${side}', ${jsq(e.id)})">Put these ${players.length} players on their card</button>` : ""}` : ""}
+  </div>`;
+}
+function evdPitSec(side, T){
+  if(!T.named) return "";
+  const list = evdEntriesFor(T.name);
+  if(!list.length) return "";
+  return `<div class="fld"><label>${esc(EVD.meta[list[0].event] ? EVD.meta[list[0].event].name : "Event")} · ${list.length} entr${list.length === 1 ? "y" : "ies"} · from your event data</label>
+    ${list.map(e => evdEntryBlock(side, e)).join("")}</div>`;
+}
+// A man goes on their card from the league's roster only by his person ID. A
+// man already there under the same name with no ID is not assumed to be him —
+// two people share names — so he is left alone and the coach is told.
+window.addEventPlayers = (side, entryId) => {
+  const e = EVD && EVD.entries[entryId];
+  if(!e) return;
+  const men = pitOf(side).players, add = [];
+  let had = 0; const clash = [];
+  for(const m of evdPlayers(e)){
+    if(men.some(p => p.pid === m.pid) || add.some(p => p.pid === m.pid)){ had++; continue; }
+    if([...men, ...add].some(p => foldName(p.name) === foldName(m.name))){ clash.push(m.name); continue; }
+    add.push({num: "", name: m.name, wire: "Flex", note: "", threat: 0, from: "published", pid: m.pid});
+  }
+  if(add.length) editProfile(side, {players: [...men, ...add]});
+  flash(`${add.length} added from the event roster${had ? `, ${had} already on the card` : ""}.`
+    + (clash.length ? ` ${clash.length} not added — someone of the same name is already on the card without a league ID, and a name alone is not the same person: ${clash.join(", ")}.` : ""));
+};
+function evdSec(){
+  evdNeed();
+  const metas = EVD ? Object.values(EVD.meta) : [];
+  return sec("Event data", `<p class="lede">Load an event's data file — the NXL World Cup 2026 package packed with
+      <b>tools/worldcup_pack.py</b> — and every team's event roster, the people on it and their published history
+      show on the pit card. It stays on this phone, apart from your season: it is not in a copy and not shared.
+      Load a newer file of the same event and it updates the same records; nothing doubles.</p>
+    <div class="fld"><label for="evd-file">Event data file</label>
+      <input id="evd-file" type="file" accept="application/json,.json" onchange="loadEventFile(this)"/></div>
+    ${S.evdSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.evdSaid)}</p>` : ""}
+    ${EVD_STATE === "reading" ? `<p class="note">Reading the event data on this phone…</p>` : ""}
+    ${EVD_STATE === "error" ? `<p class="note">The event data on this phone could not be read: ${esc(EVD_ERR)}. Load the file again.</p>` : ""}
+    ${metas.map(m => { const c = m.coverage || {}, h = c.player_history_statuses || {}, ht = c.player_hometown_statuses || {};
+      const hist = (h.scored_event_history_imported || 0) + (h.scored_event_history_imported_zero_rows || 0);
+      return `<div class="evd-entry"><p><b>${esc(m.name)}</b> <span class="note">· event ${esc(m.id)}${m.start ? " · " + esc(m.start) + (m.end ? " to " + esc(m.end) : "") : ""}</span></p>
+        <p class="note">${esc(m.file || "")} · loaded ${esc(new Date(m.loadedAt).toLocaleString())}${m.loads > 1 ? ` · ${m.loads} loads` : ""}${c.generated_at ? " · package audited " + esc(String(c.generated_at).slice(0, 10)) : ""}</p>
+        <p class="note">${esc(c.event_entries)} entries · ${esc(c.distinct_team_ids)} team IDs · ${esc(c.distinct_people)} people · ${esc(c.distinct_current_players)} current players</p>
+        <p class="note">History read for ${hist} of ${esc(c.distinct_current_players)} players${h.not_retrieved ? `; ${esc(h.not_retrieved)} not retrieved yet — missing history does not mean no history` : ""}.
+          Hometowns: ${esc(ht.not_retrieved || 0)} not retrieved, ${esc(ht.not_published_in_retrieved_classification_page || 0)} not published. Jerseys: none published.</p>
+        ${c.overall ? `<p class="note">Package status: ${esc(String(c.overall).replace(/_/g, " "))}</p>` : ""}</div>`; }).join("")}
+    ${metas.length ? `<button class="btn btn--danger" onclick="dropEventData()">Take the event data off this phone</button>` : ""}`,
+    metas.length ? metas.length + " loaded" : "");
+}
+
 // ---- a roster read off a screenshot ----
 // Nothing is fetched: there is no network in this app and there is not going to
 // be one. The phone already reads text out of a picture — press and hold a
@@ -15940,6 +16250,7 @@ function pit(side,T,label){
         ? `<p class="note">No published roster in the app for ${esc(T.name)}. Paste theirs off PBLeagues below,
              or log them one at a time as you see them.</p>`
         : ""}
+      ${evdPitSec(side, T)}
       <div class="rost__add">
         <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
@@ -16658,8 +16969,11 @@ function scoutBoard(){
         <td class="num col-opt">${(() => {
           const mine = (profileOf(t.name).players || []).length;
           const pub = published(t.name);
+          // An event division reads its own entry's roster, if the coach loaded the event's data.
+          const ent = div.event && evdEntriesFor(t.name).find(e => "wcup-" + e.div === div.id);
           return mine ? `<span class="tag tag--paid">${mine}</span>`
                : pub ? `<span class="tag tag--pend">${pub.men.length}</span>`
+               : ent && ent.members ? `<span class="tag tag--pend" title="Players on the event roster">${evdPlayers(ent).length}</span>`
                : `<span class="note">—</span>`;
         })()}</td>
         <td class="num">${pr.unscored&&!pr.tendSet?`<span class="note">—</span>`:esc(pr.tend.slice(0,3))}</td>
@@ -17303,7 +17617,7 @@ const HELP = {
          "Press and hold to put them in the left pit instead.",
          "Film says how many of their calls you have logged; once there are three, the call they ran most sits under the team's name with the count. Tend is still the film word you gave them.",
          "Search by name when the list is long.",
-         "NXL World Cup 2026 is one button: under it, pick the division from the list. Every team entered is there with its registration — PAID, PEND (pending), DUE (entry fee not paid) or LATE (deadline passed). Their players are not in the app: paste a roster from a screenshot on the pit card, or log them as you see them.",
+         "NXL World Cup 2026 is one button: under it, pick the division from the list. Every team entered is there with its registration — PAID, PEND (pending), DUE (entry fee not paid) or LATE (deadline passed). Their rosters are not in the app itself: load the event data file under More › Account & backups › Event data, and each entry's roster, its people and their published history show on the pit card. Without it, paste a roster from a screenshot on the pit card, or log them as you see them.",
          "Missing a team adds one; its name is a box you can fix, and Remove says what the board holds against them and asks first."],
     watch:"Payment state comes from the registration page and the date it was read is on the board. Points and threat are yours to enter."},
   sightlines: {t:"Sightlines", w:"What one bunker can see.",
@@ -17416,7 +17730,8 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
-  ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their players are not in the app: paste their roster from a screenshot on the pit card, or log them as you see them."],
+  ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],
+  ["Why does a player have no history?", "The World Cup package has not read every player's history yet. Not retrieved means unknown, not none. What is there is published classification and scored-event rows, not a whole career, and a classification score is not a match score. Jerseys and most hometowns are not published, so they stay blank."],
   ["Where do I find a tool?", "Open More and use Find a tool. Try players, score, export, League sync or sign out. Search includes Playbook, Tally, Scout and Sightlines too. Tools are also grouped by before, during and after the game. Clear shows the full list again. Back to More returns to the tool you opened."],
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
@@ -19072,6 +19387,7 @@ function moreBody(k){
       onclick="this.select()">${esc(_recoveryText)}</textarea></div>
     <button class="btn btn--danger" onclick="clearRecovery()">I have it — clear this</button>`) : "")
   + recoveryCopiesSec()
+  + evdSec()
   + sec("Load a copy", `<p class="lede">Open a copy you saved, or paste one in. <b>Merge</b> keeps what is
       on this phone and adds what is missing. <b>Replace</b> throws away what is here.</p>
     <div class="fld"><label>From a file</label>
