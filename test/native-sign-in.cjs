@@ -52,6 +52,8 @@ check("the live web build carries both password-sharing files for its own host",
   const links = JSON.parse(fs.readFileSync(path.join(out.outDir, ".well-known/assetlinks.json"), "utf8"));
   assert.deepEqual(apple, JSON.parse(contact.appleAssociation(CONTACT, APP_ID)));
   assert.deepEqual(links, JSON.parse(contact.assetLinks(CONTACT, APP_ID)));
+  for (const name of ["apple-app-site-association", "assetlinks.json"])
+    assert.equal(fs.readFileSync(path.join(out.outDir, ".well-known", name), "utf8"), read("site/.well-known/" + name), name + " is the site's own file");
   fs.rmSync(out.outDir, { recursive: true, force: true });
 });
 
