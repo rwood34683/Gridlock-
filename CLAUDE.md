@@ -1150,6 +1150,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     cards follow under it. Times are the league's, moved only by a pit he set as
     running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
 
+76. ~~Who is playing at the World Cup.~~ Done — the owner handed over the
+    NXL World Cup 2026 data package (PBLeagues event 9322, read 8 Nov 2026)
+    and asked for it in the app; he chose teams only. `tools/worldcup_2026.py
+    <package> --write` writes the block between `/* worldcup:begin */` and
+    `/* worldcup:end */` (`WCUP`) from `teams.json`; never hand-edit it. Every
+    division with entries (34) and every entry (680) joins the board as
+    `wcup-<division id>` with `src:"reg"` and its registration as PAID, PEND,
+    DUE (entry fee not paid) or LATE (deadline passed) (`WCUP_REG`). The event
+    is one button on Division and a list of its divisions under it (`event`
+    on a division, `WCUP_EVENT`), not thirty-four buttons. No person from the
+    package is in the app or the repo: its rosters were read from login-only
+    pages and include minors, so a coach still pastes a team's roster from a
+    screenshot on the pit card. `test/review-nov6.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
