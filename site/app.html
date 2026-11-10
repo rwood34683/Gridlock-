@@ -2916,7 +2916,11 @@ window.pickEventLayout = key => {
   const chosen = eventChoice(), row = layoutChoices().find(r => r.key === key && r.season === chosen.season && r.event === chosen.event);
   if(row){ _eventChoice = {...row}; render(); }
 };
-window.useEventLayout = () => { const chosen = eventChoice(); if(chosen && chosen.key) window.pickEvent(chosen.key); };
+window.useEventLayout = () => {
+  const chosen = eventChoice();
+  if(chosen && chosen.key) return window.pickEvent(chosen.key);
+  flash(chosen && chosen.event ? "Choose a layout first." : "Choose an event, then its layout.");
+};
 function eventPicker(){
   const rows = layoutChoices(), chosen = eventChoice();
   if(!chosen) return "";
@@ -2926,8 +2930,8 @@ function eventPicker(){
   return `<div class="evpick" role="group" aria-label="Pick the event">
     <div class="fld"><label for="event-season">Season</label><select id="event-season" onchange="pickEventSeason(this.value)">${seasons.map(v => `<option value="${esc(v)}"${v === chosen.season ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Choose event</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
-    <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"${layouts.length ? "" : " disabled"}><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
-    <div class="evpick__choice">${chosen.key ? evLogo(chosen.key) : ""}<span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()"${chosen.key ? "" : " disabled"}>Use layout</button></div>
+    <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
+    <div class="evpick__choice">${chosen.key ? evLogo(chosen.key) : ""}<span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
   </div>`;
 }
 const BREAKS = {
@@ -6097,7 +6101,7 @@ function fmtPage(first){
   const known = combo && combo.src;
   const editOpen = fmtEdit && fmtEdit.div === f.div ? fmtEdit.open : !!f.div && !known;
   const values = [["Players", fmtGame(f.game) ? `${fmtGame(f.game)[2]} a side` : "Choose below"],
-    ["Game clock", gt > 0 ? `${gt} min` : "Off"],
+    ["Game clock", gt > 0 ? `${gt} min` : parts && !known ? "Not published" : "Off"],
     ...(race > 0 ? [["Race to", race === 1 ? "1 point" : `${race} points`]] : []),
     ...(mer > 0 ? [["Mercy", `${mer}-point lead`]] : []),
     ...(clk > 0 ? [["Between points", mmss(clk)]] : [])];
@@ -12952,7 +12956,8 @@ function syncAskDue(){
 // Run after every sign-in that lands in the app.
 function afterSignIn(){
   // Backup and format questions still come first; the team's day waits behind them.
-  if(S.entered && S.role === "staff") set({tab:"more", more:"schedule", quick:false, evPick:false});
+  // A coach signing in mid-match stays where he was: the sheet he is on wins.
+  if(S.entered && S.role === "staff" && sheetEmpty(curMatch())) set({tab:"more", more:"schedule", quick:false, evPick:false});
   if(!canSync() || !S.entered || S.role !== "staff") return;
   const id = syncAskId(); if(!id) return;
   if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){

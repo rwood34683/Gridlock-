@@ -1338,6 +1338,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
 
+84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
+    format as two dropdowns and folds the rest away. PR #316 (Codex) adds:
+    - Season › Event › Layout, which moves nothing until **Use layout**;
+    - the team's day after sign-in;
+    - Whiteboard's Quick log, which returns to the board.
+    On 10 Nov 2026 three fixes followed both:
+    - A pair no source covers reads **Not published** for its game clock in
+      the format summary, never Off.
+    - The event picker greys out nothing. **Use layout** with nothing chosen
+      says what to choose.
+    - A sign-in opens More › Schedule only when the sheet in play is empty
+      (`sheetEmpty(curMatch())`); a coach signing in mid-match stays on it.
+    `test/coach-flow.cjs`, `test/format-regressions.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
