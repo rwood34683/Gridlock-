@@ -1,9 +1,12 @@
 # NXL World Cup 2026 data package in Gridlock
 
-> The app now bundles the directory itself (More › World Cup teams, see
-> [WORLD-CUP-DATA.md](WORLD-CUP-DATA.md)). This page covers the separate
-> event-data file a coach can load on one phone, for example a newer package
-> before the next release.
+> The app bundles only the public team directory (More › World Cup teams, see
+> [WORLD-CUP-DATA.md](WORLD-CUP-DATA.md)): divisions, team entries and team
+> locations. **Player rosters are not included in the app.** This page covers
+> the separate event-data file a coach can pack from a package he holds and
+> load on his own phone. That file is never part of a release, a season copy
+> or the repository, and must not be passed on: there is no written permission
+> to redistribute the PBLeagues player records it is packed from.
 
 The owner's package (PBLeagues event 9322, read 8 Nov 2026) has two parts,
 and the two go to different places.
@@ -19,8 +22,9 @@ and the two go to different places.
 
 Team names are published registration data and are committed. Rosters,
 people and histories come from login-only pages and include minors, so they
-are **never committed and never part of the app's source or a season copy**.
-They live only in the file the coach packs and loads onto his own phone.
+are **never committed and never part of the app's source, a release or a
+season copy**. They live only in the file the coach packs and loads onto his
+own phone.
 
 ```sh
 python3 -I tools/worldcup_pack.py /path/to/world-cup-2026 ~/wc-event-data.json
