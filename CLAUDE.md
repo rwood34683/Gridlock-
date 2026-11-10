@@ -697,8 +697,9 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     seven cases. `docs/RULES-CHECK.md` has the table. Answers live in `S.fmt`, go on the sheet he is on through
     the existing setters, and `openSheet` starts every new sheet with them;
     **Save these answers** keeps a format under a name (`S.fmts`, Use · ✕).
-    Choose your division is one grouped dropdown. Only that format's current
-    values stay visible after a choice; the same dropdown changes it. Adjust settings
+    Choose your division and Choose your format are dropdowns, preserving the
+    division/format pairs in item 82. Only the chosen pair's current values
+    stay visible. Adjust settings
     keeps every override available, Rules and source keeps the explanation,
     and Other opens its custom controls. Disclosure state stays outside the
     season. A collapsed editor must not change any saved or scored value.
@@ -1295,6 +1296,36 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `aimLane` take it as a parameter, and `laneClear`, the lanes off the
     break, the bunker book and Walk stay flat. `docs/SIGHTLINES-HEIGHTS.md`
     has the sources and the disagreements. `test/sight-standing.cjs`.
+
+82. ~~Division, then format.~~ Done — the owner asked to pick, say, D4 5v5
+    or D4 X-Ball and see everything that goes with it. The Format screen asks
+    the division (`FMT_LEVELS`), then what it plays (`FMT_FORMS`: X-Ball,
+    3-player X-Ball, 3v3, 5v5, 7v7, 10v10, Classic 5v5), and `fmtCard()`
+    shows the race, the game clock, the mercy and the clock between points
+    for the pair, each with its source. A pair is kept as one name in `div`
+    (`fmtKey` / `fmtParts`): the rulebook's own names where it has them
+    ("Division 4" is D4 X-Ball, "3v3 Amateur" is Amateur 3-player X-Ball),
+    else "Division 4 5v5", so every older save still reads. `fmtCombo()`
+    takes the numbers only from `FMT_RULES` or `FMT_REF`; the reference gives
+    each timed format one set for every division and the card says so. A
+    pair neither covers reads "Not published", clears the old game clock and
+    presets nothing else. **Every format at a glance** (`fmtGlance`) lists
+    each pair with published numbers, one tap to use it. Never fill a "Not
+    published" from memory: add it to `FMT_RULES` or `FMT_REF` with its
+    source. `test/format-regressions.cjs`.
+
+83. ~~Three apps, kept apart.~~ Done: Coach, Team and Player are separate
+    apps. On 10 Nov 2026 the owner handed over the Team and Player builds and
+    asked for them as a tease. They live in `teasers/team/` and
+    `teasers/player/`, outside `web/`, `site/` and the native shells, and
+    nothing in the coach app or its builds loads them. Each one:
+    - carries a PREVIEW · COMING SOON ribbon;
+    - has no Admin link to a missing page;
+    - has no third-party 3D walk button, because of the banned word.
+    The landing page's **Coming soon** section names both and says neither is
+    available yet. They keep their own `gridlock_*` storage keys and never a
+    coach's. Before either ships, it gets the coach app's passes.
+    `teasers/README.md`, `test/teasers.cjs`.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 

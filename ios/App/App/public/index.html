@@ -837,6 +837,16 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .clock-chip.clock--out{border-color:var(--accent-lit);background:var(--accent);color:#fff}
 
 .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+/* The format card: the four answers for one division and format, each with
+   where it came from; a value no source gives is said, never filled in. */
+.tbl.fmt-tbl{min-width:0}
+.fmt-tbl th[scope=row]{text-align:left;color:var(--mute);font-weight:600;width:38%;vertical-align:top}
+.tbl.fmt-tbl td,.tbl.fmt-tbl th{white-space:normal;vertical-align:top}
+.tbl.fmt-gl th,.tbl.fmt-gl td{padding-left:5px;padding-right:5px}
+.tbl.fmt-gl thead th{letter-spacing:0}
+.fmt-src{display:block;color:var(--dim);font-size:12px;margin-top:2px}
+.fmt-none{color:var(--warn, #e5a72a)}
+.fmt-glance summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;color:var(--ink)}
 .tbl{width:100%;border-collapse:collapse;font-size:var(--t-sm);min-width:340px}
 .tbl th{
   font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
@@ -4502,7 +4512,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
-  s.cupView = null;
+  s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
@@ -4864,6 +4874,49 @@ function fmtRefLine(r){
     r.mercy > 0 ? `the match ends early at a ${r.mercy}-point lead` : "no mercy"].join(", ");
 }
 const fmtRule = d => Object.prototype.hasOwnProperty.call(FMT_RULES, d) ? FMT_RULES[d] : null;
+/* Division, then format. A team plays a level (Division 4) in a format
+ * (X-Ball, 5v5, 3v3 …), and the World Cup entry list has both Division 4
+ * X-Ball and Division 4 5v5, so the screen asks the two separately and shows
+ * what goes with the pair. A pair is kept as one name in `div`: the
+ * rulebook's own names where it has them ("Division 4" is D4 X-Ball,
+ * "3v3 Amateur" is Amateur 3-player X-Ball), else "Division 4 5v5". Its
+ * numbers come only from the two sources above: the divisional rulebook, or
+ * the format reference, which gives each timed format (3v3, 5v5, 7v7,
+ * 10v10, Classic 5v5) one set of numbers for every division. A pair neither
+ * covers says so and presets nothing it does not know. */
+const FMT_LEVELS = ["Pro", "WNXL", "Semi-Pro", "Division 2", "Division 3", "Division 4", "Division 5", "Masters", "College",
+  "Amateur", "Intermediate", "Novice", "Open", "Youth"];
+const FMT_FORMS = [
+  {id:"xball", name:"X-Ball", game:"xball"}, {id:"xb3", name:"3-player X-Ball", game:"3"},
+  {id:"3v3", name:"3v3", game:"3", ref:"3v3"}, {id:"5v5", name:"5v5", game:"5", ref:"5v5"},
+  {id:"7v7", name:"7v7", game:"7", ref:"7v7"}, {id:"10v10", name:"10v10", game:"10", ref:"10v10"},
+  {id:"classic5", name:"Classic 5v5", game:"5", ref:"Classic 5v5"}];
+const FMT_XB = {"Pro":"Pro", "WNXL":"WNXL", "Semi-Pro":"Semi-Pro", "Division 2":"Division 2", "Division 3":"Division 3",
+  "Division 4":"Division 4", "Division 5":"Division 5", "Masters":"Masters", "College":"College X-Ball"};
+const FMT_XB3 = {"Pro":"Pro 3-player", "Amateur":"3v3 Amateur", "Intermediate":"3v3 Intermediate"};
+const fmtForm = id => FMT_FORMS.find(f => f.id === id) || null;
+function fmtKey(level, form){
+  const f = fmtForm(form); if(!f) return "";
+  if(form === "xball") return FMT_XB[level] || (level ? level + " X-Ball" : "X-Ball");
+  if(form === "xb3") return FMT_XB3[level] || (level ? level + " 3-player X-Ball" : "3-player X-Ball");
+  return level ? level + " " + f.name : f.ref;
+}
+function fmtParts(div){
+  if(!div) return null;
+  for(const l of ["", ...FMT_LEVELS]) for(const f of FMT_FORMS) if(fmtKey(l, f.id) === div) return {level: l, form: f.id};
+  return null;
+}
+// What the sources give a pair. null in a field means neither gives it.
+function fmtCombo(div){
+  const parts = fmtParts(div); if(!parts) return null;
+  const form = fmtForm(parts.form), r = fmtRule(div);
+  if(r) return {...parts, game: r.game, time: r.time, mercy: r.mercy, raceTo: 0, clock: 120, split: r.split, ot: r.ot, src: "rule"};
+  const own = fmtRef(div), ref = own || (form.ref ? fmtRef(form.ref) : null);
+  if(ref) return {...parts, game: ref.game, time: ref.time, mercy: ref.mercy, raceTo: ref.raceTo, clock: null,
+    series: ref.series, note: ref.note, src: "ref", shared: !own && !!parts.level};
+  return {...parts, game: form.game, time: null, mercy: null, raceTo: null, clock: null, src: null};
+}
+const fmtPairName = p => p ? [p.level, (fmtForm(p.form) || {}).name].filter(Boolean).join(" · ") : "";
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
 const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
 function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
@@ -4875,8 +4928,13 @@ let fmtEdit = null;
 window.fmtEditToggle = el => { if(el.isConnected) fmtEdit = {div:fmt().div, open:el.open}; };
 window.pickFmtDivision = d => {
   if(!d) return;
-  window.setFmt('div', d);
+  window.setFmtLevel(d);
   document.getElementById('fmt-division')?.focus();
+};
+window.pickFmtForm = form => {
+  if(!form) return;
+  window.setFmtForm(form);
+  document.getElementById('fmt-form')?.focus();
 };
 function fmtSummary(f = fmt()){
   const g = fmtGame(f.game);
@@ -4904,7 +4962,20 @@ window.setFmt = (k, v) => {
   if(k === "div"){
     fmtEdit = null;
     if(m) patchMatch({div: v});
-    const r = fmtRule(v), ref = fmtRef(v);
+    const combo = fmtCombo(v);
+    if(combo) S.fmt = {...S.fmt, level: combo.level};
+    const r = fmtRule(v), ref = fmtRef(v) || (combo && combo.src === "ref" ? fmtRef(fmtForm(combo.form).ref) : null);
+    if(combo && !combo.src){
+      // Neither source covers this pair: how many a side follows the format,
+      // and nothing else is guessed. An old game clock would be a D4 clock on
+      // a Novice game, so it goes; the rest he sets below.
+      S.fmt = {...S.fmt, game: combo.game, time: 0};
+      setGameTime(0);
+      S.flash = ""; fmtSize(combo.game); const said = S.flash;
+      save(S);
+      flash(said || `${fmtPairName(combo)}: neither the rulebook nor the format reference gives its numbers. Set the race, game clock, mercy and clock between points below.`);
+      return;
+    }
     if(ref){
       S.fmt = {...S.fmt, game: ref.game, raceTo: ref.raceTo, mercy: ref.mercy, time: ref.time};
       setGameTime(ref.time);
@@ -4937,6 +5008,22 @@ window.setFmt = (k, v) => {
   if(k === "raceTo") return window.setRaceTo(v);
   if(k === "mercy") return window.setMercy(v);
   if(k === "clock") return window.setBreakClock(v);
+};
+// Division first, then format. A division picked before a format waits on
+// the screen (`level` in the format); the pair is applied once both are known.
+window.setFmtLevel = level => {
+  if(level === "Other"){ S.fmt = {...fmt(), level: ""}; return window.setFmt("div", "Other"); }
+  if(!FMT_LEVELS.includes(level)) return;
+  const p = fmtParts(fmt().div);
+  fmtEdit = null;
+  S.fmt = {...fmt(), level, ...(!p ? {div:""} : {})};
+  if(p) return window.setFmt("div", fmtKey(level, p.form));
+  save(S); render();
+};
+window.setFmtForm = form => {
+  if(!fmtForm(form)) return;
+  const f = fmt(), p = fmtParts(f.div), level = f.level !== undefined ? f.level : (p ? p.level : "");
+  window.setFmt("div", fmtKey(level, form));
 };
 window.fmtDone = () => set({fmtAsk:false, fmtDone:true});
 window.saveFmt = () => {
@@ -4974,14 +5061,55 @@ window.dropFmt = id => {
   if(!confirm(`Delete the saved format ${p.name}?`)) return;
   S.fmts = S.fmts.filter(x => x.id !== id); save(S); render();
 };
+// The four answers for one pair, each with where it came from. A value
+// neither source gives reads "Not published" and is never filled in.
+function fmtCard(c, div){
+  const said = c.src === "rule" ? "Rulebook" : c.src === "ref" ? "Format reference" : "";
+  const none = `<span class="fmt-none">Not published — set it below</span>`;
+  const row = (label, value, src) => `<tr><th scope="row">${label}</th><td>${value === null ? none : esc(value) + `<span class="fmt-src">${esc(src)}</span>`}</td></tr>`;
+  const size = fmtGame(c.game);
+  const race = c.raceTo === null ? null : c.raceTo > 0 ? `First to ${c.raceTo}`
+    : c.src === "rule" ? "No race — a game clock and a mercy lead" : "None listed";
+  const clock = c.time === null ? null : c.time > 0 ? `${c.time}-minute game` : "None";
+  const mer = c.mercy === null ? null : c.mercy > 0 ? `Ends the match at a ${c.mercy}-point lead` : "None";
+  const brk = c.clock === null ? null : `At least ${mmss(c.clock)}${c.split ? `; ${mmss(c.split)} on a split deck` : ""}`;
+  return `<div class="panel fmt-card" style="margin-top:var(--s3)">
+    <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtPairName(c) || fmtFull(div))}</b>${size ? ` · ${size[2]} a side` : ""}</p>
+    <div class="tblwrap" style="margin-top:var(--s2)"><table class="tbl fmt-tbl"><tbody>
+      ${row("Race to", race, said)}${row("Game clock", clock, said)}${row("Mercy rule", mer, said)}${row("Clock between points", brk, said)}
+    </tbody></table></div>
+    <p class="note" style="margin:var(--s2) 0 0">${c.src === "rule" ? `From the ${esc(FMT_RULEBOOK)} (8.2, 9.3.12${c.game === "3" ? ", 15.3.1" : ""}). ${esc(c.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}`
+      : c.src === "ref" ? `${c.shared ? `The format reference gives ${esc(fmtForm(c.form).name)} one set of numbers for every division. ` : ""}Numbers ${esc(FMT_REF_SAID)}.${c.note ? " " + esc(c.note) : ""}${c.series ? " " + esc(c.series) + " That is the bracket, not the points in a game." : ""} It gives no clock between points.`
+      : `Neither the ${esc(FMT_RULEBOOK)} nor the format reference gives numbers for ${esc(fmtPairName(c))}. Set each answer below from your event's rules.`}</p>
+    ${c.time ? `<p class="note" style="margin:var(--s2) 0 0">The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>` : ""}
+  </div>`;
+}
+// Every pair a source gives numbers for, at a glance, one tap to use it.
+function fmtGlance(cur){
+  const rows = [];
+  for(const l of FMT_LEVELS) for(const form of ["xball", "xb3"]){ const k = fmtKey(l, form), c = fmtCombo(k); if(c && c.src) rows.push([fmtPairName(c), k, c]); }
+  for(const x of FMT_FORMS.filter(x => x.ref)){ const c = fmtCombo(x.ref); if(c && c.src) rows.push(["Any division · " + x.name, x.ref, c]); }
+  const cell = (v, fn) => v === null ? "—" : fn(v);
+  return `<details class="fmt-glance" style="margin-top:var(--s3)"${S.fmtGlance ? " open" : ""} ontoggle="S.fmtGlance=this.open">
+    <summary>Every format at a glance</summary>
+    <div class="tblwrap"><table class="tbl fmt-tbl fmt-gl"><thead><tr><th>Division · format</th><th>Race to</th><th>Clock</th><th>Mercy</th><th>Break</th></tr></thead><tbody>
+    ${rows.map(([name, k, c]) => `<tr class="tap${k === cur ? " tap--on" : ""}" onclick="setFmt('div', ${jsq(k)})"><td>${esc(name)}</td>
+      <td class="num">${cell(c.raceTo, v => v > 0 ? v : "no")}</td><td class="num">${cell(c.time, v => v ? v + "′" : "no")}</td>
+      <td class="num">${cell(c.mercy, v => v ? v : "no")}</td><td class="num">${cell(c.clock, v => mmss(v))}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Clock is the game clock in minutes; break is the clock between points. — is not published in the ${esc(FMT_RULEBOOK)} or the format reference (4 Nov 2026). Tap a row to use it.</p>
+  </details>`;
+}
 function fmtPage(first){
   const f = fmt(), m = curMatch();
   // What shows lit is his answer, else what the sheet he is on already has.
   const race = f.raceTo !== undefined ? f.raceTo : raceTo(), mer = f.mercy !== undefined ? f.mercy : mercy(),
         clk = f.clock !== undefined ? f.clock : breakClock(), gt = f.time !== undefined ? f.time : gameTime();
   const saved = Array.isArray(S.fmts) ? S.fmts : [];
-  const rule = fmtRule(f.div), ref = fmtRef(f.div);
-  const editOpen = fmtEdit && fmtEdit.div === f.div ? fmtEdit.open : !!f.div && !rule && !ref;
+  const rule = fmtRule(f.div), parts = fmtParts(f.div), combo = fmtCombo(f.div);
+  const other = !!f.div && !parts, lvl = other ? "" : f.level !== undefined ? f.level : (parts ? parts.level : "");
+  const known = combo && combo.src;
+  const editOpen = fmtEdit && fmtEdit.div === f.div ? fmtEdit.open : !!f.div && !known;
   const values = [["Players", fmtGame(f.game) ? `${fmtGame(f.game)[2]} a side` : "Choose below"],
     ["Game clock", gt > 0 ? `${gt} min` : "Off"],
     ...(race > 0 ? [["Race to", race === 1 ? "1 point" : `${race} points`]] : []),
@@ -4997,22 +5125,14 @@ function fmtPage(first){
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
       </div>`).join("")}</div></details>` : ""}
     <div class="fld"><label for="fmt-division">Choose your division</label>
-    <select id="fmt-division" onchange="pickFmtDivision(this.value)"><option value=""${f.div ? "" : " selected"}>Choose your division</option>
-    ${f.div && !FMT_DIVS.includes(f.div) ? `<option value="${esc(f.div)}" selected>${esc(f.div)}</option>` : ""}
-    ${FMT_GROUPS.map(([head, divs]) => `<optgroup label="${esc(head)}">${divs.map(d => `<option value="${esc(d)}"${f.div === d ? " selected" : ""}>${esc(fmtFull(d))}</option>`).join("")}</optgroup>`).join("")}</select></div>
-    ${f.div ? `<dl class="fmt-values" aria-label="Selected format">${values.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : ""}
+    <select id="fmt-division" aria-label="Choose your division" onchange="pickFmtDivision(this.value)"><option value=""${lvl || other ? "" : " selected"}>Choose your division</option>
+    ${FMT_LEVELS.map(l => `<option value="${esc(l)}"${lvl === l && !other ? " selected" : ""}>${esc(l)}</option>`).join("")}<option value="Other"${other ? " selected" : ""}>${other && f.div !== "Other" ? esc(f.div) : "Other"}</option></select></div>
+    ${other ? "" : `<div class="fld"><label for="fmt-form">Choose your format</label><select id="fmt-form" aria-label="Format played" onchange="pickFmtForm(this.value)"><option value=""${parts ? "" : " selected"}>Choose your format</option>${FMT_FORMS.map(x => `<option value="${esc(x.id)}"${parts && parts.form === x.id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>`}
+    ${f.div ? `<dl class="fmt-values" aria-label="Selected format">${values.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : `<p class="note">${lvl ? `Now pick what ${esc(lvl)} plays.` : "Choose a division and format."}</p>`}
     ${first ? `<button class="btn btn--block" style="margin-top:var(--s3)" onclick="fmtDone()">Done — start coaching</button>` : ""}
-    ${f.div && (rule || ref) ? `<details class="fmt-disclosure" id="fmt-rules"><summary>Rules and source</summary>
-    ${rule ? `<div class="panel" style="margin-top:var(--s3)">
-      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_RULEBOOK)}</p>
-      <p class="note" style="margin:var(--s2) 0 0">${rule.game === "3" ? "3-player X-Ball, three a side" : "X-Ball, five a side"}: a ${rule.time}-minute game, and the match ends at a ${rule.mercy}-point lead. The game clock is the official's: tap Time's up on the point sheet when it runs out.</p>
-      <p class="note" style="margin:var(--s2) 0 0">Break between points at least 2:00${rule.split ? `; ${mmss(rule.split)} on a split deck` : ""}. ${esc(rule.ot || "Overtime only in playoffs; a prelim can end tied (9.12.1).")}</p>
-    </div>` : fmtRef(f.div) ? `<div class="panel" style="margin-top:var(--s3)">
-      <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtFull(f.div))}</b> · ${esc(FMT_REF_SAID)}</p>
-      <p class="note" style="margin:var(--s2) 0 0">${fmtRef(f.div).series ? `Timed game, ${fmtGame(fmtRef(f.div).game)[2]} a side` : fmtRef(f.div).game === "3" ? "3-player X-Ball, three a side" : "X-Ball, five a side"}: ${esc(fmtRefLine(fmtRef(f.div)))}.${fmtRef(f.div).note ? " " + esc(fmtRef(f.div).note) : ""}${fmtRef(f.div).series ? " " + esc(fmtRef(f.div).series) + " That is the bracket, not the points in a game." : ""} The game clock is the official's: tap Time's up on the point sheet when it runs out. Change any answer below.</p>
-    </div>` : ""}
-    </details>` : ""}
-    <details class="fmt-disclosure" id="fmt-settings"${f.div ? "" : " hidden"}${editOpen ? " open" : ""} ontoggle="fmtEditToggle(this)"><summary>${rule || ref ? "Adjust settings" : "Set your rules"}</summary>
+    ${combo ? `<details class="fmt-disclosure" id="fmt-rules"><summary>Rules and source</summary>${fmtCard(combo, f.div)}</details>` : ""}
+    ${fmtGlance(f.div)}
+    <details class="fmt-disclosure" id="fmt-settings"${f.div ? "" : " hidden"}${editOpen ? " open" : ""} ontoggle="fmtEditToggle(this)"><summary>${known ? "Adjust settings" : "Set your rules"}</summary>
     <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
@@ -17220,7 +17340,10 @@ const HELP = {
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
   "more/format": {t:"Format", w:"Your division and match format — asked once after you sign in.",
-    how:["Pick your division and its game clock, mercy, race and break fill in: Semi-Pro, Division 2 to 5 and the 3v3 divisions from the NXL Divisional X-Ball Rules 2026; Pro, WNXL, Masters, the timed games and College X-Ball from the NXL format reference.",
+    how:["Pick your division, then what it plays — X-Ball, 3-player X-Ball, 3v3, 5v5, 7v7, 10v10 or Classic 5v5. Division 4 X-Ball and Division 4 5v5 are two different formats.",
+         "The card under them shows the race, the game clock, the mercy and the clock between points for that pair, and where each came from: Semi-Pro, Division 2 to 5 and Amateur and Intermediate 3-player X-Ball from the NXL Divisional X-Ball Rules 2026; Pro, WNXL, Masters, College and the timed games from the NXL format reference, which gives each timed game one set of numbers for every division.",
+         "Not published means neither source gives that number for the pair: set it yourself from your event's rules. Nothing is guessed.",
+         "Every format at a glance lists every pair with published numbers. Tap a row to use it.",
          "Divisional X-Ball is a game clock and a mercy lead, not a race. The game clock is the official's: tap Time's up on the point sheet when it runs out.",
          "The break is at least 2:00; on a split deck it is 1:00, or 0:45 in Semi-Pro. Any answer can still be changed.",
          "Other is for an event this rulebook does not cover: set how many a side, the race, the mercy and the clock yourself.",
