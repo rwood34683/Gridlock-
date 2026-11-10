@@ -41,6 +41,21 @@ const { createServer } = require("../scripts/serve");
     await p.waitForFunction(() => S.entered === true);
   }
   try {
+    await check("sign-in opens the remembered team's day after backup and format questions", async p => {
+      await p.evaluate(() => { Date.now = () => Date.parse("2026-11-10T12:00:00"); set({myTeam:"Houston Heat"}); });
+      await signIn(p);
+      assert.match(await root(p), /Back up your season/i);
+      await p.getByRole("button", {name:"Not now", exact:true}).click();
+      assert.match(await root(p), /Your format/i);
+      await p.getByRole("button", {name:"Done — start coaching", exact:true}).click();
+      assert.equal(await p.locator("#my-team").inputValue(), "Houston Heat");
+      assert.match(await root(p), /Your team's day/i);
+      assert.match(await root(p), /Play and scout, by the clock/i);
+      assert.equal(await p.evaluate(() => __pushes), 0);
+      await p.evaluate(() => staffSignOut()); await signIn(p);
+      assert.equal(await p.locator("#my-team").inputValue(), "Houston Heat");
+      assert.doesNotMatch(await root(p), /Back up your season|Your format/i);
+    });
     await check("a cloud sign-in asks first, sends nothing until Yes, then the format follows", async p => {
       await signIn(p);
       const text = await root(p);
