@@ -57,18 +57,24 @@ const {createServer}=require('../scripts/serve');
     const got=await p.evaluate(div=>{openSheet({vs:'Fixture '+div});setFmt('div',div);const m=curMatch();return{game:S.fmt.game,time:S.fmt.time,mercy:S.fmt.mercy,race:S.fmt.raceTo,size:sideSize(),mMercy:mercy(),mRace:raceTo(),text:document.getElementById('root').innerText};},div);
     assert.deepEqual([got.game,got.time,got.mercy,got.race,got.size],[game,time,mercy,race,size],div);
     assert.equal(got.mMercy,mercy,div+' mercy on the sheet');assert.equal(got.mRace,race,div+' race on the sheet');
-    if(!['Semi-Pro','Division 2','Division 3','Division 4','Division 5','3v3 Amateur','3v3 Intermediate'].includes(div))assert.match(got.text,/from the NXL format reference \(4 Nov 2026\), not the divisional rulebook/,div);
+    if(!['Semi-Pro','Division 2','Division 3','Division 4','Division 5','3v3 Amateur','3v3 Intermediate'].includes(div)){
+     await p.getByText('Rules and source',{exact:true}).click();
+     assert.match(await p.locator('#fmt-rules').innerText(),/from the NXL format reference \(4 Nov 2026\), not the divisional rulebook/,div);
+    }
    }
   });
   await check('the game clock row sits under Race to and above Mercy rule, and is kept',async p=>{
+   await p.evaluate(()=>setFmt('div','Other'));
    const order=await p.evaluate(()=>['Race to','Game clock','Mercy rule'].map(l=>{const el=document.querySelector(`[aria-label="${l}"]`);return el?el.getBoundingClientRect().top:null;}));
    assert(order.every(Boolean),JSON.stringify(order));assert(order[0]<order[1]&&order[1]<order[2],JSON.stringify(order));
    await p.evaluate(()=>setFmt('div','Pro'));
+   await p.getByText('Adjust settings',{exact:true}).click();
    assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('[aria-label="Game clock"] button.on')].map(b=>b.textContent.trim())),['15 min']);
    await p.getByRole('button',{name:'12 min',exact:true}).click();
    assert.equal(await p.evaluate(()=>S.fmt.time),12);
    assert.match(await p.evaluate(()=>fmtSummary()),/12-min game/);
    await p.reload();assert.equal(await p.evaluate(()=>S.fmt.time),12);
+   await p.getByText('Adjust settings',{exact:true}).click();
    await p.getByRole('button',{name:'Off',exact:true}).first().click();
    assert.equal(await p.evaluate(()=>S.fmt.time),0);
   });
@@ -80,11 +86,12 @@ const {createServer}=require('../scripts/serve');
    const line=await p.evaluate(()=>{setFmt('div','Division 3');S.tab='tally';render();const t=document.getElementById('root').innerText;const m=t.match(/Format: ([^\n]*)/);return m?m[1]:t.slice(0,300);});
    assert.match(line,/no race · 12-min game clock · mercy 4/,line);
    await p.evaluate(()=>{S.tab='more';S.more='format';render();});
+   await p.getByText('Adjust settings',{exact:true}).click();
    await p.getByRole('button',{name:'7 min',exact:true}).click();
    assert.equal(await p.evaluate(()=>gameTime()),7);
   });
   await check('a division then a format shows the four answers that go with the pair, each with its source',async p=>{
-   const card=()=>p.evaluate(()=>{const c=document.querySelector('.fmt-card');return c?[...c.querySelectorAll('tbody tr')].map(r=>[r.querySelector('th').textContent.trim(),r.querySelector('td').textContent.trim()]):null;});
+   const card=async()=>{if(await p.locator('#fmt-rules').count())await p.locator('#fmt-rules').evaluate(el=>{el.open=true;});return p.evaluate(()=>{const c=document.querySelector('.fmt-card');return c?[...c.querySelectorAll('tbody tr')].map(r=>[r.querySelector('th').textContent.trim(),r.querySelector('td').textContent.trim()]):null;});};
    await p.evaluate(()=>{setFmtLevel('Division 4');});
    assert.equal(await p.evaluate(()=>document.querySelector('.fmt-card')),null,'no card until the format is picked');
    assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/Now pick what Division 4 plays/);
@@ -105,7 +112,7 @@ const {createServer}=require('../scripts/serve');
    assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy]),['Pro 3-player',7,3]);
    await p.evaluate(()=>setFmtLevel('College'));await p.evaluate(()=>setFmtForm('xball'));
    assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.raceTo,raceTo()]),['College X-Ball',5,5]);
-   await p.evaluate(()=>setFmtForm('7v7'));
+   await p.evaluate(()=>setFmtForm('7v7'));await card();
    assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/win or go home\. That is the bracket, not the points in a game/);
    await p.evaluate(()=>setFmtLevel('Other'));
    assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,!!document.querySelector('[aria-label="Format played"]')]),['Other',0,false]);
@@ -125,11 +132,52 @@ const {createServer}=require('../scripts/serve');
   await check('an older save keeps its division and reads as the right pair',async p=>{
    const got=await p.evaluate(()=>['Division 3','3v3 Intermediate','5v5','Pro 3-player','College X-Ball','Masters'].map(d=>fmtPairName(fmtParts(d))));
    assert.deepEqual(got,['Division 3 · X-Ball','Intermediate · 3-player X-Ball','5v5','Pro · 3-player X-Ball','College · X-Ball','Masters · X-Ball']);
-   const kept=await p.evaluate(()=>{S.fmt={div:'Division 2',game:'xball',time:15,mercy:5,clock:120,raceTo:0};render();return[document.querySelector('[aria-label="Division"] button.on').textContent,document.querySelector('[aria-label="Format played"] button.on').textContent];});
+   const kept=await p.evaluate(()=>{S.fmt={div:'Division 2',game:'xball',time:15,mercy:5,clock:120,raceTo:0};render();return[document.querySelector('#fmt-division').value,document.querySelector('#fmt-form option:checked').textContent];});
    assert.deepEqual(kept,['Division 2','X-Ball']);
   });
   await check('format screen fits phone and tablet with rule and custom choices',async p=>{
    for(const viewport of [{width:375,height:667},{width:820,height:1180}]){await p.setViewportSize(viewport);for(const div of ['Division 3','Other']){await p.evaluate(div=>setFmt('div',div),div);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}}
+  });
+  await check('choosing a division leaves only its values visible and keeps Done on the phone screen',async p=>{
+   await p.evaluate(()=>{S.fmt={};S.fmtAsk=true;S.fmtDone=false;render();});
+   assert.equal(await p.getByLabel('Choose your division',{exact:true}).isVisible(),true);
+   assert.equal(await p.locator('#fmt-settings').isVisible(),false);
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
+   assert.equal(await p.getByRole('button',{name:'Division 4',exact:true}).count(),0);
+   assert.equal(await p.getByRole('button',{name:'3v3',exact:true}).count(),0);
+   assert.equal(await p.getByRole('button',{name:'7-man',exact:true}).isVisible(),false);
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','12 min','4-point lead','2:00']);
+   const focused=await p.evaluate(()=>document.activeElement===document.getElementById('fmt-form'));
+   assert.equal(focused,true,'focus returns to the selected format');
+   const done=await p.getByRole('button',{name:'Done — start coaching',exact:true}).boundingBox();
+   assert(done&&done.y>=0&&done.y+done.height<=667,'Done must be reachable without scrolling after choosing');
+   await p.getByRole('button',{name:'Done — start coaching',exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.fmtAsk),false);
+   await p.reload();await p.evaluate(()=>{S.tab='more';S.more='format';render();});
+   assert.equal(await p.getByLabel('Choose your division',{exact:true}).inputValue(),'Division 3');
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','12 min','4-point lead','2:00']);
+  });
+  await check('the division dropdown changes only to the selected format and supports the keyboard',async p=>{
+   const pick=p.getByLabel('Choose your division',{exact:true});
+   await pick.selectOption('Division 3');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
+   await pick.press('ArrowDown');
+   assert.equal(await pick.inputValue(),'Division 4');
+   await pick.selectOption('Pro');await p.getByLabel('Format played',{exact:true}).selectOption('xb3');
+   assert.equal(await pick.inputValue(),'Pro');
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['3 a side','7 min','3-point lead','2:00']);
+   await p.getByLabel('Format played',{exact:true}).selectOption('5v5');
+   const labels=await p.locator('.fmt-values dt').allTextContents();
+   assert(!labels.includes('Race to')&&!labels.includes('Mercy'),'timed games must not show unrelated race/mercy options');
+  });
+  await check('Adjust settings stays open across changes and keeps custom values after reload',async p=>{
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
+   await p.getByText('Adjust settings',{exact:true}).click();
+   await p.getByRole('button',{name:'1:00 · split deck',exact:true}).click();
+   assert.equal(await p.getByRole('button',{name:'7 min',exact:true}).isVisible(),true);
+   await p.getByRole('button',{name:'7 min',exact:true}).click();
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','7 min','4-point lead','1:00']);
+   await p.reload();assert.equal(await p.getByRole('button',{name:'7 min',exact:true}).isVisible(),false);
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','7 min','4-point lead','1:00']);
   });
  }finally{await browser.close();await new Promise(r=>server.close(r));}
  if(process.env.FORMAT_RESULTS)fs.writeFileSync(process.env.FORMAT_RESULTS,JSON.stringify(results,null,2)+'\n');

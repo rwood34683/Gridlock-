@@ -956,6 +956,12 @@ svg.field [data-pick]{cursor:crosshair}
 .kv__row{display:flex;flex-direction:column;gap:3px}
 .kv__k{font-size:var(--t-xs);font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-lit)}
 .kv__v{font-size:var(--t-sm);color:var(--ink);line-height:1.5}
+.fmt-disclosure{margin-top:var(--s2);border-top:1px solid var(--line)}
+.fmt-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px;padding:var(--s2) 0;cursor:pointer;font-weight:700;color:var(--ink)}
+.fmt-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s2) 0}
+.fmt-values>div{padding:var(--s2);border:1px solid var(--line);border-radius:var(--r-sm)}
+.fmt-values dt{font-size:var(--t-xs);color:var(--mute)}
+.fmt-values dd{margin:4px 0 0;font-size:var(--t-sm);font-weight:700;color:var(--ink);overflow-wrap:anywhere}
 
 .code{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-sm);
@@ -4917,6 +4923,19 @@ function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
 // Men a side on a sheet: its own count, else five.
 function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number(m.size) : 0; return n > 0 && n <= 10 ? n : 5; }
 const fmtGame = id => FMT_GAMES.find(g => g[0] === id) || null;
+// Disclosure state is only for this screen, never part of a season copy.
+let fmtEdit = null;
+window.fmtEditToggle = el => { if(el.isConnected) fmtEdit = {div:fmt().div, open:el.open}; };
+window.pickFmtDivision = d => {
+  if(!d) return;
+  window.setFmtLevel(d);
+  document.getElementById('fmt-division')?.focus();
+};
+window.pickFmtForm = form => {
+  if(!form) return;
+  window.setFmtForm(form);
+  document.getElementById('fmt-form')?.focus();
+};
 function fmtSummary(f = fmt()){
   const g = fmtGame(f.game);
   const bits = [f.div, g && g[1],
@@ -4941,6 +4960,7 @@ window.setFmt = (k, v) => {
   S.fmt = {...fmt(), [k]: v};
   const m = curMatch();
   if(k === "div"){
+    fmtEdit = null;
     if(m) patchMatch({div: v});
     const combo = fmtCombo(v);
     if(combo) S.fmt = {...S.fmt, level: combo.level};
@@ -4964,7 +4984,7 @@ window.setFmt = (k, v) => {
       S.flash = ""; window.setRaceTo(ref.raceTo); if(S.flash) msgs.push(S.flash);
       S.flash = ""; window.setMercy(ref.mercy); if(S.flash) msgs.push(S.flash);
       save(S);
-      flash(msgs.length ? msgs.join(" ") : `${combo && combo.shared ? fmtPairName(combo) : fmtFull(v)}: ${fmtRefLine(ref)} — ${FMT_REF_SAID}.`);
+      flash(msgs.length ? msgs.join(" ") : `${fmtFull(v)} selected.`);
       return;
     }
     if(!r){ S.fmt = {...S.fmt, time: 0}; setGameTime(0); save(S); render(); return; }
@@ -4979,7 +4999,7 @@ window.setFmt = (k, v) => {
     S.flash = ""; window.setMercy(r.mercy); if(S.flash) msgs.push(S.flash);
     window.setBreakClock(120);
     save(S);
-    flash(msgs.length ? msgs.join(" ") : `${v}: ${r.time}-minute game, mercy at a ${r.mercy}-point lead, 2:00 between points — from the ${FMT_RULEBOOK}.`);
+    flash(msgs.length ? msgs.join(" ") : `${fmtFull(v)} selected.`);
     return;
   }
   if(k === "game"){ fmtSize(v); save(S); render(); return; }
@@ -4995,7 +5015,8 @@ window.setFmtLevel = level => {
   if(level === "Other"){ S.fmt = {...fmt(), level: ""}; return window.setFmt("div", "Other"); }
   if(!FMT_LEVELS.includes(level)) return;
   const p = fmtParts(fmt().div);
-  S.fmt = {...fmt(), level};
+  fmtEdit = null;
+  S.fmt = {...fmt(), level, ...(!p ? {div:""} : {})};
   if(p) return window.setFmt("div", fmtKey(level, p.form));
   save(S); render();
 };
@@ -5021,6 +5042,7 @@ window.saveFmt = () => {
 };
 window.useFmt = id => {
   const p = (S.fmts || []).find(x => x.id === id); if(!p) return;
+  fmtEdit = null;
   S.fmt = FMT_KEYS.reduce((o, k) => (p[k] !== undefined ? {...o, [k]: p[k]} : o), {});
   const f = S.fmt, m = curMatch();
   if(m && f.div !== undefined) patchMatch({div: f.div});
@@ -5086,24 +5108,31 @@ function fmtPage(first){
   const saved = Array.isArray(S.fmts) ? S.fmts : [];
   const rule = fmtRule(f.div), parts = fmtParts(f.div), combo = fmtCombo(f.div);
   const other = !!f.div && !parts, lvl = other ? "" : f.level !== undefined ? f.level : (parts ? parts.level : "");
+  const known = combo && combo.src;
+  const editOpen = fmtEdit && fmtEdit.div === f.div ? fmtEdit.open : !!f.div && !known;
+  const values = [["Players", fmtGame(f.game) ? `${fmtGame(f.game)[2]} a side` : "Choose below"],
+    ["Game clock", gt > 0 ? `${gt} min` : "Off"],
+    ...(race > 0 ? [["Race to", race === 1 ? "1 point" : `${race} points`]] : []),
+    ...(mer > 0 ? [["Mercy", `${mer}-point lead`]] : []),
+    ...(clk > 0 ? [["Between points", mmss(clk)]] : [])];
   return sec(first ? "Your format" : "Format", `
-    <p class="lede">${first ? "Answer these once and every new sheet starts with them. Change them any time under More › Format."
-                            : "Every new sheet starts with these. An answer here goes on the sheet you are on too."}</p>
-    ${saved.length ? `<p class="note">Saved answers</p><div class="list">${saved.map(p => `
+    <p class="lede">${first ? (f.div ? "Change these later in More › Format." : "Choose a division. Change it later in More › Format.")
+                            : "Used for new matches. Changes also apply to this match where possible."}</p>
+    ${saved.length ? `<details class="fmt-disclosure"><summary>Saved formats</summary><div class="list">${saved.map(p => `
       <div class="list__row" style="cursor:default">
         <span class="list__body"><span class="list__name">${esc(p.name)}</span><span class="list__desc">${esc(fmtSummary(p) || "—")}</span></span>
         <button class="btn btn--quiet" onclick="useFmt(${jsq(p.id)})">Use</button>
         <button class="btn btn--quiet" onclick="dropFmt(${jsq(p.id)})" aria-label="Delete ${esc(p.name)}">✕</button>
-      </div>`).join("")}</div>` : ""}
-    <p class="note" style="margin-top:var(--s3)">Division:</p>
-    <div class="seg seg--wrap" aria-label="Division">${FMT_LEVELS.map(l => `<button class="${lvl === l && !other ? "on" : ""}" onclick="setFmtLevel(${jsq(l)})">${esc(l)}</button>`).join("")}<button class="${other ? "on" : ""}" onclick="setFmtLevel('Other')">Other</button></div>
-    ${other ? "" : `<p class="note" style="margin-top:var(--s3)">${lvl ? `What ${esc(lvl)} plays:` : "Format:"}</p>
-    <div class="seg seg--wrap" aria-label="Format played">${FMT_FORMS.map(x => `<button class="${parts && parts.form === x.id ? "on" : ""}" onclick="setFmtForm(${jsq(x.id)})">${esc(x.name)}</button>`).join("")}</div>`}
-    ${combo ? fmtCard(combo, f.div) : other
-      ? `<p class="note" style="margin-top:var(--s2)">${f.div && f.div !== "Other" ? `${esc(f.div)} — your own numbers.` : "Other"} Set each answer below.</p>`
-      : `<p class="note" style="margin-top:var(--s2)">${lvl ? `Now pick what ${esc(lvl)} plays, and everything that goes with it shows here.` : "Pick your division, then what it plays: everything that goes with the pair shows here. Other is for any other event."}</p>`}
+      </div>`).join("")}</div></details>` : ""}
+    <div class="fld"><label for="fmt-division">Choose your division</label>
+    <select id="fmt-division" aria-label="Choose your division" onchange="pickFmtDivision(this.value)"><option value=""${lvl || other ? "" : " selected"}>Choose your division</option>
+    ${FMT_LEVELS.map(l => `<option value="${esc(l)}"${lvl === l && !other ? " selected" : ""}>${esc(l)}</option>`).join("")}<option value="Other"${other ? " selected" : ""}>${other && f.div !== "Other" ? esc(f.div) : "Other"}</option></select></div>
+    ${other ? "" : `<div class="fld"><label for="fmt-form">Choose your format</label><select id="fmt-form" aria-label="Format played" onchange="pickFmtForm(this.value)"><option value=""${parts ? "" : " selected"}>Choose your format</option>${FMT_FORMS.map(x => `<option value="${esc(x.id)}"${parts && parts.form === x.id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>`}
+    ${f.div ? `<dl class="fmt-values" aria-label="Selected format">${values.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : `<p class="note">${lvl ? `Now pick what ${esc(lvl)} plays.` : "Choose a division and format."}</p>`}
+    ${first ? `<button class="btn btn--block" style="margin-top:var(--s3)" onclick="fmtDone()">Done — start coaching</button>` : ""}
+    ${combo ? `<details class="fmt-disclosure" id="fmt-rules"><summary>Rules and source</summary>${fmtCard(combo, f.div)}</details>` : ""}
     ${fmtGlance(f.div)}
-    <p class="note fmt-own" style="margin-top:var(--s4)"><b style="color:var(--ink)">Change any answer</b> — your event's own rules win.</p>
+    <details class="fmt-disclosure" id="fmt-settings"${f.div ? "" : " hidden"}${editOpen ? " open" : ""} ontoggle="fmtEditToggle(this)"><summary>${known ? "Adjust settings" : "Set your rules"}</summary>
     <p class="note" style="margin-top:var(--s3)">Format — how many a side:</p>
     <div class="seg seg--wrap" aria-label="Format">${FMT_GAMES.map(([id, n]) => `<button class="${f.game === id ? "on" : ""}" onclick="setFmt('game', ${jsq(id)})">${n}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Race to — your format, first to:</p>
@@ -5114,10 +5143,12 @@ function fmtPage(first){
     <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5,6].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
     <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${(rule ? [120, rule.split].filter(Boolean) : [45,60,90,120]).map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule ? (n === 120 ? " · standard" : " · split deck") : ""}</button>`).join("")}</div>
+    </details>
+    <details class="fmt-disclosure"${f.div ? "" : " hidden"}><summary>Save this format</summary>
     <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>
       <div class="btnrow"><input id="fmtName" class="grow" maxlength="40" placeholder="${esc(fmtSummary(f) || "e.g. D3 X-Ball")}" aria-label="Name for these answers" ${onEnter("saveFmt()")}>
       <button class="btn btn--quiet" onclick="saveFmt()">Save</button></div></div>
-    ${first ? `<button class="btn btn--block" style="margin-top:var(--s4)" onclick="fmtDone()">Done — start coaching</button>` : ""}
+    </details>
   `);
 }
 window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; _buzzed = false; render(); } };
