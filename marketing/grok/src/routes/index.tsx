@@ -57,6 +57,7 @@ function Home() {
             Scout reads and sightlines are coaching aids, not predictions or a substitute for the officials’ live call.
           </p>
         </aside>
+        <ComingSoon />
         <Close />
       </main>
     </Shell>
@@ -264,6 +265,43 @@ function Holds() {
             <MarkCard key={card.eyebrow} {...card} />
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+const NEXT = [
+  {
+    tag: "Next · Team",
+    name: "Gridlock Team",
+    body: "One team, one picture. The roster, the schedule and the plan for the weekend in one place, with a code your players use to join.",
+  },
+  {
+    tag: "Next · Player",
+    name: "Gridlock Player",
+    body: "Join your team with its code. Chart your own breaks, read the lanes from your bunker and learn your team’s words for the field, on your own phone.",
+  },
+] as const;
+
+function ComingSoon() {
+  return (
+    <section id="coming" className="scroll-mt-header border-t border-line">
+      <div className="mx-auto max-w-6xl px-5 py-16">
+        <p className="kicker">Coming soon</p>
+        <h2 className="display text-section mt-3 max-w-4xl text-fg">The coach app is the first of three.</h2>
+        <p className="mt-4 max-w-2xl text-lede text-fg">
+          Two more apps are on the way, each its own app, built for the people who aren’t holding the clipboard.
+        </p>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {NEXT.map((app) => (
+            <article key={app.name} className="card-mark flex flex-col p-5">
+              <p className="kicker">{app.tag}</p>
+              <h3 className="display text-card mt-2 text-fg">{app.name}</h3>
+              <p className="mt-3 text-signal">{app.body}</p>
+            </article>
+          ))}
+        </div>
+        <p className="mt-6 text-signal">Not available yet. The coach app is the one you can use today.</p>
       </div>
     </section>
   );
