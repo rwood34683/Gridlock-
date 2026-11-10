@@ -106,3 +106,19 @@ replaced it the same day: 15 minutes, 5-point mercy, no race. The bracket
 column is shown on the screen and never scored: it is how a bracket advances,
 not the points that win a game. The screen keeps conventional 3v3 and
 3-player X-Ball in separate groups.
+
+## Division, then format (9 Nov 2026)
+
+The Format screen asks the division, then what it plays, because NXL runs the
+same division in more than one format (the World Cup has Division 4 X-Ball and
+Division 4 5v5). A pair takes its numbers from the two tables above only:
+
+- X-Ball and 3-player X-Ball by division, from the rulebook or the reference.
+- A timed format (3v3, 5v5, 7v7, 10v10, Classic 5v5) from its reference row,
+  which is the same for every division. The card says so.
+- Any other pair (Novice X-Ball, Open 3-player X-Ball, and so on) shows "Not
+  published" for each value and presets nothing.
+
+The reference gives no clock between points, so a timed format shows it as
+not published. Add a number only with its source.
+
