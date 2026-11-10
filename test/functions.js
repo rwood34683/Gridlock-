@@ -64,10 +64,19 @@ const ROSTER = [
   // There is no way past this screen but an account. The only door that does
   // not need one is a class deep link, which is a participant signing a clinic
   // sheet rather than the coach — checked separately below.
-  check("the promo offers three routes and no more", await page.locator(".promo .btn").count() === 3);
-  check("and every one of them is the account or the tour", await ev(() =>
+  // Install on this phone (item 85) is the fourth button: it puts the app on
+  // the home screen and never lets anyone past this page.
+  check("the promo offers three routes and the install button, no more", await page.locator(".promo .btn").count() === 4);
+  check("and every one of them is the account, the tour or the install", await ev(() =>
     [...document.querySelectorAll(".promo .btn")].map(b => b.textContent.trim()).join("|"))
-    === "Create your account|I already have one|Show me how it works");
+    === "Create your account|I already have one|Show me how it works|Install on this phone");
+  check("the install button shows how to install without letting him through", await ev(() => {
+    [...document.querySelectorAll(".promo .btn")].find(b => /Install on this phone/.test(b.textContent)).click();
+    const shown = /Install app|Add to Home Screen|install icon|Add page to|inside another app/.test(document.getElementById("root").innerText);
+    const still = !S.entered;
+    window.closeInstallHelp();
+    return shown && still;
+  }));
   check("nothing on it lets a coach in without one", await ev(() => {
     const opens = [...document.querySelectorAll(".promo .btn")]
       .filter(b => /entered\s*:\s*true/.test(b.getAttribute("onclick") || ""));
