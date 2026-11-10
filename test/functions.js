@@ -2350,7 +2350,7 @@ const ROSTER = [
     const on = bl.every(b => b.x > -2 && b.x < 152 && b.y > 0 && b.y < 120);
     const ids = new Set(bl.map(b => b.id)).size === bl.length;
     const twin = bl.every(b => Math.abs(b.x - 75) < 0.2 || bl.some(o => o !== b && o.n === b.n && Math.abs(o.x + b.x - 150) < 0.25 && Math.abs(o.y - b.y) < 0.25));
-    window.set({ tab: "playbook", evPick: true });
+    window.set({ tab: "playbook", evPick: true }); window.pickEventGroup(L.name);
     const logo = !!document.querySelector('.evpick img.evlogo[alt*="GP Championships"]');
     window.set({ evPick: false });
     return bl.length === 57 && on && ids && twin && logo || JSON.stringify({ n: bl.length, on, ids, twin, logo });
@@ -2364,7 +2364,7 @@ const ROSTER = [
     // uprights stand at +y and the dorito wire's wedges at the low edge.
     const frame = bl.filter(b => b.n === "MW").every(b => b.y > 95) && bl.filter(b => b.n === "MD" && b.y < 20).length === 6;
     const planted = Object.values(BREAK_PLANTS.wch).every(f => f.length === 5 && f.every(id => bl.some(b => b.id === id)));
-    window.set({ tab: "playbook", evPick: true });
+    window.set({ tab: "playbook", evPick: true }); window.pickEventGroup(L.name);
     const logo = !!document.querySelector('.evpick img.evlogo[alt*="WCPPL Championships"]');
     window.set({ evPick: false });
     return bl.length === 56 && on && ids && twin && frame && planted && logo && /Chino/.test(L.name) || JSON.stringify({ n: bl.length, on, ids, twin, frame, planted, logo });
@@ -5357,11 +5357,15 @@ const ROSTER = [
     const noCaret = !/CHANGE/.test(document.querySelector("#root .ctx").textContent);
     document.querySelector("#root button.ctx__ev").click();
     const stayed = S.layoutKey === was && S.evPick;
-    const opts = [...document.querySelectorAll("#root .evpick button")];
-    const listed = opts.length === keys.length && opts.filter(b => b.classList.contains("on")).length === 1
+    const opts = [...document.querySelectorAll("#root .evpick select")];
+    const listed = layoutChoices().length === keys.length && opts.length === 3
+      && document.getElementById("event-layout").value === was
       && opts.every(b => b.getBoundingClientRect().height >= 44);
     const other = keys.find(k => k !== was);
-    opts[keys.indexOf(other)].click();
+    const choice = layoutChoices().find(r => r.key === other);
+    window.pickEventSeason(choice.season); window.pickEventGroup(choice.event); window.pickEventLayout(other);
+    const previewOnly = S.layoutKey === was;
+    document.querySelector("#root .evpick button").click();
     const moved = S.layoutKey === other && !S.evPick && !document.querySelector("#root .evpick");
     window.pickEvent(was);
     window.set({ tab: "scout" });
@@ -5369,7 +5373,7 @@ const ROSTER = [
     const callOpen = S.tab === "playbook" && S.pbPick && !!document.querySelector("#root [data-callpick] + .seg button.on");
     const tall = document.querySelector("#root button.ctx__call").getBoundingClientRect().height >= 44;
     window.set({ pbPick: false });
-    return noCaret && stayed && listed && moved && callOpen && tall && S.layoutKey === was;
+    return noCaret && stayed && listed && previewOnly && moved && callOpen && tall && S.layoutKey === was;
   }));
   check("the Division table folds Film, Roster and Read from away in a narrow column", await ev(() => {
     window.set({ tab: "scout", scoutTab: "board", more: null });

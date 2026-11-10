@@ -138,7 +138,7 @@ const SEED = require("../scripts/seed.js");
     });
     await check("Your team's day lists his games, who to scout before each, the clashes, and a pit running late moves the times", async p => {
       await p.evaluate(() => set({ tab: "more", more: "schedule" }));
-      assert.match(await root(p), /Pick your team and this lists/);
+      assert.match(await root(p), /Choose your team to see who you play and when to scout them/);
       await p.selectOption("#my-team", "Seattle Uprising");
       const r = await p.evaluate(() => {
         const day = teamDay("Seattle Uprising"), g = day[1];
@@ -146,6 +146,7 @@ const SEED = require("../scripts/seed.js");
         return { n: day.length, opp: g.opp, scout: g.scout.length, clash: day.some(d => d.scout.some(x => x.clash)), moved: (gameAt(g.g) - before) / 60000 };
       });
       assert.ok(r.n >= 2 && r.scout >= 1 && r.clash, JSON.stringify(r)); assert.equal(r.moved, 20);
+      await p.getByText("Game by game", {exact:true}).click();
       const t = await root(p);
       assert.match(t, /Scout Los Angeles Collision before then/); assert.match(t, /send someone/i); assert.match(t, /20 late/);
       await p.reload(); await p.waitForFunction(() => typeof S === "object");

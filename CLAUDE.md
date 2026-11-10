@@ -81,6 +81,17 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 - Joining a class does **not** require an account.
 - Heuristic scout reads are a training aid, not a prediction. Officials govern the live call.
 - Changing the event changes the layout on every tab.
+- The event picker is Season → Event → Layout. It lists saved layouts,
+  including older events; years come from recorded metadata, never the clock.
+  Browsing a selection does not change the field until Use layout. Played
+  sheets keep their field. Custom fields with no season say Your fields.
+- After a coach signs in, the backup and format questions still come first,
+  then Schedule opens on Your team's day. The team choice stays on the device;
+  it does not grant account or team permissions. A team without loaded games
+  stays selected and asks for a schedule; never invent opponents or times.
+- A point scored in Whiteboard's Quick log closes the layer back to the board,
+  retaining its marks. Scoring from Tally keeps Tally's Quick log open. Failed
+  or guarded scoring never closes the layer or changes the recorded score.
 - Face chevron and shot cone travel **with** the player along the path.
 
 ## Roles

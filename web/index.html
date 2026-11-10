@@ -178,7 +178,11 @@ button.ctx__ev b{color:var(--mute)}
 .ctx__call b{color:var(--ink)}
 .ctx__t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ctx__car{flex:none;color:var(--accent-lit);font-style:normal;font-size:10px}
-.evpick{display:flex;flex-wrap:wrap;gap:var(--s2);padding:0 0 var(--s3)}
+.evpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);padding:0 0 var(--s3)}
+.evpick .fld{min-width:0;margin:0}
+.evpick select{width:100%;min-width:0;min-height:44px}
+.evpick__choice{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__choice span{min-width:0;overflow-wrap:anywhere}
 .evlogo{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;margin-right:8px}
 .evlogo--row{width:52px;height:52px;margin-right:0}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
@@ -1877,11 +1881,11 @@ const NWC = [
   {id:"GP#2",n:"GP",x:96.0,y:104.4,t:"plus",w:11.31,h:11.09,c:"r",k:4.02}
 ];
 const LAYOUTS = {
-  lso: {name:"NXL Lone Star Open · Garland", key:"lso", bunkers:LSO,
+  lso: {name:"NXL Lone Star Open · Garland", season:2026, key:"lso", bunkers:LSO,
         source:"Measured off the official NXL field map, on its printed 10-ft grid. "
              + "Good to about a fifth of a foot.",
         plantsFrom:"rule"},
-  tby: {name:"NXL Tampa Bay Open · Tampa", key:"tby", bunkers:TBY,
+  tby: {name:"NXL Tampa Bay Open · Tampa", season:2026, key:"tby", bunkers:TBY,
         source:"Measured off the official NXL field map, on its printed 10-ft grid. "
              + "Good to about a quarter of a foot.",
         // The five plants below were picked off the measured field by rule, not
@@ -1889,11 +1893,11 @@ const LAYOUTS = {
         // aggressive the break is, never two on the same beam. A coach who has
         // walked Tampa should drag them where they belong — Edit path saves it.
         plantsFrom:"rule"},
-  mwo: {name:"NXL Midwest Open · Cincinnati", key:"mwo", bunkers:MWO,
+  mwo: {name:"NXL Midwest Open · Cincinnati", season:2026, key:"mwo", bunkers:MWO,
         source:"Measured off the official NXL field map, on its printed 10-ft grid."},
   // The map prints no bunker labels, so every name is the kind of inflatable
   // read off its shape and measured size; layouts/events says which.
-  ujt: {name:"USXBL JT Championship", key:"ujt", bunkers:UJT,
+  ujt: {name:"USXBL JT Championship", season:2026, key:"ujt", bunkers:UJT,
         source:"Measured off the field map the coach sent, on its printed 10-ft grid. "
              + "The map names no bunkers; each is named for its kind.",
         plantsFrom:"rule"},
@@ -1933,6 +1937,47 @@ const EVENT_LOGO = {
   nwc: '<img class="evlogo" src="event-nxl-worldcup.jpg" alt="NXL World Cup Championships of Paintball 2026, Kissimmee, Florida" width="320" height="320" decoding="async"/>',
 };
 const evLogo = (k, cls) => EVENT_LOGO[k] ? (cls ? EVENT_LOGO[k].replace('class="evlogo"', `class="evlogo ${cls}"`) : EVENT_LOGO[k]) : "";
+// Browsing an old season does not move the current sheet. Only Use layout does.
+let _eventChoice = null;
+function layoutChoices(){
+  return Object.entries(LAYOUTS).map(([key, l]) => {
+    const year = String(l.season || (l.days || [])[0] || "").slice(0, 4);
+    return {key, season:/^\d{4}$/.test(year) ? year : l.mine ? "Your fields" : "Season not recorded",
+      event:l.event || (l.mine ? "Your fields" : l.name), name:l.layoutName || (l.mine ? l.name : "Saved field layout")};
+  });
+}
+function eventChoice(){
+  const rows = layoutChoices(), current = rows.find(r => r.key === S.layoutKey) || rows[0];
+  return _eventChoice && rows.some(r => r.season === _eventChoice.season) ? _eventChoice : current;
+}
+window.openEventPicker = () => { _eventChoice = null; set({evPick:!S.evPick}); };
+window.pickEventSeason = value => {
+  if(!layoutChoices().some(r => r.season === value)) return;
+  _eventChoice = {season:value, event:"", key:""}; render();
+};
+window.pickEventGroup = value => {
+  const chosen = eventChoice(), first = layoutChoices().find(r => r.season === chosen.season && r.event === value);
+  if(!first) return;
+  _eventChoice = {...first}; render();
+};
+window.pickEventLayout = key => {
+  const chosen = eventChoice(), row = layoutChoices().find(r => r.key === key && r.season === chosen.season && r.event === chosen.event);
+  if(row){ _eventChoice = {...row}; render(); }
+};
+window.useEventLayout = () => { const chosen = eventChoice(); if(chosen && chosen.key) window.pickEvent(chosen.key); };
+function eventPicker(){
+  const rows = layoutChoices(), chosen = eventChoice();
+  if(!chosen) return "";
+  const seasons = [...new Set(rows.map(r => r.season))].sort((a,b) => b.localeCompare(a));
+  const events = [...new Set(rows.filter(r => r.season === chosen.season).map(r => r.event))].sort((a,b) => a.localeCompare(b));
+  const layouts = rows.filter(r => r.season === chosen.season && r.event === chosen.event);
+  return `<div class="evpick" role="group" aria-label="Pick the event">
+    <div class="fld"><label for="event-season">Season</label><select id="event-season" onchange="pickEventSeason(this.value)">${seasons.map(v => `<option value="${esc(v)}"${v === chosen.season ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Choose event</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"${layouts.length ? "" : " disabled"}><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
+    <div class="evpick__choice">${chosen.key ? evLogo(chosen.key) : ""}<span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()"${chosen.key ? "" : " disabled"}>Use layout</button></div>
+  </div>`;
+}
 const BREAKS = {
   // Ordered as a coach turns the dial: patient at the left, the point has
   // to end early at the right. breakMeta carries the aggression behind it.
@@ -2395,14 +2440,14 @@ function allGames(){
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
 function yourDaySec(games){
-  const teams = [...new Map(games.flatMap(g => [g.h, g.a]).filter(Boolean).map(t => [foldName(t), t])).values()].sort((a, b) => a.localeCompare(b));
+  const teams = [...new Map([...games.flatMap(g => [g.h, g.a]), S.myTeam].filter(Boolean).map(t => [foldName(t), t])).values()].sort((a, b) => a.localeCompare(b));
   const team = S.myTeam && teams.find(t => foldName(t) === foldName(S.myTeam)) || "";
   const pick = `<div class="fld"><label for="my-team">Your team at this event</label>
     <select id="my-team" onchange="setMyTeam(this.value)"><option value="">Pick your team</option>${
-      teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>`;
-  if(!team) return sec("Your team's day", `<p class="lede">Pick your team and this lists every game you play,
-    who is across the tape, and every game of theirs you can watch before then — and which of those clash
-    with your own.</p>${pick}`);
+      teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
+    <details class="coach-terms"><summary>Team not listed?</summary><div class="fld"><label for="my-team-name">Team name</label>
+    <div class="btnrow"><input id="my-team-name" maxlength="60" placeholder="Your team" ${onEnter("useTypedTeam()")}> <button class="btn btn--quiet" onclick="useTypedTeam()">Use this team</button></div></div></details>`;
+  if(!team) return sec("Your team's day", `<p class="lede">Choose your team to see who you play and when to scout them.</p>${pick}`);
   const now = Date.now(), day = teamDay(team);
   const watch = id => `<button class="btn btn--quiet" onclick="watchGame(${jsq(id)})">Watch</button>`;
   const rows = day.map(({g, opp, scout}) => {
@@ -2435,7 +2480,7 @@ function yourDaySec(games){
       <select id="pit-lead" onchange="setPitLead(this.value)">${PIT_LEADS.map(m => `<option value="${m}"${m === lead ? " selected" : ""}>${m ? m + " min before the game" : "Don't say"}</option>`).join("")}</select></div>
     <button class="btn btn--block" onclick="sendDayPlan()">Send the day plan to the team</button>
     <p class="note">Your games with where and when to be, and who is scouting what — for the team chat. Tell the team on each game sends just that one.</p>` : "";
-  return sec("Your team's day", `${pick}${plan}${day.length ? scoutPlanSec(team, day, now) + `<p class="aid" style="margin-top:var(--s3)">Game by game</p>` + rows : `<p class="note">${esc(team)} has no game on this schedule.</p>`}${late}`,
+  return sec("Your team's day", `${pick}${day.length ? scoutPlanSec(team, day, now) + `<details class="coach-terms"><summary>Game by game</summary>${rows}</details>` : `<p class="note">No schedule loaded for ${esc(team)}. Add or paste their games below to see opponents and scouting times.</p>`}${late}${plan}`,
     day.length + (day.length === 1 ? " game" : " games"));
 }
 /* Who to scout, in the order it happens. The game-by-game cards answer "who
@@ -2501,8 +2546,8 @@ function scoutPlanSec(team, day, now){
         : "Free for you to watch"}</span></span>
       <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
   };
-  const up = rows.find(r => r.kind === "up"), nextScout = rows.find(r => r.kind === "scout");
-  const lead = [up ? `<b style="color:var(--red)">Up to play:</b> v ${esc(up.opp)} at ${esc(scoutWhen(up.g, now))}, ${where(up.g)}.` : "",
+  const nextPlay = rows.find(r => r.kind !== "scout"), nextScout = rows.find(r => r.kind === "scout");
+  const lead = [nextPlay ? `<b style="color:${nextPlay.kind === "up" ? "var(--red)" : "var(--ink)"}">${nextPlay.kind === "up" ? "Up to play" : "Next game"}:</b> v ${esc(nextPlay.opp)} at ${esc(scoutWhen(nextPlay.g, now))}, ${where(nextPlay.g)}.` : "",
     nextScout ? `Next to scout: <b>${esc(nextScout.for.map(f => f.opp).join(" and "))}</b> at ${esc(scoutWhen(nextScout.g, now))}, ${where(nextScout.g)}.`
       : "Nobody you still play has a game on this schedule before you meet them."].filter(Boolean).map(x => `<p class="note" style="margin:0 0 var(--s1)">${x}</p>`).join("");
   const shown = rows.slice(0, SCOUT_SHOW + 2), more = rows.slice(SCOUT_SHOW + 2);
@@ -2550,6 +2595,11 @@ function teamDay(team){
   });
 }
 window.setMyTeam = v => { set({myTeam: String(v || "").slice(0, 60)}); };
+window.useTypedTeam = () => {
+  const name = (document.getElementById("my-team-name")?.value || "").trim();
+  if(!name) return flash("Enter your team name first.");
+  window.setMyTeam(name);
+};
 /* ============================================================
    Before you play them — everything known about one team, on one screen
    ============================================================
@@ -11816,6 +11866,8 @@ function syncAskDue(){
 }
 // Run after every sign-in that lands in the app.
 function afterSignIn(){
+  // Backup and format questions still come first; the team's day waits behind them.
+  if(S.entered && S.role === "staff") set({tab:"more", more:"schedule", quick:false, evPick:false});
   if(!canSync() || !S.entered || S.role !== "staff") return;
   const id = syncAskId(); if(!id) return;
   if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
@@ -14178,6 +14230,7 @@ window.endPoint = won => {
   // results; Back a point is how a result is changed. A sheet on another
   // field takes none either — sheetOver() says so.
   if(sheetOver()) return;
+  const backToBoard = S.quick && S.tab === "more" && S.more === "wb";
   const pt = S.point || 1;
   // Was the call the right read? Ticked before the result, kept on it — and
   // kept through a correction: We won it then They won it on the same point
@@ -14200,7 +14253,8 @@ window.endPoint = won => {
   S.clockEnd = breakClock() && !matchOver() ? Date.now() + breakClock() * 1000 : 0;
   _buzzed = false;
   _lastEnd = {m: S.matchId, pt, at: Date.now()};
-  save(S); render();
+  save(S);
+  if(backToBoard) window.closeQuick(); else render();
 };
 // Back a point, because Next point is one tap and a sideline is a sideline.
 // It moves the cursor; it does not throw away what was logged on the point you
@@ -17100,8 +17154,8 @@ const HELP = {
          "Record shot logs where he was and where the paint went."],
     watch:"Green markers are sightings you recorded. Dashed lines are the app joining them up, not something you saw."},
   "scout/voice": {t:"Voice log", w:"Call the point out loud instead of tapping.",
-    how:["Start listening, then say what happened as it happens.",
-         "Every line lands as a draft you review before it counts.",
+    how:["In Scout, open More, then Voice log. Pick the opponent and player, tap Start listening, then say what happened.",
+         "Completed phrases save automatically. Unclear events say Needs review; use Edit event or Undo event to correct them. Confirmed locations join the player's route. Voice log does not change the score.",
          "Type instead if the microphone is refused or it is too loud."]},
   "scout/counter": {t:"Counter", w:"Your answer to each of their calls.",
     how:["The picker ranks the twelve against their tendency and the score; a call you have run against them is ranked by what it won.",
@@ -17142,6 +17196,7 @@ const HELP = {
          "Both standing judges the lanes with both men on their feet: snake beams and cakes are under a standing man's eyes, so a lane over them is clear. Every other bunker still blocks, because no height for it has two published sources that agree. There is no kneeling or prone: no published eye height was found for either."]},
   "more/wb": {t:"Whiteboard", w:"Draw the adjustment, then wipe it.",
     how:["Draw on the field with a finger — red, blue or white.",
+         "Quick log records the point. Tap who won and it returns to this board with your drawing kept.",
          "X and O drop a mark where you tap, for who covers what.",
          "Erase rubs out a stroke you drag over; Undo takes back the last mark; Wipe clears the board.",
          "Blank swaps the field for a dark board when you want to draw from scratch."],
@@ -17183,7 +17238,8 @@ const HELP = {
          "What you don't know yet says which of their games to watch and what to log there.",
          "Send to your staff hands the card over as text; Tell the team sends the game time and when to be at the pit."]},
   "more/schedule": {t:"Schedule", w:"The event's games, and scouting one you are not in.",
-    how:["Your team's day, at the top: pick your team once. Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Under it, game by game, every game you play is listed with the team across the tape, and under it every game of theirs you can watch before then — free, or clashing with one of your own so you know to send someone. A pit running late? Set how far behind it is and every time moves with it.",
+    how:["After sign-in and setup, Your team's day opens here. Choose your team once on this device. Team not listed? Enter its name, then add or paste its schedule below.",
+         "Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Open Game by game for every opponent and each of their earlier games, marked free to watch or clashing with your own. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
          "Every game at this event, by day, read off the league's page.",
@@ -17281,7 +17337,7 @@ const HELP_Q = [
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
   ["We switched ends.", "Switch ends, under the field on Tally (and on Playbook once a call is picked). The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
-  ["The field looks wrong for this event.", "Tap the event's name at the top of any screen and pick the right one; every tab follows it. The call beside it opens Change the call."],
+  ["The field looks wrong for this event.", "Tap the event's name at the top. Choose Season, Event and Layout, then Use layout. Past events stay available while their layouts are saved here. Every tab follows the chosen field; a match already scored keeps its original field. The call beside it opens Change the call."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
@@ -18381,7 +18437,7 @@ function moreBody(k){
     const nowMs = Date.now(), at = g => Date.parse(`${g.d}T${g.t || "00:00"}`) || 0;
     const byClock = [...games].sort((x, y) => at(x) - at(y));
     const nextG = byClock.find(g => at(g) >= nowMs - 15 * 60000) || null;
-    const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">Next game · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
+    const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">Next game on the full schedule · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
     return yourDaySec(games) + jump + calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
         teams in the pits and opens a sheet that counts against them and never against you — it is how
         you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
@@ -19025,13 +19081,12 @@ function shell(){
       </div>
       ${asking ? "" : `<div class="ctx">
         <span class="ctx__line">${Object.keys(LAYOUTS).length>1
-          ? `<button class="ctx__ev" onclick="set({evPick:!S.evPick})" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
+          ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`
           : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
       </div>`}
-      ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? `<div class="evpick" role="group" aria-label="Pick the event">${
-        Object.entries(LAYOUTS).map(([k,l])=>`<button class="${S.layoutKey===k?"on":""}" aria-pressed="${S.layoutKey===k}" onclick="pickEvent(${jsq(k)})">${evLogo(k)}${esc(l.name)}</button>`).join("")}</div>` : ""}
+      ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
     </header>
     <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
@@ -19295,6 +19350,7 @@ window.clearRecovery = () => {
 };
 window.pickEvent = key => {
   if(!LAYOUTS[key]) return;
+  _eventChoice = null;
   const m = curMatch();
   if(m && m.layout !== key && sheetEmpty(m)) m.layout = key;
   set({layoutKey:key, evPick:false});

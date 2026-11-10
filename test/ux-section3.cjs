@@ -104,7 +104,7 @@ const SEED = require("../scripts/seed.js");
     });
     await check("the schedule jumps to the next game in one tap", async p => {
       await p.evaluate(() => set({ tab: "more", more: "schedule" }));
-      const jump = p.locator("button", { hasText: /^Next game ·/ });
+      const jump = p.locator("button", { hasText: /^Next game on the full schedule ·/ });
       assert.equal(await jump.count(), 1);
       await jump.click();
       const open = await p.evaluate(() => S.gameOpen);
