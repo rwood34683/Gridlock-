@@ -1352,6 +1352,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
       (`sheetEmpty(curMatch())`); a coach signing in mid-match stays on it.
     `test/coach-flow.cjs`, `test/format-regressions.cjs`.
 
+85. ~~Install on this phone.~~ Done. The owner could not find how to install
+    the web app from Chrome: its banner shows only sometimes, and nothing in
+    the app said how. **Install on this phone** sits on the welcome page and at
+    the top of Account & backups (`installBox`).
+    - Where the browser offers its own dialog, a tap opens it, once
+      (`beforeinstallprompt`, `installApp`). That is Android Chrome and
+      desktop Chrome or Edge.
+    - Everywhere else the tap shows that phone's steps (`installSteps`):
+      Android Chrome, iPhone Share, Samsung Internet, or "open in Chrome" from
+      a browser inside another app.
+    - It is gone once the app runs installed (`runningInstalled`): standalone
+      display mode, the `appinstalled` event, or the phone app (`is-native`).
+    - The flags live only in page memory. Nothing is saved or sent, and the
+      button is never greyed out.
+    Help answers "How do I install the app on my phone?".
+    `test/install-button.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
