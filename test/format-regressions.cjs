@@ -57,18 +57,24 @@ const {createServer}=require('../scripts/serve');
     const got=await p.evaluate(div=>{openSheet({vs:'Fixture '+div});setFmt('div',div);const m=curMatch();return{game:S.fmt.game,time:S.fmt.time,mercy:S.fmt.mercy,race:S.fmt.raceTo,size:sideSize(),mMercy:mercy(),mRace:raceTo(),text:document.getElementById('root').innerText};},div);
     assert.deepEqual([got.game,got.time,got.mercy,got.race,got.size],[game,time,mercy,race,size],div);
     assert.equal(got.mMercy,mercy,div+' mercy on the sheet');assert.equal(got.mRace,race,div+' race on the sheet');
-    if(!['Semi-Pro','Division 2','Division 3','Division 4','Division 5','3v3 Amateur','3v3 Intermediate'].includes(div))assert.match(got.text,/from the NXL format reference \(4 Nov 2026\), not the divisional rulebook/,div);
+    if(!['Semi-Pro','Division 2','Division 3','Division 4','Division 5','3v3 Amateur','3v3 Intermediate'].includes(div)){
+     await p.getByText('Rules and source',{exact:true}).click();
+     assert.match(await p.locator('#fmt-rules').innerText(),/from the NXL format reference \(4 Nov 2026\), not the divisional rulebook/,div);
+    }
    }
   });
   await check('the game clock row sits under Race to and above Mercy rule, and is kept',async p=>{
+   await p.evaluate(()=>setFmt('div','Other'));
    const order=await p.evaluate(()=>['Race to','Game clock','Mercy rule'].map(l=>{const el=document.querySelector(`[aria-label="${l}"]`);return el?el.getBoundingClientRect().top:null;}));
    assert(order.every(Boolean),JSON.stringify(order));assert(order[0]<order[1]&&order[1]<order[2],JSON.stringify(order));
    await p.evaluate(()=>setFmt('div','Pro'));
+   await p.getByText('Adjust settings',{exact:true}).click();
    assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll('[aria-label="Game clock"] button.on')].map(b=>b.textContent.trim())),['15 min']);
    await p.getByRole('button',{name:'12 min',exact:true}).click();
    assert.equal(await p.evaluate(()=>S.fmt.time),12);
    assert.match(await p.evaluate(()=>fmtSummary()),/12-min game/);
    await p.reload();assert.equal(await p.evaluate(()=>S.fmt.time),12);
+   await p.getByText('Adjust settings',{exact:true}).click();
    await p.getByRole('button',{name:'Off',exact:true}).first().click();
    assert.equal(await p.evaluate(()=>S.fmt.time),0);
   });
@@ -80,19 +86,62 @@ const {createServer}=require('../scripts/serve');
    const line=await p.evaluate(()=>{setFmt('div','Division 3');S.tab='tally';render();const t=document.getElementById('root').innerText;const m=t.match(/Format: ([^\n]*)/);return m?m[1]:t.slice(0,300);});
    assert.match(line,/no race · 12-min game clock · mercy 4/,line);
    await p.evaluate(()=>{S.tab='more';S.more='format';render();});
+   await p.getByText('Adjust settings',{exact:true}).click();
    await p.getByRole('button',{name:'7 min',exact:true}).click();
    assert.equal(await p.evaluate(()=>gameTime()),7);
   });
   await check('conventional 3v3 and 3-player X-Ball are separate groups, and the timed formats show their bracket',async p=>{
-   const groups=await p.evaluate(()=>[...document.querySelectorAll('.seg[aria-label]')].map(el=>[el.getAttribute('aria-label'),[...el.querySelectorAll('button')].map(b=>b.textContent.trim())]).filter(([l])=>/X-Ball|Timed|Race to$/.test(l)));
+   const groups=await p.evaluate(()=>[...document.querySelectorAll('#fmt-division optgroup')].map(el=>[el.label,[...el.querySelectorAll('option')].map(b=>b.value)]).filter(([l])=>/X-Ball|Timed|Race to$/.test(l)));
    const g=Object.fromEntries(groups);
-   assert.deepEqual(g['3-player X-Ball · game clock and mercy'],['Pro · World Cup','Amateur','Intermediate']);
+   assert.deepEqual(g['3-player X-Ball · game clock and mercy'],['Pro 3-player','3v3 Amateur','3v3 Intermediate']);
    assert.deepEqual(g['Timed games · one clock, no mercy'],['3v3','5v5','7v7','10v10','Classic 5v5']);
    await p.evaluate(()=>setFmt('div','7v7'));
+   await p.getByText('Rules and source',{exact:true}).click();
    assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/win or go home\. That is the bracket, not the points in a game/);
   });
   await check('format screen fits phone and tablet with rule and custom choices',async p=>{
    for(const viewport of [{width:375,height:667},{width:820,height:1180}]){await p.setViewportSize(viewport);for(const div of ['Division 3','Other']){await p.evaluate(div=>setFmt('div',div),div);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}}
+  });
+  await check('choosing a division leaves only its values visible and keeps Done on the phone screen',async p=>{
+   await p.evaluate(()=>{S.fmt={};S.fmtAsk=true;S.fmtDone=false;render();});
+   assert.equal(await p.getByLabel('Choose your division',{exact:true}).isVisible(),true);
+   assert.equal(await p.locator('#fmt-settings').isVisible(),false);
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');
+   assert.equal(await p.getByRole('button',{name:'Division 4',exact:true}).count(),0);
+   assert.equal(await p.getByRole('button',{name:'3v3',exact:true}).count(),0);
+   assert.equal(await p.getByRole('button',{name:'7-man',exact:true}).isVisible(),false);
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','12 min','4-point lead','2:00']);
+   const focused=await p.evaluate(()=>document.activeElement===document.getElementById('fmt-division'));
+   assert.equal(focused,true,'focus returns to the selected division');
+   const done=await p.getByRole('button',{name:'Done — start coaching',exact:true}).boundingBox();
+   assert(done&&done.y>=0&&done.y+done.height<=667,'Done must be reachable without scrolling after choosing');
+   await p.getByRole('button',{name:'Done — start coaching',exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.fmtAsk),false);
+   await p.reload();await p.evaluate(()=>{S.tab='more';S.more='format';render();});
+   assert.equal(await p.getByLabel('Choose your division',{exact:true}).inputValue(),'Division 3');
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','12 min','4-point lead','2:00']);
+  });
+  await check('the division dropdown changes only to the selected format and supports the keyboard',async p=>{
+   const pick=p.getByLabel('Choose your division',{exact:true});
+   await pick.selectOption('Division 3');
+   await pick.press('ArrowDown');
+   assert.equal(await pick.inputValue(),'Division 4');
+   await pick.selectOption('Pro 3-player');
+   assert.equal(await pick.inputValue(),'Pro 3-player');
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['3 a side','7 min','3-point lead','2:00']);
+   await pick.selectOption('5v5');
+   const labels=await p.locator('.fmt-values dt').allTextContents();
+   assert(!labels.includes('Race to')&&!labels.includes('Mercy'),'timed games must not show unrelated race/mercy options');
+  });
+  await check('Adjust settings stays open across changes and keeps custom values after reload',async p=>{
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');
+   await p.getByText('Adjust settings',{exact:true}).click();
+   await p.getByRole('button',{name:'1:00 · split deck',exact:true}).click();
+   assert.equal(await p.getByRole('button',{name:'7 min',exact:true}).isVisible(),true);
+   await p.getByRole('button',{name:'7 min',exact:true}).click();
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','7 min','4-point lead','1:00']);
+   await p.reload();assert.equal(await p.getByRole('button',{name:'7 min',exact:true}).isVisible(),false);
+   assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','7 min','4-point lead','1:00']);
   });
  }finally{await browser.close();await new Promise(r=>server.close(r));}
  if(process.env.FORMAT_RESULTS)fs.writeFileSync(process.env.FORMAT_RESULTS,JSON.stringify(results,null,2)+'\n');

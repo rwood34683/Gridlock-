@@ -697,6 +697,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     seven cases. `docs/RULES-CHECK.md` has the table. Answers live in `S.fmt`, go on the sheet he is on through
     the existing setters, and `openSheet` starts every new sheet with them;
     **Save these answers** keeps a format under a name (`S.fmts`, Use · ✕).
+    Choose your division is one grouped dropdown. Only that format's current
+    values stay visible after a choice; the same dropdown changes it. Adjust settings
+    keeps every override available, Rules and source keeps the explanation,
+    and Other opens its custom controls. Disclosure state stays outside the
+    season. A collapsed editor must not change any saved or scored value.
     More › Format is the same screen later; Tally keeps one line and
     **Change the format**. Men a side rides on the match (`size`,
     `sideSize()`), so `startUp()`, their numbered men and his own side on the point sheet (`sideMen`) follow it; plays,
