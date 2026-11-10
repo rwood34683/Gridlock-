@@ -1308,6 +1308,19 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     published" from memory: add it to `FMT_RULES` or `FMT_REF` with its
     source. `test/format-regressions.cjs`.
 
+83. ~~Three apps, kept apart.~~ Done: Coach, Team and Player are separate
+    apps. On 10 Nov 2026 the owner handed over the Team and Player builds and
+    asked for them as a tease. They live in `teasers/team/` and
+    `teasers/player/`, outside `web/`, `site/` and the native shells, and
+    nothing in the coach app or its builds loads them. Each one:
+    - carries a PREVIEW · COMING SOON ribbon;
+    - has no Admin link to a missing page;
+    - has no third-party 3D walk button, because of the banned word.
+    The landing page's **Coming soon** section names both and says neither is
+    available yet. They keep their own `gridlock_*` storage keys and never a
+    coach's. Before either ships, it gets the coach app's passes.
+    `teasers/README.md`, `test/teasers.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
