@@ -3866,6 +3866,78 @@ window.gridlockRestore = text => {
  * localhost and the installed app are both secure contexts, so this never shows
  * on the thing that actually ships. It only shows where it is true.
  */
+/* ============================================================
+   Install on this phone
+   ============================================================
+   The web app is installable, but nothing in it said so: Chrome's own banner
+   shows only sometimes, and testers could not find the menu. One button, on
+   the welcome page and under Account & backups. Where the browser offers its
+   install dialog (Android Chrome, desktop Chrome and Edge) a tap opens it;
+   everywhere else the tap shows the steps for that phone. It is gone once the
+   app runs installed, and never shows in the phone app. Nothing here is saved
+   or sent: the three flags live only while the page is open. */
+let _installEvt = null, _installed = false, _installHelp = false, _installSaid = "";
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); _installEvt = e; });
+window.addEventListener("appinstalled", () => {
+  _installEvt = null; _installed = true; _installHelp = false; _installSaid = "";
+  try{ render(); }catch(e){}
+});
+function runningInstalled(){
+  if(_installed) return true;
+  if(document.documentElement.classList.contains("is-native")) return true;
+  try{ if(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true; }catch(e){}
+  return window.navigator.standalone === true;
+}
+function installSteps(){
+  const ua = navigator.userAgent || "";
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+  const inApp = /FBAN|FBAV|Instagram|GSA\/|Snapchat|Line\/|; wv\)/i.test(ua);
+  if(inApp) return {lead: "This page is open inside another app, which cannot install it.",
+    steps: [android ? "Tap ⋮ and choose Open in Chrome." : "Tap the menu and choose Open in Safari (or your browser).",
+            "Then tap Install on this phone again."]};
+  if(ios) return {lead: "On iPhone and iPad it is added from the Share menu.",
+    steps: ["Tap Share — the square with the arrow" + (/CriOS|FxiOS|EdgiOS/.test(ua) ? ", beside the address" : ", at the bottom of Safari") + ".",
+            "Scroll down and tap Add to Home Screen.", "Tap Add, then open Gridlock from its icon."]};
+  if(/SamsungBrowser/.test(ua)) return {lead: "In Samsung Internet:",
+    steps: ["Tap ≡ at the bottom right.", "Tap Add page to, then Home screen.", "Open Gridlock from its icon."]};
+  if(android) return {lead: "In Chrome:",
+    steps: ["Tap ⋮ at the top right.", "Tap Install app — on some phones it says Add to Home screen.",
+            "Tap Install, then open Gridlock from its icon."]};
+  return {lead: "On a computer:",
+    steps: ["In Chrome or Edge, click the install icon at the right end of the address bar, or open the ⋮ menu and choose Install.",
+            "In Safari on a Mac, choose File, then Add to Dock."]};
+}
+function installBox(){
+  if(runningInstalled()) return "";
+  const s = _installHelp ? installSteps() : null;
+  return `<div class="install">
+    <button class="btn btn--ghost btn--block" onclick="installApp()" aria-expanded="${!!_installHelp}">Install on this phone</button>
+    ${_installSaid ? `<p class="note" role="status" style="margin:var(--s1) 0 0">${esc(_installSaid)}</p>` : ""}
+    ${s ? `<div class="panel install__steps" role="region" aria-label="How to install" style="margin-top:var(--s2)">
+      <p class="note" style="margin:0 0 var(--s1)">${esc(s.lead)}</p>
+      <ol style="margin:0;padding-left:1.2em">${s.steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+      <p class="note" style="margin:var(--s2) 0 0">It works offline once you have signed in, and updates itself when you open it with a signal.</p>
+      <button class="btn btn--quiet" style="margin-top:var(--s2)" onclick="closeInstallHelp()">Close</button>
+    </div>` : ""}
+  </div>`;
+}
+window.installApp = async () => {
+  _installSaid = "";
+  const e = _installEvt;
+  if(e){
+    _installEvt = null;     // the browser's dialog can be asked for once
+    try{
+      await e.prompt();
+      const c = await e.userChoice;
+      if(c && c.outcome === "accepted"){ _installHelp = false; _installSaid = "Installing. Open Gridlock from its icon on your home screen."; }
+      else _installSaid = "Not installed. Tap Install on this phone any time, or follow the steps.";
+    }catch(x){ _installHelp = true; }
+    render(); return;
+  }
+  _installHelp = !_installHelp; render();
+};
+window.closeInstallHelp = () => { _installHelp = false; render(); };
 function contextWarning(){
   if(window.isSecureContext !== false) return "";
   return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
@@ -11472,6 +11544,7 @@ function promo(){
              phone. A welcome screen that makes no promise cannot break one. */""}
       <button class="btn btn--quiet btn--block" onclick="set({promoTour: !S.promoTour})">${
         S.promoTour ? "Hide how it works" : "Show me how it works"}</button>
+      ${installBox()}
     </div>
     ${S.authSaid ? `<p class="warn" role="status">${esc(S.authSaid)}</p>` : ""}
     ${S.promoTour ? tourPanel() : ""}
@@ -17451,7 +17524,8 @@ const HELP = {
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
   "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
-    get how(){return ["Save a copy is your backup and how you move to another phone.",
+    get how(){return ["Install on this phone, at the top, puts Gridlock on your home screen like any app. It is gone once the app is installed.",
+         "Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from.",
@@ -17497,6 +17571,7 @@ const HELP_Q = [
   ["The field looks wrong for this event.", "Tap the event's name at the top. Choose Season, Event and Layout, then Use layout. Past events stay available while their layouts are saved here. Every tab follows the chosen field; a match already scored keeps its original field. The call beside it opens Change the call."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
+  ["How do I install the app on my phone?", "Tap Install on this phone — on the welcome page, or under More › Account & backups. On Android Chrome it opens the install box; elsewhere it shows the steps for your phone (on iPhone: Share, then Add to Home Screen). Then open Gridlock from its icon."],
   ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["How do I sign out?", "Tap Account at the top right (or More, then Account & backups, also called Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
   ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
@@ -19022,7 +19097,7 @@ function moreBody(k){
   if(k==="league") return leaguePage();
   if(k==="plan") return planPage();
   if(k==="help") return helpPage();
-  if(k==="nexus") return sec("Account & backups", `<p class="note">Nexus · Your sign-in and saved season.</p><div class="panel">
+  if(k==="nexus") return sec("Account & backups", `<p class="note">Nexus · Your sign-in and saved season.</p>${installBox()}<div class="panel">
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
       </div>
