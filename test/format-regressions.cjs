@@ -83,13 +83,50 @@ const {createServer}=require('../scripts/serve');
    await p.getByRole('button',{name:'7 min',exact:true}).click();
    assert.equal(await p.evaluate(()=>gameTime()),7);
   });
-  await check('conventional 3v3 and 3-player X-Ball are separate groups, and the timed formats show their bracket',async p=>{
-   const groups=await p.evaluate(()=>[...document.querySelectorAll('.seg[aria-label]')].map(el=>[el.getAttribute('aria-label'),[...el.querySelectorAll('button')].map(b=>b.textContent.trim())]).filter(([l])=>/X-Ball|Timed|Race to$/.test(l)));
-   const g=Object.fromEntries(groups);
-   assert.deepEqual(g['3-player X-Ball · game clock and mercy'],['Pro · World Cup','Amateur','Intermediate']);
-   assert.deepEqual(g['Timed games · one clock, no mercy'],['3v3','5v5','7v7','10v10','Classic 5v5']);
-   await p.evaluate(()=>setFmt('div','7v7'));
+  await check('a division then a format shows the four answers that go with the pair, each with its source',async p=>{
+   const card=()=>p.evaluate(()=>{const c=document.querySelector('.fmt-card');return c?[...c.querySelectorAll('tbody tr')].map(r=>[r.querySelector('th').textContent.trim(),r.querySelector('td').textContent.trim()]):null;});
+   await p.evaluate(()=>{setFmtLevel('Division 4');});
+   assert.equal(await p.evaluate(()=>document.querySelector('.fmt-card')),null,'no card until the format is picked');
+   assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/Now pick what Division 4 plays/);
+   await p.evaluate(()=>setFmtForm('5v5'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.game,S.fmt.time,S.fmt.mercy,S.fmt.raceTo,sideSize()]),['Division 4 5v5','5',5,0,0,5]);
+   assert.deepEqual(await card(),[['Race to','None listedFormat reference'],['Game clock','5-minute gameFormat reference'],['Mercy rule','NoneFormat reference'],['Clock between points','Not published — set it below']]);
+   assert.match(await p.evaluate(()=>document.querySelector('.fmt-card').innerText),/gives 5v5 one set of numbers for every division[\s\S]*best 2 of 3/);
+   await p.evaluate(()=>setFmtForm('xball'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy,S.fmt.clock,sideSize()]),['Division 4',12,4,120,5],'D4 X-Ball is the rulebook division');
+   assert.deepEqual(await card(),[['Race to','No race — a game clock and a mercy leadRulebook'],['Game clock','12-minute gameRulebook'],['Mercy rule','Ends the match at a 4-point leadRulebook'],['Clock between points','At least 2:00; 1:00 on a split deckRulebook']]);
+   await p.evaluate(()=>setFmtLevel('Amateur'));
+   assert.equal(await p.evaluate(()=>S.fmt.div),'Amateur X-Ball','the format stays when the division changes');
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.time]),[0],'a pair nobody publishes clears the old game clock');
+   assert.deepEqual((await card()).map(r=>r[1]),Array(4).fill('Not published — set it below'));
+   await p.evaluate(()=>setFmtForm('xb3'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy,sideSize()]),['3v3 Amateur',6,3,3]);
+   await p.evaluate(()=>setFmtLevel('Pro'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy]),['Pro 3-player',7,3]);
+   await p.evaluate(()=>setFmtLevel('College'));await p.evaluate(()=>setFmtForm('xball'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.raceTo,raceTo()]),['College X-Ball',5,5]);
+   await p.evaluate(()=>setFmtForm('7v7'));
    assert.match(await p.evaluate(()=>document.getElementById('root').innerText),/win or go home\. That is the bracket, not the points in a game/);
+   await p.evaluate(()=>setFmtLevel('Other'));
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,!!document.querySelector('[aria-label="Format played"]')]),['Other',0,false]);
+  });
+  await check('every pair a source covers is in the at-a-glance table, with the same numbers the card applies',async p=>{
+   const rows=await p.evaluate(()=>{S.fmtGlance=true;render();return [...document.querySelectorAll('.fmt-glance tbody tr')].map(r=>[...r.cells].map(c=>c.textContent.trim()));});
+   const names=rows.map(r=>r[0]);
+   for(const n of ['Pro · X-Ball','Division 4 · X-Ball','College · X-Ball','Amateur · 3-player X-Ball','Any division · 5v5','Any division · 10v10'])assert(names.includes(n),n);
+   assert(!names.some(n=>/Novice|Youth|Open/.test(n)),'no row for a pair nobody publishes');
+   assert.deepEqual(rows.find(r=>r[0]==='Division 4 · X-Ball').slice(1),['no','12′','4','2:00']);
+   assert.deepEqual(rows.find(r=>r[0]==='Any division · 5v5').slice(1),['no','5′','no','—']);
+   await p.evaluate(()=>[...document.querySelectorAll('.fmt-glance tbody tr')].find(r=>/Masters/.test(r.cells[0].textContent)).click());
+   assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy]),['Masters',10,3]);
+   for(const width of [320,390]){await p.setViewportSize({width,height:800});
+    assert.equal(await p.evaluate(()=>{const t=document.querySelector('.fmt-glance table');return t.offsetWidth<=t.parentElement.clientWidth+1;}),true,'glance table fits '+width);}
+  });
+  await check('an older save keeps its division and reads as the right pair',async p=>{
+   const got=await p.evaluate(()=>['Division 3','3v3 Intermediate','5v5','Pro 3-player','College X-Ball','Masters'].map(d=>fmtPairName(fmtParts(d))));
+   assert.deepEqual(got,['Division 3 · X-Ball','Intermediate · 3-player X-Ball','5v5','Pro · 3-player X-Ball','College · X-Ball','Masters · X-Ball']);
+   const kept=await p.evaluate(()=>{S.fmt={div:'Division 2',game:'xball',time:15,mercy:5,clock:120,raceTo:0};render();return[document.querySelector('[aria-label="Division"] button.on').textContent,document.querySelector('[aria-label="Format played"] button.on').textContent];});
+   assert.deepEqual(kept,['Division 2','X-Ball']);
   });
   await check('format screen fits phone and tablet with rule and custom choices',async p=>{
    for(const viewport of [{width:375,height:667},{width:820,height:1180}]){await p.setViewportSize(viewport);for(const div of ['Division 3','Other']){await p.evaluate(div=>setFmt('div',div),div);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);}}
