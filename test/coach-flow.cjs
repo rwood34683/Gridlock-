@@ -12,19 +12,24 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await fn(p);assert.deepEqual(errors,[]);passed++;console.log("PASS "+name);
   }catch(e){failed++;console.error("FAIL "+name+": "+e.stack);}finally{await c.close();}}
  try{
-  await check("World Cup stays selectable without NXL or MLPB logos",async p=>{
+  await check("events stay selectable by text without league badges",async p=>{
    const fs=require("node:fs"),root=path.resolve(__dirname,"..");
-   assert.equal(fs.existsSync(path.join(root,"web/event-nxl-worldcup.jpg")),false,"removed badge must not ship");
-   assert.doesNotMatch(fs.readFileSync(path.join(root,"web/sw.js"),"utf8"),/event-nxl-worldcup\.jpg/,"offline cache must not request the removed badge");
+   for(const name of ["event-nxl-worldcup.jpg","event-usxbl-gp.jpg","event-wcppl-champ.jpg"]){
+    assert.equal(fs.existsSync(path.join(root,"web",name)),false,"removed badge must not ship: "+name);
+    assert.equal(fs.readFileSync(path.join(root,"web/sw.js"),"utf8").includes(name),false,"offline cache must not request the removed badge");
+   }
    await p.locator("button.ctx__ev").click();
-   await p.getByLabel("Event",{exact:true}).selectOption("NXL World Cup · Kissimmee");
-   assert.equal(await p.locator(".evpick img").count(),0);
+   for(const name of ["USXBL GP Championships · Waxahachie","WCPPL Championship · Chino","NXL World Cup · Kissimmee"]){
+    await p.getByLabel("Event",{exact:true}).selectOption(name);
+    assert.equal(await p.locator(".evpick img").count(),0);
+    assert.ok((await p.locator(".evpick__choice").innerText()).includes(name));
+   }
    assert.equal(await p.getByLabel("Layout",{exact:true}).inputValue(),"nwc");
    await p.getByRole("button",{name:"Use layout",exact:true}).click();
    assert.equal(await p.evaluate(()=>LAYOUTS.nwc.bunkers.length),53,"keep the measured field");
    for(const more of ["nexus","codes"]){
     await p.evaluate(more=>set({tab:"more",more}),more);
-    assert.equal(await p.locator('#root img[src*="nxl"],#root img[src*="mlpb"]').count(),0);
+    assert.equal(await p.locator('#root img[src*="event-"],#root img.evlogo').count(),0);
    }
   });
   await check("season, event and layout dropdowns preview a field before applying it",async p=>{

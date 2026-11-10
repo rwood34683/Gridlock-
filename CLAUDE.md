@@ -57,9 +57,10 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
-- Do not display or bundle NXL or MLPB logos. Keep factual event names,
+- Do not display or bundle league logos or event badges, including NXL,
+  MLPB, USXBL and WCPPL. Keep factual event names,
   measured layouts, team data and source citations; they are not branding.
-  The World Cup uses its text name without a league badge.
+  Every event uses its text name without a league badge.
 - Never use the word GunzUp anywhere (UI, comments, filenames, git). Label that control **Shot lanes**.
 - Coach-simple copy. Short labels. No developer jargon in the UI.
 - Dark stadium look. Black `#0b0c0d` ground, red `#ad1515` fills, `#e5252a` for small
@@ -757,9 +758,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     reads each bunker where it meets the turf nearest the camera, and averages
     each with its twin across the 50 so the offset of reading a standing bunker
     cancels. Names are the nearest standard kind; sizes are the book's. The
-    poster's badge is the event's mark (`EVENT_LOGO`, `evLogo()`,
-    `web/event-usxbl-gp.jpg`) in the event picker, Nexus › Events and Codes —
-    not a `logo-*` file, so every build ships it. Base and Trade plant one five
+    event is named in text in the event picker, Nexus › Events and Codes,
+    without the league's badge. Base and Trade plant one five
     here; the suite pins it. `docs/LAYOUTS.md` has the method.
 
 50. ~~The WCPPL Championship.~~ Done — the season finale at SC Village, Chino CA,
@@ -769,9 +769,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     difference: the sheet prints the snake along the top, so every window is
     read in the sheet's own frame and turned over (`y = 120 - y`). Mirror check
     26 pairs, axis 74.98 ft, sd 0.03. The event file already held the date and
-    venue; it now holds the 56 bunkers. The championship medal off the
-    event poster is its mark (`EVENT_LOGO.wch`, `web/event-wcppl-champ.jpg`),
-    shown wherever the GP badge is. `docs/LAYOUTS.md` has the method.
+    venue; it now holds the 56 bunkers. It is named in text without the
+    event poster's badge. `docs/LAYOUTS.md` has the method.
 
 51. ~~A calendar on the schedule.~~ Done — the owner asked for Google Calendar
     under Schedule, options and drop-downs included. `calendarSec()` sits above

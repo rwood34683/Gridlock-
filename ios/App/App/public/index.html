@@ -183,13 +183,10 @@ button.ctx__ev b{color:var(--mute)}
 .evpick select{width:100%;min-width:0;min-height:44px}
 .evpick__choice{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
 .evpick__choice span{min-width:0;overflow-wrap:anywhere}
-.evlogo{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;vertical-align:middle;margin-right:8px}
-.evlogo--row{width:52px;height:52px;margin-right:0}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
 .evhead > div{min-width:0}
 .evhead b{display:block;color:var(--ink);font-size:var(--t-md);line-height:1.25}
 .evhead .note{display:block;margin:4px 0 0}
-.evlogo--lg{width:84px;height:84px;margin:0}
 .evpick button{
   min-height:44px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);
   background:none;color:var(--ink);font:inherit;font-size:var(--t-sm);font-weight:700;cursor:pointer;
@@ -1943,15 +1940,6 @@ const LAYOUTS = {
              + "Good to about a fifth of a foot.",
         plantsFrom:"rule"}
 };
-// An event's own mark, where the coach sent one, beside its name wherever the
-// event is picked or listed. Written out whole so the one-file build can inline
-// the picture; it ships in every build, because the event is the league's, not
-// the brand's.
-const EVENT_LOGO = {
-  ugp: '<img class="evlogo" src="event-usxbl-gp.jpg" alt="USXBL GP Championships, in memoriam Greg Pauley" width="320" height="320" decoding="async"/>',
-  wch: '<img class="evlogo" src="event-wcppl-champ.jpg" alt="WCPPL Championships 2026, SC Village" width="320" height="320" decoding="async"/>',
-};
-const evLogo = (k, cls) => EVENT_LOGO[k] ? (cls ? EVENT_LOGO[k].replace('class="evlogo"', `class="evlogo ${cls}"`) : EVENT_LOGO[k]) : "";
 // Browsing an old season does not move the current sheet. Only Use layout does.
 let _eventChoice = null;
 function layoutChoices(){
@@ -1994,7 +1982,7 @@ function eventPicker(){
     <div class="fld"><label for="event-season">Season</label><select id="event-season" onchange="pickEventSeason(this.value)">${seasons.map(v => `<option value="${esc(v)}"${v === chosen.season ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Choose event</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
-    <div class="evpick__choice">${chosen.key ? evLogo(chosen.key) : ""}<span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
+    <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
   </div>`;
 }
 const BREAKS = {
@@ -18948,7 +18936,7 @@ function moreBody(k){
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
     const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${evLogo(k)}${esc(l.name)}${k === keep ? " · here" : ""}</button>`).join("")}</div></div>` : "";
+      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${esc(l.name)}${k === keep ? " · here" : ""}</button>`).join("")}</div></div>` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -18958,8 +18946,7 @@ function moreBody(k){
       : `This is the key the NXL prints in the corner of the official map, not our shorthand — so a
       player who has read a layout anywhere else already knows it.`}</p>
       ${/* The field the codes are read off, labelled, above the key. */""}
-      ${EVENT_LOGO[S.layoutKey] ? `<div class="evhead">${evLogo(S.layoutKey, "evlogo--lg")}<div><b>${esc(curLayout().name)}</b>${curLayout().when ? `<span class="note">${esc(curLayout().when)}</span>` : ""}</div></div>`
-        : `<p class="note" style="margin:0">${esc(curLayout().name)}</p>`}
+      <div class="evhead"><div><b>${esc(curLayout().name)}</b>${curLayout().when ? `<span class="note">${esc(curLayout().when)}</span>` : ""}</div></div>
       <div class="field-wrap" id="codes-map">${codesFieldSVG()}</div>
       ${(() => { const b = S.codePick && curLayout().bunkers.find(x => x.id === S.codePick);
         const had = b && (S.codeWho ? ((((S.playerCalls || {})[S.layoutKey] || {})[S.codeWho]) || {})[b.id] : ((S.bunkerCalls || {})[S.layoutKey] || {})[b.id]);
@@ -19078,7 +19065,6 @@ function moreBody(k){
       all follow it.</p>
     <div class="assigns">${Object.values(LAYOUTS).map(L=>`
       <div class="assign" style="flex-wrap:wrap">
-        ${evLogo(L.key, "evlogo--row")}
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
         <span class="assign__who">${L.bunkers.length} bunkers${L.mine ? ` · built by you · ${Object.keys(BREAK_PLANTS[L.key] || {}).length} of ${Object.keys(PLANT_SHAPES).length} calls plant here${Object.keys(BREAK_PLANTS[L.key] || {}).length < Object.keys(PLANT_SHAPES).length ? " — more bunkers on the left half plant the rest" : ""}` : ""}</span></span>
         ${L.key===S.layoutKey?`<span class="tag tag--paid">ON</span>`

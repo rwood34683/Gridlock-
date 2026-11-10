@@ -4,7 +4,7 @@ const VERSION = "gridlock-shell-v10";
 const SCOPE = self.registration.scope;
 const PREFIX = "gridlock:" + SCOPE + ":";
 const CACHE = PREFIX + VERSION;
-const FILES = ["index.html", "native.js", "offline.js", "voice-parser.js", "speech.js", "voice.js", "fflate.js", "world-cup-data.js", "world-cup.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "event-usxbl-gp.jpg", "event-wcppl-champ.jpg", "apple-touch-icon.png"];
+const FILES = ["index.html", "native.js", "offline.js", "voice-parser.js", "speech.js", "voice.js", "fflate.js", "world-cup-data.js", "world-cup.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 // The logo ships in one build only, so it is cached when it is there and its
 // absence never fails the install.
 const OPTIONAL = ["logo-gridlock.jpg"];
