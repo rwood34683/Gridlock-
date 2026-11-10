@@ -56,3 +56,14 @@ back. Copy `site/.well-known/apple-app-site-association` and
 `https://gridlockpb.com/.well-known/apple-app-site-association` returns the JSON
 without a redirect. Re-copy them after `npm run contact -- --appleTeam` or
 `--sha256` changes them. See `docs/NATIVE-SIGN-IN.md`.
+
+## 10 Nov 2026: Coming soon
+
+`src/routes/index.tsx` adds a **Coming soon** section (`ComingSoon`, id
+`coming`) between the coaching-aid note and the closing call. It says the
+coach app is the first of three, names Gridlock Team and Gridlock Player in
+the same words as `site/index.html`, and says neither is available yet. It
+uses only classes the page already has, with no new imports, routes or
+assets. Apply it like the rest of the overlay: copy the file over the
+workspace's own, compare first, publish from Grok.
+
