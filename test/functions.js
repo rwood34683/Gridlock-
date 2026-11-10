@@ -2079,12 +2079,14 @@ const ROSTER = [
   await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
   await page.evaluate(async () => { await window.doAuth(); });
   await page.waitForTimeout(350);
-  // A new phone answers the format first; Done is the way to the field.
-  check("first run: the format comes first, and Done opens the app", await ev(() => {
+  // A new phone answers the format first, then starts at the team's day.
+  check("first run: the format comes first, and Done opens the team's day", await ev(() => {
     const asked = S.fmtAsk === true && /Your format/.test(document.getElementById("root").textContent);
     window.fmtDone();
-    return asked && !S.fmtAsk && S.fmtDone === true;
+    return asked && !S.fmtAsk && S.fmtDone === true && S.tab === "more" && S.more === "schedule"
+      && /Your team's day/i.test(document.getElementById("root").innerText);
   }));
+  await page.getByRole("button", { name: "Playbook", exact: true }).click();
   await page.waitForTimeout(150);
   check("the field is on screen without scrolling", await ev(() => {
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
