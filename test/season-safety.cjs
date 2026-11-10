@@ -33,7 +33,7 @@ function syncHarness(){
     Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_stale:false,_recoveryUser:null,_recoveryBusy:false,
     STORE_KEY:'fixture.season',localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
     confirm:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
-    copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},
+    copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},curMatch:()=>({id:'m1'}),sheetEmpty:()=>true,
     setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{at:clock+ms,fn});return id;},clearTimeout:id=>timers.delete(id)});
   const start=app.indexOf('const canSync ='),end=app.indexOf('window.deleteCloudAccount =',start);
   vm.runInContext(app.slice(start,end),context);

@@ -169,6 +169,14 @@ const {createServer}=require('../scripts/serve');
    const labels=await p.locator('.fmt-values dt').allTextContents();
    assert(!labels.includes('Race to')&&!labels.includes('Mercy'),'timed games must not show unrelated race/mercy options');
   });
+  await check('a pair nobody publishes says Not published for its game clock, never Off',async p=>{
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('Novice');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
+   const vals=await p.locator('.fmt-values div').evaluateAll(ds=>ds.map(d=>[d.querySelector('dt').textContent,d.querySelector('dd').textContent]));
+   assert.deepEqual(vals.find(v=>v[0]==='Game clock'),['Game clock','Not published']);
+   await p.getByLabel('Choose your division',{exact:true}).selectOption('College');
+   const college=await p.locator('.fmt-values div').evaluateAll(ds=>ds.map(d=>[d.querySelector('dt').textContent,d.querySelector('dd').textContent]));
+   assert.notDeepEqual(college.find(v=>v[0]==='Game clock'),['Game clock','Not published'],'a published pair is not called unpublished');
+  });
   await check('Adjust settings stays open across changes and keeps custom values after reload',async p=>{
    await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
    await p.getByText('Adjust settings',{exact:true}).click();

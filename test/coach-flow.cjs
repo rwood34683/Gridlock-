@@ -25,7 +25,10 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
   await check("past seasons retain every layout and an unknown season is never dated today",async p=>{
    await p.evaluate(()=>{LAYOUTS.oldA={...LAYOUTS.lso,key:"oldA",season:2025,event:"Old event",layoutName:"Prelims"};LAYOUTS.oldB={...LAYOUTS.tby,key:"oldB",season:2025,event:"Old event",layoutName:"Finals"};LAYOUTS.unknown={...LAYOUTS.lso,key:"unknown",season:null,name:"Undated field"};openEventPicker();});
    await p.getByLabel("Season",{exact:true}).selectOption("2025");
-   assert.equal(await p.getByLabel("Layout",{exact:true}).isDisabled(),true);
+   assert.equal(await p.getByLabel("Layout",{exact:true}).isDisabled(),false,"never greyed out");
+   assert.equal(await p.getByRole("button",{name:"Use layout",exact:true}).isDisabled(),false,"never greyed out");
+   await p.getByRole("button",{name:"Use layout",exact:true}).click();
+   assert.match(await p.evaluate(()=>S.flash||""),/Choose an event/);assert.equal(await p.evaluate(()=>S.layoutKey),"lso","an empty pick moves nothing");
    await p.getByLabel("Event",{exact:true}).selectOption("Old event");
    assert.deepEqual(await p.locator("#event-layout option").allTextContents(),["Choose layout","Prelims","Finals"]);
    await p.getByLabel("Layout",{exact:true}).selectOption("oldB");await p.getByRole("button",{name:"Use layout",exact:true}).click();
@@ -68,6 +71,12 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(await p.locator(".qlog").isVisible(),true);assert.equal(await p.evaluate(()=>matchScore().them),1);
    await p.evaluate(()=>{set({tab:"more",more:"wb",quick:true});tapResult("us");});
    assert.equal(await p.locator(".qlog").isVisible(),true);assert.equal(await p.evaluate(()=>matchScore().us),0);
+  });
+  await check("a sign-in mid-match stays on the sheet; a sign-in with nothing under way opens the team's day",async p=>{
+   await p.evaluate(()=>{openSheet({vs:"Fixture"});endPoint("us");set({tab:"tally",more:"",quick:false});afterSignIn();});
+   assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["tally",""],"a match under way keeps the coach where he was");
+   await p.evaluate(()=>{openSheet({vs:"Fresh"});set({tab:"tally"});afterSignIn();});
+   assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["more","schedule"]);
   });
   await check("event dropdowns and the team plan fit phones and tablets",async p=>{
    for(const size of [{width:375,height:667},{width:820,height:1180},{width:1180,height:820}]){
