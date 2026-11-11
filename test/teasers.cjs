@@ -36,6 +36,16 @@ for (const kind of ["team", "player"]) {
 let fieldsOk = true;
 try { execFileSync("node", [path.join(ROOT, "tools/teaser_fields.js"), "--check"]); } catch (e) { fieldsOk = false; }
 check("both previews carry the coach app's fields, plants and board", fieldsOk);
+let rulesOk = true;
+try { execFileSync("node", [path.join(ROOT, "tools/teaser_rules.js"), "--check"]); } catch (e) { rulesOk = false; }
+check("both previews pass the house-rule fixes (tools/teaser_rules.js)", rulesOk);
+for (const kind of ["team", "player"]) {
+  const h = rd(`teasers/${kind}/index.html`);
+  check(`${kind}: no price or licence for sale`, !/\$\d+\/(season|yr)|Get a license'\)|Free tier<|subscription/i.test(h));
+  check(`${kind}: never polls or posts anywhere`, !/ticPollStart\(\);ticQueueStart|return fetch\(c\.webhook|fetch\(c\.worker/.test(h));
+  check(`${kind}: no rule bank or call sheet in Nexus`, !/Rule bank audit<\/div><div id="nxAu"|id="nxPrint"|UPRA Ref Card \\u2014 signed readiness<\/div>/.test(h));
+  check(`${kind}: the control is called Shot lanes`, !/guns up/i.test(h));
+}
 const coach = ["web/index.html", "site/index.html", "scripts/build.js", "scripts/build-app-artifact.js"];
 check("the coach app, site and builds never load the previews", coach.every(f => !rd(f).includes("teasers/")));
 const site = rd("site/index.html");

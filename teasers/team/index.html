@@ -160,7 +160,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
       <select id="playSel" style="max-width:280px"></select>
       <button class="ld" id="mirrorBtn">Mirror ⇄</button>
       <button class="ld" id="replayBtn">▶ Replay break</button>
-      <button class="ld on" id="gunsBtn">Guns up: on</button>
+      <button class="ld on" id="gunsBtn">Shot lanes: on</button>
       <button class="ld" id="callPlayBtn" style="display:none">\u2b50 Call this play</button>
       <button class="ld" id="psBtn">P/S bunkers: off</button>
       <button class="ld" id="zoneBtn">\u25a6 Zones: off</button>
@@ -192,7 +192,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
   <div class="row hidden" id="rolesRow">
     <button class="ld on" id="rolesBtn">Roles: on</button>
     <button class="ld" id="playBreakBtn">▶ Play break</button>
-    <button class="ld on" id="gunsBtn2">Guns up: on</button>
+    <button class="ld on" id="gunsBtn2">Shot lanes: on</button>
     <button class="ld" id="howBtn">How to anticipate ▾</button>
   </div>
 
@@ -627,7 +627,7 @@ function loop(){
 }
 function animateScoutBreak(){if(!window._L||!window._R)return;field();
   [[window._L,'#e5252a'],[window._R,'#3d8bff']].forEach(([T,col])=>T.players.forEach(pl=>{const pts=polyPts(pl);el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:col,'stroke-width':.8,'stroke-dasharray':'1.5 1.5',opacity:.4});}));
-  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5252a"></i>'+teamName(Lsel)+' break</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+' break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>guns up</span>';
+  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5252a"></i>'+teamName(Lsel)+' break</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+' break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>shot lanes</span>';
   animateBreak([{T:window._L,col:'#e5252a'},{T:window._R,col:'#3d8bff'}]);
 }
 function teamName(s){return DIVS[s.di].t[s.ti][0];}
@@ -1271,7 +1271,7 @@ function renderPlay(){
   if(!zcMode)pbFieldOverlay(T);
   zcDraw();
   const meta=PLAYMETA.find(m=>m[0]===curPlay);
-  document.getElementById('legend').innerHTML=`<span><i class="sw" style="background:${col}"></i>${meta[1]} — watch the break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>shooting lane (guns up)</span><span>dashed = route · ▶ replays</span>${' '+fieldChkChip()}`;
+  document.getElementById('legend').innerHTML=`<span><i class="sw" style="background:${col}"></i>${meta[1]} — watch the break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>shot lane</span><span>dashed = route · ▶ replays</span>${' '+fieldChkChip()}`;
   const ag=meta[3]||3,agL=['','very conservative','conservative','balanced','aggressive','all‑gas'][ag],agC=['','#27a35c','#5fb87a','#ff5a52','#f0a24a','#e5252a'][ag],agD='●●●●●'.slice(0,ag)+'○○○○○'.slice(0,5-ag);
   let h=cinWarn('Breakout routes')+pbConsoleHTML()+`<div style="font-weight:800;font-size:15px">${meta[1]}</div><div style="font-size:12px;margin:2px 0 5px;color:${agC};font-weight:800">Aggression <span style="letter-spacing:1px">${agD}</span> · ${agL}</div><div class="desc">${meta[2]}</div>`;
   const pdZones=zcList();
@@ -1597,7 +1597,7 @@ function renderMsg(){
   const isCoach=(EDITION==='coach'||EDITION==='scout'||EDITION==='full'||(EDITION==='team'&&msgWho==='coach'));
   let h='<div class="lbl">Team messages</div>';
   h+='<div style="font-size:11px;color:#ff5a52;margin-bottom:6px">'+(isCoach
-      ?'Everything sent between you and your players \u2014 full log, kept inside GRIDLOCK.'
+      ?'Messages you write here stay on this phone in this preview.'
       :'Messages with your coach. Stays inside the app.')+'</div>';
   h+='<div id="msgList" style="max-height:300px;overflow:auto;border:1px solid #26292a;border-radius:10px;padding:8px;background:#0f1011">';
   if(!a.length)h+='<div style="font-size:12px;color:#f04a44;text-align:center;padding:14px">No messages yet.</div>';
@@ -1897,7 +1897,7 @@ function renderLineups(){
   document.getElementById('legend').innerHTML=L?`<span><i class="sw" style="background:#2ec76b"></i>${hesc(L.name)} \u2014 tap a player then a bunker; \u25ce sets which way they look &amp; shoot</span>`:'<span>Build a line: name it, pick the play, place your players</span>';
 
   let h='<div class="lbl">Lineups</div>';
-  h+='<div style="font-size:11px;color:#ff5a52;margin-bottom:7px">Set your lines before the match. Mark one \u201con deck\u201d and it pushes to every player \u2014 grab pods and go.</div>';
+  h+='<div style="font-size:11px;color:#ff5a52;margin-bottom:7px">Set your lines before the match. Mark one \u201con deck\u201d \u2014 grab pods and go.</div>';
   // list of saved lines
   if(lines.length){h+='<div class="row" style="flex-wrap:wrap;gap:4px">'+lines.map(l=>`<button class="ld ${lnSel===l.id?'on':''}" data-lnp="${l.id}">${hesc(l.name)}${act===l.id?' \u2605':''}</button>`).join('')+'</div>';}
   h+='<div class="row" style="gap:5px;margin-top:6px"><input id="lnNew" placeholder="new line (e.g. D-line)" style="flex:1 1 150px"><button class="ld on" id="lnAdd">+ Line</button></div>';
@@ -2059,7 +2059,7 @@ function renderTeam(){
   if(t.code&&!t.player){const shared=tRoster();t.roster=t.roster||[];let ch=false;shared.forEach(n=>{if(!t.roster.map(tpSlug).includes(tpSlug(n))){t.roster.push(n);ch=true;}});if(ch)teamSet(t);tRosterSave(t.roster);}
   let h='<div class="lbl">Team</div>';
   if(!t.code){
-    h+='<div style="font-size:12px;color:#ff5a52;margin-bottom:8px">Create your team. Players use the code to activate their app \u2014 their data then filters up to you.</div>';
+    h+='<div style="font-size:12px;color:#ff5a52;margin-bottom:8px">Create your team and share its code with your players. In this preview, everything stays on this phone.</div>';
     h+='<div class="row" style="gap:5px"><input id="tmName" placeholder="team name (e.g. Impact)" style="flex:1 1 160px"><button class="ld on" id="tmCreate">Create team</button></div>';
     if(EDITION==='team'){h+='<div class="lbl" style="margin-top:12px">Joining a team?</div><div class="row" style="gap:5px"><input id="tmMe" placeholder="your name" style="flex:1 1 130px"><input id="tmJoin" placeholder="TEAM-XXXX" style="flex:1 1 160px;text-transform:uppercase;letter-spacing:1px"><button class="ld on" id="tmJoinGo">Join</button></div><div id="tmJoinErr" style="font-size:11px;color:#ff9a8a;min-height:13px;margin-top:3px"></div>';}
   } else if(EDITION==='team'&&t.player){
@@ -2090,7 +2090,7 @@ function renderTeam(){
       h+=lns.map(l=>{const on=l.id===actId;return `<div class="iqrow" style="border-color:${on?'#2ec76b':'#3a3f40'};margin-top:5px"><div style="font-size:12.5px;font-weight:800">${hesc(l.name)}${on?' \u2605 on deck':''}</div><div style="font-size:11px;color:#ff5a52">${(typeof playName==='function')?playName(l.play):l.play||'no play set'}</div>${(l.spots&&l.spots.length)?'<div style="font-size:11px;color:#efedeb;margin-top:3px">'+l.spots.map(sp=>`${hesc(sp.player)} \u2192 ${(typeof bname==='function')?bname(sp.bunker):sp.bunker}`).join(' \u00b7 ')+'</div>':'<div style="font-size:10.5px;color:#f04a44">no players placed</div>'}</div>`;}).join('');
     }
     // symbiosis note: what filters where
-    h+='<div class="iqrow" style="border-color:#2f7a52;margin-top:10px"><div style="font-size:11px;color:#9fe8bd;font-weight:800">How it connects</div><div style="font-size:11px;color:#efedeb">Players log their own reps and messages \u2192 you see all of it here. You call plays and share reads \u2192 players see their piece. One team, one shared picture.</div></div>';
+    h+='<div class="iqrow" style="border-color:#2f7a52;margin-top:10px"><div style="font-size:11px;color:#9fe8bd;font-weight:800">How it connects</div><div style="font-size:11px;color:#efedeb">When the Team app ships, players' logs and your calls will be shared between phones. In this preview, everything stays on this phone.</div></div>';
   }
   box.innerHTML=h;
   {const tm2=document.getElementById('tmToMsg');if(tm2)tm2.onclick=()=>setMode('msg');}
@@ -2713,7 +2713,7 @@ function renderScout(){
     try{navigator.clipboard.writeText(txt);b.querySelector('#mkup').textContent='copied \u2713';}catch(e){gAlert(txt);}};},0);
   renderSide('L',Lsel);renderSide('R',Rsel);   // pickers ALWAYS render so team selection works on every tier
   if(!LICF('scoutfull')){field();const P=document.getElementById('panel');if(P){const nT=DIVS.reduce((a,d)=>a+d.t.length,0);
-    P.innerHTML=scViewToggle()+`<div class="lbl">Matchup</div><div class="iqrow" style="font-size:12px">Pick a team on each side above \u2014 left (red) vs right (blue). <b>${DIVS.length} divisions \u00b7 ${nT} registered teams</b> are loaded. Games &amp; replay and Historical layers are open too; the season license adds the opponent win% simulation and counter-picker.</div>`+upsell('Opponent win% simulation & counter-picker','Team selection, Games/replay and Historical layers are open on the coach tier. The season license adds the break-sim, tendencies and counter-picker across all registered teams.','scout');
+    P.innerHTML=scViewToggle()+`<div class="lbl">Matchup</div><div class="iqrow" style="font-size:12px">Pick a team on each side above \u2014 left (red) vs right (blue). <b>${DIVS.length} divisions \u00b7 ${nT} registered teams</b> are loaded. Games &amp; replay and Historical layers are open too.</div>`+upsell('Opponent win% simulation & counter-picker','Team selection, Games/replay and Historical layers are open on the coach tier. The season license adds the break-sim, tendencies and counter-picker across all registered teams.','scout');
     P.querySelectorAll('[data-scview]').forEach(b=>b.onclick=()=>{scView=b.dataset.scview;gmSel=null;gmPt=null;renderScout();});
     const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');}return;}
   field();
@@ -2961,7 +2961,7 @@ document.getElementById('playBreakBtn').onclick=()=>animateScoutBreak();
 document.getElementById('ppBtn').onclick=function(){if(!anim)return;if(anim.playing){anim.playing=false;this.textContent='▶ Play';}else{if(anim.t>=anim.totalDur)anim.t=0;anim.playing=true;this.textContent='⏸ Pause';anim.last=performance.now();loop();}};
 document.getElementById('scrub').oninput=function(){if(!anim)return;anim.playing=false;document.getElementById('ppBtn').textContent='▶ Play';anim.t=this.value/1000*anim.totalDur;drawFrame(anim.t);};
 document.querySelectorAll('#transport .spd').forEach(b=>b.onclick=()=>{document.querySelectorAll('#transport .spd').forEach(x=>x.classList.remove('on'));b.classList.add('on');if(anim)anim.speed=+b.dataset.s;});
-function syncGuns(){const on=window.showGuns;['gunsBtn','gunsBtn2'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='Guns up: '+(on?'on':'off');b.classList.toggle('on',on);}});}
+function syncGuns(){const on=window.showGuns;['gunsBtn','gunsBtn2'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent='Shot lanes: '+(on?'on':'off');b.classList.toggle('on',on);}});}
 function toggleGuns(){window.showGuns=!window.showGuns;syncGuns();if(anim)drawFrame(anim.t);}
 document.getElementById('gunsBtn').onclick=toggleGuns;document.getElementById('gunsBtn2').onclick=toggleGuns;
 document.getElementById('psBtn').onclick=function(){window.showPS=!window.showPS;this.textContent='P/S bunkers: '+(window.showPS?'on':'off');this.classList.toggle('on',window.showPS);draw();};
@@ -3096,7 +3096,7 @@ function renderLog(){
   const tEl=P.querySelector('#logT');if(tEl)tEl.oninput=e=>{draft.t=e.target.value;};
   const nEl=P.querySelector('#logNote');if(nEl)nEl.oninput=e=>{draft.note=e.target.value;};
   {const oEl=P.querySelector('#logOpp');if(oEl)oEl.onchange=e=>{draft.opp=e.target.value;};}
-  P.querySelector('#logAdd').onclick=()=>{if(!LICF('logfull')&&log.length>=10){upsellPop('Break Log \u2014 unlimited entries + photos','Free tier holds 10 breaks. The season license removes the cap and keeps photo evidence attached all weekend.','scout');return;}const ts=Date.now();const ph=(draft.photos||[]).slice();const entry={di:sel.di,ti:sel.ti,name,opp:draft.opp||'',side:draft.side,s:draft.s,c:draft.c,d:draft.d,t:draft.t===''?null:+draft.t,res:draft.res,note:draft.note,g:draft.g,ts,lk:layoutKey,r:draft.r.map(p=>({x:p.x,y:p.y,b:p.b||null,dl:!!p.dl}))};if(ph.length){photos[ts]=ph;if(savePhotos()){entry.ph=ph.length;}else{delete photos[ts];gAlert('Photo storage is full on this device — the break was logged without its photo. Export/clear old data to free space.');}}log.push(entry);if(editTs!=null){const oi=log.findIndex(z=>z.ts===editTs);if(oi>=0){const ox=log[oi];if(ox.ts&&photos[ox.ts]){delete photos[ox.ts];savePhotos();}log.splice(oi,1);}editTs=null;}saveLog();draft={side:'',s:0,c:0,d:0,t:'',res:'',note:'',g:0,opp:'',photos:[],r:[]};renderLog();};
+  P.querySelector('#logAdd').onclick=()=>{if(!LICF('logfull')&&log.length>=10){upsellPop('Break Log \u2014 unlimited entries + photos','The preview holds 10 breaks.','scout');return;}const ts=Date.now();const ph=(draft.photos||[]).slice();const entry={di:sel.di,ti:sel.ti,name,opp:draft.opp||'',side:draft.side,s:draft.s,c:draft.c,d:draft.d,t:draft.t===''?null:+draft.t,res:draft.res,note:draft.note,g:draft.g,ts,lk:layoutKey,r:draft.r.map(p=>({x:p.x,y:p.y,b:p.b||null,dl:!!p.dl}))};if(ph.length){photos[ts]=ph;if(savePhotos()){entry.ph=ph.length;}else{delete photos[ts];gAlert('Photo storage is full on this device — the break was logged without its photo. Export/clear old data to free space.');}}log.push(entry);if(editTs!=null){const oi=log.findIndex(z=>z.ts===editTs);if(oi>=0){const ox=log[oi];if(ox.ts&&photos[ox.ts]){delete photos[ox.ts];savePhotos();}log.splice(oi,1);}editTs=null;}saveLog();draft={side:'',s:0,c:0,d:0,t:'',res:'',note:'',g:0,opp:'',photos:[],r:[]};renderLog();};
   const ap=P.querySelector('#applyLean');if(ap)ap.onclick=()=>{const a=logLean(sel.di,sel.ti);if(!a)return;if(a.conf==='thin')gToast('Heads up: lean is from only '+a.n+' break(s) \u2014 treat as noisy');rec(sel.di,name).tend=a.tend;saveScout();ap.textContent='✓ applied ('+(a.tend>0?'+':'')+a.tend+') — now used in Scout & Sim';ap.classList.remove('on');};
   P.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const i=+b.dataset.edit,x=log[i];if(!x)return;logSel={di:x.di,ti:x.ti};draft={side:x.side||'',s:x.s||0,c:x.c||0,d:x.d||0,t:(x.t==null||x.t==='')?'':String(x.t),res:x.res||'',note:x.note||'',g:x.g||0,opp:x.opp||'',photos:(photos[x.ts]||[]).slice(),r:(x.r||[]).map(p=>({x:p.x,y:p.y,b:p.b||null,dl:!!p.dl}))};editTs=x.ts;renderLog();window.scrollTo&&window.scrollTo(0,0);});
   const ec=P.querySelector('#editCancel');if(ec)ec.onclick=()=>{editTs=null;draft={side:'',s:0,c:0,d:0,t:'',res:'',note:'',g:0,opp:'',photos:[],r:[]};renderLog();};
@@ -3504,7 +3504,7 @@ function renderIQ(){
   }else{
     h+=`<div class="iqfind"><input id="iqQ" placeholder="Search a term — velocity, wiping, mercy, goggles…" value="${(iqFind||'').replace(/"/g,'&quot;')}"/></div><div id="iqFindRes"></div>`;
   }
-  h+=`<div class="iqfoot"><b>Source of truth:</b> built from the published divisional X‑Ball ruleset — a training & quick‑lookup aid, <b>not an authority</b>. Section numbers are the long‑standing section references; confirm exact page and any 2026 revision against the current PDF, and in live play the Field Ultimate's interpretation governs (3.2 / 13.3). Answers are one careful read, not a human ref's sign‑off — spot‑check before any protest.<br><br><b>Independence:</b> GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; rule content paraphrases the published divisional X‑Ball ruleset for training only. The official rulebook and on‑field officials govern every live call.</div></div>`;
+  h+=`<div class="iqfoot"><b>Source of truth:</b> built from the published divisional X‑Ball ruleset — a training & quick‑lookup aid, <b>not an authority</b>. Section numbers are the long‑standing section references; confirm exact page and any 2026 revision against the current PDF, and in live play the Field Ultimate's interpretation governs (3.2 / 13.3). Answers are one careful read, not a human ref's sign‑off — spot‑check before any protest.<br><br><b>Independence:</b> GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; The official rulebook and on‑field officials govern every live call.</div></div>`;
   box.innerHTML=h;
   box.querySelectorAll('[data-iqm]').forEach(b=>b.onclick=()=>{iqMode=b.dataset.iqm;iqMissOnly=false;iqCat='all';iqJournalCats=null;iqIdx=0;iqPick=null;iqCur=null;iqPermFor=-1;renderIQ();});
   box.querySelectorAll('[data-iqc]').forEach(b=>b.onclick=()=>{iqCat=b.dataset.iqc;iqJournalCats=null;iqIdx=0;iqPick=null;iqCur=null;iqPermFor=-1;renderIQ();});
@@ -3666,15 +3666,16 @@ function buyBtnHTML(label,sz){const fs=sz?';font-size:'+sz:'';return BUY_URL
   ?`<a class="ld on" href="${BUY_URL}" target="_blank" rel="noopener" style="text-decoration:none${fs}">${label}</a>`
   :`<span class="ld" style="opacity:.6;cursor:default${fs}" title="Licensing opens at launch">${label} \u2014 at launch</span>`;}
 const KEY_SALT='GRIDKEY-2026-m4', KEYGEN_PASS=''; /* type the pass into the license box to mint keys */
-const PRICES={refpro:'Ref Pro — $24/yr',crew:'Crew License — $199/season (15 refs)',scout:'Scout — $79/season/team',coach2:'Add a team — 20% off ($63/season)'};
+const PRICES={};
 const TIERF={refpro:['card','ready23'],crew:['card','ready23','crew'],scout:['layouts','scoutfull','logfull'],all:['card','ready23','crew','layouts','scoutfull','logfull']};
 let LIC=(function(){try{return JSON.parse(localStorage.getItem('gridlock_lic')||'null');}catch(e){return null;}})();
 function licKeyRead(k){try{const p=(k||'').trim().split('.');if(p.length!==3||p[0]!=='GRIDKEY1')return{err:'Not a GRIDLOCK key.'};const j=upraB64d(p[1]);if(upraHash(j+KEY_SALT)!==p[2])return{err:'Invalid key (checksum).'};const pl=JSON.parse(j);if(pl.x&&pl.x<new Date().toISOString().slice(0,10))return{err:'Key expired '+pl.x+'.'};return{pl};}catch(e){return{err:'Unreadable key.'};}}
 function licKeyMake(tier,name,seats,exp){const pl={v:1,t:tier,n:name,s:seats||1,x:exp||null};const j=JSON.stringify(pl);return 'GRIDKEY1.'+upraB64e(j)+'.'+upraHash(j+KEY_SALT);}
 window.GRIDLOCK_NATIVE_UNLOCK=function(tier,expiry,name){if(!TIERF[tier])return false;LIC={v:1,t:tier,n:name||'App Store',s:1,x:expiry||null,src:'iap'};try{localStorage.setItem('gridlock_lic',JSON.stringify(LIC));}catch(e){}if(typeof draw==='function')try{draw();}catch(e){}return true;};
 window.GRIDLOCK_NATIVE_RESTORE=function(){return LIC&&LIC.src==='iap'?LIC.t:null;};
-function LICF(f){if(typeof DEV_OPEN!=='undefined'&&DEV_OPEN)return true;if(typeof EDITION==='undefined'||EDITION==='full')return true;if(!LIC)return false;if(LIC.x&&LIC.x<new Date().toISOString().slice(0,10))return false;return (TIERF[LIC.t]||[]).includes(f);}
-function upsell(title,body,tier){const buy=IS_NATIVE?`<button class="ld on" onclick="window.GRIDLOCK_BUY&&window.GRIDLOCK_BUY('${tier}')">${PRICES[tier]||'Unlock'}</button>`:buyBtnHTML(PRICES[tier]||'Get a license');return `<div class="iqrow" style="border-color:#3a3f40;background:#161818"><div class="iqcat" style="color:#ff5a52">LICENSED FEATURE</div><b>${title}</b><p>${body}</p><div class="row" style="gap:6px;margin-top:5px">${buy}<button class="ld" data-lickey="1">I have a key</button></div></div>`;}
+function previewSendsNothing(){return Promise.reject(new Error('This preview sends nothing.'));}
+function LICF(f){if(EDITION==='player'||EDITION==='team')return false;if(typeof DEV_OPEN!=='undefined'&&DEV_OPEN)return true;if(typeof EDITION==='undefined'||EDITION==='full')return true;if(!LIC)return false;if(LIC.x&&LIC.x<new Date().toISOString().slice(0,10))return false;return (TIERF[LIC.t]||[]).includes(f);}
+function upsell(title,body,tier){if(EDITION==='player'||EDITION==='team')return `<div class="iqrow" style="border-color:#3a3f40;background:#161818"><div class="iqcat" style="color:#ff5a52">NOT IN THIS PREVIEW</div><b>${title}</b><p>This is in the coach app. The preview does not have it yet.</p></div>`;const buy=IS_NATIVE?`<button class="ld on" onclick="window.GRIDLOCK_BUY&&window.GRIDLOCK_BUY('${tier}')">${PRICES[tier]||'Unlock'}</button>`:buyBtnHTML(PRICES[tier]||'Get a license');return `<div class="iqrow" style="border-color:#3a3f40;background:#161818"><div class="iqcat" style="color:#ff5a52">NOT IN THIS PREVIEW</div><b>${title}</b><p>${body}</p><div class="row" style="gap:6px;margin-top:5px">${buy}<button class="ld" data-lickey="1">I have a key</button></div></div>`;}
 function upsellPop(title,body,tier){const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(11,12,13,.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';ov.innerHTML=`<div style="max-width:420px;width:100%">${upsell(title,body,tier)}<div class="row" style="margin-top:6px"><button class="ld" id="upX">close</button></div></div>`;ov.querySelector('#upX').onclick=()=>ov.remove();const lk=ov.querySelector('[data-lickey]');if(lk)lk.onclick=()=>{ov.remove();setMode('nexus');};document.body.appendChild(ov);}
 function upraHash(t){let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return (h>>>0).toString(36);}
 function upraB64e(t){return btoa(unescape(encodeURIComponent(t))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
@@ -3724,7 +3725,7 @@ function nxArchive(el){if(!el)return;let arc=[];try{arc=JSON.parse(localStorage.
 function nxBackup(el){if(!el)return;
  el.innerHTML=`<div style="font-size:11px;color:#ff5a52;margin-bottom:4px">Everything lives on this phone \u2014 misses, scouting, break log, readiness, crew sessions, license. One file backs it all up; restore it on a new phone and you\u2019re whole again. Do this the night before every event.</div><div class="row" style="gap:6px;flex-wrap:wrap"><button class="ld on" id="bkDl">\u2b07 Download full backup</button><label class="ld" style="cursor:pointer">\u2b06 Restore backup<input type="file" accept=".json,application/json" id="bkUp" style="display:none"></label></div><div id="bkMsg" style="font-size:11px;margin-top:4px"></div>`;
  el.querySelector('#bkDl').onclick=()=>{try{const data={_gridlock_backup:1,ver:APP_VER,date:new Date().toISOString(),keys:{}};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('gridlock_')===0)data.keys[k]=localStorage.getItem(k);}const b=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='gridlock-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);el.querySelector('#bkMsg').innerHTML='<span style="color:#7fe0a8">\u2713 Backup downloaded \u2014 '+Object.keys(data.keys).length+' data sets. Keep it somewhere that isn\u2019t this phone.</span>';}catch(e){el.querySelector('#bkMsg').innerHTML='<span style="color:#ff9a8a">Backup failed: '+e.message+'</span>';}};
- el.querySelector('#bkUp').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data||data._gridlock_backup!==1||!data.keys)throw new Error('not a GRIDLOCK backup');const n=Object.keys(data.keys).length;const doRestore=(merge)=>{
+ el.querySelector('#bkUp').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data||data._gridlock_backup!==1||!data.keys)throw new Error('not a GRIDLOCK backup');['gridlock_ghl','gridlock_crm','gridlock_tickets'].forEach(k=>{delete data.keys[k];});const n=Object.keys(data.keys).length;const doRestore=(merge)=>{
 
    if(merge){
     Object.keys(data.keys).forEach(k=>{try{
@@ -3792,7 +3793,7 @@ function nxBackup(el){if(!el)return;
 function nxLicense(el){if(!el)return;
  const st=(typeof EDITION!=='undefined'&&EDITION==='full')?'<div class="chip" style="border-color:#2f7a52;color:#9fe8bd">Master build \u2014 all features open</div>'
   :LIC?`<div class="chip" style="border-color:#2f7a52;color:#9fe8bd">\u2713 ${(PRICES[LIC.t]||LIC.t).split(' \u2014 ')[0]} \u00b7 ${(LIC.n||'').replace(/</g,'&lt;')}${LIC.x?' \u00b7 to '+LIC.x:''}</div>`
-  :`<div class="chip">Free tier</div> `+buyBtnHTML('Get a license','11px');
+  :`<div class="chip">Preview</div>`;
  el.innerHTML=`<div class="row" style="gap:6px;flex-wrap:wrap;align-items:center">${st}</div><div class="row" style="gap:6px;margin-top:5px"><input id="licIn" placeholder="paste license key\u2026" style="flex:1 1 170px"><button class="ld" id="licGo">Apply</button>${LIC?'<button class="ld" id="licRm">Remove</button>':''}${IS_NATIVE?'<button class="ld" id="licRs">Restore purchases</button>':''}</div><div id="licMsg"></div>`;
  el.querySelector('#licGo').onclick=()=>{const v=el.querySelector('#licIn').value.trim();
   if(KEYGEN_PASS&&v===KEYGEN_PASS){el.querySelector('#licMsg').innerHTML=`<div class="lbl" style="margin-top:8px">Mint a key</div><div class="row" style="gap:5px;flex-wrap:wrap"><select id="mkT"><option value="refpro">refpro</option><option value="crew">crew</option><option value="scout">scout</option><option value="all">all</option></select><input id="mkN" placeholder="name / crew / team" style="flex:1 1 130px"><input id="mkX" placeholder="expiry YYYY-MM-DD (blank = never)" style="flex:1 1 150px"><button class="ld on" id="mkGo">Mint</button></div><div id="mkOut"></div>`;
@@ -3892,9 +3893,9 @@ function ticCreate(o){const cfg=ghlCfg();const a=tickAll();const t=Object.assign
   a.push(t);tickSave(a);ticNotify(t);return t;}
 function smsLink(phone,text){const p=(phone||'').replace(/[^\d+]/g,'');return 'sms:'+p+(text?('?&body='+encodeURIComponent(text)):'');}
 function ghlSend(t,text){const c=ghlCfg();if(!c.webhook||typeof fetch!=='function')return Promise.resolve(false);
-  return fetch(c.webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'ticket_reply',ticketId:t.id,to:t.phone,from:c.biz,subject:t.subj||'',message:text,ts:Date.now()})}).then(()=>true).catch(()=>false);}
+  return previewSendsNothing(c.webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'ticket_reply',ticketId:t.id,to:t.phone,from:c.biz,subject:t.subj||'',message:text,ts:Date.now()})}).then(()=>true).catch(()=>false);}
 function ticPoll(){const c=ghlCfg();if(!c.poll||!c.worker||typeof fetch!=='function')return;
-  fetch(c.worker.replace(/\/+$/,'')+'/tickets?since='+(c.lastTs||0),{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null).then(d=>{
+  previewSendsNothing(c.worker.replace(/\/+$/,'')+'/tickets?since='+(c.lastTs||0),{headers:{'Accept':'application/json'}}).then(r=>r.ok?r.json():null).then(d=>{
     if(!d||!Array.isArray(d.tickets))return;let mx=c.lastTs||0,any=false;const a=tickAll();const have=new Set(a.map(x=>x.id));
     d.tickets.forEach(x=>{if(x&&x.id&&!have.has(x.id)){const t=Object.assign({status:'new',prio:'norm',thread:[],src:'ghl',ts:x.ts||Date.now()},x);if(t.body&&!t.thread.length)t.thread.push({ts:t.ts,who:'them',text:t.body});a.push(t);any=true;ticNotify(t);}if(x&&(x.ts||0)>mx)mx=x.ts;});
     if(any||mx>(c.lastTs||0)){tickSave(a);c.lastTs=mx;ghlSave(c);if(typeof MODE!=='undefined'&&MODE==='evops')renderEvops();}
@@ -4165,7 +4166,7 @@ function crmBtypeName(k){const f=CRM_BTYPE.find(x=>x[0]===k);return f?f[1]:k;}
 function crmBstMeta(k){return CRM_BST.find(x=>x[0]===k)||CRM_BST[0];}
 function crmPtypeName(k){const f=CRM_PTYPE.find(x=>x[0]===k);return f?f[1]:k;}
 function crmBlast(seg,msg){const c=ghlCfg();if(!c.webhook||typeof fetch!=='function')return Promise.resolve(false);const to=seg.map(x=>x.phone).filter(Boolean);
-  return fetch(c.webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'campaign',from:c.biz,to,message:msg,ts:Date.now()})}).then(()=>true).catch(()=>false);}
+  return previewSendsNothing(c.webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'campaign',from:c.biz,to,message:msg,ts:Date.now()})}).then(()=>true).catch(()=>false);}
 let crmSec='dash', crmSel=null, crmQ='', crmBkF='upcoming', crmSeg='';
 
 function renderCrm(){const B=document.getElementById('crmbox');if(!B)return;const o=crmAll();
@@ -4401,17 +4402,17 @@ function renderNexus(){const B=document.getElementById('nexusbox');if(!B)return;
   h+= scN?`<div class="row" style="gap:6px;flex-wrap:wrap"><div class="chip">${scN} teams with lean/notes</div></div>`:`<div class="iqrow" style="font-size:12px">No scouting notes yet \u2014 <b>Scout &amp; Sim</b> tab.</div>`;
   const catMiss={};Object.keys(ready).forEach(k=>{(ready[k].misses||[]).forEach(m=>{const c=IQ_Q[m.qid].c;catMiss[c]=(catMiss[c]||0)+1;});});const wk=Object.keys(catMiss).sort((a,b)=>catMiss[b]-catMiss[a]).slice(0,4);
   if(wk.length){h+=`<div class="lbl" style="margin-top:10px">Weak areas to train</div>`+wk.map(c=>`<div class="iqrow"><b>${(typeof IQCATS!=='undefined'&&IQCATS[c])?IQCATS[c]:c}</b> \u2014 missed ${catMiss[c]}\u00d7 <button class="ld" data-ytn="${c}" style="padding:2px 8px;font-size:11px;margin-left:6px">\ud83c\udfa5</button></div>`).join('');}
-  h+=`<div class="row" style="margin-top:16px"><button class="ld" id="nxPrint" style="font-weight:800">\ud83d\udda8 Print / laminate call sheet</button></div>`;
+  
   B.innerHTML=h;
   const pb=B.querySelector('#nxPrint');if(pb)pb.onclick=printSheet;
-  {let od=B.querySelector('#nxOff');if(!od){od=document.createElement('div');od.id='nxOff';od.innerHTML='<div class="lbl" style="margin-top:10px">Rule bank audit</div><div id="nxAu"></div><div class="lbl" style="margin-top:10px">Season archive</div><div id="nxArc"></div><div class="lbl" style="margin-top:10px">Backup & restore</div><div id="nxBk"></div><div class="lbl" style="margin-top:10px">License</div><div id="nxLic"></div><div class="lbl" style="margin-top:10px">UPRA Ref Card \u2014 signed readiness</div><div id="nxRC"></div><div class="lbl" style="margin-top:10px">Offline readiness</div><div id="nxOffBody"></div>';B.appendChild(od);}nxRefCard(od.querySelector('#nxRC'));nxOffline(od.querySelector('#nxOffBody'));nxLicense(od.querySelector('#nxLic'));nxBackup(od.querySelector('#nxBk'));nxArchive(od.querySelector('#nxArc'));nxAudit(od.querySelector('#nxAu'));
+  {let od=B.querySelector('#nxOff');if(!od){od=document.createElement('div');od.id='nxOff';od.innerHTML='<div class="lbl" style="margin-top:10px">Season archive</div><div id="nxArc"></div><div class="lbl" style="margin-top:10px">Backup & restore</div><div id="nxBk"></div><div class="lbl" style="margin-top:10px">Offline readiness</div><div id="nxOffBody"></div>';B.appendChild(od);}nxRefCard(od.querySelector('#nxRC'));nxOffline(od.querySelector('#nxOffBody'));nxLicense(od.querySelector('#nxLic'));nxBackup(od.querySelector('#nxBk'));nxArchive(od.querySelector('#nxArc'));nxAudit(od.querySelector('#nxAu'));
    {if(UPDATE_URL&&navigator.onLine){fetch(UPDATE_URL,{cache:'no-store'}).then(r=>r.text()).then(t=>{const parts=t.trim().split(/\s+/),lv=parts[0]||'';if(lv&&lv>APP_VER){const u=document.createElement('div');u.innerHTML=`<div class="chip" style="border-color:#8c6a2f;color:#ffd9a1;margin-top:6px">\u2b06 v${lv} available${parts[1]?` \u2014 <a href="${parts[1]}" target="_blank" style="color:#ff5a52">get it</a>`:''} (back up first \u2014 your data stays)</div>`;od.appendChild(u);}}).catch(()=>{});}}
    {try{const L=JSON.parse(localStorage.getItem('gridlock_lasterr')||'[]');const rec=L.filter(x=>Date.now()-x.ts<7*864e5);if(rec.length){const w=document.createElement('div');w.innerHTML=`<div class="chip" style="border-color:#8a3326;color:#ff9a8a;margin-top:6px">\u26a0 ${rec.length} runtime error(s) this week \u2014 latest: ${rec[rec.length-1].m.replace(/</g,'&lt;').slice(0,80)} <span style="cursor:pointer;color:#ff5a52" id="errClr">clear</span></div>`;od.appendChild(w);w.querySelector('#errClr').onclick=()=>{try{localStorage.removeItem('gridlock_lasterr');}catch(_){ }w.remove();};}}catch(_){}}
    {let vd=od.querySelector('#nxVer');if(!vd){vd=document.createElement('div');vd.id='nxVer';vd.style.cssText='font-size:10px;color:#f04a44;margin-top:10px';vd.innerHTML='GRIDLOCK '+(typeof EDITION!=='undefined'?EDITION:'full')+' build \u00b7 v'+APP_VER+' \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="themeFlip()">\u2600 sunlight</span> \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="cbFlip()">\u25d0 colorblind</span>';od.appendChild(vd);}}}
   B.querySelectorAll('[data-ytn]').forEach(b=>b.onclick=()=>{if(window.open)window.open(ytSearch(YTCAT[b.dataset.ytn]||'paintball rules explained'),'_blank');});
 }
 function printSheet(){const S=document.getElementById('printsheet');if(!S)return;let cr='';const cs=(typeof crewStat==='function')?crewStat():null;if(cs){const dv=cs.Q.slice().sort((a,b)=>a.agree-b.agree).slice(0,3);cr='<h2>Align these first \u2014 your crew split</h2><ol>'+dv.map(q=>'<li><b>'+IQ_Q[q.qid].q+'</b> \u2014 book: \u201c'+IQ_Q[q.qid].o[q.book]+'\u201d ('+Math.round(q.agree*100)+'% agreed)</li>').join('')+'</ol>';}
-  S.innerHTML='<h1>GRIDLOCK \u2014 Field Call Sheet</h1><p class="dis" style="font-weight:800;margin:0 0 2px">Powered by UPRA</p><p class="dis">Training aid \u2014 verify against the current published rulebook. The Field Ultimate governs the live call.</p><p class="dis">GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; rule content paraphrases the published divisional X‑Ball ruleset for training only. The official rulebook and on‑field officials govern every live call.</p>'
+  S.innerHTML='<h1>GRIDLOCK \u2014 Field Call Sheet</h1><p class="dis" style="font-weight:800;margin:0 0 2px">Powered by UPRA</p><p class="dis">Training aid \u2014 verify against the current published rulebook. The Field Ultimate governs the live call.</p><p class="dis">GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; The official rulebook and on‑field officials govern every live call.</p>'
    +'<h2>Penalty ladder</h2><ul><li><b>Minor</b> \u2014 offender out.</li><li><b>Major</b> \u2014 one-for-one (offender + a teammate).</li><li><b>Gross Major</b> \u2014 multiple bodies, possible ejection/suspension.</li></ul>'
    +'<h2>Hits &amp; outs</h2><ul><li>Solid break on the player or gear = OUT (gear counts).</li><li>Bounce, spray, splatter, smear/transfer = NOT out.</li><li>Solid mark resembling a hit, source unseen = OUT (penalties may apply).</li><li>Simultaneous hits = both out. A teammate\u2019s paint = not out.</li></ul>'
    +'<h2>Velocity</h2><ul><li>&le;300 fps &amp; &le;~10.5 bps = legal.</li><li>301\u2013314 = eliminated + Minor.</li><li>315\u2013329 = eliminated + Major.</li><li>&ge;330 = top-tier penalty &amp; review.</li></ul>'
@@ -4532,7 +4533,7 @@ refreshLayoutPicker();
    else if(EDITION==='league')_bs.textContent='OPERATIONS · powered by UPRA';
    else if(EDITION==='crm')_bs.textContent='FIELD CRM · powered by UPRA';}})();
 renderBoard();setMode(EDITION==='ref'?'iq':EDITION==='league'?'evops':EDITION==='crm'?'crm':EDITION==='team'?'team':'play');
-try{ticBadge();ticPollStart();ticQueueStart();}catch(e){}
+try{ticBadge();}catch(e){}/* previews send nothing */
 /* PLAYER ACTIVATION GATE: player edition is locked until a team code is entered. */
 if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){
   const ov=document.createElement('div');
@@ -4554,8 +4555,8 @@ if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){
  const L=EDITION==='ref'?[['Drill','Rulebook IQ remembers every miss \u2014 the Misses tab shows exactly where you\u2019re weak.'],['Crew','Crew Sync surfaces the calls your crew splits on, before they cost a point.'],['Prove it','Readiness tests + your signed UPRA Ref Card in Nexus.'],['Game day','Game Ops: point clock, penalty timers, score \u2014 phone unmuted.']]
  :EDITION==='scout'?[['Playbook','12 breakouts on the real event layout \u2014 tap \u25b6 to watch the break.'],['Sightlines','Tap any bunker: every clear shot it has, computed from true footprints.'],['Walk','First-person field walk before you ever get there.'],['Break Log','Log what teams actually ran, photos attached.']]
  :EDITION==='coach'?[['Your team','Set up your team in the Team tab \u2014 players join with the code and their data flows to you.'],['Read the game','Tally, Assess, and Movement build a picture of every player over time.'],['Call it','Share the called play; your players see their piece. Message the whole squad from Messages.'],['The field','Playbook, Sightlines, and Walk on the real event layout.']]
- :EDITION==='player'?[['You\u2019re on the team','Your coach\u2019s calls and messages come straight to you \u2014 nothing leaves the app.'],['Your play','Playbook shows the play your coach called, with your spot marked.'],['Know the field','Sightlines and Walk let you learn the layout before you get there.'],['Talk','Message your coach anytime from the Messages tab.']]
- :EDITION==='team'?[['One team, one picture','Create your team, share the code, manage your roster \u2014 everyone\u2019s data in one place.'],['Players join','Each player enters the code once to activate their app.'],['Stay in touch','Team messages keep everyone on the same page.']]
+ :EDITION==='player'?[['A preview','The Player app is on the way. What you log here stays on this phone.'],['Your play','Playbook shows the play your coach called, with your spot marked.'],['Know the field','Sightlines and Walk let you learn the layout before you get there.'],['Talk','Message your coach anytime from the Messages tab.']]
+ :EDITION==='team'?[['A preview','The Team app is on the way. What you set up here stays on this phone.'],['Your team','Create your team, share its code and manage your roster.'],['Game day','Lineups, the schedule and tournament prep are here to try.']]
  :[['Master build','All features open \u2014 this is your dev copy.'],['Editions','Officiating and Scout builds gate features for sale.'],['Nexus','Backup, license minting, ref cards, offline status.'],['Ship it','Trace Seffner, swap BUY_URL, go.']];
  const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(11,12,13,.94);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
  ov.innerHTML=`<div style="max-width:420px;width:100%;background:#161818;border:1px solid #3a3f40;border-radius:14px;padding:16px"><div style="font-weight:900;font-size:18px">GRIDLOCK</div><div style="font-size:11px;color:#ff5a52;margin-bottom:10px">${EDITION==='ref'?'Officiating \u00b7 powered by UPRA':(EDITION==='scout'||EDITION==='coach')?'Coach Edition':EDITION==='player'?'Player Edition':EDITION==='team'?'Team Edition':'Master'} \u00b7 60-second tour</div>${L.map(x=>`<div style="margin:7px 0"><b style="color:#ff5a52">${x[0]}</b><div style="font-size:12.5px;color:#efedeb">${x[1]}</div></div>`).join('')}<div style="font-size:10.5px;color:#f04a44;margin:8px 0">Everything lives on this phone \u2014 back it up in Nexus. Training aid: the rulebook and on-field officials govern.</div><button class="ld on" id="obGo" style="width:100%;padding:8px;font-size:14px">Let\u2019s work \u25b6</button></div>`;
@@ -4564,6 +4565,6 @@ if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){
 if('serviceWorker' in navigator){try{if(location.protocol==='https:'||location.protocol==='http:'){navigator.serviceWorker.register('sw.js').catch(function(){});}}catch(e){}}
 (function(){try{var b=document.getElementById('buildStamp');if(b)b.textContent=(typeof BUILD!=='undefined'?BUILD:'');}catch(e){}})();
 </script>
-</script><div id="printsheet"></div><div style="padding:10px 14px 18px;font-size:9.5px;line-height:1.45;color:#f04a44;max-width:760px">GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; rule content paraphrases the published divisional X‑Ball ruleset for training only. The official rulebook and on‑field officials govern every live call.</div>
+</script><div id="printsheet"></div><div style="padding:10px 14px 18px;font-size:9.5px;line-height:1.45;color:#f04a44;max-width:760px">GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; The official rulebook and on‑field officials govern every live call.</div>
 </body>
 </html>
