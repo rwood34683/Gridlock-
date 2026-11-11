@@ -119,11 +119,21 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
     #printsheet .dis{font-size:11px;font-style:italic;margin:0 0 6px}
   }
 </style>
+<style id="previewFit">/* the coach app's rules: 44 px targets, no sideways page, the event picker readable */
+  .ld,.tabs button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),textarea{min-height:44px}
+  .ld{min-width:44px}
+  .tend button,.tg button,.iqchip,.iqopt{min-height:44px}
+  select{max-width:100%;text-overflow:ellipsis}
+  #playBreakBtn{display:none}
+  .board{overflow-x:auto;max-width:100%}
+  @media(max-width:640px){#evsub{display:none}#layoutSel{flex:1 1 auto;min-width:0;max-width:100%}}
+  @media(max-width:600px){.matchup{grid-template-columns:1fr}.matchup>.vs{display:none}}
+</style>
 </head>
 <body>
-<div id="teaserRibbon" role="note" style="position:sticky;top:0;z-index:9999;background:#ad1515;color:#efedeb;font:800 12px/1.35 system-ui,sans-serif;text-align:center;padding:7px 12px;letter-spacing:.3px">PREVIEW · COMING SOON — the Gridlock Team app is on the way. Nothing here is final.</div>
+<div id="teaserRibbon" role="note" style="position:relative;z-index:9999;background:#ad1515;color:#efedeb;font:800 12px/1.35 system-ui,sans-serif;text-align:center;padding:7px 12px;letter-spacing:.3px">PREVIEW · COMING SOON — the Gridlock Team app is on the way. Nothing here is final.</div>
 <header>
-  <div class="brand"><div class="logo"></div><h1>GRIDLOCK</h1><span style="font-size:10px;color:#f04a44;font-weight:800;letter-spacing:.6px">powered by UPRA</span><span id="buildStamp" style="font-size:9px;color:#f04a44;font-weight:700;margin-left:6px"></span><select id="layoutSel" style="background:#1e2121;color:#efedeb;border:1px solid #3a3f40;border-radius:7px;font-size:11px;font-weight:800;padding:3px 6px"><option value="nwc">NXL World Cup · Kissimmee</option></select><span id="evsub" style="font-size:11px;color:#ff5a52">NXL World Cup · Kissimmee · 11–15 Nov 2026</span></div>
+  <div class="brand"><div class="logo"></div><h1>GRIDLOCK</h1><span style="font-size:10px;color:#f04a44;font-weight:800;letter-spacing:.6px">powered by UPRA</span><span id="buildStamp" hidden style="font-size:9px;color:#f04a44;font-weight:700;margin-left:6px"></span><select id="layoutSel" style="background:#1e2121;color:#efedeb;border:1px solid #3a3f40;border-radius:7px;font-size:11px;font-weight:800;padding:3px 6px"><option value="nwc">NXL World Cup · Kissimmee</option></select><span id="evsub" style="font-size:11px;color:#ff5a52">NXL World Cup · Kissimmee · 11–15 Nov 2026</span></div>
   <div class="src" id="src"></div>
   <div class="tabwrap"><div class="tabs">
     <button data-m="team">Team</button>
@@ -516,7 +526,7 @@ function field(){
     el('text',{x:75,y:128,fill:'#8d9092','font-size':4,'text-anchor':'middle','font-weight':700}).textContent='SNAKE SIDE';
   }
   for(const b of ((editMode&&MODE==='play')?editRaw:BUN))bunker(b);drawPS();
-  const d=el('defs',{});d.innerHTML='<linearGradient id="bnkRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2453d"/><stop offset="1" stop-color="#7d1512"/></linearGradient><linearGradient id="bnkBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a49c4"/><stop offset="1" stop-color="#25246e"/></linearGradient><linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient><radialGradient id="gRed" cx="42%" cy="34%" r="78%"><stop offset="0" stop-color="#c2453d"/><stop offset="0.55" stop-color="#a02d27"/><stop offset="1" stop-color="#7d1512"/></radialGradient><radialGradient id="gBlue" cx="42%" cy="34%" r="80%"><stop offset="0" stop-color="#4a49c4"/><stop offset="0.55" stop-color="#37369a"/><stop offset="1" stop-color="#25246e"/></radialGradient><radialGradient id="gPur" cx="42%" cy="34%" r="80%"><stop offset="0" stop-color="#d4d6d7"/><stop offset="0.55" stop-color="#b0b3b4"/><stop offset="1" stop-color="#8d9092"/></radialGradient><marker id="aL" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#e5252a"/></marker><marker id="aR" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#3d8bff"/></marker>';
+  const d=el('defs',{});d.innerHTML='<linearGradient id="bnkRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2453d"/><stop offset="1" stop-color="#7d1512"/></linearGradient><linearGradient id="bnkBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a49c4"/><stop offset="1" stop-color="#25246e"/></linearGradient><linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient><radialGradient id="gRed" cx="42%" cy="34%" r="78%"><stop offset="0" stop-color="#c2453d"/><stop offset="0.55" stop-color="#a02d27"/><stop offset="1" stop-color="#7d1512"/></radialGradient><radialGradient id="gBlue" cx="42%" cy="34%" r="80%"><stop offset="0" stop-color="#4a49c4"/><stop offset="0.55" stop-color="#37369a"/><stop offset="1" stop-color="#25246e"/></radialGradient><radialGradient id="gPur" cx="42%" cy="34%" r="80%"><stop offset="0" stop-color="#d4d6d7"/><stop offset="0.55" stop-color="#b0b3b4"/><stop offset="1" stop-color="#8d9092"/></radialGradient><marker id="aL" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#e5342f"/></marker><marker id="aR" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#3d8bff"/></marker>';
 }
 function drawPS(){if(!window.showPS)return;
   for(const b of BUN){if(!b.p)continue;const x=X(b.x),y=Y(b.y),pri=b.p==='P';
@@ -582,7 +592,7 @@ function drawTeam(T,col,mk,n0,dead){T.players.forEach((pl,i)=>{const dd=dead&&de
   el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:col,'stroke-width':1,'stroke-linecap':'round','marker-end':`url(#${mk})`,opacity:dd?.3:.9});
   el('circle',{cx:X(pl.t[0]),cy:Y(pl.t[1]),r:2.4,fill:col,stroke:'#fff','stroke-width':.5,opacity:dd?.5:1});
   el('text',{x:X(pl.t[0]),y:Y(pl.t[1])+1,fill:'#fff','font-size':2.5,'text-anchor':'middle','font-weight':800,opacity:dd?.6:1}).textContent=n0+i+1;
-  if(window.showRoles&&!dd)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-3.4,fill:col==='#e5252a'?'#ffb3b3':'#efedeb','font-size':2,'text-anchor':'middle','font-weight':700}).textContent=pl.e;
+  if(window.showRoles&&!dd)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-3.4,fill:col==='#e5342f'?'#ffb3b3':'#efedeb','font-size':2,'text-anchor':'middle','font-weight':700}).textContent=pl.e;
   if(dd)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])+1.3,fill:'#ff4d4d','font-size':5.2,'text-anchor':'middle','font-weight':900}).textContent='✕';});}
 let animReq=null,anim=null;
 function stopAnim(){if(animReq){cancelAnimationFrame(animReq);animReq=null;}}
@@ -597,8 +607,8 @@ function gunTarget(p,side){const dir=side==='L'?1:-1;const x=p.t[0];let tx,ty;
   return [clamp(tx,8,142),ty];}
 function gunCone(sx,sy,tx,ty,host){const dx=tx-sx,dy=ty-sy,len=Math.hypot(dx,dy)||1,px=-dy/len,py=dx/len,w=4.5;
   const ax=tx+px*w,ay=ty+py*w,bx=tx-px*w,by=ty-py*w;
-  const poly=document.createElementNS(NS,'polygon');poly.setAttribute('points',`${X(sx)},${Y(sy)} ${X(ax)},${Y(ay)} ${X(bx)},${Y(by)}`);poly.setAttribute('fill','#ffd34d');poly.setAttribute('opacity','0.15');host.appendChild(poly);
-  const ln=document.createElementNS(NS,'line');ln.setAttribute('x1',X(sx));ln.setAttribute('y1',Y(sy));ln.setAttribute('x2',X(tx));ln.setAttribute('y2',Y(ty));ln.setAttribute('stroke','#ffd34d');ln.setAttribute('stroke-width','0.5');ln.setAttribute('opacity','0.55');host.appendChild(ln);}
+  const poly=document.createElementNS(NS,'polygon');poly.setAttribute('points',`${X(sx)},${Y(sy)} ${X(ax)},${Y(ay)} ${X(bx)},${Y(by)}`);poly.setAttribute('fill','#ffffff');poly.setAttribute('opacity','0.15');host.appendChild(poly);
+  const ln=document.createElementNS(NS,'line');ln.setAttribute('x1',X(sx));ln.setAttribute('y1',Y(sy));ln.setAttribute('x2',X(tx));ln.setAttribute('y2',Y(ty));ln.setAttribute('stroke','#ffffff');ln.setAttribute('stroke-width','0.5');ln.setAttribute('opacity','0.55');host.appendChild(ln);}
 function animateBreak(teams){
   const items=[];teams.forEach(({T,col})=>T.players.forEach((p,i)=>{const pts=polyPts(p);const sl=segLens(pts);items.push({pts,segL:sl.L,tot:sl.tot,col,n:i+1,spd:laneSpeed(p),muzzle:pts[pts.length-1],g:gunTarget(p,T.side)});}));
   el('g',{id:'animLayer'});
@@ -627,8 +637,8 @@ function loop(){
 }
 function animateScoutBreak(){if(!window._L||!window._R)return;field();
   [[window._L,'#e5252a'],[window._R,'#3d8bff']].forEach(([T,col])=>T.players.forEach(pl=>{const pts=polyPts(pl);el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:col,'stroke-width':.8,'stroke-dasharray':'1.5 1.5',opacity:.4});}));
-  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5252a"></i>'+teamName(Lsel)+' break</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+' break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>shot lanes</span>';
-  animateBreak([{T:window._L,col:'#e5252a'},{T:window._R,col:'#3d8bff'}]);
+  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5342f"></i>'+teamName(Lsel)+' break</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+' break</span><span><i class="sw" style="background:#ffffff;border-color:#000000"></i>shot lanes</span>';
+  animateBreak([{T:window._L,col:'#e5342f'},{T:window._R,col:'#3d8bff'}]);
 }
 function teamName(s){return DIVS[s.di].t[s.ti][0];}
 function anticipate(name,tend){const p=planFor(tend);
@@ -995,7 +1005,7 @@ function renderSight(){field();svg.onclick=sightClick;svg.onpointerdown=null;svg
   if(slEdit){slRenderEdit();return;}
   if(sightActiveId){const _av=slFind(sightActiveId);if(_av&&_av.kind==='lines'){slRenderView(_av);return;}}
 const P=document.getElementById('panel');const LG=document.getElementById('legend');
-  let h=cinWarn('Ref-mode breakout runners')+`<div class="lbl">Sightlines <button class="ld" id="stanceB" style="float:right;font-size:10px;padding:1px 8px">${sightStance==='stand'?'\ud83e\uddcd standing':'\ud83e\udd3f crouched'}</button></div><div style="font-size:11px;color:#ff5a52;margin-bottom:6px">2D line-of-sight computed from bunker footprints on the current layout. A training aid — it doesn't model height, lean, angle, or where a gun actually pokes out, so walk the field to confirm. <b style=\'color:#ffd24d\'>Height matters:</b> cakes, snake beams, and pins are LOW — a standing player shoots OVER them, so a \'blocked\' line through a low piece is only blocked for someone crawling</div>`;
+  let h=cinWarn('Ref-mode breakout runners')+`<div class="lbl">Sightlines <button class="ld" id="stanceB" style="float:right;font-size:10px;padding:1px 8px">${sightStance==='stand'?'\ud83e\uddcd standing':'\ud83e\udd3f crouched'}</button></div><div style="font-size:11px;color:#ff5a52;margin-bottom:6px">2D line-of-sight computed from bunker footprints on the current layout. A training aid — it doesn't model height, lean, angle, or where a gun actually pokes out, so walk the field to confirm. <b style=\'color:#ffd24d\'>Height matters:</b> cakes and snake beams are LOW — a standing player shoots OVER them, so a \'blocked\' line through a low piece is only blocked for someone crawling</div>`;
   h+=`<div class="row" style="gap:6px"><button class="ld ${sightMode==='player'?'on':''}" data-sm="player">Player shots</button><button class="ld ${sightMode==='ref'?'on':''}" data-sm="ref">Ref sightlines</button></div>`;
   if(sightMode==='player'){
     LG.innerHTML='<span><i class="sw" style="background:#ffffff"></i>clear shot</span><span><i class="sw" style="background:#8d9092"></i>blocked</span><span>tap a bunker to pick your spot</span>';
@@ -1005,7 +1015,7 @@ const P=document.getElementById('panel');const LG=document.getElementById('legen
   }else{
     LG.innerHTML='<span><i class="sw" style="background:#ffffff"></i>can see</span><span><i class="sw" style="background:#8d9092"></i>blind</span><span>tap where a ref would stand</span>';
     let pts=[];try{const T=buildTeam(curPlay,'L');pts=T.players.map(pl=>({x:pl.t[0],y:pl.t[1],e:pl.e}));}catch(e){}
-    pts.forEach(p=>el('circle',{cx:X(p.x),cy:Y(p.y),r:2,fill:'#e5252a',opacity:.55}));
+    pts.forEach(p=>el('circle',{cx:X(p.x),cy:Y(p.y),r:2,fill:'#e5342f',opacity:.55}));
     if(sightRef){el('circle',{cx:X(sightRef.x),cy:Y(sightRef.y),r:3.2,fill:'#ffd24d'});let seen=0;const blind=[];pts.forEach(p=>{const cl=losClear(sightRef.x,sightRef.y,p.x,p.y,new Set(),sightStance);el('line',{x1:X(sightRef.x),y1:Y(sightRef.y),x2:X(p.x),y2:Y(p.y),stroke:cl?'#ffffff':'#8d9092','stroke-width':.5,'stroke-dasharray':cl?'':'1.4 1.4',opacity:.8});if(cl)seen++;else blind.push(p.e);});const prim=BUN.filter(b=>b.p==='P');let pseen=0;prim.forEach(b=>{const cl=losClear(sightRef.x,sightRef.y,b.x,b.y,new Set(),sightStance);if(cl)pseen++;el('circle',{cx:X(b.x),cy:Y(b.y),r:1.9,fill:'none',stroke:cl?'#ffd24d':'#8a5a30','stroke-width':.55,opacity:.8});});
       const lane=inLane(sightRef.x,sightRef.y);let mn='';try{mn=PLAYMETA.find(m=>m[0]===curPlay)[1];}catch(e){}
       h+=`<div class="lbl" style="margin-top:8px">Ref at (${sightRef.x},${sightRef.y}) · vs ${mn}</div><div style="font-size:13px">Sees <b style="color:${seen>=4?'#7fe0a8':seen>=3?'#f0c419':'#ff8a8a'}">${seen}</b> of ${pts.length} breakout runners.</div><div style="font-size:13px">Covers <b style="color:${pseen>=Math.ceil(prim.length*0.6)?'#7fe0a8':pseen>=Math.ceil(prim.length*0.4)?'#f0c419':'#ff8a8a'}">${pseen}</b> of ${prim.length} primary bunkers (gold rings).</div>`;
@@ -1257,7 +1267,7 @@ function renderPlay(){
     return renderPlayerPlay();
   }
   field();
-  const side=mirror?'R':'L',col=mirror?'#3d8bff':'#e5252a';
+  const side=mirror?'R':'L',col=mirror?'#3d8bff':'#e5342f';
   const T=buildTeam(curPlay,side);
   T.players.forEach((pl,i)=>{const pts=polyPts(pl);
     el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:col,'stroke-width':.8,'stroke-dasharray':'1.5 1.5',opacity:.45});
@@ -1267,11 +1277,11 @@ function renderPlay(){
     if(D.shoot!=null){const a=D.shoot*Math.PI/180;el('line',{x1:cx,y1:cy,x2:cx+Math.cos(a)*7,y2:cy+Math.sin(a)*7,stroke:'#ffd24d','stroke-width':.9,opacity:.95});el('circle',{cx:cx+Math.cos(a)*7,cy:cy+Math.sin(a)*7,r:.9,fill:'#ffd24d'});}
     if(D.ps)el('text',{x:cx+3.1,y:cy-2.4,fill:D.ps==='P'?'#9fe8bd':'#ffcf6a','font-size':2.5,'font-weight':800}).textContent=D.ps;
     if(D.zone)el('text',{x:cx,y:cy+4.6,fill:'#e6a417','font-size':2,'text-anchor':'middle','font-weight':700}).textContent=D.zone;
-    if(window.showRoles)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-3.4,fill:col==='#e5252a'?'#ffb3b3':'#efedeb','font-size':2,'text-anchor':'middle','font-weight':700}).textContent=pl.e;});
+    if(window.showRoles)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-3.4,fill:col==='#e5342f'?'#ffb3b3':'#efedeb','font-size':2,'text-anchor':'middle','font-weight':700}).textContent=pl.e;});
   if(!zcMode)pbFieldOverlay(T);
   zcDraw();
   const meta=PLAYMETA.find(m=>m[0]===curPlay);
-  document.getElementById('legend').innerHTML=`<span><i class="sw" style="background:${col}"></i>${meta[1]} — watch the break</span><span><i class="sw" style="background:#ffd34d;border-color:#ffae00"></i>shot lane</span><span>dashed = route · ▶ replays</span>${' '+fieldChkChip()}`;
+  document.getElementById('legend').innerHTML=`<span><i class="sw" style="background:${col}"></i>${meta[1]} — watch the break</span><span><i class="sw" style="background:#ffffff;border-color:#000000"></i>shot lane</span><span>dashed = route · ▶ replays</span>${' '+fieldChkChip()}`;
   const ag=meta[3]||3,agL=['','very conservative','conservative','balanced','aggressive','all‑gas'][ag],agC=['','#27a35c','#5fb87a','#ff5a52','#f0a24a','#e5252a'][ag],agD='●●●●●'.slice(0,ag)+'○○○○○'.slice(0,5-ag);
   let h=cinWarn('Breakout routes')+pbConsoleHTML()+`<div style="font-weight:800;font-size:15px">${meta[1]}</div><div style="font-size:12px;margin:2px 0 5px;color:${agC};font-weight:800">Aggression <span style="letter-spacing:1px">${agD}</span> · ${agL}</div><div class="desc">${meta[2]}</div>`;
   const pdZones=zcList();
@@ -1310,7 +1320,7 @@ function zcDrawPlayer(me){
 }
 function renderPlayerPlay(){
   field();
-  const side=mirror?'R':'L',col=mirror?'#3d8bff':'#e5252a';
+  const side=mirror?'R':'L',col=mirror?'#3d8bff':'#e5342f';
   const cp=calledPlay(), meta=PLAYMETA.find(m=>m[0]===curPlay);
   if(!cp||!meta){
     document.getElementById('legend').innerHTML='<span>Waiting for your coach to call a play</span>';
@@ -1328,7 +1338,7 @@ function renderPlayerPlay(){
      if(D.face!=null){const a=D.face*Math.PI/180;el('line',{x1:cx,y1:cy,x2:cx+Math.cos(a)*4.6,y2:cy+Math.sin(a)*4.6,stroke:'#ff5a52','stroke-width':isMine?1:.6,opacity:op});}
      if(D.shoot!=null){const a=D.shoot*Math.PI/180;el('line',{x1:cx,y1:cy,x2:cx+Math.cos(a)*7,y2:cy+Math.sin(a)*7,stroke:'#ffd24d','stroke-width':isMine?1:.6,opacity:op});if(isMine)el('circle',{cx:cx+Math.cos(a)*7,cy:cy+Math.sin(a)*7,r:.9,fill:'#ffd24d'});}
      if(D.ps&&isMine)el('text',{x:cx+3.1,y:cy-2.4,fill:D.ps==='P'?'#9fe8bd':'#ffcf6a','font-size':2.6,'font-weight':800}).textContent=D.ps;}
-    if(isMine)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-4,fill:col==='#e5252a'?'#ffb3b3':'#efedeb','font-size':2.6,'text-anchor':'middle','font-weight':800}).textContent='YOU';
+    if(isMine)el('text',{x:X(pl.t[0]),y:Y(pl.t[1])-4,fill:col==='#e5342f'?'#ffb3b3':'#efedeb','font-size':2.6,'text-anchor':'middle','font-weight':800}).textContent='YOU';
   });
   const zMe=(typeof teamGet==='function'&&teamGet()&&teamGet().me)?teamGet().me:null;
   zcDrawPlayer(zMe);
@@ -1485,10 +1495,10 @@ function renderTsched(){
   const a=tsAll().filter(x=>x.id!==ev.id);a.push(ev);tsSave(a);tsEdit=null;tsForm=false;tsSel=d;tsMonth=d.slice(0,7);renderTsched();};
  if($('tsCancel'))$('tsCancel').onclick=()=>{tsEdit=null;tsForm=false;renderTsched();};
  box.querySelectorAll('[data-tsed]').forEach(b=>b.onclick=()=>{tsEdit=b.dataset.tsed;renderTsched();if(box.scrollIntoView)box.scrollIntoView({behavior:'smooth'});});
- box.querySelectorAll('[data-tsdel]').forEach(b=>b.onclick=()=>{if(!confirm('Delete this event?'))return;tsSave(tsAll().filter(x=>x.id!==b.dataset.tsdel));if(tsEdit===b.dataset.tsdel)tsEdit=null;renderTsched();});
+ box.querySelectorAll('[data-tsdel]').forEach(b=>b.onclick=()=>gChoose('Delete this event?','It comes off the schedule on this phone.',[{label:'Delete',primary:true,run:()=>{tsSave(tsAll().filter(x=>x.id!==b.dataset.tsdel));if(tsEdit===b.dataset.tsdel)tsEdit=null;renderTsched();}},{label:'Cancel',run:()=>{}}]));
  if($('tsPast'))$('tsPast').onclick=()=>{tsShowPast=!tsShowPast;renderTsched();};
  if($('tsCopy'))$('tsCopy').onclick=()=>{const c=tsCode();const ok=()=>{$('tsMsg').textContent='Copied \u2014 send it to your players. They paste it once in Schedule.';};
-  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(ok,()=>prompt('Copy this code:',c));else prompt('Copy this code:',c);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(ok,()=>gAlert('Your code is '+c));else gAlert('Your code is '+c);};
  if($('tsPasteGo'))$('tsPasteGo').onclick=()=>{const p=tsFromCode($('tsPaste').value);if(!p){$('tsMsg').textContent='That doesn\u2019t look like a schedule code.';return;}
   if(p.team&&tm.code&&p.team!==tm.code){$('tsMsg').textContent='That schedule is for a different team.';return;}tsSave(p.ev);renderTsched();};
  if($('tsIcs'))$('tsIcs').onclick=()=>{const list=tsAll().filter(e=>e.date>=today);if(!list.length){$('tsMsg').textContent='Nothing upcoming to add.';return;}
@@ -1606,11 +1616,11 @@ function renderMsg(){
     return `<div style="margin:4px 0;text-align:${mine?'right':'left'}"><span style="display:inline-block;max-width:82%;padding:6px 9px;border-radius:10px;background:${mine?'#1e2121':'#161818'};border:1px solid ${col}33"><b style="color:${col};font-size:10px">${who}</b><br><span style="font-size:12.5px;color:#efedeb">${String(m.body==null?'':m.body).replace(/</g,'&lt;')}</span></span></div>`;}).join('');
   h+='</div>';
   // role note: coach can see all; player composes to coach; coach composes to player
-  h+=`<div class="row" style="gap:5px;margin-top:7px"><input id="msgIn" placeholder="${isCoach?'message your players\u2026':'message your coach\u2026'}" style="flex:1 1 180px"><button class="ld on" id="msgGo">Send</button></div>`;
+  h+=`<div class="row" style="gap:5px;margin-top:7px"><input id="msgIn" placeholder="${isCoach?'a note for your players\u2026':'a note for your coach\u2026'}" style="flex:1 1 180px"><button class="ld on" id="msgGo">Keep</button></div>`;
   if(isCoach)h+='<div class="row" style="margin-top:5px"><button class="ld" id="msgExport" style="font-size:11px">\u2b07 Export log</button><button class="ld" id="msgClr" style="font-size:11px">clear log</button></div>';
   box.innerHTML=h;
   const list=document.getElementById('msgList');if(list)list.scrollTop=list.scrollHeight;
-  const send=()=>{const inp=document.getElementById('msgIn');const v=(inp.value||'').trim();if(!v)return;msgSend(msgWho,v);inp.value='';renderMsg();};
+  const send=()=>{const inp=document.getElementById('msgIn');const v=(inp.value||'').trim();if(!v){gAlert('Type the note first.');return;}msgSend(msgWho,v);inp.value='';renderMsg();};
   {const g=document.getElementById('msgGo');if(g)g.onclick=send;}
   {const inp=document.getElementById('msgIn');if(inp)inp.onkeydown=e=>{if(e.key==='Enter')send();};}
   {const e=document.getElementById('msgExport');if(e)e.onclick=()=>{let csv='time,from,message\n';msgsAll().forEach(m=>{csv+=`${new Date(m.ts).toISOString()},${m.from},\"${m.body.replace(/"/g,'""')}\"\n`;});
@@ -1966,7 +1976,7 @@ function renderLineups(){
   }
   document.getElementById('panel').innerHTML=h;
 
-  {const a=document.getElementById('lnAdd');if(a)a.onclick=()=>{const v=document.getElementById('lnNew').value.trim();if(!v)return;const all=linesAll();const id='ln'+Date.now();all.push({id,name:v.slice(0,24),play:'',spots:[],notes:''});linesSave(all);lnSel=id;lnPlayer=null;renderLineups();};}
+  {const a=document.getElementById('lnAdd');if(a)a.onclick=()=>{const v=document.getElementById('lnNew').value.trim();if(!v){gAlert('Name the line first.');return;}const all=linesAll();const id='ln'+Date.now();all.push({id,name:v.slice(0,24),play:'',spots:[],notes:''});linesSave(all);lnSel=id;lnPlayer=null;renderLineups();};}
   document.querySelectorAll('[data-lnp]').forEach(b=>b.onclick=()=>{lnSel=b.dataset.lnp;lnPlayer=null;renderLineups();});
   document.querySelectorAll('[data-lnarch]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){l.arch=l.arch===b.dataset.lnarch?'':b.dataset.lnarch;linesSave(all);}renderLineups();});
   document.querySelectorAll('[data-lnplay]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){l.play=b.dataset.lnplay;linesSave(all);}renderLineups();});
@@ -1977,7 +1987,7 @@ function renderLineups(){
   document.querySelectorAll('[data-lnlook]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){const sp=(l.spots||[]).find(s=>s.player===lnAimPlayer);if(sp){if(b.dataset.lnlook==='none')delete sp.look;else sp.look=+b.dataset.lnlook;linesSave(all);}}renderLineups();});
   document.querySelectorAll('[data-lnshoot]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){const sp=(l.spots||[]).find(s=>s.player===lnAimPlayer);if(sp){if(b.dataset.lnshoot==='none')delete sp.shoot;else sp.shoot=+b.dataset.lnshoot;linesSave(all);}}renderLineups();});
   {const pb=document.getElementById('lnPlay');if(pb)pb.onclick=()=>{lnPbStart();};}
-  {const ap=document.getElementById('lnAddP');if(ap)ap.onclick=()=>{const v=sanitizeText(document.getElementById('lnNewP').value.trim()).slice(0,40);if(!v)return;const t=teamGet()||{};t.roster=t.roster||[];if(!t.roster.includes(v))t.roster.push(v);teamSet(t);renderLineups();};}
+  {const ap=document.getElementById('lnAddP');if(ap)ap.onclick=()=>{const v=sanitizeText(document.getElementById('lnNewP').value.trim()).slice(0,40);if(!v){gAlert('Type the player\u2019s name first.');return;}const t=teamGet()||{};t.roster=t.roster||[];if(!t.roster.includes(v))t.roster.push(v);teamSet(t);renderLineups();};}
   {const dk=document.getElementById('lnDeck');if(dk)dk.onclick=()=>{setActiveLine(act===lnSel?'':lnSel);
      // also push the called play into the existing player-play channel so the Playbook reflects it
      const l=lnGet(lnSel);if(l&&l.play&&act!==lnSel){try{localStorage.setItem('gridlock_calledplay',l.play);}catch(e){}}
@@ -2090,17 +2100,17 @@ function renderTeam(){
       h+=lns.map(l=>{const on=l.id===actId;return `<div class="iqrow" style="border-color:${on?'#2ec76b':'#3a3f40'};margin-top:5px"><div style="font-size:12.5px;font-weight:800">${hesc(l.name)}${on?' \u2605 on deck':''}</div><div style="font-size:11px;color:#ff5a52">${(typeof playName==='function')?playName(l.play):l.play||'no play set'}</div>${(l.spots&&l.spots.length)?'<div style="font-size:11px;color:#efedeb;margin-top:3px">'+l.spots.map(sp=>`${hesc(sp.player)} \u2192 ${(typeof bname==='function')?bname(sp.bunker):sp.bunker}`).join(' \u00b7 ')+'</div>':'<div style="font-size:10.5px;color:#f04a44">no players placed</div>'}</div>`;}).join('');
     }
     // symbiosis note: what filters where
-    h+='<div class="iqrow" style="border-color:#2f7a52;margin-top:10px"><div style="font-size:11px;color:#9fe8bd;font-weight:800">How it connects</div><div style="font-size:11px;color:#efedeb">When the Team app ships, players' logs and your calls will be shared between phones. In this preview, everything stays on this phone.</div></div>';
+    h+='<div class="iqrow" style="border-color:#2f7a52;margin-top:10px"><div style="font-size:11px;color:#9fe8bd;font-weight:800">How it connects</div><div style="font-size:11px;color:#efedeb">When the Team app ships, your players\u2019 logs and your calls will be shared between phones. In this preview, everything stays on this phone.</div></div>';
   }
   box.innerHTML=h;
   {const tm2=document.getElementById('tmToMsg');if(tm2)tm2.onclick=()=>setMode('msg');}
   {const rn=document.getElementById('tmRename');if(rn)rn.onclick=()=>{const bx=document.getElementById('tmRenameBox');bx.innerHTML='<div class="row" style="gap:5px;margin-top:6px"><input id="tmNewName" placeholder="name as on the roster" style="flex:1 1 150px"><button class="ld on" id="tmNewGo">Save</button></div>';const inp=document.getElementById('tmNewName');inp.value=teamGet().me||'';inp.focus();
-   const go=()=>{const v=sanitizeText(inp.value.trim()).slice(0,40);if(!v)return;const t=teamGet();const oldK=tpSlug(t.me||''),newK=tpSlug(v);
+   const go=()=>{const v=sanitizeText(inp.value.trim()).slice(0,40);if(!v){gAlert('Type your name first.');return;}const t=teamGet();const oldK=tpSlug(t.me||''),newK=tpSlug(v);
     if(oldK&&oldK!==newK){const o=tpAllState();Object.keys(o).forEach(ev=>{const ps=o[ev]&&o[ev].players;if(ps&&ps[oldK]){if(!ps[newK])ps[newK]=ps[oldK];ps[newK].name=v;delete ps[oldK];}});tpSaveState(o);}
     const old=t.me;t.me=v;teamSet(t);if(old)tRosterRemove(old);tRosterAdd(v);renderTeam();};document.getElementById('tmNewGo').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();};};}
   {const jg=document.getElementById('tmJoinGo');if(jg){const doJoin=()=>{const v=(document.getElementById('tmJoin').value||'').trim().toUpperCase();if(!/^[A-Z0-9]{1,10}-[A-Z0-9]{4}$/.test(v)){document.getElementById('tmJoinErr').textContent='That doesn\u2019t look like a team code (e.g. IMPACT-7QX2).';return;}const nm=sanitizeText((document.getElementById('tmMe').value||'').trim()).slice(0,40);if(!nm){document.getElementById('tmJoinErr').textContent='Add your name so your coach knows who joined.';return;}teamSet({code:v,player:true,name:'',me:nm});tRosterAdd(nm);renderTeam();};jg.onclick=doJoin;document.getElementById('tmJoin').onkeydown=e=>{if(e.key==='Enter')doJoin();};}}
   {const c=document.getElementById('tmCreate');if(c)c.onclick=()=>{
-    const nm=document.getElementById('tmName').value.trim()||'Team';
+    const nm=document.getElementById('tmName').value.trim();if(!nm){gAlert('Type your team\u2019s name first.');return;}
     const existing=teamsAll();
     if(existing.length>=teamLimit()){
       upsellPop('Add another team \u2014 20% off','Your license covers '+teamLimit()+' team'+(teamLimit()===1?'':'s')+'. Coaching a second team needs a second team license \u2014 and it\u2019s 20% off. Each team keeps its own roster, data, and message log.','coach2');
@@ -2108,8 +2118,8 @@ function renderTeam(){
     }
     const nt={name:nm,code:makeTeamCode(nm),roster:[],coach:true};
     teamSet(nt);const all=teamsAll();all.push({name:nt.name,code:nt.code});teamsSave(all);renderTeam();};}
-  {const cp=document.getElementById('tmCopy');if(cp)cp.onclick=()=>{const t=teamGet();if(t&&navigator.clipboard)navigator.clipboard.writeText(t.code).then(()=>{cp.textContent='Copied!';setTimeout(()=>{cp.textContent='Copy code';},1200);});};}
-  {const a=document.getElementById('tmAdd');if(a)a.onclick=()=>{const v=sanitizeText(document.getElementById('tmPlayer').value.trim()).slice(0,40);if(!v)return;const t=teamGet();t.roster=t.roster||[];if(!t.roster.map(tpSlug).includes(tpSlug(v)))t.roster.push(v);teamSet(t);tRosterAdd(v);renderTeam();};}
+  {const cp=document.getElementById('tmCopy');if(cp)cp.onclick=()=>{const t=teamGet();if(!t)return;const show=()=>gAlert('Your team code is '+t.code+'. Copy it from here.');if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.code).then(()=>{cp.textContent='Copied!';setTimeout(()=>{cp.textContent='Copy code';},1200);}).catch(show);else show();};}
+  {const a=document.getElementById('tmAdd');if(a)a.onclick=()=>{const v=sanitizeText(document.getElementById('tmPlayer').value.trim()).slice(0,40);if(!v){gAlert('Type the player\u2019s name first.');return;}const t=teamGet();t.roster=t.roster||[];if(!t.roster.map(tpSlug).includes(tpSlug(v)))t.roster.push(v);teamSet(t);tRosterAdd(v);renderTeam();};}
   document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet();const gone=t.roster.splice(+b.dataset.tmrm,1)[0];teamSet(t);if(gone)tRosterRemove(gone);renderTeam();});
   document.querySelectorAll('[data-tmadm]').forEach(b=>b.onclick=()=>{const t=teamGet();const n=t.roster[+b.dataset.tmadm];if(!n)return;const k=tpSlug(n);let a=tAdmins();a=a.map(tpSlug).includes(k)?a.filter(x=>tpSlug(x)!==k):a.concat([n]);tAdminsSet(a);renderTeam();});
   {const w=document.getElementById('tmShareLog');if(w)w.onclick=()=>gAlert('The Player app is locked until a player enters a team code. This keeps your roster together, ties every player\u2019s data to your team, and stops the app from being shared outside the team.');}
@@ -2480,13 +2490,13 @@ function renderTally(){if(MODE==='tally')TSCOPE=null;
   // colour every bunker by its point-value verdict: green wins, red loses, grey neutral
   const data=tallyFor()[tScope()];
   BUN.forEach(b=>{const t=data[b.id];if(!t)return;const net=(t.ptsWon||0)-(t.ptsLost||0);
-    const col=net>0?'#2ec76b':net<0?'#e0503a':'#3a3f40';
+    const col=net>0?'#3ecf8e':net<0?'#e0a33a':'#3a3f40';
     el('circle',{cx:X(b.x),cy:Y(b.y),r:3.6,fill:'none',stroke:col,'stroke-width':1.1,opacity:.9});
     if(t.made+t.dead>0)el('text',{x:X(b.x),y:Y(b.y)-4.5,fill:col,'font-size':2.5,'text-anchor':'middle','font-weight':800}).textContent=(t.made+t.dead);});
   if(tallySel){const b=BUN.find(x=>x.id===tallySel);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:5,fill:'none',stroke:'#ffd24d','stroke-width':1.2});}
   // Taps are resolved by tallyClick (svg.onclick) using the real tap coordinate —
   // it selects the bunker closest to where you pushed. No overlay targets, no overlap.
-  document.getElementById('legend').innerHTML='<span>Bunker tally \u2014 tap a bunker on the field, then log the break below. Green bunkers win points, red lose them.</span>';
+  document.getElementById('legend').innerHTML='<span>Bunker tally \u2014 tap a bunker on the field, then log the break below. A green ring: that bunker wins points. An amber ring: it costs them.</span>';
 
   const data2=tallyFor()[tScope()];
   // sorted verdict table: biggest point-winners and point-losers
@@ -2728,10 +2738,10 @@ function renderScout(){
   const pr=predict(L,R);
   for(const c of pr.c){const r=3+c.n;el('circle',{cx:X(c.x),cy:Y(c.y),r:r+2,fill:'none',stroke:'#ff7a00','stroke-width':.6,opacity:.8});el('circle',{cx:X(c.x),cy:Y(c.y),r,fill:'#ffd33a',opacity:.3});el('text',{x:X(c.x),y:Y(c.y)+1,fill:'#3a2a00','font-size':3,'text-anchor':'middle','font-weight':800}).textContent=c.n;}
   for(const f of pr.fr){el('ellipse',{cx:X(f.x),cy:Y(f.y),rx:8,ry:5,fill:'#ff6b6b1a',stroke:'#ff6b6b','stroke-width':.6,'stroke-dasharray':'2 1.6'});}
-  drawTeam(L,'#e5252a','aL',0,show.dL);drawTeam(R,'#3d8bff','aR',5,show.dR);
-  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5252a"></i>'+teamName(Lsel)+'</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+'</span><span><i class="sw" style="background:#ffd33a;border-color:#ff7a00"></i>gunfight</span><span><i class="xx">✕</i> out</span>';
+  drawTeam(L,'#e5342f','aL',0,show.dL);drawTeam(R,'#3d8bff','aR',5,show.dR);
+  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5342f"></i>'+teamName(Lsel)+'</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+'</span><span><i class="sw" style="background:#ffd33a;border-color:#ff7a00"></i>gunfight</span><span><i class="xx">✕</i> out</span>';
   const wn={S:'Snake',C:'Center/50',D:'Dorito',front:'Snake front'};const lp=Math.round(100*Lw/N),rp=100-lp;
-  let h=`<div class="winbar"><i style="width:${lp}%;background:#e5252a"></i><i style="width:${rp}%;background:#3d8bff"></i></div>
+  let h=`<div class="winbar"><i style="width:${lp}%;background:#e5342f"></i><i style="width:${rp}%;background:#3d8bff"></i></div>
    <div class="winrow"><span style="color:#ff8a8a">${teamName(Lsel)} ${lp}%</span><span style="color:#efedeb">${rp}% ${teamName(Rsel)}</span></div>
    <div style="font-size:12px;color:#efedeb;margin-top:4px">Plan read: <b>${Lp}</b> vs <b>${Rp}</b> · expected survivors ≈ ${(sL/N).toFixed(1)} v ${(sR/N).toFixed(1)} (${N} sims \u00b7 heuristic model \u2014 a read, not a prediction).</div>`;
   const tot=Object.values(heat).reduce((a,b)=>a+b,0)||1;
@@ -2781,7 +2791,7 @@ function gameAddPoint(gid,partial){const a=gamesAll();const g=a.find(x=>x.id===g
   g.pts.push(Object.assign({n:g.pts.length+1,ts:now,breaks},partial));gamesSave(a);}
 function gameScore(g){let w=0,l=0;g.pts.forEach(p=>{if(p.result==='W')w++;else if(p.result==='L')l++;});return {w,l};}
 /* our team's colour/side for a game */
-function gameSideCol(g,which){/* which: 'us'|'them' */const ourIsRed=g.ourSide==='red';const isRed=(which==='us')?ourIsRed:!ourIsRed;return isRed?'#e5252a':'#3d8bff';}
+function gameSideCol(g,which){/* which: 'us'|'them' */const ourIsRed=g.ourSide==='red';const isRed=(which==='us')?ourIsRed:!ourIsRed;return isRed?'#e5342f':'#3d8bff';}
 let gmSel=null, gmPt=null, gmRed='', gmBlue='', gmOurSide='red';
 function gmLogPoint(line,result,dur){const gid=activeGameId();if(!gid||!line)return;
   gameAddPoint(gid,{lineId:line.id,lineName:line.name,play:line.play,result:result,dur:dur,spots:(line.spots||[]).map(sp=>({player:sp.player,bunker:sp.bunker}))});}
@@ -2814,8 +2824,8 @@ function renderScoutLayers(){
     const ae=Object.entries(t.ats||{});if(ae.length){const at=ae.sort((a,c)=>c[1]-a[1])[0][0];const tb=BUN.find(z=>z.n===at);
       if(tb)el('line',{x1:X(b.x),y1:Y(b.y),x2:X(tb.x),y2:Y(tb.y),stroke:'#ff8a3a','stroke-width':.5,'stroke-dasharray':'1 1.2',opacity:.5});}});}
   if(scLayers.routes){const T=buildTeam(play,'L');T.players.forEach(pl=>{const pts=polyPts(pl);
-    el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:'#e5252a','stroke-width':.7,'stroke-dasharray':'1.5 1.5',opacity:.5});
-    el('circle',{cx:X(pl.t[0]),cy:Y(pl.t[1]),r:2,fill:'none',stroke:'#e5252a','stroke-width':.7,opacity:.6});});}
+    el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:'#e5342f','stroke-width':.7,'stroke-dasharray':'1.5 1.5',opacity:.5});
+    el('circle',{cx:X(pl.t[0]),cy:Y(pl.t[1]),r:2,fill:'none',stroke:'#e5342f','stroke-width':.7,opacity:.6});});}
   if(scLayers.zones){scZonesForPlay(play).forEach(z=>{const x=X(Math.min(z.x1,z.x2)),y=Y(Math.max(z.y1,z.y2)),w=Math.abs(z.x2-z.x1),hh=Math.abs(z.y2-z.y1);const col=z.color||'#e6a417';
     el('rect',{x,y,width:w,height:hh,fill:col,'fill-opacity':.13,stroke:col,'stroke-width':.6,'stroke-dasharray':'2 1.4',rx:1.5});
     el('text',{x:x+w/2,y:y+4,fill:'#fff','font-size':2.6,'text-anchor':'middle','font-weight':700}).textContent=z.name;});}
@@ -2862,7 +2872,7 @@ function gameReviewHTML(g){const sc=gameScore(g);let h='<div class="row" style="
   if(!g.pts.length)h+='<div style="font-size:12px;color:#f04a44;margin-top:4px">No points logged in this game yet. Set it live and log points in Lineups (Won/Lost).</div>';
   else h+=g.pts.map((p,i)=>`<div class="iqrow" style="margin:4px 0;cursor:pointer;border-color:${gmPt===i?'#2ec76b':'#3a3f40'}" data-gmpt="${i}"><div class="row" style="justify-content:space-between"><span><b>Point ${p.n}</b> \u00b7 ${p.play?playName(p.play):'\u2014'}${p.lineName?' \u00b7 '+hesc(p.lineName):''}</span><span style="font-weight:800;color:${p.result==='W'?'#9fe8bd':p.result==='L'?'#ff9a8a':'#ff5a52'}">${p.result==='W'?'WON':p.result==='L'?'LOST':'\u2014'}</span></div><div style="font-size:10.5px;color:#ff5a52">${p.dur?lnClockFmt(p.dur*1000)+' \u00b7 ':''}${(p.breaks||[]).length} breaks logged \u00b7 tap to replay on field</div></div>`).join('');
   return h;}
-function gameReplayDraw(g,p){const ourRed=g.ourSide==='red';const side=ourRed?'L':'R';const ourCol=ourRed?'#e5252a':'#3d8bff';
+function gameReplayDraw(g,p){const ourRed=g.ourSide==='red';const side=ourRed?'L':'R';const ourCol=ourRed?'#e5342f':'#3d8bff';
   if(p.play){const T=buildTeam(p.play,side);T.players.forEach(pl=>{const pts=polyPts(pl);
     el('path',{d:'M '+pts.map(q=>`${X(q[0])} ${Y(q[1])}`).join(' L '),fill:'none',stroke:ourCol,'stroke-width':.6,'stroke-dasharray':'1.5 1.5',opacity:.4});});}
   const live={};(p.breaks||[]).forEach(b=>{live[b.b]=live[b.b]||{m:0,d:0};if(b.md)live[b.b].m++;else live[b.b].d++;});
@@ -4405,10 +4415,10 @@ function renderNexus(){const B=document.getElementById('nexusbox');if(!B)return;
   
   B.innerHTML=h;
   const pb=B.querySelector('#nxPrint');if(pb)pb.onclick=printSheet;
-  {let od=B.querySelector('#nxOff');if(!od){od=document.createElement('div');od.id='nxOff';od.innerHTML='<div class="lbl" style="margin-top:10px">Season archive</div><div id="nxArc"></div><div class="lbl" style="margin-top:10px">Backup & restore</div><div id="nxBk"></div><div class="lbl" style="margin-top:10px">Offline readiness</div><div id="nxOffBody"></div>';B.appendChild(od);}nxRefCard(od.querySelector('#nxRC'));nxOffline(od.querySelector('#nxOffBody'));nxLicense(od.querySelector('#nxLic'));nxBackup(od.querySelector('#nxBk'));nxArchive(od.querySelector('#nxArc'));nxAudit(od.querySelector('#nxAu'));
+  {let od=B.querySelector('#nxOff');if(!od){od=document.createElement('div');od.id='nxOff';od.innerHTML='<div class="lbl" style="margin-top:10px">Backup & restore</div><div id="nxBk"></div><div class="lbl" style="margin-top:10px">Offline readiness</div><div id="nxOffBody"></div>';B.appendChild(od);}nxRefCard(od.querySelector('#nxRC'));nxOffline(od.querySelector('#nxOffBody'));nxLicense(od.querySelector('#nxLic'));nxBackup(od.querySelector('#nxBk'));nxArchive(od.querySelector('#nxArc'));nxAudit(od.querySelector('#nxAu'));
    {if(UPDATE_URL&&navigator.onLine){fetch(UPDATE_URL,{cache:'no-store'}).then(r=>r.text()).then(t=>{const parts=t.trim().split(/\s+/),lv=parts[0]||'';if(lv&&lv>APP_VER){const u=document.createElement('div');u.innerHTML=`<div class="chip" style="border-color:#8c6a2f;color:#ffd9a1;margin-top:6px">\u2b06 v${lv} available${parts[1]?` \u2014 <a href="${parts[1]}" target="_blank" style="color:#ff5a52">get it</a>`:''} (back up first \u2014 your data stays)</div>`;od.appendChild(u);}}).catch(()=>{});}}
    {try{const L=JSON.parse(localStorage.getItem('gridlock_lasterr')||'[]');const rec=L.filter(x=>Date.now()-x.ts<7*864e5);if(rec.length){const w=document.createElement('div');w.innerHTML=`<div class="chip" style="border-color:#8a3326;color:#ff9a8a;margin-top:6px">\u26a0 ${rec.length} runtime error(s) this week \u2014 latest: ${rec[rec.length-1].m.replace(/</g,'&lt;').slice(0,80)} <span style="cursor:pointer;color:#ff5a52" id="errClr">clear</span></div>`;od.appendChild(w);w.querySelector('#errClr').onclick=()=>{try{localStorage.removeItem('gridlock_lasterr');}catch(_){ }w.remove();};}}catch(_){}}
-   {let vd=od.querySelector('#nxVer');if(!vd){vd=document.createElement('div');vd.id='nxVer';vd.style.cssText='font-size:10px;color:#f04a44;margin-top:10px';vd.innerHTML='GRIDLOCK '+(typeof EDITION!=='undefined'?EDITION:'full')+' build \u00b7 v'+APP_VER+' \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="themeFlip()">\u2600 sunlight</span> \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="cbFlip()">\u25d0 colorblind</span>';od.appendChild(vd);}}}
+   {let vd=od.querySelector('#nxVer');if(!vd){vd=document.createElement('div');vd.id='nxVer';vd.hidden=(EDITION==='player'||EDITION==='team');vd.style.cssText='font-size:10px;color:#f04a44;margin-top:10px';vd.innerHTML='GRIDLOCK '+(typeof EDITION!=='undefined'?EDITION:'full')+' build \u00b7 v'+APP_VER+' \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="themeFlip()">\u2600 sunlight</span> \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="cbFlip()">\u25d0 colorblind</span>';od.appendChild(vd);}}}
   B.querySelectorAll('[data-ytn]').forEach(b=>b.onclick=()=>{if(window.open)window.open(ytSearch(YTCAT[b.dataset.ytn]||'paintball rules explained'),'_blank');});
 }
 function printSheet(){const S=document.getElementById('printsheet');if(!S)return;let cr='';const cs=(typeof crewStat==='function')?crewStat():null;if(cs){const dv=cs.Q.slice().sort((a,b)=>a.agree-b.agree).slice(0,3);cr='<h2>Align these first \u2014 your crew split</h2><ol>'+dv.map(q=>'<li><b>'+IQ_Q[q.qid].q+'</b> \u2014 book: \u201c'+IQ_Q[q.qid].o[q.book]+'\u201d ('+Math.round(q.agree*100)+'% agreed)</li>').join('')+'</ol>';}
@@ -4551,7 +4561,7 @@ if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){
   ov.querySelector('#joinGo').onclick=go;
   ov.querySelector('#joinCode').onkeydown=e=>{if(e.key==='Enter')go();};
 }
-(function(){const K='gridlock_seen_'+EDITION;try{if(localStorage.getItem(K))return;}catch(e){return;}
+(function(){const K='gridlock_seen_'+EDITION;if(EDITION==='player'||EDITION==='team')return;/* never opens by itself */try{if(localStorage.getItem(K))return;}catch(e){return;}
  const L=EDITION==='ref'?[['Drill','Rulebook IQ remembers every miss \u2014 the Misses tab shows exactly where you\u2019re weak.'],['Crew','Crew Sync surfaces the calls your crew splits on, before they cost a point.'],['Prove it','Readiness tests + your signed UPRA Ref Card in Nexus.'],['Game day','Game Ops: point clock, penalty timers, score \u2014 phone unmuted.']]
  :EDITION==='scout'?[['Playbook','12 breakouts on the real event layout \u2014 tap \u25b6 to watch the break.'],['Sightlines','Tap any bunker: every clear shot it has, computed from true footprints.'],['Walk','First-person field walk before you ever get there.'],['Break Log','Log what teams actually ran, photos attached.']]
  :EDITION==='coach'?[['Your team','Set up your team in the Team tab \u2014 players join with the code and their data flows to you.'],['Read the game','Tally, Assess, and Movement build a picture of every player over time.'],['Call it','Share the called play; your players see their piece. Message the whole squad from Messages.'],['The field','Playbook, Sightlines, and Walk on the real event layout.']]
@@ -4566,5 +4576,11 @@ if('serviceWorker' in navigator){try{if(location.protocol==='https:'||location.p
 (function(){try{var b=document.getElementById('buildStamp');if(b)b.textContent=(typeof BUILD!=='undefined'?BUILD:'');}catch(e){}})();
 </script>
 </script><div id="printsheet"></div><div style="padding:10px 14px 18px;font-size:9.5px;line-height:1.45;color:#f04a44;max-width:760px">GRIDLOCK is an independent training aid by UPRA. Not affiliated with, sponsored by, or endorsed by any league, event series, team, or venue. Field layouts are independently redrawn from publicly posted maps; The official rulebook and on‑field officials govern every live call.</div>
+<script id="previewNames">/* a name for every control that only had a placeholder or an icon */
+(function(){const W={'\u2715':'Remove','\u00d7':'Remove','\u2039':'Previous','\u203a':'Next','\u2192':'Right','\u2190':'Left','\u2191':'Up','\u2193':'Down','\u2197':'Up and right','\u2198':'Down and right','\u2199':'Down and left','\u2196':'Up and left'};
+let q=0;function name(){q=0;document.querySelectorAll('input,textarea,select').forEach(e=>{if(e.hasAttribute('aria-label')||(e.labels&&e.labels.length))return;const p=e.getAttribute('placeholder');if(p)e.setAttribute('aria-label',p);else if(e.id==='layoutSel')e.setAttribute('aria-label','Event');else if(e.id==='playSel')e.setAttribute('aria-label','Call');else if(e.id==='divSel')e.setAttribute('aria-label','Division');else if(e.classList.contains('pickSel'))e.setAttribute('aria-label','Team');});
+document.querySelectorAll('button').forEach(b=>{if(b.hasAttribute('aria-label'))return;const t=(b.textContent||'').trim();if(W[t])b.setAttribute('aria-label',W[t]);});}
+name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(document.body,{childList:true,subtree:true});})();
+</script>
 </body>
 </html>

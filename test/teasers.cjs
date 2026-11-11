@@ -41,10 +41,19 @@ try { execFileSync("node", [path.join(ROOT, "tools/teaser_rules.js"), "--check"]
 check("both previews pass the house-rule fixes (tools/teaser_rules.js)", rulesOk);
 for (const kind of ["team", "player"]) {
   const h = rd(`teasers/${kind}/index.html`);
-  check(`${kind}: no price or licence for sale`, !/\$\d+\/(season|yr)|Get a license'\)|Free tier<|subscription/i.test(h));
+  check(`${kind}: no price or licence for sale`, !/\$\d+\/(season|yr)|Get a license','11px'|Free tier<|subscription/i.test(h));
   check(`${kind}: never polls or posts anywhere`, !/ticPollStart\(\);ticQueueStart|return fetch\(c\.webhook|fetch\(c\.worker/.test(h));
   check(`${kind}: no rule bank or call sheet in Nexus`, !/Rule bank audit<\/div><div id="nxAu"|id="nxPrint"|UPRA Ref Card \\u2014 signed readiness<\/div>/.test(h));
   check(`${kind}: the control is called Shot lanes`, !/guns up/i.test(h));
+  check(`${kind}: the tour never opens by itself`, h.includes("if(EDITION==='player'||EDITION==='team')return;/* never opens by itself */"));
+  check(`${kind}: no browser dialogs`, !/[^.\w]confirm\('Delete this event|prompt\('Copy this code/.test(h));
+  check(`${kind}: a note is kept, never sent`, !/id="msgGo">Send</.test(h));
+  { // every inline script still parses: one stray apostrophe in a reworded string blanks the app
+    const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g; let m, bad = "";
+    while ((m = re.exec(h))) { try { new Function(m[1]); } catch (e) { bad = e.message; break; } }
+    check(`${kind}: every script parses${bad ? " — " + bad : ""}`, !bad);
+  }
+  check(`${kind}: 44 px targets and names for every control`, h.includes('id="previewFit"') && h.includes('id="previewNames"'));
 }
 const coach = ["web/index.html", "site/index.html", "scripts/build.js", "scripts/build-app-artifact.js"];
 check("the coach app, site and builds never load the previews", coach.every(f => !rd(f).includes("teasers/")));

@@ -61,7 +61,7 @@ const STEPS = [
   ["truthful", "['Team tools','Team, My Line and Messages live under More \\u2014 they unlock with a coach or team subscription.']",
     "['Team tools','Team, My Line and Messages are listed under More. They are not in this preview yet.']"],
   ["truthful", "Players log their own reps and messages \\u2192 you see all of it here. You call plays and share reads \\u2192 players see their piece. One team, one shared picture.",
-    "When the Team app ships, players' logs and your calls will be shared between phones. In this preview, everything stays on this phone."],
+    "When the Team app ships, your players\\u2019 logs and your calls will be shared between phones. In this preview, everything stays on this phone."],
   ["truthful", "Mark one \\u201con deck\\u201d and it pushes to every player \\u2014 grab pods and go.", "Mark one \\u201con deck\\u201d \\u2014 grab pods and go."],
   ["truthful", "'Everything sent between you and your players \\u2014 full log, kept inside GRIDLOCK.'", "'Messages you write here stay on this phone in this preview.'"],
   ["truthful", "['One team, one picture','Create your team, share the code, manage your roster \\u2014 everyone\\u2019s data in one place.'],['Players join','Each player enters the code once to activate their app.'],['Stay in touch','Team messages keep everyone on the same page.']]",
@@ -72,26 +72,91 @@ const STEPS = [
     "Create your team and share its code with your players. In this preview, everything stays on this phone."],
   ["truthful", "Create your team. Players use the code to activate their app — their data then filters up to you.",
     "Create your team and share its code with your players. In this preview, everything stays on this phone."],
+
+  // ---- screens and wording (second audit) ----
+  // Never open the tutorial on launch.
+  ["no auto tour", "(function(){const K='gridlock_seen_'+EDITION;try{", "(function(){const K='gridlock_seen_'+EDITION;if(EDITION==='player'||EDITION==='team')return;/* never opens by itself */try{"],
+  // The ribbon scrolls away; the header is what sticks.
+  ["ribbon", "id=\"teaserRibbon\" role=\"note\" style=\"position:sticky;top:0;z-index:9999;", "id=\"teaserRibbon\" role=\"note\" style=\"position:relative;z-index:9999;"],
+  // No build stamps, version lines or theme switches the coach app does not have.
+  ["no jargon", "<span id=\"buildStamp\" style=\"", "<span id=\"buildStamp\" hidden style=\""],
+  ["no jargon", "vd.id='nxVer';", "vd.id='nxVer';vd.hidden=(EDITION==='player'||EDITION==='team');"],
+  ["no jargon", "<div class=\"lbl\" style=\"margin-top:10px\">Season archive</div><div id=\"nxArc\"></div>", ""],
+  // A note is kept, not sent: there is nothing to send it with.
+  ["no send", "id=\"msgGo\">Send</button>", "id=\"msgGo\">Keep</button>"],
+  ["no send", "'message your players\\u2026':'message your coach\\u2026'", "'a note for your players\\u2026':'a note for your coach\\u2026'"],
+  ["no prices", "<div style=\"font-size:10.5px;color:#6f9cff;margin-top:4px\">Teams on your license: ${teamsAll().length}/${teamLimit()>=99?'\\u221e':teamLimit()}${teamsAll().length>=teamLimit()&&teamLimit()<99?' \\u2014 add another 20% off':''}</div></div>`", "</div>`"],
+  // Lanes are white; the left wire is #e5342f; the rings say win green, cost amber.
+  ["lanes white", "poly.setAttribute('fill','#ffd34d');", "poly.setAttribute('fill','#ffffff');"],
+  ["lanes white", "ln.setAttribute('stroke','#ffd34d');", "ln.setAttribute('stroke','#ffffff');"],
+  ["lanes white", "<i class=\"sw\" style=\"background:#ffd34d;border-color:#ffae00\"></i>shot lane", "<i class=\"sw\" style=\"background:#ffffff;border-color:#000000\"></i>shot lane"],
+  ["rings", "net>0?'#2ec76b':net<0?'#e0503a'", "net>0?'#3ecf8e':net<0?'#e0a33a'"],
+  ["rings", "Green bunkers win points, red lose them.", "A green ring: that bunker wins points. An amber ring: it costs them."],
+  // Only the snake beam and the cake have two sources putting them under a standing man's eyes.
+  ["heights", "cakes, snake beams, and pins are LOW", "cakes and snake beams are LOW"],
+  // Lineups is not in the Player preview, so do not send him there.
+  ["no dead ends", "No points logged in this game yet. Set it live and log points in Lineups (Won/Lost).", "No points logged in this game yet.", ["player"]],
+  ["no dead ends", "No games yet. Name the two teams, Start a game, then log points in Lineups \\u2014 they show up here to replay.", "No games yet.", ["player"]],
+  // In-app questions and messages, never the browser's; never refuse in silence.
+  ["no dialogs", "b.onclick=()=>{if(!confirm('Delete this event?'))return;tsSave(tsAll().filter(x=>x.id!==b.dataset.tsdel));if(tsEdit===b.dataset.tsdel)tsEdit=null;renderTsched();}",
+    "b.onclick=()=>gChoose('Delete this event?','It comes off the schedule on this phone.',[{label:'Delete',primary:true,run:()=>{tsSave(tsAll().filter(x=>x.id!==b.dataset.tsdel));if(tsEdit===b.dataset.tsdel)tsEdit=null;renderTsched();}},{label:'Cancel',run:()=>{}}])"],
+  ["no dialogs", "prompt('Copy this code:',c)", "gAlert('Your code is '+c)"],
+  ["say why", "if(t&&navigator.clipboard)navigator.clipboard.writeText(t.code).then(()=>{cp.textContent='Copied!';setTimeout(()=>{cp.textContent='Copy code';},1200);});",
+    "if(!t)return;const show=()=>gAlert('Your team code is '+t.code+'. Copy it from here.');if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.code).then(()=>{cp.textContent='Copied!';setTimeout(()=>{cp.textContent='Copy code';},1200);}).catch(show);else show();"],
+  ["say why", "const nm=document.getElementById('tmName').value.trim()||'Team';", "const nm=document.getElementById('tmName').value.trim();if(!nm){gAlert('Type your team\\u2019s name first.');return;}"],
+  ["say why", "const v=(inp.value||'').trim();if(!v)return;msgSend(", "const v=(inp.value||'').trim();if(!v){gAlert('Type the note first.');return;}msgSend("],
+  ["say why", "const v=sanitizeText(inp.value.trim()).slice(0,40);if(!v)return;const t=teamGet();const oldK", "const v=sanitizeText(inp.value.trim()).slice(0,40);if(!v){gAlert('Type your name first.');return;}const t=teamGet();const oldK"],
+  ["say why", "const v=sanitizeText(document.getElementById('tmPlayer').value.trim()).slice(0,40);if(!v)return;", "const v=sanitizeText(document.getElementById('tmPlayer').value.trim()).slice(0,40);if(!v){gAlert('Type the player\\u2019s name first.');return;}"],
+  ["say why", "const v=document.getElementById('lnNew').value.trim();if(!v)return;", "const v=document.getElementById('lnNew').value.trim();if(!v){gAlert('Name the line first.');return;}"],
+  ["say why", "const v=sanitizeText(document.getElementById('lnNewP').value.trim()).slice(0,40);if(!v)return;", "const v=sanitizeText(document.getElementById('lnNewP').value.trim()).slice(0,40);if(!v){gAlert('Type the player\\u2019s name first.');return;}"],
+  // Phone fit, finger-sized targets and names for every control.
+  ["fit", "</head>", `<style id="previewFit">/* the coach app's rules: 44 px targets, no sideways page, the event picker readable */
+  .ld,.tabs button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),textarea{min-height:44px}
+  .ld{min-width:44px}
+  .tend button,.tg button,.iqchip,.iqopt{min-height:44px}
+  select{max-width:100%;text-overflow:ellipsis}
+  #playBreakBtn{display:none}
+  .board{overflow-x:auto;max-width:100%}
+  @media(max-width:640px){#evsub{display:none}#layoutSel{flex:1 1 auto;min-width:0;max-width:100%}}
+  @media(max-width:600px){.matchup{grid-template-columns:1fr}.matchup>.vs{display:none}}
+</style>
+</head>`],
+  ["names", "</body>", `<script id="previewNames">/* a name for every control that only had a placeholder or an icon */
+(function(){const W={'\\u2715':'Remove','\\u00d7':'Remove','\\u2039':'Previous','\\u203a':'Next','\\u2192':'Right','\\u2190':'Left','\\u2191':'Up','\\u2193':'Down','\\u2197':'Up and right','\\u2198':'Down and right','\\u2199':'Down and left','\\u2196':'Up and left'};
+let q=0;function name(){q=0;document.querySelectorAll('input,textarea,select').forEach(e=>{if(e.hasAttribute('aria-label')||(e.labels&&e.labels.length))return;const p=e.getAttribute('placeholder');if(p)e.setAttribute('aria-label',p);else if(e.id==='layoutSel')e.setAttribute('aria-label','Event');else if(e.id==='playSel')e.setAttribute('aria-label','Call');else if(e.id==='divSel')e.setAttribute('aria-label','Division');else if(e.classList.contains('pickSel'))e.setAttribute('aria-label','Team');});
+document.querySelectorAll('button').forEach(b=>{if(b.hasAttribute('aria-label'))return;const t=(b.textContent||'').trim();if(W[t])b.setAttribute('aria-label',W[t]);});}
+name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(document.body,{childList:true,subtree:true});})();
+</script>
+</body>`],
 ];
 
 // Regex steps: [rule, pattern, replacement].
 const REGEX = [
+  // The left pit's wire is #e5342f wherever a team, path or runner is drawn;
+  // #e5252a stays the accent (tabs, buttons) and the end of the aggression scale.
+  ["wires", /'#e5252a'(?!\])/g, "'#e5342f'"],
+  ["wires", /(background:)#e5252a("><\/i>)/g, "$1#e5342f$2"],
+  ["wires", /(width:\$\{lp\}%;background:)#e5252a/g, "$1#e5342f"],
+  ["wires", /(<marker id="aL"[^>]*><path d="[^"]*" fill=")#e5252a/g, "$1#e5342f"],
   // No links to paid courses from a preview.
   ["no prices", /,\n\s*page:\['[^'\n]*','https:\/\/www\.(?:bkipaintball|mlpbplus)\.com[^'\n]*'\]/g, ""],
 ];
 
-function apply(src) {
+function apply(src, kind) {
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step whose result is already there has been applied (its result can
   // contain what it looks for, so looking alone would apply it twice).
-  for (const [, from, to] of STEPS) if (from && src.includes(from) && !(to && src.includes(to))) src = src.split(from).join(to);
+  for (const [, from, to, only] of STEPS) {
+    if (only && !only.includes(kind)) continue;
+    if (from && src.includes(from) && !(to && src.includes(to))) src = src.split(from).join(to);
+  }
   return src;
 }
 
 const check = process.argv.includes("--check");
 let stale = 0;
 for (const f of FILES) {
-  const rel = path.relative(ROOT, f), before = fs.readFileSync(f, "utf8"), after = apply(before);
+  const rel = path.relative(ROOT, f), before = fs.readFileSync(f, "utf8"), after = apply(before, path.basename(path.dirname(f)));
   if (after !== before) stale++;
   if (!check && after !== before) fs.writeFileSync(f, after);
   console.log(`${rel}: ${after === before ? "up to date" : check ? "out of date — run node tools/teaser_rules.js" : "written"}`);
