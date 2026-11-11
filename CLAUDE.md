@@ -3166,6 +3166,10 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   alone never authorizes overwriting it. The manual review/restore flow still
   stays paused. `test/device-season.cjs` uses independent laptop, tablet and
   phone stores against the real adapter and a mock account server.
+  Keep the coach's instructions to three steps: save here, sign in there,
+  open the saved season. Show one primary saved-season action, with replacing
+  that copy and recovery tools folded away. Keep opt-in and the administrator
+  review disclosure visible; opening an options group never sends anything.
 
 - Treat a confirmation-required signup as a completed sign-in. Wait for a real
   session; confirm-email links return to sign-in. Recovery and invitation links

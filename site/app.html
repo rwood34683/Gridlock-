@@ -258,6 +258,9 @@ button.ctx__ev b{color:var(--mute)}
 .auth-data{margin:4px 0 12px}
 .auth-data summary{min-height:44px;padding:12px 0;cursor:pointer;color:var(--mute);font-size:var(--t-sm);line-height:20px;font-weight:600}
 .auth-data .note{margin:0 0 8px;font-size:var(--t-sm);line-height:1.55}
+.sync-steps{margin:0;padding-left:1.5em;display:grid;gap:var(--s2);max-width:60ch;font-size:var(--t-sm);line-height:1.5}
+.sync-steps b{color:var(--ink)}
+.sync-account{overflow-wrap:anywhere}
 .warn{color:var(--warn);font-size:var(--t-sm)}
 
 /* ============================================================
@@ -13061,14 +13064,18 @@ function deviceSeasonShown(){
 }
 function deviceSeasonPage(){
   const pending = _deviceChoice, r = pending?.r, hasCopy = r && !r.missing && !r.removed;
-  return sec("Continue your season", `<p class="lede">${_deviceChecking ? "Checking the season saved with your account…" : hasCopy ? "Your account has a saved season. Choose what to use on this device." : "No season is saved with this account. You can start with the season on this device."}</p>
-    <p class="note">Signed in as <b>${esc(S.email)}</b>. Use this same account on your laptop, tablet and phone.</p>
-    ${S.syncSaid ? `<p class="note" role="status">${esc(S.syncSaid)}</p>` : ""}
-    ${pending ? `<p class="note">${r.removed ? "The saved copy was deleted. It stays deleted unless you choose to send this device's season." : hasCopy ? "Choosing a copy replaces the other one. This device's season is kept as a recovery copy first." : "Only choose this device's season if it belongs with this account."}</p>
-    <p class="note">League sync keeps one current full season with your account on our account server. Gridlock PB LLC's administrators can review it. You can pause it or delete the saved copy in Account & backups.</p>
-    <div class="btnrow">${hasCopy ? `<button class="btn grow" onclick="chooseDeviceSeason('saved')">Use my saved season</button>` : ""}
-      <button class="btn ${hasCopy ? "btn--quiet" : ""} grow" onclick="chooseDeviceSeason('here')">Use this device's season</button></div>` : ""}
-    <button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Keep working here — sync off</button>`);
+  const usual = "Choose which season to use. Nothing has been replaced or sent.";
+  return sec("Continue your season", `<p class="lede">${_deviceChecking ? "Checking for your saved season…" : hasCopy ? "Open the season saved with your account to carry on here." : "No season is saved with this account. Save this device's season to use it on your other devices."}</p>
+    <p class="note sync-account">Your account: <b>${esc(S.email)}</b></p>
+    ${S.syncSaid && S.syncSaid !== usual && !_deviceChecking ? `<p class="note" role="status">${esc(S.syncSaid)}</p>` : ""}
+    ${pending ? `${hasCopy ? `<p class="note">This replaces the season on this device. A recovery copy is kept here first.</p>` : r.removed ? `<p class="note">The saved copy was deleted. It stays deleted unless you choose to save this season again.</p>` : ""}
+    <p class="note">League sync is optional. It keeps your full season with your account on our account server. Gridlock PB LLC's administrators can review it. Pause or delete the saved copy in Account & backups.</p>
+    ${hasCopy ? `<button class="btn btn--block" onclick="chooseDeviceSeason('saved')">Use my saved season</button>
+      <details class="coach-terms"><summary>Use this device's season instead</summary>
+        <p class="note">This sends the season you have here and replaces the one saved with your account. Only choose it if this is the copy you want on your other devices.</p>
+        <button class="btn btn--quiet btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button></details>` :
+      `<button class="btn btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button>`}` : ""}
+    <button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`);
 }
 window.cancelDeviceSeason = () => {
   ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
@@ -13121,7 +13128,7 @@ async function checkAccountSeason(requested){
         syncStatus({syncOn:true,syncSaid:"No signal. Your changes stay here; sync will check your saved season before retrying when you are online."});
         _syncDirty=true; scheduleSync(90000); return;
       }
-      syncStatus({syncSaid:r?.offline ? "No signal. Keep working here; open Continue on this device when you are online." : r?.said || "Could not check the saved season. Nothing sent."});
+      syncStatus({syncSaid:r?.offline ? "No signal. Keep working here; open Get saved season when you are online." : r?.said || "Could not check the saved season. Nothing sent."});
       return;
     }
     if(r.user?.id !== t.uid){
@@ -13149,7 +13156,7 @@ async function checkAccountSeason(requested){
       _deviceChoice={...choice,snapshot:deviceSeasonText()};
       syncStatus({syncSaid:"Choose which season to use. Nothing has been replaced or sent."});
     }
-  }catch(e){ if(deviceSeasonCurrent(t)) syncStatus({syncSaid:"Could not check your season. Nothing sent. Try Continue on this device again."}); }
+  }catch(e){ if(deviceSeasonCurrent(t)) syncStatus({syncSaid:"Could not check your season. Nothing sent. Try Get saved season again."}); }
   finally{ if(_deviceChecking===t) _deviceChecking=null; render(); }
 }
 window.continueDeviceSeason = () => checkAccountSeason(true);
@@ -13305,7 +13312,7 @@ function queueSeasonPush(t){
       if(r.user?.id !== t.uid) return {ok:false,conflict:true,said:"Your account changed. Sign in again before sending a season."};
       const permitted = _devicePermit && sameSync(_devicePermit.t) && _devicePermit.user === r.user.id && _devicePermit.revision === r.revision;
       if(!permitted && (!r.known || r.base !== r.revision || r.removed))
-        return {ok:false,conflict:true,said:"Another device has a season to check. Open Account & backups and choose Continue on this device. Nothing was replaced."};
+        return {ok:false,conflict:true,said:"Another device has a season to check. Open Account & backups and choose Get saved season. Nothing was replaced."};
     }
     const r = await t.cloud.pushSeason(label, payload);
     if(r?.ok && canFollowSeason() && sameSync(t)){
@@ -13360,7 +13367,7 @@ async function sendSeason(manual){
   if(r && r.ok === true){
     syncYes(true);
     // A slow send covers the snapshot it took, not edits made while it waited.
-    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
+    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Saved to your account."});
     scheduleSync();return;
   }
   if(r && r.conflict){
@@ -18716,7 +18723,7 @@ const HELP_Q = [
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
-  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season. You can also open More › Account & backups › Continue on this device. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
+  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season. You can also open More › Account & backups › Get saved season. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
@@ -20289,29 +20296,32 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + cloudPageLinks()
-  + (canSync() ? sec("League sync", `<p class="lede">Upload your full season and keep one current copy with your account on our account server.
-      Gridlock PB LLC's administrators can review it. It is off until you turn it on.</p>
-    <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
-      your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
-      password never does. You can pause it, or delete what you sent, at any time.</p>
-    <p class="note">Use the same email on your laptop, tablet and phone. Turn on League sync, and wait for a confirmed save before switching devices. If both devices changed, choose which season to keep.</p>
-    ${canFollowSeason() ? `<button class="btn" onclick="continueDeviceSeason()">Continue on this device</button>` : ""}
+  + (canSync() ? sec("League sync", `<p class="lede">Keep your season with your account. League sync is off until you turn it on.</p>
+    <p class="note">Your full season is kept as one current copy on our account server, where Gridlock PB LLC's administrators can review it. This includes your team, schedule, plays, scouting and results — the same as <b>Save everything</b>. Your password is not included. You can pause sync or delete the saved copy.</p>
+    ${canFollowSeason() ? `<ol class="sync-steps" aria-label="Switch devices">
+      <li><b>Save here.</b> Turn on sync below. Tap <b>Sync now</b> and wait for <b>Saved to your account</b>.</li>
+      <li><b>Sign in there.</b> Use the same email on your other device.</li>
+      <li><b>Open your season.</b> Choose <b>Use my saved season</b>.</li></ol>` : ""}
+    <div class="toggles">
+      <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
+        S.syncOn?"Pause sync":"Turn on sync"}</button>
+    </div>
+    ${S.syncOn ? `<div class="toggles">
+        <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
+      </div>
+      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}New changes send automatically when you have a signal.</p>` : ""}
+    ${S.syncSaid ? `<p class="note" role="status" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}
+    ${canFollowSeason() ? `<p class="note">Already signed in on this device? Tap below to check for saved changes. If both copies changed, you choose which to use.</p>
+      <button class="btn" onclick="continueDeviceSeason()">Get saved season</button>
+      <details class="coach-terms"><summary>More backup options</summary><div class="sec__body">` : ""}
     <button class="btn btn--quiet" onclick="reviewCloudSeason()" ${_syncReviewing || _syncDeleting || _accountDeleting ? "disabled" : ""}>${_syncReviewing ? "Loading your cloud copy…" : "Review or restore cloud season"}</button>
     <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
     ${canFollowSeason() ? `<button class="btn btn--quiet" onclick="showReplacedAccountSeason()">Show account season kept before replacement</button>` : ""}
     ${Array.from({length: Math.max(0, preRestoreCount()-1)}, (_, k) => `<button class="btn btn--quiet" onclick="showPreRestoreCopy(${k+1})">Show the one before that${k ? " (" + (k+1) + ")" : ""}</button>`).join("")}
     <div class="fld"><label for="syncLabel">Season copy name</label>
       <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
-    <div class="toggles">
-      <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
-        S.syncOn?"Sending to my account":"Send my season to my account"}</button>
-    </div>
-    ${S.syncOn ? `<div class="toggles">
-        <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
-      </div>
-      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}It also goes up on its own as you log, once you have signal.</p>` : ""}
     <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
-    ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
+    ${canFollowSeason() ? "</div></details>" : ""}`,
     S.syncOn ? "On" : "Off") : "")
   + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the

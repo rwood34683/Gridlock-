@@ -1,25 +1,30 @@
 # One account across devices
 
-Sign in with the same Gridlock account email on the laptop, tablet and phone.
-The display name and team name are labels, not access credentials. Account
-server row-level security continues to bind the saved season to the authenticated
-Supabase user id. No server settings, permissions or migration changes are needed.
+Use the same Gridlock email on your laptop, tablet and phone.
+
+1. **Save here.** Open **More → Account & backups → League sync**. Turn it on,
+   tap **Sync now**, and wait for **Saved to your account**.
+2. **Sign in there.** Open Gridlock on your other device and sign in with that
+   same email.
+3. **Open your season.** Tap **Use my saved season**.
+
+Already signed in? Open **More → Account & backups → League sync** and tap
+**Get saved season**. If both devices have changes, the app asks which copy to
+use. Do not switch until the first device confirms its save.
 
 League sync is optional. It sends the full season to the account server, where
 Gridlock PB LLC's administrators can review it. A new device checks for that
 copy before offering the format questions or sending local data. Choose **Use
-my saved season** to continue it and turn on sync for this device. **Keep working
-here — sync off** keeps the local season and sends nothing.
+my saved season** to continue it and turn on sync for this device. **Not now —
+keep sync off** keeps the local season and sends nothing.
 
-With sync enabled, wait for a confirmed save in **More → Account & backups →
-League sync** before changing devices. **Send now** sends pending changes.
-On the other device, sign in or choose **Continue on this device**. A device
-that previously synced can automatically adopt a newer saved season at sign-in
+The app continues saving while you work and have a signal. A device that
+previously synced can automatically adopt a newer saved season at sign-in
 only if it has no unshared changes. An active screen is never silently replaced
 by a background download. This is a handoff of one current season, not concurrent
 multi-coach editing or live score streaming.
 
-If both copies changed, the app asks which to use. Choosing the saved season
+Choosing the saved season
 first keeps this device's season as a local recovery copy. Choosing this device's
 season explicitly confirms replacement of the server copy. The server still
 refuses if another device changes it after that check. Save both as files before
@@ -31,8 +36,12 @@ travel in the full season. A squad-only import does not change which team or
 match this device is working on. Passwords, session tokens and purchases are not
 season data. A different account cannot automatically upload the previous
 account's local season. A deleted server copy stays deleted until an explicit
-choice to send again. Manual **Review or restore cloud season** retains its
+choice to send again. **More backup options → Review or restore cloud season** retains its
 existing behavior: restore, then keep sync paused.
+
+The display name and team name are labels, not access credentials. Server
+row-level security binds the saved season to the authenticated Supabase user id.
+No server settings, permissions or migration changes are needed.
 
 Checkpoints contain a SHA-256 hash and acknowledged revision, scoped by project
 and account id. They are consistency evidence, not authority: all network reads

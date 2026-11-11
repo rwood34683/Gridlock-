@@ -72,6 +72,12 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
         assert.match(await p.locator("#root").innerText(),/Continue your season/i);
         assert.doesNotMatch(await p.locator("#root").innerText(),/Your format/i);
         assert.equal(writes(),count,"new device must not overwrite the server");
+        const other=p.locator("summary").filter({hasText:"Use this device's season instead"});
+        assert.equal(await p.getByRole("button",{name:"Use my saved season",exact:true}).isVisible(),true);
+        assert.equal(await p.getByRole("button",{name:"Use this device's season",exact:true}).isVisible(),false,"replacement is folded away");
+        await other.focus();await other.press("Enter");
+        assert.equal(await p.getByRole("button",{name:"Use this device's season",exact:true}).isVisible(),true);
+        await other.press("Enter");assert.equal(writes(),count,"opening an option does not choose it");
         if(process.env.GRIDLOCK_TEST_SHOTS){fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,p===phone?"phone-continue-season.png":"tablet-continue-season.png")});}
         await saved(p);
         assert.deepEqual(await p.evaluate(()=>[S.myTeam,S.messages[0],S.games[0].a,S.fmtDone,S.syncOn]),["Test Paintball","Walk the field at nine","Test Opponent",true,true]);
@@ -79,6 +85,21 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
         assert.equal(await p.evaluate(()=>preRestoreCount()),1);
         assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
         if(process.env.GRIDLOCK_TEST_SHOTS) await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,p===phone?"phone-season-ready.png":"tablet-season-ready.png")});
+      }
+    });
+    await check("phone and tablet show three switching steps with recovery options folded away",async()=>{
+      for(const p of [tablet,phone]){
+        await p.evaluate(()=>set({tab:"more",more:"nexus"}));
+        const section=p.locator("section").filter({has:p.getByRole("button",{name:"Get saved season",exact:true})});
+        assert.equal(await section.locator(".sync-steps li").count(),3);
+        assert.match(await section.innerText(),/Save here\.[\s\S]*Sign in there\.[\s\S]*Open your season\./);
+        assert.equal(await section.getByRole("button",{name:"Review or restore cloud season",exact:true}).isVisible(),false);
+        const options=section.locator("summary").filter({hasText:"More backup options"});
+        await options.focus();await options.press("Enter");
+        assert.equal(await section.getByRole("button",{name:"Review or restore cloud season",exact:true}).isVisible(),true);
+        await options.press("Enter");
+        assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+        if(process.env.GRIDLOCK_TEST_SHOTS) await section.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,p===phone?"phone-sync-steps.png":"tablet-sync-steps.png")});
       }
     });
     await check("an opted-in laptop picks up phone edits at its next sign-in without another choice",async()=>{
@@ -127,6 +148,7 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
     await check("an explicit local choice also preserves the server season it replaces",async()=>{
       await tablet.evaluate(()=>continueDeviceSeason());await settled(tablet);
       const old=clone(rows.get("coach@example.test"));
+      await tablet.locator("summary").filter({hasText:"Use this device's season instead"}).click();
       await tablet.getByRole("button",{name:"Use this device's season",exact:true}).click();await settled(tablet);
       assert.equal(rows.get("coach@example.test").payload.data.messages.includes("Unsent local work"),true);
       const kept=await tablet.evaluate(()=>JSON.parse(localStorage.getItem(STORE_KEY+".before-account-replace")));
@@ -153,7 +175,7 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
       const r=rows.get("coach@example.test");rows.set("coach@example.test",{...r,revision:r.revision+1,payload:null,deleted_at:"2026-11-11T12:00:00Z"});
       const count=writes();await signIn(laptop);
       assert.match(await laptop.locator("#root").innerText(),/saved copy was deleted/);
-      assert.equal(writes(),count);await laptop.getByRole("button",{name:"Keep working here — sync off",exact:true}).click();
+      assert.equal(writes(),count);await laptop.getByRole("button",{name:"Not now — keep sync off",exact:true}).click();
       await signIn(laptop);assert.equal(writes(),count);assert.equal(await laptop.evaluate(()=>S.syncOn),false);
     });
     await check("manual review can restart a missing or removed copy only through an explicit choice",async()=>{
