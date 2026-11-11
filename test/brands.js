@@ -91,13 +91,25 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     // Gridlock's logo is a picture with the name painted in: the default build
     // shows it, a variant shows its own name as text and never ships the file.
     const idx = rel => staged.web.get(rel).toString("utf8");
-    check("the default build shows the logo, in the app and on the site", identity.web.has("logo-gridlock.jpg") && /<img data-logo[^>]*src="logo-gridlock\.jpg"/.test(identity.web.get("index.html").toString("utf8")) && /data-logo/.test(identity.site.get("index.html").toString("utf8")));
+    check("the default app shows the ball and the site retains its wordmark", identity.web.has("logo-gridlock.png") && !identity.web.has("logo-gridlock.jpg") && /<img data-logo[^>]*src="logo-gridlock\.png"[^>]*width="512" height="512"/.test(identity.web.get("index.html").toString("utf8")) && /data-logo/.test(identity.site.get("index.html").toString("utf8")));
     check("a variant shows its own name where the logo was, and leaves the picture out",
-      !staged.web.has("logo-gridlock.jpg") && !staged.site.has("img/logo-gridlock.jpg") && !/data-logo/.test(idx("index.html"))
+      !staged.web.has("logo-gridlock.png") && !staged.web.has("logo-gridlock.jpg") && !staged.site.has("img/logo-gridlock.jpg") && !/data-logo/.test(idx("index.html"))
       && idx("index.html").includes('<span class="brand-logo brand-logo--word">Grind X</span>') && staged.site.get("index.html").toString("utf8").includes('brand-logo--word">Grind X</span>'));
     const broken = { ...staged, web: new Map(staged.web) };
     broken.web.set("index.html", Buffer.from(idx("index.html") + '<img data-logo src="logo-gridlock.jpg" alt="Grind X">'));
     check("a logo left in a variant is refused", brand.selfCheck(broken).some(p => /still shows Gridlock's logo/.test(p)));
+    const sharp = require("sharp"), logo = await sharp(identity.web.get("logo-gridlock.png")).metadata();
+    check("the ball has a square transparent canvas", logo.width === 512 && logo.height === 512 && logo.hasAlpha);
+    for (const [file,size] of [["icon-192.png",192],["icon-512.png",512],["apple-touch-icon.png",180]]) {
+      const meta = await sharp(identity.web.get(file)).metadata();
+      check(`${file} has the install size and an opaque background`,meta.width === size && meta.height === size && !meta.hasAlpha);
+    }
+    for (const variant of [staged,brand.stage(lockdown,brands)]) {
+      check(`${variant.to.short} keeps neutral launcher icons without the ball`,["icon.svg","icon-192.png","icon-512.png","apple-touch-icon.png"].every(file=>!variant.web.get(file).equals(identity.web.get(file))) && !variant.web.has("logo-gridlock.png"));
+      const wrong = {...variant,web:new Map(variant.web)};
+      wrong.web.set("icon-512.png",identity.web.get("icon-512.png"));
+      check(`${variant.to.short} refuses a painted default launcher icon`,brand.selfCheck(wrong).some(p=>/neutral icon/.test(p)));
+    }
   }
   {
     // With three builds, a variant can also leak another variant's name.
@@ -137,6 +149,7 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     switched = true;
     check("switching rewrites the identity files and both shells", r.from === "gridlock" && r.to === "grindx" && r.files.length >= 20);
     check("the shells now agree they hold Grind X", brand.nativeState(brands).key === "grindx");
+    check("the native switch also replaces the painted launcher icon",sha(fs.readFileSync(path.join(ROOT,"ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"))) !== shellsBefore.get(path.join("ios","App","App","Assets.xcassets","AppIcon.appiconset","AppIcon-512@2x.png")));
     const pbx = fs.readFileSync(path.join(ROOT, "ios/App/App.xcodeproj/project.pbxproj"), "utf8");
     const gradle = fs.readFileSync(path.join(ROOT, "android/app/build.gradle"), "utf8");
     const plist = fs.readFileSync(path.join(ROOT, "ios/App/App/Info.plist"), "utf8");
@@ -211,6 +224,20 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
       const droot = await d.evaluate(() => document.getElementById("root").innerText);
       check("the default promo reads Gridlock", /\bGridlock\b/.test(droot) && !/Grind X/.test(droot));
       check("the default class link is gridlock://", await d.evaluate(() => joinLink("GL-7K2M")) === "gridlock://class/GL-7K2M");
+      for (const [width,height] of [[390,844],[820,1180]]) {
+        await d.setViewportSize({width,height});
+        const mark = await d.locator('img.brand-logo').evaluate(img=>{
+          const box=img.getBoundingClientRect();
+          return img.complete && img.naturalWidth===512 && img.alt==='Gridlock'
+            && Math.abs(box.width-box.height)<1 && box.width>80
+            && box.left>=0 && box.right<=innerWidth && document.documentElement.scrollWidth<=innerWidth+1;
+        });
+        check(`the ball loads square and fits the ${width}px welcome screen`,mark);
+        if (process.env.GRIDLOCK_LOGO_SHOTS) {
+          fs.mkdirSync(process.env.GRIDLOCK_LOGO_SHOTS,{recursive:true});
+          await d.screenshot({path:path.join(process.env.GRIDLOCK_LOGO_SHOTS,`welcome-${width}.png`)});
+        }
+      }
     }
   } finally { await browser.close(); server.close(); }
 

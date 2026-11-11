@@ -19,7 +19,7 @@ test("no app file, shell copy or the one-file app names a badge",()=>{
 test("the offline cache lists no image but the app's own icons and logo",()=>{
  const sw=fs.readFileSync(path.join(ROOT,"web/sw.js"),"utf8"),files=JSON.parse(sw.match(/const FILES = (\[[^\]]*\])/)[1]),opt=JSON.parse(sw.match(/const OPTIONAL = (\[[^\]]*\])/)[1]);
  const images=[...files,...opt].filter(f=>/\.(?:jpe?g|png|svg|webp|gif)$/.test(f)).sort();
- assert.deepEqual(images,["apple-touch-icon.png","icon-192.png","icon-512.png","icon.svg","logo-gridlock.jpg"]);
+ assert.deepEqual(images,["apple-touch-icon.png","icon-192.png","icon-512.png","icon.svg","logo-gridlock.png"]);
 });
 test("a cloud build carries no badge and names none",()=>{
  const {build}=require("../scripts/cloud-build");const out=path.join(ROOT,"dist","badge-check");

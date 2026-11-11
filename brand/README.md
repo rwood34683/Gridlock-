@@ -1,7 +1,27 @@
 # Gridlock brand assets
 
-`icon.svg` preserves the original app's red direction mark and five player dots on the dark grid. `foreground.svg` places that mark inside the adaptive icon safe area; `splash.svg` uses it on the dark launch ground.
+The default app uses `logo-gridlock.png`: the ball isolated from the owner's
+"Cinematic GRIDLOCK Paintball Splash-1.png" artwork with the built-in image
+editor on 10 November 2026. The edit removes the surrounding wordmark and
+scene, retaining a black ball, red paint and white GRIDLOCK lettering on a
+transparent canvas. It is an edited asset, not a pixel-identical crop.
 
-Run `npm run icons` after editing an SVG. The portable Node generator uses `sharp` and writes store icons, splash previews, browser icons (including Apple touch icon), and the static-site favicon. When generated Capacitor projects exist it also fills their icon and splash image directories. Run the generator again after adding a native platform, then `npm run sync`.
+The original `icon.svg`, `foreground.svg` and `splash.svg` remain the neutral
+direction mark for the other brands. `shared-icons/` contains generated
+neutral web icons. A variant never receives the ball's painted brand name.
+
+Run `npm run icons` after changing the artwork. The portable Node generator
+uses `sharp` and writes the app logo, browser icons (including Apple touch),
+store icons and splash previews, and native icon/splash directories when
+present. The app's ball fits the maskable and adaptive safe areas. The public
+website keeps its existing wordmark and neutral favicon.
+
+`npm run brand native <brand>` also switches native launch assets. Gridlock
+is restored from `native-gridlock/`, the canonical PNGs and hash manifest
+written by `npm run icons`. This keeps a round trip byte-identical on every
+OS; PNG palette encoding can vary between platforms. The switch refuses
+stale artwork or a changed canonical file. Variants render their neutral mark.
+Run `npm run sync` after generating the default app assets.
+The old Python entry point delegates to this same Node generator.
 
 Store PNG icons are opaque. Android round and adaptive foreground icons have transparency. Native signing, screenshots and store metadata are separate from brand rendering.
