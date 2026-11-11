@@ -16,8 +16,12 @@ store icons and splash previews, and native icon/splash directories when
 present. The app's ball fits the maskable and adaptive safe areas. The public
 website keeps its existing wordmark and neutral favicon.
 
-`npm run brand native <brand>` also regenerates native launch assets for
-that brand. Run `npm run sync` after generating the default app assets.
+`npm run brand native <brand>` also switches native launch assets. Gridlock
+is restored from `native-gridlock/`, the canonical PNGs and hash manifest
+written by `npm run icons`. This keeps a round trip byte-identical on every
+OS; PNG palette encoding can vary between platforms. The switch refuses
+stale artwork or a changed canonical file. Variants render their neutral mark.
+Run `npm run sync` after generating the default app assets.
 The old Python entry point delegates to this same Node generator.
 
 Store PNG icons are opaque. Android round and adaptive foreground icons have transparency. Native signing, screenshots and store metadata are separate from brand rendering.
