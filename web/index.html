@@ -818,7 +818,7 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   .hdr__top{gap:6px}
   .brand{font-size:15px;letter-spacing:.1em}
   .brand small{display:none}
-  .brand img.brand-logo{height:20px;margin:0 0 0 -2px}
+  .brand img.brand-logo{height:36px;margin:0}
   .score-chip{padding:4px 8px;font-size:12px;gap:2px}
   .hdr__top .who-chip, .hdr__top .who-btn{display:none}
 }
@@ -1099,13 +1099,10 @@ svg.field [data-pick]{cursor:crosshair}
 }
 .promo__mark{display:flex;flex-direction:column;gap:var(--s2)}
 .promo__name{font-size:44px;font-weight:800;letter-spacing:.14em;line-height:1}
-/* The logo is a picture on black. Screened, the black drops out and the white,
-   the red and the ball's shine sit on whatever ground is under them — the red
-   glow at the top of the welcome page showed the black as a box. Never wider
-   than a thumb's sweep. In another build the
-   tag is that build's name as text and these rules leave it alone. */
-.promo__name img.brand-logo{display:block;width:min(100%,440px);height:auto;margin-left:-6px;mix-blend-mode:screen}
-.brand img.brand-logo{display:block;height:24px;width:auto;margin:-2px 0 4px -3px;mix-blend-mode:screen}
+/* The app uses the ball alone. Its transparent edge needs no blending that
+   would wash out the black surface. Variants retain their own text name. */
+.promo__name img.brand-logo{display:block;width:112px;max-width:100%;height:auto}
+.brand img.brand-logo{display:block;height:38px;width:auto;margin:0}
 .promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
 .promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:19ch}
 .promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
@@ -11480,7 +11477,7 @@ function tourPanel(){
    picture: scripts/brand.js turns this tag into that build's name as text and
    leaves the file out. */
 function logoMark(){
-  return `<img data-logo class="brand-logo" src="logo-gridlock.jpg" alt="Gridlock" width="1200" height="306" decoding="async"/>`;
+  return `<img data-logo class="brand-logo" src="logo-gridlock.png" alt="Gridlock" width="512" height="512" decoding="async"/>`;
 }
 function promo(){
   const has = hasAccount();
