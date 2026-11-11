@@ -876,7 +876,11 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
 .tbl__sub{font-size:12px;color:var(--mute)}
 .tbl--stats td{padding-top:2px;padding-bottom:2px}
-.player-dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line-lit);border-radius:16px;padding:20px;width:min(540px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain}
+.player-dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line-lit);border-radius:16px;padding:20px;width:min(540px,calc(100vw - 24px));max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain}
+.player-dialog:not([open]){display:none}
+.player-dialog--fallback{display:block;position:fixed;inset:12px 0 auto;margin:0 auto;z-index:1001}
+#player-shade{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;touch-action:none}
+#player-shade[hidden]{display:none}
 .player-dialog::backdrop{background:rgba(0,0,0,.78)}
 .player-dialog h2{margin:0;font-size:var(--t-lg);overflow-wrap:anywhere}
 .player-dialog .kv__v{overflow-wrap:anywhere}
@@ -1152,7 +1156,8 @@ svg.field [data-pick]{cursor:crosshair}
 </head>
 <body>
 <div id="root"></div>
-<dialog id="player-details" class="player-dialog" aria-labelledby="player-detail-title"></dialog>
+<div id="player-shade" hidden aria-hidden="true"></div>
+<dialog id="player-details" class="player-dialog" role="dialog" aria-modal="true" aria-labelledby="player-detail-title"></dialog>
 <script>
 (function (root, factory) {
   "use strict";
@@ -11669,6 +11674,7 @@ function menOnBunker(side, fid){
 // A player can be read from either screen without moving the match or point.
 // This is page memory, never a season record. Every write rechecks its context.
 let _playerDetail = null;
+let _playerReturnFocus = null, _playerRootHidden = null;
 function playerDetailContext(){
   return JSON.stringify([S.entered,S.email,S.tab,S.scoutTab,S.matchId,S.point,S.layoutKey,S.scoutSide,pitOf("left").name,pitOf("right").name]);
 }
@@ -11684,7 +11690,15 @@ function playerDetailData(){
 }
 window.closePlayerDetails = () => {
   _playerDetail = null;
-  const el = document.getElementById("player-details"); if(el.open) el.close(); el.replaceChildren();
+  const el = document.getElementById("player-details");
+  if(el.classList.contains("player-dialog--fallback")){
+    el.removeAttribute("open"); el.classList.remove("player-dialog--fallback");
+    document.getElementById("player-shade").hidden = true;
+    const root = document.getElementById("root");
+    if(_playerRootHidden === null) root.removeAttribute("aria-hidden"); else root.setAttribute("aria-hidden",_playerRootHidden);
+    if(_playerReturnFocus?.isConnected) _playerReturnFocus.focus({preventScroll:true});
+  } else if(el.open) el.close();
+  _playerReturnFocus = null; _playerRootHidden = null; el.replaceChildren();
 };
 function showPlayerPoint(ref){
   if(!S.entered || !["tally","scout"].includes(S.tab) || gateKey()) return;
@@ -11758,17 +11772,35 @@ function renderPlayerDetails(){
   const wasOpen = el.querySelector("details")?.open;
   if(wasOpen && t.content.querySelector("details")) t.content.querySelector("details").open = true;
   patchScreen(el,t.content);
-  if(!el.open) el.showModal();
+  if(!el.hasAttribute("open")){
+    if(typeof el.showModal === "function") el.showModal();
+    else {
+      // The native shells still support iOS 15.0, before dialog/showModal.
+      _playerReturnFocus = document.activeElement;
+      const root = document.getElementById("root"); _playerRootHidden = root.getAttribute("aria-hidden");
+      el.classList.add("player-dialog--fallback"); el.setAttribute("open","");
+      document.getElementById("player-shade").hidden = false;
+      el.querySelector("button").focus(); root.setAttribute("aria-hidden","true");
+    }
+  }
 }
 const playerDialog = document.getElementById("player-details");
 playerDialog.addEventListener("keydown",ev => {
-  if(ev.key !== "Tab" || !playerDialog.open) return;
+  if(ev.key !== "Tab" || !playerDialog.hasAttribute("open")) return;
   const items = [...playerDialog.querySelectorAll("button,input,select,textarea,summary,a[href],[tabindex]")]
     .filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
   const first = items[0], last = items[items.length-1];
   if(!first){ ev.preventDefault(); return; }
   if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
   else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+});
+document.addEventListener("keydown",ev => {
+  if(ev.key === "Escape" && playerDialog.classList.contains("player-dialog--fallback")){
+    ev.preventDefault(); closePlayerDetails();
+  }
+});
+document.addEventListener("focusin",ev => {
+  if(playerDialog.classList.contains("player-dialog--fallback") && !playerDialog.contains(ev.target)) playerDialog.querySelector("button")?.focus();
 });
 playerDialog.addEventListener("cancel",ev => { ev.preventDefault(); closePlayerDetails(); });
 playerDialog.addEventListener("close",() => { if(!playerDialog.open){ _playerDetail = null; playerDialog.replaceChildren(); } });

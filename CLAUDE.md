@@ -1405,6 +1405,8 @@ reuse the existing tally and releaseOut; explicit mark-out is idempotent.
 Recheck player/match/point/field/account/screen before every write. Keep this
 popup in page memory, close it when context changes, trap focus and support
 Escape. Historical points are read-only until Open this point on Tally to edit.
+Keep a modal fallback for iOS 15.0–15.3, which have no native dialog API;
+hide the background from assistive technology, contain focus and restore it.
 Quick log keeps its one-tap out path. `test/player-details.cjs` holds these rules.
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts

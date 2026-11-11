@@ -99,6 +99,17 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
       const before=await state(p);await p.evaluate(()=>showPlayerDetails("p-us"));assert.equal(await popup(p).locator("img,svg").count(),0);
       assert.equal(await p.evaluate(()=>window.detailBad),undefined);assert.equal(await state(p),before);
     });
+    await check("browsers without native dialogs keep a modal, focus and a working Close",async p=>{
+      await popup(p).evaluate(e=>{e.showModal=undefined;e.close=undefined;});const before=await state(p);await open(p);
+      assert(await popup(p).isVisible());assert.equal(await p.locator("#player-shade").isVisible(),true);
+      assert.equal(await p.locator("#root").getAttribute("aria-hidden"),"true");
+      for(let i=0;i<12;i++){await p.keyboard.press(i%2?"Shift+Tab":"Tab");assert(await popup(p).evaluate(e=>e.contains(document.activeElement)));}
+      await p.locator('button.assign[onclick^="showNamedPlayer"]').first().evaluate(e=>e.focus());
+      assert(await popup(p).evaluate(e=>e.contains(document.activeElement)));await p.mouse.click(2,2);assert.equal(await state(p),before);
+      await p.keyboard.press("Escape");assert.equal(await popup(p).isVisible(),false);assert.equal(await p.locator("#root").getAttribute("aria-hidden"),null);
+      assert.equal(await p.locator("#player-shade").isVisible(),false);assert.match(await p.evaluate(()=>document.activeElement.getAttribute("onclick")||""),/showNamedPlayer/);
+      await open(p);await popup(p).getByRole("button",{name:"Close",exact:true}).click();assert.equal(await popup(p).innerHTML(),"");assert.equal(await state(p),before);
+    });
     await check("explicit Edit break details opens the original record without duplicating it",async p=>{
       await p.evaluate(()=>set({tab:"scout",scoutTab:"breakouts"}));await p.evaluate(()=>showPlayerDetails("p-them"));
       await popup(p).getByRole("button",{name:"Edit break details on Tally",exact:true}).click();
