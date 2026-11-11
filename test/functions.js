@@ -10888,7 +10888,7 @@ const ROSTER = [
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
     return ok || JSON.stringify({ pick: S.theirPick, flash: S.flash });
   }));
-  check("each man of their five logged on Scout is listed under Where they plant, and opens his details on Tally", await ev(() => {
+  check("each man of their five on Scout opens a read-only popup, then explicitly edits his details on Tally", await ev(() => {
     const snap = JSON.stringify(S);
     window.confirm = () => true;
     window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
@@ -10899,7 +10899,13 @@ const ROSTER = [
     window.set({});
     const btns = [...document.querySelectorAll("#root button")].filter(b => /add his details/.test(b.textContent));
     const listed = btns.length === 5;
+    const before = JSON.stringify([S.matchId,S.point,S.results,S.breakouts,S.tally]);
     if(btns[0]) btns[0].click();
+    const popup = document.getElementById("player-details");
+    const read = popup.hasAttribute("open") && S.tab === "scout" && /Status not recorded/.test(popup.textContent)
+      && before === JSON.stringify([S.matchId,S.point,S.results,S.breakouts,S.tally]);
+    const edit = [...popup.querySelectorAll("button")].find(b => b.textContent === "Edit break details on Tally");
+    if(edit) edit.click();
     const opened = S.tab === "tally" && !!S.tallyEdit && rows.some(r => r.id === S.tallyEdit);
     window.setDraft({ alive: true, shootAt: curLayout().bunkers[2].id }); window.logBreakout();
     window.set({ tab: "scout", scoutTab: "breakouts" });
@@ -10908,7 +10914,7 @@ const ROSTER = [
     window.unlogTheirBreak("right", 0);
     const left = (S.breakouts || []).filter(r => r.m === S.matchId && r.side === "them").length;
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
-    return (five5 && listed && opened && told && left === 1) || JSON.stringify({ five5, listed, opened, told, left });
+    return (five5 && listed && read && opened && told && left === 1) || JSON.stringify({ five5, listed, read, opened, told, left });
   }));
   check("one kept note reads as one note", await ev(() => {
     const snap = JSON.stringify(S);
