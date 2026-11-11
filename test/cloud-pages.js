@@ -27,7 +27,7 @@ function generated(out){const sandbox={window:{}};vm.runInNewContext(fs.readFile
  assert.match(ACCOUNT,/Free, Team or Program/);assert.match(SYNC,/one current copy/);
  assert.equal(fs.readFileSync(path.join(ROOT,'marketing/grok/src/cloud-copy.ts'),'utf8').replace(/\r\n/g,'\n'),grokCopy(),'Grok and template website wording stay aligned');
  const websiteChrome=fs.readFileSync(path.join(ROOT,'marketing/grok/src/components/site-chrome.tsx'),'utf8');
- assert.match(websiteChrome,/Browser beta/);assert.match(websiteChrome,/iPhone \/ iPad/);assert.match(websiteChrome,/PC \/ Mac/);
+ assert.match(websiteChrome,/Web app/);assert.match(websiteChrome,/iPhone \/ iPad/);assert.match(websiteChrome,/PC \/ Mac/);
  assert.doesNotMatch(websiteChrome,/Available for/,'the browser beta does not imply a store listing');
  for(const route of ['index','privacy','support']){
    const source=fs.readFileSync(path.join(ROOT,`marketing/grok/src/routes/${route}.tsx`),'utf8');

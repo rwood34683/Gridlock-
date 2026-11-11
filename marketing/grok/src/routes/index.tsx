@@ -57,6 +57,7 @@ function Home() {
             Scout reads and sightlines are coaching aids, not predictions or a substitute for the officials’ live call.
           </p>
         </aside>
+        <CoachPass />
         <ComingSoon />
         <Close />
       </main>
@@ -97,7 +98,7 @@ function Hero() {
               See the tools
             </a>
           </div>
-          <p className="rise rise-4 mt-3 text-signal">Invited beta testers · Opens in your browser</p>
+          <p className="rise rise-4 mt-3 text-signal">Sign in to purchase · Opens in your browser</p>
           <Platforms className="rise rise-4 mt-5 font-display text-lg font-bold tracking-wide text-signal" />
         </div>
         <Sheet />
@@ -264,6 +265,26 @@ function Holds() {
           {cards.map((card) => (
             <MarkCard key={card.eyebrow} {...card} />
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CoachPass() {
+  return (
+    <section id="pass" className="scroll-mt-header border-t border-line">
+      <div className="mx-auto max-w-6xl px-5 py-16">
+        <p className="kicker">Gridlock Coach</p>
+        <h2 className="display text-section mt-3 text-fg">{CLOUD_COPY.payments.title}</h2>
+        <div className="card mt-8 max-w-3xl p-5">
+          <p className="text-lede text-fg">{CLOUD_COPY.payments.offer}</p>
+          <p className="mt-3 text-signal">{CLOUD_COPY.payments.renewal}</p>
+          <p className="mt-3 text-fg">{CLOUD_COPY.payments.expiry}</p>
+          <p className="mt-3 text-fg">{CLOUD_COPY.payments.existing}</p>
+          <p className="mt-3 text-fg">{CLOUD_COPY.payments.purchase}</p>
+          <p className="mt-3 text-signal">{CLOUD_COPY.payments.offline}</p>
+          <GetGridlock className="btn btn-primary mt-6 w-full sm:w-auto">Sign in to purchase</GetGridlock>
         </div>
       </div>
     </section>

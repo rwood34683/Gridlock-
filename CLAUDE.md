@@ -63,6 +63,14 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Web day passes follow `docs/WEB-PAYMENTS.md`: $19.97 per account until
+  midnight America/New_York, no renewal. Only a verified server payment grants
+  access; a return URL, imported copy or local billing value never does.
+  Preserve existing beta/admin access and backup/export after expiration.
+  Keep checkout disabled until the sandbox flow and live configuration checks
+  pass and the owner approves launch. Public verification keys may ship;
+  private/payment keys may not. Simulate payments only in Stripe's sandbox.
+
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,
   measured layouts, team data and source citations; they are not branding.
