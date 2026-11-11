@@ -876,6 +876,13 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
 .tbl__sub{font-size:12px;color:var(--mute)}
 .tbl--stats td{padding-top:2px;padding-bottom:2px}
+.tbl--daily{min-width:0;table-layout:fixed}
+.tbl--daily th,.tbl--daily td{white-space:normal;overflow-wrap:anywhere;padding:6px 8px}
+.tbl--daily th:first-child{width:48%}
+.tbl--daily td:not(:first-child){font-variant-numeric:tabular-nums;font-weight:700}
+.tbl--daily tfoot td{background:var(--sunk);font-weight:700}
+.tbl--daily .tbl__pick{width:100%;display:block;overflow-wrap:anywhere;line-height:1.4}
+.tbl--daily .tbl__sub{display:block}
 .tbl .th-num{display:none}
 @container main (max-width:620px){
   .tbl{min-width:0}
@@ -4623,7 +4630,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
-  s.statMatch = "";
+  s.statMatch = ""; s.statDay = ""; s.statView = "map"; s.statFilters = false;
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
@@ -6121,7 +6128,7 @@ function set(patch){
   }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
-             moveFrom: null, moveTo: null, statPick: null, statMatch: "", callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
+             moveFrom: null, moveTo: null, statPick: null, statMatch: "", statDay: "", callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -9235,22 +9242,47 @@ const STAT_SIDES = [["us","Yours"],["them","Theirs"],["both","Both"]];
 const STAT_METRICS = [["visits","Went there"],["outs","Shot there"]];
 function statMetric(){ return S.statMetric === "outs" ? "outs" : "visits"; }
 function statMatches(){ return (S.matches || []).filter(m => m && m.id && !m.watch && (!m.layout || m.layout === S.layoutKey)); }
+const STAT_DAY_FMT = new Intl.DateTimeFormat([], {weekday:"short",month:"short",day:"numeric",year:"numeric"});
+function statDayKey(at){
+  const d = recordedDate(at);
+  return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : "undated";
+}
+function statDays(){
+  const days = new Map();
+  statMatches().forEach(m => { const d = recordedDate(m.at); if(d) days.set(statDayKey(m.at), STAT_DAY_FMT.format(d)); });
+  return [...days].sort((a,b) => b[0].localeCompare(a[0])).concat([["undated","Date not recorded"]]);
+}
+function statDayLabel(){ return !S.statDay ? "All days" : (statDays().find(([key]) => key === S.statDay) || [0,"Day no longer available"])[1]; }
+function statDayMatches(){ return statMatches().filter(m => !S.statDay || statDayKey(m.at) === S.statDay); }
+window.pickStatDay = day => {
+  if(day && !statDays().some(([key]) => key === day)) return flash("Choose a recorded day.");
+  set({statDay:day,statMatch:"",statPick:null,statAll:false});
+};
 window.pickStatMatch = id => {
-  if(id && !statMatches().some(m => m.id === id)) return flash("Choose a match on this field.");
+  if(id && !statDayMatches().some(m => m.id === id)) return flash("Choose a match on this field and day.");
   set({statMatch:id,statTeam:"",statPick:null,statAll:false});
 };
 window.openMatchHeat = () => {
   const mid = statMatches().some(m => m.id === S.matchId) ? S.matchId : "";
-  set({tab:"more",more:"stats",statMatch:mid,statSide:"us",statTeam:"",statPick:null,statMetric:"visits"});
+  set({tab:"more",more:"stats",statView:"map",statDay:"",statMatch:mid,statSide:"us",statTeam:"",statPick:null,statMetric:"visits"});
+};
+window.openDailyBunkers = () => {
+  if(S.tab === "more" && S.more === "stats"){
+    if(S.statView !== "daily") set({statView:"daily"});
+    return;
+  }
+  const matches = statMatches(), m = matches.find(x => x.id === S.statMatch) || matches.find(x => x.id === S.matchId);
+  const day = S.statDay || (m ? statDayKey(m.at) : statDays()[0][0]);
+  set({tab:"more",more:"stats",statView:"daily",statDay:day,statMatch:"",statPick:null,statAll:false});
 };
 function statRowTeam(r){ const m = r && r.m ? matchById(r.m) : null; return (r && r.vs) || (m && m.vs) || ""; }
 function statKeep(){
   const side = S.statSide || "both", team = S.statMatch ? "" : S.statTeam || "", mid = S.statMatch || "";
   const matches = new Map((S.matches || []).filter(Boolean).map(m => [m.id,m]));
-  const selected = !mid || statMatches().some(m => m.id === mid);
+  const selected = !mid || statDayMatches().some(m => m.id === mid);
   const keep = r => {
     const m = matches.get(r.m);
-    return selected && (!mid || r.m === mid) && (!m || !m.layout || m.layout === S.layoutKey)
+    return selected && (!mid || r.m === mid) && (!S.statDay || statDayKey(m && m.at) === S.statDay) && (!m || !m.layout || m.layout === S.layoutKey)
       && (side === "both" || (r.side || "us") === side) && (!team || foldName(r.vs || (m && m.vs) || "") === foldName(team));
   };
   keep.sample = {matches:new Set(),points:new Set(),unplaced:false};
@@ -9304,17 +9336,50 @@ function statsOverlay(t, metric = "visits"){
     return o;
   }).join("");
 }
+function dailyBunkerData(traffic){
+  const metric = statMetric(), t = traffic || bunkerTraffic(statKeep()), byId = new Map(curLayout().bunkers.map(b => [b.id,b]));
+  const rows = Object.entries(t).filter(([id,v]) => byId.has(id) && v[metric] > 0)
+    .map(([id,v]) => ({id,b:byId.get(id),n:v[metric]})).sort((a,b) => b.n-a.n || a.id.localeCompare(b.id));
+  const total = rows.reduce((sum,r) => sum+r.n,0);
+  return {metric,total,rows:rows.map(r => ({...r,share:(100*r.n/total).toFixed(1)}))};
+}
+function dailyBunkerText(){
+  const d = dailyBunkerData(), label = d.metric === "outs" ? "Shot there" : "Went there";
+  return ["Daily bunker report · "+statDayLabel(),curLayout().name,
+    (STAT_SIDES.find(([key]) => key === (S.statSide || "both")) || STAT_SIDES[2])[1]
+      + (S.statMatch ? " · "+matchLabel(matchById(S.statMatch)) : S.statTeam ? " · Against "+S.statTeam : " · All opponents"),
+    S.statAsPlayed ? "As played" : "Turned to your current end",`${label}: ${d.total} recorded`,
+    ...d.rows.map(r => `${callOf(r.b)} (${r.id}): ${r.n} · ${r.share}% of ${d.total}`),
+    "Days use the match date in this device's time zone. Percentages are rounded shares of recorded activity, not a win rate."].join("\n");
+}
+window.shareDailyBunkers = () => {
+  if(!dailyBunkerData().total) return flash("No bunker locations logged for this pick yet.");
+  handOff("Daily bunker report",dailyBunkerText());
+};
+function dailyBunkerTable(t){
+  const d = dailyBunkerData(t), label = d.metric === "outs" ? "Shot there" : "Went there";
+  if(!d.total) return `<div class="empty" id="daily-bunker-empty">No ${d.metric === "outs" ? "shot locations" : "bunker visits"} recorded for this pick. Choose another day or chart bunker locations on Tally.</div>`;
+  return `<div class="tblwrap"><table class="tbl tbl--daily" aria-label="${esc(label)} by bunker">
+    <thead><tr><th scope="col">Bunker</th><th scope="col" class="num">${label}</th><th scope="col" class="num">Share of ${d.total}</th></tr></thead>
+    <tbody>${d.rows.map(r => `<tr data-bunker="${esc(r.id)}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(callOf(r.b))}${callOf(r.b) === r.id ? "" : `<span class="tbl__sub">${esc(r.id)}</span>`}</button></td><td class="num">${r.n}</td><td class="num">${r.share}%</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td>Total recorded</td><td class="num">${d.total}</td><td class="num">100.0%</td></tr></tfoot></table></div>
+    <p class="note">Share means a bunker's count out of the ${d.total} recorded ${d.metric === "outs" ? "outs with a location" : "visits"} in this pick. Percentages are rounded. Fewer than ${STAT_THIN} logged at a bunker is too few to read yet.</p>
+    <div class="btnrow"><button class="btn btn--quiet grow" onclick="shareDailyBunkers()">Share daily table</button><button class="btn btn--quiet grow" onclick="exportReport('daily-bunkers')">Spreadsheet (CSV)</button></div>`;
+}
 function statsPage(){
   const teams = statTeams();
   if(S.statTeam && !teams.some(x => foldName(x) === foldName(S.statTeam))) S.statTeam = "";
   const layoutName = curLayout().name, list = curLayout().bunkers, keep = statKeep(), t = bunkerTraffic(keep), side = S.statSide || "both", metric = statMetric();
-  const matches = statMatches(), selected = matches.find(m => m.id === S.statMatch), missing = S.statMatch && !selected;
+  const matches = statDayMatches(), selected = matches.find(m => m.id === S.statMatch), missing = S.statMatch && !selected, daily = S.statView === "daily";
+  const days = statDays(), dayMissing = S.statDay && !days.some(([key]) => key === S.statDay);
   const rows = Object.entries(t).map(([id, v]) => ({b: list.find(x => x.id === id), id, ...v}))
     .filter(r => r.b).sort((a, b) => b[metric] - a[metric] || a.id.localeCompare(b.id));
   const whose = side === "us" ? "your men" : side === "them" ? "their men" : "both sides' men";
   const against = !S.statMatch && S.statTeam ? ` against ${esc(S.statTeam)}` : "";
+  const dayPick = `<div class="fld"><label for="stat-day">Day</label><select id="stat-day" onchange="pickStatDay(this.value)"><option value=""${S.statDay ? "" : " selected"}>All days</option>${dayMissing ? `<option value="${esc(S.statDay)}" selected>Day no longer available</option>` : ""}${days.map(([key,label]) => `<option value="${esc(key)}"${S.statDay === key ? " selected" : ""}>${esc(label)}</option>`).join("")}</select></div>`;
+  const viewPick = `<div class="seg seg--wrap" role="group" aria-label="Bunker stats view"><button class="${daily ? "on" : ""}" aria-pressed="${daily}" onclick="openDailyBunkers()">Daily table</button><button class="${daily ? "" : "on"}" aria-pressed="${!daily}" onclick="set({statView:'map'})">Heat map</button></div>`;
   const matchPick = `<div class="fld"><label for="stat-match">Match</label><select id="stat-match" onchange="pickStatMatch(this.value)">
-    <option value=""${S.statMatch ? "" : " selected"}>All matches on this field</option>${missing ? `<option value="${esc(S.statMatch)}" selected>Match no longer available</option>` : ""}${matches.map(m => `<option value="${esc(m.id)}"${m.id === S.statMatch ? " selected" : ""}>${esc(matchLabel(m))}${m.id === S.matchId ? " · Current match" : ""}</option>`).join("")}</select></div>`;
+    <option value=""${S.statMatch ? "" : " selected"}>${S.statDay ? "All matches on this day" : "All matches on this field"}</option>${missing ? `<option value="${esc(S.statMatch)}" selected>Match no longer available</option>` : ""}${matches.map(m => `<option value="${esc(m.id)}"${m.id === S.statMatch ? " selected" : ""}>${esc(matchLabel(m))}${m.id === S.matchId ? " · Current match" : ""}</option>`).join("")}</select></div>`;
   const sideSeg = `<div class="seg seg--wrap" role="group" aria-label="Whose men">${STAT_SIDES.map(([k, w]) =>
     `<button class="${side === k ? "on" : ""}" aria-pressed="${side === k}" onclick="set({statSide:'${k}',statPick:null})">${w}</button>`).join("")}</div>`;
   const teamPick = !S.statMatch && teams.length ? `<div class="fld" style="margin-top:var(--s2)"><label for="stat-team">Against</label><select id="stat-team" onchange="set({statTeam:this.value,statPick:null})">
@@ -9337,11 +9402,13 @@ function statsPage(){
   const endSeg = moved ? `<div class="seg seg--wrap" role="group" aria-label="Ends" style="margin-top:var(--s2)">${[[false, "Turned to your end"], [true, "As played"]].map(([k, w]) =>
     `<button class="${!!S.statAsPlayed === k ? "on" : ""}" aria-pressed="${!!S.statAsPlayed === k}" onclick="set({statAsPlayed:${k},statPick:null})">${w}</button>`).join("")}</div>` : "";
   const metricName = metric === "outs" ? "shot there" : "went there", peak = Math.max(0,...rows.map(r => r[metric]));
-  const heatControls = `<h3 class="panel__title">Match heat map</h3><div class="seg seg--wrap" role="group" aria-label="Heat map shows">${STAT_METRICS.map(([k,w]) => `<button class="${metric === k ? "on" : ""}" aria-pressed="${metric === k}" onclick="set({statMetric:'${k}',statPick:null})">${w}</button>`).join("")}</div>
+  const heatControls = `<h3 class="panel__title">${daily ? esc(statDayLabel())+" · Daily table" : "Match heat map"}</h3><div class="seg seg--wrap" role="group" aria-label="Activity to show">${STAT_METRICS.map(([k,w]) => `<button class="${metric === k ? "on" : ""}" aria-pressed="${metric === k}" onclick="set({statMetric:'${k}',statPick:null})">${w}</button>`).join("")}</div>
     <p class="note" id="heat-sample">${selected ? `${esc(matchLabel(selected))}. ` : ""}Bunker logs on <b>${keep.sample.points.size}</b> point${keep.sample.points.size === 1 ? "" : "s"} across <b>${keep.sample.matches.size}</b> match${keep.sample.matches.size === 1 ? "" : "es"}.${keep.sample.unplaced ? " Some older entries have no recorded match or point." : ""}</p>
-    <p class="note" id="heat-legend">${peak ? `Numbers count how many times men ${metricName}. Brighter, thicker rings mean more: <b>1–${peak}</b> on this map. Dashed rings have fewer than ${STAT_THIN} logged; too few to read yet.` : `No ${metric === "outs" ? "shot locations" : "bunker visits"} recorded for this pick.`} A blank bunker means nothing was logged there.</p>`;
+    ${daily ? "" : `<p class="note" id="heat-legend">${peak ? `Numbers count how many times men ${metricName}. Brighter, thicker rings mean more: <b>1–${peak}</b> on this map. Dashed rings have fewer than ${STAT_THIN} logged; too few to read yet.` : `No ${metric === "outs" ? "shot locations" : "bunker visits"} recorded for this pick.`} A blank bunker means nothing was logged there.</p>`}`;
+  const controls = daily ? `${viewPick}${dayPick}${sideSeg}<details id="stat-filters"${S.statFilters ? " open" : ""} ontoggle="if(this.isConnected) S.statFilters=this.open" style="margin-top:var(--s2)"><summary onclick="S.statFilters=!this.parentElement.open">Match, opponent &amp; ends</summary>${matchPick}${teamPick}${endSeg}</details>${heatControls}`
+    : `${lede}${viewPick}${dayPick}${matchPick}${sideSeg}${endSeg}${teamPick}${heatControls}`;
+  if(daily) return sec("Bunker stats",`${controls}${dailyBunkerTable(t)}${pickedB ? pickLine : ""}<p class="note">Days use the match date in this device's time zone. Missing dates stay under Date not recorded. Watched games are left out.${moved ? S.statAsPlayed ? " Bunkers stay where they were played." : " Bunkers are turned to your current end." : ""}</p>`,layoutName);
   const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,heatData:t,heatMetric:metric,noPaths:true,names:true,pick:true,overlay:statsOverlay(t,metric)})}</div>`;
-  const controls = `${lede}${matchPick}${sideSeg}${endSeg}${teamPick}${heatControls}`;
   if(!rows.length) return sec("Bunker stats", `${controls}${field}${pickLine}
     <div class="empty">${missing ? "This match is no longer on this field. Choose another match above." : S.statMatch ? "No bunker locations logged for this match and side. Scores alone cannot fill the heat map. Chart a break on Tally or log a rotation." : (side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
       <div class="btnrow" style="margin-top:var(--s3)">
@@ -17562,6 +17629,8 @@ const HELP = {
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
     how:["Counted from the breaks you charted, the outs and the rotations you logged on this field, on your own sheets. Watched games are left out.",
+         "Daily table lists each bunker's count and share of the selected total, highest first. Switch Went there and Shot there for separate counts. Pick a recorded day; it uses the match's date on this device, not when a note was entered. Missing dates stay separate.",
+         "Share daily table and Spreadsheet (CSV) use the same day, matches, side, opponent and ends as the screen. Share is a count divided by the selected total, not a win rate.",
          "Match picks one match or all matches on this field. Yours, Theirs or Both picks whose men. Against narrows all matches to one opponent.",
          "The heat map shows Went there or Shot there. Its numbers, rings and legend follow that choice; brighter, thicker rings mean more recorded activity. Blank means nothing logged there. Scores alone do not locate men on the field.",
          "Reports has an Open match heat map button. It opens your current match when it is on this field, without moving the match you are playing.",
@@ -17631,6 +17700,7 @@ const HELP = {
          "Opponent: pick a team — what they run, split by whether they were ahead, level or behind, your calls against them, where they plant and who shoots your men.",
          "Player: one man sheet by sheet, and Share his report to hand it to him. Grades stay off the shared text.",
          "Season: points on every sheet, and the running point difference over the season.",
+         "Daily bunker table shows where men went or were shot on a recorded day, with a count and share for every bunker. Open match heat map shows those locations on the field.",
          "The field name at the top reads this event only; Every event reads every sheet. Bunker counts are always this field's, because a bunker is a different bunker on another field.",
          "Spreadsheet (CSV) under a list saves it as a file that opens in Excel, Numbers or Google Sheets. Season has Every point and Every man charted, one row each."],
     watch:"Every bar is a count of what was logged, with the count beside it. Nothing is predicted. Games you watched are not in your numbers."},
@@ -18309,7 +18379,7 @@ function reportsPage(){
       <button class="${S.repAll ? "on" : ""}" aria-pressed="${!!S.repAll}" onclick="set({repAll:true})">Every event</button>
     </div>`;
   const body = tab === "opp" ? repOppPage() : tab === "player" ? repPlayerPage() : tab === "season" ? repSeasonPage(sheets) : repTeamPage(sheets);
-  return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="openMatchHeat()">Open match heat map</button>`,
+  return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}<div class="btnrow" style="margin-top:var(--s3)"><button class="btn btn--quiet grow" onclick="openDailyBunkers()">Daily bunker table</button><button class="btn btn--quiet grow" onclick="openMatchHeat()">Open match heat map</button></div>`,
       `${sheets.length} sheet${sheets.length === 1 ? "" : "s"} · ${S.repAll ? "every event" : curLayout().name}`)
     + body;
 }
@@ -18452,6 +18522,11 @@ function csvRows(text){
 const repDate = dateStamp;
 const repField = m => (LAYOUTS[m && m.layout] || {}).name || "";
 const REPORT_CSV = {
+  "daily-bunkers": () => {
+    const d = dailyBunkerData(), side = (STAT_SIDES.find(([key]) => key === (S.statSide || "both")) || STAT_SIDES[2])[1];
+    return [`bunkers-${S.statDay || "all-days"}-${d.metric}`,csvText(["Day","Field","Match","Side","Opponent","Ends","Bunker","Bunker ID",d.metric === "outs" ? "Shot there" : "Went there","Total recorded","Share (%)"],
+      d.rows.map(r => [S.statDay === "undated" ? "" : S.statDay || "All days",curLayout().name,S.statMatch ? matchLabel(matchById(S.statMatch)) : "All matches",side,S.statMatch ? (matchById(S.statMatch) || {}).vs || "" : S.statTeam || "All opponents",S.statAsPlayed ? "As played" : "Turned to current end",callOf(r.b),r.id,r.n,d.total,Number(r.share)]))];
+  },
   calls: () => ["your-calls", csvText(["Call", "Called", "Won", "Lost", "No result"], repCalls().map(c => [callName(c.key), c.n, c.won, c.lost, c.n - c.won - c.lost]))],
   bunkers: () => ["where-points-come-from", csvText(["Bunker", "Breaks", "Made it", "Shot on the break", "Points won", "Points lost", "Net"],
     repBunkerRows().map(r => [r.name, r.n, r.made, r.shot, r.won, r.lost, r.net]))],
@@ -18582,7 +18657,7 @@ const TOOL_WORDS={
   format:"rules division game length", schedule:"calendar games fixtures times",
   walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
-  stats:"bunker statistics outs survival heat map match activity", assess:"grades grading players", messages:"team notes",
+  stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
   nexus:"league sync backup backups save file restore recovery account sign out logout log out privacy support"
 };

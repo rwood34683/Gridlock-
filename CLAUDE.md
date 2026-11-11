@@ -1412,6 +1412,19 @@ Show the count of distinct recorded points/matches and retain the thin-sample
 mark. Neither viewing nor filtering changes the active match, point, scores
 or season records. `test/match-heat.cjs` covers these rules.
 
+The daily table uses the same filtered traffic as that heat map, with separate
+Went there and Shot there views. Each row shows the team's bunker call, the
+exact count and its one-decimal share of the complete selected total (never
+just the visible rows, never a win probability). Keep every nonzero bunker,
+highest count first. Group by the parent match's recorded calendar date in
+the device's time zone, not UTC date slicing and not the entry's creation or
+edit time. Missing/unreadable dates and orphan records stay under Date not
+recorded; do not substitute today. `statDay` and `statView` are scratch. Day
+changes clear the match selection and field changes clear the day; unavailable
+selections remain empty. The table, heat map, shared text and CSV must agree
+on day, match, side, opponent, end frame and measure. `test/daily-bunkers.cjs`
+checks the photo's 5-of-14 example, midnight/DST, unknown dates and exports.
+
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
 current copy with the coach's account; Gridlock PB LLC's administrators can
