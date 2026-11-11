@@ -168,10 +168,42 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   // A shared line code is text from outside: strip anything that could be markup.
   ["safe input", "const o=JSON.parse(upraB64d(p[1]));return {id:'shared',name:o.n||'Shared line',play:o.p||'',arch:o.a||'',spots:(o.s||[]).map(x=>{const sp={player:x[0],bunker:x[1]};",
     "const o=JSON.parse(upraB64d(p[1]));const T=v=>sanitizeText(v==null?'':v).replace(/[\"'`&]/g,'').slice(0,60);return {id:'shared',name:T(o.n)||'Shared line',play:T(o.p),arch:T(o.a),spots:(Array.isArray(o.s)?o.s:[]).map(x=>{const sp={player:T(x[0]),bunker:T(x[1])};"],
+  // ---- Walk, as the coach app's: the field shows, a tap picks the bunker ----
+  ["walk", "m==='nexus'||m==='walk'||m==='ops'", "m==='nexus'||m==='ops'"],
+  ["walk", "function setMode(m){if(SUB_TABS.includes(m)", "function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='walk')ws.remove();}if(SUB_TABS.includes(m)"],
+  ["walk", "</style>\n</head>", `.fieldbox{position:relative}
+  .wstick{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .wstick__head{display:flex;align-items:center;gap:8px;background:#0b0c0d;border:1px solid #3a3f40;border-radius:8px;padding:0 0 0 10px;color:#efedeb;font-size:13px}
+  .wstick__head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wstick__head span{color:#ff5a52;font-size:12px;white-space:nowrap;flex:1}
+  .wstick__x{min-width:44px;min-height:44px;background:none;border:0;color:#efedeb;font-size:16px;cursor:pointer}
+  .wstick__pad{display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px}
+  .wnote{background:#efedeb;color:#0b0c0d;border-top:5px solid #ad1515;border-radius:2px 2px 6px 6px;padding:8px 10px 6px;transform:rotate(var(--tilt,0deg))}
+  .wnote__text{margin:0;font-size:14px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
+  .wnote__when{display:block;margin-top:4px;font-size:11px;color:#5c0f0d;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .wnote--empty{background:#1e2121;color:#efedeb;border-top-color:#5c0f0d}
+  .wnote--empty .wnote__text{font-weight:500}
+  .walk-lede{font-size:13px;color:#ff5a52;margin:2px 0 8px}
+  .walk-book{font-size:13px;color:#efedeb;margin:6px 0}
+  .walk-add{width:100%;margin-top:8px}
+  .walk-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .walk-row p{margin:2px 0 0}
+</style>
+</head>`],
+  // Gold highlights in Tally become the coach app's: the picked bunker reads white, a switch that is on is red.
+  ["rings", "<div id=\"tSelBlock\" class=\"iqrow\" style=\"border-color:#ffd24d\">", "<div id=\"tSelBlock\" class=\"iqrow\" style=\"border-color:#efedeb\">"],
+  ["rings", "${tallyDelay?';background:#e0a41a;border-color:#ffd24d;color:#211900':''}", "${tallyDelay?';background:#ad1515;border-color:#e5252a;color:#ffffff':''}"],
+  ["rings", "${tallyTrace?'style=\"background:#e0a41a;border-color:#ffd24d;color:#211900\"':''}", "${tallyTrace?'style=\"background:#ad1515;border-color:#e5252a;color:#ffffff\"':''}"],
+  ["rings", "h+='<div class=\"iqrow\" style=\"border-color:#e0a41a;margin-top:8px\">';", "h+='<div class=\"iqrow\" style=\"border-color:#3a3f40;margin-top:8px\">';"],
+  ["rings", "<button class=\"ld\" id=\"tPointOver\" style=\"flex:1;border-color:#e0a41a;background:#3a2c08;color:#ffd24d;font-weight:700\">", "<button class=\"ld on\" id=\"tPointOver\" style=\"flex:1;font-weight:700\">"],
+  ["rings", "<div class=\"iqrow\" style=\"border-color:#ffd24d66\"><div class=\"row\" style=\"justify-content:space-between;align-items:baseline;gap:6px\">", "<div class=\"iqrow\" style=\"border-color:#3a3f40\"><div class=\"row\" style=\"justify-content:space-between;align-items:baseline;gap:6px\">"],
+  ["rings", "${days?`<div style=\"font-size:12px;font-weight:800;color:#ffd24d\">${days}</div>`:''}", "${days?`<div style=\"font-size:12px;font-weight:800;color:#ff5a52\">${days}</div>`:''}"],
 ];
 
 // Regex steps: [rule, pattern, replacement].
 const REGEX = [
+  // Every selection ring is white, as on the coach app; gold stays only where it means primary.
+  ["rings", /(el\('circle',\{cx:X\((?:b|ln)\.[a-z]+\),cy:Y\((?:b|ln)\.[a-z]+\),r:[0-9.]+,fill:'none',stroke:)'#ffd24d'/g, "$1'#ffffff'"],
   // The July build's sample code words included two that must never ship.
   ["decency", /\n \{id:'s-(?:hitler|immigrant)',[^\n]*\}, ?(?=\n)/g, ""],
   ["no prices", /upsellPop\('Add another team \\u2014 20% off',[^;]*?,'coach2'\)/g, "gAlert('This preview holds one team.')"],
@@ -193,7 +225,18 @@ const REGEX = [
   ["no prices", /,\n\s*page:\['[^'\n]*','https:\/\/www\.(?:bkipaintball|mlpbplus)\.com[^'\n]*'\]/g, ""],
 ];
 
+// The Walk tab lives in tools/teaser_walk.js, between markers, like the fields.
+const WALK = fs.readFileSync(path.join(__dirname, "teaser_walk.js"), "utf8").trimEnd();
+const W0 = "/* coachwalk:begin \u2014 generated from tools/teaser_walk.js, never hand-edit */", W1 = "/* coachwalk:end */";
+function walkBlock(src) {
+  const a = src.indexOf(W0), b = src.indexOf(W1), block = W0 + "\n" + WALK + "\n" + W1;
+  if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + W1.length);
+  const old = /function renderWalk\(\)\{const B=document\.getElementById\('walkbox'\);if\(!B\)return;\n  B\.innerHTML=`<div class="lbl">Walk the field<\/div>[^\n]*\n\}/;
+  return old.test(src) ? src.replace(old, () => block) : src;
+}
+
 function apply(src, kind) {
+  src = walkBlock(src);
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step applies wherever what it looks for is still in the file. A step whose
   // result contains what it looks for is skipped once that result is there, or

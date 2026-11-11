@@ -128,6 +128,23 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
   .board{overflow-x:auto;max-width:100%}
   @media(max-width:640px){#evsub{display:none}#layoutSel{flex:1 1 auto;min-width:0;max-width:100%}}
   @media(max-width:600px){.matchup{grid-template-columns:1fr}.matchup>.vs{display:none}}
+.fieldbox{position:relative}
+  .wstick{position:absolute;z-index:3;display:flex;flex-direction:column;gap:6px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .wstick__head{display:flex;align-items:center;gap:8px;background:#0b0c0d;border:1px solid #3a3f40;border-radius:8px;padding:0 0 0 10px;color:#efedeb;font-size:13px}
+  .wstick__head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wstick__head span{color:#ff5a52;font-size:12px;white-space:nowrap;flex:1}
+  .wstick__x{min-width:44px;min-height:44px;background:none;border:0;color:#efedeb;font-size:16px;cursor:pointer}
+  .wstick__pad{display:flex;flex-direction:column;gap:8px;padding:2px 4px 4px}
+  .wnote{background:#efedeb;color:#0b0c0d;border-top:5px solid #ad1515;border-radius:2px 2px 6px 6px;padding:8px 10px 6px;transform:rotate(var(--tilt,0deg))}
+  .wnote__text{margin:0;font-size:14px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
+  .wnote__when{display:block;margin-top:4px;font-size:11px;color:#5c0f0d;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .wnote--empty{background:#1e2121;color:#efedeb;border-top-color:#5c0f0d}
+  .wnote--empty .wnote__text{font-weight:500}
+  .walk-lede{font-size:13px;color:#ff5a52;margin:2px 0 8px}
+  .walk-book{font-size:13px;color:#efedeb;margin:6px 0}
+  .walk-add{width:100%;margin-top:8px}
+  .walk-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .walk-row p{margin:2px 0 0}
 </style>
 </head>
 <body>
@@ -667,7 +684,7 @@ function editClick(e){try{if(!svg.createSVGPoint||!svg.getScreenCTM)return;const
   renderEditor();}catch(err){}}
 function renderEditor(){
   field();
-  if(editSel>=0&&editRaw[editSel]){const b=editRaw[editSel];el('circle',{cx:X(b.x),cy:Y(b.y),r:6,fill:'none',stroke:'#ffd24d','stroke-width':1.1});el('text',{x:X(b.x),y:Y(b.y)-7,fill:'#ffe49a','font-size':3,'text-anchor':'middle','font-weight':800}).textContent=b.x+','+b.y;}
+  if(editSel>=0&&editRaw[editSel]){const b=editRaw[editSel];el('circle',{cx:X(b.x),cy:Y(b.y),r:6,fill:'none',stroke:'#ffffff','stroke-width':1.1});el('text',{x:X(b.x),y:Y(b.y)-7,fill:'#ffe49a','font-size':3,'text-anchor':'middle','font-weight':800}).textContent=b.x+','+b.y;}
   svg.onclick=editClick;
   document.getElementById('legend').innerHTML='<span>✎ Editing — tap the field to place · tap a piece to grab it, tap again to drop · gold ring = selected</span>';
   const P=document.getElementById('panel');
@@ -872,10 +889,10 @@ function slDrawLines(lines,stance){(lines||[]).forEach(ln=>{
     el('line',{x1:X(ln.mx),y1:Y(ln.my),x2:X(ln.bx),y2:Y(ln.by),stroke:SL_BOUNCE,'stroke-width':.8,'stroke-dasharray':'2 1.3',opacity:.95});
     el('circle',{cx:X(ln.mx),cy:Y(ln.my),r:1.9,fill:SL_BOUNCE});
     el('circle',{cx:X(ln.ax),cy:Y(ln.ay),r:1.7,fill:'#ffd24d'});
-    el('circle',{cx:X(ln.bx),cy:Y(ln.by),r:1.7,fill:'none',stroke:'#ffd24d','stroke-width':.7});
+    el('circle',{cx:X(ln.bx),cy:Y(ln.by),r:1.7,fill:'none',stroke:'#ffffff','stroke-width':.7});
   }else{const cl=losClear(ln.ax,ln.ay,ln.bx,ln.by,new Set(),stance||'stand');
     el('line',{x1:X(ln.ax),y1:Y(ln.ay),x2:X(ln.bx),y2:Y(ln.by),stroke:cl?'#ffffff':'#8d9092','stroke-width':.7,'stroke-dasharray':cl?'':'1.6 1.6',opacity:.95});
-    el('circle',{cx:X(ln.ax),cy:Y(ln.ay),r:1.8,fill:'#ffd24d'});el('circle',{cx:X(ln.bx),cy:Y(ln.by),r:1.8,fill:'none',stroke:'#ffd24d','stroke-width':.7});}});}
+    el('circle',{cx:X(ln.ax),cy:Y(ln.ay),r:1.8,fill:'#ffd24d'});el('circle',{cx:X(ln.bx),cy:Y(ln.by),r:1.8,fill:'none',stroke:'#ffffff','stroke-width':.7});}});}
 function slLoad(rec){if(!rec)return;
   if(rec.kind==='lines'){sightActiveId=rec.id;slEdit=null;renderSight();return;}
   sightActiveId=rec.id||'';slEdit=null;sightStance=(rec.stance==='crouch')?'crouch':'stand';
@@ -930,7 +947,7 @@ function slPointerUp(e){if(!slEdit||!slDrag)return;const d=slDrag;slDrag=null;
 function slRenderEdit(){const P=document.getElementById('panel');const LG=document.getElementById('legend');svg.onclick=null;svg.onpointerdown=slPointerDown;svg.onpointermove=slPointerMove;svg.onpointerup=slPointerUp;svg.onpointerleave=slPointerUp;
   LG.innerHTML='<span><i class="sw" style="background:#ffffff"></i>clear</span><span><i class="sw" style="background:#8d9092"></i>blocked</span><span><i class="sw" style="background:'+SL_BOUNCE+'"></i>bounce</span><span>drag the dots</span>';
   slDrawEditLines();
-  slPend.forEach(bi=>{if(BUN[bi]){const b=BUN[bi];el('circle',{cx:X(b.x),cy:Y(b.y),r:3.6,fill:'none',stroke:'#ffd24d','stroke-width':1.4});}});
+  slPend.forEach(bi=>{if(BUN[bi]){const b=BUN[bi];el('circle',{cx:X(b.x),cy:Y(b.y),r:3.6,fill:'none',stroke:'#ffffff','stroke-width':1.4});}});
   const need=slType==='bounce'?3:2;
   let status=slType==='bounce'?(slPend.length===0?'tap the START bunker':slPend.length===1?'tap the BOUNCE bunker':'tap the TARGET bunker'):(slPend.length===0?'tap a START bunker':'tap the TARGET bunker');
   let h=`<div class="lbl">\u270e Editing sightline <button class="ld" id="slECancel" style="float:right;font-size:10px;padding:1px 8px">\u2715 cancel</button></div>`;
@@ -1929,7 +1946,7 @@ function renderMove(){
       el('circle',{cx:X(b.x),cy:Y(b.y),r:2.6+Math.min(4,d.total*0.5),fill:'#4d78e8',opacity:.18,stroke:'#6f9cff','stroke-width':.5});
       el('text',{x:X(b.x),y:Y(b.y)-4.5,fill:'#efedeb','font-size':2.4,'text-anchor':'middle','font-weight':800}).textContent=d.total;});
   }
-  if(mvBunker){const b=BUN.find(x=>x.n===mvBunker);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:5,fill:'none',stroke:'#ffd24d','stroke-width':1.2});}
+  if(mvBunker){const b=BUN.find(x=>x.n===mvBunker);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:5,fill:'none',stroke:'#ffffff','stroke-width':1.2});}
   document.getElementById('legend').innerHTML=mvPlayer?`<span>${mvPlayer} \u2014 tap a bunker, then log how they got there</span>`:'<span>Pick a player, then log how they reach each bunker</span>';
 
   const o=movesAll();const names=Object.keys(o).sort();
@@ -2265,7 +2282,7 @@ function renderTally(){if(MODE==='tally')TSCOPE=null;
     const col=net>0?'#3ecf8e':net<0?'#e0a33a':'#3a3f40';
     el('circle',{cx:X(b.x),cy:Y(b.y),r:3.6,fill:'none',stroke:col,'stroke-width':1.1,opacity:.9});
     if(t.made+t.dead>0)el('text',{x:X(b.x),y:Y(b.y)-4.5,fill:col,'font-size':2.5,'text-anchor':'middle','font-weight':800}).textContent=(t.made+t.dead);});
-  if(tallySel){const b=BUN.find(x=>x.id===tallySel);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:5,fill:'none',stroke:'#ffd24d','stroke-width':1.2});}
+  if(tallySel){const b=BUN.find(x=>x.id===tallySel);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:5,fill:'none',stroke:'#ffffff','stroke-width':1.2});}
   // Taps are resolved by tallyClick (svg.onclick) using the real tap coordinate —
   // it selects the bunker closest to where you pushed. No overlay targets, no overlap.
   document.getElementById('legend').innerHTML='<span>Bunker tally \u2014 tap a bunker on the field, then log the break below. A green ring: that bunker wins points. An amber ring: it costs them.</span>';
@@ -2280,7 +2297,7 @@ function renderTally(){if(MODE==='tally')TSCOPE=null;
   let h='<div class="lbl">Bunker tally</div>';
   if(tallySel){
     const t=tallyBunker(tallySel);const att=t.made+t.dead;
-    h+=`<div id="tallyOpts"><div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><label style="font-size:11px;color:#ff5a52;white-space:nowrap">Point <input id="tPoint" type="text" inputmode="numeric" value="${hesc(tallyPoint)}" placeholder="#" style="width:52px"></label><input id="tPlayer" value="${hesc(tallyPlayer)}" placeholder="player name (optional)" style="flex:1"></div><div id="tSelBlock" class="iqrow" style="border-color:#ffd24d"><div style="font-size:13px;font-weight:800">${tallyPlayer?hesc(tallyPlayer)+' <span style="color:#ff5a52;font-weight:600;font-size:11px">('+bLabelId(tallySel)+')</span>':bLabelId(tallySel)}${tallyPoint?' \u00b7 Pt '+hesc(tallyPoint):''} \u00b7 ${att} break${att===1?'':'s'}</div>
+    h+=`<div id="tallyOpts"><div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><label style="font-size:11px;color:#ff5a52;white-space:nowrap">Point <input id="tPoint" type="text" inputmode="numeric" value="${hesc(tallyPoint)}" placeholder="#" style="width:52px"></label><input id="tPlayer" value="${hesc(tallyPlayer)}" placeholder="player name (optional)" style="flex:1"></div><div id="tSelBlock" class="iqrow" style="border-color:#efedeb"><div style="font-size:13px;font-weight:800">${tallyPlayer?hesc(tallyPlayer)+' <span style="color:#ff5a52;font-weight:600;font-size:11px">('+bLabelId(tallySel)+')</span>':bLabelId(tallySel)}${tallyPoint?' \u00b7 Pt '+hesc(tallyPoint):''} \u00b7 ${att} break${att===1?'':'s'}</div>
       <div style="font-size:12px;color:#efedeb">made ${t.made} \u00b7 dead ${t.dead}${att?` \u00b7 <b>${Math.round(100*t.made/att)}% make</b>`:''} \u00b7 pts <b style="color:#2ec76b">+${t.ptsWon||0}</b> / <b style="color:#e0503a">\u2212${t.ptsLost||0}</b></div></div>
      
      <div style="font-size:11px;color:#ff5a52;margin:2px 0 2px">Dead or alive?</div>
@@ -2294,13 +2311,13 @@ function renderTally(){if(MODE==='tally')TSCOPE=null;
      <div style="font-size:11px;color:#ff5a52;margin:2px 0 2px">Shooting at <span style="color:#ff5a52">(which bunker/lane)</span></div>
      <div class="row" style="gap:4px;margin-bottom:5px"><select id="tAt" style="flex:1;font-size:12px"><option value="">\u2014 none \u2014</option>${BUN.filter((b,i,a)=>a.findIndex(z=>z.n===b.n)===i&&b.n!==idName(tallySel)).map(b=>`<option value="${b.n}" ${tallyAt===b.n?'selected':''}>${bname(b.n)}</option>`).join('')}</select></div>
      <div style="font-size:11px;color:#ff5a52;margin:2px 0 2px">Timing</div>
-     <div class="row" style="gap:5px;margin-bottom:4px"><button class="ld ${tallyDelay?'on':''}" id="tDelay" style="flex:1${tallyDelay?';background:#e0a41a;border-color:#ffd24d;color:#211900':''}">${tallyDelay?'\u2713 delayed break':'delayed break'}</button></div>
+     <div class="row" style="gap:5px;margin-bottom:4px"><button class="ld ${tallyDelay?'on':''}" id="tDelay" style="flex:1${tallyDelay?';background:#ad1515;border-color:#e5252a;color:#ffffff':''}">${tallyDelay?'\u2713 delayed break':'delayed break'}</button></div>
      <div style="font-size:11px;color:#ff5a52;margin:2px 0 2px">Moved to <span style="color:#ff5a52">(secondary bunker \u2014 primary\u2192secondary)</span></div>
      <div class="row" style="gap:4px;margin-bottom:5px"><select id="tSec" style="flex:1;font-size:12px"><option value="">\u2014 stayed \u2014</option>${BUN.filter((b,i,a)=>a.findIndex(z=>z.n===b.n)===i&&b.n!==idName(tallySel)).map(b=>`<option value="${b.n}" ${tallySec===b.n?'selected':''}>${bname(b.n)}</option>`).join('')}</select><button class="ld ${tallySecDelay?'on':''}" id="tSecDelay" style="font-size:11px">delayed move</button></div>
      <div class="iqrow" style="border-color:#3a3f40;margin-top:6px">
   <div style="font-size:12px;font-weight:800;color:#efedeb;margin-bottom:4px">Route</div>
   <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center">
-    <button class="ld ${tallyTrace?'on':''}" id="tTrace" ${tallyTrace?'style="background:#e0a41a;border-color:#ffd24d;color:#211900"':''}>${tallyTrace?'\u270e tracing \u2014 tap the field':'\u270e trace route'}</button>
+    <button class="ld ${tallyTrace?'on':''}" id="tTrace" ${tallyTrace?'style="background:#ad1515;border-color:#e5252a;color:#ffffff"':''}>${tallyTrace?'\u270e tracing \u2014 tap the field':'\u270e trace route'}</button>
     <span style="font-size:11px;color:#ff5a52">${tallyRoute.length}/5 pts${tallyRoute.length?' \u00b7 tap a laid point to flag delay':''}</span>
     ${tallyRoute.length?'<button class="ld" id="tRouteClr">clear route</button>':''}
   </div>
@@ -2311,9 +2328,9 @@ function renderTally(){if(MODE==='tally')TSCOPE=null;
   } else {
     h+='<div style="font-size:12px;color:#ff5a52">Tap a bunker on the field — or pick one below — then log that player\'s breakout (dead or alive, route). When the point is over, log the break result below.</div>';
     h+=(tallyLast)?'<div class="row" style="margin-top:6px"><button class="ld" id="tUndo" style="font-size:11px">↶ undo last ('+bLabelId(tallyLast.name)+' '+(tallyLast.made?'made':'dead')+')</button></div>':'';
-    h+='<div class="iqrow" style="border-color:#e0a41a;margin-top:8px">';
+    h+='<div class="iqrow" style="border-color:#3a3f40;margin-top:8px">';
     if(!tprOpen){
-      h+='<div class="row"><button class="ld" id="tPointOver" style="flex:1;border-color:#e0a41a;background:#3a2c08;color:#ffd24d;font-weight:700">● Point over — log break result</button></div>';
+      h+='<div class="row"><button class="ld on" id="tPointOver" style="flex:1;font-weight:700">● Point over — log break result</button></div>';
       h+='<div style="font-size:11px;color:#ff5a52;margin-top:4px">Do this after you\'ve logged all five players\' breakouts for the point.</div>';
     } else {
       h+='<div style="font-size:12px;font-weight:800;color:#ffd24d;margin-bottom:4px">Break result'+(tallyPoint?' — point '+hesc(tallyPoint):'')+'</div>';
@@ -4012,9 +4029,70 @@ function drawWalk(){const c=walkCanvas,ctx=walkCtx;if(!c||!ctx||!ctx.fillRect)re
   ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(W/2-8,H/2);ctx.lineTo(W/2+8,H/2);ctx.moveTo(W/2,H/2-8);ctx.lineTo(W/2,H/2+8);ctx.stroke();
   drawMap();
 }
+/* coachwalk:begin — generated from tools/teaser_walk.js, never hand-edit */
+/* coachwalk — the coach app's Walk tab, for the previews. Inserted by
+   tools/teaser_rules.js between the coachwalk markers; edit it here.
+   Tap a bunker: its notes stand beside it on the field like sticky notes,
+   what the measured layout says about it reads under the field, and one tap
+   opens Sightlines standing in it. Notes stay with the field, on this phone. */
+const WALK_WIRES=['The field','Snake wire','Snake side','Centre','Dorito side','Dorito wire'];
+let walkPick=null,walkShut=null;
+function walkAll(){try{const o=JSON.parse(localStorage.getItem('gridlock_walknotes')||'{}');return o&&typeof o==='object'?o:{};}catch(e){return {};}}
+function walkNotesHere(){const l=walkAll()[layoutKey];return Array.isArray(l)?l.filter(n=>n&&typeof n.note==='string'):[];}
+function walkSave(list){try{const o=walkAll();o[layoutKey]=list;localStorage.setItem('gridlock_walknotes',JSON.stringify(o));return true;}catch(e){gAlert('This phone would not keep the note.');return false;}}
+function walkWhereOf(b){return bLabelId(b.id)+' · '+b.id;}
+function walkIdOf(where){return String(where||'').split(' · ').pop();}
+function walkPickedBun(){const id=walkIdOf(walkPick);return BUN.find(b=>b.id===id)||null;}
+function walkLanes(b){const i=BUN.indexOf(b);let clear=0;BUN.forEach((c,j)=>{if(j!==i&&losClear(b.x,b.y,c.x,c.y,new Set([i,j]),'stand'))clear++;});return {clear,of:BUN.length-1};}
+function walkClick(e){try{if(!svg.createSVGPoint||!svg.getScreenCTM)return;const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const fx=clamp(p.x,0,150),fy=clamp(120-p.y,0,120);
+  let hit=null,best=8;BUN.forEach(b=>{const d=Math.hypot(b.x-fx,b.y-fy);if(d<best){best=d;hit=b;}});if(hit){walkPick=walkWhereOf(hit);walkShut=null;walkRedraw(true);}}catch(err){}}
+function walkRedraw(focus){const t=document.getElementById('wkNote');const typed=t?t.value:'';renderWalk();const n=document.getElementById('wkNote');if(n){n.value=typed;if(focus)n.focus({preventScroll:true});}}
+function walkAdd(){const pb=walkPickedBun();const where=pb?walkWhereOf(pb):((document.getElementById('wkWhere')||{}).value||WALK_WIRES[0]);
+  const note=sanitizeText(((document.getElementById('wkNote')||{}).value||'').trim()).slice(0,240);
+  if(!note){gAlert('Type the note first.');return;}
+  const fold=s=>String(s).toLowerCase().replace(/\s+/g,' ').trim();
+  if(walkNotesHere().some(n=>n.where===where&&fold(n.note)===fold(note))){gAlert('Already noted here.');return;}
+  if(!walkSave([{where,note,at:Date.now()}].concat(walkNotesHere())))return;
+  const t=document.getElementById('wkNote');if(t)t.value='';walkPick=null;renderWalk();}
+function walkDel(i){const list=walkNotesHere(),was=list[i];if(!was)return;
+  gChoose('Take this note off?','It comes off '+(was.where||'the field')+' and is not kept anywhere else.',[{label:'Remove',primary:true,run:()=>{list.splice(i,1);walkSave(list);renderWalk();}},{label:'Cancel',run:()=>{}}]);}
+function walkStickies(){const old=document.getElementById('walkStick');if(old)old.remove();
+  const b=walkPickedBun();if(!b||walkShut===b.id||MODE!=='walk')return;
+  const box=document.querySelector('.fieldbox');if(!box)return;
+  const mine=walkNotesHere().filter(n=>walkIdOf(n.where)===b.id);
+  const day=t=>{try{return t?new Date(t).toLocaleDateString([],{month:'short',day:'numeric'}):'';}catch(e){return '';}};
+  const el2=document.createElement('div');el2.id='walkStick';el2.className='wstick';el2.setAttribute('role','group');el2.setAttribute('aria-label','Notes on '+bLabelId(b.id));
+  el2.innerHTML=`<div class="wstick__head"><b>${hesc(bLabelId(b.id))}</b><span>${mine.length?mine.length+(mine.length===1?' note':' notes'):'no notes'}</span><button type="button" class="wstick__x" aria-label="Close the notes">✕</button></div><div class="wstick__pad">${mine.length?mine.map((n,i)=>`<div class="wnote" style="--tilt:${i%2?1.2:-1.2}deg"><p class="wnote__text">${hesc(n.note)}</p>${n.at?`<span class="wnote__when">${hesc(day(n.at))}</span>`:''}</div>`).join(''):`<div class="wnote wnote--empty" style="--tilt:-1deg"><p class="wnote__text">No notes on ${hesc(bLabelId(b.id))} yet. Type one below and tap Add note.</p></div>`}</div>`;
+  el2.querySelector('.wstick__x').onclick=ev=>{ev.stopPropagation();walkShut=b.id;el2.remove();};
+  el2.addEventListener('click',ev=>ev.stopPropagation());
+  box.appendChild(el2);walkPlace();}
+function walkPlace(){const el2=document.getElementById('walkStick'),box=document.querySelector('.fieldbox'),b=walkPickedBun();if(!el2||!box||!b||!svg.getScreenCTM)return;
+  const m=svg.getScreenCTM();if(!m)return;const pt=svg.createSVGPoint();pt.x=X(b.x);pt.y=Y(b.y);const at=pt.matrixTransform(m),r=box.getBoundingClientRect();
+  const x=at.x-r.left,y=at.y-r.top,gap=16,pad=6,w=Math.min(240,Math.max(150,r.width*0.46));el2.style.width=w+'px';el2.style.maxHeight=(r.height-pad*2)+'px';
+  const h=el2.offsetHeight,right=x<r.width/2;el2.style.left=Math.max(pad,Math.min(r.width-w-pad,right?x+gap:x-gap-w))+'px';el2.style.top=Math.max(pad,Math.min(r.height-h-pad,y-h/2))+'px';}
+addEventListener('resize',()=>{if(MODE==='walk')walkPlace();});
 function renderWalk(){const B=document.getElementById('walkbox');if(!B)return;
-  B.innerHTML=`<div class="lbl">Walk the field</div><div style="font-size:12px;color:#efedeb">The 3D field walk is coming with the full app. Until then, walk the event's own map on the field.</div>`;
-}
+  if(typeof field==='function')field();
+  const notes=walkNotesHere(),noted=new Set(notes.map(n=>walkIdOf(n.where)));
+  BUN.forEach(b=>{if(noted.has(b.id))el('circle',{cx:X(b.x),cy:Y(b.y),r:1.6,fill:'#efedeb',stroke:'#0b0c0d','stroke-width':.6});});
+  const pb=walkPickedBun();if(pb){const w=(pb.w||5)/2+1.5,h=(pb.h||5)/2+1.5;el('rect',{x:X(pb.x)-w,y:Y(pb.y)-h,width:2*w,height:2*h,rx:1.5,fill:'none',stroke:'#ffffff','stroke-width':.9});}
+  svg.onclick=walkClick;svg.onpointerdown=null;svg.onpointerup=null;
+  const lg=document.getElementById('legend');if(lg){lg.classList.remove('hidden');lg.innerHTML='<span>Tap a bunker to see its notes'+(notes.length?' — a dot marks one that already has a note':'')+', and add one below. Or pick a wire.</span>';}
+  const P=document.getElementById('panel');if(P){P.classList.add('hidden');}
+  const where=walkPick||WALK_WIRES[0];
+  let book='';if(pb){const l=walkLanes(pb);book=`<p class="walk-book"><b>${hesc(bLabelId(pb.id))}</b> — <b>${l.clear}</b> of ${l.of} lanes clear from here, standing.</p><button class="ld" id="wkLanes">Lanes from here</button>`;}
+  const opts=WALK_WIRES.map(w=>`<option${w===where?' selected':''}>${hesc(w)}</option>`).join('')+BUN.map(b=>{const v=walkWhereOf(b);return `<option value="${hesc(v)}"${v===where?' selected':''}>${hesc(bLabelId(b.id))}</option>`;}).join('');
+  B.innerHTML=`<div class="panel"><div class="lbl">Walk</div><p class="walk-lede">What you noticed standing on it, against the bunker or the wire you noticed it on. Notes stay with this field, on this phone.</p>${book}
+    <label class="lbl" for="wkWhere">Where</label><select id="wkWhere">${opts}</select>
+    <label class="lbl" for="wkNote">Note</label><textarea id="wkNote" maxlength="240" placeholder="Snake mouth is hot. GP first off the tape."></textarea>
+    <button class="ld on walk-add" id="wkAdd">Add note</button></div>
+    <div class="panel"><div class="lbl">On the walk${notes.length?' · '+notes.length+(notes.length===1?' note':' notes'):''}</div>${notes.length?notes.map((n,i)=>`<div class="iqrow walk-row"><div><b>${hesc(n.note)}</b><p>${hesc(n.where)}</p></div><button class="ld" data-wkdel="${i}">Remove</button></div>`).join(''):'<div class="iqrow">Nothing noted on this field yet.</div>'}</div>`;
+  B.querySelector('#wkWhere').onchange=e=>{walkPick=e.target.value;walkShut=null;walkRedraw(false);};
+  B.querySelector('#wkAdd').onclick=walkAdd;
+  B.querySelectorAll('[data-wkdel]').forEach(x=>x.onclick=()=>walkDel(+x.dataset.wkdel));
+  const ln=B.querySelector('#wkLanes');if(ln)ln.onclick=()=>{const i=BUN.indexOf(walkPickedBun());if(i<0)return;sightSel=i;if(typeof setMode==='function')setMode('sight');sightSel=i;if(typeof renderSight==='function')renderSight();window.scrollTo({top:0,behavior:'smooth'});};
+  walkStickies();}
+/* coachwalk:end */
 function draw(){if(MODE==='play')renderPlay();else if(MODE==='ref')renderRef();else if(MODE==='tally')renderTally();else if(MODE==='assess')renderAssess();else if(MODE==='codes')renderCodes();else if(MODE==='move')renderMove();else if(MODE==='lineup')renderLineups();else if(MODE==='myline')renderLineView();else if(MODE==='msg')renderMsg();else if(MODE==='team')renderTeam();else if(MODE==='practice')renderPractice();else if(MODE==='log')renderLog();else if(MODE==='iq')renderIQ();else if(MODE==='crew')renderCrew();else if(MODE==='lang')renderLang();else if(MODE==='ready')renderReady();else if(MODE==='nexus')renderNexus();else if(MODE==='ops')renderOps();else if(MODE==='evops')renderEvops();else if(MODE==='crm')renderCrm();else if(MODE==='gov')renderGov();else if(MODE==='sight')renderSight();else if(MODE==='walk')renderWalk();else renderScout();}
 
 /* ---------------- PRACTICE (player): log drills + skills, see growth ----------------
@@ -4640,13 +4718,13 @@ function renderPractice(){
 function msgLocked(){return EDITION==='player'&&!LICF('teammsg');}
 const SUB_TABS=['team','myline','msg']; /* player tabs that are in the Team app, not this preview */
 function msgUpsell(m){const nm=m==='team'?'Team':m==='myline'?'My Line':'Messages',what=m==='team'?'The Team tab':m==='myline'?'My Line':'Team messaging';upsellPop(nm+' \u2014 not available',what+' is in the Team app, which is on the way. It is not in this preview.','scout');}
-function setMode(m){if(SUB_TABS.includes(m)&&msgLocked()){msgUpsell(m);return;}MODE=m;if(typeof TSCOPE!=='undefined')TSCOPE=null;{var _sh=document.getElementById('tallySheet');if(_sh)_sh.style.display='none';}if(typeof lnPbStop==='function')lnPbStop();
+function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='walk')ws.remove();}if(SUB_TABS.includes(m)&&msgLocked()){msgUpsell(m);return;}MODE=m;if(typeof TSCOPE!=='undefined')TSCOPE=null;{var _sh=document.getElementById('tallySheet');if(_sh)_sh.style.display='none';}if(typeof lnPbStop==='function')lnPbStop();
   if(typeof svg!=='undefined'&&svg&&!editMode&&m!=='sight')svg.onclick=null;
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===m||(b.id==='moreBtn'&&(window.MORE_TABS||[]).includes(m))));
   {const at=document.querySelector('.tabs button.on');if(at&&at.scrollIntoView)try{at.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});}catch(e){}}
   show('topPlay',m==='play');show('topRef',m==='ref');show('topScout',m==='scout');show('topLog',m==='log');
   show('rolesRow',m==='scout');show('boardBox',m==='scout');
-  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='walk'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='practice');
+  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='practice');
   document.querySelector('.fieldbox').classList.toggle('hidden',noField);
   document.getElementById('legend').classList.toggle('hidden',noField);
   document.getElementById('panel').classList.toggle('hidden',noField);
