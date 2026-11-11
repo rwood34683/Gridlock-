@@ -110,8 +110,8 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   Browsing a selection does not change the field until Use layout. Played
   sheets keep their field. Custom fields with no season say Your fields.
 - After a coach signs in, the backup and format questions still come first,
-  then Schedule opens on Your team's day. The team choice stays on the device;
-  it does not grant account or team permissions. A team without loaded games
+  then Schedule opens on Your team's day. The team choice travels in a full
+  season copy and opt-in account sync; it does not grant account or team permissions. A team without loaded games
   stays selected and asks for a schedule; never invent opponents or times.
 - A point scored in Whiteboard's Quick log closes the layer back to the board,
   retaining its marks. Scoring from Tally keeps Tally's Quick log open. Failed
@@ -3155,6 +3155,17 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was captured, not when an upload or share sheet finished; edits made while it
   waited still need a backup. `test/season-safety.cjs` and `test/sync-ask.cjs`
   cover these cases.
+
+- Send a new device's season before checking the signed-in account's saved
+  copy. Account handoff uses the immutable account id, an acknowledged revision
+  and a SHA-256 checkpoint of the season (not its changing export timestamp).
+  An opted-in device may adopt a newer saved season at sign-in only if its own
+  season still matches that checkpoint. Preserve and read back its recovery
+  copy first. New devices, both-edited copies and deletions require an explicit
+  choice; every upload still uses the server's revision check. Reading a copy
+  alone never authorizes overwriting it. The manual review/restore flow still
+  stays paused. `test/device-season.cjs` uses independent laptop, tablet and
+  phone stores against the real adapter and a mock account server.
 
 - Treat a confirmation-required signup as a completed sign-in. Wait for a real
   session; confirm-email links return to sign-in. Recovery and invitation links
