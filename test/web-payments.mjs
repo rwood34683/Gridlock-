@@ -208,6 +208,34 @@ test('second same-day charge is flagged for an idempotent full refund',async()=>
  assert.equal(refunds.length,2);assert.equal(refunds[0].opts.idempotencyKey,refunds[1].opts.idempotencyKey);
  assert.equal(refunds[0].args.reason,'duplicate');assert.equal((await access()).plan,'program');
 });
+
+test('retried success reconciles a current refund or dispute before its dedicated event arrives',async()=>{
+ for(const disputed of [false,true]){
+  const owner=disputed?B:A,order=await reserve(owner),id=disputed?'pi_laterdispute':'pi_laterrefund';
+  const intent={id,metadata:metadata(order.id,owner),livemode:false,currency:'usd',amount:1997,
+   amount_received:1997,status:'succeeded',latest_charge:{refunded:false,amount_refunded:0,disputed:false}};
+  intents.set(id,intent);const eventId=disputed?'evt_laterdispute':'evt_laterrefund';
+  assert.equal((await event('payment_intent.succeeded',intent,{id:eventId})).status,200);
+  const expiry=(await access(owner)).expires_at;
+  intent.latest_charge=disputed?{disputed:true}:{refunded:true,amount_refunded:1997};
+  assert.equal((await event('payment_intent.succeeded',intent,{id:eventId})).status,200);
+  assert.equal((await access(owner)).plan,'free');
+  assert.equal(new Date(await value('select expires_at from gridlock_private.payment_orders where id=$1',[order.id])).toISOString(),new Date(expiry).toISOString());
+ }
+});
+
+test('already-refunded duplicate does not request another refund when the success event retries',async()=>{
+ const first=await reserve();await pay(first);
+ const duplicate=await value("insert into gridlock_private.payment_orders(owner,live) values($1,false) returning to_jsonb(payment_orders)",[A]);
+ const intent={id:'pi_refundedduplicate',metadata:metadata(duplicate.id,A),livemode:false,currency:'usd',amount:1997,
+  amount_received:1997,status:'succeeded',latest_charge:{refunded:false,amount_refunded:0}};
+ intents.set(intent.id,intent);
+ assert.equal((await event('payment_intent.succeeded',intent,{id:'evt_refundedduplicate'})).status,200);
+ assert.equal(refunds.length,1);
+ intent.latest_charge={refunded:true,amount_refunded:1997};
+ assert.equal((await event('payment_intent.succeeded',intent,{id:'evt_refundedduplicate'})).status,200);
+ assert.equal(refunds.length,1);assert.equal((await access()).plan,'program');
+});
 test('midnight/DST boundaries match real PostgreSQL; delayed fulfillment is refunded without access',async()=>{
  for(const date of ['2026-03-08T05:00:00Z','2026-11-01T04:00:00Z','2026-07-01T03:59:59Z','2026-11-10T04:59:59Z']){
   const ms=Date.parse(date),expected=easternMidnight(ms/1000);

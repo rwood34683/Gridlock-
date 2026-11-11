@@ -1,7 +1,8 @@
 # Grok website payment-preview handoff
 
 The app integration is draft PR #325. Do not publish paid-launch website copy
-until docs/WEB-PAYMENTS.md's external test and live-pilot gates pass.
+until docs/WEB-PAYMENTS.md's sandbox and live configuration gates pass and
+the owner approves launch.
 
 Prepared source: marketing/grok/src/cloud-copy.ts, routes/index.tsx,
 routes/support.tsx, routes/privacy.tsx and components/site-chrome.tsx.
@@ -54,7 +55,8 @@ Prompt for Grok:
 > auth tests and audit; report any remaining advisories precisely. Check home,
 > Support and Privacy at phone, tablet and desktop widths with no sideways
 > scroll. Do not publish until the owner confirms the app's real Stripe
-> checkout and live pilot passed. Report actual results, never placeholders.
+> sandbox checkout and live configuration checks passed and approves launch.
+> Report actual results, never placeholders.
 
 Prompt for Claude:
 

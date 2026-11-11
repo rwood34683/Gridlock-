@@ -27,7 +27,8 @@ link: the authenticated account ID owns the pass, not an editable email.
 `scripts/site-live.js` exports the canonical `WEB_PAYMENTS` wording;
 `--grok-copy` regenerates `marketing/grok/src/cloud-copy.ts`.
 Keep the existing Grok design, routes, links and hosting. Prepare the wording
-as a preview; publish it only after the live checkout pilot passes.
+as a preview; publish it only after the sandbox flow and live configuration
+checks pass and the owner approves opening purchases.
 
 ## Protection mechanisms
 
@@ -117,20 +118,27 @@ The new migration starts public signup and both checkout modes disabled.
 9. After evidence review, prepare the live product/Price, signing pair and
    webhook. Deploy the reviewed migration/functions with checkout closed.
    Verify existing beta/admin access before opening paid access.
-10. With owner approval for a controlled live pilot, set mode=live but leave
+10. With owner approval for a controlled launch, set mode=live but leave
     checkout closed. Publish the web build with live public config and public
     JWK, then confirm the payment wall and existing beta/admin access work.
     Only then enable public_signup_enabled in the production payment settings
     (email confirmation stays required). Create and confirm a new, non-beta
-    pilot account. Set GRIDLOCK_LIVE_PILOT_UIDS to that account UUID only,
-    GRIDLOCK_CHECKOUT_ENABLED=true and database live_checkout_enabled=true.
-    Keep GRIDLOCK_LIVE_FLOW_VERIFIED=false; other customers still cannot buy.
-11. The owner completes one real $19.97 purchase on a dedicated test account.
-    Match receipt, delivered event, order, access expiry and usable app tools.
-    Test its refund with owner authorization. Keep website sales copy
-    unpublished during the pilot. Once it passes and the owner approves,
-    set GRIDLOCK_LIVE_FLOW_VERIFIED=true, clear the pilot list and publish the
-    sales wording. This switch is the public launch, not the earlier pilot.
+    account and inspect the live wall without submitting payment. Verify
+    Stripe's live payments capability, price, endpoint/mode, signing key and
+    endpoint delivery diagnostics. Keep GRIDLOCK_LIVE_FLOW_VERIFIED=false.
+11. Run successful/declined/3DS/duplicate/refund payment simulations only in
+    Stripe's sandbox, using its test payment methods. Stripe's testing guide
+    prohibits testing in live mode with real payment details:
+    https://docs.stripe.com/testing. Do not manufacture a real charge and refund
+    merely to test. Once all sandbox and live configuration evidence passes
+    and the owner approves, enable GRIDLOCK_CHECKOUT_ENABLED and database
+    live_checkout_enabled, set GRIDLOCK_LIVE_FLOW_VERIFIED=true and publish the
+    sales wording. GRIDLOCK_LIVE_PILOT_UIDS may instead limit a staged launch
+    to named genuine customers; it is not a live-payment test bypass.
+12. Monitor the first genuine purchases: reconcile each Stripe receipt,
+    delivered event, order, correct account and usable access until Eastern
+    midnight. Refund only for an actual refund request or the approved policy.
+    Shut off new checkout if delivery fails, retaining access and support.
 
 Building or merging code changes no live settings or accounts. Without the
 payment build options, the current app remains unchanged. Do not enable a
@@ -148,7 +156,8 @@ commit, public build version and non-sensitive event/order references:
 - Midnight and both DST changes; season/backup/CSV remain after expiration.
 - Full/partial refund, dispute and out-of-order success do not revive a pass.
 - Phone/tablet/desktop and wallets where offered.
-- One owner-approved live purchase and refund.
+- Live payments capability, correct live price/endpoint/mode and closed-wall
+  verification before opening sales; first genuine orders reconciled after.
 
 Run local checks without weakening them: `node test/web-payments.mjs`,
 `node test/web-payments-browser.mjs`, `npm run sync`, `npm run app:artifact`,

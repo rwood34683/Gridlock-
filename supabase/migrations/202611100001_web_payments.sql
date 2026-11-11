@@ -145,6 +145,10 @@ begin
     if not exists(select 1 from gridlock_private.payment_events
       where id=p_id and order_id=p_order and live=p_live and kind=p_kind) then
       raise invalid_parameter_value using message='Event does not match'; end if;
+    -- A retried event retrieves the payment's current charge at Stripe. Its
+    -- newer refund/dispute state may arrive before the dedicated event.
+    update gridlock_private.payment_orders set refunded=refunded or p_refunded,
+      disputed=disputed or p_disputed where id=p_order returning * into item;
     return jsonb_build_object('refund_due',item.refund_due,'refunded',item.refunded);
   end if;
   if p_kind='paid' and item.paid_at is null then
@@ -173,6 +177,8 @@ begin
     update gridlock_private.payment_orders set payment_intent=p_intent,state='processing'
       where id=p_order and state in ('creating','open') and paid_at is null;
   end if;
+  update gridlock_private.payment_orders set refunded=refunded or p_refunded,
+    disputed=disputed or p_disputed where id=p_order;
   insert into gridlock_private.payment_events(id,live,kind,order_id) values(p_id,p_live,p_kind,p_order);
   select * into item from gridlock_private.payment_orders where id=p_order;
   return jsonb_build_object('refund_due',item.refund_due,'refunded',item.refunded);
