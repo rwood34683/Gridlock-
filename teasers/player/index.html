@@ -81,7 +81,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
   .tend button.s.on{background:#1f7a46;border-color:#27a35c;color:#fff}
   .tend button.b.on{background:#3a3f40;border-color:#3a3f40;color:#fff}
   .tend button.d.on{background:#9a5a16;border-color:#f08a24;color:#fff}
-  .stars{font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:4px}.stars b{color:#ffd33a}.stars span{color:#f04a44}
+  .stars{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px}.stars button{min-width:44px;min-height:44px;padding:0;background:#0b0c0d;border:1px solid #3a3f40;border-radius:6px;color:#ff5a52;font-size:20px;cursor:pointer}.stars button[aria-pressed="true"]{border-color:#efedeb;color:#efedeb}.stars button:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
   .nm{font-size:14px;font-weight:800}.cc{font-size:10px;color:#ff5a52;font-weight:700;margin-left:5px}
   .seed{font-size:9px;color:#7fd0a0;font-weight:700;margin-left:4px}
   .fieldbox{background:linear-gradient(160deg,#0b0c0d,#0b0c0d);border:2px solid #26292a;border-radius:14px;padding:6px;overflow:hidden;margin-top:8px}
@@ -122,7 +122,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
 <style id="previewFit">/* the coach app's rules: 44 px targets, no sideways page, the event picker readable */
   .ld,.tabs button,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),textarea{min-height:44px}
   .ld{min-width:44px}
-  .tend button,.tg button,.iqchip,.iqopt{min-height:44px}
+  .tend button,.tg button,.iqchip,.iqopt{min-height:44px;min-width:44px}
   select{max-width:100%;text-overflow:ellipsis}
   #playBreakBtn{display:none}
   .board{overflow-x:auto;max-width:100%}
@@ -485,26 +485,8 @@ function planFor(tend){return tend<-25?'snake':tend>25?'flood':'base';}
 function effTend(di,ti,fallback){const lr=laneRead(di,ti);if(!lr)return{t:fallback,obs:false};return{t:Math.max(-70,Math.min(70,Math.round((lr.d-lr.s)*0.7))),obs:true,n:lr.n};}
 
 /* ---------- 15‑referee crew (head in tower + 14 field) ---------- */
-const REFS=[
- {r:'HEAD',x:113,y:128,role:'Head ref — tower / ref tent between the pits, off the field; whole‑field view & overrides'},
- {r:'LD-S',x:75,y:24,ld:true,role:'Snake laydown — ON field, low; covers the MIDDLE 30 ft (x60–90) of the snake; wipes & play‑on'},
- {r:'LD-D',x:75,y:100,ld:true,role:'Dorito laydown — ON field, low; covers the MIDDLE 30 ft (x60–90) of the dorito wire; eliminations & cross‑field'},
- {r:'BL',x:-3,y:62,role:'Back line L — behind the left home / start gate; breakout, re‑entries & dead box'},
- {r:'BR',x:153,y:62,role:'Back line R — behind the right home / start gate; breakout, re‑entries & dead box'},
- {r:'S1',x:22,y:-3,role:'Snake side — L mouth & SD, outside the bottom boundary'},
- {r:'S2',x:48,y:-3,role:'Snake side — L of 50, outside the boundary'},
- {r:'S3',x:74,y:-3,role:'Snake side — 50, deep angle behind the laydown'},
- {r:'S4',x:100,y:-3,role:'Snake side — R of 50, outside the boundary'},
- {r:'S5',x:126,y:-3,role:'Snake side — R mouth & SD, outside the boundary'},
- {r:'D1',x:22,y:123,role:'Dorito side — L wing, outside the top boundary'},
- {r:'D2',x:48,y:123,role:'Dorito side — L of 50, outside the boundary'},
- {r:'D3',x:74,y:123,role:'Dorito side — 50, deep angle behind the laydown'},
- {r:'D4',x:100,y:123,role:'Dorito side — R of 50, outside the boundary'},
- {r:'D5',x:126,y:123,role:'Dorito side — R wing, outside the boundary'}];
-const REFPH={
- break:{note:'Break: two laydown refs low on the mid‑30 of each wire; one ref on each back line behind the homes; five evenly along the snake side and five along the dorito side — eyes on both breakouts.',mv:{}},
- mid:{note:'Mid‑point: laydowns read the 50; the snake/dorito lines slide toward the contested wire; back‑line refs watch re‑entries & the dead box.',mv:{}},
- snake:{note:'Snake front: the snake laydown works the mid‑30 low; the snake‑side five collapse toward the snake front from outside; dorito side & back lines hold.',mv:{}}};
+const REFS=[];
+const REFPH={};
 let refPhase='break';
 
 /* ---------- team board: the coach app's entries, names and registration only ---------- */
@@ -1269,7 +1251,7 @@ function pbTendencyDetail(){
     rows.map(r=>{const pct=Math.round(r[1]/t.n*100),warn=pct>40;return '<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:12px"><b>'+hesc(playName(r[0]))+'</b><span style="color:'+(warn?'#ff9a8a':'#ff5a52')+'">'+pct+'% ('+r[1]+')</span></div><div style="height:7px;background:#1e2121;border-radius:4px;overflow:hidden;margin-top:2px"><div style="height:100%;width:'+pct+'%;background:'+(warn?'#e0424a':'#3d8bff')+'"></div></div></div>';}).join('')+
     '<div class="row" style="margin-top:10px"><button class="ld" id="pbTendClear">Reset tendencies</button></div>';
   const B=pbModal('\u25ce Self-scout \u2014 your tendencies',body);
-  B.querySelector('#pbTendClear').onclick=()=>{if(confirm('Clear logged break history for this event?')){pbClearHist();pbClose();renderPlay();}};
+  {const field=layoutKey;armConfirm(B.querySelector('#pbTendClear'),'Tap again to reset',()=>{if(layoutKey!==field)return;pbClearHist();pbClose();renderPlay();});}
 }
 /* =================== end coach playbook console =================== */
 
@@ -2448,39 +2430,7 @@ function exportTally(){const data=tallyFor()[tScope()];const rows=Object.entries
   a.download='gridlock-bunker-tally-'+layoutKey+'.csv';a.click();}
 
 /* ---------- MODE: REF ---------- */
-function renderRef(){
-  field();
-  el('rect',{x:-5,y:-5,width:160,height:130,fill:'none',stroke:'#ff5a52','stroke-width':.4,'stroke-dasharray':'1 1.4',opacity:.6});
-  el('text',{x:-5,y:-6.5,fill:'#ff5a52','font-size':2.3,'font-weight':700}).textContent='netting · boundary ≥5 ft off netting (Rule 1.2.3)';
-  el('rect',{x:0,y:0,width:150,height:120,fill:'none',stroke:'#ffd34d','stroke-width':.7,opacity:.85});
-  const lane=(x0,x1,y0,y1)=>el('rect',{x:x0,y:Y(y1),width:x1-x0,height:y1-y0,fill:'#ff5a5a',opacity:.08,stroke:'#ff7a7a','stroke-width':.3,'stroke-dasharray':'2 2'});
-  lane(25,125,8,40);lane(35,115,52,68);lane(25,125,98,114);
-  const cov=(y0,y1)=>el('rect',{x:60,y:Y(y1),width:30,height:y1-y0,fill:'#ff8a3a',opacity:.16,stroke:'#ff8a3a','stroke-width':.55,'stroke-dasharray':'2 1.5'});
-  cov(6,42);cov(96,116);
-  el('text',{x:75,y:Y(43.5),fill:'#ffc79a','font-size':2.1,'text-anchor':'middle','font-weight':800}).textContent='LD covers mid 30 ft';
-  el('text',{x:75,y:Y(94.5),fill:'#ffc79a','font-size':2.1,'text-anchor':'middle','font-weight':800}).textContent='LD covers mid 30 ft';
-  el('text',{x:75,y:Y(63),fill:'#ffb3b3','font-size':2.8,'text-anchor':'middle','font-weight':800,opacity:.8}).textContent='FIELD OF PLAY — only the 2 laydown refs inside';
-  const ph=REFPH[refPhase],mv=ph.mv;
-  for(const rf of REFS){const pos=mv[rf.r]||[rf.x,rf.y];const x=X(pos[0]),y=Y(pos[1]);
-    if(rf.r==='HEAD'){el('rect',{x:x-3,y:y-3,width:6,height:6,rx:1,fill:'#ffce3a',stroke:'#161818','stroke-width':.6});
-      el('text',{x,y:y+1.1,fill:'#062','font-size':2.6,'text-anchor':'middle','font-weight':900}).textContent='H';
-      el('text',{x,y:y-4.4,fill:'#ffd87a','font-size':2.3,'text-anchor':'middle','font-weight':700}).textContent='TOWER · off‑field';
-    }else if(rf.ld){el('ellipse',{cx:x,cy:y,rx:3.7,ry:2,fill:'#ff8a3a',stroke:'#3a1607','stroke-width':.6});
-      el('text',{x,y:y+0.9,fill:'#1a0a02','font-size':2.1,'text-anchor':'middle','font-weight':900}).textContent='LD';
-    }else{el('circle',{cx:x,cy:y,r:2.7,fill:'#16c0e0',stroke:'#161818','stroke-width':.6});
-      el('text',{x,y:y+1,fill:'#062','font-size':2.2,'text-anchor':'middle','font-weight':900}).textContent=rf.r;}}
-  document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#ff8a3a"></i>laydown ref (on field, low)</span><span><i class="sw" style="background:#ff8a3a;opacity:.5"></i>laydown zone — middle 30 ft (x60–90)</span><span><i class="sw" style="background:#16c0e0"></i>perimeter ref</span><span><i class="sw" style="background:#ffce3a"></i>head ref (tower)</span>';
-  let h=cinWarn('Ref lanes & coverage zones')+`<div class="focus">${ph.note}</div>`;
-  h+=`<div class="panel" style="border-color:#f04a44;margin-top:8px;padding:9px 11px"><b style="color:#d7b8ff">Per the published rulebook</b><ul style="margin:5px 0 0;padding-left:16px;font-size:12.5px;color:#efedeb">
-   <li>Field is <b>150 × 120 ft</b>, 10 ft grid (1.2.1).</li>
-   <li>Boundary <b>≥5 ft off the netting</b>; obstacles <b>≥5 ft off the boundary</b> (1.2.3–1.2.4) — the perimeter band the crew works.</li>
-   <li>Crew: <b>2 laydown refs</b> (low, middle 30 ft of snake & dorito), <b>1 ref on each back line</b>, <b>5 even along each side</b>, head ref in the tower.</li>
-   <li>Minimum crew is <b>7 field + 1 head</b> for X‑Ball (3.1.2) — your 15‑ref crew is well above the floor.</li>
-  </ul></div>`;
-  h+=`<div class="lbl">Crew assignments</div>`+REFS.map(rf=>`<div style="font-size:12px"><b style="color:${rf.r==='HEAD'?'#ffce3a':rf.ld?'#ffb27a':'#7fe0f4'}">${rf.r}</b> — ${rf.role}</div>`).join('');
-  h+=`<div class="note">Defer all positioning and calls to the current published rulebook and your head ref. Laydown refs stay low and out of lanes; everyone else works the perimeter band.</div>`;
-  document.getElementById('panel').innerHTML=h;
-}
+function renderRef(){field();document.getElementById('panel').textContent='Not in this preview.';}
 
 /* ---------- MODE: SCOUT + SIM ---------- */
 /* v4: lane read computed from the breaks YOU logged — real observations, not the seed guess */
@@ -2704,7 +2654,7 @@ function renderSide(side,sel){
     box.innerHTML=`<div><span class="nm">Nobody yet</span></div><span class="lbl">${side==='L'?'Left pit \u00b7 a team you watch \u00b7 optional':'Right pit \u00b7 who you play'}</span><select class="pickSel">${o}</select>`;
     box.querySelector('.pickSel').onchange=e=>{if(!e.target.value)return;const[di,ti]=e.target.value.split(':').map(Number);if(side==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();};return;}const div=DIVS[sel.di],team=div.t[sel.ti],r=rec(sel.di,team[0]);
   let opts='';DIVS.forEach((d,di)=>{opts+=`<optgroup label="${d.d}">`+d.t.map((t,ti)=>`<option value="${di}:${ti}" ${di===sel.di&&ti===sel.ti?'selected':''}>${t[0]}</option>`).join('')+`</optgroup>`;});
-  const stars=[1,2,3,4,5].map(n=>`<span data-th="${n}">${n<=r.threat?'<b>★</b>':'☆'}</span>`).join('');
+  const stars=[1,2,3,4,5].map(n=>`<button type="button" data-th="${n}" aria-label="Threat ${n} of 5" aria-pressed="${n===r.threat}">${n<=r.threat?'★':'☆'}</button>`).join('');
   box.innerHTML=`<div><span class="nm">${team[0]}</span><span class="cc">${team[1]}${team[2]?'':' · pending'}</span>${team[3]?`<span class="seed">${team[3]} pts</span>`:''}</div>
    <span class="lbl">Opponent (${side==='L'?'left':'right'})</span><select class="pickSel">${opts}</select>
    <span class="lbl">Tendency (your film read)</span>
@@ -2714,7 +2664,7 @@ function renderSide(side,sel){
    <span class="lbl">Notes</span><textarea class="notes" placeholder="break tendencies, key players, snake runner, weaknesses…">${r.note||''}</textarea>`;
   box.querySelector('.pickSel').onchange=e=>{const[di,ti]=e.target.value.split(':').map(Number);if(side==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();};
   box.querySelectorAll('.tend button').forEach(b=>b.onclick=()=>{r.tend=+b.dataset.t;saveScout();renderScout();renderBoard();});
-  box.querySelectorAll('.stars span').forEach(s=>s.onclick=()=>{r.threat=+s.dataset.th;saveScout();renderSide(side,sel);renderBoard();});
+  box.querySelectorAll('.stars button').forEach(s=>s.onclick=()=>{const rating=+s.dataset.th;r.threat=rating;saveScout();renderSide(side,sel);renderBoard();box.querySelector('.stars button[data-th="'+rating+'"]').focus();});
   box.querySelector('.notes').onchange=e=>{r.note=e.target.value;saveScout();};
 }
 
@@ -3202,7 +3152,7 @@ function renderReady(){const B=document.getElementById('readybox');if(!B)return;
   B.querySelector('#rdStart').onclick=()=>startReady(rdTrack,rdLevel);
   B.querySelectorAll('[data-yt]').forEach(b=>b.onclick=()=>{if(window.open)window.open(ytSearch(YTCAT[b.dataset.yt]||'paintball rules explained'),'_blank');});
 }
-const SW_SRC="const C='gridlock-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./'])).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim())});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).then(res=>{try{const cp=res.clone();caches.open(C).then(c=>c.put(e.request,cp));}catch(_){}return res;}).catch(()=>caches.match('./'))))});";
+const SW_SRC='';
 const APP_VER='2027.01';
 (function(){try{if(localStorage.getItem('gridlock_theme')==='sun')document.body.classList.add('sun');}catch(e){}})();
 function fieldChk(){try{return JSON.parse(localStorage.getItem('gridlock_fieldchk')||'{}');}catch(e){return {};}}
@@ -3971,7 +3921,7 @@ function renderNexus(){const B=document.getElementById('nexusbox');if(!B)return;
   B.innerHTML=h;
   const pb=B.querySelector('#nxPrint');if(pb)pb.onclick=printSheet;
   {let od=B.querySelector('#nxOff');if(!od){od=document.createElement('div');od.id='nxOff';od.innerHTML='<div class="lbl" style="margin-top:10px">Backup & restore</div><div id="nxBk"></div>';B.appendChild(od);}nxRefCard(od.querySelector('#nxRC'));nxOffline(od.querySelector('#nxOffBody'));nxLicense(od.querySelector('#nxLic'));nxBackup(od.querySelector('#nxBk'));nxArchive(od.querySelector('#nxArc'));nxAudit(od.querySelector('#nxAu'));
-   {if(UPDATE_URL&&navigator.onLine){fetch(UPDATE_URL,{cache:'no-store'}).then(r=>r.text()).then(t=>{const parts=t.trim().split(/\s+/),lv=parts[0]||'';if(lv&&lv>APP_VER){const u=document.createElement('div');u.innerHTML=`<div class="chip" style="border-color:#8c6a2f;color:#ffd9a1;margin-top:6px">\u2b06 v${lv} available${parts[1]?` \u2014 <a href="${parts[1]}" target="_blank" style="color:#ff5a52">get it</a>`:''} (back up first \u2014 your data stays)</div>`;od.appendChild(u);}}).catch(()=>{});}}
+
    {try{const L=JSON.parse(localStorage.getItem('gridlock_lasterr')||'[]');const rec=L.filter(x=>Date.now()-x.ts<7*864e5);if(rec.length){const w=document.createElement('div');w.innerHTML=`<div class="chip" style="border-color:#8a3326;color:#ff9a8a;margin-top:6px">\u26a0 ${rec.length} runtime error(s) this week \u2014 latest: ${rec[rec.length-1].m.replace(/</g,'&lt;').slice(0,80)} <span style="cursor:pointer;color:#ff5a52" id="errClr">clear</span></div>`;od.appendChild(w);w.querySelector('#errClr').onclick=()=>{try{localStorage.removeItem('gridlock_lasterr');}catch(_){ }w.remove();};}}catch(_){}}
    {let vd=od.querySelector('#nxVer');if(!vd){vd=document.createElement('div');vd.id='nxVer';vd.hidden=(EDITION==='player'||EDITION==='team');vd.style.cssText='font-size:10px;color:#f04a44;margin-top:10px';vd.innerHTML='GRIDLOCK '+(typeof EDITION!=='undefined'?EDITION:'full')+' build \u00b7 v'+APP_VER+' \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="themeFlip()">\u2600 sunlight</span> \u00b7 <span style="cursor:pointer;color:#ff5a52" onclick="cbFlip()">\u25d0 colorblind</span>';od.appendChild(vd);}}}
   B.querySelectorAll('[data-ytn]').forEach(b=>b.onclick=()=>{if(window.open)window.open(ytSearch(YTCAT[b.dataset.ytn]||'paintball rules explained'),'_blank');});
