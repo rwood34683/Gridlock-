@@ -12604,7 +12604,7 @@ function resetPending(){
 // Server account grants are separate from store purchases. They stay in memory
 // and can only supplement the same verified account, never a later sign-in.
 let _accountGrant = null, _grantAttempt = 0, _grantSaid = "";
-function clearAccountGrant(){ ++_grantAttempt; _accountGrant = null; _grantSaid = ""; }
+function clearAccountGrant(){ ++_grantAttempt; _accountGrant = null; _grantSaid = ""; window.gridlockWebPayments?.clear(); }
 function accountGrantPlan(){
   const g = _accountGrant, cloud = window.gridlockCloud, acc = readAccount();
   let session = null;
@@ -12623,6 +12623,11 @@ async function refreshAccountGrant(cloud = window.gridlockCloud, authAttempt = _
   const same = () => ticket === _grantAttempt && authAttempt === _authAttempt &&
     cloud === window.gridlockCloud && S.entered && S.email === email && readAccount().uid === uid;
   _grantSaid = "Checking account access…";
+  if(window.gridlockWebPayments){
+    const r = await window.gridlockWebPayments.refresh(uid);
+    if(same()) { _grantSaid = r.ok ? "Account access checked." : r.said || "Access could not be checked."; render(); }
+    return;
+  }
   try{
     const r = await cloud.getEntitlement();
     if(!same()) return;
@@ -13147,7 +13152,7 @@ function syncStatus(data){
   try{save(S);}finally{_syncStatusWrite=false;}render();
 }
 // A stale tab never sends: its season is older than the one another tab saved.
-const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
+const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale && ((!window.GRIDLOCK_CLOUD?.payments && !window.gridlockWebPayments) || planOf() === "program");
 function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
 function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
 function queueSeasonPush(t){
@@ -18851,6 +18856,9 @@ const PAID_WHY = {
 };
 
 function planOf(){
+  if(window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments) return S.entered && readAccount().cloud &&
+    String(readAccount().email).toLowerCase() === String(S.email).toLowerCase() &&
+    window.gridlockWebPayments?.current(readAccount().uid)?.plan === "program" ? "program" : "free";
   if(!billingLive()) return S.preview ? "free" : "program";
   const p = ((S.billing || {}).plan) || "free";
   const exp = (S.billing || {}).exp || 0;
@@ -20244,7 +20252,58 @@ window.sendMsg = () => {
 /* ============================================================
    Shell
    ============================================================ */
+// The web pass covers every Coach tool. Account, backup and export stay open.
+// This adapter is absent from offline previews and the store builds.
+let _webPassBusy = false, _webPassSaid = "";
+function webPassLocked(){ return !!(window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments) && S.entered && planOf() !== "program"; }
+window.checkWebPass = async () => {
+  if(_webPassBusy) return;
+  _webPassBusy = true; _webPassSaid = "Checking access…"; render();
+  try { await refreshAccountGrant(); _webPassSaid = _grantSaid; }
+  finally { _webPassBusy = false; render(); }
+};
+window.buyWebPass = async () => {
+  if(_webPassBusy || !window.gridlockWebPayments) return;
+  const uid = readAccount().uid, email = S.email;
+  _webPassBusy = true; _webPassSaid = "Opening secure checkout…"; render();
+  try {
+    const r = await window.gridlockWebPayments.checkout(uid);
+    if(S.entered && readAccount().uid === uid && S.email === email) _webPassSaid = r.said || "";
+  } finally { _webPassBusy = false; render(); }
+};
+function webPassShell(){
+  const account = S.tab === "more" && S.more === "nexus";
+  return `<div class="shell" data-pass-locked="true"><main class="main" tabindex="-1" aria-label="Coach access">
+    <section class="panel"><h1 class="panel__title">Gridlock Coach</h1>
+    <p class="note">${esc(S.email)}</p>
+    ${(window.gridlockWebPayments?.mode || window.GRIDLOCK_CLOUD?.payments?.mode) === "test" ? '<p class="warn">Test checkout · no real payment</p>' : ""}
+    <h2>$19.97 for today</h2><p>All Coach tools for this account until midnight Eastern on the purchase date.</p>
+    <p class="note">One-time payment. No automatic renewal. Your saved season stays here after the pass ends.</p>
+    <p class="note">Already have beta or admin access? Choose Check access.</p>
+    <p class="warn" role="status">${esc(!window.gridlockWebPayments ? "Access checking did not load. Reload with a signal. Your season is safe." : _webPassSaid || _grantSaid || "Check your access or buy today's pass.")}</p>
+    <div class="btnrow"><button class="btn grow" onclick="buyWebPass()" ${_webPassBusy || !window.gridlockWebPayments ? "disabled" : ""}>Buy today’s pass · $19.97</button>
+    <button class="btn btn--quiet grow" onclick="checkWebPass()" ${_webPassBusy ? "disabled" : ""}>Check access</button></div>
+    <p class="note">Charged but still waiting? Check access again. Contact Support before paying again.</p>
+    <div class="btnrow"><button class="btn btn--quiet grow" onclick="openAccount()">Account &amp; backups</button>
+    <button class="btn btn--quiet grow" onclick="askSignOut()">Sign out</button></div>
+    ${cloudPageLinks()}</section>
+    <section class="panel"><h2 class="panel__title">Keep your season</h2>
+    <button class="btn btn--block" onclick="saveCopy('all')">Save everything</button>
+    <div class="btnrow"><button class="btn btn--quiet grow" onclick="exportReport('sheets')">Match spreadsheet</button>
+    <button class="btn btn--quiet grow" onclick="exportReport('points')">Point spreadsheet</button></div></section>
+    ${handOffBox()}${storeWarning()}${account ? morePage() : ""}
+    ${S.flash ? `<p role="status">${esc(S.flash)}</p>` : ""}
+  </main></div>`;
+}
+window.addEventListener("gridlock-payment-access", () => { if(S.entered) render(); });
+// An expiry can fall between paint and a tap. Never let that stale tap score.
+for(const type of ["pointerdown","click","submit","input","change","keydown"]) document.addEventListener(type, event => {
+  if(webPassLocked() && !document.querySelector('[data-pass-locked="true"]')){
+    event.preventDefault(); event.stopImmediatePropagation(); render();
+  }
+}, true);
 function shell(){
+  if(webPassLocked()) return webPassShell();
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
   const blocked = gateKey();
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
@@ -20713,6 +20772,7 @@ function render(){
   // key until the next relaunch.
   fixBreak();
   guardVoiceSession();
+  if(webPassLocked() && _voiceUI.session) stopVoiceSession("Your pass ended. Your notes are saved.");
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
   const root = document.getElementById("root");

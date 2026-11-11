@@ -19,13 +19,18 @@ export const Route = createFileRoute("/support")({
 });
 
 const FAQ = [
+  {q: "What does the Coach pass include?", a: CLOUD_COPY.payments.title + ". " + CLOUD_COPY.payments.offer + " " + CLOUD_COPY.payments.renewal},
+  {q: "When does my pass end?", a: CLOUD_COPY.payments.expiry},
+  {q: "What if I paid but cannot get in?", a: CLOUD_COPY.payments.help},
+  {q: "Can I get a refund?", a: CLOUD_COPY.payments.refund},
+  {q: "What about my existing beta or admin access?", a: CLOUD_COPY.payments.existing},
   {
     q: "Can I use the same account on my phone and computer?",
-    a: "Yes. Open the Gridlock app and use the same invited email and your current password on each device. There is no separate computer account. Your season stays on the device unless you move a saved copy or review and restore a League sync copy in Nexus.",
+    a: "Yes. Open the app and use the same account email and password on each device. Purchases belong to that account. Your season stays on the device unless you move a saved copy or restore your League sync copy in Account & backups.",
   },
   {
     q: "I reset my password but still cannot sign in.",
-    a: "Use the email that was invited to the beta. Different email addresses are different accounts, and a password reset does not grant beta access to another address. Request one new link from the sign-in screen, open the newest email and save your new password. Then use that password on every device. If it still fails, email support with the error message. Keep passwords and verification codes private.",
+    a: "Use the email on your Gridlock account. Different emails are different accounts; a password reset does not move a purchase. Request one new link, open the newest email and save your new password. Use it on every device. If it still fails, email support with the error message. Keep passwords and verification codes private.",
   },
   {
     q: "How do I delete my account?",
@@ -97,17 +102,17 @@ function Support() {
         </p>
 
         <section id="beta" className="scroll-mt-header mt-12">
-          <h2 className="display text-section text-fg">Beta sign-in</h2>
+          <h2 className="display text-section text-fg">Sign in and purchase</h2>
           <p className="mt-4 text-fg">
-            This beta opens in your browser on a phone, tablet or computer. Use the same invited email and Gridlock password on each device.
+            {CLOUD_COPY.payments.purchase}
           </p>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-fg">
-            <li>Open the app and choose Sign in.</li>
-            <li>For a forgotten password, enter your invited email and choose “Forgot it? Email me a link”.</li>
-            <li>Open the newest email, save your new password, then use it on your other devices too.</li>
+            <li>Open the app. Create your account and confirm the email, or sign in.</li>
+            <li>Choose Buy today’s pass and complete Stripe checkout for that account.</li>
+            <li>Return to the app and choose Check access if needed. Do not pay again if you were charged.</li>
           </ol>
           <a href={APP_URL} className="btn btn-primary mt-6 w-full sm:w-auto">
-            Get Gridlock
+            Sign in to purchase
           </a>
         </section>
 

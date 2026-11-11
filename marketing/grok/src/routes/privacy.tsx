@@ -69,6 +69,12 @@ function Privacy() {
           <h2 id="voice-title" className="display text-section text-fg">Voice log</h2>
           <p className="mt-3 text-fg">Voice log asks for the microphone only after you tap Start listening. Your phone's or browser's speech service turns speech into text and may send audio to its own servers to do it. Gridlock keeps the text on your device, never the audio.</p>
         </section>
+        <section className="card mt-12 p-5" aria-labelledby="payment-title">
+          <h2 id="payment-title" className="display text-section text-fg">Payments</h2>
+          <p className="mt-3 text-fg">{CLOUD_COPY.payments.privacy}</p>
+          <p className="mt-3 text-fg">Stripe also processes payment, device and connection information for payment processing and fraud prevention under its <a href="https://stripe.com/privacy" className="text-signal underline-offset-4 hover:underline">privacy policy</a>. That is not Gridlock advertising or marketing analytics.</p>
+          <p className="mt-3 text-fg">{CLOUD_COPY.payments.deletion}</p>
+        </section>
         <section className="card mt-12 p-5">
           <h2 className="display text-section text-fg">This site and the app</h2>
           <p className="mt-3 text-fg">

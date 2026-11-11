@@ -306,6 +306,17 @@
       var s = readSession();
       return s && s.user ? { user: s.user } : null;
     },
+    async webPaymentRequest(action) {
+      if(!["access","checkout"].includes(action))return said("Unknown payment request.");
+      var g=generation, t=await token(), s=readSession();
+      if(g!==generation)return cancelled();
+      if(!t || !s)return said("Sign in again to check your pass.");
+      var r=await call("/functions/v1/gridlock-payments",{method:"POST",body:JSON.stringify({action:action})},t);
+      if(g!==generation || readSession()!==s)return cancelled();
+      if(!r.net)return OFFLINE;
+      if(!r.ok)return said(typeof r.body?.error==="string"?r.body.error:"Payment could not be checked.");
+      return r.body;
+    },
     // An account grant is read only with that account's verified bearer token.
     // RLS limits the row too; the explicit owner filter never requests peers.
     async getEntitlement() {

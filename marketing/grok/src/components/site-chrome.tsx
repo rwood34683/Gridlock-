@@ -50,7 +50,7 @@ function AndroidMark() {
 export function Platforms({ className = "" }: { className?: string }) {
   return (
     <p className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 ${className}`}>
-      <span>Browser beta</span>
+      <span>Web app</span>
       <span className="inline-flex items-center gap-1.5">
         <AppleMark />
         iPhone / iPad
