@@ -12185,14 +12185,14 @@ async function applyDeviceSeason(choice){
   S.syncOn = false;
   if(window.loadCopy("replace",raw,ACCOUNT_RESTORE) !== true || _storeFail) return false;
   if(S.fmtDone) S.fmtAsk = false;
-  const adopted = copyPayload("all");
+  const adopted = copyPayload("all"), capturedAt = Date.now();
   if(!t.cloud.acceptSeason(r.user.id,r.revision) || !await t.cloud.rememberSeason(adopted,r.user.id,r.revision)){
     if(deviceSeasonCurrent(t)) syncStatus({syncOn:false,syncSaid:"Season opened, but this device could not remember the save. Sync stays off."});
     return false;
   }
   if(!deviceSeasonCurrent(t)) return false;
   _deviceChoice = null; _deviceChecking = null; _lastAutoSync = Date.now(); syncYes(true);
-  syncStatus({syncOn:true,syncAsk:false,syncAt:Date.now(),syncSaid:"Your saved season is ready on this device. Sync is on."});
+  syncStatus({syncOn:true,syncAsk:false,syncAt:capturedAt,syncSaid:"Your saved season is ready on this device. Sync is on."});
   // If a coach edited while the checkpoint was being saved, that work still sends.
   if(deviceSeasonText(adopted) !== deviceSeasonText()){ _syncDirty=true; scheduleSync(0); }
   return true;

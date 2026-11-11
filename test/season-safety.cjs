@@ -161,6 +161,16 @@ function syncHarness(){
     }
   });
   const start=app.indexOf('async function hashPass('),end=app.indexOf('\nfunction newSalt()',start);
+  await test('adoption acknowledges the captured season, not edits made during checkpoint storage',async()=>{
+    const h=syncHarness(),gate=deferred();h.cloud.rememberSeason=()=>gate.promise;
+    h.run('const ACCOUNT_RESTORE=Symbol(); let _storeFail=""; copyPayload=()=>JSON.stringify({format:"gridlock.coach.copy",scope:"all",seasonId:"a",data:{results:S.results||[]}})');
+    const captured=h.run('Date.now()');
+    const opening=h.run('applyDeviceSeason({t:syncTicket(),r:{payload:JSON.parse(copyPayload()),user:{id:syncAskId()},revision:1},snapshot:deviceSeasonText()})');
+    await tick();await h.advance(1000);h.state.results=[{at:h.run('Date.now()')}];
+    gate.resolve(true);assert.equal(await opening,true);
+    assert.equal(h.state.syncAt,captured);assert(h.state.syncAt<h.state.results[0].at);
+    assert.equal(h.timers.size,1,'edits made while opening still need to send');
+  });
   const completeCopy=()=>({format:'gridlock.coach.copy',v:1,scope:'all',seasonId:'a'.repeat(32),at:'2026-11-11T10:00:00Z',data:{messages:['Field walk'],roster:[]}});
   await test('checkpoint follows only the acknowledged snapshot and ignores export timestamps',async()=>{
     const db=server(),a=device(db.route);await a.login();const snapshot=completeCopy();
