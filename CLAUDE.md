@@ -1419,6 +1419,21 @@ Escape. Historical points are read-only until Open this point on Tally to edit.
 Keep a modal fallback for iOS 15.0–15.3, which have no native dialog API;
 hide the background from assistive technology, contain focus and restore it.
 Quick log keeps its one-tap out path. `test/player-details.cjs` holds these rules.
+Player percentages (owner, 11 Nov 2026): Tally and Scout show current-point
+team shares, and each named player's popup shows shares of their logged
+points in that match. Show the numerator and denominator with every percent.
+Team shares use starting places after penalties; player match shares count
+only distinct logged points for that player, side, match and field. Keep
+missing observations unknown. Making the break never means currently alive;
+Alive/Dead is the last recorded status, not a final survival rate. Shooting
+and Diving can overlap; clearing either is unrecorded, not a counted No.
+Deduplicate chart, quick-check and tally rows; reject orphaned/cross-scope
+links, keep unnamed charts distinct and never connect them across points.
+No observations means no percentage; too many logged players for the format
+shows a correction notice rather than an invented denominator. Read-only
+derived counts never change scores or saved data. Keep summaries expandable
+so the four quick buttons stay in view. `test/player-percentages.cjs`.
+
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
