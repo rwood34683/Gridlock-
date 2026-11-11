@@ -20296,7 +20296,7 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + cloudPageLinks()
-  + (canSync() ? sec("League sync", `<p class="lede">Keep your season with your account. League sync is off until you turn it on.</p>
+  + (canSync() ? sec("League sync", `<p class="lede">Keep your season with your account. ${S.syncOn ? "Sync is on." : "League sync is off until you turn it on."}</p>
     <p class="note">Your full season is kept as one current copy on our account server, where Gridlock PB LLC's administrators can review it. This includes your team, schedule, plays, scouting and results — the same as <b>Save everything</b>. Your password is not included. You can pause sync or delete the saved copy.</p>
     ${canFollowSeason() ? `<ol class="sync-steps" aria-label="Switch devices">
       <li><b>Save here.</b> Turn on sync below. Tap <b>Sync now</b> and wait for <b>Saved to your account</b>.</li>

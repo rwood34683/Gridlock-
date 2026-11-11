@@ -93,6 +93,8 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
         const section=p.locator("section").filter({has:p.getByRole("button",{name:"Get saved season",exact:true})});
         assert.equal(await section.locator(".sync-steps li").count(),3);
         assert.match(await section.innerText(),/Save here\.[\s\S]*Sign in there\.[\s\S]*Open your season\./);
+        assert.match(await section.locator(".lede").innerText(),/Sync is on/);
+        assert.doesNotMatch(await section.locator(".lede").innerText(),/off until/);
         assert.equal(await section.getByRole("button",{name:"Review or restore cloud season",exact:true}).isVisible(),false);
         const options=section.locator("summary").filter({hasText:"More backup options"});
         await options.focus();await options.press("Enter");
