@@ -12213,6 +12213,9 @@ async function checkAccountSeason(requested){
       syncStatus({syncSaid:r?.offline ? "No signal. Keep working here; open Continue on this device when you are online." : r?.said || "Could not check the saved season. Nothing sent."});
       return;
     }
+    if(r.user?.id !== t.uid){
+      syncStatus({syncSaid:"Your account changed. Sign in again before continuing a saved season."}); return;
+    }
     const choice={t,r,snapshot};
     if(wanted && r.known && r.base === r.revision && !r.removed){
       _deviceChecking=null; syncYes(true); _lastAutoSync=Date.now();
@@ -12220,7 +12223,7 @@ async function checkAccountSeason(requested){
       if(!r.unchanged || snapshot !== deviceSeasonText()) await syncNow();
       return;
     }
-    if(wanted && r.known && r.unchanged && !r.missing && !r.removed && snapshot === deviceSeasonText()){
+    if(wanted && r.known && r.unchanged && r.revision > r.base && !r.missing && !r.removed && snapshot === deviceSeasonText()){
       if(await applyDeviceSeason(choice)) return;
     }
     if(!deviceSeasonCurrent(t)) return;
@@ -12384,6 +12387,7 @@ function queueSeasonPush(t){
       const r = await t.cloud.deviceSeason(payload);
       if(!sameSync(t) || !syncAllowed()) return {ok:false};
       if(!r?.ok) return r;
+      if(r.user?.id !== t.uid) return {ok:false,conflict:true,said:"Your account changed. Sign in again before sending a season."};
       const permitted = _devicePermit && sameSync(_devicePermit.t) && _devicePermit.user === r.user.id && _devicePermit.revision === r.revision;
       if(!permitted && (!r.known || r.base !== r.revision || r.removed))
         return {ok:false,conflict:true,said:"Another device has a season to check. Open Account & backups and choose Continue on this device. Nothing was replaced."};

@@ -140,6 +140,15 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
       await tablet.evaluate(()=>{staffSignOut();__finish();});await settled(tablet);
       assert.equal(await tablet.evaluate(()=>S.entered),false);assert.equal(await tablet.evaluate(()=>deviceSeasonText()),before);
     });
+    await check("a mismatched server account cannot adopt or upload a season",async()=>{
+      const before=await laptop.evaluate(()=>deviceSeasonText()),count=writes();
+      await laptop.evaluate(()=>{window.__readDevice=gridlockCloud.deviceSeason;gridlockCloud.deviceSeason=async raw=>({...await __readDevice(raw),user:{id:"different-account"}});});
+      await laptop.evaluate(()=>continueDeviceSeason());await settled(laptop);
+      assert.equal(await laptop.evaluate(()=>deviceSeasonText()),before);assert.equal(writes(),count);
+      assert.equal(await laptop.evaluate(()=>S.syncOn),false);
+      assert.match(await laptop.evaluate(()=>S.syncSaid),/account changed/);
+      await laptop.evaluate(()=>{gridlockCloud.deviceSeason=__readDevice;});
+    });
     await check("a removed server copy stays deleted until an explicit choice",async()=>{
       const r=rows.get("coach@example.test");rows.set("coach@example.test",{...r,revision:r.revision+1,payload:null,deleted_at:"2026-11-11T12:00:00Z"});
       const count=writes();await signIn(laptop);
