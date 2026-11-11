@@ -1377,6 +1377,15 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach app's icons. Never hand-edit the block; `test/teasers.cjs` runs
     `--check`, so a field or plant changed in the coach app fails until the
     previews are regenerated.
+    The independent preview review also checks actual rendered controls on
+    phone and tablet: at least 44 px in both dimensions, with accessible
+    names, and every tab and More item opens without page errors or sends.
+    Disabled fetch code and referee rule text must not remain bundled.
+    Reset tendencies uses the existing two-tap confirmation, never a browser
+    dialog. Change the generator sources, then regenerate; the `coachwalk`
+    block belongs to `tools/teaser_walk.js` through `teaser_rules.js`.
+    `test/teaser-browser.cjs` exercises both previews and compares every
+    measured bunker and break plant with the coach source.
 
 84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
     format as two dropdowns and folds the rest away. PR #316 (Codex) adds:

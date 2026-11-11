@@ -43,6 +43,9 @@ for (const kind of ["team", "player"]) {
   const h = rd(`teasers/${kind}/index.html`);
   check(`${kind}: no price or licence for sale`, !/\$\d+\/(season|yr)|Get a license','11px'|Free tier<|subscription/i.test(h));
   check(`${kind}: never polls or posts anywhere`, !/ticPollStart\(\);ticQueueStart|return fetch\(c\.webhook|fetch\(c\.worker/.test(h));
+  check(`${kind}: no fetch or other network-send API remains in the bundle`, !/\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bsendBeacon\s*\(|\bEventSource\b/.test(h));
+  check(`${kind}: no hidden referee rule text remains`, h.includes('const REFS=[];') && h.includes('const REFPH={};') && !h.includes('Per the published rulebook') && !h.includes('Rule 1.2.3'));
+  check(`${kind}: no native confirmation call remains`, !/\b(?:window\.)?(?:confirm|prompt|alert)\s*\(\s*['"`]/.test(h));
   check(`${kind}: no rule bank or call sheet in Nexus`, !/Rule bank audit<\/div><div id="nxAu"|id="nxPrint"|UPRA Ref Card \\u2014 signed readiness<\/div>/.test(h));
   check(`${kind}: the control is called Shot lanes`, !/guns up/i.test(h));
   check(`${kind}: the tour never opens by itself`, h.includes("if(EDITION==='player'||EDITION==='team')return;/* never opens by itself */"));

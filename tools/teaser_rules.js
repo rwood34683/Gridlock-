@@ -16,6 +16,16 @@ const FILES = ["player", "team"].map(k => path.join(ROOT, `teasers/${k}/index.ht
 
 // [rule, find, replace] — plain text, every occurrence.
 const STEPS = [
+  // Independent review: compact tendency buttons need width as well as height.
+  ["targets", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px}", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px;min-width:44px}"],
+  ["targets", '.stars{font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:4px}.stars b{color:#ffd33a}.stars span{color:#f04a44}',
+    '.stars{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px}.stars button{min-width:44px;min-height:44px;padding:0;background:#0b0c0d;border:1px solid #3a3f40;border-radius:6px;color:#ff5a52;font-size:20px;cursor:pointer}.stars button[aria-pressed="true"]{border-color:#efedeb;color:#efedeb}.stars button:focus-visible{outline:2px solid #efedeb;outline-offset:2px}'],
+  ["names", '<span data-th="${n}">${n<=r.threat?\'<b>★</b>\':\'☆\'}</span>',
+    '<button type="button" data-th="${n}" aria-label="Threat ${n} of 5" aria-pressed="${n===r.threat}">${n<=r.threat?\'★\':\'☆\'}</button>'],
+  ["names", "box.querySelectorAll('.stars span').forEach(s=>s.onclick=()=>{r.threat=+s.dataset.th;saveScout();renderSide(side,sel);renderBoard();});",
+    "box.querySelectorAll('.stars button').forEach(s=>s.onclick=()=>{const rating=+s.dataset.th;r.threat=rating;saveScout();renderSide(side,sel);renderBoard();box.querySelector('.stars button[data-th=\"'+rating+'\"]').focus();});"],
+  ["no dialogs", "B.querySelector('#pbTendClear').onclick=()=>{if(confirm('Clear logged break history for this event?')){pbClearHist();pbClose();renderPlay();}};",
+    "{const field=layoutKey;armConfirm(B.querySelector('#pbTendClear'),'Tap again to reset',()=>{if(layoutKey!==field)return;pbClearHist();pbClose();renderPlay();});}"],
   // Nothing leaves the phone. The previews carried an SMS ticket poller and a
   // CRM webhook that a restored backup could switch on with no screen to see
   // or stop it. Polling never starts, the senders send nothing, and a restore
@@ -202,6 +212,12 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
 
 // Regex steps: [rule, pattern, replacement].
 const REGEX = [
+  // Remove disabled networking code too: previews never ship an outbound path.
+  ["sends nothing", /^const SW_SRC=.*;$/gm, "const SW_SRC='';"],
+  ["sends nothing", /^   \{if\(UPDATE_URL&&navigator\.onLine\)\{fetch[^\n]*$/gm, ""],
+  // The hidden referee screen still bundled rule text after its bank was removed.
+  ["no rulebook", /const REFS=\[\n[\s\S]*?\];\nconst REFPH=\{\n[\s\S]*?\};/, "const REFS=[];\nconst REFPH={};"],
+  ["no rulebook", /function renderRef\(\)\{\n[\s\S]*?\n\}\n(?=\n\/\* ---------- MODE: SCOUT)/, "function renderRef(){field();document.getElementById('panel').textContent='Not in this preview.';}\n"],
   // Every selection ring is white, as on the coach app; gold stays only where it means primary.
   ["rings", /(el\('circle',\{cx:X\((?:b|ln)\.[a-z]+\),cy:Y\((?:b|ln)\.[a-z]+\),r:[0-9.]+,fill:'none',stroke:)'#ffd24d'/g, "$1'#ffffff'"],
   // The July build's sample code words included two that must never ship.
