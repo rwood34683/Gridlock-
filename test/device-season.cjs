@@ -156,6 +156,24 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
       assert.equal(writes(),count);await laptop.getByRole("button",{name:"Keep working here — sync off",exact:true}).click();
       await signIn(laptop);assert.equal(writes(),count);assert.equal(await laptop.evaluate(()=>S.syncOn),false);
     });
+    await check("manual review can restart a missing or removed copy only through an explicit choice",async()=>{
+      for(const removed of [false,true]){
+        if(removed){
+          const old=rows.get("coach@example.test");
+          rows.set("coach@example.test",{...old,revision:old.revision+1,payload:null,deleted_at:"2026-11-11T12:00:00Z"});
+        }else rows.delete("coach@example.test");
+        const count=writes();
+        await laptop.evaluate(()=>reviewCloudSeason());await settled(laptop);
+        assert.equal(writes(),count,"review alone never resurrects a season");
+        assert.equal(await laptop.evaluate(()=>S.syncOn),false);
+        assert.match(await laptop.locator("#root").innerText(),/No season is saved with this account/);
+        await laptop.getByRole("button",{name:"Use this device's season",exact:true}).click();await settled(laptop);
+        assert.equal(writes(),count+1,"the explicit choice sends exactly once");
+        assert.equal(await laptop.evaluate(()=>S.syncOn),true);
+        assert.equal(rows.get("coach@example.test").deleted_at,null);
+        assert.deepEqual(rows.get("coach@example.test").payload.data,await laptop.evaluate(()=>JSON.parse(copyPayload("all")).data));
+      }
+    });
     await check("no errors and checkpoints contain hashes only, never seasons or credentials",async()=>{
       assert.deepEqual(errors,[]);
       const saved=await laptop.evaluate(()=>Object.keys(localStorage).filter(k=>k.endsWith(":device")).map(k=>JSON.parse(localStorage.getItem(k))));

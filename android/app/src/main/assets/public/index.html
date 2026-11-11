@@ -12489,6 +12489,11 @@ window.reviewCloudSeason = async () => {
     if(!current()) return;
     if(!r || !r.ok) return back((r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged.");
     if(r.missing || r.removed){
+      if(canFollowSeason()){
+        // Use the same explicit choice and revision permit as a new device.
+        // Merely accepting a revision must not bypass the read-before-write gate.
+        _syncReviewing=false; return checkAccountSeason(true);
+      }
       if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
       if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
       S.syncOn=true;return syncNow();
