@@ -19,7 +19,7 @@ export const Route = createFileRoute("/privacy")({
 const POINTS = [
   "Your working season is saved on your device.",
   "We do not sell data.",
-  "There are no ads, no analytics and no tracking.",
+  "Gridlock does not run ads or marketing analytics.",
   "Account sign-in uses our account server.",
   "League sync is off until you turn it on.",
 ] as const;
@@ -40,7 +40,7 @@ function Privacy() {
         </ul>
         <div className="mt-8 space-y-4 text-fg">
           <p>
-            Your season stays on the device. It works with no signal once you have signed in there. If you turn on League sync, a full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before each event for a backup you control.
+            Your season stays on the device. With active access checked on that device, the coaching tools work without a signal. If you turn on League sync, a full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before each event for a backup you control.
           </p>
           <p className="text-signal">
             Save a copy is a file you keep. It gives you a backup you control and can carry to another phone.

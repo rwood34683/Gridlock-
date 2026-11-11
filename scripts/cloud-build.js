@@ -153,7 +153,10 @@ function build({ url, anonKey, redirectTo, outDir, beta, associations = true, pa
   // Wire them in, config first, before the app boots.
   const idx = path.join(outDir, "index.html");
   html = html.replace(ANCHOR, ANCHOR + '\n<script src="gridlock-config.js"></script>\n<script src="gridlock-cloud.js"></script>');
-  if(payments)html=html.replace('<script src="gridlock-cloud.js"></script>','<script src="gridlock-cloud.js"></script>\n<script src="gridlock-web-payments.js"></script>');
+  if(payments){
+    html=html.replace('<script src="gridlock-config.js"></script>','<script>window.gridlockPaymentRequired=true;</script>\n<script src="gridlock-config.js"></script>');
+    html=html.replace('<script src="gridlock-cloud.js"></script>','<script src="gridlock-cloud.js"></script>\n<script src="gridlock-web-payments.js"></script>');
+  }
   fs.writeFileSync(idx, html);
 
   // The service worker caches the shell by name, and these two are not in its

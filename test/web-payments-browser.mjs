@@ -80,6 +80,10 @@ try{
    await page.evaluate(tab=>set({tab,fmtAsk:false,syncAsk:false}),tab);
    assert.equal(await page.locator('[data-pass-locked]').count(),0);
   }
+  await page.evaluate(()=>set({tab:'more',more:'plan'}));
+  assert.match(await page.locator('.main').innerText(),/\$19\.97/);
+  assert.doesNotMatch(await page.locator('.main').innerText(),/free forever|Free, always|renews|Nothing is for sale/);
+  assert.match(await page.evaluate(()=>HELP['more/plan'].how.join(' ')),/midnight Eastern/);
   assert.deepEqual(errors,[]);
  });
  await check('offline uses only the previously verified same-account receipt',async()=>{
@@ -100,7 +104,7 @@ try{
  });
  await check('a missing payment adapter cannot fall back to free access',async()=>{
   response=await receipt();await fresh();await page.waitForFunction(()=>planOf()==='program');
-  await page.evaluate(()=>{delete window.gridlockWebPayments;render();});
+  await page.evaluate(()=>{delete window.gridlockWebPayments;delete window.GRIDLOCK_CLOUD;render();});
   assert.equal(await page.evaluate(()=>planOf()),'free');
   assert.ok((await page.locator('#root').innerText()).includes('Access checking did not load'));
   assert.ok(await page.getByRole('button',{name:'Buy today’s pass · $19.97',exact:true}).isDisabled());

@@ -117,11 +117,14 @@ The new migration starts public signup and both checkout modes disabled.
 9. After evidence review, prepare the live product/Price, signing pair and
    webhook. Deploy the reviewed migration/functions with checkout closed.
    Verify existing beta/admin access before opening paid access.
-10. With owner approval for a controlled live pilot, set mode=live,
+10. With owner approval for a controlled live pilot, set mode=live but leave
+    checkout closed. Publish the web build with live public config and public
+    JWK, then confirm the payment wall and existing beta/admin access work.
+    Only then enable public_signup_enabled in the production payment settings
+    (email confirmation stays required). Create and confirm a new, non-beta
+    pilot account. Set GRIDLOCK_LIVE_PILOT_UIDS to that account UUID only,
     GRIDLOCK_CHECKOUT_ENABLED=true and database live_checkout_enabled=true.
-    Keep GRIDLOCK_LIVE_FLOW_VERIFIED=false. Set GRIDLOCK_LIVE_PILOT_UIDS to
-    the dedicated test account UUID only; other customers still cannot buy.
-    Publish the web build with live public config and the public JWK only.
+    Keep GRIDLOCK_LIVE_FLOW_VERIFIED=false; other customers still cannot buy.
 11. The owner completes one real $19.97 purchase on a dedicated test account.
     Match receipt, delivered event, order, access expiry and usable app tools.
     Test its refund with owner authorization. Keep website sales copy

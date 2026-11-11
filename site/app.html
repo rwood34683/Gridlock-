@@ -13152,7 +13152,7 @@ function syncStatus(data){
   try{save(S);}finally{_syncStatusWrite=false;}render();
 }
 // A stale tab never sends: its season is older than the one another tab saved.
-const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale && ((!window.GRIDLOCK_CLOUD?.payments && !window.gridlockWebPayments) || planOf() === "program");
+const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale && ((!window.gridlockPaymentRequired && !window.GRIDLOCK_CLOUD?.payments && !window.gridlockWebPayments) || planOf() === "program");
 function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
 function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
 function queueSeasonPush(t){
@@ -18515,10 +18515,12 @@ const HELP = {
     how:["Sign in to send a blast.",
          "Pick the group, write it once, and it goes in the log.",
          "The phone's share sheet carries it; with no share sheet the text sits in a box at the top of the screen to copy from."]},
-  "more/plan": {t:"Plan", w:"What is free, what Team adds, and getting a purchase back.",
-    how:["Everything you do while a point is on is free and always will be.",
+  "more/plan": {t:"Plan", get w(){return webPaymentBuild() ? "Your Coach pass, when it ends and checking your access." : "What is free, what Team adds, and getting a purchase back.";},
+    get how(){return webPaymentBuild() ? ["$19.97 per account for all Coach tools until midnight Eastern on the purchase date.",
+         "One-time payment. No automatic renewal. Existing beta and admin access stays the same.",
+         "Check access online before the event. Your saved season, backup and exports remain after the pass ends."] : ["Everything you do while a point is on is free and always will be.",
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
-         "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
+         "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."];},
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
   "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
     get how(){return ["Install on this phone, at the top, puts Gridlock on your home screen like any app. It is gone once the app is installed.",
@@ -18569,9 +18571,9 @@ const HELP_Q = [
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],
   ["Nothing shows on the scouting screens.", "They only count what you logged. On day one they are bare. By Sunday afternoon they are the reason you brought the phone."],
   ["How do I install the app on my phone?", "Tap Install on this phone — on the welcome page, or under More › Account & backups. On Android Chrome it opens the install box; elsewhere it shows the steps for your phone (on iPhone: Share, then Add to Home Screen). Then open Gridlock from its icon."],
-  ["Do I need a signal?", "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
+  ["Do I need a signal?", () => webPaymentBuild() ? "Check your active pass online before the event. You can then coach without a signal until it ends. A new device, signup, password reset, payment and League sync need a connection. Saved seasons, backups and exports remain after expiration." : "Not to coach. Everything you log is on this phone and works with no bars at all. You need a signal to create an account, sign in on a new device, reset a password, use League sync or contact the store. After signing in on this device, your saved coaching tools work offline."],
   ["How do I sign out?", "Tap Account at the top right (or More, then Account & backups, also called Nexus) and tap Sign out; it asks first. Your season stays on the phone; signing back in is how you get into the app again, because everyone signs in."],
-  ["What does it cost?", () => (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
+  ["What does it cost?", () => webPaymentBuild() ? "$19.97 per account for all Coach tools until midnight Eastern on the purchase date. One-time payment; no automatic renewal. Existing beta and admin access stays the same. Saved seasons, backup and exports remain after expiration. More, then Plan shows your access." : (billingLive() ? "" : "Nothing is for sale yet, so everything is unlocked. When the store opens: ") + "The whole sideline loop is free forever — calling the break, charting the point bunker by bunker, the score, where your points come from, your own words for everything, and Save a copy. Team is $99 a season or $14.99 a month and adds the between-events half: Scout's opponent library, Cards, Rep, Assess and opening any sheet you have kept. There is also a $25 pass for one event weekend. More, then Plan has all of it, and Restore purchases is there if you have paid before on another phone."],
   ["Can I change one of the app's plays?", "Yes — make it yours. Pick the call on Playbook and tap Make it yours under the field. It opens as the app's play, every man where it puts him and built on every field the app has it on. Take a man off with Take off on his row, then tap where you want him; he keeps his number. Name it what your team shouts and save. Your Face, Shot, P|S and job words on the app's version come across, and the app's version is turned off unless you say keep it. Nothing logged under the app's version moves."],
   ["Can I say who goes on the buzzer?", "Yes. On Playbook each man's row has Go. Auto lets the longest run leave first and holds the short ones so the five land together; On the buzzer sends him straight away; Delay holds him behind everyone. Play the break draws it, and his card says it. It is kept per field and per call, like Face and Shot."],
   ["I only want my own plays.", "On Playbook open Change the call and tap Only my plays, or do it under More › Team › Break calls. The app's twelve come out of every picker in one tap and your plays lead. Nothing logged is touched, and Turn all twelve back on puts them back. You need at least one play of your own first."],
@@ -18649,6 +18651,7 @@ function verifyBlock(){
 }
 
 function planPage(){
+  if(webPaymentBuild()) return webPassPlan();
   const now = planOf(), said = S.billingSaid || "";
   const row = (a, b) => `<div class="kv__row"><span class="kv__k">${a}</span><span class="kv__v">${b}</span></div>`;
   return sec("Your plan", `<div class="call">
@@ -18856,7 +18859,7 @@ const PAID_WHY = {
 };
 
 function planOf(){
-  if(window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments) return S.entered && readAccount().cloud &&
+  if(window.gridlockPaymentRequired || window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments) return S.entered && readAccount().cloud &&
     String(readAccount().email).toLowerCase() === String(S.email).toLowerCase() &&
     window.gridlockWebPayments?.current(readAccount().uid)?.plan === "program" ? "program" : "free";
   if(!billingLive()) return S.preview ? "free" : "program";
@@ -20255,7 +20258,20 @@ window.sendMsg = () => {
 // The web pass covers every Coach tool. Account, backup and export stay open.
 // This adapter is absent from offline previews and the store builds.
 let _webPassBusy = false, _webPassSaid = "";
-function webPassLocked(){ return !!(window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments) && S.entered && planOf() !== "program"; }
+function webPaymentBuild(){ return !!(window.gridlockPaymentRequired || window.GRIDLOCK_CLOUD?.payments || window.gridlockWebPayments); }
+function webPassLocked(){ return webPaymentBuild() && S.entered && planOf() !== "program"; }
+function webPassPlan(){
+  const grant = window.gridlockWebPayments?.current(readAccount().uid);
+  const ends = grant?.source === "day-pass" && grant.expires ? new Intl.DateTimeFormat(undefined,
+    {timeZone:"America/New_York",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}).format(new Date(grant.expires)) : "";
+  return sec("Your Coach access", `<p class="lede">${grant?.plan === "program" ? ends ? "Your Coach pass is active." : "Your existing account access is active." : "Check your access before coaching."}</p>
+    ${ends ? `<p class="note">Ends ${esc(ends)}.</p>` : ""}
+    <p>$19.97 per account. All Coach tools until midnight Eastern on the purchase date.</p>
+    <p class="note">One-time payment. No automatic renewal. Existing beta and admin access stays the same.</p>
+    <p class="note">Your saved season, backups and exports stay available after the pass ends. Check access online before the event, then coach without a signal until the pass ends.</p>
+    <button class="btn btn--block" onclick="checkWebPass()" ${_webPassBusy ? "disabled" : ""}>Check access</button>
+    <p class="note" role="status">${esc(_webPassSaid || _grantSaid)}</p>${cloudPageLinks()}`);
+}
 window.checkWebPass = async () => {
   if(_webPassBusy) return;
   _webPassBusy = true; _webPassSaid = "Checking access…"; render();

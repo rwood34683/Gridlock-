@@ -21,7 +21,7 @@ The exported Grok workspace was checked locally on 10 November 2026:
   release, 1.7.7, has the same compatibility failure.
 - Nothing from these dependency trials was published or applied to Grok.
 
-Exact trial errors:
+Trial error excerpts (the long inferred type is abbreviated):
 
 ```
 src/lib/auth/client.ts(1,10): error TS2305: Module '"better-auth/client/plugins"' has no exported member 'genericOAuthClient'.
