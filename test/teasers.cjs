@@ -53,6 +53,8 @@ for (const kind of ["team", "player"]) {
     while ((m = re.exec(h))) { try { new Function(m[1]); } catch (e) { bad = e.message; break; } }
     check(`${kind}: every script parses${bad ? " — " + bad : ""}`, !bad);
   }
+  check(`${kind}: no referee rule bank, salts or offensive sample codes shipped`, h.includes("const IQ_Q=[];") && h.includes("const KEY_SALT=''") && h.includes("const UPRA_SALT='';") && !/s-hitler|s-immigrant|stab X person/.test(h));
+  check(`${kind}: no service worker, no dev-copy tour, no shot-card paywall`, !/if\('serviceWorker' in navigator\)\{try\{if\(location/.test(h) && !/this is your dev copy|Unlock Scout|20% off/.test(h));
   check(`${kind}: both pits start empty`, h.includes("let Lsel={di:0,ti:-1},Rsel={di:0,ti:-1};") && h.includes("if(sel.ti<0){if(!box)return;"));
   check(`${kind}: the bunker you stand in is ringed white`, h.includes("r:3,fill:'none',stroke:'#ffffff','stroke-width':1.1"));
   check(`${kind}: 44 px targets and names for every control`, h.includes('id="previewFit"') && h.includes('id="previewNames"'));

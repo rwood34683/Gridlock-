@@ -139,10 +139,50 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["empty pits", "const f=(sel)=>{const d=DIVS[sel.di]", "const f=(sel)=>{if(sel.ti<0)return 'Nobody picked';const d=DIVS[sel.di]"],
   ["empty pits", "function renderSide(side,sel){\n  const box=document.getElementById('side'+side);",
     "function renderSide(side,sel){\n  const box=document.getElementById('side'+side);\n  if(sel.ti<0){if(!box)return;let o='<option value=\"\" selected>Pick a team\\u2026</option>';DIVS.forEach((d,di)=>{o+=`<optgroup label=\"${d.d}\">`+d.t.map((t,ti)=>`<option value=\"${di}:${ti}\">${t[0]}</option>`).join('')+'</optgroup>';});\n    box.innerHTML=`<div><span class=\"nm\">Nobody yet</span></div><span class=\"lbl\">${side==='L'?'Left pit \\u00b7 a team you watch \\u00b7 optional':'Right pit \\u00b7 who you play'}</span><select class=\"pickSel\">${o}</select>`;\n    box.querySelector('.pickSel').onchange=e=>{if(!e.target.value)return;const[di,ti]=e.target.value.split(':').map(Number);if(side==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();};return;}"],
+  // ---- found by the pre-publish read and the independent check ----
+  ["no prices", "Scout license unlocks the full shot card for every bunker \\u2014 all ranges, bearings, and which lanes force you to stand \\u2014 plus copy-to-chat for the pre-game huddle.</div><div class=\"row\" style=\"margin-top:4px\"><button class=\"ld on\" id=\"scBuy\">Unlock Scout</button></div>",
+    "The full shot card for every bunker is in the coach app.</div>"],
+  // The locked item names the app it is in: the popup's own sentence when it says so.
+  ["truthful", "<p>This is in the coach app. The preview does not have it yet.</p></div>`;const buy=",
+    "<p>${/Team app|coach app|preview/i.test(body||'')?body:'This is in the coach app. The preview does not have it yet.'}</p></div>`;const buy="],
+  ["truthful", "They enter it once to activate their Player app.", "When the Player app ships, they enter it once there."],
+  ["no prices", "misses, scouting, break log, readiness, crew sessions, license. One file backs it all up", "scouting, your tally, practice and settings. One file backs it all up"],
+  // Nexus in a preview is backup and nothing else: its summary pointed at tabs these apps do not have.
+  ["no jargon", "  B.innerHTML=h;\n  const pb=B.querySelector('#nxPrint');",
+    "  if(EDITION==='player'||EDITION==='team')h=`<div class=\"lbl\">Nexus</div><div style=\"font-size:12px;color:#ff5a52;margin-bottom:8px\">Back up what this phone holds, or restore a backup.</div>`;\n  B.innerHTML=h;\n  const pb=B.querySelector('#nxPrint');"],
+  ["no jargon", "<div class=\"lbl\" style=\"margin-top:10px\">Offline readiness</div><div id=\"nxOffBody\"></div>", ""],
+  ["no jargon", ":[['Master build','All features open \\u2014 this is your dev copy.'],['Editions','Officiating and Scout builds gate features for sale.'],['Nexus','Backup, license minting, ref cards, offline status.'],['Ship it','Trace Seffner, swap BUY_URL, go.']];", ":[];"],
+  ["sends nothing", "if('serviceWorker' in navigator){try{if(location.protocol", "if(false&&'serviceWorker' in navigator){try{if(location.protocol"],
+  // No signing salts in a page anyone can read: nothing in a preview signs or checks a key.
+  ["no secrets", "const UPRA_SALT='UPRA-GRIDLOCK-2026-c7';", "const UPRA_SALT='';"],
+  ["no secrets", "const KEY_SALT='GRIDKEY-2026-m4',", "const KEY_SALT='',"],
+  // Coach colours: secondary type red, the team card neutral.
+  ["colours", "<div class=\"iqrow\" style=\"border-color:#4d78e8\">", "<div class=\"iqrow\" style=\"border-color:#3a3f40\">"],
+  ["colours", "color:#6f9cff", "color:#ff5a52"],
+  // Three rows of 44 px chips fit the quick list without cutting the third in half.
+  ["fit", "max-height:120px;overflow:auto", "max-height:156px;overflow:auto"],
+  // A name for the controls the first naming pass missed.
+  ["names", "else if(e.classList.contains('pickSel'))e.setAttribute('aria-label','Team');",
+    "else if(e.classList.contains('pickSel'))e.setAttribute('aria-label','Team');else if(N[e.id])e.setAttribute('aria-label',N[e.id]);"],
+  ["names", "let q=0;function name(){", "const N={prSel:'Drill',prDt:'Date',tAt:'Shooting at',tSec:'Seconds',bkTeam:'Team',scEvSel:'Event',tpPick:'Team',tsType:'Type',tsDate:'Date',tsTime:'Time'};let q=0;function name(){"],
+  // A shared line code is text from outside: strip anything that could be markup.
+  ["safe input", "const o=JSON.parse(upraB64d(p[1]));return {id:'shared',name:o.n||'Shared line',play:o.p||'',arch:o.a||'',spots:(o.s||[]).map(x=>{const sp={player:x[0],bunker:x[1]};",
+    "const o=JSON.parse(upraB64d(p[1]));const T=v=>sanitizeText(v==null?'':v).replace(/[\"'`&]/g,'').slice(0,60);return {id:'shared',name:T(o.n)||'Shared line',play:T(o.p),arch:T(o.a),spots:(Array.isArray(o.s)?o.s:[]).map(x=>{const sp={player:T(x[0]),bunker:T(x[1])};"],
 ];
 
 // Regex steps: [rule, pattern, replacement].
 const REGEX = [
+  // The July build's sample code words included two that must never ship.
+  ["decency", /\n \{id:'s-(?:hitler|immigrant)',[^\n]*\}, ?(?=\n)/g, ""],
+  ["no prices", /upsellPop\('Add another team \\u2014 20% off',[^;]*?,'coach2'\)/g, "gAlert('This preview holds one team.')"],
+  // The league's rulebook does not ship: the referee question bank, its levels,
+  // the call cards, the find list, the scenario brain and the printed call sheet.
+  ["no rulebook", /const IQ_Q=\[\n[\s\S]*?\n\];/, "const IQ_Q=[];"],
+  ["no rulebook", /const IQ_LVL=\[[^\]]*\];/, "const IQ_LVL=[];"],
+  ["no rulebook", /const IQ_CALLS=\[\n[\s\S]*?\n\];/, "const IQ_CALLS=[];"],
+  ["no rulebook", /const IQ_FIND=\[\n[\s\S]*?\n\];/, "const IQ_FIND=[];"],
+  ["no rulebook", /const SCEN=\[\n[\s\S]*?\n\];/, "const SCEN=[];"],
+  ["no rulebook", /function printSheet\(\)\{const S=document\.getElementById\('printsheet'\);[\s\S]*?\n\}\n/, "function printSheet(){}\n"],
   // The left pit's wire is #e5342f wherever a team, path or runner is drawn;
   // #e5252a stays the accent (tabs, buttons) and the end of the aggression scale.
   ["wires", /'#e5252a'(?!\])/g, "'#e5342f'"],
@@ -155,11 +195,20 @@ const REGEX = [
 
 function apply(src, kind) {
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
-  // A step whose result is already there has been applied (its result can
-  // contain what it looks for, so looking alone would apply it twice).
+  // A step applies wherever what it looks for is still in the file. A step whose
+  // result contains what it looks for is skipped once that result is there, or
+  // it would apply again on every run.
   for (const [, from, to, only] of STEPS) {
     if (only && !only.includes(kind)) continue;
-    if (from && src.includes(from) && !(to && src.includes(to))) src = src.split(from).join(to);
+    if (!from || !src.includes(from)) continue;
+    if (to && to.includes(from)) {
+      // Applied already when the first line it adds is there. Later steps may
+      // edit the rest of what it added, so the whole result is not the test.
+      const i = to.indexOf(from), added = i > 0 ? to.slice(0, i) : to.slice(from.length);
+      const mark = added.split("\n").find(l => l.trim()) || added;
+      if (mark && src.includes(mark)) continue;
+    }
+    src = src.split(from).join(to);
   }
   return src;
 }
