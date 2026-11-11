@@ -12224,7 +12224,11 @@ async function checkAccountSeason(requested){
       return;
     }
     if(wanted && r.known && r.unchanged && r.revision > r.base && !r.missing && !r.removed && snapshot === deviceSeasonText()){
-      if(await applyDeviceSeason(choice)) return;
+      _deviceChoice=choice;
+      await applyDeviceSeason(choice);
+      // Keep the precise failure message. Opening may have succeeded even if
+      // checkpoint storage failed; never then claim nothing was replaced.
+      return;
     }
     if(!deviceSeasonCurrent(t)) return;
     if(r.missing && !requested && !wanted){
