@@ -1362,6 +1362,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     available yet. They keep their own `gridlock_*` storage keys and never a
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
+    On 11 Nov 2026 the owner asked for the Player preview in the coach
+    app's look. `tools/teaser_theme.py` recolours it in place: black ground,
+    red secondary type, the coach field's dark ground and its bunker ramps
+    (purple was never a paint, so it reads neutral), white clear lanes and
+    grey blocked ones. Sunlight and colour-blind modes are left alone. Run
+    it with `--check` to see whether anything is left to change.
 
 84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
     format as two dropdowns and folds the rest away. PR #316 (Codex) adds:

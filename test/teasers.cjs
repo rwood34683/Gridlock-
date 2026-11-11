@@ -17,6 +17,14 @@ for (const [kind, name] of [["team", "Team"], ["player", "Player"]]) {
   check(`${kind}: no link to a missing admin page`, !h.includes("gridlock_admin.html"));
   check(`${kind}: never touches a coach's season keys`, !h.includes("gridlock.coach."));
 }
+const player = rd("teasers/player/index.html");
+check("player: on the coach app's black ground", /body\{margin:0;background:#0b0c0d/.test(player) && !player.includes("#06091a"));
+check("player: the field is dark, not green turf", player.includes("fill:'#101111'") && !player.includes("#1c4a28"));
+check("player: clear lanes white, blocked grey", player.includes("cl?'#ffffff':'#8d9092'"));
+check("player: no purple bunker paint", !/#6f1c63|#9a4a8c/.test(player));
+const { execFileSync } = require("child_process");
+check("player: the theme tool finds nothing left to change",
+  execFileSync("python3", ["-I", path.join(ROOT, "tools/teaser_theme.py"), "--check", path.join(ROOT, "teasers/player/index.html")]).toString().includes("already themed"));
 const coach = ["web/index.html", "site/index.html", "scripts/build.js", "scripts/build-app-artifact.js"];
 check("the coach app, site and builds never load the previews", coach.every(f => !rd(f).includes("teasers/")));
 const site = rd("site/index.html");
