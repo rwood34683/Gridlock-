@@ -130,6 +130,12 @@ function transformIndex(text, from, to) {
 }
 // `marked` is true for the app's own index.html, the one file that carries the brand marker.
 function transformFile(rel, buf, from, to, marked = false) {
+  // Launcher icons contain painted lettering too. A variant keeps the
+  // existing neutral icon, never a renamed file containing Gridlock's ball.
+  if (from.key !== to.key && /^(?:img\/)?(?:icon\.svg|icon-(?:192|512)\.png|apple-touch-icon\.png)$/.test(rel)) {
+    const shared = fs.readFileSync(path.join(ROOT,"brand/shared-icons",path.basename(rel)));
+    return path.extname(rel) === ".svg" ? Buffer.from(transformText(shared.toString("utf8"),from,to)) : shared;
+  }
   if (!TEXT.has(path.extname(rel))) return buf;
   const text = buf.toString("utf8");
   const out = marked ? transformIndex(text, from, to) : transformText(text, from, to);
@@ -195,6 +201,8 @@ function selfCheck(staged) {
   const other = new RegExp(`\\b${esc(from.short)}\\b(?!VoiceParser)`);
   for (const [tree, map] of [["web", web], ["site", site]]) {
     for (const [rel, buf] of map) {
+      if (from.key !== to.key && /^(?:img\/)?(?:icon\.svg|icon-(?:192|512)\.png|apple-touch-icon\.png)$/.test(rel)
+          && !buf.equals(transformFile(rel,buf,from,to))) problems.push(`${tree}/${rel} does not carry the variant's neutral icon.`);
       if (!TEXT.has(path.extname(rel))) continue;
       const out = buf.toString("utf8"), named = out.replace(COMPANY, "");
       const srcFile = path.join(tree === "web" ? WEB : SITE, rel);
@@ -203,6 +211,7 @@ function selfCheck(staged) {
       // and no variant's in any build, the source included.
       for (const b of staged.others || []) if (new RegExp(`\\b${esc(b.short)}\\b`).test(named)) problems.push(`${tree}/${rel} says "${b.short}", which is another build's name.`);
       if (from.key !== to.key) {
+        if (out.includes('<title>Gridlock ball</title>') || /data:image\/png;base64/.test(out) && /^(?:img\/)?icon\.svg$/.test(rel)) problems.push(`${tree}/${rel} still contains the default ball artwork.`);
         if (other.test(named)) problems.push(`${tree}/${rel} still says "${from.short}".`);
         if (/\bdata-logo\b/.test(out)) problems.push(`${tree}/${rel} still shows ${from.short}'s logo.`);
         if (from.scheme !== to.scheme && out.includes(`${from.scheme}://`)) problems.push(`${tree}/${rel} still links ${from.scheme}://.`);
@@ -351,6 +360,9 @@ function native(key, { dry = false, quiet = false } = {}) {
     }
     return { from: from.key, to: to.key, files: [...writes.keys(), ...publicWrites.map(([r]) => r)], dry: true };
   }
+  // Regenerate native launcher/splash assets as well as the web shell so a
+  // variant cannot accidentally ship the default brand's painted ball.
+  require("node:child_process").execFileSync(process.execPath,[path.join(ROOT,"brand/generate-assets.js"),"--native-only","--brand",to.key],{cwd:ROOT,stdio:"pipe",windowsHide:true});
   for (const [rel, text] of writes) fs.writeFileSync(path.join(ROOT, rel), text);
   for (const [rel, buf] of publicWrites) { if (buf) fs.writeFileSync(path.join(ROOT, rel), buf); else fs.rmSync(path.join(ROOT, rel)); }
   // The password-sharing hosts, the release guards and the privacy manifest
