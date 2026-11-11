@@ -876,6 +876,25 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
 .tbl__sub{font-size:12px;color:var(--mute)}
 .tbl--stats td{padding-top:2px;padding-bottom:2px}
+.player-dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line-lit);border-radius:16px;padding:20px;width:min(540px,calc(100vw - 24px));max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain}
+.player-dialog:not([open]){display:none}
+.player-dialog--fallback{display:block;position:fixed;inset:12px 0 auto;margin:0 auto;z-index:1001}
+#player-shade{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:1000;touch-action:none}
+#player-shade[hidden]{display:none}
+.player-dialog::backdrop{background:rgba(0,0,0,.78)}
+.player-dialog h2{margin:0;font-size:var(--t-lg);overflow-wrap:anywhere}
+.player-dialog .kv__v{overflow-wrap:anywhere}
+.player-dialog .fld{margin-top:var(--s3)}
+.player-dialog .btnrow{margin-top:var(--s3)}
+.player-dialog summary{min-height:44px;padding:12px 0;cursor:pointer}
+.player-dialog__head{display:flex;align-items:center;gap:12px;position:sticky;top:-20px;background:var(--panel);padding:12px 0;z-index:1}
+.player-dialog__head button{margin-left:auto;flex-shrink:0}
+.player-dialog__status{font-size:var(--t-lg);font-weight:800;margin:16px 0 8px}
+.player-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 8px}
+.player-quick button{min-height:64px;border:1px solid var(--line-lit);border-radius:12px;padding:12px;text-align:center;font-size:18px;font-weight:800}
+.player-quick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent-lit);color:var(--ink)}
+.player-dialog .player-extra{margin-top:12px}
+.player-dialog .player-extra summary{font-weight:700}
 .tbl .th-num{display:none}
 @container main (max-width:620px){
   .tbl{min-width:0}
@@ -1142,6 +1161,8 @@ svg.field [data-pick]{cursor:crosshair}
 </head>
 <body>
 <div id="root"></div>
+<div id="player-shade" hidden aria-hidden="true"></div>
+<dialog id="player-details" class="player-dialog" role="dialog" aria-modal="true" aria-labelledby="player-detail-title"></dialog>
 <script>
 (function (root, factory) {
   "use strict";
@@ -4261,6 +4282,7 @@ const defaultState = () => ({
   arrival:{},                    // route viewer controls; observations live below
   arrivalSightings:[],            // ordered, scoped observations; never inferred positions
   arrivalShots:[],                // where they shot from and at, same scope; a lane is an observation too
+  playerChecks:[],               // current-point observations, separate from the break
   voice:{}, voiceEvents:[],       // transcripts; microphone state is never persisted
   division:"pro",       // pro is the point; the semi-pro board is still there
   teams:{},
@@ -4323,7 +4345,7 @@ const COPY_VERSION = 1;
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
-                  "arrivalSightings","arrivalShots","voiceEvents","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
+                  "arrivalSightings","arrivalShots","voiceEvents","playerChecks","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds"];
 
 let _hadLocal = false;      // was there a real save to come back to?
@@ -5161,7 +5183,7 @@ function bunkerUses(key, id){
   const tag = JSON.stringify(id);
   const hit = r => r && typeof r === "object" && r.layout === key && JSON.stringify(r).includes(tag);
   let n = 0;
-  ["breakouts", "tally", "moves", "arrivalSightings", "arrivalShots", "voiceEvents"].forEach(k => (S[k] || []).forEach(r => { if(hit(r)) n++; }));
+  ["breakouts", "tally", "moves", "arrivalSightings", "arrivalShots", "voiceEvents", "playerChecks"].forEach(k => (S[k] || []).forEach(r => { if(hit(r)) n++; }));
   Object.values(S.scout || {}).forEach(p => (p.breaks || []).forEach(b => { if(hit(b)) n++; }));
   (S.plays || []).forEach(p => { const five = (p.plants || {})[key]; if(Array.isArray(five) && five.includes(id)) n++; });
   return n;
@@ -5675,7 +5697,7 @@ function matchSize(id){
 // asked about every time he started the real one.
 function loggedSize(id){
   const n = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).length;
-  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.pens) + n(S.timeouts);
+  return n(S.tally) + n(S.breakouts) + n(S.moves) + n(S.assessments) + n(S.calls) + n(S.arrivalSightings) + n(S.arrivalShots) + n(S.voiceEvents) + n(S.playerChecks) + n(S.pens) + n(S.timeouts);
 }
 /* Who the match is against.
  *
@@ -6244,7 +6266,7 @@ window.setMatchVs = name => {
 function liveRows(){
   const m = S.matchId, pt = S.point || 1;
   if((S.results || []).some(r => r && r.m === m && r.pt === pt)) return 0;
-  return [S.breakouts, S.tally, S.assessments].reduce((n, l) => n + (l || []).filter(r => r && r.m === m && r.pt === pt).length, 0);
+  return [S.breakouts, S.tally, S.assessments, S.playerChecks].reduce((n, l) => n + (l || []).filter(r => r && r.m === m && r.pt === pt).length, 0);
 }
 window.setRaceTo = n => {
   // Overtime is the race to one past the tie; a race tapped over it left the
@@ -6298,7 +6320,7 @@ function playedBefore(pt, m){
   if(!m) return false;
   const before = r => r && r.m === m.id && r.pt < pt;
   return (S.results || []).some(before) || (S.tally || []).some(before) || (S.breakouts || []).some(before)
-      || (S.calls || []).some(before) || (S.moves || []).some(before) || (S.arrivalSightings || []).some(before)
+      || (S.calls || []).some(before) || (S.moves || []).some(before) || (S.arrivalSightings || []).some(before) || (S.playerChecks || []).some(before)
       || Object.values(S.scout || {}).some(p => ((p && p.breaks) || []).some(before));
 }
 function ourEnd(pt, m){
@@ -6441,7 +6463,7 @@ function lastPoint(mid){
 function lastPointFresh(id){
   const hit = a => (a || []).filter(x => x && typeof x === "object" && x.m === id).map(x => x.pt);
   const pts = [...hit(S.tally), ...hit(S.breakouts), ...hit(S.results), ...hit(S.calls), ...hit(S.pens),
-               ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents),
+               ...hit(S.moves), ...hit(S.assessments), ...hit(S.arrivalSightings), ...hit(S.arrivalShots), ...hit(S.voiceEvents), ...hit(S.playerChecks),
                ...Object.values(S.scout || {}).flatMap(p => hit(p && p.breaks)),
                ...Object.keys(S.lineups || {})
                   .filter(k => k.startsWith(id + "|"))
@@ -7191,6 +7213,7 @@ function renamePlayer(from, to){
   // log read "by Reyes" for a man now called Reyes Jr and the By box was blank.
   S.tally = re(S.tally, "by", "them");
   S.breakouts = re(S.breakouts, "player", "us");
+  S.playerChecks = re(S.playerChecks, "player", "us");
   S.assessments = re(S.assessments, "who");
   S.moves = re(S.moves, "who");
   S.pens = re(S.pens, "who", "us");
@@ -7517,7 +7540,7 @@ function copyPayload(scope){
  * It is an ordinary copy with scope "sheet": Merge on the other phone adds
  * the rows by the keys every merge uses, so the same sheet sent back and
  * forth joins up rather than doubling, and Replace refuses it. */
-const SHEET_LISTS = ["tally","breakouts","calls","moves","assessments","results","pens","timeouts","arrivalSightings","arrivalShots","voiceEvents"];
+const SHEET_LISTS = ["tally","breakouts","calls","moves","assessments","results","pens","timeouts","arrivalSightings","arrivalShots","voiceEvents","playerChecks"];
 function sheetPayload(id){
   const m = matchById(id); if(!m) return "";
   const on = r => !!r && typeof r === "object" && r.m === id;
@@ -7550,7 +7573,7 @@ function sheetPayload(id){
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 // The lists copySummary() names, so a merge can count what it added.
-const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
+const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents","playerChecks","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
 function copySummary(d){
   const n = (k, f) => {
     // A walk is notes kept per field, and members sit inside their groups.
@@ -7563,7 +7586,7 @@ function copySummary(d){
                 [n("scout"), "team scouted"], [n("calls"), "call logged"], [n("tally"), "out"], [n("breakouts"), "breakout"],
                 [n("pens"), "penalty"], [n("timeouts"), "timeout"], [n("games"), "game added"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"],
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"], [n("playerChecks"), "player check"],
                 [n("groups"), "group"], [n("members"), "group member"], [n("codes"), "code word"], [n("walk"), "walk note"],
                 [n("blasts"), "blast"], [n("fmts"), "saved format"], [n("fields"), "field of yours"],
                 [n("calEvents"), "calendar event"], [n("calKinds"), "calendar kind"], [n("words"), "word or setting"]];
@@ -7581,6 +7604,7 @@ const SAME = {
   arrivalSightings: o => o.id,
   arrivalShots: o => o.id,
   voiceEvents: o => o.id,
+  playerChecks: o => JSON.stringify([o.m,o.pt,o.side,o.breakoutId ? "b:"+o.breakoutId : "p:"+o.player]),
   roster:      r => (r.name || "").toLowerCase(),
   tally:       o => [o.m, o.pt, o.side, o.name, o.at].join("|"),
   breakouts:   b => b.id,
@@ -7764,6 +7788,10 @@ function copyDataError(data){
     arrivalShots:list(v => row(v) && ["id","team","player","layout","m","from","to"].every(k => str(v[k]) && v[k].length > 0)
       && v.from !== v.to && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
     voice:v => row(v) && record(v,{side:v=>["left","right"].includes(v),team:str,player:str,language:str}),
+    playerChecks:list(v => row(v) && ["id","m","layout"].every(k=>str(v[k]) && v[k].length>0)
+      && ["player","breakoutId"].every(k=>str(v[k])) && !!(v.player || v.breakoutId)
+      && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt>0 && num(v.at)
+      && ["alive","shooting","diving"].every(k=>v[k]===null || typeof v[k]==="boolean")),
     voiceEvents:list(v => row(v) && ["id","text","team","layout","m"].every(k=>str(v[k]) && v[k].length>0)
       && record(v,{side:v=>["left","right"].includes(v)})
       && ["player","playerName","bunker","bunkerName","reason"].every(k=>str(v[k]))
@@ -11655,7 +11683,193 @@ function menOnBunker(side, fid){
     return t && foldName(t) === foldName(team) && teamFrame(r.bunker, r.m, r.pt, team) === fid;
   }).sort((a, b) => (b.at || 0) - (a.at || 0));
 }
-// Open one man's details on the sheet he was charted on.
+// A player can be read from either screen without moving the match or point.
+// This is page memory, never a season record. Every write rechecks its context.
+let _playerDetail = null;
+let _playerTap = null, _playerSaid = "";
+let _playerReturnFocus = null, _playerRootHidden = null;
+function playerDetailContext(){
+  return JSON.stringify([S.entered,S.email,S.tab,S.scoutTab,S.matchId,S.point,S.layoutKey,S.scoutSide,pitOf("left").name,pitOf("right").name]);
+}
+function playerDetailData(){
+  const d = _playerDetail;
+  if(!d || !S.entered || gateKey() || d.context !== playerDetailContext()) return null;
+  const m = matchById(d.m); if(!m || (m.layout && m.layout !== S.layoutKey)) return null;
+  const r = d.id ? (S.breakouts || []).find(x => x && x.id === d.id) :
+    (S.breakouts || []).find(x => x && x.m === d.m && x.pt === d.pt && x.side === d.side && x.player === d.player);
+  if(d.id && (!r || r.m !== d.m || r.pt !== d.pt || r.side !== d.side || (r.player || "") !== d.player || r.layout !== S.layoutKey)) return null;
+  const out = d.player && (S.tally || []).find(o => o && o.m === d.m && o.pt === d.pt && o.side === d.side && o.name === d.player);
+  const check = (S.playerChecks || []).find(c => c && c.m===d.m && c.pt===d.pt && c.side===d.side && c.layout===S.layoutKey
+    && (c.breakoutId ? r && c.breakoutId===r.id : d.player && c.player===d.player));
+  return {d,m,r,out,check,live:d.m === S.matchId && d.pt === sheetPoint() && !sheetField()};
+}
+window.closePlayerDetails = () => {
+  _playerDetail = null;
+  _playerTap = null; _playerSaid = "";
+  const el = document.getElementById("player-details");
+  if(el.classList.contains("player-dialog--fallback")){
+    el.removeAttribute("open"); el.classList.remove("player-dialog--fallback");
+    document.getElementById("player-shade").hidden = true;
+    const root = document.getElementById("root");
+    if(_playerRootHidden === null) root.removeAttribute("aria-hidden"); else root.setAttribute("aria-hidden",_playerRootHidden);
+    if(_playerReturnFocus?.isConnected) _playerReturnFocus.focus({preventScroll:true});
+  } else if(el.open) el.close();
+  _playerReturnFocus = null; _playerRootHidden = null; el.replaceChildren();
+};
+function showPlayerPoint(ref){
+  if(!S.entered || !["tally","scout"].includes(S.tab) || gateKey()) return;
+  if(ref.m !== S.matchId && !entitled("team")) return set({tab:"more",more:"plan",billingSaid:""});
+  _playerDetail = {...ref,context:playerDetailContext()};
+  _playerTap = null; _playerSaid = "";
+  renderPlayerDetails();
+}
+window.showPlayerDetails = id => {
+  const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
+  showPlayerPoint({id:r.id,m:r.m,pt:r.pt,side:r.side,player:r.player || ""});
+};
+window.showNamedPlayer = (side, player) => {
+  if(!["us","them"].includes(side) || typeof player !== "string" || !player) return;
+  showPlayerPoint({m:S.matchId,pt:sheetPoint(),side,player});
+};
+window.playerDetailOut = dead => {
+  window.playerQuick("alive",!dead);
+};
+window.playerQuick = (field, value) => {
+  const v = playerDetailData(); if(!v || !v.live) return closePlayerDetails();
+  if(!["alive","shooting","diving"].includes(field) || typeof value !== "boolean") return;
+  const now = performance.now();
+  if(field !== "alive" && _playerTap?.field===field && now-_playerTap.at<350) return;
+  _playerTap = {field,at:now};
+  const {d,r} = v;
+  if(field === "alive"){
+    if(!value && d.player && !v.out){
+      markOut(d.side,d.player);
+      if(!playerDetailData()?.out){ _playerSaid=S.flash || "That out was not saved."; renderPlayerDetails(); return; }
+    } else if(value && v.out) releaseOut(v.out);
+    // Taking back a break out is the same correction as Undo in the tally.
+    // Unknown break survival stays unknown; Alive now does not invent it.
+    if(value && r?.alive===false) S.breakouts=S.breakouts.map(x=>x.id===r.id ? {...x,alive:true,shotFrom:""} : x);
+  }
+  const previous=v.check;
+  if(previous && previous[field]===value && field!=="alive") return;
+  const row={id:previous?.id || "pc-"+Date.now().toString(36)+Math.random().toString(36).slice(2,9),
+    m:d.m,pt:d.pt,side:d.side,layout:S.layoutKey,player:d.player,breakoutId:r?.id || "",
+    alive:previous?.alive ?? null,shooting:previous?.shooting ?? null,diving:previous?.diving ?? null,
+    at:Date.now(),[field]:value};
+  S.playerChecks=[...(S.playerChecks || []).filter(c=>SAME.playerChecks(c)!==SAME.playerChecks(row)
+    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous))),row];
+  if(r) S.breakouts=S.breakouts.map(x=>x.id===r.id ? {...x,todo:false} : x);
+  save(S);
+  _playerSaid=unsavedWork() ? "Not saved. Keep this tab open and save a copy in Account & backups."
+    : _stale ? "Saved in this tab’s recovery copy. Open Account & backups to review." : "Saved";
+  render();
+};
+window.nextPlayerDetails = () => {
+  const v=playerDetailData(); if(!v || !v.live || !v.r) return closePlayerDetails();
+  const rows=pointRows(), i=rows.findIndex(r=>r.id===v.r.id);
+  if(i>=0 && rows[i+1]) showPlayerDetails(rows[i+1].id);
+};
+window.playerDetailField = (field, value) => {
+  const v = playerDetailData(); if(!v || !v.live || !v.out) return closePlayerDetails();
+  if(!["how","by","shotAt","movedTo"].includes(field) || typeof value !== "string") return;
+  if(field === "how" && value && !OUT_CAUSES.includes(value)) return;
+  if(["shotAt","movedTo"].includes(field) && value && !curLayout().bunkers.some(b => b.id === value)) return;
+  const i = S.tally.indexOf(v.out);
+  setOutBunker(i,field,clean(value).slice(0,80));
+};
+window.editPlayerBreak = () => {
+  const v = playerDetailData(); if(!v || !v.r) return closePlayerDetails();
+  const id = v.r.id; closePlayerDetails(); openManDetails(id);
+};
+function renderPlayerDetails(){
+  const el = document.getElementById("player-details");
+  if(!_playerDetail) return;
+  const v = playerDetailData(); if(!v){ closePlayerDetails(); return; }
+  const {d,m,r,out,check,live} = v, bl = curLayout().bunkers;
+  const named = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id || "Not recorded"; };
+  const team = m.watch ? (d.side === "us" ? m.home : m.away) : d.side === "us" ? "Your team" : m.vs;
+  const dead = !!out || check?.alive===false || (!!r && r.alive===false && check?.alive!==true);
+  const currentAlive = dead ? false : check?.alive===true ? true : null;
+  const status = currentAlive===false ? "Dead" : currentAlive===true ? "Alive" : "Status not recorded";
+  const quick = (label,field,value,on) => `<button aria-pressed="${on}" onclick="playerQuick('${field}',${value})">${label}</button>`;
+  const following = live && r ? pointRows()[pointRows().findIndex(x=>x.id===r.id)+1] : null;
+  const nth = r ? (S.breakouts || []).filter(x => x && x.m === d.m && x.pt === d.pt && x.side === d.side && x.layout === r.layout).sort((a,b) => a.at-b.at).findIndex(x => x.id === r.id)+1 : 0;
+  const row = (label,value) => `<div class="kv__row"><span class="kv__k">${label}</span><span class="kv__v">${esc(value || "Not recorded")}</span></div>`;
+  const choose = (label,field,value,options) => `<div class="fld"><label for="player-${field}">${label}</label><select id="player-${field}" onchange="playerDetailField('${field}',this.value)"><option value="">Not recorded</option>${options.map(([key,text]) => `<option value="${esc(key)}"${value === key ? " selected" : ""}>${esc(text)}</option>`).join("")}</select></div>`;
+  const notes = (S.voiceEvents || []).filter(n => n && n.m === d.m && n.pt === d.pt && n.layout === S.layoutKey && d.player
+    && n.team && foldName(n.team) === foldName(m.watch ? team : d.side === "us" ? (S.left || {}).name : m.vs)
+    && [n.player,n.playerName].some(name => name && foldName(name) === foldName(d.player)));
+  const html = `<div class="player-dialog__head"><h2 id="player-detail-title">${esc(d.player || "Player "+nth+" · "+named(r && r.bunker))}</h2><button class="btn btn--quiet" autofocus onclick="closePlayerDetails()">Close</button></div>
+    <p class="note">${esc(team || "Team not recorded")} · Point ${d.pt}<br>${esc(matchLabel(m))}</p>
+    <p class="player-dialog__status" role="status">${status}</p>
+    ${live ? `<div class="player-quick" aria-label="Player quick actions">
+      ${quick("Alive","alive",true,currentAlive===true)}${quick("Dead","alive",false,currentAlive===false)}
+      ${quick("Shooting","shooting",!check?.shooting,check?.shooting===true)}${quick("Diving","diving",!check?.diving,check?.diving===true)}
+    </div><p class="note" role="status">${esc(_playerSaid || "Saves as you tap.")}</p>` : `<p class="note">${[check?.shooting ? "Shooting" : "",check?.diving ? "Diving" : ""].filter(Boolean).join(" · ")}</p>`}
+    <details id="player-extra" class="player-extra"><summary>More details</summary>
+    <div class="kv">${row("First bunker",r && named(r.bunker))}${row("Break",r ? r.alive === true ? "Made it" : r.alive === false ? "Shot on the break" : "Not recorded" : "")}
+      ${row("Came in",r && (r.entry === "battle" ? "Battling in" : r.entry === "clean" ? "No pressure" : ""))}
+      ${row("Shooting",r && r.dir != null ? LANE_NAME[String(r.dir)] : "")}
+      ${row("Shot from",r && r.shotFrom ? named(r.shotFrom) : "")}${row("Shooting at",r && r.shootAt ? named(r.shootAt) : "")}
+      ${row("Moved to",out && out.movedTo ? named(out.movedTo) : r && r.movedTo ? named(r.movedTo) : "")}
+      ${r && (r.delayed || r.movedDelayed) ? row("Timing",[r.delayed ? "Delayed break" : "",r.movedDelayed ? "Delayed move" : ""].filter(Boolean).join(" · ")) : ""}
+      ${r && r.routeType ? row("Route",r.routeType) : ""}
+      ${out ? row("How out",out.how)+row("Shot by",out.by)+row("Shot at",out.shotAt ? named(out.shotAt) : "") : ""}
+    </div>${notes.length ? `<h3 class="panel__title">Point notes</h3>${notes.map(n => `<p class="note">${esc(n.text)}</p>`).join("")}` : ""}
+    ${live && out ? `<details id="player-out"><summary>Edit the out</summary>${choose("How out","how",out.how,OUT_CAUSES.map(s => [s,s]))}
+      ${choose("Shot at","shotAt",out.shotAt,bl.map(b => [b.id,pickName(b)]))}
+      <div class="fld"><label for="player-by">Shot by</label><input id="player-by" maxlength="80" value="${esc(out.by || "")}" onchange="playerDetailField('by',this.value)"/></div>
+      ${choose("Moved to","movedTo",out.movedTo,bl.map(b => [b.id,pickName(b)]))}<p class="note">Each change saves on this point.</p></details>` : ""}
+    ${r ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="editPlayerBreak()">${live ? "Edit break details on Tally" : "Open this point on Tally to edit"}</button>` : `<p class="note" style="margin-top:var(--s3)">No break charted for this player. Place them on Tally to add bunker and break details.</p>`}
+    </details>
+    ${following ? `<button class="btn btn--block" style="margin-top:12px" onclick="nextPlayerDetails()">Next player →</button>` : ""}
+    ${!live ? `<p class="note">Viewing a kept point. Your match and score have not moved.</p>` : ""}`;
+  const t = document.createElement("template"); t.innerHTML = html;
+  // Keep an opened disclosure and the focused input through a saved detail.
+  el.querySelectorAll("details[id][open]").forEach(d => {
+    const next=t.content.querySelector("#"+d.id); if(next) next.open=true;
+  });
+  patchScreen(el,t.content);
+  if(!el.hasAttribute("open")){
+    if(typeof el.showModal === "function") el.showModal();
+    else {
+      // The native shells still support iOS 15.0, before dialog/showModal.
+      _playerReturnFocus = document.activeElement;
+      const root = document.getElementById("root"); _playerRootHidden = root.getAttribute("aria-hidden");
+      el.classList.add("player-dialog--fallback"); el.setAttribute("open","");
+      document.getElementById("player-shade").hidden = false;
+      el.querySelector("button").focus(); root.setAttribute("aria-hidden","true");
+    }
+  }
+}
+const playerDialog = document.getElementById("player-details");
+playerDialog.addEventListener("keydown",ev => {
+  if(ev.key !== "Tab" || !playerDialog.hasAttribute("open")) return;
+  const items = [...playerDialog.querySelectorAll("button,input,select,textarea,summary,a[href],[tabindex]")]
+    .filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
+  const first = items[0], last = items[items.length-1];
+  if(!first){ ev.preventDefault(); return; }
+  if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
+  else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+});
+document.addEventListener("keydown",ev => {
+  if(ev.key === "Escape" && playerDialog.classList.contains("player-dialog--fallback")){
+    ev.preventDefault(); closePlayerDetails();
+  }
+});
+document.addEventListener("focusin",ev => {
+  if(playerDialog.classList.contains("player-dialog--fallback") && !playerDialog.contains(ev.target)) playerDialog.querySelector("button")?.focus();
+});
+playerDialog.addEventListener("cancel",ev => { ev.preventDefault(); closePlayerDetails(); });
+playerDialog.addEventListener("close",() => { if(!playerDialog.open){ _playerDetail = null; playerDialog.replaceChildren(); } });
+function scoutPlayerDetails(side){
+  if(!pitOnSheet(side)) return "";
+  const sd = side === "left" ? "us" : "them", pt = sheetPoint();
+  const rows = pointRows().filter(r => r.side === sd);
+  if(!rows.length) return "";
+  return sec("Players this point",`<p class="note">Tap a player: Alive, Dead, Shooting or Diving.</p><div class="assigns">${rows.map((r,i) => `<button class="assign" onclick="showPlayerDetails(${jsq(r.id)})"><span class="assign__n">${i+1}</span><span class="assign__body"><span class="assign__job">${esc(r.player || "Player "+(i+1))}</span><span class="assign__who">${esc(bunkerLabel(r.bunker))} · Details</span></span></button>`).join("")}</div>`,`${pitOf(side).name} · Point ${pt}`);
+}
+// Editing is an explicit move; reading the popup above never switches sheets.
 window.openManDetails = id => {
   const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
   // He is on another sheet: telling this man opens his, the way Matches does,
@@ -14281,6 +14495,8 @@ window.logBreakout = () => {
   // — and if that row had him shot and this one does not, the out it wrote
   // goes with it. A row with no name is one of five he is working through.
   const was = row.player ? (S.breakouts || []).find(r => r && r !== editing && r.m === row.m && r.pt === pt && r.side === side && r.player === row.player) : null;
+  const quickDead=(S.playerChecks || []).some(c=>c.m===row.m && c.pt===pt && c.alive===false
+    && (c.breakoutId ? c.breakoutId===editing?.id || c.breakoutId===was?.id : c.side===side && row.player && c.player===row.player));
   // Telling a placed man, the bunker is the one he was placed on, so a name
   // already on another bunker this point is the wrong name picked — not the
   // coach charting the same man again. Replacing there took the other placed
@@ -14304,7 +14520,7 @@ window.logBreakout = () => {
   // A man told shot is an out, and a side has no more men out on a point
   // than it started it with — the same cap a tapped out is held to.
   const outOf0 = (o, nm) => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side && o.name === nm;
-  if(row.alive === false && row.player && !(S.tally || []).some(o => outOf0(o, row.player))){
+  if((row.alive === false || quickDead) && row.player && !(S.tally || []).some(o => outOf0(o, row.player))){
     const outCap = startUp(side, row.m, pt);
     const outs = (S.tally || []).filter(o => o && typeof o === "object" && o.m === row.m && o.pt === pt && o.side === side
       && !(editing && editing.player && o.name === editing.player)).length;
@@ -14312,12 +14528,12 @@ window.logBreakout = () => {
   }
   // What the Log added to his out — how and by whom — and when it first
   // happened ride over to the out written again below.
-  let keep = {};
+  let keep = {}, quickOut = null;
   const outOf = (m, p, sd, name) => (S.tally || []).find(o => o && typeof o === "object" && o.m === m && o.pt === p && o.side === sd && o.name === name);
   if(editing){
     S.breakouts = (S.breakouts || []).filter(r => r !== editing);
-    const old = editing.alive === false && editing.player ? outOf(editing.m, editing.pt, editing.side, editing.player) : null;
-    if(old){ if(old.name === row.player) keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
+    const old = (editing.alive === false || quickDead) && editing.player ? outOf(editing.m, editing.pt, editing.side, editing.player) : null;
+    if(old){ if(quickDead) quickOut=old; if(old.name === row.player) keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
   }
   // His earlier row's out goes with it either way: shot again, the out is
   // written again at this row's bunker — outRow() keeps one out a man, so
@@ -14329,12 +14545,15 @@ window.logBreakout = () => {
     if(old){ keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
   }
   S.breakouts = [row, ...(S.breakouts || [])];
+  S.playerChecks=(S.playerChecks || []).map(c => c.breakoutId && (c.breakoutId===editing?.id || c.breakoutId===was?.id)
+    ? {...c,breakoutId:row.id,player:row.player,side:row.side} : c);
   syncTallyFive(row.m, row.pt);
   // A named man logged shot on the break is an out — the same out the columns
   // record — so who is up and the log both move, and Bunker stats gets the
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v))});
+  else if(quickDead && row.player) outRow(side,row.player,{...quickOut,pt,side,name:row.player,script:row.script});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   _draftHist = {key: "", list: []};
   S.tallyLast = row.id;
@@ -14358,6 +14577,7 @@ window.logBreakout = () => {
 window.undoBreakout = id => {
   const row = (S.breakouts || []).find(r => r && r.id === id); if(!row) return;
   S.breakouts = (S.breakouts || []).filter(r => r !== row);
+  S.playerChecks=(S.playerChecks || []).filter(c=>c.breakoutId!==id);
   syncTallyFive(row.m, row.pt);
   if(row.alive === false && row.player)
     S.tally = (S.tally || []).filter(o => !(typeof o === "object" && o.m === row.m && o.pt === row.pt
@@ -14727,10 +14947,10 @@ function tally(){
       ? `<p class="warn">${mine.length} on — you start ${alive("us")}. Tap a man on.</p>` : ""}
     ${side === "us" && !mine.length && !(curMatch()||{}).watch ? `<button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3)" onclick="set({tab:'more',more:'team'})">Add your five · Team</button>` : ""}
     <div class="assigns">
-      ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${jsq(n)})" style="${isOut(side,n)?"opacity:.4":""}">
+      ${names.map(n=>`<button class="assign" onclick="showNamedPlayer('${side}',${jsq(n)})">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
         <span class="assign__body"><span class="assign__job">${esc(n)}</span>
-        ${isOut(side,n)?`<span class="assign__who">out</span>`:""}</span>
+        <span class="assign__who">${isOut(side,n)?"Out · ":""}Player details</span></span>
       </button>`).join("")}
     </div></div>`;
 
@@ -14810,7 +15030,7 @@ function tally(){
       <div class="kv__row"><span class="kv__k">${esc(placeSideWord("us"))} ${placedBy("us")} of ${startUp("us", S.matchId, pt)} · ${esc(placeSideWord("them"))} ${placedBy("them")} of ${startUp("them", S.matchId, pt)}</span>
         <span class="kv__v">${todo ? `${todo} to tell` : "all told"}</span></div>
       ${rowsPt.map(r => `<div class="btnrow" style="align-items:center">
-        <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="editBreakout(${jsq(r.id)})">
+        <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="showPlayerDetails(${jsq(r.id)})">
           <span><span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
             ? `${esc(bunkerLabel(r.bunker))} · ${esc(placeSideWord(r.side).toLowerCase())} · <span style="color:var(--warn)">what happened?</span>`
             : esc(describeBreakout(r))}</span></button>
@@ -15348,6 +15568,8 @@ function releaseOut(o){
   S.tally = (S.tally || []).filter(x => x !== o);
   if(!o || typeof o !== "object") return;
   const charted = (S.breakouts || []).find(r => r && r.m === o.m && r.pt === o.pt && r.side === o.side && r.player === o.name && r.alive === false);
+  S.playerChecks=(S.playerChecks || []).map(c=>c.m===o.m && c.pt===o.pt && c.side===o.side && c.player===o.name
+    ? {...c,alive:true,at:Date.now()} : c);
   if(charted){ S.breakouts = S.breakouts.map(r => r === charted ? {...r, alive: true, shotFrom: ""} : r); flash(`${o.name} is back in — his break chart reads made it now.`); }
 }
 // The index draws the row's pickers; the key says which out the tap meant, so
@@ -15497,6 +15719,7 @@ window.backPoint = () => {
       if(!toScored && !(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
         S.breakouts = S.breakouts.map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
         S.tally = (S.tally || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
+        S.playerChecks = (S.playerChecks || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
         // Their men placed on Tally are their five on Scout: it moves with them.
         try{ syncTallyFive(mid, from); syncTallyFive(mid, to); }catch(e){}
         carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`;
@@ -16342,6 +16565,7 @@ function rekeyTheirMan(team, before, after){
   const oldTag = theirTag(before), newTag = theirTag(after);
   if(oldTag && newTag && oldTag !== newTag){
     S.breakouts = (S.breakouts || []).map(r => r && r.side === "them" && r.vs === team && r.player === oldTag ? {...r, player: newTag} : r);
+    S.playerChecks = (S.playerChecks || []).map(r => r && r.side === "them" && matchById(r.m)?.vs === team && r.player === oldTag ? {...r, player:newTag} : r);
     // His outs are tallied under the same tag: left behind, the column read
     // him as still in and a tap put him out a second time on one point.
     S.tally = (S.tally || []).map(o => o && o.side === "them" && o.vs === team && o.name === oldTag ? {...o, name: newTag} : o);
@@ -17139,7 +17363,7 @@ function scoutMatchup(){
     </div>
     <p class="aid"><b>Counted, not predicted.</b> ${(curMatch()||{}).watch ? "Two teams you are reading, neither of them yours." : `The wire split is where this break actually plants on
     ${esc(curLayout().name)}.`} The bar is the threat you scored ${(curMatch()||{}).watch ? "the two teams" : "them"}, nothing more.</p>`,
-    "This call");
+    "This call") + scoutPlayerDetails("right") + ((curMatch() || {}).watch ? scoutPlayerDetails("left") : "");
 }
 
 /* Off the buzzer, by wire. PB Scout sells this per role — what each of their
@@ -17281,6 +17505,7 @@ function scoutBreakouts(){
     ${picked.length ? `<div class="seg" style="flex-wrap:wrap" aria-label="Placed men">${picked.map((id, i) =>
       `<button onclick="dropTheirPick(${i})" aria-label="Take man ${i + 1} off ${esc(label(id))}">${i + 1} · ${esc(label(id))} ×</button>`).join("")}</div>` : ""}`,
     R.name)
+  + scoutPlayerDetails(side)
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length&&!fixing?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
@@ -17298,7 +17523,7 @@ function scoutBreakouts(){
         <span class="assign__n" style="background:var(--blue)">${n}</span>
         <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${(fives => { const inN = fives.filter(b => b.plants.some(x => teamFrame(x, b.m, b.pt, R.name) === fid)).length;
           return `${inN} of ${fives.length} logged fives here${n > inN ? ` · ${n} men` : ""}`; })(seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)))}</span>
-        ${(men => men.length ? `<span style="display:grid;gap:4px;margin-top:6px">${men.slice(0, 6).map(r => `<button class="btn btn--quiet" style="justify-content:flex-start;text-align:left;min-height:44px" onclick="openManDetails(${jsq(r.id)})">
+        ${(men => men.length ? `<span style="display:grid;gap:4px;margin-top:6px">${men.slice(0, 6).map(r => `<button class="btn btn--quiet" style="justify-content:flex-start;text-align:left;min-height:44px" onclick="showPlayerDetails(${jsq(r.id)})">
             <span>Point ${r.pt}${r.m !== S.matchId ? ` · ${esc(matchLabel(matchById(r.m)))}` : ""} · ${r.todo ? `<span style="color:var(--warn)">add his details →</span>` : esc(describeBreakout(r))}</span></button>`).join("")}${men.length > 6 ? `<span class="note">and ${men.length - 6} more</span>` : ""}</span>` : "")(menOnBunker(side, fid))}</span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
@@ -18332,7 +18557,7 @@ const HELP = {
   tally: {t:"Tally", w:"The break chart and the point sheet.",
     how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Two men on one bunker is two taps; the ✕ beside a man in the list takes him off.",
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or no pressure, which way he was shooting — and Save goes to the next.",
-         "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
+         "Tap a player or his row under the field. Alive and Dead record his current status; Shooting and Diving are separate observations. Each tap saves. Next player moves through the point. More details holds the full chart. Quick log still takes one tap to mark a player out.",
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
@@ -18348,6 +18573,7 @@ const HELP = {
          "On every sub-tab but Matchup a named pit folds to one line so the screen you came for is at the top. Tap the line to open the card.",
          "The left pit is a second team: the other side of a game you watch, or someone to read beside them.",
          "The sub-tabs above are the different reads.",
+         "Players this point on Matchup and Breakouts opens each player's details without leaving Scout. Where they plant opens older details too. A kept point stays read-only until you choose to open it on Tally.",
          "The match strip under the pits is the same match and point Tally is on.",
          "Names writes the bunker codes on the field when you need to find one."]},
   "scout/matchup": {t:"Matchup", w:"The head-to-head read.",
@@ -18536,7 +18762,8 @@ const HELP_Q = [
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
-  ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
+  ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
+  ["How do I see what happened to a player?", "On Tally, tap his name or his row under the field. On Scout, tap a player under Players this point or Where they plant. Tap Alive or Dead for his current status, and Shooting or Diving for what you saw. Each tap saves; Shooting and Diving can both be on. Tap either again to undo that observation. Next player stays on this point. More details keeps the bunker, breakout and out details. Missing answers stay Not recorded. Current status never guesses a breakout result or a shot location. Close returns to the same screen."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
@@ -20752,6 +20979,7 @@ function render(){
   watchTallyField();
   placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;
+  renderPlayerDetails();
 }
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }
