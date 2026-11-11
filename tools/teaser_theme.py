@@ -39,6 +39,8 @@ EXACT = {
     "#e23b3b": "#e5252a", "#e02a45": "#e5252a", "#b3122a": "#ad1515",
     # the right pit / blue wire
     "#3b7bff": "#3d8bff", "#244a9a": "#244a9a",
+    # the coach app's blue bunker edges and bands, as it draws them
+    "#1b1a55": "#1b1a55", "#2f2e8a": "#2f2e8a", "#3f3eb0": "#3f3eb0",
 }
 
 # Lanes are white, blocked is grey and dashed, as on the coach app's

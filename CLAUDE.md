@@ -1368,6 +1368,15 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     (purple was never a paint, so it reads neutral), white clear lanes and
     grey blocked ones. Sunlight and colour-blind modes are left alone. Run
     it with `--check` to see whether anything is left to change.
+    The same day both previews came off July's events and the UPRA badge:
+    `tools/teaser_fields.js` writes the coach app's seven measured fields,
+    their twelve breaks (`BREAK_PLANTS`) and its team board (names and
+    registration, no points, no seeded threat) between the `coachfields`
+    markers, draws each bunker to its footprint in its map's paint
+    (`tools/teaser_draw.js`, ported from `bunkerShape`), and gives both the
+    coach app's icons. Never hand-edit the block; `test/teasers.cjs` runs
+    `--check`, so a field or plant changed in the coach app fails until the
+    previews are regenerated.
 
 84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
     format as two dropdowns and folds the rest away. PR #316 (Codex) adds:
