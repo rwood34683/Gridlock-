@@ -1411,6 +1411,45 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player
+or placed row and Scout's Players this point / Where they plant. Reading and
+closing it never changes the active match, point, score or records. Show the
+recorded break and the later out separately: made it is not proof the player
+finished alive. Missing answers stay Not recorded. Current-point out changes
+reuse the existing tally and releaseOut; explicit mark-out is idempotent.
+Lead with four large buttons: Alive, Dead, Shooting, Diving. Alive/Dead mean
+current status during the point, not the breakout result. Shooting and Diving
+are independent observations, saved on tap, with a second deliberate tap to
+clear one. Next player stays on the same point; the full record lives under
+More details. Save current observations in playerChecks, bound to match,
+point, side and a breakout ID or a named player. Include them in season/sheet
+copies, validation, merge identity, point movement and match deletion. Never
+invent a bunker, shot location, player name or breakout survival to store a
+quick observation. An unnamed player's status stays attached to their chart;
+only named-player Dead creates an out in the named tally. An Alive correction
+uses the existing undo behavior for a previously recorded break out.
+Recheck player/match/point/field/account/screen before every write. Keep this
+popup in page memory, close it when context changes, trap focus and support
+Escape. Historical points are read-only until Open this point on Tally to edit.
+Keep a modal fallback for iOS 15.0–15.3, which have no native dialog API;
+hide the background from assistive technology, contain focus and restore it.
+Quick log keeps its one-tap out path. `test/player-details.cjs` holds these rules.
+Player percentages (owner, 11 Nov 2026): Tally and Scout show current-point
+team shares, and each named player's popup shows shares of their logged
+points in that match. Show the numerator and denominator with every percent.
+Team shares use starting places after penalties; player match shares count
+only distinct logged points for that player, side, match and field. Keep
+missing observations unknown. Making the break never means currently alive;
+Alive/Dead is the last recorded status, not a final survival rate. Shooting
+and Diving can overlap; clearing either is unrecorded, not a counted No.
+Deduplicate chart, quick-check and tally rows; reject orphaned/cross-scope
+links, keep unnamed charts distinct and never connect them across points.
+No observations means no percentage; too many logged players for the format
+shows a correction notice rather than an invented denominator. Read-only
+derived counts never change scores or saved data. Keep summaries expandable
+so the four quick buttons stay in view. `test/player-percentages.cjs`.
+
+
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
 current copy with the coach's account; Gridlock PB LLC's administrators can
