@@ -13103,7 +13103,7 @@ async function applyDeviceSeason(choice){
 }
 async function checkAccountSeason(requested){
   if(!canFollowSeason() || !S.entered || S.role !== "staff" || _deviceChecking || _syncReviewing || _syncDeleting || _accountDeleting || _stale) return;
-  const wanted = requested || syncList(SYNC_YES_KEY).has(syncAskId());
+  const resuming = syncList(SYNC_YES_KEY).has(syncAskId()), wanted = requested || resuming;
   clearSyncRetry(); ++_syncEpoch; S.syncOn=false; S.syncAsk=false; _deviceChoice=null; _devicePermit=null;
   const t=syncTicket(); _deviceChecking=t;
   syncStatus({syncSaid:"Checking your account's saved season…"});
@@ -13114,6 +13114,13 @@ async function checkAccountSeason(requested){
     const r=await t.cloud.deviceSeason(raw);
     if(!deviceSeasonCurrent(t)) return;
     if(!r?.ok){
+      if(r?.offline && resuming){
+        // Preserve prior consent offline. Reconnect still goes through the
+        // read-before-write gate; no unchecked local season can be uploaded.
+        _deviceChecking=null; _lastAutoSync=Date.now();
+        syncStatus({syncOn:true,syncSaid:"No signal. Your changes stay here; sync will check your saved season before retrying when you are online."});
+        _syncDirty=true; scheduleSync(90000); return;
+      }
       syncStatus({syncSaid:r?.offline ? "No signal. Keep working here; open Continue on this device when you are online." : r?.said || "Could not check the saved season. Nothing sent."});
       return;
     }

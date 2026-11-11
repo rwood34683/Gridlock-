@@ -161,6 +161,16 @@ function syncHarness(){
     }
   });
   const start=app.indexOf('async function hashPass('),end=app.indexOf('\nfunction newSalt()',start);
+  await test('offline sign-in retains prior consent but reconnect still checks before sending',async()=>{
+    const h=syncHarness();let online=false,reads=0;
+    h.cloud.deviceSeason=async()=>{reads++;return online?{ok:true,known:true,base:1,revision:1,user:{id:'owner@example.test'}}:{ok:false,offline:true};};
+    h.cloud.rememberSeason=async()=>true;
+    h.cloud.pushSeason=async()=>{h.uploads.push('checked send');return{ok:true,user:{id:'owner@example.test'},revision:2};};
+    h.run('syncYes(true)');await h.run('checkAccountSeason(false)');
+    assert.equal(h.state.syncOn,true);assert.equal(h.uploads.length,0);assert.equal(h.timers.size,1);
+    online=true;h.events.get('online')();await h.advance(0);
+    assert.equal(reads,2);assert.equal(h.uploads.length,1);
+  });
   await test('adoption acknowledges the captured season, not edits made during checkpoint storage',async()=>{
     const h=syncHarness(),gate=deferred();h.cloud.rememberSeason=()=>gate.promise;
     h.run('const ACCOUNT_RESTORE=Symbol(); let _storeFail=""; copyPayload=()=>JSON.stringify({format:"gridlock.coach.copy",scope:"all",seasonId:"a",data:{results:S.results||[]}})');
