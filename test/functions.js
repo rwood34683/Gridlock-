@@ -10904,6 +10904,7 @@ const ROSTER = [
     const popup = document.getElementById("player-details");
     const read = popup.hasAttribute("open") && S.tab === "scout" && /Status not recorded/.test(popup.textContent)
       && before === JSON.stringify([S.matchId,S.point,S.results,S.breakouts,S.tally]);
+    popup.querySelector("#player-extra > summary").click();
     const edit = [...popup.querySelectorAll("button")].find(b => b.textContent === "Edit break details on Tally");
     if(edit) edit.click();
     const opened = S.tab === "tally" && !!S.tallyEdit && rows.some(r => r.id === S.tallyEdit);

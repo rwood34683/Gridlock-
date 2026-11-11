@@ -1402,6 +1402,17 @@ closing it never changes the active match, point, score or records. Show the
 recorded break and the later out separately: made it is not proof the player
 finished alive. Missing answers stay Not recorded. Current-point out changes
 reuse the existing tally and releaseOut; explicit mark-out is idempotent.
+Lead with four large buttons: Alive, Dead, Shooting, Diving. Alive/Dead mean
+current status during the point, not the breakout result. Shooting and Diving
+are independent observations, saved on tap, with a second deliberate tap to
+clear one. Next player stays on the same point; the full record lives under
+More details. Save current observations in playerChecks, bound to match,
+point, side and a breakout ID or a named player. Include them in season/sheet
+copies, validation, merge identity, point movement and match deletion. Never
+invent a bunker, shot location, player name or breakout survival to store a
+quick observation. An unnamed player's status stays attached to their chart;
+only named-player Dead creates an out in the named tally. An Alive correction
+uses the existing undo behavior for a previously recorded break out.
 Recheck player/match/point/field/account/screen before every write. Keep this
 popup in page memory, close it when context changes, trap focus and support
 Escape. Historical points are read-only until Open this point on Tally to edit.
