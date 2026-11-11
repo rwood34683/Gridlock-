@@ -7,6 +7,11 @@ on `codex/teaser-review-fixes`, based on that exact Claude head; the PR targets
 Claude's branch so it contains only the review fixes. Nothing was pushed to
 Claude's branch or main, merged, published or deployed.
 
+During the review Claude's remote branch advanced to
+`6d1f17899b4a39190167c5f97002a114b1162286`. That commit changes only
+`docs/preview-manifest.json`; the reviewed preview code is unchanged and the
+PR preserves that manifest update.
+
 ## Findings in the reviewed branch
 
 Line numbers in this table refer to the original `a1cd9cd`, before regeneration.
@@ -71,9 +76,18 @@ Screenshots:
 - `node tools/teaser_fields.js --check`: PASS, both files up to date.
 - `node tools/teaser_rules.js --check`: PASS, both files up to date.
 - `python3 tools/teaser_theme.py --check teasers/player/index.html teasers/team/index.html`: PASS, both already themed.
-- `node test/teasers.cjs`: PASS, 71 assertions after fixes; existing assertions retained.
+- `node test/teasers.cjs`: PASS, 65 assertions on the original branch and 71 after fixes; existing assertions retained.
 - `node test/teaser-browser.cjs`: PASS, 10 checks, including 78 navigation screens.
-- Final full repository check: pending at the time this draft was opened.
+- Rerunning all three generators without `--check`: PASS, both HTML SHA-256 values unchanged.
+- `npm run check`: PASS, all 61 suites, exit 0. Main browser suite 1302/1302, devices 235/235 across 20 devices, bunker checks 173/173, brands 82/82. No tests or limits weakened.
+- `npm run build`: PASS, 43 files built; no tracked source files changed.
+- `npm run site:check`: PASS, 23/23. Existing store listing IDs, Android signing fingerprint and Apple Team ID remain PENDING; no settings changed.
+- Implementation commit `ea17ad0ed180a729dfca1c0a2840a83d0a7f8635`: GitHub [Check Gridlock](https://github.com/rwood34683/Gridlock-/actions/runs/43115960088) PASS and [Build iOS simulator](https://github.com/rwood34683/Gridlock-/actions/runs/43115960215) PASS.
+
+All hard-rule failures listed above are fixed in the proposed branch. The
+final full run's performance measurements all passed without slow advisories:
+Tally p95 78.8 ms, Playbook p95 53.2 ms, worst animation frame 23.4 ms,
+sideline-tap median 54.9 ms and p95 101.6 ms.
 
 The first full check on unchanged Claude source stopped at the load suite:
 
@@ -90,12 +104,14 @@ A separate local browser audit was running concurrently. An isolated rerun
 on the same unchanged source passed: Tally p95 158.6 ms (slow advisory, below
 the unchanged 250 ms failure limit), worst animation frame 32.6 ms, and
 sideline-tap p95 152.5 ms. Sideline-tap median 89.6 ms also retained its slow
-advisory. No threshold or test was weakened. The final full check runs alone.
+advisory. No threshold or test was weakened. The final full check ran alone
+and passed, as recorded above.
 
 Full browser evidence and screenshots are generated under
-`work/teaser-browser/`; `npm run check` now includes that suite. Native builds,
-physical phones/tablets, Safari and the published Claude artifact viewer are
-NOT TESTED in this review.
+`work/teaser-browser/`; `npm run check` now includes that suite. Physical
+phones/tablets, native app interaction, an Android build, Safari and the
+published Claude artifact viewer are NOT TESTED in this review. The iOS
+simulator build succeeded in CI; it is not a physical-device interaction test.
 
 ## Keeping the previews in sync
 
