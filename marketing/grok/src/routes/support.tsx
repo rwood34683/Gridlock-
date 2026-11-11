@@ -34,20 +34,20 @@ const FAQ = [
   },
   {
     q: "How do I delete my account?",
-    a: "More → Nexus → Delete account permanently deletes your login and the League sync copy. Files you saved or shared and seasons on your devices stay until you delete them there.",
+    a: "More → Account & backups → Delete account permanently deletes your login and the League sync copy. Files you saved or shared and seasons on your devices stay until you delete them there. Payment records are handled as described in Privacy.",
   },
   {q: "Where does League sync keep my season?", a: CLOUD_COPY.sync},
   {
     q: "How do I save the season?",
-    a: "More → Nexus → Save a copy. That file is the backup.",
+    a: "More → Account & backups → Save everything. That file is your backup, and you can save it after your pass ends.",
   },
   {
     q: "How do I load a copy on a new phone?",
-    a: "Save a copy on the phone you coach with. Move that file yourself. On the new phone, open Gridlock Coach and load the copy from More → Nexus. The app keeps it on the phone.",
+    a: "Save a copy on the phone you coach with. Move that file yourself. On the new phone, sign in to Gridlock Coach and load the copy from More → Account & backups. The app keeps it on the phone. Moving a copy does not buy or extend a pass.",
   },
   {
     q: "Does it work with no signal?",
-    a: "After the app has loaded, the coaching tools work without signal. You need a signal for a new sign-in, account creation, password resets and League sync.",
+    a: "Check your active pass online before the event. You can then coach without a signal until the pass ends. A new device, account creation, password resets, payment and League sync need a connection. Your saved season, backups and exports remain after expiration.",
   },
   {
     q: "What is the account?",
@@ -98,7 +98,7 @@ function Support() {
         <p className="kicker">Support</p>
         <h1 className="display text-page mt-3 text-fg">Save the season. Move the phone.</h1>
         <p className="mt-4 text-lede text-fg">
-          Your working season is saved on this device. Keep a file before every event. If you turned on League sync, you can also review or restore its current server copy in Nexus.
+          Your working season is saved on this device. Keep a file before every event. If you turned on League sync, you can also review or restore its current server copy in Account & backups.
         </p>
 
         <section id="beta" className="scroll-mt-header mt-12">
@@ -119,7 +119,7 @@ function Support() {
         <section id="save" className="scroll-mt-header mt-12">
           <h2 className="display text-section text-fg">Save a copy</h2>
           <ol className="mt-5 grid gap-3 sm:grid-cols-3">
-            {["More", "Nexus", "Save a copy"].map((step, i) => (
+            {["More", "Account & backups", "Save everything"].map((step, i) => (
               <li key={step} className="card px-4 py-5">
                 <span className="kicker">0{i + 1}</span>
                 <p className="display mt-2 text-3xl text-fg">{step}</p>
