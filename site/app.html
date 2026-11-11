@@ -10058,8 +10058,9 @@ function bunkerTraffic(keep){
   // at the same bunker: counted once, not once from each log.
   // Indexed once: a scan of every out for every man charted was O(n²) and
   // the dearest thing on Bunker stats and Layers with a season in.
-  const outKeys = new Set((S.tally || []).filter(o => o && o.shotAt).map(o => [o.m, o.pt, o.side, o.name, o.shotAt].join("|")));
-  const tallied = r => !!r.player && outKeys.has([r.m, r.pt, r.side, r.player, r.bunker].join("|"));
+  const outKeys = new Set((S.tally || []).filter(o => o && o.shotAt && !elsewhere(o) && !watched(o.m) && ok(o))
+    .map(o => JSON.stringify([o.m, o.pt, o.side || "us", o.name, o.shotAt])));
+  const tallied = r => !!r.player && outKeys.has(JSON.stringify([r.m, r.pt, r.side || "us", r.player, r.bunker]));
   // The break chart is the busiest log on the phone and this screen never
   // read it: a coach who charted every point saw "Nothing logged yet". A break
   // to a bunker is a visit, a man shot there on the break is an out there, and

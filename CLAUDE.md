@@ -1406,6 +1406,8 @@ season-wide bunker-book counts to a filtered match. Went there and Shot there
 each drive the numbers, rings and scale from that one measure, never their
 sum. Scores alone do not create locations. Watched games and other fields
 (including legacy rows whose field is known only from their match) stay out.
+Only an in-scope tally out can replace its duplicate breakout out; a legacy
+row with no side is yours, consistently in the filter and duplicate check.
 Show the count of distinct recorded points/matches and retain the thin-sample
 mark. Neither viewing nor filtering changes the active match, point, scores
 or season records. `test/match-heat.cjs` covers these rules.

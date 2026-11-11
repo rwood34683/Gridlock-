@@ -49,6 +49,10 @@ const seed=require("../scripts/seed");
         pickStatMatch("m1");set({statMetric:"outs"});});
       const ids=await p.evaluate(()=>heatIds);assert.deepEqual(await rings(p),{[ids[0]]:1,[ids[1]]:1});
       assert.deepEqual(await badges(p),["1","1"]);assert.match(await p.locator("#heat-sample").innerText(),/1 point across 1 match/);
+      await p.evaluate(()=>{S.tally[0].layout="lso";render();});
+      assert.deepEqual(await rings(p),{[ids[0]]:1,[ids[1]]:1},"an excluded out on another field cannot hide this field's breakout out");
+      await p.evaluate(()=>{S.tally[0].layout="mwo";delete S.tally[0].side;render();});
+      assert.deepEqual(await rings(p),{[ids[0]]:1,[ids[1]]:1},"an older own-side out without side still matches its breakout");
     });
     await check("side and opponent filters agree with the picked bunker and never append season totals",async p=>{
       await p.getByLabel("Against",{exact:true}).selectOption("Second fixture");
