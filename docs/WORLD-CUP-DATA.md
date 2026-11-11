@@ -1,72 +1,88 @@
 # World Cup 2026 team directory
 
-More › World Cup teams opens the owner's supplied PBLeagues snapshot. Scout ›
-Division has the same shortcut. Search a team, person or team hometown, narrow
-the division, then open a registration entry and a roster member. Back keeps
-the list and search. The directory is reference data: it does not replace a
-coach's roster, opponent, schedule, notes or season.
+More › World Cup teams lists who entered the NXL World Cup 2026 (PBLeagues
+event 9322), from the owner's supplied snapshot. Scout › Division has the same
+shortcut. Narrow the division, search a team, division or team hometown, and
+open an entry. Back keeps the list and search. The directory is reference
+data: it does not replace a coach's roster, opponent, schedule, notes or
+season.
 
-The input was `world-cup-2026-gridlock-web (1).zip`, SHA256
-`6a3e3d47bc9f5db2bb8131ea7e1e0b09e33a05464ecd664482f5fb744f29134d`.
-The package's coverage audit is dated 8 November 2026 at 20:21:19 Eastern.
-This is the supplied snapshot, not a fresh scrape or a claim that an entry
-will attend. No database or account service is changed.
+## What ships
 
-The directory preserves 680 entries, 592 distinct team IDs, 36 division/package
-records (34 with entries), 5,925 memberships and 4,381 people. Player, Coach,
-Staff and Media are distinct. The roster union retains names seen in either
-source view, with both source IDs. 602 rosters contain names and 78 were empty
-when read. Empty is not withdrawn or access denied.
+Only public team and event fields, named one by one in `PUBLIC` in
+`scripts/import-world-cup.js`:
 
-It also retains all 10,501 history observations, 7,389 participation-index
-rows, 12,417 name variants, 1,177 profile-access records, 3,231 sources,
-6,500 missing-field records and the per-entry roster comparison records.
-Repeated copies of the same classification event record are grouped only
-for display, retaining every observation and source. Classification scores
-are labeled as such. 950 players have history rows, 24 have retrieved pages
-with zero scored events and 2,645 have not been retrieved. No jersey or
-player hometown is invented; team locations remain team locations.
+| Table | Rows | Fields |
+|---|---|---|
+| `divisions` | 36 (34 with entries, 2 empty NCPA packages) | event and division ID, name, group, classification, signed up, limit, format rules, listed count, the event page and its read time |
+| `entries` | 680 entries from 592 team IDs | event and division, format, bracket, team name, team ID, entry ID, registration status, the event's team-list page and its read time |
+| `locations` | 680 | team hometown, home field and location status, with the read time |
+| `event` | 1 | event name, dates, time zone, the public event pages and the related NCPA event |
 
-Four roster fields read from login-only pages are not shipped:
-`age_as_published`, `registration_fee_paid`, `person_event_link` and
-`event_person_token`. The importer drops them (`PRIVATE_FIELDS`) and takes
-the person token (`EPID=`) out of every source address, keeping the entry's
-own (`ERID=`). The bundle is public to anyone who loads the app, and the
-snapshot includes minors. `test/world-cup.cjs` fails if any of them returns.
+A club entered in two divisions keeps two entries. Counts are unchanged from
+the snapshot: no entry was merged or deduplicated.
 
-## Refreshing the supplied snapshot
+## What does not ship
 
-Extract a new owner-supplied handoff to a separate directory and run:
+**Player rosters are not included.** The owner confirmed on 10 November 2026
+that there is no written permission to redistribute the imported PBLeagues
+player records. So the app's files carry none of the following:
+
+- player names or individual profiles;
+- roster memberships linking people to teams;
+- player histories, classifications, ages or birth information;
+- person IDs, name variants, profile-access records or roster comparisons;
+- login-only source records, roster-page links and tokens (`/team/roster/…`,
+  `EPID`), local file paths, or registration or payment details about a person.
+
+The importer reads `teams.json` and `team_locations.json` only. It copies a
+field only when `PUBLIC` names it, so a field added to a future handoff stays
+out until someone adds it on purpose. It refuses an address in a public field
+that is not a public event page.
+
+The entry screen says "Player rosters are not included." It never shows an
+omitted roster as an empty team. To scout a team's players, a coach adds them
+on the pit card from what he sees, or pastes a roster he has.
+
+Earlier builds and older downloaded copies did carry those records. This
+change stops them shipping from now on. It does not erase copies already
+downloaded, or the repository's history.
+
+## Refreshing the snapshot
+
+Extract a new owner-supplied handoff to a separate folder and run:
 
 ```sh
 node scripts/import-world-cup.js /path/to/world-cup-2026
 npm run sync
 npm run app:artifact
 npm run check
-npm run build
-npm run site:check
 ```
 
-The importer reads JSON only and does not run anything from the handoff. It
-checks IDs, foreign references, division counts and role totals against the
-coverage audit. Input hashes, output hash and table counts are recorded in
-`data/world-cup-2026-manifest.json`. The original handoff remains unchanged.
-Raw captures, SQL, PDFs and handoff instructions are not executable app code.
-Historical process reports are not presented as newer coverage evidence.
+When the handoff is not on this machine, the public file can be rebuilt from
+an existing bundle, through the same allowlist:
 
-The generated file uses column tables, exact string references and a
-deterministic gzip stream. The pinned [fflate 0.8.3](https://github.com/101arrowz/fflate/releases/tag/v0.8.3) decoder is bundled locally
-with its MIT license. Decode/index construction happens once, on opening the
-directory. Neither the dataset nor its indexes go into localStorage, the
-native season mirror, season exports or League sync. Only the temporary
-search/view state is attached to `S`, through `clearScratch`.
+```sh
+node scripts/import-world-cup.js --from-bundle web/world-cup-data.js
+```
 
-All source URLs are displayed only as user-activated HTTPS links to PBLeagues
-or NXL, with no embedded credentials and `noopener noreferrer`. Source sites
-may require sign-in. The app makes no roster requests. Static files are
-cached with the app shell, and the standalone and offline-preview packagers
-inline them. The encoded source names remain exact in all brand builds.
+The current file was made this way on 10 November 2026, from the earlier
+bundle. Input hashes, the allowlist, row counts and the output hash are in
+`data/world-cup-2026-manifest.json`. The owner's original handoff is never
+modified and is never part of the app.
 
-The screenshot and device checks use synthetic local accounts. No live coach
-account, Supabase setting, hosting setting or production deployment is needed
-to verify this directory.
+The file uses column tables, exact string references and a deterministic gzip
+stream, decoded with the bundled [fflate 0.8.3](https://github.com/101arrowz/fflate/releases/tag/v0.8.3)
+(MIT, notice in `web/fflate-LICENSE.txt`). It is decoded once, when the
+directory opens. It never goes into localStorage, the native season mirror,
+season exports or League sync. It is cached with the app shell for offline use.
+
+## Tests
+
+`test/world-cup.cjs` decodes the shipped bundle and checks every row against
+the allowlist. It confirms that no person table or roster link remains, and
+that the counts above hold. It also checks that a rebuild reproduces the
+file. It runs the importer on a synthetic handoff full of made-up people and
+checks that none of them reach the output. Then it drives the directory on
+phone and tablet sizes, offline and in the one-file app.
+`test/league-badges.cjs` checks that no league badge ships.

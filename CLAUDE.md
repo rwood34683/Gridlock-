@@ -57,6 +57,24 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Do not display or bundle league logos or event badges, including NXL,
+  MLPB, USXBL and WCPPL. Keep factual event names,
+  measured layouts, team data and source citations; they are not branding.
+  Every event uses its text name without a league badge.
+  `test/league-badges.cjs` checks web/, both shells, site/app.html, the
+  offline cache list and a real cloud build.
+- Do not ship PBLeagues player records. There is no written permission to
+  redistribute them (owner, 10 Nov 2026). The World Cup bundle carries public
+  team and event fields only: divisions, team entries and team locations. It
+  carries no player names, profiles, roster memberships, histories,
+  classifications, ages, person IDs, name variants, profile-access or roster
+  comparison records, roster-page links, tokens or personal payment details.
+  `PUBLIC` in `scripts/import-world-cup.js` is the allowlist, so never copy
+  a field it does not name. Where a roster would show, say "Player rosters
+  are not included." and never present it as an empty team.
+  `test/world-cup.cjs` decodes the shipped bundle to check it. A coach's own
+  rosters, notes, season copies and the event-data file he loads on his own
+  phone are his, and are untouched.
 - Never use the word GunzUp anywhere (UI, comments, filenames, git). Label that control **Shot lanes**.
 - Coach-simple copy. Short labels. No developer jargon in the UI.
 - Dark stadium look. Black `#0b0c0d` ground, red `#ad1515` fills, `#e5252a` for small
@@ -754,9 +772,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     reads each bunker where it meets the turf nearest the camera, and averages
     each with its twin across the 50 so the offset of reading a standing bunker
     cancels. Names are the nearest standard kind; sizes are the book's. The
-    poster's badge is the event's mark (`EVENT_LOGO`, `evLogo()`,
-    `web/event-usxbl-gp.jpg`) in the event picker, Nexus › Events and Codes —
-    not a `logo-*` file, so every build ships it. Base and Trade plant one five
+    event is named in text in the event picker, Nexus › Events and Codes,
+    without the league's badge. Base and Trade plant one five
     here; the suite pins it. `docs/LAYOUTS.md` has the method.
 
 50. ~~The WCPPL Championship.~~ Done — the season finale at SC Village, Chino CA,
@@ -766,9 +783,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     difference: the sheet prints the snake along the top, so every window is
     read in the sheet's own frame and turned over (`y = 120 - y`). Mirror check
     26 pairs, axis 74.98 ft, sd 0.03. The event file already held the date and
-    venue; it now holds the 56 bunkers. The championship medal off the
-    event poster is its mark (`EVENT_LOGO.wch`, `web/event-wcppl-champ.jpg`),
-    shown wherever the GP badge is. `docs/LAYOUTS.md` has the method.
+    venue; it now holds the 56 bunkers. It is named in text without the
+    event poster's badge. `docs/LAYOUTS.md` has the method.
 
 51. ~~A calendar on the schedule.~~ Done — the owner asked for Google Calendar
     under Schedule, options and drop-downs included. `calendarSec()` sits above
@@ -852,8 +868,8 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     are the Lone Star pair on this map: mirror check 24 pairs plus five on the
     centre line, axis 74.91 ft, sd 0.11. The two corner doritos are printed on
     their side pointing in at the 50 and draw as `triin`; the two unlabeled red
-    bunkers on the end lines are Br, as on Lone Star. The badge off the map is
-    its mark (`EVENT_LOGO.nwc`, `web/event-nxl-worldcup.jpg`). Every World Cup
+    bunkers on the end lines are Br, as on Lone Star. The World Cup is named
+    in text, without the league's badge. Every World Cup
     game on the schedule now opens on it. A bar laid across the field (`bar`
     with w > h) drew as an oval; its corners are rounded to the short side now.
 
@@ -1167,27 +1183,30 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     cards follow under it. Times are the league's, moved only by a pit he set as
     running late; nothing is fetched or guessed. `test/review-nov6.cjs`.
 
-76. **World Cup team directory.** The owner's 8 Nov 2026 JSON snapshot is a
-    read-only tool under More › World Cup teams and Scout › Division. Keep
-    all 680 registration entries separate by entry ID, including clubs in
-    more than one division; the two empty NCPA packages are explicit. Player,
-    Coach, Staff and Media remain separate. Missing jerseys and player
-    hometowns stay missing; a team's hometown is never a player's. The
-    supplied history is classification records, not match scores or a full
-    career. Sources, retrieval times, original IDs and coverage statuses
-    stay with the records. `scripts/import-world-cup.js` compiles the supplied
-    JSON into `web/world-cup-data.js`; `data/world-cup-2026-manifest.json`
-    records the input hashes and counts. Decode only when this tool opens,
-    keep it out of `S`, saves and exports, page long lists, and retain search
-    and focus when going back. `cupView` is scratch state. The bundled fflate
+76. **World Cup team directory.** The owner's 8 Nov 2026 snapshot, public team
+    data only, is a read-only tool under More › World Cup teams and Scout ›
+    Division. All 680 registration entries stay separate by entry ID, including
+    clubs in more than one division. The two empty NCPA packages are explicit.
+    Each entry shows its division, bracket, registration status and team
+    hometown, and "Player rosters are not included." On 10 Nov 2026 the owner
+    confirmed there is no written permission to redistribute the PBLeagues
+    player records. The rosters, people, profiles, name variants, histories,
+    profile-access records and roster comparisons were taken out of the
+    shipped file (2.3 MB to 64 KB), and the roster-page links and tokens with
+    them. `scripts/import-world-cup.js` copies only the fields `PUBLIC` names,
+    from `teams.json` and `team_locations.json`. `--from-bundle` rebuilds from
+    an existing bundle through the same allowlist.
+    `data/world-cup-2026-manifest.json` records the inputs, the allowlist,
+    the counts and the output hash. Decode only when this tool opens, keep it
+    out of `S`, saves and exports, page long lists, and retain search and
+    focus when going back. `cupView` is scratch state. The bundled fflate
     decoder and its MIT notice travel with every build; never fetch the data
     or a decoder from a CDN. The service worker must cache all three files.
-    `test/world-cup.cjs` covers the directory and its offline/standalone paths.
-    The bundle never carries a person's published age, whether they paid,
-    their personal roster link or its token: those came off login-only pages,
-    some of the people are minors, and no screen needs them. The importer
-    drops the four fields (`PRIVATE_FIELDS`) and cuts `EPID=` out of every
-    source address (`withoutPersonToken`), and the suite fails if any returns.
+    `test/world-cup.cjs` decodes the bundle and checks every field against
+    the allowlist. It runs the importer on a synthetic handoff full of people
+    and checks that none come through, and it covers the screens offline and
+    standalone. Older copies and the repository's history still hold the
+    earlier file; this stops it shipping, it does not erase what was sent.
 
 77. ~~Sign in on the phone the way the web app does.~~ Done — the owner asked
     for it to be seamless. Three pieces, `docs/NATIVE-SIGN-IN.md` the runbook.

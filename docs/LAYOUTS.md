@@ -115,10 +115,9 @@ the cap, as on the GP field, and the suite pins those two by name.
 
 Paintball Fit, Waxahachie TX, 17–18 Oct 2026 (in memoriam Greg Pauley). The
 coach sent no 2D: two 3D renders and the event poster, kept as
-`layouts/images/usxbl_2026_gp_championship_{3d,iso,poster}.jpg`. The poster's
-badge is the event's mark in the app (`web/event-usxbl-gp.jpg`, `EVENT_LOGO`),
-beside its name wherever the event is picked or listed; it ships in every
-build, because it is the league's and not the brand's.
+`layouts/images/usxbl_2026_gp_championship_{3d,iso,poster}.jpg`. Those are
+source material for measuring and stay in `layouts/`; no league badge ships in
+the app, which names the event in text (see CLAUDE.md, Hard rules).
 
 ```bash
 python3 tools/digitize_usxbl_gp.py              # measures -> tools/out/usxbl_gp_measured.json
