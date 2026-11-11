@@ -146,6 +146,18 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
       const out=await p.evaluate(()=>S.tally.find(o=>o.name==="Lane"));assert(out);assert.equal(out.shotAt,undefined);
       assert.equal(await p.evaluate(()=>S.results.length),1);
     });
+    await check("placing and renaming a checked player keeps one observation and one out",async p=>{
+      await p.evaluate(()=>{showNamedPlayer("us","Lane");playerQuick("shooting",true);closePlayerDetails();S.breakouts.push({...S.breakouts[0],id:"p-lane",player:"Lane",alive:null});showPlayerDetails("p-lane");playerQuick("diving",true);});
+      assert.equal(await p.evaluate(()=>S.playerChecks.length),1);
+      assert.equal(await p.evaluate(()=>S.playerChecks[0].breakoutId),"p-lane");
+      assert.equal(await p.evaluate(()=>S.playerChecks[0].shooting),true);
+      await p.evaluate(()=>{playerQuick("alive",false);playerDetailField("how","Traded");playerDetailField("shotAt",detailIds[1]);editPlayerBreak();setDraft({player:"Lane Jr"});logBreakout();});
+      assert.equal(await p.evaluate(()=>S.tally.filter(o=>o.name==="Lane").length),0);
+      assert.equal(await p.evaluate(()=>S.tally.filter(o=>o.name==="Lane Jr").length),1);
+      assert.equal(await p.evaluate(()=>S.tally.find(o=>o.name==="Lane Jr").how),"Traded");
+      assert.equal(await p.evaluate(()=>S.tally.find(o=>o.name==="Lane Jr").shotAt===detailIds[1]),true);
+      assert.equal(await p.evaluate(()=>S.playerChecks.filter(c=>c.player==="Lane Jr"&&c.diving&&c.shooting).length),1);
+    });
     await check("Next player keeps the point and the previous player's saved choices",async p=>{
       await open(p);await popup(p).getByRole("button",{name:"Shooting",exact:true}).click();
       const before=await p.evaluate(()=>JSON.stringify([S.matchId,S.point,S.results,S.playerChecks]));

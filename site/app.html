@@ -11756,7 +11756,8 @@ window.playerQuick = (field, value) => {
     m:d.m,pt:d.pt,side:d.side,layout:S.layoutKey,player:d.player,breakoutId:r?.id || "",
     alive:previous?.alive ?? null,shooting:previous?.shooting ?? null,diving:previous?.diving ?? null,
     at:Date.now(),[field]:value};
-  S.playerChecks=[...(S.playerChecks || []).filter(c=>SAME.playerChecks(c)!==SAME.playerChecks(row)),row];
+  S.playerChecks=[...(S.playerChecks || []).filter(c=>SAME.playerChecks(c)!==SAME.playerChecks(row)
+    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous))),row];
   if(r) S.breakouts=S.breakouts.map(x=>x.id===r.id ? {...x,todo:false} : x);
   save(S);
   _playerSaid=unsavedWork() ? "Not saved. Keep this tab open and save a copy in Account & backups."
@@ -14494,8 +14495,8 @@ window.logBreakout = () => {
   // — and if that row had him shot and this one does not, the out it wrote
   // goes with it. A row with no name is one of five he is working through.
   const was = row.player ? (S.breakouts || []).find(r => r && r !== editing && r.m === row.m && r.pt === pt && r.side === side && r.player === row.player) : null;
-  const quickDead=(S.playerChecks || []).some(c=>c.m===row.m && c.pt===pt && c.side===side && c.alive===false
-    && (c.breakoutId ? c.breakoutId===editing?.id || c.breakoutId===was?.id : row.player && c.player===row.player));
+  const quickDead=(S.playerChecks || []).some(c=>c.m===row.m && c.pt===pt && c.alive===false
+    && (c.breakoutId ? c.breakoutId===editing?.id || c.breakoutId===was?.id : c.side===side && row.player && c.player===row.player));
   // Telling a placed man, the bunker is the one he was placed on, so a name
   // already on another bunker this point is the wrong name picked — not the
   // coach charting the same man again. Replacing there took the other placed
@@ -14527,12 +14528,12 @@ window.logBreakout = () => {
   }
   // What the Log added to his out — how and by whom — and when it first
   // happened ride over to the out written again below.
-  let keep = {};
+  let keep = {}, quickOut = null;
   const outOf = (m, p, sd, name) => (S.tally || []).find(o => o && typeof o === "object" && o.m === m && o.pt === p && o.side === sd && o.name === name);
   if(editing){
     S.breakouts = (S.breakouts || []).filter(r => r !== editing);
-    const old = editing.alive === false && editing.player ? outOf(editing.m, editing.pt, editing.side, editing.player) : null;
-    if(old){ if(old.name === row.player) keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
+    const old = (editing.alive === false || quickDead) && editing.player ? outOf(editing.m, editing.pt, editing.side, editing.player) : null;
+    if(old){ if(quickDead) quickOut=old; if(old.name === row.player) keep = {at: old.at, how: old.how, by: old.by}; S.tally = S.tally.filter(o => o !== old); }
   }
   // His earlier row's out goes with it either way: shot again, the out is
   // written again at this row's bunker — outRow() keeps one out a man, so
@@ -14552,7 +14553,7 @@ window.logBreakout = () => {
   // bunker he was shot at without a second trip through the pickers.
   if(row.alive === false && row.player)
     outRow(side, row.player, {shotAt:b.id, ...(row.movedTo ? {movedTo:row.movedTo} : {}), pt, script:row.script, ...Object.fromEntries(Object.entries(keep).filter(([, v]) => v))});
-  else if(quickDead && row.player) outRow(side,row.player,{pt,script:row.script});
+  else if(quickDead && row.player) outRow(side,row.player,{...quickOut,pt,side,name:row.player,script:row.script});
   if(was) flash(`${row.player} charted again — this point's earlier row replaced.`);
   _draftHist = {key: "", list: []};
   S.tallyLast = row.id;
