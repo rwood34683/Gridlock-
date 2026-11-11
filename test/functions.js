@@ -4349,7 +4349,7 @@ const ROSTER = [
     const beforeTab = S.tab; window.set({ tab: "playbook" });
     const survives = !!document.getElementById("podwars") && S.tab === "playbook";
     window.set({ tab: beforeTab });
-    window.podWars.seed(11); window.podWars.play();
+    window.podWars.mode("solo"); window.podWars.seed(11); window.podWars.play();
     const waitFor = test => { for(let i = 0; i < 400 && !test(window.podWars.state()); i++) window.podWars.step(16); return window.podWars.state(); };
     // Shoot the first man who leans all the way out.
     let st = waitFor(g => g.enemies.some(e => e.age > 160 && e.age < e.fireAt));
@@ -4374,7 +4374,7 @@ const ROSTER = [
       || JSON.stringify({ shy, opened, survives, shot, tucked, out, loading, closed });
   }));
   check("Pod Wars: paint that lands on a bunker hits the bunker, never the man behind it", await ev(() => {
-    window.podWars.open(); window.podWars.seed(3);
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.seed(3);
     const bk = POD_BUNKERS[3];
     const shoot = (age, x, y) => { pod.g.phase = "ready"; window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.balls = [];
       pod.g.enemies = [{ b: 3, side: -1, x: bk.x - 20, y: bk.y + 4, age, stay: 1500, fireAt: 1e9, fired: true, num: 7 }];
@@ -4393,7 +4393,7 @@ const ROSTER = [
   }));
   check("Pod Wars: a trade on one frame counts the man he took, on the best it saves", await ev(() => {
     const best0 = S.podBest; S.podBest = 0;
-    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9;
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play(); pod.g.nextSpawn = 1e9;
     pod.g.enemies = [{ b: 1, side: 1, x: POD_BUNKERS[1].x + 20, y: POD_BUNKERS[1].y + 4, age: 500, stay: 1500, fireAt: 1e9, fired: true, num: 7 }];
     pod.g.balls = [{ mine: false, x0: 0, y0: 0, x1: 162, y1: 464, age: 509, dur: 510, from: 7 },
                    { mine: true, x0: 0, y0: 0, x1: pod.g.enemies[0].x, y1: pod.g.enemies[0].y, age: 229, dur: 230 }];
@@ -4403,7 +4403,7 @@ const ROSTER = [
     return ok;
   }));
   check("Pod Wars: dry is not out while a pod is coming — the next drop comes now, and only an uncollected one ends it", await ev(() => {
-    window.podWars.open(); window.podWars.play();
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play();
     Object.assign(pod.g, { hopper: 0, pods: 0, nextSpawn: 1e9, nextDrop: 9000, drop: null, enemies: [], balls: [] });
     window.podWars.step(300);
     const waiting = window.podWars.state().phase === "play";
@@ -4419,7 +4419,7 @@ const ROSTER = [
   check("Pod Wars is a dialog: the app under it takes no tap, focus comes back, and Escape closes only the game", await ev(() => {
     window.set({ tab: "more", more: null });
     const btn = document.querySelector("#root button"); btn.focus();
-    window.podWars.open();
+    window.podWars.open(); window.podWars.mode("solo");
     const locked = document.getElementById("root").inert && document.getElementById("podwars").getAttribute("aria-modal") === "true"
       && document.getElementById("podwars").contains(document.activeElement);
     let reached = false; const spy = () => { reached = true; }; document.addEventListener("keydown", spy);
@@ -4434,7 +4434,7 @@ const ROSTER = [
   }));
   check("Pod Wars shows the break clock and stops at the buzzer; Pod is off when it cannot load", await ev(() => {
     S.clockEnd = Date.now() + 30000;
-    window.podWars.open();
+    window.podWars.open(); window.podWars.mode("solo");
     const shows = !!document.querySelector("#podwars [data-clock]");
     window.podWars.play(); pod.g.nextSpawn = 1e9; window.podWars.step(16);
     const full = document.getElementById("pod-pod").disabled;          // a full hopper
@@ -4450,7 +4450,7 @@ const ROSTER = [
   }));
   check("Pod Wars: a second Play does not wipe a game, and closing mid-game keeps the best", await ev(() => {
     const best0 = S.podBest; S.podBest = 0;
-    window.podWars.open(); window.podWars.play(); pod.g.score = 4;
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play(); pod.g.score = 4;
     window.podWars.play();
     const kept = window.podWars.state().score === 4;
     window.podWars.close();
@@ -4460,7 +4460,7 @@ const ROSTER = [
   }));
   check("Pod Wars: hidden keeps the best, BEST moves with the score, and Space presses the button it is on", await ev(() => {
     const best0 = S.podBest; S.podBest = 0;
-    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.score = 3; window.podWars.step(16);
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play(); pod.g.nextSpawn = 1e9; pod.g.score = 3; window.podWars.step(16);
     const label = document.getElementById("pod-canvas").getAttribute("aria-label");
     const live = /best 3/.test(label) && document.getElementById("pod-canvas").getAttribute("role") === "img";
     window.podWars.pause();
@@ -4475,10 +4475,10 @@ const ROSTER = [
   }));
   check("Pod Wars: the buzzer stops a game once — not again on the next open — and only the buzzer's pause names the clock", await ev(() => {
     S.clockEnd = Date.now() - 1;
-    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
     const first = window.podWars.state().phase === "paused" && window.podWars.state().buzz === true;
     window.podWars.close();
-    window.podWars.open(); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.play(); pod.g.nextSpawn = 1e9; cancelAnimationFrame(pod.raf); podLoop(performance.now());
     const again = window.podWars.state().phase === "play";
     window.podWars.pause();
     const quiet = !window.podWars.state().buzz;
@@ -4487,7 +4487,7 @@ const ROSTER = [
   }));
   check("Pod Wars duel: two teams pass the phone, turn about, the most outs wins, and nothing touches the best", await ev(() => {
     const best0 = S.podBest; S.podBest = 7;
-    window.podWars.open(); window.podWars.seed(5); window.podWars.mode("duel"); window.podWars.per(2);
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.seed(5); window.podWars.mode("duel"); window.podWars.per(2);
     const n0 = document.getElementById("pod-n0"), n1 = document.getElementById("pod-n1");
     n0.value = "Rejects"; n0.dispatchEvent(new Event("input")); n1.value = "Dynasty"; n1.dispatchEvent(new Event("input"));
     const setup = !document.querySelector("#podwars .pod-setup").hidden && !document.querySelector("#podwars .pod-per").hidden
@@ -4510,7 +4510,7 @@ const ROSTER = [
   }));
   check("Pod Wars head to head: a man who is out gets hit, one tucked does not and cannot shoot, a trade scores nobody, first to three", await ev(() => {
     const best0 = S.podBest; S.podBest = 7;
-    window.podWars.open(); window.podWars.mode("h2h");
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.mode("h2h");
     const kit = document.getElementById("pod-pod").hidden && document.getElementById("pod-tuck").hidden;
     window.podWars.play();
     const blueX = () => 180 + (pod.g.p[1].tucked ? 0 : 18), redX = () => 180 + (pod.g.p[0].tucked ? 0 : -18);
@@ -4536,7 +4536,7 @@ const ROSTER = [
     return kit && hit && round && tucked && trade && down && up && won && kept || JSON.stringify({ kit, hit, round, tucked, trade, down, up, won, kept, why: st.why, score: st.score });
   }));
   check("Pod Wars duel: a man dealt is the same man whoever shoots what, the level runs on the clock, and the side count follows a finished duel", await ev(() => {
-    window.podWars.open(); window.podWars.seed(9); window.podWars.mode("duel"); window.podWars.per(1);
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.seed(9); window.podWars.mode("duel"); window.podWars.per(1);
     const turn = shoot => { window.podWars.play(); const seen = {};
       for(let t = 0; t < 400; t++){ pod.g.enemies.forEach(e => { seen[e.dealt] = [e.side, e.num].join(); if(shoot) { pod.g.score++; pod.g.enemies = pod.g.enemies.filter(x => x !== e); } }); window.podWars.tuck(true); window.podWars.step(16); }
       const lv = pod.g.level; pod.g.phase = "out"; window.podWars.step(16); return { seen, lv }; };
@@ -4549,7 +4549,7 @@ const ROSTER = [
     return same && clock && per || JSON.stringify({ both: both.length, same, clock, per, a: a.lv, b: b.lv });
   }));
   check("Pod Wars: a team's name takes a space — the game's keys stand aside while one is typed", await ev(() => {
-    window.podWars.open(); window.podWars.mode("duel");
+    window.podWars.open(); window.podWars.mode("solo"); window.podWars.mode("duel");
     const n0 = document.getElementById("pod-n0"); n0.focus();
     const ev1 = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }); n0.dispatchEvent(ev1);
     const ok = !ev1.defaultPrevented && !pod.g.held;

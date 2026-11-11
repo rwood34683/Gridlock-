@@ -8442,6 +8442,88 @@ function podFresh(){
           reload: 0, enemies: [], balls: [], splats: [], drop: null, nextSpawn: 900, nextDrop: 11000, why: "", dry: "",
           shots:0, hits:0, combo:0, bestCombo:0, lastHit:-10000, aim:0, quip:"", quipUntil:0};
 }
+// Grab pods: every press is one pod. The clock uses elapsed time, not frame
+// count, so a slow phone or a paused tab cannot buy a longer round.
+const POD_PICKUP_MS = 45000;
+const POD_PICKUP_QUIPS = ["Finders keepers. Loaders weepers.", "Your back hurts. Your score doesn't.", "Unpaid intern of the tournament.", "That one's yours now. Probably.", "The pod economy is booming.", "Someone's pack is very, very empty."];
+function podPickupPiece(i){
+  return {x:43+(i%8)*39+(podRand()-.5)*14, y:160+Math.floor(i/8)*43+(podRand()-.5)*18,
+    angle:(podRand()-.5)*2.5, color:["#ff655d","#66c7ff","#e8c874","#80ddbd"][Math.floor(podRand()*4)]};
+}
+function podPickupFresh(){
+  return {...podFresh(),kind:"pickup",noBest:true,started:null,startedWall:null,elapsed:0,player:(pod?.pickupTurn||0)+1,
+    pile:Array.from({length:64},(_,i)=>podPickupPiece(i)),pops:[],counted:false};
+}
+function podPickupLeader(){
+  const rows=pod?.pickupScores||[];
+  if(!rows.length)return "Highest score wins on this phone.";
+  const best=rows[0].score, tied=rows.filter(r=>r.score===best);
+  return tied.length>1 ? `Top score tied · ${best} pods` : `Player ${rows[0].player} leads · ${best} pods`;
+}
+function podPickupClock(g){
+  if(g.kind!=="pickup" || g.started===null || g.counted)return;
+  g.elapsed=Math.min(POD_PICKUP_MS,Math.max(g.elapsed,performance.now()-g.started,Date.now()-g.startedWall));
+  g.t=g.elapsed;
+  g.pops=g.pops.filter(p=>g.elapsed-p.at<500);
+  if(g.elapsed<POD_PICKUP_MS)return;
+  g.phase="out";g.counted=true;
+  pod.pickupTurn=g.player;
+  pod.pickupScores.push({player:g.player,score:g.score});
+  pod.pickupScores.sort((a,b)=>b.score-a.score||a.player-b.player);
+  pod.pickupScores=pod.pickupScores.slice(0,5);
+  if(g.score>(Number(S.podPickupBest)||0)){
+    const before=S.podPickupBest;S.podPickupBest=g.score;save(S);g.best=!_storeFail;
+    if(_storeFail){S.podPickupBest=before;g.bestFailed=true;}
+  }
+  podSound("win");
+}
+function podPickupTap(g,x,y){
+  if(g.phase!=="play" || !Number.isFinite(x) || !Number.isFinite(y) || x<0 || x>POD.W || y<0 || y>POD.H)return;
+  podPickupClock(g);
+  if(g.phase!=="play")return;
+  let nearest=0,dist=Infinity;
+  g.pile.forEach((p,i)=>{const d=(p.x-x)**2+(p.y-y)**2;if(d<dist){dist=d;nearest=i;}});
+  const p=g.pile[nearest];g.score++;
+  if(pod.motion){g.pops.push({x:p.x,y:p.y,at:g.elapsed});g.pops=g.pops.slice(-12);}
+  g.pile[nearest]=podPickupPiece(nearest);podSound("pod");
+}
+function podPickupDraw(ctx,g){
+  podGround(ctx,280);
+  const text=(s,x,y,size=14,c="#efedeb",align="center")=>{ctx.fillStyle=c;ctx.font=`800 ${size}px system-ui`;ctx.textAlign=align;ctx.fillText(s,x,y);};
+  for(const p of g.pile){
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);
+    ctx.fillStyle="#0009";podRound(ctx,-7,-17,20,44,7);ctx.fill();
+    const shade=ctx.createLinearGradient(-9,0,9,0);shade.addColorStop(0,"#242c38");shade.addColorStop(.4,p.color);shade.addColorStop(1,"#25313b");
+    ctx.fillStyle=shade;ctx.strokeStyle=p.color;ctx.lineWidth=1;podRound(ctx,-9,-21,18,39,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle="#f4f7ffb0";podRound(ctx,-6,-16,3,25,1);ctx.fill();
+    ctx.fillStyle=p.color;podRound(ctx,-11,-24,22,9,3);ctx.fill();ctx.fillStyle="#ffffff90";ctx.fillRect(-7,-22,13,2);
+    ctx.strokeStyle="#080c1280";ctx.beginPath();ctx.moveTo(-8,11);ctx.lineTo(8,11);ctx.stroke();ctx.restore();
+  }
+  if(pod.motion)for(const p of g.pops){const age=g.elapsed-p.at;ctx.globalAlpha=Math.max(0,1-age/500);text("+1",p.x,p.y-age*.06,22,"#b3ffcd");}ctx.globalAlpha=1;
+  ctx.fillStyle="#080c12ef";podRound(ctx,16,15,328,107,14);ctx.fill();
+  text(`PLAYER ${g.player}`,32,40,12,"#9caec5","left");text("PODS",32,61,11,"#9caec5","left");text(String(g.score),30,105,44,"#ffffff","left");
+  text("SECONDS",327,40,11,"#9caec5","right");text(String(Math.ceil((POD_PICKUP_MS-g.elapsed)/1000)),329,90,43,g.elapsed>=35000?"#ff786e":"#b3ffcd","right");
+  ctx.fillStyle="#273244";podRound(ctx,146,104,182,5,2);ctx.fill();ctx.fillStyle=g.elapsed>=35000?"#ff786e":"#80ddbd";ctx.fillRect(146,104,182*(1-g.elapsed/POD_PICKUP_MS),5);
+  ctx.fillStyle="#080c12ee";podRound(ctx,16,506,328,42,10);ctx.fill();
+  text(POD_PICKUP_QUIPS[Math.floor(g.score/25)%POD_PICKUP_QUIPS.length],180,532,12,"#e8c874");
+  if(g.phase==="play"){text("TAP ANYWHERE · ONE TAP, ONE POD",180,145,11,"#d6f2e9");return;}
+  ctx.fillStyle="#080c12f2";podRound(ctx,25,172,310,310,16);ctx.fill();ctx.strokeStyle="#80ddbd70";ctx.lineWidth=1;ctx.stroke();
+  if(g.phase==="ready"){
+    text("GRAB PODS",180,218,29,"#b3ffcd");text("45 seconds. Tap like you mean it.",180,253,14);
+    text("Every tap picks up one pod.",180,282,14);text("Pass the phone. Highest score wins.",180,310,13);
+    text("No aiming. No holding. Just tapping.",180,349,12,"#9caec5");
+    text(`Best on this phone · ${Number(S.podPickupBest)||0}`,180,394,13,"#e8c874");text(podPickupLeader(),180,430,12);
+  }else if(g.phase==="paused"){
+    text("HANDS OFF",180,235,28,"#e8c874");text("The 45-second clock keeps running.",180,282,13);
+    text(g.buzz?"Your break clock is out.":"Resume to keep grabbing.",180,320,14);text(`${g.score} pods so far`,180,367,19,"#b3ffcd");
+  }else{
+    text("TIME! POD ROYALTY.",180,213,23,"#b3ffcd");text(`Player ${g.player} · ${g.score} pods`,180,249,22);
+    text(podPickupLeader(),180,280,13,"#e8c874");
+    (pod.pickupScores||[]).slice(0,3).forEach((r,i)=>text(`${i+1}. Player ${r.player} — ${r.score} pods`,180,316+i*25,14));
+    text(g.bestFailed?"Best couldn't save. Make room on this phone.":g.best?"New best on this phone!":`Best on this phone · ${Number(S.podPickupBest)||0}`,180,408,11,"#9caec5");
+    text("Pass the phone. Beat that.",180,448,16);
+  }
+}
 const POD_STAGES = ["The rental rebellion", "The bonus-ball committee", "Captain Bonusball"];
 function podArcadeFresh(){ return {...podFresh(), arcade:true, noBest:true, stage:1, bossHp:3, intermission:0}; }
 const POD_QUIPS = {
@@ -8619,6 +8701,7 @@ function podOver(g){
   if(g.score > (S.podBest || 0)){ S.podBest = g.score; save(S); g.best = !_storeFail; }
 }
 function podTapAt(g, x, y){
+  if(g?.kind==="pickup"){podPickupTap(g,x,y);return;}
   if(!g || g.phase !== "play" || g.intermission || !Number.isFinite(x) || !Number.isFinite(y)) return;
   if(g.drop && Math.hypot(g.drop.x - x, g.drop.y - y) < 26){ g.drop = null; g.pods = Math.min(POD.podsMax, g.pods + 1);podQuip(g,"pod");podSound("pod");return; }
   if(g.held || g.reload || g.tucked || !g.hopper || y > 430 || y<0 || x<0 || x>POD.W) return;
@@ -8626,6 +8709,7 @@ function podTapAt(g, x, y){
   g.balls.push({mine: true, x0: POD_ME.x - 18, y0: POD_ME.y - 8, x1: x, y1: y, age: 0, dur: 230});
 }
 function podReload(g){
+  if(g?.kind==="pickup")return;
   if(!g || g.phase !== "play" || g.reload || !g.pods || g.hopper === POD.hopperMax) return;
   g.pods--; g.reload = 700;podQuip(g,"reload");podSound("reload");
 }
@@ -8650,7 +8734,7 @@ function podDuelTick(){
   d.turn++;
   if(d.turn >= d.per * 2) d.done = true;
 }
-function podAdvance(g, dt){ podStep(g, dt);podArcadeTick(g); podDuelTick(); }
+function podAdvance(g, dt){ if(g.kind==="pickup"){podPickupClock(g);return;} podStep(g, dt);podArcadeTick(g); podDuelTick(); }
 
 /* Head to head: two players, one screen. Red is at the bottom; blue sits at
    the top and everything of his is drawn turned round, so each reads his own
@@ -8726,9 +8810,9 @@ function podH2HUp(g, id){
   if(g && g.kind === "h2h") g.p[i].holds = Math.max(0, g.p[i].holds - 1);
 }
 function podSetMode(m){
-  if(!pod || !["solo", "arcade", "duel", "h2h"].includes(m) || pod.g.phase === "play" || pod.g.phase === "paused") return;
+  if(!pod || !["pickup", "solo", "arcade", "duel", "h2h"].includes(m) || pod.g.phase === "play" || pod.g.phase === "paused") return;
   pod.mode = m; pod.duel = m === "duel" ? podDuelNew() : null; pod.holds = new Map();
-  pod.g = m === "h2h" ? podH2HFresh() : m === "arcade" ? podArcadeFresh() : podFresh();
+  pod.g = m === "pickup" ? podPickupFresh() : m === "h2h" ? podH2HFresh() : m === "arcade" ? podArcadeFresh() : podFresh();
   podDraw();
 }
 function podSetPer(n){
@@ -8949,13 +9033,13 @@ function podDraw(){
   const cv = document.getElementById("pod-canvas"); if(!cv || !pod) return;
   const g = pod.g, ctx = cv.getContext("2d"), k = cv.width / POD.W;
   ctx.setTransform(k, 0, 0, k, 0, 0);
-  if(g.kind === "h2h") podH2HDraw(ctx, g); else podSoloDraw(ctx, g);
+  if(g.kind === "pickup") podPickupDraw(ctx,g); else if(g.kind === "h2h") podH2HDraw(ctx, g); else podSoloDraw(ctx, g);
   podChrome(cv, g);
 }
 // The buttons and what a screen reader hears, kept in step with the game.
 // Each is written only when it changes: this runs every frame.
 function podChrome(cv, g){
-  const el = pod.el, h2h = g.kind === "h2h", d = pod.mode === "duel" && pod.duel;
+  const el = pod.el, pickup=g.kind === "pickup", h2h = g.kind === "h2h", d = pod.mode === "duel" && pod.duel;
   const idle = g.phase !== "play" && g.phase !== "paused", duelOn = !!(d && d.turn > 0 && !d.done);
   const show = (n, v) => { if(n && n.hidden === !!v){ n.hidden = !v; pod.refit = true; } };
   const press = (b, v) => { if(b.getAttribute("aria-pressed") !== String(v)) b.setAttribute("aria-pressed", String(v)); };
@@ -8968,13 +9052,18 @@ function podChrome(cv, g){
   el.querySelectorAll("[data-per]").forEach(b => press(b, Number(b.dataset.per) === (d ? d.per : podPer)));
   // Between duel turns Pod and Tuck do nothing, and the button that hands
   // the phone on names the next team: it takes the whole row.
-  const kit = !h2h && !(d && idle);
+  const kit = !pickup && !h2h && !(d && idle);
   show(re, kit); show(tuck, kit);
   if(pod.refit){ pod.refit = false; requestAnimationFrame(podFit); }
   if(tuck && kit){ tuck.classList.toggle("on", !!g.tucked); press(tuck, !!g.tucked); }
   // What the canvas shows, said: the field is a picture to a screen reader.
   let label, line = "";
-  if(h2h){
+  if(pickup){
+    label=`Grab pods. Player ${g.player}: ${g.score} pods, ${Math.ceil((POD_PICKUP_MS-g.elapsed)/1000)} seconds left. Tap anywhere, or press Space or Enter, once per pod.`;
+    line=g.phase==="out"?`Time! Player ${g.player}: ${g.score} pods. ${podPickupLeader()}. Pass the phone.${g.bestFailed?" Best could not be saved.":g.best?" New best on this phone!":""}`
+      :g.phase==="paused"?`Paused. The 45-second clock keeps running.${g.buzz?" The break clock is out.":""}`
+      :g.phase==="ready"?"45 seconds. Every tap picks up one pod. Highest score wins on this phone.":"";
+  }else if(h2h){
     label = `Head to head, first to ${POD_H2H.first}: ${podName(0)} ${g.score[0]}, ${podName(1)} ${g.score[1]}. Tap your half to shoot, hold your end to tuck.`;
     line = g.phase === "out" || g.lull > 0 ? g.why : g.phase === "paused" ? `Paused.${g.buzz ? " The break clock is out." : ""}` : "";
   } else {
@@ -8993,7 +9082,7 @@ function podChrome(cv, g){
   if(re && kit){ const word=`Pod · ${g.pods}`;if(re.textContent!==word)re.textContent=word; re.disabled = g.phase !== "play" || !g.pods || !!g.reload || g.hopper === POD.hopperMax; }
   if(go){
     go.hidden = g.phase === "play";
-    const word = g.phase === "paused" ? "Resume" : h2h ? (g.phase === "out" ? "Rematch" : "Play")
+    const word = g.phase === "paused" ? "Resume" : pickup ? (g.phase==="out"?`Next player · ${g.player+1}`:"Start · 45 seconds") : h2h ? (g.phase === "out" ? "Rematch" : "Play")
       : d ? (d.done ? "Duel again" : d.turn ? `Play · ${podName(d.turn % 2)} ${Math.floor(d.turn / 2) + 1}` : "Start the duel")
       : g.phase === "won" ? "Run it back" : g.phase === "out" ? "Play again" : g.arcade ? "Start arcade" : "Play";
     if(go.textContent !== word) go.textContent = word;
@@ -9006,7 +9095,8 @@ function podChrome(cv, g){
   }
   if(pause)pause.disabled=g.phase!=="play";
   const guide=el.querySelector(".pod-guide");
-  if(guide){const text=g.arcade?`Arcade · stage ${g.stage}/3. Tap exposed masks. Hold Tuck to dodge. Reload between shots. Captain Bonusball has three shields.`
+  if(guide){const text=pickup?"Grab pods · 45 seconds. Tap anywhere on the field. One tap, one pod. Pass the phone; highest score wins. The clock keeps running while paused."
+    :g.arcade?`Arcade · stage ${g.stage}/3. Tap exposed masks. Hold Tuck to dodge. Reload between shots. Captain Bonusball has three shields.`
     :h2h?"Head to head · lay the phone between you. Tap your half to shoot; hold your end to tuck. First to three."
     :d?"Duel · pass the phone. Each side gets the same deal. Most outs wins. Tap masks, hold Tuck, reload."
     :"Solo · tap exposed masks. Hold Tuck when blue paint comes back. Reload with Pod. One hit ends the run.";
@@ -9097,7 +9187,7 @@ window.podWars = {
       <input id="pod-n1" aria-label="Blue team's name" placeholder="Blue team" maxlength="${POD_NAME_MAX}" autocomplete="off" value="${esc(podNames[1])}">
       <div class="pod-per" role="group" aria-label="Players a side" hidden><span>A SIDE</span>${[1, 2, 3, 4, 5].map(n => `<button type="button" data-per="${n}" aria-pressed="false">${n}</button>`).join("")}</div>
     </div>
-    <div class="pod-modes" role="group" aria-label="Which game"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="arcade" aria-pressed="false">Arcade</button><button type="button" data-mode="duel" aria-pressed="false">Duel</button><button type="button" data-mode="h2h" aria-pressed="false">Head to head</button></div>
+    <div class="pod-modes" role="group" aria-label="Which game"><button type="button" data-mode="pickup" aria-pressed="true">Grab pods</button><button type="button" data-mode="solo" aria-pressed="false">Solo</button><button type="button" data-mode="arcade" aria-pressed="false">Arcade</button><button type="button" data-mode="duel" aria-pressed="false">Duel</button><button type="button" data-mode="h2h" aria-pressed="false">Head to head</button></div>
     <div class="pod-bar"><button type="button" id="pod-pod">Pod · 3</button><button type="button" id="pod-go">Play</button><button type="button" id="pod-tuck" aria-pressed="false">Tuck</button></div>`;
     // A dialog in fact as well as in name: the app underneath takes no focus,
     // no tap and no key while it is up, and focus goes back where it was.
@@ -9105,7 +9195,7 @@ window.podWars = {
     const under = [...document.body.children].filter(c => c.tagName !== "SCRIPT" && !c.inert);
     under.forEach(c => { c.inert = true; });
     document.body.appendChild(el);
-    pod = {g: podFresh(), raf: 0, last: 0, el, back, under, mode: "solo", duel: null, holds: new Map(), refit: false,
+    pod = {g: podPickupFresh(), raf: 0, last: 0, el, back, under, mode: "pickup", pickupTurn:0, pickupScores:[], duel: null, holds: new Map(), refit: false,
       motion:!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,sound:false,audio:null,voices:new Set()};
     // Holding Tuck is a long press, and a long press opens the phone's menu,
     // which cancels the press and stands him up into the paint.
@@ -9113,9 +9203,12 @@ window.podWars = {
     const cv = el.querySelector("#pod-canvas");
     cv.addEventListener("pointerdown", ev => {
       ev.preventDefault();
+      if(ev.button!==0)return;
       const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * POD.W, y = (ev.clientY - r.top) / r.height * POD.H;
       if(pod.g.kind === "h2h") podH2HDown(pod.g, ev.pointerId, x, y); else podTapAt(pod.g, x, y);
     });
+    // Assistive technology can activate the focused canvas without a pointer.
+    cv.addEventListener("click",ev=>{if(ev.detail===0 && pod?.g.kind==="pickup")podTapAt(pod.g,180,280);});
     // A finger lifted off his end stands him back up.
     ["pointerup", "pointercancel", "pointerleave"].forEach(t => cv.addEventListener(t, ev => podH2HUp(pod && pod.g, ev.pointerId)));
     el.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => podSetMode(b.dataset.mode)));
@@ -9142,7 +9235,11 @@ window.podWars = {
   },
   play(){
     if(!pod || pod.g.phase === "play") return;
-    if(pod.g.phase !== "paused") pod.g = pod.mode === "h2h" ? podH2HFresh() : pod.mode === "duel" ? podDuelTurn() : pod.mode === "arcade" ? podArcadeFresh() : podFresh();
+    if(pod.g.kind==="pickup" && pod.g.phase==="paused"){
+      podPickupClock(pod.g);if(pod.g.phase==="out"){podDraw();return;}
+    }
+    if(pod.g.phase !== "paused") pod.g = pod.mode === "pickup" ? podPickupFresh() : pod.mode === "h2h" ? podH2HFresh() : pod.mode === "duel" ? podDuelTurn() : pod.mode === "arcade" ? podArcadeFresh() : podFresh();
+    if(pod.g.kind==="pickup" && pod.g.started===null){pod.g.started=performance.now();pod.g.startedWall=Date.now();}
     if(pod.sound&&pod.audio)try{Promise.resolve(pod.audio.resume()).catch(()=>{});}catch(e){}
     pod.holds = new Map();
     if(pod.g.kind === "h2h") pod.g.p.forEach(m => { m.holds = 0; m.tucked = m.reload > 0; });
@@ -9179,7 +9276,7 @@ window.podWars = {
   // For the suite: a seeded game it can step by hand.
   seed(n){ podRand = n === undefined ? Math.random : podRng(n); },
   state(){ return pod ? {...pod.g, enemies: (pod.g.enemies || []).map(e => ({...e})), open: true, running: !!pod.raf, mode: pod.mode} : {open: false}; },
-  step(ms){ if(pod){ cancelAnimationFrame(pod.raf); pod.raf = 0; for(let t = 0; t < ms; t += 16) podAdvance(pod.g, 16); podDraw(); } },
+  step(ms){ if(pod){ cancelAnimationFrame(pod.raf); pod.raf = 0; if(pod.g.kind==="pickup" && pod.g.started!==null){pod.g.started-=Math.max(0,Number(ms)||0);podPickupClock(pod.g);}else for(let t = 0; t < ms; t += 16) podAdvance(pod.g, 16); podDraw(); } },
   mode(m){ podSetMode(m); },
   per(n){ podSetPer(n); },
   duel(){ return pod && pod.duel ? JSON.parse(JSON.stringify(pod.duel)) : null; },
@@ -9199,6 +9296,12 @@ function podKey(ev){
   // A team's name is being typed: Space is a space and R is a letter.
   if(ev.target instanceof HTMLInputElement) return;
   if(ev.type==="keydown" && !ev.repeat && (ev.key==="p"||ev.key==="P")){ev.preventDefault();if(pod.g.phase==="play")window.podWars.pause();else if(pod.g.phase==="paused")window.podWars.play();return;}
+  if(pod.g.kind==="pickup"){
+    if(ev.target.id==="pod-canvas" && (ev.key===" "||ev.key==="Enter")){
+      ev.preventDefault();if(ev.type==="keydown"&&!ev.repeat)podTapAt(pod.g,180,280);
+    }
+    return;
+  }
   if(pod.g.kind!=="h2h" && pod.g.phase==="play"){
     if(ev.type==="keydown"&&!ev.repeat&&(ev.key==="g"||ev.key==="G")){
       ev.preventDefault();const g=pod.g;if(g.drop)podTapAt(g,g.drop.x,g.drop.y);return;

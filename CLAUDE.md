@@ -3055,8 +3055,8 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   taps on the name in the header, each within a second and a half of the
   last (`podTap`), opens it. It draws on its own layer outside `#root`
   (`#podwars`), so a render underneath never touches it and Close puts the
-  coach back exactly where he was; it keeps nothing but `S.podBest`, which is
-  not in either copy; it pauses the moment the app is hidden and its loop
+  coach back exactly where he was; it keeps only `S.podBest` and
+  `S.podPickupBest`, neither of which is in either copy; it pauses the moment the app is hidden and its loop
   stops on Close, the same contract as the break animation. Nothing else
   names it — no Help entry, no menu row — because it is a secret, and it is
   not a screen a coach needs on a field. `window.podWars` carries a seeded
@@ -3111,10 +3111,22 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   pause, blur, hide or Close. Arrow keys aim, Enter fires from the field,
   R reloads, G grabs a dropped pod, holding Space tucks, P pauses and Escape closes; typing a team
   name still types. Tuck and reload block a shot immediately, before the
-  next frame. The four modes keep the same secret entry and never change
+  next frame. All modes keep the same secret entry and never change
   a coaching score. `test/pod-wars.cjs` plays the run through its real engine,
   checks replay, loss, controls, sound, reduced motion and phone/tablet fit;
   the original solo, fair-duel and head-to-head checks still apply.
+  **Grab pods** is the default (owner, 10 Nov 2026): 64 pods on the fictional
+  ground, one point per tap anywhere on the canvas, exactly 45 seconds from
+  Start. Space or Enter on the field counts once; holding and key repeat do
+  not. The deadline is checked on each tap as well as each frame, so a slow
+  phone cannot extend a round. Blur/hide pauses drawing and sound, but the
+  elapsed clock keeps running; Resume after the deadline ends that round.
+  Pass the phone for Player 2 and so on. Only the five highest completed
+  rounds stay in the open game's memory; ties are stated, and the best on
+  this phone is saved separately in `S.podPickupBest`. No online leaderboard,
+  coach score, season export or League sync data is added. An abandoned
+  round saves no partial best; a refused save never says a new best was kept.
+  The pile and pickup effects stay bounded, with no effects in reduced motion.
 - Return a check's detail as its result. `check()` took `ok ||
   JSON.stringify({...})` as a pass, because a string is truthy: thirty-two
   checks could never fail, and two had been failing unseen. A returned
