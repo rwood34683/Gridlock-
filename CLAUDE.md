@@ -1396,6 +1396,17 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player
+or placed row and Scout's Players this point / Where they plant. Reading and
+closing it never changes the active match, point, score or records. Show the
+recorded break and the later out separately: made it is not proof the player
+finished alive. Missing answers stay Not recorded. Current-point out changes
+reuse the existing tally and releaseOut; explicit mark-out is idempotent.
+Recheck player/match/point/field/account/screen before every write. Keep this
+popup in page memory, close it when context changes, trap focus and support
+Escape. Historical points are read-only until Open this point on Tally to edit.
+Quick log keeps its one-tap out path. `test/player-details.cjs` holds these rules.
+
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
 current copy with the coach's account; Gridlock PB LLC's administrators can

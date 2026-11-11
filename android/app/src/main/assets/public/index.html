@@ -876,6 +876,16 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tbl__pick:focus-visible{outline:2px solid #efedeb;outline-offset:2px}
 .tbl__sub{font-size:12px;color:var(--mute)}
 .tbl--stats td{padding-top:2px;padding-bottom:2px}
+.player-dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line-lit);border-radius:16px;padding:20px;width:min(540px,calc(100vw - 24px));max-height:calc(100dvh - 24px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain}
+.player-dialog::backdrop{background:rgba(0,0,0,.78)}
+.player-dialog h2{margin:0;font-size:var(--t-lg);overflow-wrap:anywhere}
+.player-dialog .kv__v{overflow-wrap:anywhere}
+.player-dialog .fld{margin-top:var(--s3)}
+.player-dialog .btnrow{margin-top:var(--s3)}
+.player-dialog summary{min-height:44px;padding:12px 0;cursor:pointer}
+.player-dialog__head{display:flex;align-items:center;gap:12px;position:sticky;top:-20px;background:var(--panel);padding:12px 0;z-index:1}
+.player-dialog__head button{margin-left:auto;flex-shrink:0}
+.player-dialog__status{font-size:var(--t-lg);font-weight:800;margin:16px 0 8px}
 .tbl .th-num{display:none}
 @container main (max-width:620px){
   .tbl{min-width:0}
@@ -1142,6 +1152,7 @@ svg.field [data-pick]{cursor:crosshair}
 </head>
 <body>
 <div id="root"></div>
+<dialog id="player-details" class="player-dialog" aria-labelledby="player-detail-title"></dialog>
 <script src="voice-parser.js"></script>
 <script src="speech.js"></script>
 <script src="voice.js"></script>
@@ -10751,7 +10762,120 @@ function menOnBunker(side, fid){
     return t && foldName(t) === foldName(team) && teamFrame(r.bunker, r.m, r.pt, team) === fid;
   }).sort((a, b) => (b.at || 0) - (a.at || 0));
 }
-// Open one man's details on the sheet he was charted on.
+// A player can be read from either screen without moving the match or point.
+// This is page memory, never a season record. Every write rechecks its context.
+let _playerDetail = null;
+function playerDetailContext(){
+  return JSON.stringify([S.entered,S.email,S.tab,S.scoutTab,S.matchId,S.point,S.layoutKey,S.scoutSide,pitOf("left").name,pitOf("right").name]);
+}
+function playerDetailData(){
+  const d = _playerDetail;
+  if(!d || !S.entered || gateKey() || d.context !== playerDetailContext()) return null;
+  const m = matchById(d.m); if(!m || (m.layout && m.layout !== S.layoutKey)) return null;
+  const r = d.id ? (S.breakouts || []).find(x => x && x.id === d.id) :
+    (S.breakouts || []).find(x => x && x.m === d.m && x.pt === d.pt && x.side === d.side && x.player === d.player);
+  if(d.id && (!r || r.m !== d.m || r.pt !== d.pt || r.side !== d.side || (r.player || "") !== d.player || r.layout !== S.layoutKey)) return null;
+  const out = d.player && (S.tally || []).find(o => o && o.m === d.m && o.pt === d.pt && o.side === d.side && o.name === d.player);
+  return {d,m,r,out,live:d.m === S.matchId && d.pt === sheetPoint() && !sheetField()};
+}
+window.closePlayerDetails = () => {
+  _playerDetail = null;
+  const el = document.getElementById("player-details"); if(el.open) el.close(); el.replaceChildren();
+};
+function showPlayerPoint(ref){
+  if(!S.entered || !["tally","scout"].includes(S.tab) || gateKey()) return;
+  if(ref.m !== S.matchId && !entitled("team")) return set({tab:"more",more:"plan",billingSaid:""});
+  _playerDetail = {...ref,context:playerDetailContext()};
+  renderPlayerDetails();
+}
+window.showPlayerDetails = id => {
+  const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
+  showPlayerPoint({id:r.id,m:r.m,pt:r.pt,side:r.side,player:r.player || ""});
+};
+window.showNamedPlayer = (side, player) => {
+  if(!["us","them"].includes(side) || typeof player !== "string" || !player) return;
+  showPlayerPoint({m:S.matchId,pt:sheetPoint(),side,player});
+};
+window.playerDetailOut = dead => {
+  const v = playerDetailData(); if(!v || !v.live || !v.d.player) return closePlayerDetails();
+  if(!!v.out === !!dead) return;
+  if(dead) markOut(v.d.side,v.d.player);
+  else { releaseOut(v.out); save(S); render(); }
+};
+window.playerDetailField = (field, value) => {
+  const v = playerDetailData(); if(!v || !v.live || !v.out) return closePlayerDetails();
+  if(!["how","by","shotAt","movedTo"].includes(field) || typeof value !== "string") return;
+  if(field === "how" && value && !OUT_CAUSES.includes(value)) return;
+  if(["shotAt","movedTo"].includes(field) && value && !curLayout().bunkers.some(b => b.id === value)) return;
+  const i = S.tally.indexOf(v.out);
+  setOutBunker(i,field,clean(value).slice(0,80));
+};
+window.editPlayerBreak = () => {
+  const v = playerDetailData(); if(!v || !v.r) return closePlayerDetails();
+  const id = v.r.id; closePlayerDetails(); openManDetails(id);
+};
+function renderPlayerDetails(){
+  const el = document.getElementById("player-details");
+  if(!_playerDetail) return;
+  const v = playerDetailData(); if(!v){ closePlayerDetails(); return; }
+  const {d,m,r,out,live} = v, bl = curLayout().bunkers;
+  const named = id => { const b = bl.find(x => x.id === id); return b ? callOf(b) : id || "Not recorded"; };
+  const team = m.watch ? (d.side === "us" ? m.home : m.away) : d.side === "us" ? "Your team" : m.vs;
+  const dead = !!out || !!(r && r.alive === false);
+  const status = dead ? "Out (dead)" : r && r.alive === true ? "Alive off the break" : "Status not recorded";
+  const nth = r ? (S.breakouts || []).filter(x => x && x.m === d.m && x.pt === d.pt && x.side === d.side && x.layout === r.layout).sort((a,b) => a.at-b.at).findIndex(x => x.id === r.id)+1 : 0;
+  const row = (label,value) => `<div class="kv__row"><span class="kv__k">${label}</span><span class="kv__v">${esc(value || "Not recorded")}</span></div>`;
+  const choose = (label,field,value,options) => `<div class="fld"><label for="player-${field}">${label}</label><select id="player-${field}" onchange="playerDetailField('${field}',this.value)"><option value="">Not recorded</option>${options.map(([key,text]) => `<option value="${esc(key)}"${value === key ? " selected" : ""}>${esc(text)}</option>`).join("")}</select></div>`;
+  const notes = (S.voiceEvents || []).filter(n => n && n.m === d.m && n.pt === d.pt && n.layout === S.layoutKey && d.player
+    && n.team && foldName(n.team) === foldName(m.watch ? team : d.side === "us" ? (S.left || {}).name : m.vs)
+    && [n.player,n.playerName].some(name => name && foldName(name) === foldName(d.player)));
+  const html = `<div class="player-dialog__head"><h2 id="player-detail-title">${esc(d.player || "Player "+nth+" · "+named(r && r.bunker))}</h2><button class="btn btn--quiet" autofocus onclick="closePlayerDetails()">Close</button></div>
+    <p class="note">${esc(team || "Team not recorded")} · Point ${d.pt}<br>${esc(matchLabel(m))}</p>
+    <p class="player-dialog__status" role="status">${status}</p>
+    ${!dead ? `<p class="note">${r && r.alive === true ? "Made the first bunker. No later out is logged." : "No alive or out result was recorded for this player."}</p>` : ""}
+    <div class="kv">${row("First bunker",r && named(r.bunker))}${row("Break",r ? r.alive === true ? "Made it" : r.alive === false ? "Shot on the break" : "Not recorded" : "")}
+      ${row("Came in",r && (r.entry === "battle" ? "Battling in" : r.entry === "clean" ? "No pressure" : ""))}
+      ${row("Shooting",r && r.dir != null ? LANE_NAME[String(r.dir)] : "")}
+      ${row("Shot from",r && r.shotFrom ? named(r.shotFrom) : "")}${row("Shooting at",r && r.shootAt ? named(r.shootAt) : "")}
+      ${row("Moved to",out && out.movedTo ? named(out.movedTo) : r && r.movedTo ? named(r.movedTo) : "")}
+      ${r && (r.delayed || r.movedDelayed) ? row("Timing",[r.delayed ? "Delayed break" : "",r.movedDelayed ? "Delayed move" : ""].filter(Boolean).join(" · ")) : ""}
+      ${r && r.routeType ? row("Route",r.routeType) : ""}
+      ${out ? row("How out",out.how)+row("Shot by",out.by)+row("Shot at",out.shotAt ? named(out.shotAt) : "") : ""}
+    </div>${notes.length ? `<h3 class="panel__title">Point notes</h3>${notes.map(n => `<p class="note">${esc(n.text)}</p>`).join("")}` : ""}
+    ${live && d.player ? `<div class="btnrow"><button class="btn grow" onclick="playerDetailOut(true)">Mark out</button>${out ? `<button class="btn btn--quiet grow" onclick="playerDetailOut(false)">Alive · undo out</button>` : ""}</div>` : ""}
+    ${live && out ? `<details><summary>Edit the out</summary>${choose("How out","how",out.how,OUT_CAUSES.map(s => [s,s]))}
+      ${choose("Shot at","shotAt",out.shotAt,bl.map(b => [b.id,pickName(b)]))}
+      <div class="fld"><label for="player-by">Shot by</label><input id="player-by" maxlength="80" value="${esc(out.by || "")}" onchange="playerDetailField('by',this.value)"/></div>
+      ${choose("Moved to","movedTo",out.movedTo,bl.map(b => [b.id,pickName(b)]))}<p class="note">Each change saves on this point.</p></details>` : ""}
+    ${r ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="editPlayerBreak()">${live ? "Edit break details on Tally" : "Open this point on Tally to edit"}</button>` : `<p class="note" style="margin-top:var(--s3)">No break charted for this player. Place them on Tally to add bunker and break details.</p>`}
+    ${!live ? `<p class="note">Viewing a kept point. Your match and score have not moved.</p>` : ""}`;
+  const t = document.createElement("template"); t.innerHTML = html;
+  // Keep an opened disclosure and the focused input through a saved detail.
+  const wasOpen = el.querySelector("details")?.open;
+  if(wasOpen && t.content.querySelector("details")) t.content.querySelector("details").open = true;
+  patchScreen(el,t.content);
+  if(!el.open) el.showModal();
+}
+const playerDialog = document.getElementById("player-details");
+playerDialog.addEventListener("keydown",ev => {
+  if(ev.key !== "Tab" || !playerDialog.open) return;
+  const items = [...playerDialog.querySelectorAll("button,input,select,textarea,summary,a[href],[tabindex]")]
+    .filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
+  const first = items[0], last = items[items.length-1];
+  if(!first){ ev.preventDefault(); return; }
+  if(ev.shiftKey && document.activeElement === first){ ev.preventDefault(); last.focus(); }
+  else if(!ev.shiftKey && document.activeElement === last){ ev.preventDefault(); first.focus(); }
+});
+playerDialog.addEventListener("cancel",ev => { ev.preventDefault(); closePlayerDetails(); });
+playerDialog.addEventListener("close",() => { if(!playerDialog.open){ _playerDetail = null; playerDialog.replaceChildren(); } });
+function scoutPlayerDetails(side){
+  if(!pitOnSheet(side)) return "";
+  const sd = side === "left" ? "us" : "them", pt = sheetPoint();
+  const rows = pointRows().filter(r => r.side === sd);
+  if(!rows.length) return "";
+  return sec("Players this point",`<p class="note">Tap a player for alive or out, bunker and what happened.</p><div class="assigns">${rows.map((r,i) => `<button class="assign" onclick="showPlayerDetails(${jsq(r.id)})"><span class="assign__n">${i+1}</span><span class="assign__body"><span class="assign__job">${esc(r.player || "Player "+(i+1))}</span><span class="assign__who">${esc(bunkerLabel(r.bunker))} · Details</span></span></button>`).join("")}</div>`,`${pitOf(side).name} · Point ${pt}`);
+}
+// Editing is an explicit move; reading the popup above never switches sheets.
 window.openManDetails = id => {
   const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
   // He is on another sheet: telling this man opens his, the way Matches does,
@@ -13823,10 +13947,10 @@ function tally(){
       ? `<p class="warn">${mine.length} on — you start ${alive("us")}. Tap a man on.</p>` : ""}
     ${side === "us" && !mine.length && !(curMatch()||{}).watch ? `<button class="btn btn--quiet btn--block" style="margin-bottom:var(--s3)" onclick="set({tab:'more',more:'team'})">Add your five · Team</button>` : ""}
     <div class="assigns">
-      ${names.map(n=>`<button class="assign" onclick="markOut('${side}',${jsq(n)})" style="${isOut(side,n)?"opacity:.4":""}">
+      ${names.map(n=>`<button class="assign" onclick="showNamedPlayer('${side}',${jsq(n)})">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
         <span class="assign__body"><span class="assign__job">${esc(n)}</span>
-        ${isOut(side,n)?`<span class="assign__who">out</span>`:""}</span>
+        <span class="assign__who">${isOut(side,n)?"Out · ":""}Player details</span></span>
       </button>`).join("")}
     </div></div>`;
 
@@ -13906,7 +14030,7 @@ function tally(){
       <div class="kv__row"><span class="kv__k">${esc(placeSideWord("us"))} ${placedBy("us")} of ${startUp("us", S.matchId, pt)} · ${esc(placeSideWord("them"))} ${placedBy("them")} of ${startUp("them", S.matchId, pt)}</span>
         <span class="kv__v">${todo ? `${todo} to tell` : "all told"}</span></div>
       ${rowsPt.map(r => `<div class="btnrow" style="align-items:center">
-        <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="editBreakout(${jsq(r.id)})">
+        <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="showPlayerDetails(${jsq(r.id)})">
           <span><span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
             ? `${esc(bunkerLabel(r.bunker))} · ${esc(placeSideWord(r.side).toLowerCase())} · <span style="color:var(--warn)">what happened?</span>`
             : esc(describeBreakout(r))}</span></button>
@@ -16235,7 +16359,7 @@ function scoutMatchup(){
     </div>
     <p class="aid"><b>Counted, not predicted.</b> ${(curMatch()||{}).watch ? "Two teams you are reading, neither of them yours." : `The wire split is where this break actually plants on
     ${esc(curLayout().name)}.`} The bar is the threat you scored ${(curMatch()||{}).watch ? "the two teams" : "them"}, nothing more.</p>`,
-    "This call");
+    "This call") + scoutPlayerDetails("right") + ((curMatch() || {}).watch ? scoutPlayerDetails("left") : "");
 }
 
 /* Off the buzzer, by wire. PB Scout sells this per role — what each of their
@@ -16377,6 +16501,7 @@ function scoutBreakouts(){
     ${picked.length ? `<div class="seg" style="flex-wrap:wrap" aria-label="Placed men">${picked.map((id, i) =>
       `<button onclick="dropTheirPick(${i})" aria-label="Take man ${i + 1} off ${esc(label(id))}">${i + 1} · ${esc(label(id))} ×</button>`).join("")}</div>` : ""}`,
     R.name)
+  + scoutPlayerDetails(side)
   + sec("What they run", `<p class="lede">Log their call as you see it. Their tendency is one word off
       film; this is the count behind it.${picked.length&&!fixing?` <b>The ${picked.length} placed above go with it.</b>`:""}</p>
     <div class="seg" style="flex-wrap:wrap">
@@ -16394,7 +16519,7 @@ function scoutBreakouts(){
         <span class="assign__n" style="background:var(--blue)">${n}</span>
         <span class="assign__body"><span class="assign__job">${esc(label(id))}</span><span class="assign__who">${esc(id)} · ${(fives => { const inN = fives.filter(b => b.plants.some(x => teamFrame(x, b.m, b.pt, R.name) === fid)).length;
           return `${inN} of ${fives.length} logged fives here${n > inN ? ` · ${n} men` : ""}`; })(seen.filter(b=>b.plants&&b.plants.length&&(!b.layout||b.layout===S.layoutKey)))}</span>
-        ${(men => men.length ? `<span style="display:grid;gap:4px;margin-top:6px">${men.slice(0, 6).map(r => `<button class="btn btn--quiet" style="justify-content:flex-start;text-align:left;min-height:44px" onclick="openManDetails(${jsq(r.id)})">
+        ${(men => men.length ? `<span style="display:grid;gap:4px;margin-top:6px">${men.slice(0, 6).map(r => `<button class="btn btn--quiet" style="justify-content:flex-start;text-align:left;min-height:44px" onclick="showPlayerDetails(${jsq(r.id)})">
             <span>Point ${r.pt}${r.m !== S.matchId ? ` · ${esc(matchLabel(matchById(r.m)))}` : ""} · ${r.todo ? `<span style="color:var(--warn)">add his details →</span>` : esc(describeBreakout(r))}</span></button>`).join("")}${men.length > 6 ? `<span class="note">and ${men.length - 6} more</span>` : ""}</span>` : "")(menOnBunker(side, fid))}</span>
       </div>`;}).join("")}</div>
       <p class="note">Counted from the fives you logged on ${esc(curLayout().name)}. Nothing here is a prediction.</p>`,
@@ -17428,7 +17553,7 @@ const HELP = {
   tally: {t:"Tally", w:"The break chart and the point sheet.",
     how:["Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. Two men on one bunker is two taps; the ✕ beside a man in the list takes him off.",
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or no pressure, which way he was shooting — and Save goes to the next.",
-         "Tap a man in the list under the field to open him again; in step 2 a tap on any other bunker charts one more man.",
+         "Tap a player or his row under the field for a popup with his status and recorded details. Mark out records his elimination; Alive · undo out corrects one. Edit break details opens his chart. Quick log still takes one tap to mark a player out.",
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
          "When the point ends tap We won it or They won it. That is the score.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
@@ -17444,6 +17569,7 @@ const HELP = {
          "On every sub-tab but Matchup a named pit folds to one line so the screen you came for is at the top. Tap the line to open the card.",
          "The left pit is a second team: the other side of a game you watch, or someone to read beside them.",
          "The sub-tabs above are the different reads.",
+         "Players this point on Matchup and Breakouts opens each player's details without leaving Scout. Where they plant opens older details too. A kept point stays read-only until you choose to open it on Tally.",
          "The match strip under the pits is the same match and point Tally is on.",
          "Names writes the bunker codes on the field when you need to find one."]},
   "scout/matchup": {t:"Matchup", w:"The head-to-head read.",
@@ -17632,7 +17758,8 @@ const HELP_Q = [
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
-  ["I tapped the wrong player out.", "Tap him again and he is back in. For a point you have already left, Undo on his row in the log under the point sheet. If you are on the wrong point, Back a point takes its result with it so the score does not count it twice."],
+  ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive · undo out. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
+  ["How do I see what happened to a player?", "On Tally, tap his name or his row under the field. On Scout, tap a player under Players this point or Where they plant. The popup shows the player, point, bunker, break and recorded out details. Alive off the break means he reached his first bunker; a later out still shows Out. Missing answers say Not recorded. Close returns to the same screen. Mark out and Edit the out save on the current point; Edit break details opens his chart on Tally."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
@@ -19848,6 +19975,7 @@ function render(){
   watchTallyField();
   placeFlash();
   _screenObserver.takeRecords(); _screenDirty = false;
+  renderPlayerDetails();
 }
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }
