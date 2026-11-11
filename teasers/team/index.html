@@ -504,7 +504,7 @@ let scout={};try{scout=JSON.parse(localStorage.getItem('gridlock_scout'))||{};}c
 function saveScout(){try{localStorage.setItem('gridlock_scout',JSON.stringify(scout));}catch(e){}}
 function key(di,name){return di+'::'+name;}
 function rec(di,name){const k=key(di,name);if(!scout[k])scout[k]={tend:0,threat:SEED[k]!=null?SEED[k]:0};return scout[k];}
-let Lsel={di:0,ti:0},Rsel={di:0,ti:1};
+let Lsel={di:0,ti:-1},Rsel={di:0,ti:-1};
 window.showRoles=true;window.showGuns=true;window.showPS=false;
 
 /* ---------- field + bunkers ---------- */
@@ -640,7 +640,7 @@ function animateScoutBreak(){if(!window._L||!window._R)return;field();
   document.getElementById('legend').innerHTML='<span><i class="sw" style="background:#e5342f"></i>'+teamName(Lsel)+' break</span><span><i class="sw" style="background:#3d8bff"></i>'+teamName(Rsel)+' break</span><span><i class="sw" style="background:#ffffff;border-color:#000000"></i>shot lanes</span>';
   animateBreak([{T:window._L,col:'#e5342f'},{T:window._R,col:'#3d8bff'}]);
 }
-function teamName(s){return DIVS[s.di].t[s.ti][0];}
+function teamName(s){return s&&s.ti>=0&&DIVS[s.di]&&DIVS[s.di].t[s.ti]?DIVS[s.di].t[s.ti][0]:'Nobody yet';}
 function anticipate(name,tend){const p=planFor(tend);
  if(p==='snake')return{likely:'Snake stack / runner — they overload the bottom and try to run the snake.',
   tells:['A body cheats toward the snake side at the line','Snake player low, sprinter\u2019s stance aimed at the mouth','Their quietest gun off the break is the runner crawling in'],
@@ -1009,7 +1009,7 @@ const P=document.getElementById('panel');const LG=document.getElementById('legen
   h+=`<div class="row" style="gap:6px"><button class="ld ${sightMode==='player'?'on':''}" data-sm="player">Player shots</button><button class="ld ${sightMode==='ref'?'on':''}" data-sm="ref">Ref sightlines</button></div>`;
   if(sightMode==='player'){
     LG.innerHTML='<span><i class="sw" style="background:#ffffff"></i>clear shot</span><span><i class="sw" style="background:#8d9092"></i>blocked</span><span>tap a bunker to pick your spot</span>';
-    if(sightSel>=0&&BUN[sightSel]){const s=BUN[sightSel];const clears=[];BUN.forEach((b,j)=>{if(j===sightSel)return;const cl=losClear(s.x,s.y,b.x,b.y,new Set([sightSel,j]),sightStance);el('line',{x1:X(s.x),y1:Y(s.y),x2:X(b.x),y2:Y(b.y),stroke:cl?'#ffffff':'#8d9092','stroke-width':cl?.55:.32,'stroke-dasharray':cl?'':'1.4 1.4',opacity:cl?.85:.45});if(cl)clears.push(b.n);});el('circle',{cx:X(s.x),cy:Y(s.y),r:3,fill:'none',stroke:'#ffd24d','stroke-width':1.1});
+    if(sightSel>=0&&BUN[sightSel]){const s=BUN[sightSel];const clears=[];BUN.forEach((b,j)=>{if(j===sightSel)return;const cl=losClear(s.x,s.y,b.x,b.y,new Set([sightSel,j]),sightStance);el('line',{x1:X(s.x),y1:Y(s.y),x2:X(b.x),y2:Y(b.y),stroke:cl?'#ffffff':'#8d9092','stroke-width':cl?.55:.32,'stroke-dasharray':cl?'':'1.4 1.4',opacity:cl?.85:.45});if(cl)clears.push(b.n);});el('circle',{cx:X(s.x),cy:Y(s.y),r:3,fill:'none',stroke:'#ffffff','stroke-width':1.1});
       h+=`<div class="lbl" style="margin-top:8px">From ${s.n} (${s.x},${s.y})</div><div style="font-size:13px">Clear shots to <b style="color:#7fe0a8">${clears.length}</b> of ${BUN.length-1} bunkers.</div><div class="iqref">${clears.join(', ')||'none'}</div>`;
     }else h+='<div class="iqrow" style="font-size:12px">Tap any bunker to see every clear shot it has into the rest of the field.</div>';
   }else{
@@ -2717,7 +2717,7 @@ function renderScout(){
   if(scView==='games')return renderGames();
   setTimeout(()=>{const P=document.getElementById('panel');if(!P||MODE!=='scout'||P.querySelector('#mkup')||!LICF('scoutfull'))return;
    const b=document.createElement('div');b.innerHTML='<div class="row" style="margin-top:6px"><button class="ld" id="mkup">\u29c9 Copy matchup card</button></div>';P.appendChild(b);
-   b.querySelector('#mkup').onclick=()=>{const f=(sel)=>{const d=DIVS[sel.di],t=d.t[sel.ti],r=rec(sel.di,t[0]),lr=laneRead(sel.di,sel.ti);
+   b.querySelector('#mkup').onclick=()=>{const f=(sel)=>{if(sel.ti<0)return 'Nobody picked';const d=DIVS[sel.di],t=d.t[sel.ti],r=rec(sel.di,t[0]),lr=laneRead(sel.di,sel.ti);
      return t[0]+' ('+d.d+')\n  threat '+r.threat+'/5 \u00b7 tend '+(r.tend<-25?'SNAKE':r.tend>25?'DORITO':'balanced')+(lr?' \u00b7 logged read S'+lr.s+'/C'+lr.c+'/D'+lr.d+'% over '+lr.n+' breaks':'')+(r.note?'\n  notes: '+r.note:'');};
     const txt='MATCHUP \u2014 '+new Date().toISOString().slice(0,10)+'\n'+f(Lsel)+'\nvs\n'+f(Rsel);
     try{navigator.clipboard.writeText(txt);b.querySelector('#mkup').textContent='copied \u2713';}catch(e){gAlert(txt);}};},0);
@@ -2910,7 +2910,10 @@ function renderGames(){
   P.querySelectorAll('[data-gmpt]').forEach(b=>b.onclick=()=>{gmPt=+b.dataset.gmpt;renderGames();});
 }
 function renderSide(side,sel){
-  const box=document.getElementById('side'+side);const div=DIVS[sel.di],team=div.t[sel.ti],r=rec(sel.di,team[0]);
+  const box=document.getElementById('side'+side);
+  if(sel.ti<0){if(!box)return;let o='<option value="" selected>Pick a team\u2026</option>';DIVS.forEach((d,di)=>{o+=`<optgroup label="${d.d}">`+d.t.map((t,ti)=>`<option value="${di}:${ti}">${t[0]}</option>`).join('')+'</optgroup>';});
+    box.innerHTML=`<div><span class="nm">Nobody yet</span></div><span class="lbl">${side==='L'?'Left pit \u00b7 a team you watch \u00b7 optional':'Right pit \u00b7 who you play'}</span><select class="pickSel">${o}</select>`;
+    box.querySelector('.pickSel').onchange=e=>{if(!e.target.value)return;const[di,ti]=e.target.value.split(':').map(Number);if(side==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();};return;}const div=DIVS[sel.di],team=div.t[sel.ti],r=rec(sel.di,team[0]);
   let opts='';DIVS.forEach((d,di)=>{opts+=`<optgroup label="${d.d}">`+d.t.map((t,ti)=>`<option value="${di}:${ti}" ${di===sel.di&&ti===sel.ti?'selected':''}>${t[0]}</option>`).join('')+`</optgroup>`;});
   const stars=[1,2,3,4,5].map(n=>`<span data-th="${n}">${n<=r.threat?'<b>★</b>':'☆'}</span>`).join('');
   box.innerHTML=`<div><span class="nm">${team[0]}</span><span class="cc">${team[1]}${team[2]?'':' · pending'}</span>${team[3]?`<span class="seed">${team[3]} pts</span>`:''}</div>

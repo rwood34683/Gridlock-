@@ -128,6 +128,17 @@ document.querySelectorAll('button').forEach(b=>{if(b.hasAttribute('aria-label'))
 name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(document.body,{childList:true,subtree:true});})();
 </script>
 </body>`],
+  // ---- after the owner looked at the Player app ----
+  // A More row reads in the middle of its button.
+  ["fit", "style=\"display:flex;justify-content:space-between;width:100%;text-align:left;margin:2px 0;padding:9px 11px;opacity:.55\">", "style=\"display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;margin:2px 0;padding:9px 11px;opacity:.55\">"],
+  // The bunker you are standing in is ringed white, as on the coach app.
+  ["rings", "if(cl)clears.push(b.n);});el('circle',{cx:X(s.x),cy:Y(s.y),r:3,fill:'none',stroke:'#ffd24d','stroke-width':1.1});", "if(cl)clears.push(b.n);});el('circle',{cx:X(s.x),cy:Y(s.y),r:3,fill:'none',stroke:'#ffffff','stroke-width':1.1});"],
+  // Both pits start empty: never put a team in a pit nobody picked.
+  ["empty pits", "let Lsel={di:0,ti:0},Rsel={di:0,ti:1};", "let Lsel={di:0,ti:-1},Rsel={di:0,ti:-1};"],
+  ["empty pits", "function teamName(s){return DIVS[s.di].t[s.ti][0];}", "function teamName(s){return s&&s.ti>=0&&DIVS[s.di]&&DIVS[s.di].t[s.ti]?DIVS[s.di].t[s.ti][0]:'Nobody yet';}"],
+  ["empty pits", "const f=(sel)=>{const d=DIVS[sel.di]", "const f=(sel)=>{if(sel.ti<0)return 'Nobody picked';const d=DIVS[sel.di]"],
+  ["empty pits", "function renderSide(side,sel){\n  const box=document.getElementById('side'+side);",
+    "function renderSide(side,sel){\n  const box=document.getElementById('side'+side);\n  if(sel.ti<0){if(!box)return;let o='<option value=\"\" selected>Pick a team\\u2026</option>';DIVS.forEach((d,di)=>{o+=`<optgroup label=\"${d.d}\">`+d.t.map((t,ti)=>`<option value=\"${di}:${ti}\">${t[0]}</option>`).join('')+'</optgroup>';});\n    box.innerHTML=`<div><span class=\"nm\">Nobody yet</span></div><span class=\"lbl\">${side==='L'?'Left pit \\u00b7 a team you watch \\u00b7 optional':'Right pit \\u00b7 who you play'}</span><select class=\"pickSel\">${o}</select>`;\n    box.querySelector('.pickSel').onchange=e=>{if(!e.target.value)return;const[di,ti]=e.target.value.split(':').map(Number);if(side==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();};return;}"],
 ];
 
 // Regex steps: [rule, pattern, replacement].
