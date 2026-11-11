@@ -28,7 +28,7 @@ the clock, like Other. Division 1, Collegiate and Juniors are off the
 list; a saved format or sheet that still carries one keeps the name and shows
 under Other.
 
-| Division | Game time | Mercy lead | Break | Split deck | Overtime | Rule |
+| Division | Game time | Mercy lead | Own-match break | Split-deck changeover | Overtime | Rule |
 |---|---|---|---|---|---|---|
 | Semi-Pro | 15 min | 5 | 2:00 min | 0:45 | always on a tie (9.12.3) | 8.2, 9.3.12 |
 | Division 2 | 15 min | 5 | 2:00 min | 1:00 | playoffs only (9.12.1) | 8.2, 9.3.12 |
@@ -47,7 +47,7 @@ up. Race to and how many a side are asked only under Other.
 |---|---|---|---|
 | 8.1, 8.2 | A match is a series of points on a game clock, with a **point-differential mercy rule**; game time and mercy margin vary by division. | **Mercy rule** on the point sheet (Off · 3 · 4 · 5 · 6) ends the match at that lead and calls match point one short of it; **Time's up** records the clock running out. **Race to** stays for formats that race to a score. The clock itself is the official's. | Done |
 | 9.3.9, 9.3.11 | First point from the pit side; teams **switch ends after every point scored**; a no-point does not switch them; overtime starts on the pit side. | **Swap every point** switches on scored points, read off the results — "Next point, no result" is a no-point and nobody moves. Overtime points start from the pit-side end. **Switch ends** still overrides this point. | Done |
-| 9.3.12, 8.3 | A break period follows every point: standard minimum two minutes; split deck one minute (D2–D5) or 45 seconds (semi-pro). | **Clock between points**: Off · 0:45 · 1:00 · 1:30 · 2:00, started by the hang. | Done |
+| 9.3.12, 8.3 | A match keeps at least two minutes between its own points. The other match plays during that break. Changeover between the two matches is one minute (D2–D5) or 45 seconds (Semi-Pro). | **Split deck** on Format. Our result shows **Other match playing**, with no countdown yet. **Other point ended** starts a preparation timer for the longer of the changeover and our remaining minimum break. **Our point is starting** stops it. **Other match is over** returns this sheet to normal breaks. | Done |
 | 9.7 | One **timeout** of one minute per team per match, called by the designated coach, not in the last ten seconds before a point, usable before overtime. | **Our timeout / Their timeout** on the point sheet: one a side a match, recorded with the point it went on, one tap gives it back. The minute is the official's clock. | Done |
 | 9.10 | A coach may **concede** a point; it goes to the other side. | They won it, as any point. The app does not need to know why. | Done |
 | 9.11 | In the last 60 seconds a Major or Gross Major penalty is an automatic point to the other team. | The coach records the point as the official awards it; penalties are recorded as what they cost. | Done |
@@ -62,9 +62,27 @@ up. Race to and how many a side are asked only under Other.
 
 ## Where this leaves the app
 
-Nothing in the app contradicts the rulebook, because nothing in the app decides
-a rule: the official calls it, the coach records it. Everything in the table was
-either already there or went in with this read, the timeout included.
+The official calls the game; the coach records it. The app's preparation timer
+is not the official game clock. The split-deck distinction above corrects the
+old short-break preset: starting 0:45/1:00 immediately after our own result
+did not represent the other match's turn or our two-minute minimum.
+
+## Split-deck verification (11 Nov 2026)
+
+Re-read the [official 2026 divisional rulebook](https://www.nxlpaintball.com/divisional-x-ball-rulebook),
+sections 8.3 (PDF page 16) and 9.3.12–9.3.13 (pages 17–18). The timing above
+is a paraphrase of those sections. No rulebook text or assets are shipped.
+The Semi-Pro-specific changeover in 9.3.12 takes precedence over the general
+one-minute description in 8.3. If the other match finishes, 8.3.5 returns the
+remaining match to standard two-minute breaks.
+
+Gridlock tracks our match only. The other point never adds a score, a result,
+or a point number to our sheet. The coach chooses when the other point ends
+and when ours starts, following the official. Reloading or restoring a copy
+asks which match is on; it does not resume a stale turn or clock. For an event
+without a verified changeover, the coach must choose it before the countdown
+can run. Existing custom short breaks retain their old meaning until Split
+deck is explicitly selected. Game time remains display-only.
 
 ## When the league publishes a new edition
 

@@ -581,10 +581,10 @@ const ROSTER = [
     const openDetails = () => { document.querySelector("#fmt-rules > summary").click(); document.querySelector("#fmt-settings > summary").click(); };
     openDetails();
     const page3 = document.getElementById("root").innerText;
-    const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 · split deck/.test(page3)
+    const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 split-deck changeover/.test(page3)
       && /Race to — your format/.test(page3) && /Game clock — the official's starting clock/.test(page3) && /12 min · rulebook/.test(page3);
     window.setFmt("div", "Semi-Pro"); openDetails();
-    const semi = /0:45 · split deck/.test(document.getElementById("root").innerText);
+    const semi = /0:45 split-deck changeover/.test(document.getElementById("root").innerText);
     window.setFmt("div", "Other");
     const other = S.fmt.time === 0 && /Race to — your format/.test(document.getElementById("root").innerText);
     S.fmt = {}; S.matches = S.matches.map(x => ({...x, size: null, game: null, div: null, raceTo: null, mercy: null, breakClock: null}));
