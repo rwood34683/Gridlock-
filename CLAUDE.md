@@ -1396,6 +1396,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Match heat map (11 Nov 2026): Bunker stats can read one match or all own
+matches on the current field. Reports opens the current match's map when it
+belongs to that field. `statMatch` is scratch, cleared on reload/restore and
+field changes; a deleted or unavailable match must show no data rather than
+silently broadening to the season. The selected side, match and opponent
+filter every count, including the picked bunker's detail. Do not append
+season-wide bunker-book counts to a filtered match. Went there and Shot there
+each drive the numbers, rings and scale from that one measure, never their
+sum. Scores alone do not create locations. Watched games and other fields
+(including legacy rows whose field is known only from their match) stay out.
+Show the count of distinct recorded points/matches and retain the thin-sample
+mark. Neither viewing nor filtering changes the active match, point, scores
+or season records. `test/match-heat.cjs` covers these rules.
+
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
 current copy with the coach's account; Gridlock PB LLC's administrators can

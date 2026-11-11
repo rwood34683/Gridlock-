@@ -5527,6 +5527,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  s.statMatch = "";
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
   s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
@@ -7024,7 +7025,7 @@ function set(patch){
   }
   if("layoutKey" in patch && patch.layoutKey !== S.layoutKey)
     patch = {theirPick: [], theirFix: null, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null, tallyStep: S.tallyMode === "place" ? "place" : "record",
-             moveFrom: null, moveTo: null, statPick: null, callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
+             moveFrom: null, moveTo: null, statPick: null, statMatch: "", callPick: null, codePick: null, codeName: "", walkPick: null, walkShut: null, sightFrom: null, sightTo: null, sightAim: null, ...patch};
   if(S.playing && patch.scoutTab === "arrival") stopPlaying();
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
@@ -10032,6 +10033,7 @@ function bunkerTraffic(keep){
     if(!id || !here.has(id)) return;
     t[id] = t[id] || {outs:0, visits:0, w:0, l:0};
     t[id][key]++;
+    if(keep && keep.record) keep.record(r);
   };
   // Points won and lost with a man of that side broken to the bunker: one
   // point once a bunker a side, read off the result. A point with no result
@@ -10133,10 +10135,33 @@ window.logMove = () => {
 // preferences) and a tap on a bunker or a row says what is known about it
 // (`S.statPick`, scratch). A rotation is always his own man.
 const STAT_SIDES = [["us","Yours"],["them","Theirs"],["both","Both"]];
+const STAT_METRICS = [["visits","Went there"],["outs","Shot there"]];
+function statMetric(){ return S.statMetric === "outs" ? "outs" : "visits"; }
+function statMatches(){ return (S.matches || []).filter(m => m && m.id && !m.watch && (!m.layout || m.layout === S.layoutKey)); }
+window.pickStatMatch = id => {
+  if(id && !statMatches().some(m => m.id === id)) return flash("Choose a match on this field.");
+  set({statMatch:id,statTeam:"",statPick:null,statAll:false});
+};
+window.openMatchHeat = () => {
+  const mid = statMatches().some(m => m.id === S.matchId) ? S.matchId : "";
+  set({tab:"more",more:"stats",statMatch:mid,statSide:"us",statTeam:"",statPick:null,statMetric:"visits"});
+};
 function statRowTeam(r){ const m = r && r.m ? matchById(r.m) : null; return (r && r.vs) || (m && m.vs) || ""; }
 function statKeep(){
-  const side = S.statSide || "both", team = S.statTeam || "";
-  const keep = r => (side === "both" || (r.side || "us") === side) && (!team || foldName(statRowTeam(r)) === foldName(team));
+  const side = S.statSide || "both", team = S.statMatch ? "" : S.statTeam || "", mid = S.statMatch || "";
+  const matches = new Map((S.matches || []).filter(Boolean).map(m => [m.id,m]));
+  const selected = !mid || statMatches().some(m => m.id === mid);
+  const keep = r => {
+    const m = matches.get(r.m);
+    return selected && (!mid || r.m === mid) && (!m || !m.layout || m.layout === S.layoutKey)
+      && (side === "both" || (r.side || "us") === side) && (!team || foldName(r.vs || (m && m.vs) || "") === foldName(team));
+  };
+  keep.sample = {matches:new Set(),points:new Set(),unplaced:false};
+  keep.record = r => {
+    if(r && matches.has(r.m)) keep.sample.matches.add(r.m);
+    if(r && matches.has(r.m) && Number.isSafeInteger(r.pt) && r.pt > 0) keep.sample.points.add(JSON.stringify([r.m,r.pt]));
+    else keep.sample.unplaced = true;
+  };
   keep.frame = !S.statAsPlayed; keep.results = true;
   return keep;
 }
@@ -10168,14 +10193,14 @@ window.statPick = id => { S.statPick = S.statPick === id ? null : id; render(); 
 })();
 // The count beside each busy bunker, so the ring and the row are one thing,
 // and the picked bunker ringed white.
-function statsOverlay(t){
+function statsOverlay(t, metric = "visits"){
   const sx = 2, sy = 2;
   return curLayout().bunkers.map(b => {
     const v = t[b.id], picked = b.id === S.statPick; if(!v && !picked) return "";
     const s2 = bunkerSize(b, sx, sy);
     let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
-    if(v){
-      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v.visits;
+    if(v && v[metric]){
+      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v[metric];
       o += `<g class="stat-n${statThin(v) ? " stat-n--thin" : ""}"${statThin(v) ? ` opacity=".5"` : ""}><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
          + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
     }
@@ -10183,16 +10208,19 @@ function statsOverlay(t){
   }).join("");
 }
 function statsPage(){
-  const layoutName = curLayout().name, list = curLayout().bunkers, keep = statKeep(), t = bunkerTraffic(keep), side = S.statSide || "both", team = S.statTeam || "";
   const teams = statTeams();
-  if(team && !teams.some(x => foldName(x) === foldName(team))) S.statTeam = "";
+  if(S.statTeam && !teams.some(x => foldName(x) === foldName(S.statTeam))) S.statTeam = "";
+  const layoutName = curLayout().name, list = curLayout().bunkers, keep = statKeep(), t = bunkerTraffic(keep), side = S.statSide || "both", metric = statMetric();
+  const matches = statMatches(), selected = matches.find(m => m.id === S.statMatch), missing = S.statMatch && !selected;
   const rows = Object.entries(t).map(([id, v]) => ({b: list.find(x => x.id === id), id, ...v}))
-    .filter(r => r.b).sort((a, b) => (b.outs + b.visits) - (a.outs + a.visits) || a.id.localeCompare(b.id));
+    .filter(r => r.b).sort((a, b) => b[metric] - a[metric] || a.id.localeCompare(b.id));
   const whose = side === "us" ? "your men" : side === "them" ? "their men" : "both sides' men";
-  const against = S.statTeam ? ` against ${esc(S.statTeam)}` : "";
+  const against = !S.statMatch && S.statTeam ? ` against ${esc(S.statTeam)}` : "";
+  const matchPick = `<div class="fld"><label for="stat-match">Match</label><select id="stat-match" onchange="pickStatMatch(this.value)">
+    <option value=""${S.statMatch ? "" : " selected"}>All matches on this field</option>${missing ? `<option value="${esc(S.statMatch)}" selected>Match no longer available</option>` : ""}${matches.map(m => `<option value="${esc(m.id)}"${m.id === S.statMatch ? " selected" : ""}>${esc(matchLabel(m))}${m.id === S.matchId ? " · Current match" : ""}</option>`).join("")}</select></div>`;
   const sideSeg = `<div class="seg seg--wrap" role="group" aria-label="Whose men">${STAT_SIDES.map(([k, w]) =>
     `<button class="${side === k ? "on" : ""}" aria-pressed="${side === k}" onclick="set({statSide:'${k}',statPick:null})">${w}</button>`).join("")}</div>`;
-  const teamPick = teams.length ? `<div class="fld" style="margin-top:var(--s2)"><label>Against</label><select onchange="set({statTeam:this.value,statPick:null})">
+  const teamPick = !S.statMatch && teams.length ? `<div class="fld" style="margin-top:var(--s2)"><label for="stat-team">Against</label><select id="stat-team" onchange="set({statTeam:this.value,statPick:null})">
       <option value="" ${S.statTeam ? "" : "selected"}>Every team</option>${teams.map(x => `<option value="${esc(x)}" ${foldName(x) === foldName(S.statTeam) ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div>` : "";
   const word = b => callOf(b), code = b => word(b) === b.id ? "" : b.id;
   const pickedB = S.statPick && list.find(b => b.id === S.statPick);
@@ -10201,25 +10229,29 @@ function statsPage(){
   const pickLine = pickedB
     ? `<div class="note stat-pick"><b>${esc(word(pickedB))}</b>${code(pickedB) ? ` (${esc(pickedB.id)})` : ""}: ${whose}${against} went there <b>${pv.visits}</b> time${pv.visits === 1 ? "" : "s"}, shot there <b>${pv.outs}</b>.${
         pv.w + pv.l ? ` With a man broken here the point was won <b>${pv.w}</b>, lost <b>${pv.l}</b>.` : ""}${
-        statThin(pv) ? " Too few logged to read yet." : ""}${
-        (book => book ? ` ${book.charAt(0).toUpperCase() + book.slice(1)}.` : "")(bunkerBook(pickedB.id, true))}
+        statThin(pv) ? " Too few logged to read yet." : ""}
         <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="set({tab:'sightlines',sightFrom:${jsq(pickedB.id)},sightTo:null,sightAim:null})">Lanes from here</button>
         <button class="btn btn--quiet" onclick="statPick(${jsq(pickedB.id)})">Clear</button></div></div>`
-    : `<p class="note">The number on a bunker is how many times men went there; a red edge means men were shot there too. Tap a bunker, or a row below, to read it.</p>`;
+    : `<p class="note">Tap a bunker, or a row below, for its counts and points won–lost.</p>`;
   const shown = S.statAll ? rows : rows.slice(0, 8);
   const moved = statEndsMoved();
   const lede = `<p class="lede">Where ${whose} went${against} on this field, counted from your own sheets. Watched games are left out.${
     moved ? (S.statAsPlayed ? " Shown where it happened on the field, end by end." : " Every point is turned to the end you break from now, so one job from either end is one bunker.") : ""}</p>`;
   const endSeg = moved ? `<div class="seg seg--wrap" role="group" aria-label="Ends" style="margin-top:var(--s2)">${[[false, "Turned to your end"], [true, "As played"]].map(([k, w]) =>
     `<button class="${!!S.statAsPlayed === k ? "on" : ""}" aria-pressed="${!!S.statAsPlayed === k}" onclick="set({statAsPlayed:${k},statPick:null})">${w}</button>`).join("")}</div>` : "";
-  const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,noPaths:true,names:true,pick:true,overlay:statsOverlay(t)})}</div>`;
-  if(!rows.length) return sec("Bunker stats", `${lede}${sideSeg}${endSeg}${teamPick}${field}${pickLine}
-    <div class="empty">${(side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
+  const metricName = metric === "outs" ? "shot there" : "went there", peak = Math.max(0,...rows.map(r => r[metric]));
+  const heatControls = `<h3 class="panel__title">Match heat map</h3><div class="seg seg--wrap" role="group" aria-label="Heat map shows">${STAT_METRICS.map(([k,w]) => `<button class="${metric === k ? "on" : ""}" aria-pressed="${metric === k}" onclick="set({statMetric:'${k}',statPick:null})">${w}</button>`).join("")}</div>
+    <p class="note" id="heat-sample">${selected ? `${esc(matchLabel(selected))}. ` : ""}Bunker logs on <b>${keep.sample.points.size}</b> point${keep.sample.points.size === 1 ? "" : "s"} across <b>${keep.sample.matches.size}</b> match${keep.sample.matches.size === 1 ? "" : "es"}.${keep.sample.unplaced ? " Some older entries have no recorded match or point." : ""}</p>
+    <p class="note" id="heat-legend">${peak ? `Numbers count how many times men ${metricName}. Brighter, thicker rings mean more: <b>1–${peak}</b> on this map. Dashed rings have fewer than ${STAT_THIN} logged; too few to read yet.` : `No ${metric === "outs" ? "shot locations" : "bunker visits"} recorded for this pick.`} A blank bunker means nothing was logged there.</p>`;
+  const field = `<div class="field-wrap" id="stats-map">${fieldSVG({static:true,heat:keep,heatData:t,heatMetric:metric,noPaths:true,names:true,pick:true,overlay:statsOverlay(t,metric)})}</div>`;
+  const controls = `${lede}${matchPick}${sideSeg}${endSeg}${teamPick}${heatControls}`;
+  if(!rows.length) return sec("Bunker stats", `${controls}${field}${pickLine}
+    <div class="empty">${missing ? "This match is no longer on this field. Choose another match above." : S.statMatch ? "No bunker locations logged for this match and side. Scores alone cannot fill the heat map. Chart a break on Tally or log a rotation." : (side !== "both" || S.statTeam) ? "Nothing logged for this pick yet — try Both or Every team." : "Nothing logged yet. Tap the bunker a man broke to on Tally, or log a rotation in Movement, and it lands here."}
       <div class="btnrow" style="margin-top:var(--s3)">
         <button class="btn btn--quiet grow" onclick="set({tab:'tally',more:null})">Open Tally</button>
         <button class="btn btn--quiet grow" onclick="set({more:'movement'})">Log a rotation</button>
       </div></div>`, layoutName);
-  return sec("Bunker stats", `${lede}${sideSeg}${endSeg}${teamPick}
+  return sec("Bunker stats", `${controls}
     ${field}${pickLine}
     <div class="facts">
       <span class="fact"><b>${rows.reduce((n, r) => n + r.visits, 0)}</b><span>Went there</span></span>
@@ -10814,14 +10846,16 @@ function fieldSVG(opts={}, runnersOnly){
   // Bunker stats tint each footprint by how much traffic the tally recorded.
   let heat = "";
   if(opts.heat){
-    const t = bunkerTraffic(typeof opts.heat === "function" ? opts.heat : null);
-    const peak = Math.max(1, ...Object.values(t).map(v=>v.outs+v.visits));
+    const t = opts.heatData || bunkerTraffic(typeof opts.heat === "function" ? opts.heat : null);
+    const metric = ["visits","outs"].includes(opts.heatMetric) ? opts.heatMetric : "";
+    const count = v => metric ? v[metric] : v.outs+v.visits;
+    const peak = Math.max(1, ...Object.values(t).map(count));
     heat = layout.bunkers.map(b=>{
-      const v = t[b.id]; if(!v) return "";
+      const v = t[b.id]; if(!v || !count(v)) return "";
       const s2 = bunkerSize(b, sx, sy);
-      const k = (v.outs+v.visits)/peak, faint = opts.heat && opts.heat.results && statThin(v);
+      const k = count(v)/peak, faint = opts.heat && opts.heat.results && statThin(v);
       // A ring, not a tint: a red wash would vanish on a red bunker.
-      return `<rect x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="#ffb020" stroke-width="${(1.2+k*3).toFixed(1)}" opacity="${faint ? ".3" : (0.5+k*0.5).toFixed(2)}"${faint ? ` stroke-dasharray="3 2"` : ""}/>`;
+      return `<rect class="stat-heat" data-bunker="${esc(b.id)}" data-count="${count(v)}" x="${(b.x*sx-s2.h-3).toFixed(1)}" y="${(b.y*sy-s2.v-3).toFixed(1)}" width="${(s2.h*2+6).toFixed(1)}" height="${(s2.v*2+6).toFixed(1)}" rx="4" fill="none" stroke="${metric === "outs" ? "#ff5a52" : "#ffb020"}" stroke-width="${(1.2+k*3).toFixed(1)}" opacity="${faint ? ".3" : (0.5+k*0.5).toFixed(2)}"${faint ? ` stroke-dasharray="3 2"` : ""}/>`;
     }).join("");
   }
 
@@ -18431,8 +18465,9 @@ const HELP = {
          "It feeds Bunker stats and the Layers view."]},
   "more/stats": {t:"Bunker stats", w:"Which bunkers the game is decided at.",
     how:["Counted from the breaks you charted, the outs and the rotations you logged on this field, on your own sheets. Watched games are left out.",
-         "Yours, Theirs or Both picks whose men; Against picks one team you played here.",
-         "The number on a bunker is how many times men went there. The gold ring gets heavier the busier it is; a red edge on the number means men were shot there.",
+         "Match picks one match or all matches on this field. Yours, Theirs or Both picks whose men. Against narrows all matches to one opponent.",
+         "The heat map shows Went there or Shot there. Its numbers, rings and legend follow that choice; brighter, thicker rings mean more recorded activity. Blank means nothing logged there. Scores alone do not locate men on the field.",
+         "Reports has an Open match heat map button. It opens your current match when it is on this field, without moving the match you are playing.",
          "Points won–lost: with a man of that side broken to the bunker, who won the point. Each point counts once a bunker.",
          "Once ends have switched on this field, every point is turned to the end you break from now, so one job from either end is one bunker. As played shows where on the field it happened.",
          "A faint row or number has fewer than three logged: too few to read yet.",
@@ -19177,7 +19212,7 @@ function reportsPage(){
       <button class="${S.repAll ? "on" : ""}" aria-pressed="${!!S.repAll}" onclick="set({repAll:true})">Every event</button>
     </div>`;
   const body = tab === "opp" ? repOppPage() : tab === "player" ? repPlayerPage() : tab === "season" ? repSeasonPage(sheets) : repTeamPage(sheets);
-  return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}`,
+  return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="openMatchHeat()">Open match heat map</button>`,
       `${sheets.length} sheet${sheets.length === 1 ? "" : "s"} · ${S.repAll ? "every event" : curLayout().name}`)
     + body;
 }
@@ -19450,7 +19485,7 @@ const TOOL_WORDS={
   format:"rules division game length", schedule:"calendar games fixtures times",
   walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
-  stats:"bunker statistics outs survival", assess:"grades grading players", messages:"team notes",
+  stats:"bunker statistics outs survival heat map match activity", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
   nexus:"league sync backup backups save file restore recovery account sign out logout log out privacy support"
 };
