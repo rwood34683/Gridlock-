@@ -1396,6 +1396,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Voice point recaps (11 Nov 2026): **Talk about point** on Tally opens the
+last scored point, or the current point when no previous result exists. A
+finished match opens its final point. Voice log's **Point to record** never
+moves Tally or changes a score. Its selection is scratch tied to the sheet,
+field, Tally point and result-list identity; reload/restore or changing those
+clears it. Switching the selected point stops speech and rejects late results
+and stale typed drafts. **Share this point's notes** includes every player's
+voice note for that exact team/match/field/point, including review flags, even
+when the screen filters one player. Saved whole-team bunker calls are the
+parser's vocabulary; duplicate/unknown locations stay unresolved. Microphone
+help never starts recording and makes no guarantee about a connected input:
+the device/browser's speech service chooses it. `test/voice-point.cjs` and the
+existing voice/parser/native-speech tests cover this flow.
+
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
 current copy with the coach's account; Gridlock PB LLC's administrators can

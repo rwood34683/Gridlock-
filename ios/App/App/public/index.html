@@ -13784,6 +13784,7 @@ function breakoutSheet(){
 
 function tally(){
   const pt=sheetPoint();
+  const recapPoint=resultFor(pt) ? pt : resultFor(pt-1) ? pt-1 : pt;
   const sc=matchScore(), was=resultFor(pt);
   const bl=curLayout().bunkers;
   const mine=sideMen(pt);
@@ -13974,6 +13975,7 @@ function tally(){
     matchLabel(curMatch()))}
 
   <div id="point-sheet"></div>${sec("Point sheet", `
+    ${!nobodyToPlay() && !sheetField() ? `<div class="btnrow" style="margin-bottom:var(--s3)"><button class="btn btn--quiet" onclick="openPointVoice(${recapPoint})">Talk about point ${recapPoint}</button></div>` : ""}
   ${/* The call, on the sheet.
        *
        * The loop on a sideline is: point ends, who won it, what are we calling,
@@ -17469,8 +17471,10 @@ const HELP = {
          "Record shot logs where he was and where the paint went."],
     watch:"Green markers are sightings you recorded. Dashed lines are the app joining them up, not something you saw."},
   "scout/voice": {t:"Voice log", w:"Call the point out loud instead of tapping.",
-    how:["In Scout, open More, then Voice log. Pick the opponent and player, tap Start listening, then say what happened.",
+    how:["On Tally, Talk about point opens Voice log for the last scored point, or the current one if none just finished. You can also open Scout › More › Voice log. Check the team and Point to record before Start listening.",
+         "Connect your mic to this device and select it in device or browser settings. The voice screen has microphone setup steps and a typed fallback. It uses your whole-team bunker calls from More › Codes for this field.",
          "Completed phrases save automatically. Unclear events say Needs review; use Edit event or Undo event to correct them. Confirmed locations join the player's route. Voice log does not change the score.",
+         "Point to record lets you recap an earlier point without moving Tally's point or changing its score. Share this point's notes includes every player for that team and point, with unclear notes still marked for review.",
          "Type instead if the microphone is refused or it is too loud."]},
   "scout/counter": {t:"Counter", w:"Your answer to each of their calls.",
     how:["The picker ranks the twelve against their tendency and the score; a call you have run against them is ranked by what it won.",
