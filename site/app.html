@@ -1151,6 +1151,8 @@ svg.field [data-pick]{cursor:crosshair}
 .cup p,.cup a,.cup .list__name,.cup .list__desc,.cup h3{overflow-wrap:anywhere}
 .cup summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--ink)}
 /* A fold is a button: the two that were a line of type tall. */
+.who2--off{display:none}
+.depth-note{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin:0 0 var(--s3)}
 .rost__paste>summary,.codes-key>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
 .cup-about{margin-top:var(--s3)}
 .cup-pages{align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:var(--s3)}
@@ -5579,7 +5581,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 function clearScratch(s = S){
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
-  s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
+  s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false; s.tallyMoreOpen = null;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
@@ -14970,6 +14972,13 @@ function breakoutSheet(){
   const rowsPt = edRow ? breakoutsHere().filter(r => r.pt === rowPt && r.layout === S.layoutKey).sort((a, b) => a.at - b.at) : [];
   const nth = rowsPt.findIndex(r => r.id === S.tallyEdit) + 1;
   const more = tellBacklog().some(r => r.id !== S.tallyEdit);
+  // The short sheet: who, and whether he made it. Everything else is one tap
+  // away, and is shown anyway for a man who already has any of it answered,
+  // so nothing he logged is ever hidden from him. Off by default: the owner
+  // asked for every question on every tap, and that is still what it does
+  // until he chooses otherwise.
+  const answered = !!(d.entry || d.dir != null || d.shootAt || d.delayed || d.movedTo || d.routeType);
+  const short = !!S.tallyShort && !answered && S.tallyMoreOpen !== (S.tallyEdit || S.tallySel || "");
   return `<div class="tsheet" id="tally-sheet">
     <div class="btnrow" style="align-items:center">
       <span class="grow" style="min-width:min(100%,11rem)"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
@@ -14997,6 +15006,7 @@ function breakoutSheet(){
         <select style="flex:1 1 auto" onchange="setDraft({shotFrom:this.value})">${opts(far, d.shotFrom)}</select>
         ${d.shotFrom ? `<button class="btn btn--quiet" aria-label="Clear shot from" onclick="setDraft({shotFrom:''})">✕</button>` : ""}
       </div></div>` : ""}
+    ${short ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" data-more-about onclick="set({tallyMoreOpen:${jsq(S.tallyEdit || S.tallySel || "")}})">More about him — lane, timing, where he moved</button>` : `
     ${q("How did he get in?")}
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
@@ -15029,7 +15039,8 @@ function breakoutSheet(){
     ${q("Route")}
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
-    ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
+    ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}`}
+    <div class="btnrow" style="margin-top:var(--s3)"><button class="btn btn--quiet grow" aria-pressed="${!!S.tallyShort}" data-short-toggle onclick="set({tallyShort:${!S.tallyShort},tallyMoreOpen:null})">${S.tallyShort ? "Ask every question each time" : "Ask only who and whether he made it"}</button></div>
     <div class="tsheet__act"><div class="btnrow" style="flex-wrap:nowrap;margin-bottom:var(--s2)">
       <button class="btn btn--quiet grow" onclick="undoDraft()" aria-label="Undo — the last tap on this man">↶ Undo</button>
       <button class="btn btn--quiet grow" onclick="clearDraft()" aria-label="Clear all — this man's answers">Clear all</button></div>
@@ -15037,6 +15048,27 @@ function breakoutSheet(){
   </div>`;
 }
 
+/* How much he records, his choice per phone. A coach alone on the sideline
+ * in a blowout wants the score and nothing else under his thumb; one with an
+ * assistant wants every man charted. Full chart is the app as it always was
+ * and is the default; Outs puts the break chart away; Score only leaves the
+ * call, the read and who won it. It hides controls, never data: what was
+ * logged stays, and Full chart shows it again. */
+const TALLY_DEPTHS = [["full", "Full chart"], ["outs", "Score and outs"], ["score", "Score only"]];
+function tallyDepth(){ return TALLY_DEPTHS.some(d => d[0] === S.tallyDepth) ? S.tallyDepth : "full"; }
+window.setTallyDepth = d => {
+  if(!TALLY_DEPTHS.some(x => x[0] === d)) return;
+  // A sheet half-filled under a chart that is being put away is closed first.
+  set({tallyDepth: d, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null});
+  flash(d === "full" ? "Full chart: the field and every question are back." : d === "outs" ? "Score and outs: the break chart is put away. Nothing logged is removed." : "Score only: the call, the read and who won it. Nothing logged is removed.");
+  toMainTop();
+};
+function tallyDepthSec(){
+  const d = tallyDepth();
+  return sec("How much to record", `<p class="note">Choose what Tally asks for on this phone. It hides controls, never anything you logged.</p>
+    <div class="seg seg--wrap" aria-label="How much to record">${TALLY_DEPTHS.map(([k, label]) =>
+      `<button class="${d === k ? "on" : ""}" aria-pressed="${d === k}" onclick="setTallyDepth('${k}')">${label}</button>`).join("")}</div>`);
+}
 function tally(){
   const pt=sheetPoint();
   const sc=matchScore(), was=resultFor(pt);
@@ -15049,7 +15081,7 @@ function tally(){
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
   // Not five minus outs: a side serving a 2-for-1 started this point with three.
   const alive=side=>Math.max(0, startUp(side, S.matchId, pt) - thisPoint.filter(o=>o.side===side).length);
-  const sel = selBunker();
+  const sel = selBunker(), depth = tallyDepth();
   const chart = breakoutsHere();
   const chartPt = chart.filter(r => r.pt === pt);
   const last = chart.find(r => r.id === S.tallyLast && r.pt === pt);
@@ -15202,7 +15234,9 @@ function tally(){
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
   ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
-  ${sec("Break chart", `${/* One line over the field, not three boxes: the score is
+  ${depth !== "full" ? `<div class="depth-note" data-depth-note><p class="note" style="margin:0">Recording <b>${depth === "score" ? "the score only" : "the score and outs"}</b> on this phone. The break chart is put away; nothing logged is removed.</p>
+      <button class="btn btn--quiet" onclick="setTallyDepth('full')">Show the full chart</button></div>` : ""}
+  ${depth !== "full" ? "" : sec("Break chart", `${/* One line over the field, not three boxes: the score is
         in the header too, and the field started 410 px down a phone under a
         hero score and three tiles. A watched game has no "you": the two sides
         are the two teams on it. */""}<div class="tally-head">
@@ -15227,7 +15261,7 @@ function tally(){
         <button class="btn btn--quiet" onclick="editBreakout(${jsq(last.id)})">Fix it</button>
         <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
-  ${pointPercentages("us",placeSideWord("us"))}${pointPercentages("them",placeSideWord("them"))}
+  ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   <div id="point-sheet"></div>${sec("Point sheet", `
   ${/* The call, on the sheet.
@@ -15296,7 +15330,7 @@ function tally(){
              </div>`
           : `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">Time's up — match ends at this score</button>`)
         : ""}
-    <p class="note" style="margin-top:var(--s4)">Tap a player to record Alive, Dead, Shooting or Diving. Each tap saves.</p>
+    ${depth === "score" ? "" : `<p class="note" style="margin-top:var(--s4)">Tap a player to record Alive, Dead, Shooting or Diving. Each tap saves.</p>`}
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
@@ -15314,7 +15348,7 @@ function tally(){
            two teams by number, and none of your players is on this sheet. Chart their fives on Scout.</p>
          <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'breakouts'})">Open Scout</button>
        </div>` : ""}
-    <div class="who2">
+    <div class="who2${depth === "score" ? " who2--off" : ""}">
       ${/* On a watched game the left column is the home side by number, never
             his roster: a man of his tapped out there was filed under the home
             team in that sheet's review. */""}
@@ -15400,13 +15434,13 @@ function tally(){
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="freshMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
-  ${sec("Where the points come from", value.length && !S.tallyValueOpen
+  ${depth !== "full" ? "" : sec("Where the points come from", value.length && !S.tallyValueOpen
       ? `${valueSeg}${unevenBlock}${best && best.net > 0 ? `<p class="note" style="color:${bestColour}">${bestWord}: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
          ${worst && worst.net < 0 ? `<p class="note" style="color:${worstColour}">${worstWord}: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.</p>` : ""}
          <button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:true})">Every bunker · ${value.length} ${value.length === 1 ? "row" : "rows"}</button>`
       : valueSeg + unevenBlock + (value.length ? valueTable + `<button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:false})">Fold the table</button>` : valueEmpty), curLayout().name)}
 
-  ${chart.length ? sec("Breakouts", `<div class="assigns">
+  ${depth === "full" && chart.length ? sec("Breakouts", `<div class="assigns">
       ${(S.tallyAllBreaks ? chart.slice(0,40) : chartHere).map(r=>`<div class="assign">
         <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${r.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(describeBreakout(r))}</span>
@@ -15419,7 +15453,7 @@ function tally(){
       : `${chart.length>40?`<p class="note">Showing the last 40 of ${chart.length}.</p>`:""}<button class="btn btn--quiet btn--block" onclick="set({tallyAllBreaks:false})">Only point ${pt}</button>`}`,
     chart.length+" on this sheet") : ""}
 
-  ${sec("Log", outs.length?`<div class="assigns">
+  ${depth === "score" ? "" : sec("Log", outs.length?`<div class="assigns">
       ${(S.tallyAllOuts ? outs.slice(0,40) : outsHere).map(o=>{
         // The log shows this match; Undo and the pickers write to the season.
         // So the index handed to them is the row's real place in S.tally, not
@@ -15451,7 +15485,7 @@ function tally(){
       ? `${outsHere.length ? `<p class="note">Bunkers can be set on the point you are on.</p>` : `<p class="note">No outs on point ${pt} yet.</p>`}${outs.length > outsHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:true})">Show all ${outs.length} on this sheet</button>` : ""}`
       : `<p class="note">${outs.length>40?`Showing the last 40 of ${outs.length}. `:""}Bunkers can be set on the point you are on.</p><button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:false})">Only point ${pt}</button>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
-    outs.length?outs.length+" on this sheet":"")}${resultBar()}`;
+    outs.length?outs.length+" on this sheet":"")}${tallyDepthSec()}${resultBar()}`;
 }
 /* We won it / They won it, fixed to the foot of Tally whenever a point can
  * be scored. Not while a man's breakout sheet is open — that sheet has its own
@@ -18967,6 +19001,7 @@ const HELP_Q = [
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
+  ["Tally asks for too much. Can I record less?", "Yes. At the foot of Tally, How much to record: Full chart is everything, Score and outs puts the break chart away, Score only leaves the call, the read and who won it. It is your choice on this phone and it hides controls, never anything you logged; Show the full chart brings it all back. On the breakout sheet, Ask only who and whether he made it shortens the questions for each man, with More about him one tap away."],
   ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. Tally and Scout start blank and ask who you are playing, unless the next team is already in the right pit. The point goes back to one and the old sheet is kept whole in Matches. A match you have not finished is never closed for you: it comes back as you left it, however long you were away."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
