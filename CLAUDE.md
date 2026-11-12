@@ -110,7 +110,8 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   Browsing a selection does not change the field until Use layout. Played
   sheets keep their field. Custom fields with no season say Your fields.
 - After a coach signs in, the backup and format questions still come first,
-  then Schedule opens on Your team's day. The team choice stays on the device;
+  then Home opens when the current sheet is empty; an active match resumes.
+  Home explains each tool and links to Your team's day on Schedule. The team choice stays on the device;
   it does not grant account or team permissions. A team without loaded games
   stays selected and asks for a schedule; never invent opponents or times.
 - A point scored in Whiteboard's Quick log closes the layer back to the board,
@@ -1395,6 +1396,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     `test/install-button.cjs`.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
+not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
+in one short line each. Keep the five direct tabs and a 44 px Home control
+beside the event name. Home reads the current sheet and loaded schedule;
+never invent a game, score, lineup, performance number or sync state. Reading
+it changes no match data. Backup/format questions still lead on first sign-in,
+and signing in mid-match stays where the coach was. `test/coach-home.cjs`.
 
 Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player
 or placed row and Scout's Players this point / Where they plant. Reading and

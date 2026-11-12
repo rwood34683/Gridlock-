@@ -40,6 +40,8 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.
+
 - **Player status at a glance**: Tally and Scout show the current point's recorded Alive/Dead, Shooting and Diving beside each player; missing status stays unknown. The popup reads the newest matching check, as percentages do.
 - **Team and Player previews** stay separate in `teasers/`; never load them from coach builds or use `gridlock.coach.*` keys.
   After changing measured fields, `BREAK_PLANTS` or the team board, run `node tools/teaser_fields.js` and `node tools/teaser_rules.js`; commit regenerated previews and never hand-edit the coachfields/coachwalk blocks.
