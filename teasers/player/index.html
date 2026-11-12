@@ -4590,13 +4590,24 @@ function prGet(){let o=null;try{o=JSON.parse(localStorage.getItem('gridlock_prac
     else{const have=new Set(o.d.map(d=>String(d.name).toLowerCase()));PR_PRESETS.forEach(p=>{if(!have.has(p.name.toLowerCase()))o.d.push(mk(p));});}
     o.seeded=PR_SEED_VER;prSave(o);}
   return o;}
-function prSave(o){try{o.v=1;if(o.seeded===undefined||o.seeded===true)o.seeded=PR_SEED_VER;localStorage.setItem('gridlock_practice',JSON.stringify(o));}catch(e){}}
+function prSave(o){try{o.v=1;if(o.seeded===undefined||o.seeded===true)o.seeded=PR_SEED_VER;const text=JSON.stringify(o);localStorage.setItem('gridlock_practice',text);return localStorage.getItem('gridlock_practice')===text;}catch(e){return false;}}
 function prId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function prEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function prToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function prFmt(v){return (Math.round(v*100)/100).toString();}
 function prDate(s){const p=(s||'').split('-');return p.length===3?(+p[1])+'/'+(+p[2]):s;}
-function prEntries(o,id){return o.e.filter(x=>x.d===id).sort((a,b)=>(a.date<b.date?-1:a.date>b.date?1:(a.ts||0)-(b.ts||0)));}
+function prEntries(o,id,all){return o.e.filter(x=>x.d===id&&(all||!x.archived)).sort((a,b)=>(a.date<b.date?-1:a.date>b.date?1:(a.ts||0)-(b.ts||0)));}
+function prScale(d){const unit=String(d.unit||'score'),ratio=/^hits\s*\/\s*([1-9]\d*)$/i.exec(unit);
+  if(ratio)return{label:'Hits',outOf:+ratio[1],min:0,max:+ratio[1],step:'1'};
+  if(d.kind==='skill')return{label:'Rating (1 to 10)',min:1,max:10,step:'1'};
+  return{label:'Result ('+unit+')',min:0,step:unit==='reps'?'1':'any',positive:/^sec\b/i.test(unit)};}
+function prResult(d,val){const s=prScale(d);return s.outOf?prFmt(val)+' of '+s.outOf+' · '+prFmt(val/s.outOf*100)+'%':prFmt(val)+' '+d.unit;}
+function prValidDate(value){if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const dt=new Date(value+'T12:00:00Z');return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===value&&value<=prToday();}
+function prResultError(d,raw){const s=prScale(d),v=Number(raw);if(!String(raw).trim()||!Number.isFinite(v))return 'Enter the result, not the session number.';
+  if(v<s.min||(s.positive&&v<=0)||(s.max!=null&&v>s.max)||(s.step==='1'&&!Number.isInteger(v)))return s.outOf?'Enter whole hits from 0 to '+s.outOf+'.':d.kind==='skill'?'Choose a whole rating from 1 to 10.':s.positive?'Enter a time greater than zero.':s.step==='1'?'Enter a whole count of zero or more.':'Enter a result of zero or more.';
+  return '';}
+function prMessage(text,bad){const m=document.getElementById('prMsg');if(m){m.style.color=bad?'#ff6b6b':'#ff5a52';m.textContent=text;}}
+function prSessionRows(d,entries){return entries.slice().reverse().map(x=>`<div class="row" style="justify-content:space-between;gap:8px;border-top:1px solid #26292a;padding:6px 0;font-size:12px"><span style="min-width:0;overflow-wrap:anywhere">${prEsc(prDate(x.date))} · <b>${prEsc(prResult(d,+x.val))}</b>${x.archived?' · Earlier chart':''}${x.note?` <span style="color:#ff5a52">— ${prEsc(x.note)}</span>`:''}</span><button class="ld" data-prdel="${prEsc(x.id)}" aria-label="Remove session from ${prEsc(x.date)}">Remove</button></div>`).join('');}
 function prStats(dr,es){if(!es.length)return null;const v=es.map(x=>+x.val),up=dr.dir!=='down';
   const first=v[0],last=v[v.length-1],best=up?Math.max(...v):Math.min(...v);
   const gain=up?last-first:first-last;const pct=first?Math.round(gain/Math.abs(first)*100):null;
@@ -4607,11 +4618,11 @@ function prChart(dr,es,W,H,full){if(es.length<1)return '';const v=es.map(x=>+x.v
   const Y=val=>{const t=(val-lo)/(hi-lo);return pt+(up?(1-t):t)*(H-pt-pb);};
   const pts=v.map((val,i)=>X(i).toFixed(1)+','+Y(val).toFixed(1)).join(' ');
   const s=prStats(dr,es),col=s&&s.gain>0?'#3ddc84':s&&s.gain<0?'#ff6b6b':'#ff5a52';
-  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block">`;
+  let g=`<svg role="img" aria-label="${prEsc(dr.name)}: ${es.length} logged sessions. Latest ${prEsc(prResult(dr,s.last))}. ${up?'Higher':'Lower'} is better." viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block">`;
   if(full){const best=s.best;g+=`<line x1="${pad}" x2="${W-pad}" y1="${Y(best)}" y2="${Y(best)}" stroke="#f5c542" stroke-dasharray="3 3" stroke-width="1"/><text x="${W-pad}" y="${Y(best)-3}" fill="#f5c542" font-size="9" text-anchor="end">best ${prFmt(best)}</text>`;
     if(G!=null)g+=`<line x1="${pad}" x2="${W-pad}" y1="${Y(G)}" y2="${Y(G)}" stroke="#c38bff" stroke-dasharray="6 3" stroke-width="1"/><text x="${pad+2}" y="${Y(G)-3}" fill="#c38bff" font-size="9">coach target ${prFmt(G)}</text>`;
-    g+=`<text x="2" y="${pt+4}" fill="#3a3f40" font-size="8">${prFmt(up?hi:lo)}</text><text x="2" y="${H-pb}" fill="#3a3f40" font-size="8">${prFmt(up?lo:hi)}</text>`;
-    es.forEach((x,i)=>{if(es.length<=8||i===0||i===es.length-1||i%Math.ceil(es.length/6)===0)g+=`<text x="${X(i)}" y="${H-4}" fill="#3a3f40" font-size="8" text-anchor="middle">${prDate(x.date)}</text>`;});}
+    g+=`<text x="2" y="${pt+4}" fill="#ff5a52" font-size="8">${prFmt(up?hi:lo)}</text><text x="2" y="${H-pb}" fill="#ff5a52" font-size="8">${prFmt(up?lo:hi)}</text>`;
+    es.forEach((x,i)=>{if(es.length<=8||i===0||i===es.length-1||i%Math.ceil(es.length/6)===0)g+=`<text x="${X(i)}" y="${H-4}" fill="#ff5a52" font-size="8" text-anchor="middle">${prEsc(prDate(x.date))}</text>`;});}
   g+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${full?2:1.6}" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
   if(full)v.forEach((val,i)=>{g+=`<circle cx="${X(i)}" cy="${Y(val)}" r="3" fill="${col}"/>`;});
   return g+'</svg>';}
@@ -4664,7 +4675,7 @@ function pgAgo(ts){const m=Math.round((Date.now()-ts)/60000);return m<60?(m<1?'j
 /* player: share view */
 function pgShareHTML(){const t=teamGet()||{},C=ccGet();let ros=(C.roster||[]);
   let h=`<div class="iqrow" style="border-color:#2a7a4f"><div class="iqcat" style="color:#3ddc84">SHARE WITH YOUR COACH</div>
-    <div style="font-size:12px;color:#efedeb;margin:3px 0 6px">Nothing leaves this phone in this preview, so your coach sees your Practice tab only if you send it \u2014 every drill you\u2019ve logged, your growth, and where you\u2019re at on Coach\u2019s Corner. Make a code and send it to your coach.</div>
+    <div style="font-size:12px;color:#efedeb;margin:3px 0 6px">Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified.</div>
     <div class="row" style="gap:5px;flex-wrap:wrap"><span style="font-size:11px;color:#ff5a52">I\u2019m</span>${ros.length?`<select id="pgMe" style="flex:1 1 130px"><option value="">pick your name</option>${ros.map(p=>`<option ${t.me===p?'selected':''}>${prEsc(p)}</option>`).join('')}</select>`:`<input id="pgMeIn" placeholder="your name" value="${prEsc(t.me||'')}" style="flex:1 1 130px">`}</div>
     <div class="row" style="gap:5px;margin-top:6px"><button class="ld on" id="pgMake">Make code</button></div><div id="pgOutWrap"></div><div id="pgMsg" style="font-size:11px;color:#ff9a8a;margin-top:3px"></div></div>`;
   return h;}
@@ -4690,7 +4701,7 @@ function pgPlayersHTML(){const o=pgGet(),list=Object.values(o.p).sort((a,b)=>a.n
   return h;}
 function pgPlayerHTML(key){const p=pgGet().p[key];if(!p)return '<div style="font-size:12px;color:#f04a44">That player\u2019s progress was removed.</div>';
   const CI=ccCoachGet().items.filter(x=>x.to==='team'||x.to==='role:'+p.r||x.to==='p:'+p.n);
-  let h=`<div class="iqrow" style="border-color:#3a3f40"><b style="font-size:15px">${prEsc(p.n)}</b>${p.r?` <span style="font-size:11.5px;color:#ff5a52">\u00b7 ${prEsc(p.r)}</span>`:''}<div style="font-size:10.5px;color:#f04a44">Their Practice tab as of ${pgAgo(p.ts)} \u00b7 read-only</div></div>`;
+  let h=`<div class="iqrow" style="border-color:#3a3f40"><b style="font-size:15px">${prEsc(p.n)}</b>${p.r?` <span style="font-size:11.5px;color:#ff5a52">\u00b7 ${prEsc(p.r)}</span>`:''}<div style="font-size:10.5px;color:#f04a44">Self-reported snapshot from ${pgAgo(p.ts)} \u00b7 all shared sessions \u00b7 not coach-verified</div></div>`;
   if(CI.length){h+='<div class="lbl" style="margin-top:10px">Coach\u2019s Corner</div>'+CI.map(x=>{const st=(p.c||{})[x.id]||0;return `<div class="row" style="justify-content:space-between;border-top:1px solid #26292a;padding:5px 0;font-size:12px;gap:8px"><span>${prEsc(x.ti)} <span style="color:#f04a44;font-size:10.5px">\u00b7 ${prEsc(ccToName(x.to))}</span></span><b style="flex:none;color:${st===2?'#3ddc84':st===1?'#c38bff':'#f04a44'}">${st===2?'\u2713 Got it':st===1?'Working on it':'Not started'}</b></div>`;}).join('');}
   const ds=(p.d||[]).map((r,i)=>({d:{id:'x'+i,name:r[0],unit:r[1],dir:r[2],cat:r[3],goal:r[4]},es:(p.e||[]).filter(x=>x[0]===i).map(x=>({date:x[1],val:x[2],note:x[3]})).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0)}));
   if(!ds.length)return h+'<div style="font-size:11px;color:#f04a44;margin-top:8px">No drills logged yet.</div>';
@@ -4792,10 +4803,17 @@ function prBack(){prNav.pop();renderPractice();prTop();}
 function prHome(){prNav=[];renderPractice();prTop();}
 function prTop(){const b=document.getElementById('practicebox');if(b&&b.scrollIntoView)try{const hb=document.querySelector('.tabs').getBoundingClientRect().bottom;window.scrollTo(0,Math.max(0,b.getBoundingClientRect().top+window.scrollY-hb-8));}catch(e){}}
 function prLogForm(o,lockId){return `<div class="iqrow" style="border-color:#3a3f40"><div class="iqcat" style="color:#ff5a52">LOG A SESSION</div>
-  <div class="row" style="gap:5px;flex-wrap:wrap;margin-top:4px">${lockId?'':`<select id="prSel" style="flex:1 1 170px">${PR_CATS.filter(c=>c[0]!=='combine').map(([c,cn])=>{const L=o.d.filter(d=>prCatOf(d)===c);return L.length?`<optgroup label="${cn}">${L.map(d=>`<option value="${d.id}">${prEsc(d.name)} (${prEsc(d.unit)})</option>`).join('')}</optgroup>`:'';}).join('')}</select>`}
-  <input id="prVal" type="number" inputmode="decimal" step="any" placeholder="result" style="flex:${lockId?'1 1 100px':'0 1 90px'};width:90px"><input id="prDt" type="date" value="${prToday()}" style="flex:0 1 140px"></div>
-  <div class="row" style="gap:5px;margin-top:5px"><input id="prNote" placeholder="note (optional)" style="flex:1 1 150px"><button class="ld on" id="prLog">Save</button></div>
-  <div id="prMsg" style="font-size:11px;margin-top:3px;color:#3ddc84"></div></div>`;}
+  ${lockId?'':`<label for="prSel">Drill or skill</label><select id="prSel" style="width:100%;margin-top:4px">${PR_CATS.filter(c=>c[0]!=='combine').map(([c,cn])=>{const L=o.d.filter(d=>prCatOf(d)===c);return L.length?`<optgroup label="${cn}">${L.map(d=>`<option value="${prEsc(d.id)}">${prEsc(d.name)} (${prEsc(d.unit)})</option>`).join('')}</optgroup>`:'';}).join('')}</select>`}
+  <p id="prSessionNumber" style="color:#ff5a52;margin:8px 0"></p>
+  <div class="row" style="gap:8px;flex-wrap:wrap"><label style="flex:1 1 130px;min-width:0"><span id="prResultLabel">Result</span><input id="prVal" aria-describedby="prResultHint" type="number" inputmode="decimal" step="any" style="width:100%"></label><label style="flex:1 1 140px;min-width:0">Date<input id="prDt" type="date" value="${prToday()}" max="${prToday()}" style="width:100%"></label></div>
+  <p id="prResultHint" style="color:#ff5a52;margin:8px 0"></p>
+  <label for="prNote">Note (optional)</label><input id="prNote" maxlength="140" style="width:100%">
+  <button class="ld on" id="prLog" style="margin-top:8px">Save session</button>
+  <div id="prMsg" role="status" aria-live="polite" style="margin-top:6px;color:#ff5a52"></div></div>`;}
+function prFormUnits(o,id){const d=o.d.find(x=>x.id===id);if(!d)return;const s=prScale(d),v=document.getElementById('prVal');
+  document.getElementById('prResultLabel').textContent=s.label;v.min=s.min;v.step=s.step;v.inputMode=s.step==='1'?'numeric':'decimal';if(s.max!=null)v.max=s.max;else v.removeAttribute('max');
+  document.getElementById('prSessionNumber').textContent='Session '+(prEntries(o,id,true).length+1)+' · numbered for you';
+  document.getElementById('prResultHint').textContent=s.outOf?'Out of '+s.outOf+' attempts. Example: enter 1 for 1 of '+s.outOf+' ('+prFmt(100/s.outOf)+'%).':'Enter what you measured. '+(d.dir==='down'?'Lower':'Higher')+' is better.';}
 function prTrend(st){return !st||st.n<2?`<span style="color:#f04a44">${st?'1 session':'no sessions yet'}</span>`
   :st.gain>0?`<span style="color:#3ddc84;font-weight:700">\u25b2 ${st.pct!=null?st.pct+'%':prFmt(st.gain)} better</span>`
   :st.gain<0?`<span style="color:#ff6b6b;font-weight:700">\u25bc ${st.pct!=null?Math.abs(st.pct)+'%':prFmt(-st.gain)} off</span>`:`<span style="color:#ff5a52">even</span>`;}
@@ -4808,12 +4826,13 @@ function renderPractice(){
   let V=prView();
   const nameOf=x=>x.v==='sec'?((PR_CATS.find(c=>c[0]===x.id)||[0,''])[1]):x.v==='vlib'?(String(vlibTag).indexOf('sec:')===0?(PR_CATS.find(c=>c[0]===vlibTag.slice(4))||[0,''])[1]+' videos':'Video library'):x.v==='combine'?'Paintball Combine':x.v==='cbev'?((cbDef(x.id)||{}).name||'').replace(/^(Combine|Prep): /,''):x.v==='share'?'Share with coach':x.v==='corner'?'Coach\u2019s Corner':x.v==='add'?'Add drill or skill':x.v==='drill'?((o.d.find(d=>d.id===x.id)||{}).name||''):'';
   let h='';
-  if(V.v==='home'){h+='<div class="lbl">Practice</div><div style="font-size:12px;color:#ff5a52;margin-bottom:8px">Log your drills and skills after each session. The line climbing = you getting better.</div>';}
+  if(V.v==='home'){h+='<div class="lbl">Practice</div><div style="color:#ff5a52;margin-bottom:8px">Choose a drill. Enter your result. See your progress.</div>';}
   else{const crumbs=['Practice'].concat(prNav.map(nameOf));
     h+=`<div class="row" style="gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
       <button class="ld" id="prBackBtn" style="font-weight:700">\u2039 Back</button>
       ${prNav.length>1?'<button class="ld" id="prHomeBtn">\u2302 Practice home</button>':''}
       <span style="font-size:11px;color:#ff5a52;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${crumbs.map(prEsc).join(' \u203a ')}</span></div>`;}
+  h+='<p style="color:#ff5a52">Self-reported practice · kept on this phone. Joining a team does not verify these results.</p>';
   if(V.v==='home'){
     {const C=ccGet(),mine=ccMine(C),left=mine.filter(x=>C.done[x.id]!==2).length;
      h+=`<div class="iqrow" id="ccEntry" style="cursor:pointer;border-color:#c38bff;margin-bottom:8px"><div class="row" style="justify-content:space-between;align-items:center;gap:8px"><div><div class="iqcat" style="color:#c38bff">COACH’S CORNER</div>
@@ -4833,16 +4852,18 @@ function renderPractice(){
   else if(V.v==='cbev'){h+=cbEventHTML(o,V.id);}
   else if(V.v==='vlib'){h+=vLibHTML(o);}
   else if(V.v==='sec'){h+=prSecHTML(o,V.id);}
-  else if(V.v==='drill'){const d=o.d.find(x=>x.id===V.id),es=prEntries(o,d.id),st=prStats(d,es);
+  else if(V.v==='drill'){const d=o.d.find(x=>x.id===V.id),es=prEntries(o,d.id),st=prStats(d,es),past=prEntries(o,d.id,true).filter(x=>x.archived);
     h+=`<div class="iqrow" style="border-color:#3a3f40"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px"><div style="min-width:0"><b style="font-size:15px">${prEsc(d.name)}</b>
       <div style="font-size:10.5px;color:#ff5a52">${d.kind==='skill'?'Skill':'Drill'} \u00b7 ${prEsc(d.unit)} \u00b7 ${d.dir==='down'?'lower is better':'higher is better'}</div></div>
       <div style="text-align:right;flex:none"><div style="font-size:19px;font-weight:800">${st?prFmt(st.last):'\u2014'}</div><div style="font-size:10.5px">${prTrend(st)}</div></div></div>`;
     h+=st?`<div style="margin-top:8px">${prChart(d,es,320,130,true)}</div>
       <div class="row" style="gap:12px;font-size:11px;color:#efedeb;margin-top:4px;flex-wrap:wrap">${d.goal!=null?`<span style="color:#c38bff">Target <b>${prFmt(+d.goal)}</b></span>`:''}<span>First <b>${prFmt(st.first)}</b></span><span>Latest <b>${prFmt(st.last)}</b></span><span>Best <b style="color:#f5c542">${prFmt(st.best)}</b></span><span>${st.n} session${st.n===1?'':'s'}</span></div>`
       :`<div style="font-size:11px;color:#f04a44;margin-top:6px">${d.goal!=null?`<span style="color:#c38bff">Coach target: <b>${prFmt(+d.goal)} ${prEsc(d.unit)}</b></span> \u00b7 `:''}Log your first session below to start the chart.</div>`;
+    if(st)h+=`<p id="prCountedResult">Latest: <b>${prEsc(prResult(d,st.last))}</b> · ${st.n} session${st.n===1?'':'s'} in this chart.</p>`;
     h+='</div>'+prLogForm(o,d.id)+prHowHTML(d);
     {const tg=vTagForDrill(d.name);if(tg)h+=vSection(o,tg,null,3);}
-    if(es.length)h+='<div class="lbl" style="margin-top:10px">Sessions</div><div>'+es.slice().reverse().map(x=>`<div class="row" style="justify-content:space-between;border-top:1px solid #26292a;padding:4px 0;font-size:12px"><span>${prDate(x.date)} \u00b7 <b>${prFmt(+x.val)}</b>${x.note?` <span style="color:#ff5a52">\u2014 ${prEsc(x.note)}</span>`:''}</span><button class="ld" data-prdel="${x.id}" style="font-size:10px;padding:2px 7px">remove</button></div>`).join('')+'</div>';
+    if(es.length)h+='<div class="lbl" style="margin-top:10px">Sessions</div><div>'+prSessionRows(d,es)+'</div><button class="ld" id="prFresh" style="margin-top:8px">Start a fresh chart</button><p style="color:#ff5a52">Earlier sessions stay in history, backups and your practice share.</p>';
+    if(past.length)h+='<details style="margin-top:10px"><summary style="min-height:44px;display:flex;align-items:center;cursor:pointer">Earlier sessions ('+past.length+')</summary>'+prSessionRows(d,past)+'<button class="ld" id="prAll">Put all sessions back in the chart</button></details>';
     h+=`<div class="row" style="gap:5px;margin-top:10px"><button class="ld" data-prrm="${d.id}" style="font-size:10.5px">Delete ${d.kind}</button></div>`;
   }
   else if(V.v==='add'){
@@ -4868,15 +4889,26 @@ function renderPractice(){
   if(V.v==='share')pgShareWire(box);
   if(V.v==='corner')ccPlayerWire(box);
   if(q('#prHomeBtn'))q('#prHomeBtn').onclick=prHome;
-  if(q('#prLog'))q('#prLog').onclick=()=>{const v=parseFloat(q('#prVal').value);if(!isFinite(v)){q('#prMsg').style.color='#ff6b6b';q('#prMsg').textContent='Enter a number.';return;}
-    const O=prGet();const id=V.v==='drill'?V.id:q('#prSel').value;O.e.push({id:prId(),d:id,date:q('#prDt').value||prToday(),val:v,note:q('#prNote').value.trim().slice(0,140),ts:Date.now()});prSave(O);
-    renderPractice();const m=box.querySelector('#prMsg');if(m){m.style.color='#3ddc84';m.textContent='Saved \u2014 '+prEsc((O.d.find(x=>x.id===id)||{}).name||'')+': '+prFmt(v);}};
+  if(q('#prLog')){const selected=()=>V.v==='drill'?V.id:q('#prSel').value;prFormUnits(o,selected());
+    if(q('#prSel'))q('#prSel').onchange=()=>{q('#prVal').value='';prFormUnits(prGet(),selected());prMessage('');};
+    const saveSession=()=>{const O=prGet(),id=selected(),d=O.d.find(x=>x.id===id);if(!d){prMessage('Choose a drill first.',true);return;}
+      const raw=q('#prVal').value,err=prResultError(d,raw);if(err){prMessage(err,true);return;}const date=q('#prDt').value;
+      if(!prValidDate(date)){prMessage('Choose a valid date, today or earlier.',true);return;}
+      const v=Number(raw);O.e.push({id:prId(),d:id,date,val:v,note:q('#prNote').value.trim().slice(0,140),ts:Date.now(),source:'self-reported'});
+      if(!prSave(O)){prMessage('Not saved. Keep this screen open and try again, or back up your practice in Nexus.',true);return;}
+      if(V.v==='drill'){renderPractice();prTop();}else prGo({v:'drill',id});
+      prMessage('Saved: '+prResult(d,v)+'. Your chart is above.');
+    };
+    q('#prLog').onclick=saveSession;q('#prVal').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();saveSession();}};
+  }
   box.querySelectorAll('[data-prcard]').forEach(c=>c.onclick=()=>prGo({v:'drill',id:c.dataset.prcard}));
   if(q('#prNew'))q('#prNew').onclick=()=>{prAddCat='other';prGo({v:'add'});};
-  box.querySelectorAll('[data-prdel]').forEach(b=>b.onclick=()=>{const O=prGet();O.e=O.e.filter(x=>x.id!==b.dataset.prdel);prSave(O);renderPractice();});
+  box.querySelectorAll('[data-prdel]').forEach(b=>armConfirm(b,'Tap again to remove session',()=>{const O=prGet();O.e=O.e.filter(x=>x.id!==b.dataset.prdel);if(!prSave(O)){prMessage('Session was not removed. Try again.',true);return;}renderPractice();}));
+  if(q('#prFresh'))armConfirm(q('#prFresh'),'Tap again · keep history, clear chart',()=>{const O=prGet();O.e.forEach(x=>{if(x.d===V.id)x.archived=true;});if(!prSave(O)){prMessage('Chart was not reset. Try again.',true);return;}renderPractice();prTop();prMessage('Fresh chart ready. Earlier sessions are still below.');});
+  if(q('#prAll'))q('#prAll').onclick=()=>{const O=prGet();O.e.forEach(x=>{if(x.d===V.id)delete x.archived;});if(!prSave(O)){prMessage('Chart was not changed. Try again.',true);return;}renderPractice();prTop();};
   box.querySelectorAll('[data-prrm]').forEach(b=>b.onclick=()=>{const O=prGet(),d=O.d.find(x=>x.id===b.dataset.prrm);if(!d)return;
     const n=O.e.filter(x=>x.d===d.id).length;if(b.dataset.sure!=='1'){b.dataset.sure='1';b.textContent=n?'Tap again \u2014 deletes '+n+(n===1?' session':' sessions'):'Tap again to delete';b.style.borderColor='#ff6b6b';return;}
-    O.d=O.d.filter(x=>x.id!==d.id);O.e=O.e.filter(x=>x.d!==d.id);prSave(O);prBack();});
+    O.d=O.d.filter(x=>x.id!==d.id);O.e=O.e.filter(x=>x.d!==d.id);if(!prSave(O)){prMessage('Drill was not deleted. Try again.',true);return;}prBack();});
   let cat=prAddCat||'other',kind=cat==='skill'?'skill':'drill',dir='up';
   box.querySelectorAll('[data-prcat]').forEach(x=>x.classList.toggle('on',x.dataset.prcat===cat));
   if(cat==='skill'&&q('#prUnit')&&!q('#prUnit').value)q('#prUnit').value='rating 1\u201310';
