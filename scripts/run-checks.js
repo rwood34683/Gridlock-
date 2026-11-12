@@ -15,6 +15,7 @@ const SUITES = {
   "split-deck": "test/split-deck.cjs",
   "rulebooks": "test/rulebooks.cjs",
   "coach-home": "test/coach-home.cjs",
+  "field-visible": "test/field-visible.cjs",
   "device-season": "test/device-season.cjs",
   "teaser-browser": "test/teaser-browser.cjs",
   "player-overview": "test/player-overview.cjs",

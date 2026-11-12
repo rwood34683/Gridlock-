@@ -63,6 +63,16 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Keep the field visible when Tally or Scout opens, including an empty sheet.
+  Coach still requires an opponent before recording. Put Scout's long team
+  cards below the field; Score only and Score and outs keep a reference field
+  without reopening detailed recording controls. Player fits the measured
+  field on phone/tablet screens and returns to the top on Tally/Scout tab
+  changes without clearing selections or records. Its generated wrapper lives
+  in `tools/teaser_field_view.js`, applied by `tools/teaser_rules.js`.
+  `test/field-visible.cjs` checks blank/active views, retained teams and records,
+  field taps, compact modes and the typed-opponent path at phone/tablet sizes.
+
 - A preview's second-tap confirmation belongs to the selected item and its
   contents, not just the question's words. Pass an item identity to `askFirst`
   when two controls can ask the same question; changed copies, notes, accounts,
