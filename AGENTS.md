@@ -48,6 +48,9 @@ the same page:
 - **Saved codes on the sideline**: Tally and every Scout view read the saved
   code-word list. Their fields show saved team bunker names even with Names
   off; names remain scoped to the layout and personal words stay on cards.
+- **Tally point controls**: Clear point removes only the selected point, with
+  a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
+  points closes earlier-point list views; recorded history is never a filter.
 
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.

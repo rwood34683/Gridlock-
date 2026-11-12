@@ -4731,6 +4731,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  _pointClearUndo = null;
   s.statMatch = ""; s.statDay = ""; s.statView = "map"; s.statFilters = false;
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
@@ -14856,6 +14857,7 @@ function tally(){
         third smaller until the hint was dismissed. */""}
   ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
   ${teamCodeReference()}
+  ${tallyPointControls()}
   ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   ${deckPanel()}
@@ -15365,6 +15367,8 @@ window.nextPoint = () => {
   save(S); render(); if(deckActive()) showDeck();
 };
 function clearPointScratch(){
+  _pointClearUndo = null;
+  S.tallyAllBreaks = false; S.tallyAllOuts = false;
   S.tallyMoreOpen = null;
   S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
@@ -15372,6 +15376,99 @@ function clearPointScratch(){
   // broke deep is not the next point's whole break.
   S.tallyStep = S.tallyMode === "place" ? "place" : "record"; S.tallyEdit = null; S.tallyPlace = "";
 }
+// Clearing a point is not Back a point: keep the cursor here and remove only
+// this point's entries. One in-memory undo belongs to that account and sheet;
+// it can never replace newer work or survive an import, reload or point change.
+var _pointClearUndo = null;
+const POINT_SCRATCH = ["tallySel","tallyDraft","tallyEdit","tallyPickFor","tallyLast","tallyRead",
+  "tallyPlace","tallyStep","tallyMoreOpen","theirPick","theirFix","theirLast","penOpen"];
+function pointRecordCopy(mid, pt){
+  const on = r => r && r.m === mid && r.pt === pt;
+  const indexed = rows => (rows || []).flatMap((r,i) => on(r) ? [{i,r}] : []);
+  return JSON.parse(JSON.stringify({
+    lists: Object.fromEntries(SHEET_LISTS.map(k => [k,indexed(S[k])])),
+    scouts: Object.fromEntries(Object.entries(S.scout || {}).filter(([,p]) => p && (p.breaks || []).some(on)).map(([k,p]) => [k,indexed(p.breaks)])),
+    lineup: (S.lineups || {})[lineKey(pt,mid)] || null,
+    match: matchById(mid),
+    scratch: Object.fromEntries(POINT_SCRATCH.map(k => [k,S[k]]))
+  }));
+}
+function pointClearStamp(mid, pt){
+  return JSON.stringify([S.matchId,S.point,S.layoutKey,S.email,syncAskId(),_syncEpoch,pointRecordCopy(mid,pt)]);
+}
+function pointEditReady(){
+  if(!S.entered || !staffed() || S.tab !== "tally") return false;
+  if(sheetField()){ flash("Open this match's field before clearing or restoring its point."); return false; }
+  try{
+    const cur = storedId();
+    if(_stale || (cur && cur !== _baseId)){ markStale(); flash("This tab has an older copy. Open the current copy before clearing or undoing a point."); return false; }
+  }catch(e){ flash("Cannot check the saved season. Try again before clearing this point."); return false; }
+  return true;
+}
+function canUndoPointClear(){
+  const u = _pointClearUndo;
+  return !!u && u.owner === S && u.after === pointClearStamp(u.mid,u.pt);
+}
+function tallyPointControls(){
+  return `<div class="btnrow" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:var(--s3) 0" role="group" aria-label="Point controls">
+    <button class="btn btn--quiet grow" data-clear-point onclick="clearTallyPoint()">Clear point ${sheetPoint()}</button>
+    <div data-undo-slot style="display:grid">${canUndoPointClear()
+      ? `<button class="btn" data-undo-point onclick="undoClearTallyPoint()">Undo clear</button>`
+      : `<span class="note" style="margin:0;text-align:center;align-self:center">Nothing to undo</span>`}</div>
+    <button class="btn btn--quiet grow" data-reset-match onclick="resetTallyMatch()">Reset match</button>
+  </div><p class="note">Clear removes this point. Reset starts fresh; this match stays in Matches.</p>`;
+}
+// Reset beside the chart shares New match's confirmation and kept-sheet flow.
+// The original New match control at the foot of the sheet stays in place.
+window.resetTallyMatch = () => {
+  if(!S.entered || !staffed() || S.tab !== "tally") return;
+  const before = S.matchId;
+  window.freshMatch();
+  if(S.matchId !== before) set({tallyValueOpen:false});
+};
+window.clearTallyPoint = () => {
+  if(!pointEditReady()) return;
+  const mid = S.matchId, pt = sheetPoint(), before = pointRecordCopy(mid,pt), stamp = pointClearStamp(mid,pt);
+  const count = Object.values(before.lists).reduce((n,a) => n+a.length,0) + Object.values(before.scouts).reduce((n,a) => n+a.length,0) + (before.lineup ? 1 : 0);
+  if(!count && !S.tallySel && !S.tallyDraft && !S.tallyRead && !(S.theirPick || []).length && !S.theirFix){
+    const undo = canUndoPointClear() ? _pointClearUndo : null;
+    clearPointScratch(); S.tallyValueOpen = false; _pointClearUndo = undo;
+    save(S); render(); flash(`Point ${pt} is already empty.${undo ? " Undo clear still puts it back." : " Earlier-point views are closed."}`); return;
+  }
+  if(!askFirst(`Clear point ${pt}? Its score, players, shots, notes, penalties and lineup will be cleared. Other points stay. Undo clear can put this point back.`,["clear-point",mid,pt,stamp])) return;
+  if(!pointEditReady() || stamp !== pointClearStamp(mid,pt)){ flash("The point changed. Check it before clearing it."); return; }
+  const on = r => r && r.m === mid && r.pt === pt;
+  if(typeof stopVoiceSession === "function") stopVoiceSession("Point cleared. Listening stopped.");
+  closePlayerDetails();
+  SHEET_LISTS.forEach(k => { if(Array.isArray(S[k])) S[k] = S[k].filter(r => !on(r)); });
+  Object.keys(S.scout || {}).forEach(k => {
+    const p = S.scout[k]; if(p && Array.isArray(p.breaks) && p.breaks.some(on)) S.scout[k] = {...p,breaks:p.breaks.filter(r => !on(r))};
+  });
+  const lineup = {...(S.lineups || {})}; delete lineup[lineKey(pt,mid)]; S.lineups = lineup;
+  const m = curMatch();
+  if(m && (m.timeUp || m.tie)) patchMatch({timeUp:false,tie:false});
+  if(m && m.ot && m.otFrom && pt < m.otFrom) patchMatch({ot:false,raceTo:m.raceWas > 0 ? m.raceWas : null,raceWas:null,otFrom:null});
+  const cursor = S.point;
+  S.point = pt; clearPointScratch(); S.tallyValueOpen = false; S.clockEnd = 0; deckTurn = null; _lastEnd = null;
+  S.matchState = derivedState();
+  _pointClearUndo = {owner:S,mid,pt,cursor,before,after:pointClearStamp(mid,pt)};
+  save(S); render();
+  flash(_storeFails.season ? `Point ${pt} cleared on this screen, but not saved. Undo clear puts it back.` : `Point ${pt} cleared. Undo clear puts it back.`);
+};
+window.undoClearTallyPoint = () => {
+  if(!pointEditReady()) return;
+  if(!canUndoPointClear()){ _pointClearUndo = null; render(); flash("The point changed. Undo will not replace newer work."); return; }
+  const u = _pointClearUndo, put = (rows,kept) => {
+    const out = [...(rows || [])]; kept.forEach(({i,r}) => out.splice(Math.min(i,out.length),0,r)); return out;
+  };
+  SHEET_LISTS.forEach(k => { if(u.before.lists[k].length) S[k] = put(S[k],u.before.lists[k]); });
+  Object.entries(u.before.scouts).forEach(([k,rows]) => { S.scout[k] = {...S.scout[k],breaks:put(S.scout[k].breaks,rows)}; });
+  if(u.before.lineup) S.lineups = {...S.lineups,[lineKey(u.pt,u.mid)]:u.before.lineup};
+  S.matches = S.matches.map(m => m.id === u.mid ? u.before.match : m);
+  S.point = u.cursor; clearPointScratch(); Object.assign(S,u.before.scratch);
+  S.matchState = derivedState(); save(S); render();
+  flash(_storeFails.season ? `Point ${u.pt} restored on this screen, but not saved.` : `Point ${u.pt} restored.`);
+};
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
  * answer rather than scoring it twice. */
