@@ -179,6 +179,26 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 12 Nov 2026: doubling up on a bunker must work everywhere a man is
+ // placed — Tally's step 2 (where it opens) as well as step 1, and Scout while
+ // a man's details are open.
+ await check("player: a second tap on a bunker is a second man on it, on Tally step 2 and on Scout",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').tap();await p.locator("#sideR .pickSel").selectOption({index:1});
+   const tap=async id=>{const at=await p.evaluate(id=>{const g=document.querySelector('[data-bid="'+id+'"]');g.scrollIntoView({block:"center"});const r=g.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};},id);await p.touchscreen.tap(at.x,at.y);};
+   const [R,R2]=await p.evaluate(()=>BUN.filter(b=>b.x>90).slice(2,4).map(b=>b.id)),L=await p.evaluate(()=>BUN.filter(b=>b.x<60)[2].id);
+   await tap(R);await tap(R);assert.deepEqual(await p.evaluate(()=>cpTheirPick.slice()),[R,R],"Scout: two taps, two men");
+   await tap(R2);await p.locator('[data-tb5="log"]').tap();assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),R);
+   await tap(R);assert.deepEqual(await p.evaluate(()=>cpTheirPick.slice()),[R],"Scout with a man's details open: a tap on his bunker starts one more man there");
+   await p.locator('.tabs button[data-m="tally"]').tap();assert.equal(await p.evaluate(()=>cpStep),"tell");
+   await tap(L);await tap(L);
+   assert.equal(await p.evaluate(id=>SH.rows.filter(r=>r.bid===id).length,L),2,"Tally step 2: two taps, two men on the bunker");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });

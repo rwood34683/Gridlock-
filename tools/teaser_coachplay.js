@@ -80,8 +80,8 @@ function cpOpenNext(quiet){const u=cpUntold();if(u.length){cpOpen(u[0]);return t
 function cpTallyTap(e){const id=cpFieldTap(e);if(id==null)return;
   if(cpDraft&&cpPickFor){if(id===cpDraft.bid){gToast('That is the bunker he broke to.');return;}cpDraft[cpPickFor]=id;cpPickFor='';cpTally();return;}
   if(cpStep==='where'){const r=cpPlace(id);if(r)gToast((r.side==='us'?'Yours':'Theirs')+' on '+bLabelId(id));cpTally();return;}
-  const u=cpUntold().find(r=>r.bid===id);if(u){cpOpen(u);cpTally();return;}
-  const r=cpPlace(id);if(r)cpOpen(r);cpTally();}
+  const u=!(cpDraft&&cpDraft.bid===id)&&cpUntold().find(r=>r.bid===id);if(u){cpOpen(u);cpTally();return;}
+  const r=cpPlace(id);if(r){cpOpen(r);if(cpRowsAt(r.m,r.pt).filter(x=>x.bid===id).length>1)gToast('Man '+cpRowsAt(r.m,r.pt).filter(x=>x.bid===id).length+' on '+bLabelId(id));}cpTally();}
 function cpLog(){const d=cpDraft;if(!d)return;if(d.moved&&d.moved===d.bid){gToast('Moved to is the bunker he broke to.');return;}if(d.from&&d.from===d.bid){gToast('Shot from is the bunker he broke to.');return;}
   if(d.who&&cpRowsAt(d.m,d.pt).some(r=>r.id!==d.id&&r.side===d.side&&r.who===d.who)){gToast(cpTag(d)+' is already charted on point '+d.pt+'.');return;}
   if(d.made==null)d.made=true;d.todo=false;const i=SH.rows.findIndex(r=>r.id===d.id);if(i>=0)SH.rows[i]=d;else SH.rows.push(d);cpSave();
@@ -159,7 +159,7 @@ function cpPlaceFive(plants){const m=cpMatch();const have=cpRowsAt(m.id,SH.point
 function cpNoPit(){gToast('Pick who you play in the right pit first, then tap where they went.');const s=document.querySelector('#sideR .pickSel');if(s){s.scrollIntoView({block:'center',behavior:'smooth'});try{s.focus({preventScroll:true});}catch(e){}}}
 function cpScoutTap(e){const id=cpFieldTap(e);if(id==null)return;const team=cpPit();if(!team){cpNoPit();return;}
   if(scView==='log'&&cpDraft){if(cpPickFor){if(id===cpDraft.bid){gToast('That is the bunker he broke to.');return;}cpDraft[cpPickFor]=id;cpPickFor='';renderScout();return;}
-    const u=cpUntold().find(r=>r.bid===id);if(u){cpOpen(u);renderScout();return;}}
+    const u=cpDraft.bid!==id&&cpUntold().find(r=>r.bid===id);if(u){cpOpen(u);renderScout();return;}}
   if(cpTheirPick.length>=CP_SIDE){gToast('Five placed. ✕ one to move him, or Log their five.');if(scView!=='log'){scView='log';renderScout();}return;}
   cpDraft=null;cpPickFor='';cpTheirHist.push(cpTheirPick.slice());cpTheirPick.push(id);if(scView!=='log'){scView='log';cpGame=null;}gToast('Their man on '+bLabelId(id)+' · '+cpTheirPick.length+' of 5');renderScout();}
 function cpScoutHead(P){svg.onclick=cpScoutTap;const w=document.createElement('div');w.innerHTML=scViewToggle()+cpStrip();[...w.children].reverse().forEach(c=>P.insertBefore(c,P.firstChild));
@@ -173,11 +173,9 @@ function cpMatchup(P){svg.onclick=cpScoutTap;cpGround();P.querySelectorAll('.iqr
    white, over a faint dark shadow. Two or more on one bunker sit side by side. */
 /* The coach app's field ground on Tally and Scout: ten dark stripes in place
    of the grid, a fine frame, a faint dashed fifty and two end lines, the red
-   bar down your end line, and no bunker codes (a word the team gave a bunker
-   still shows, as the coach app shows its saved words). */
+   bar down your end line. The bunker labels stay. */
 function cpGround(){if(!svg)return;const first=svg.querySelector('rect');
   svg.querySelectorAll('line[stroke="#1d2022"]').forEach(l=>l.remove());
-  const codes=new Set(BUN.map(b=>b.n));svg.querySelectorAll('text[font-size="2.2"]').forEach(t=>{if(codes.has(t.textContent))t.remove();});
   if(first){first.setAttribute('stroke','none');const at=first.nextSibling,add=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);svg.insertBefore(e,at);return e;};
     for(let i=1;i<10;i+=2)add('rect',{x:i*15,y:0,width:15,height:120,fill:'#0c0d0e'});
     add('rect',{x:0,y:0,width:150,height:120,fill:'none',stroke:'#33383a','stroke-width':.5,opacity:.9});

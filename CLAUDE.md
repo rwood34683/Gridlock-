@@ -1453,9 +1453,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     two on one bunker side by side (owner, 12 Nov 2026).
     Tally and Scout draw on the coach app's field ground (`cpGround`): ten
     dark stripes instead of the grid, a fine frame, the faint dashed fifty,
-    the red bar down your end and no bunker codes (a team's own word stays).
+    the red bar down your end; the bunker labels stay.
     Tally's men are the same numbered squares, yours red and theirs blue,
     numbered within each side, ✕ for a man shot on the break.
+    Two or three men on one bunker work everywhere a man is placed: Tally's
+    step 1 and step 2, and Scout's Breakouts. A tap on the bunker of the man
+    whose details are open always adds one more there. Nothing is taken out
+    of the Player preview unless the owner asks (owner, 12 Nov 2026).
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
