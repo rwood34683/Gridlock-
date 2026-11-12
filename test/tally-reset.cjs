@@ -28,9 +28,9 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.getByRole("button",{name:"Undo clear",exact:true}).click();
    assert.deepEqual(await pointRows(p),before);
   });
-  await check("the next point resets earlier-point list filters",async p=>{
+  await check("the next point resets earlier-point list filters and keeps the bunker table choice",async p=>{
    await p.evaluate(()=>{set({tallyAllBreaks:true,tallyAllOuts:true,tallyValueOpen:true});endPoint("them");});
-   assert.deepEqual(await p.evaluate(()=>[!!S.tallyAllBreaks,!!S.tallyAllOuts,!!S.tallyValueOpen]),[false,false,false]);
+   assert.deepEqual(await p.evaluate(()=>[!!S.tallyAllBreaks,!!S.tallyAllOuts,!!S.tallyValueOpen]),[false,false,true]);
    assert.equal(await p.evaluate(()=>S.point),3);
   });
   await check("every point record, both scouting books and the written five clear without touching other points or teams",async p=>{
@@ -100,21 +100,28 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(after.old.id,before.id);assert.equal(after.rows,before.rows);assert.deepEqual(after.filters,[false,false,false]);
    await p.evaluate(id=>openMatchNow(id),before.id);assert.deepEqual(await p.evaluate(()=>JSON.stringify(SHEET_LISTS.map(k=>S[k]))),before.rows);
   });
+  await check("cancelling Reset keeps the match and its open views",async p=>{
+   await p.evaluate(()=>set({tallyValueOpen:true,tallyAllBreaks:true,tallyAllOuts:true}));
+   const before=await p.evaluate(()=>JSON.stringify([S.matchId,S.point,S.matches,SHEET_LISTS.map(k=>S[k]),S.tallyValueOpen,S.tallyAllBreaks,S.tallyAllOuts]));
+   p.removeAllListeners("dialog");p.on("dialog",d=>d.dismiss());
+   await p.locator("[data-reset-match]").click();
+   assert.equal(await p.evaluate(()=>JSON.stringify([S.matchId,S.point,S.matches,SHEET_LISTS.map(k=>S[k]),S.tallyValueOpen,S.tallyAllBreaks,S.tallyAllOuts])),before);
+  });
   await check("reload keeps the clear but never reuses a stale Undo snapshot",async p=>{
    await p.locator("[data-clear-point]").click();await p.reload();await p.evaluate(()=>set({tab:"tally"}));
    assert.ok(Object.values(await pointRows(p)).every(a=>a.length===0));
-   assert.equal(await p.getByRole("button",{name:"Undo clear",exact:true}).isDisabled(),true);
+   assert.equal(await p.getByRole("button",{name:"Undo clear",exact:true}).count(),0);
   });
   await check("repeated Clear keeps Undo and the point controls stay in place",async p=>{
    const before=await pointRows(p);
-   const positions=()=>p.locator("[aria-label='Point controls'] button").evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return [r.x,r.width];}));
+   const positions=()=>p.locator("[aria-label='Point controls'] > *").evaluateAll(bs=>bs.map(b=>{const r=b.getBoundingClientRect();return [r.x,r.width];}));
    const layout=await positions();
    await p.locator("[data-clear-point]").click();
    await p.locator("[data-clear-point]").click();
    const undo=p.getByRole("button",{name:"Undo clear",exact:true});
    assert.equal(await undo.isEnabled(),true);assert.deepEqual(await positions(),layout);
    await undo.click();assert.deepEqual(await pointRows(p),before);
-   assert.equal(await undo.isDisabled(),true);assert.deepEqual(await positions(),layout);
+   assert.equal(await undo.count(),0);assert.deepEqual(await positions(),layout);
   });
   await check("a refused save retains Undo and says the clear was not saved",async p=>{
    const before=await pointRows(p);

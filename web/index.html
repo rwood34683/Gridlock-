@@ -15349,7 +15349,7 @@ window.nextPoint = () => {
 };
 function clearPointScratch(){
   _pointClearUndo = null;
-  S.tallyAllBreaks = false; S.tallyAllOuts = false; S.tallyValueOpen = false;
+  S.tallyAllBreaks = false; S.tallyAllOuts = false;
   S.tallyMoreOpen = null;
   S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
@@ -15378,7 +15378,8 @@ function pointClearStamp(mid, pt){
   return JSON.stringify([S.matchId,S.point,S.layoutKey,S.email,syncAskId(),_syncEpoch,pointRecordCopy(mid,pt)]);
 }
 function pointEditReady(){
-  if(!S.entered || !staffed() || S.tab !== "tally" || sheetField()) return false;
+  if(!S.entered || !staffed() || S.tab !== "tally") return false;
+  if(sheetField()){ flash("Open this match's field before clearing or restoring its point."); return false; }
   try{
     const cur = storedId();
     if(_stale || (cur && cur !== _baseId)){ markStale(); flash("This tab has an older copy. Open the current copy before clearing or undoing a point."); return false; }
@@ -15390,9 +15391,11 @@ function canUndoPointClear(){
   return !!u && u.owner === S && u.after === pointClearStamp(u.mid,u.pt);
 }
 function tallyPointControls(){
-  return `<div class="btnrow" style="margin:var(--s3) 0" aria-label="Point controls">
-    <button class="btn btn--quiet grow" data-clear-point onclick="clearTallyPoint()"${sheetField() ? " disabled" : ""}>Clear point ${sheetPoint()}</button>
-    <button class="btn grow" data-undo-point onclick="undoClearTallyPoint()"${canUndoPointClear() ? "" : " disabled"}>Undo clear</button>
+  return `<div class="btnrow" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:var(--s3) 0" role="group" aria-label="Point controls">
+    <button class="btn btn--quiet grow" data-clear-point onclick="clearTallyPoint()">Clear point ${sheetPoint()}</button>
+    <div data-undo-slot style="display:grid">${canUndoPointClear()
+      ? `<button class="btn" data-undo-point onclick="undoClearTallyPoint()">Undo clear</button>`
+      : `<span class="note" style="margin:0;text-align:center;align-self:center">Nothing to undo</span>`}</div>
     <button class="btn btn--quiet grow" data-reset-match onclick="resetTallyMatch()">Reset match</button>
   </div><p class="note">Clear affects this point only. Reset starts a new match; this one stays in Matches.</p>`;
 }
@@ -15400,7 +15403,9 @@ function tallyPointControls(){
 // The original New match control at the foot of the sheet stays in place.
 window.resetTallyMatch = () => {
   if(!S.entered || !staffed() || S.tab !== "tally") return;
+  const before = S.matchId;
   window.freshMatch();
+  if(S.matchId !== before) set({tallyValueOpen:false});
 };
 window.clearTallyPoint = () => {
   if(!pointEditReady()) return;
@@ -15408,7 +15413,7 @@ window.clearTallyPoint = () => {
   const count = Object.values(before.lists).reduce((n,a) => n+a.length,0) + Object.values(before.scouts).reduce((n,a) => n+a.length,0) + (before.lineup ? 1 : 0);
   if(!count && !S.tallySel && !S.tallyDraft && !S.tallyRead && !(S.theirPick || []).length && !S.theirFix){
     const undo = canUndoPointClear() ? _pointClearUndo : null;
-    clearPointScratch(); _pointClearUndo = undo;
+    clearPointScratch(); S.tallyValueOpen = false; _pointClearUndo = undo;
     save(S); render(); flash(`Point ${pt} is already empty.${undo ? " Undo clear still puts it back." : " Earlier-point views are closed."}`); return;
   }
   if(!askFirst(`Clear point ${pt}? Its score, players, shots, notes, penalties and lineup will be cleared. Other points stay. Undo clear can put this point back.`,["clear-point",mid,pt,stamp])) return;
@@ -15425,7 +15430,7 @@ window.clearTallyPoint = () => {
   if(m && (m.timeUp || m.tie)) patchMatch({timeUp:false,tie:false});
   if(m && m.ot && m.otFrom && pt < m.otFrom) patchMatch({ot:false,raceTo:m.raceWas > 0 ? m.raceWas : null,raceWas:null,otFrom:null});
   const cursor = S.point;
-  S.point = pt; clearPointScratch(); S.clockEnd = 0; deckTurn = null; _lastEnd = null;
+  S.point = pt; clearPointScratch(); S.tallyValueOpen = false; S.clockEnd = 0; deckTurn = null; _lastEnd = null;
   S.matchState = derivedState();
   _pointClearUndo = {owner:S,mid,pt,cursor,before,after:pointClearStamp(mid,pt)};
   save(S); render();
