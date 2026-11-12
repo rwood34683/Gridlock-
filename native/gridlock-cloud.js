@@ -55,6 +55,22 @@
     try { var k=bindingKey(id), v=JSON.stringify(value);localStorage.setItem(k,v);if(localStorage.getItem(k)!==v)return false;seasonRevisions[id]=value;return true; }
     catch(e) { return false; }
   }
+  // A checkpoint is evidence of the exact season this device last shared or
+  // adopted, not just a revision it happened to read. Never store credentials
+  // or another full season here. Scope it to the project and immutable user id.
+  function deviceKey(id) { return bindingKey(id) + ":device"; }
+  function ownerKey() { return "grindx.cloud.season.owner:" + cfg().url; }
+  async function seasonHash(payload) {
+    var p = typeof payload === "string" ? JSON.parse(payload) : payload;
+    if (!window.crypto?.subtle || !p || p.format !== "gridlock.coach.copy" || p.scope !== "all" || !p.data) return null;
+    function sorted(v) {
+      if (Array.isArray(v)) return v.map(sorted);
+      if (v && typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map(k => [k, sorted(v[k])]));
+      return v;
+    }
+    var bytes = new TextEncoder().encode(JSON.stringify(sorted({seasonId:p.seasonId, data:p.data})));
+    return Array.from(new Uint8Array(await window.crypto.subtle.digest("SHA-256", bytes)), b => b.toString(16).padStart(2,"0")).join("");
+  }
 
   function said(msg) { return { ok: false, said: msg }; }
   function cfg() { return CFG; }
@@ -375,6 +391,32 @@
       var s=readSession();
       return !!(s && s.user.id===userId && saveRevision(userId,value));
     },
+    async deviceSeason(payload) {
+      var g = generation, r = await api.getSeason(), s = readSession();
+      if (!r.ok) return r;
+      if (g !== generation || !s || s.user.id !== r.user.id) return cancelled();
+      var hash = null, kept = null, owner = null;
+      try {
+        hash = await seasonHash(payload);
+        kept = JSON.parse(localStorage.getItem(deviceKey(r.user.id)) || "null");
+        owner = localStorage.getItem(ownerKey());
+      } catch(e) {}
+      if (g !== generation || readSession() !== s) return cancelled();
+      var known = !!(hash && owner === r.user.id && kept && revision(kept.revision) !== null && /^[a-f0-9]{64}$/.test(kept.hash));
+      return {...r, known, unchanged:known && kept.hash === hash, base:known ? kept.revision : null};
+    },
+    async rememberSeason(payload, userId, value) {
+      var g = generation, s = readSession();
+      if (!s || s.user.id !== userId || revision(value) === null || seasonRevision(userId) !== value) return false;
+      try {
+        var hash = await seasonHash(payload);
+        if (!hash || g !== generation || readSession() !== s || seasonRevision(userId) !== value) return false;
+        var k = deviceKey(userId), text = JSON.stringify({hash, revision:value});
+        localStorage.setItem(k, text);
+        localStorage.setItem(ownerKey(), userId);
+        return localStorage.getItem(k) === text && localStorage.getItem(ownerKey()) === userId;
+      } catch(e) { return false; }
+    },
     // No direct table writes: one server transaction compares the revision and
     // keeps a deletion marker. An unbound second device starts at revision zero.
     async pushSeason(label, payload) {
@@ -402,7 +444,7 @@
         if (!r.ok) return said("Your season could not be sent. The server must support safe season sync.");
         if(r.body && r.body.conflict) return {ok:false,conflict:true,said:"Another device changed or removed your cloud copy. Review the cloud copy before sending again. Your phone's season is unchanged."};
         if(!acknowledged) return said("Your upload could not be safely acknowledged. Review the cloud copy before sending again.");
-        return { ok: true };
+        return { ok: true, user:s.user, revision:r.body.revision };
       });
     },
     async deleteSeason() {

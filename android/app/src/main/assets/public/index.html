@@ -277,6 +277,9 @@ button.ctx__ev b{color:var(--mute)}
 .auth-data{margin:4px 0 12px}
 .auth-data summary{min-height:44px;padding:12px 0;cursor:pointer;color:var(--mute);font-size:var(--t-sm);line-height:20px;font-weight:600}
 .auth-data .note{margin:0 0 8px;font-size:var(--t-sm);line-height:1.55}
+.sync-steps{margin:0;padding-left:1.5em;display:grid;gap:var(--s2);max-width:60ch;font-size:var(--t-sm);line-height:1.5}
+.sync-steps b{color:var(--ink)}
+.sync-account{overflow-wrap:anywhere}
 .warn{color:var(--warn);font-size:var(--t-sm)}
 
 /* ============================================================
@@ -3492,7 +3495,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","playerChecks","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds","myTeam","fmtDone"];
 
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
@@ -6978,7 +6981,7 @@ function copyDataError(data){
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
-    matchId:str, matchState:str, teamCode:str, division:str,
+    matchId:str, matchState:str, teamCode:str, division:str, myTeam:v=>str(v)&&v.length<=60, fmtDone:v=>typeof v==="boolean",
     // The format he answered, and the ones he saved under a name.
     fmt:row, fmts:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
     calKinds:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
@@ -7281,7 +7284,10 @@ function seasonHere(){
   return (S.matches || []).some(m => m && (loggedSize(m.id) || (S.results || []).some(r => r && r.m === m.id)))
     || (S.roster || []).length > 0 || Object.keys(S.scout || {}).length > 0 || Object.keys(S.plays || {}).length > 0;
 }
-window.loadCopy = (mode, suppliedText) => {
+// Only the checked account handoff may skip the ordinary replacement question.
+// It has already preserved and read back this device's season.
+const ACCOUNT_RESTORE = Symbol("checked account restore");
+window.loadCopy = (mode, suppliedText, checkedRestore) => {
   const el = document.getElementById("copyIn");
   copyDraft = suppliedText == null ? (el ? el.value : copyDraft) : suppliedText;
   const r = readCopy(copyDraft);
@@ -7295,7 +7301,7 @@ window.loadCopy = (mode, suppliedText) => {
   // Replace throws away what is on this phone, and the button said so in a
   // sentence above a file box — one tap, no question. When the phone holds a
   // season, it asks, and names what it would throw away.
-  if(mode === "replace" && seasonHere()){
+  if(mode === "replace" && seasonHere() && checkedRestore !== ACCOUNT_RESTORE){
     if(!confirm(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`)){
       S.copyStatus = "Nothing replaced. Save a copy of this phone first, then come back."; save(S); render(); return;
     }
@@ -7350,7 +7356,7 @@ window.loadCopy = (mode, suppliedText) => {
   // off are his own choices, not records: an assistant's copy merged in used
   // to swap his pits for theirs, turn off the calls they do not run and hide
   // the schedule rows they did not want.
-  const HERE = ["fmt", "teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo"];
+  const HERE = ["fmt", "teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo", "myTeam", "fmtDone"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   // Who won a point is the one thing two phones can disagree on outright. The
@@ -12523,6 +12529,146 @@ window.doAuth = async () => {
    is the switch-on; a coach can pause it and delete what he sent.
    ============================================================ */
 const canSync = () => !!(window.gridlockCloud && window.gridlockCloud.pushSeason);
+const canFollowSeason = () => !!(canSync() && window.gridlockCloud.deviceSeason && window.gridlockCloud.rememberSeason);
+let _deviceChoice = null, _deviceChecking = null, _devicePermit = null;
+// Compare only the season, not the export time or this screen's scratch state.
+function deviceSeasonText(raw = copyPayload("all")){
+  const p = JSON.parse(raw); return JSON.stringify([p.seasonId,p.data]);
+}
+function deviceSeasonCurrent(t){ return sameSync(t) && S.entered && S.role === "staff" && !_stale && !_syncDeleting && !_accountDeleting; }
+function deviceSeasonShown(){
+  if(_deviceChoice && !deviceSeasonCurrent(_deviceChoice.t)) _deviceChoice = null;
+  if(_deviceChecking && !deviceSeasonCurrent(_deviceChecking)) _deviceChecking = null;
+  return !!(_deviceChoice || _deviceChecking);
+}
+function deviceSeasonPage(){
+  const pending = _deviceChoice, r = pending?.r, hasCopy = r && !r.missing && !r.removed;
+  const usual = "Choose which season to use. Nothing has been replaced or sent.";
+  return sec("Continue your season", `<p class="lede">${_deviceChecking ? "Checking for your saved season…" : hasCopy ? "Open the season saved with your account to carry on here." : "No season is saved with this account. Save this device's season to use it on your other devices."}</p>
+    <p class="note sync-account">Your account: <b>${esc(S.email)}</b></p>
+    ${S.syncSaid && S.syncSaid !== usual && !_deviceChecking ? `<p class="note" role="status">${esc(S.syncSaid)}</p>` : ""}
+    ${pending ? `${hasCopy ? `<p class="note">This replaces the season on this device. A recovery copy is kept here first.</p>` : r.removed ? `<p class="note">The saved copy was deleted. It stays deleted unless you choose to save this season again.</p>` : ""}
+    <p class="note">League sync is optional. It keeps your full season with your account on our account server. Gridlock PB LLC's administrators can review it. Pause or delete the saved copy in Account & backups.</p>
+    ${hasCopy ? `<button class="btn btn--block" onclick="chooseDeviceSeason('saved')">Use my saved season</button>
+      <details class="coach-terms"><summary>Use this device's season instead</summary>
+        <p class="note">This sends the season you have here and replaces the one saved with your account. Only choose it if this is the copy you want on your other devices.</p>
+        <button class="btn btn--quiet btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button></details>` :
+      `<button class="btn btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button>`}` : ""}
+    <button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`);
+}
+window.cancelDeviceSeason = () => {
+  ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
+  clearSyncRetry(); syncYes(false); markSyncAsked();
+  syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sync is off. Your season stays on this device."});
+};
+async function applyDeviceSeason(choice){
+  const {t,r,snapshot} = choice;
+  if(!deviceSeasonCurrent(t) || snapshot !== deviceSeasonText()) return false;
+  const raw = typeof r.payload === "string" ? r.payload : JSON.stringify(r.payload), checked = readCopy(raw);
+  if(checked.error || checked.payload.scope !== "all"){
+    syncStatus({syncSaid:"The saved season could not be read. Nothing replaced."}); return false;
+  }
+  if(!keepPreRestore()){
+    syncStatus({syncSaid:"There is not enough room to keep this device's season safe. Save everything as a file before continuing."}); return false;
+  }
+  // No await between the last check, preserving the old season and replacing it.
+  S.syncOn = false;
+  if(window.loadCopy("replace",raw,ACCOUNT_RESTORE) !== true || _storeFail) return false;
+  if(S.fmtDone) S.fmtAsk = false;
+  const adopted = copyPayload("all"), capturedAt = Date.now();
+  if(!t.cloud.acceptSeason(r.user.id,r.revision) || !await t.cloud.rememberSeason(adopted,r.user.id,r.revision)){
+    if(deviceSeasonCurrent(t)) syncStatus({syncOn:false,syncSaid:"Season opened, but this device could not remember the save. Sync stays off."});
+    return false;
+  }
+  if(!deviceSeasonCurrent(t)) return false;
+  _deviceChoice = null; _deviceChecking = null; _lastAutoSync = Date.now(); syncYes(true);
+  syncStatus({syncOn:true,syncAsk:false,syncAt:capturedAt,syncSaid:"Your saved season is ready on this device. Sync is on."});
+  // If a coach edited while the checkpoint was being saved, that work still sends.
+  if(deviceSeasonText(adopted) !== deviceSeasonText()){ _syncDirty=true; scheduleSync(0); }
+  return true;
+}
+async function checkAccountSeason(requested){
+  if(!canFollowSeason() || !S.entered || S.role !== "staff" || _deviceChecking || _syncReviewing || _syncDeleting || _accountDeleting || _stale) return;
+  const resuming = syncList(SYNC_YES_KEY).has(syncAskId()), wanted = requested || resuming;
+  clearSyncRetry(); ++_syncEpoch; S.syncOn=false; S.syncAsk=false; _deviceChoice=null; _devicePermit=null;
+  const t=syncTicket(); _deviceChecking=t;
+  syncStatus({syncSaid:"Checking your account's saved season…"});
+  try{
+    await _syncTail;
+    if(!deviceSeasonCurrent(t)) return;
+    const raw=copyPayload("all"), snapshot=deviceSeasonText(raw);
+    const r=await t.cloud.deviceSeason(raw);
+    if(!deviceSeasonCurrent(t)) return;
+    if(!r?.ok){
+      if(r?.offline && resuming){
+        // Preserve prior consent offline. Reconnect still goes through the
+        // read-before-write gate; no unchecked local season can be uploaded.
+        _deviceChecking=null; _lastAutoSync=Date.now();
+        syncStatus({syncOn:true,syncSaid:"No signal. Your changes stay here; sync will check your saved season before retrying when you are online."});
+        _syncDirty=true; scheduleSync(90000); return;
+      }
+      syncStatus({syncSaid:r?.offline ? "No signal. Keep working here; open Get saved season when you are online." : r?.said || "Could not check the saved season. Nothing sent."});
+      return;
+    }
+    if(r.user?.id !== t.uid){
+      syncStatus({syncSaid:"Your account changed. Sign in again before continuing a saved season."}); return;
+    }
+    const choice={t,r,snapshot};
+    if(wanted && r.known && r.base === r.revision && !r.removed){
+      _deviceChecking=null; syncYes(true); _lastAutoSync=Date.now();
+      syncStatus({syncOn:true,syncSaid:"Sync is on for this account."});
+      if(!r.unchanged || snapshot !== deviceSeasonText()) await syncNow();
+      return;
+    }
+    if(wanted && r.known && r.unchanged && r.revision > r.base && !r.missing && !r.removed && snapshot === deviceSeasonText()){
+      _deviceChoice=choice;
+      await applyDeviceSeason(choice);
+      // Keep the precise failure message. Opening may have succeeded even if
+      // checkpoint storage failed; never then claim nothing was replaced.
+      return;
+    }
+    if(!deviceSeasonCurrent(t)) return;
+    if(r.missing && !requested && !wanted){
+      if(syncAskDue()) S.syncAsk=true;
+    }else{
+      // No checkpoint, edits on both devices, or a deletion: never pick a winner.
+      _deviceChoice={...choice,snapshot:deviceSeasonText()};
+      syncStatus({syncSaid:"Choose which season to use. Nothing has been replaced or sent."});
+    }
+  }catch(e){ if(deviceSeasonCurrent(t)) syncStatus({syncSaid:"Could not check your season. Nothing sent. Try Get saved season again."}); }
+  finally{ if(_deviceChecking===t) _deviceChecking=null; render(); }
+}
+window.continueDeviceSeason = () => checkAccountSeason(true);
+window.chooseDeviceSeason = async which => {
+  const c=_deviceChoice;
+  if(!c || _deviceChecking || !deviceSeasonCurrent(c.t)) return;
+  if(c.snapshot !== deviceSeasonText()) return checkAccountSeason(true);
+  if(which !== "saved" && which !== "here") return;
+  if(which === "saved"){
+    if(c.r.missing || c.r.removed) return;
+    _deviceChecking=c.t; render();
+    try{ await applyDeviceSeason(c); }
+    finally{ if(_deviceChecking===c.t) _deviceChecking=null; render(); }
+    return;
+  }
+  if(!confirm(`Send this device's full season to ${S.email}?${c.r.missing || c.r.removed ? "" : " This replaces the season saved with that account."} Only continue if this is the season you want on your other devices.`)) return;
+  if(!deviceSeasonCurrent(c.t) || c.snapshot !== deviceSeasonText()) return checkAccountSeason(true);
+  // Keep the other side too, before an explicit choice replaces the server copy.
+  if(!c.r.missing && !c.r.removed){
+    const raw=typeof c.r.payload==="string"?c.r.payload:JSON.stringify(c.r.payload);
+    if(readCopy(raw).error) return syncStatus({syncSaid:"The saved season could not be read. Nothing sent."});
+    try{
+      const key=STORE_KEY+".before-account-replace";
+      localStorage.setItem(key,raw);
+      if(localStorage.getItem(key)!==raw) throw new Error("copy not kept");
+    }catch(e){return syncStatus({syncSaid:"This device could not keep the other season safe. Nothing sent."});}
+  }
+  if(!keepPreRestore() || !c.t.cloud.acceptSeason(c.r.user.id,c.r.revision))
+    return syncStatus({syncSaid:"This device could not keep the save safely. Nothing sent."});
+  _devicePermit={t:c.t,user:c.r.user.id,revision:c.r.revision};
+  _deviceChoice=null; _lastAutoSync=Date.now(); syncYes(true);
+  syncStatus({syncOn:true,syncAsk:false}); await syncNow();
+};
 /* The backup question, asked once an account on a cloud build, straight after
    a sign-in and before the format. League sync stays opt-in: nothing is sent
    until he taps Yes, and the answer is the same switch Nexus carries.
@@ -12568,6 +12714,10 @@ function afterSignIn(){
   if(S.entered && S.role === "staff" && sheetEmpty(curMatch())) set({tab:"home", more:null, quick:false, evPick:false});
   if(!canSync() || !S.entered || S.role !== "staff") return;
   const id = syncAskId(); if(!id) return;
+  if(canFollowSeason()){
+    if(!syncList(SYNC_ASKED_KEY).has(id) || syncList(SYNC_YES_KEY).has(id)) checkAccountSeason(false);
+    return;
+  }
   if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
     ++_syncEpoch; clearSyncRetry(); _lastAutoSync = Date.now();
     S.syncOn = true; S.syncAsk = false; S.syncSaid = "Backup is back on — your season keeps sending to your account.";
@@ -12584,7 +12734,7 @@ function syncAskShown(){
 }
 function syncAskPage(){
   return sec("Back up your season", `
-    <p class="lede">Keep a copy of your season with your account, so a lost or wiped phone does not lose it.</p>
+    <p class="lede">Keep your season with your account. Use the same email on your laptop, tablet and phone to pick up where you left off.</p>
     <p class="note">Yes turns on <b>League sync</b>: your full season, including your scouting, uploads and one current
       copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it.
       Turn it off or delete the copy any time in More › Nexus › League sync.</p>
@@ -12604,7 +12754,8 @@ window.answerSyncAsk = async yes => {
   }
   markSyncAsked();
   const before = S.syncAt || 0;
-  toggleSync();
+  await toggleSync();
+  if(deviceSeasonShown()) return;
   // Say how the first send went: a Yes that quietly did nothing is a coach
   // who believes his season is safe.
   const t0 = Date.now();
@@ -12627,13 +12778,28 @@ function syncStatus(data){
 }
 // A stale tab never sends: its season is older than the one another tab saved.
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
-function syncTicket(){ return {epoch: _syncEpoch, email: S.email, cloud: window.gridlockCloud}; }
-function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.cloud === window.gridlockCloud; }
+function syncTicket(){ return {epoch: _syncEpoch, email: S.email, uid:syncAskId(), cloud: window.gridlockCloud}; }
+function sameSync(t){ return t.epoch === _syncEpoch && t.email === S.email && t.uid === syncAskId() && t.cloud === window.gridlockCloud; }
 function queueSeasonPush(t){
   const label = syncLabel(), payload = copyPayload("all");
-  const pending = _syncTail.then(() => {
+  const pending = _syncTail.then(async () => {
     if(!sameSync(t) || !syncAllowed()) return {ok:false};
-    return t.cloud.pushSeason(label, payload);
+    if(canFollowSeason()){
+      const r = await t.cloud.deviceSeason(payload);
+      if(!sameSync(t) || !syncAllowed()) return {ok:false};
+      if(!r?.ok) return r;
+      if(r.user?.id !== t.uid) return {ok:false,conflict:true,said:"Your account changed. Sign in again before sending a season."};
+      const permitted = _devicePermit && sameSync(_devicePermit.t) && _devicePermit.user === r.user.id && _devicePermit.revision === r.revision;
+      if(!permitted && (!r.known || r.base !== r.revision || r.removed))
+        return {ok:false,conflict:true,said:"Another device has a season to check. Open Account & backups and choose Get saved season. Nothing was replaced."};
+    }
+    const r = await t.cloud.pushSeason(label, payload);
+    if(r?.ok && canFollowSeason() && sameSync(t)){
+      _devicePermit = null;
+      if(!await t.cloud.rememberSeason(payload, r.user.id, r.revision))
+        return {ok:false,conflict:true,said:"Your season reached your account, but this device could not remember the save. Check Account & backups before sending again."};
+    }
+    return r;
   });
   _syncTail = pending.catch(() => {});
   return pending;
@@ -12680,7 +12846,7 @@ async function sendSeason(manual){
   if(r && r.ok === true){
     syncYes(true);
     // A slow send covers the snapshot it took, not edits made while it waited.
-    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Kept with your account on our account server."});
+    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Saved to your account."});
     scheduleSync();return;
   }
   if(r && r.conflict){
@@ -12713,6 +12879,11 @@ window.reviewCloudSeason = async () => {
     if(!current()) return;
     if(!r || !r.ok) return back((r&&r.said)||"The cloud copy could not be reached. Your phone is unchanged.");
     if(r.missing || r.removed){
+      if(canFollowSeason()){
+        // Use the same explicit choice and revision permit as a new device.
+        // Merely accepting a revision must not bypass the read-before-write gate.
+        _syncReviewing=false; return checkAccountSeason(true);
+      }
       if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
       if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
       S.syncOn=true;return syncNow();
@@ -12761,9 +12932,17 @@ window.showPreRestoreCopy = (i = 0) => {
     set({copyText:raw,copyStatus:(i ? "This is the season kept before an earlier cloud restore." : "This is the season kept before the last cloud restore.")+" Copy this text and save it somewhere safe."});
   }catch(e){set({syncSaid:"The pre-restore copy could not be opened. Your current season is unchanged."});}
 };
-window.toggleSync = () => {
+window.showReplacedAccountSeason = () => {
+  try{
+    const raw=localStorage.getItem(STORE_KEY+".before-account-replace") || "";
+    if(readCopy(raw).error) return set({syncSaid:"No readable account season was kept before replacement on this device."});
+    set({copyText:raw,copyStatus:"The account season kept before you chose this device's season. Save this text as a file to keep or merge it."});
+  }catch(e){set({syncSaid:"The kept account season could not be opened."});}
+};
+window.toggleSync = async () => {
   if(_syncDeleting) return set({syncSaid: "Still removing what you sent. Wait for that to finish before sending again."});
   if(!S.entered || S.role !== "staff" || !canSync()) return;
+  if(!S.syncOn && canFollowSeason()) return checkAccountSeason(true);
   ++_syncEpoch;
   clearSyncRetry();
   if(S.syncOn){ syncYes(false); return set({syncOn: false,
@@ -18241,7 +18420,7 @@ const HELP_Q = [
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
-  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On a new phone, sign in and review the server copy in Nexus before restoring it, if you had League sync on. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
+  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season. You can also open More › Account & backups › Get saved season. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
@@ -19881,27 +20060,32 @@ function moreBody(k){
     <button class="btn btn--ghost btn--block" onclick="set({showTutorial:true,tab:'playbook',more:null})">Show the tutorial again</button>
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + cloudPageLinks()
-  + (canSync() ? sec("League sync", `<p class="lede">Upload your full season and keep one current copy with your account on our account server.
-      Gridlock PB LLC's administrators can review it. It is off until you turn it on.</p>
-    <p class="note"><b>What goes up:</b> your roster, every tally and result, your scouting on other teams,
-      your words for bunkers and calls, and your own plays — the same as <b>Save everything</b>. Your account
-      password never does. You can pause it, or delete what you sent, at any time.</p>
-    <p class="note">Cloud sync holds one current copy for your account. On another device, review and restore that copy before sending. A newer cloud copy is never silently overwritten.</p>
-    <button class="btn btn--quiet" onclick="reviewCloudSeason()" ${_syncReviewing || _syncDeleting || _accountDeleting ? "disabled" : ""}>${_syncReviewing ? "Loading your cloud copy…" : "Review or restore cloud season"}</button>
-    <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
-    ${Array.from({length: Math.max(0, preRestoreCount()-1)}, (_, k) => `<button class="btn btn--quiet" onclick="showPreRestoreCopy(${k+1})">Show the one before that${k ? " (" + (k+1) + ")" : ""}</button>`).join("")}
-    <div class="fld"><label for="syncLabel">Season copy name</label>
-      <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
+  + (canSync() ? sec("League sync", `<p class="lede">Keep your season with your account. ${S.syncOn ? "Sync is on." : "League sync is off until you turn it on."}</p>
+    <p class="note">Your full season is kept as one current copy on our account server, where Gridlock PB LLC's administrators can review it. This includes your team, schedule, plays, scouting and results — the same as <b>Save everything</b>. Your password is not included. You can pause sync or delete the saved copy.</p>
+    ${canFollowSeason() ? `<ol class="sync-steps" aria-label="Switch devices">
+      <li><b>Save here.</b> Turn on sync below. Tap <b>Sync now</b> and wait for <b>Saved to your account</b>.</li>
+      <li><b>Sign in there.</b> Use the same email on your other device.</li>
+      <li><b>Open your season.</b> Choose <b>Use my saved season</b>.</li></ol>` : ""}
     <div class="toggles">
       <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
-        S.syncOn?"Sending to my account":"Send my season to my account"}</button>
+        S.syncOn?"Pause sync":"Turn on sync"}</button>
     </div>
     ${S.syncOn ? `<div class="toggles">
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
       </div>
-      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}It also goes up on its own as you log, once you have signal.</p>` : ""}
+      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}New changes send automatically when you have a signal.</p>` : ""}
+    ${S.syncSaid ? `<p class="note" role="status" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}
+    ${canFollowSeason() ? `<p class="note">Already signed in on this device? Tap below to check for saved changes. If both copies changed, you choose which to use.</p>
+      <button class="btn" onclick="continueDeviceSeason()">Get saved season</button>
+      <details class="coach-terms"><summary>More backup options</summary><div class="sec__body">` : ""}
+    <button class="btn btn--quiet" onclick="reviewCloudSeason()" ${_syncReviewing || _syncDeleting || _accountDeleting ? "disabled" : ""}>${_syncReviewing ? "Loading your cloud copy…" : "Review or restore cloud season"}</button>
+    <button class="btn btn--quiet" onclick="showPreRestoreCopy()">Show season kept before restore</button>
+    ${canFollowSeason() ? `<button class="btn btn--quiet" onclick="showReplacedAccountSeason()">Show account season kept before replacement</button>` : ""}
+    ${Array.from({length: Math.max(0, preRestoreCount()-1)}, (_, k) => `<button class="btn btn--quiet" onclick="showPreRestoreCopy(${k+1})">Show the one before that${k ? " (" + (k+1) + ")" : ""}</button>`).join("")}
+    <div class="fld"><label for="syncLabel">Season copy name</label>
+      <input id="syncLabel" value="${esc(syncLabel())}" maxlength="60" onchange="setSyncLabel(this.value)"/></div>
     <button class="btn btn--danger" onclick="deleteSynced()">${S.syncOn ? "Stop and delete what I sent" : "Remove what I sent"}</button>
-    ${S.syncSaid ? `<p class="note" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}`,
+    ${canFollowSeason() ? "</div></details>" : ""}`,
     S.syncOn ? "On" : "Off") : "")
   + (window.gridlockCloud?.deleteAccount && readAccount().cloud ? sec("Delete account",`<p class="note">Permanently delete your Gridlock login and cloud season. This cannot be undone. Your local season and files you previously shared stay on those devices.</p><form onsubmit="event.preventDefault();deleteCloudAccount()"><div class="fld"><label for="deleteAccountPassword">Current password</label><input id="deleteAccountPassword" type="password" autocomplete="current-password" required></div><div class="fld"><label for="deleteAccountCode">Authenticator code, if enabled</label><input id="deleteAccountCode" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div><div class="fld"><label for="deleteAccountPhrase">Type DELETE MY ACCOUNT</label><input id="deleteAccountPhrase" autocomplete="off" required></div><button class="btn btn--danger" ${_accountDeleting?"disabled":""}>Delete my account permanently</button></form>`):"")
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
@@ -20012,12 +20196,12 @@ function shell(){
   const tabs=[["playbook","Playbook"],["tally","Tally"],["scout","Scout"],["sightlines","Sightlines"],["more","More"]];
   const blocked = gateKey();
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
-  const askSync = syncAskShown(), asking = askSync || !!S.fmtAsk;
-  const screenLabel = askSync ? "Back up your season" : asking ? "Match format"
+  const followSeason = deviceSeasonShown(), askSync = syncAskShown(), asking = followSeason || askSync || !!S.fmtAsk;
+  const screenLabel = followSeason ? "Continue your season" : askSync ? "Back up your season" : asking ? "Match format"
     : S.tab === "home" ? "Coach home" : S.tab === "more" ? MORE_TITLES[S.more] || "More tools"
     : S.tab === "scout" ? "Scout · " + (SCOUT_TABS.find(([k])=>k===(S.scoutTab || "matchup")) || [, "Matchup"])[1]
     : (tabs.find(([k])=>k===S.tab) || [, "Coaching"])[1];
-  const page = askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
+  const page = followSeason ? deviceSeasonPage() : askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
                        : {home:coachHome,playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
@@ -20478,7 +20662,7 @@ function render(){
   fixBreak();
   guardVoiceSession();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
-  const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, S.tab, S.more, S.scoutTab].join("|");
+  const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, deviceSeasonShown(), S.tab, S.more, S.scoutTab].join("|");
   const root = document.getElementById("root");
   const dirty = _screenDirty || screenChanged(_screenObserver.takeRecords());
   let html;
