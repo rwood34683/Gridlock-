@@ -35,6 +35,9 @@ const STEPS = [
   ["sends nothing", "fetch(c.worker.replace(", "previewSendsNothing(c.worker.replace("],
   ["sends nothing", "throw new Error('not a GRIDLOCK backup');",
     "throw new Error('not a GRIDLOCK backup');['gridlock_ghl','gridlock_crm','gridlock_tickets'].forEach(k=>{delete data.keys[k];});"],
+  // A backup belongs to the app that made it: a Team backup restored into Player put the coach's team there.
+  ["separate apps", "['gridlock_ghl','gridlock_crm','gridlock_tickets'].forEach(k=>{delete data.keys[k];});const n=",
+    "['gridlock_ghl','gridlock_crm','gridlock_tickets'].forEach(k=>{delete data.keys[k];});if(data.app&&data.app!==EDITION)throw new Error('that backup is from the Gridlock '+(data.app==='team'?'Team':data.app==='player'?'Player':'other')+' app, not this one');const n="],
   ["sends nothing", "function LICF(f){", "function previewSendsNothing(){return Promise.reject(new Error('This preview sends nothing.'));}\nfunction LICF(f){"],
   // No price, licence or subscription is sold from a preview, and nothing a
   // pasted key unlocks prints a modelled win percentage.
@@ -208,6 +211,18 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["rings", "<button class=\"ld\" id=\"tPointOver\" style=\"flex:1;border-color:#e0a41a;background:#3a2c08;color:#ffd24d;font-weight:700\">", "<button class=\"ld on\" id=\"tPointOver\" style=\"flex:1;font-weight:700\">"],
   ["rings", "<div class=\"iqrow\" style=\"border-color:#ffd24d66\"><div class=\"row\" style=\"justify-content:space-between;align-items:baseline;gap:6px\">", "<div class=\"iqrow\" style=\"border-color:#3a3f40\"><div class=\"row\" style=\"justify-content:space-between;align-items:baseline;gap:6px\">"],
   ["rings", "${days?`<div style=\"font-size:12px;font-weight:800;color:#ffd24d\">${days}</div>`:''}", "${days?`<div style=\"font-size:12px;font-weight:800;color:#ff5a52\">${days}</div>`:''}"],
+  // Coach, Team and Player are three apps: separate saved data, separate backups.
+  ["separate apps", "<head>\n", "<head>\n<script id=\"previewStore\">/* each preview keeps its own saved data: a key is stored under this app's own prefix */(function(){var P='gridlock_team_',S=Storage.prototype,g=S.getItem,s=S.setItem,r=S.removeItem,f=function(k){k=String(k);return k.indexOf('gridlock_')===0&&k.indexOf(P)!==0?P+k.slice(9):k;};S.getItem=function(k){return g.call(this,f(k));};S.setItem=function(k,v){return s.call(this,f(k),v);};S.removeItem=function(k){return r.call(this,f(k));};})();</script>\n", ["team"]],
+  ["separate apps", "<head>\n", "<head>\n<script id=\"previewStore\">/* each preview keeps its own saved data: a key is stored under this app's own prefix */(function(){var P='gridlock_player_',S=Storage.prototype,g=S.getItem,s=S.setItem,r=S.removeItem,f=function(k){k=String(k);return k.indexOf('gridlock_')===0&&k.indexOf(P)!==0?P+k.slice(9):k;};S.getItem=function(k){return g.call(this,f(k));};S.setItem=function(k,v){return s.call(this,f(k),v);};S.removeItem=function(k){return r.call(this,f(k));};})();</script>\n", ["player"]],
+  ["separate apps", "if(k&&k.indexOf('gridlock_')===0)data.keys[k]=localStorage.getItem(k);", "if(k&&k.indexOf('gridlock_'+EDITION+'_')===0)data.keys['gridlock_'+k.slice(('gridlock_'+EDITION+'_').length)]=localStorage.getItem(k);"],
+  ["separate apps", "const data={_gridlock_backup:1,ver:APP_VER,", "const data={_gridlock_backup:1,app:EDITION,ver:APP_VER,"],
+  ["separate apps", "a.download='gridlock-backup-'+new Date()", "a.download='gridlock-'+EDITION+'-backup-'+new Date()"],
+  ["separate apps", "<button class=\"ld ${sightMode==='ref'?'on':''}\" data-sm=\"ref\">Ref sightlines</button>", "", ["player"]],
+  ["truthful copy", "You\\u2019re on your coach\\u2019s team, so your coach can see your Practice tab", "Nothing leaves this phone in this preview, so your coach sees your Practice tab only if you send it"],
+  ["no sends", "<a href=\"https://www.youtube.com/watch?v=${v.id}\" target=\"_blank\" rel=\"noopener\" class=\"ld\" style=\"flex:1;display:flex", "<div class=\"ld\" style=\"flex:1;display:flex"],
+  ["no sends", "`).join('')}`:''}</span></a>", "`).join('')}`:''}<br><span style=\"font-size:10.5px;color:#ff5a52\">Video links are not in this preview</span></span></div>"],
+  ["no sends", "<a href=\"${prEsc(u)}\" target=\"_blank\" rel=\"noopener\" class=\"ld\" style=\"display:flex;gap:8px", "<div class=\"ld\" style=\"display:flex;gap:8px"],
+  ["no sends", "<span>${prEsc(t)}</span></a>`).join('');}", "<span>${prEsc(t)}<br><span style=\"font-size:10.5px;color:#ff5a52\">Links are not in this preview</span></span></div>`).join('');}"],
 ];
 
 // Regex steps: [rule, pattern, replacement].

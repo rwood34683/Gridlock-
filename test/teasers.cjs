@@ -65,6 +65,21 @@ for (const kind of ["team", "player"]) {
   check(`${kind}: 44 px targets and names for every control`, h.includes('id="previewFit"') && h.includes('id="previewNames"'));
 }
 const coach = ["web/index.html", "site/index.html", "scripts/build.js", "scripts/build-app-artifact.js"];
+// Coach, Team and Player are three apps (audit of 12 Nov 2026).
+for (const [kind, name] of [["team", "Team"], ["player", "Player"]]) {
+  const h = rd(`teasers/${kind}/index.html`), other = kind === "team" ? "player" : "team";
+  check(`${kind}: saved data is kept under this app's own prefix`, h.includes(`<script id="previewStore">`) && h.includes(`var P='gridlock_${kind}_'`) && !h.includes(`var P='gridlock_${other}_'`));
+  check(`${kind}: a backup says which app made it, and another app's is refused`, h.includes("{_gridlock_backup:1,app:EDITION,") && h.includes("if(data.app&&data.app!==EDITION)throw new Error(") && h.includes("a.download='gridlock-'+EDITION+'-backup-'"));
+  check(`${kind}: a backup holds only this app's keys`, h.includes("k.indexOf('gridlock_'+EDITION+'_')===0") && !h.includes("if(k&&k.indexOf('gridlock_')===0)data.keys[k]"));
+  check(`${kind}: installs under its own home-screen name`, h.includes(`<meta name="apple-mobile-web-app-title" content="GL ${name}"/>`)
+    && JSON.parse(Buffer.from(/href="data:application\/manifest\+json;base64,([A-Za-z0-9+/=]+)"/.exec(h)[1], "base64").toString("utf8")).short_name === `GL ${name}`);
+  check(`${kind}: no video or web link row opens a page outside the preview`, !/<a href="https?:/i.test(h) && !h.includes('<a href="${prEsc(u)}"'));
+}
+{
+  const h = rd("teasers/player/index.html");
+  check("player: no referee sightline tool, which pointed at a locked tab", !h.includes('data-sm="ref"'));
+  check("player: does not claim the coach can see Practice", !/your coach can see your Practice tab/.test(h) && h.includes("Nothing leaves this phone in this preview"));
+}
 check("the coach app, site and builds never load the previews", coach.every(f => !rd(f).includes("teasers/")));
 const site = rd("site/index.html");
 check("the landing page teases both apps", /id="coming"/.test(site) && site.includes("Gridlock Team") && site.includes("Gridlock Player"));
