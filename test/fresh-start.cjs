@@ -80,6 +80,24 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    const box=await p.locator("#tally-opp").boundingBox();assert.ok(box,"the prompt is drawn");
    assert.ok(box.y>=0&&box.y+Math.min(box.height,120)<=height,"the prompt is on screen: "+JSON.stringify(box));
   });
+  await check("New match after a watched game with nothing logged starts blank, not against the away side",async p=>{
+   const r=await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;set({tab:"more",more:"schedule"});const g=allGames()[0];watchGame(g.id);
+    const before={watch:!!curMatch().watch,left:S.left.name,right:S.right.name,n:S.matches.length,empty:sheetEmpty(curMatch())};freshMatch();
+    return {before,vs:matchVs(),left:pitNamed("left"),right:pitNamed("right"),watch:!!curMatch().watch,n:S.matches.length,flash:S.flash};});
+   assert.equal(r.before.watch,true);assert.equal(r.before.empty,true);assert.ok(r.before.left&&r.before.right);
+   assert.equal(r.vs,"");assert.equal(r.left,false);assert.equal(r.right,false);assert.equal(r.watch,false);
+   assert.equal(r.n,r.before.n,"the empty watched sheet is replaced");assert.doesNotMatch(r.flash,/kept under/,"nothing was kept, so it does not say so");
+   assert.match(await p.evaluate(()=>document.getElementById("root").innerText),/Who are you playing\?/i);
+  });
+  await check("a message raised while the breakout sheet is open stands clear of Save",async p=>{
+   await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;set({tab:"tally",right:{name:"Dynasty"}});newMatch();
+    const b=curLayout().bunkers.filter(b=>b.x<60);tallyStepTo("place");tallyTap([b[3].x,b[3].y]);tallyTap([b[5].x,b[5].y]);tallyStepTo("record");
+    setDraft({player:S.roster[0].name,alive:true});logBreakout();setDraft({player:S.roster[0].name,alive:false});logBreakout();});
+   await p.waitForTimeout(300);
+   const f=await p.locator("#root .flash").boundingBox(),act=await p.locator("#root .tsheet__act").first().boundingBox();
+   assert.ok(f,"the refusal is on screen");assert.ok(act,"the sheet is still open");
+   assert.ok(f.y+f.height<=act.y||f.y>=act.y+act.height,"the message does not sit over the action bar: "+JSON.stringify({f,act}));
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} fresh-start checks passed.`);if(failed)process.exit(1);
 })();

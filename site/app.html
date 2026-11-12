@@ -15897,7 +15897,10 @@ window.backPoint = () => {
 // does not already hold a different, next team.
 function newMatchBlank(){
   const cur = curMatch();
-  return !!cur && !sheetEmpty(cur) && (!!cur.watch || !pitNamed("right") || foldName(cur.vs) === foldName(S.right.name));
+  // A watched game is two teams he never picked as an opponent: New match
+  // after it starts blank even when nothing was logged, or the away side in
+  // the right pit became the team he "plays".
+  return !!cur && (!!cur.watch || (!sheetEmpty(cur) && (!pitNamed("right") || foldName(cur.vs) === foldName(S.right.name))));
 }
 window.newMatch = () => {
   // The opponent is stamped on every out this sheet records, so it has to be a
@@ -15924,12 +15927,13 @@ window.newMatch = () => {
 window.freshMatch = () => {
   if(!newMatchBlank()) return window.newMatch();
   if(!gameGuard()) return;
-  const was = matchLabel(curMatch());
+  // An empty sheet is replaced, not kept: say "kept" only about one that is.
+  const was = sheetEmpty(curMatch()) ? "" : matchLabel(curMatch());
   S.left = {}; S.right = {}; S.arrival = {}; S.voice = {};
   openSheet({vs: ""});
   S.tab = "tally"; S.quick = false;
   save(S); render();
-  flash(`New sheet. ${was} is kept under More › Matches. Pick who you play.`);
+  flash(was ? `New sheet. ${was} is kept under More › Matches. Pick who you play.` : "New sheet. Pick who you play.");
   // The button sits low on Tally: without this the prompt it leads to was
   // left above the screen.
   toMainTop();
@@ -20761,7 +20765,7 @@ function shell(){
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs" aria-label="Main screens">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}"${S.tab===k ? ' aria-current="page"' : ""} onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
-    ${S.flash ? `<div class="flash${resultBarShown() ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
 }
