@@ -7040,6 +7040,30 @@ function alignSheet(id){
   if(moving.length){ n += moving.length; book[m.vs] = {...profileOf(m.vs), breaks: [...moving, ...(profileOf(m.vs).breaks || [])]}; S.scout = book; }
   return n;
 }
+/* What was seen of a man follows the man. Both phones chart Reyes on point 1,
+ * the other phone taps Shooting in his popup, and the merge keeps this
+ * phone's row for him: the observation stayed bound to the row that went, so
+ * nothing read it and Reyes was "Not recorded". A check whose row is gone
+ * moves to the row kept for the same man on that point — his name, or for a
+ * man nobody named, his bunker — and one with no such row is dropped. */
+function rebindChecks(before){
+  const live = new Map((S.breakouts || []).filter(r => r && r.id).map(r => [r.id, r]));
+  const bound = new Set((S.playerChecks || []).filter(c => c && c.breakoutId && live.has(c.breakoutId)).map(c => c.breakoutId));
+  S.playerChecks = (S.playerChecks || []).map(c => {
+    if(!c || !c.breakoutId || live.has(c.breakoutId)) return c;
+    const was = before.get(c.breakoutId); if(!was) return null;
+    const same = r => r.m === was.m && r.pt === was.pt && r.side === was.side
+      && (was.player ? foldName(r.player) === foldName(was.player) : !r.player && r.bunker === was.bunker);
+    const kept = [...live.values()].filter(same), to = kept.find(r => !bound.has(r.id)) || kept[0];
+    if(!to) return null;
+    bound.add(to.id);
+    return {...c, breakoutId: to.id, player: to.player || ""};
+  }).filter(Boolean);
+  // The same sheet merged again brings the same check, bound to the row that
+  // went: moved again, it is the check this phone already holds.
+  const ids = new Set();
+  S.playerChecks = S.playerChecks.filter(c => !c || !c.id || (ids.has(c.id) ? false : (ids.add(c.id), true)));
+}
 function reconcileSheet(mid){
   let dupes = 0;
   const keepFirst = (list, keyOf) => {
@@ -7428,6 +7452,7 @@ window.loadCopy = (mode, suppliedText) => {
     if(teamsNow.length) S.copyStatus += ` · teams renamed: ${teamsNow.join(", ")}`;
     // The renames above rebuilt rows, so this phone's rows are told from the
     // copy's by id (rowKey), not by being the same objects they were.
+    const chartBefore = new Map((S.breakouts || []).filter(r => r && r.id).map(r => [r.id, r]));
     let dupes = overlapRows(shared, mineBefore);
     // A man placed on one phone and told on the other is the told man. Same
     // row (one phone placed him, sent the sheet, the other told him): the
@@ -7503,6 +7528,7 @@ window.loadCopy = (mode, suppliedText) => {
     // moved · 5 things kept once" read as if something had happened.
     if(aligned) countNotes.push(` · ${aligned} ${aligned === 1 ? "row" : "rows"} the other phone had under another team moved to the team the sheet is against here`);
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
+    rebindChecks(chartBefore);
     if(dupes) countNotes.push(` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`);
     clashes.forEach((pts, id) => {
       const m = matchById(id); const list = [...new Set(pts)].sort((a, b) => a - b);
@@ -10920,6 +10946,9 @@ window.playerDetailOut = dead => {
 window.playerQuick = (field, value) => {
   const v = playerDetailData(); if(!v || !v.live) return closePlayerDetails();
   if(!["alive","shooting","diving"].includes(field) || typeof value !== "boolean") return;
+  // With nobody across the tape an observation was written onto the unnamed
+  // sheet: it stopped being blank, and picking the team no longer named it.
+  if(nobodyToPlay()){ closePlayerDetails(); return needOpponent(); }
   const now = performance.now();
   if(field !== "alive" && _playerTap?.field===field && now-_playerTap.at<350) return;
   _playerTap = {field,at:now};
@@ -15048,6 +15077,12 @@ function openSheet(fields){
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
   S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
+  // How did they get there and the Voice log remember the team they were last
+  // pointed at. On a sheet against somebody else that team was still picked,
+  // and one Record stamped the old team on the new sheet and renamed it.
+  const onIt = [fields && fields.vs, fields && fields.home, fields && fields.away].filter(Boolean).map(foldName);
+  if(S.arrival && S.arrival.team && !onIt.includes(foldName(S.arrival.team))) S.arrival = {};
+  if(S.voice && S.voice.team && !onIt.includes(foldName(S.voice.team))) S.voice = {};
   // A new sheet starts clean: a read ticked or a sheet half-filled on the
   // old one must not land on this one's first point.
   clearPointScratch();
