@@ -35,6 +35,10 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
   await check("season, event and layout dropdowns preview a field before applying it",async p=>{
    await p.locator("button.ctx__ev").click();
    assert.equal(await p.getByLabel("Season",{exact:true}).inputValue(),"2026");
+   assert.equal(await p.getByLabel("Event",{exact:true}).inputValue(),"","opens on Pick your event…");
+   assert.equal(await p.locator("#event-name option").first().textContent(),"Pick your event…");
+   await p.getByRole("button",{name:"Use layout",exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.layoutKey),"lso","the default moves nothing");
    await p.getByLabel("Event",{exact:true}).selectOption("NXL World Cup · Kissimmee");
    assert.equal(await p.getByLabel("Layout",{exact:true}).inputValue(),"nwc");
    assert.equal(await p.evaluate(()=>S.layoutKey),"lso","browsing never moves the field");
@@ -54,7 +58,7 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.getByLabel("Layout",{exact:true}).selectOption("oldB");await p.getByRole("button",{name:"Use layout",exact:true}).click();
    assert.equal(await p.evaluate(()=>S.layoutKey),"oldB");
    await p.locator("button.ctx__ev").click();await p.getByLabel("Season",{exact:true}).selectOption("Season not recorded");
-   assert.deepEqual(await p.locator("#event-name option").allTextContents(),["Choose event","Undated field"]);
+   assert.deepEqual(await p.locator("#event-name option").allTextContents(),["Pick your event…","Undated field"]);
   });
   await check("changing to an older layout leaves an already scored match on its field",async p=>{
    const before=await p.evaluate(()=>{openSheet({vs:"Fixture"});endPoint("us");return{match:curMatch().id,field:curMatch().layout,results:JSON.stringify(S.results)};});

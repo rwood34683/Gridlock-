@@ -246,6 +246,12 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["player home", "  show('practicebox',m==='practice');", "  show('practicebox',m==='practice');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["player"]],
   ["player home", "EDITION==='player'?'tally':'play');", "EDITION==='player'?'home':'play');", ["player"]],
   ["player home", "const ORDER=EDITION==='player'?['tally','scout','sight','walk']:[];", "const ORDER=EDITION==='player'?['home','tally','scout','sight','walk']:[];", ["player"]],
+  // The field list opens on "Pick your event…" (owner, 12 Nov 2026): a first
+  // choice that is not a field, shown until the player picks one. The field
+  // on screen stays drawn meanwhile; picking the default moves nothing.
+  ["pick your event", "function refreshLayoutPicker(){", "let layoutPicked=false;\nfunction refreshLayoutPicker(){", ["player"]],
+  ["pick your event", "s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${k===layoutKey?' selected':''}>", "s.innerHTML=`<option value=\"\" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${layoutPicked&&k===layoutKey?' selected':''}>", ["player"]],
+  ["pick your event", "if(ls)ls.onchange=()=>setLayout(ls.value);", "if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};", ["player"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].

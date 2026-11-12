@@ -2960,8 +2960,11 @@ function layoutChoices(){
   });
 }
 function eventChoice(){
+  // The picker opens on "Pick your event…" in the current season: the event is
+  // the coach's choice, never preselected, and nothing moves until Use layout.
   const rows = layoutChoices(), current = rows.find(r => r.key === S.layoutKey) || rows[0];
-  return _eventChoice && rows.some(r => r.season === _eventChoice.season) ? _eventChoice : current;
+  if(_eventChoice && rows.some(r => r.season === _eventChoice.season)) return _eventChoice;
+  return current ? {season:current.season, event:"", key:""} : null;
 }
 window.openEventPicker = () => { _eventChoice = null; set({evPick:!S.evPick}); };
 window.pickEventSeason = value => {
@@ -2990,7 +2993,7 @@ function eventPicker(){
   const layouts = rows.filter(r => r.season === chosen.season && r.event === chosen.event);
   return `<div class="evpick" role="group" aria-label="Pick the event">
     <div class="fld"><label for="event-season">Season</label><select id="event-season" onchange="pickEventSeason(this.value)">${seasons.map(v => `<option value="${esc(v)}"${v === chosen.season ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
-    <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Choose event</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
   </div>`;

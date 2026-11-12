@@ -217,6 +217,24 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 12 Nov 2026: the field list opens on "Pick your event…", a choice
+ // that is not a field; the field stays drawn and every event stays listed.
+ await check("player: the field list opens on Pick your event…, and picking one moves the field",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   const sel=p.locator("#layoutSel"),first=await sel.locator("option").first();
+   assert.equal(await first.textContent(),"Pick your event\u2026");assert.equal(await first.isDisabled(),true,"the default is not a field");
+   assert.equal(await sel.evaluate(s=>s.selectedOptions[0].textContent),"Pick your event\u2026","shown until one is picked");
+   const keys=await p.evaluate(()=>Object.keys(LAYOUTS));assert.equal(await sel.locator("option").count(),keys.length+1,"every event stays listed");
+   assert.ok(await p.evaluate(()=>!!LAYOUTS[layoutKey]),"a field is still drawn");
+   const other=keys.find(k=>k!==(keys.includes("nwc")?"nwc":keys[0]));await sel.selectOption(other);
+   assert.equal(await p.evaluate(()=>layoutKey),other,"picking an event moves the field");
+   assert.equal(await sel.inputValue(),other,"the picked event shows");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });

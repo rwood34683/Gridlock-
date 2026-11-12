@@ -427,7 +427,8 @@ function autoCalibrate(imgEl){
   }catch(e){return null;}
 }
 const EDITTYPES=[['BD','dorito'],['SD','dorito'],['T','temple'],['A','temple'],['MB','can'],['CK','cake'],['C','can'],['P','ballR'],['WM','mw'],['SB','beam'],['GB','towerbig'],['GW','tower'],['SW','wing'],['GP','plus']];
-function refreshLayoutPicker(){const s=document.getElementById('layoutSel');if(!s)return;s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value="${k}"${k===layoutKey?' selected':''}>${LAYOUTS[k].name}${LAYOUTS[k].full&&!LAYOUTS[k].measured?' ✎':''}</option>`).join('');}
+let layoutPicked=false;
+function refreshLayoutPicker(){const s=document.getElementById('layoutSel');if(!s)return;s.innerHTML=`<option value="" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value="${k}"${layoutPicked&&k===layoutKey?' selected':''}>${LAYOUTS[k].name}${LAYOUTS[k].full&&!LAYOUTS[k].measured?' ✎':''}</option>`).join('');}
 function setLayout(k){if(!LAYOUTS[k])return;
   if(typeof EDITION!=='undefined'&&(EDITION==='scout'||EDITION==='coach')&&k!==FREE_LAYOUT&&!LICF('layouts')){upsellPop('Layout packs \u2014 every event field, \u00b11 ft','The current event layout is free. Season license unlocks every event pack as it drops (within 24h of the official map) plus the map-trace editor for your own fields.','scout');refreshLayoutPicker();return;}layoutKey=k;BUN=bunOf(k);editMode=false;editRaw=[];editSel=-1;sightSel=-1;sightRef=null;const s=document.getElementById('evsub');if(s)s.textContent=LAYOUTS[k].name+(LAYOUTS[k].sub?' · '+LAYOUTS[k].sub:'');refreshLayoutPicker();draw();}
 
@@ -2686,7 +2687,7 @@ var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, 
 function homeNow(m){try{
   if(m==='tally'&&typeof SH!=='undefined'){const mt=SH.matches.find(x=>x.id===SH.matchId);if(mt&&mt.vs){const s=cpScore(mt.id);return 'vs '+mt.vs+' · point '+SH.point+' · '+s.us+'–'+s.them;}return 'No match yet. Pick who you play.';}
   if(m==='scout'){const t=typeof cpPit==='function'?cpPit():'';return t?'Who you play: '+t:'Pick who you play in the right pit.';}
-  if(m==='sight'||m==='walk'){const ev=document.querySelector('header select');return ev&&ev.selectedOptions[0]?ev.selectedOptions[0].textContent:'';}
+  if(m==='sight'||m==='walk'){const l=typeof LAYOUTS!=='undefined'&&typeof layoutKey!=='undefined'?LAYOUTS[layoutKey]:null;return l?l.name:'';}
   }catch(e){}return '';}
 function homeItems(){const out=[],seen=new Set();
   document.querySelectorAll('.tabs button').forEach(b=>{const m=b.dataset.m;if(!m||m==='home'||b.id==='moreBtn'||b.style.display==='none'||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),open:()=>b.click()});});
@@ -5022,7 +5023,7 @@ function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='w
   draw();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{editMode=false;setMode(b.dataset.m);});
-{const ls=document.getElementById('layoutSel');if(ls)ls.onchange=()=>setLayout(ls.value);}
+{const ls=document.getElementById('layoutSel');if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};}
 refreshLayoutPicker();
 {const zb=document.getElementById('zoneBtn');if(zb)zb.onclick=()=>{zcMode=!zcMode;zcCorner=null;zcSel=null;if(zcMode)editMode=false;zb.classList.toggle('on',zcMode);zb.textContent='\u25a6 Zones: '+(zcMode?'on':'off');if(!zcMode&&svg)svg.onclick=null;if(MODE!=='play')setMode('play');else draw();};}
 {const eb=document.getElementById('editBtn');if(eb)eb.onclick=()=>{if(typeof EDITION!=='undefined'&&EDITION==='scout'&&!LICF('layouts')){upsellPop('Map-trace layout editor','Trace any official schematic into a coordinate-exact layout. Part of the Scout season license.','scout');return;}editMode=!editMode;if(editMode){if(!editRaw.length)editRaw=bunOf(layoutKey);editSaveName=LAYOUTS[layoutKey]?LAYOUTS[layoutKey].name:'';setMode('play');}else{if(svg)svg.onclick=null;}draw();};}

@@ -135,7 +135,10 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 - Changing the event changes the layout on every tab.
 - The event picker is Season → Event → Layout. It lists saved layouts,
   including older events; years come from recorded metadata, never the clock.
-  Browsing a selection does not change the field until Use layout. Played
+  Browsing a selection does not change the field until Use layout. The Event
+  list opens on "Pick your event…" (owner, 12 Nov 2026), never a preselected
+  event; the Player preview's header field list leads with the same choice,
+  shown until one is picked, while the field stays drawn. Played
   sheets keep their field. Custom fields with no season say Your fields.
 - After a coach signs in, the backup and format questions still come first,
   then Home opens when the current sheet is empty; an active match resumes.

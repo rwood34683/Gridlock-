@@ -22,7 +22,7 @@ var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, 
 function homeNow(m){try{
   if(m==='tally'&&typeof SH!=='undefined'){const mt=SH.matches.find(x=>x.id===SH.matchId);if(mt&&mt.vs){const s=cpScore(mt.id);return 'vs '+mt.vs+' · point '+SH.point+' · '+s.us+'–'+s.them;}return 'No match yet. Pick who you play.';}
   if(m==='scout'){const t=typeof cpPit==='function'?cpPit():'';return t?'Who you play: '+t:'Pick who you play in the right pit.';}
-  if(m==='sight'||m==='walk'){const ev=document.querySelector('header select');return ev&&ev.selectedOptions[0]?ev.selectedOptions[0].textContent:'';}
+  if(m==='sight'||m==='walk'){const l=typeof LAYOUTS!=='undefined'&&typeof layoutKey!=='undefined'?LAYOUTS[layoutKey]:null;return l?l.name:'';}
   }catch(e){}return '';}
 function homeItems(){const out=[],seen=new Set();
   document.querySelectorAll('.tabs button').forEach(b=>{const m=b.dataset.m;if(!m||m==='home'||b.id==='moreBtn'||b.style.display==='none'||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),open:()=>b.click()});});

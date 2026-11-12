@@ -5375,7 +5375,8 @@ const ROSTER = [
     const stayed = S.layoutKey === was && S.evPick;
     const opts = [...document.querySelectorAll("#root .evpick select")];
     const listed = layoutChoices().length === keys.length && opts.length === 3
-      && document.getElementById("event-layout").value === was
+      && document.getElementById("event-name").value === "" && document.getElementById("event-layout").value === ""
+      && document.querySelector("#event-name option").textContent === "Pick your event\u2026"
       && opts.every(b => b.getBoundingClientRect().height >= 44);
     const other = keys.find(k => k !== was);
     const choice = layoutChoices().find(r => r.key === other);
