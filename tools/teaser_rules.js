@@ -22,6 +22,8 @@ const STEPS = [
   ["truthful practice sharing", "You\\u2019re on your coach\\u2019s team, so your coach can see your Practice tab \\u2014 every drill you\\u2019ve logged, your growth, and where you\\u2019re at on Coach\\u2019s Corner. Make a code and send it to your coach.",
     "Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified."],
   ["truthful practice sharing", "Their Practice tab as of ${pgAgo(p.ts)} \\u00b7 read-only", "Self-reported snapshot from ${pgAgo(p.ts)} \\u00b7 all shared sessions \\u00b7 not coach-verified"],
+  ["practice stays local", "Nothing is sent automatically. This code includes all your practice sessions",
+    "Nothing leaves this phone in this preview unless you share it. Nothing is sent automatically. This code includes all your practice sessions"],
   // Independent review: compact tendency buttons need width as well as height.
   ["targets", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px}", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px;min-width:44px}"],
   ["targets", '.stars{font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:4px}.stars b{color:#ffd33a}.stars span{color:#f04a44}',

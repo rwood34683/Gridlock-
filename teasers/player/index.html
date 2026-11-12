@@ -4675,7 +4675,7 @@ function pgAgo(ts){const m=Math.round((Date.now()-ts)/60000);return m<60?(m<1?'j
 /* player: share view */
 function pgShareHTML(){const t=teamGet()||{},C=ccGet();let ros=(C.roster||[]);
   let h=`<div class="iqrow" style="border-color:#2a7a4f"><div class="iqcat" style="color:#3ddc84">SHARE WITH YOUR COACH</div>
-    <div style="font-size:12px;color:#efedeb;margin:3px 0 6px">Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified.</div>
+    <div style="font-size:12px;color:#efedeb;margin:3px 0 6px">Nothing leaves this phone in this preview unless you share it. Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified.</div>
     <div class="row" style="gap:5px;flex-wrap:wrap"><span style="font-size:11px;color:#ff5a52">I\u2019m</span>${ros.length?`<select id="pgMe" style="flex:1 1 130px"><option value="">pick your name</option>${ros.map(p=>`<option ${t.me===p?'selected':''}>${prEsc(p)}</option>`).join('')}</select>`:`<input id="pgMeIn" placeholder="your name" value="${prEsc(t.me||'')}" style="flex:1 1 130px">`}</div>
     <div class="row" style="gap:5px;margin-top:6px"><button class="ld on" id="pgMake">Make code</button></div><div id="pgOutWrap"></div><div id="pgMsg" style="font-size:11px;color:#ff9a8a;margin-top:3px"></div></div>`;
   return h;}
