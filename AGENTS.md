@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Recording feedback, 11 November**: `docs/RECORDING-NOTES-2026-11-11.md` covers all three Pocket recordings and distinguishes existing PRs from undecided pricing and permissions.
+  Player Practice logs measured results, shows the chart immediately, and can start a fresh chart while keeping history. Results and manual shares stay self-reported.
+
 - **Player status at a glance**: Tally and Scout show the current point's recorded Alive/Dead, Shooting and Diving beside each player; missing status stays unknown. The popup reads the newest matching check, as percentages do.
 - **Team and Player previews** stay separate in `teasers/`; never load them from coach builds or use `gridlock.coach.*` keys.
   After changing measured fields, `BREAK_PLANTS` or the team board, run `node tools/teaser_fields.js` and `node tools/teaser_rules.js`; commit regenerated previews and never hand-edit the coachfields/coachwalk blocks.

@@ -1434,6 +1434,19 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
     `test/fresh-start.cjs`.
 
+87. **Player practice results, not session numbers.** The 11 November Pocket
+    recordings are indexed in `docs/RECORDING-NOTES-2026-11-11.md`. Practice in
+    the separate Player preview labels the drill's unit, numbers sessions for
+    the player, validates counts/times/ratings/dates and opens the recorded
+    drill's chart immediately after a confirmed local save. Hit drills keep
+    their fixed denominator: 1 of 10 is 10%, never a bare invented percentage.
+    Starting a fresh chart archives earlier entries after a second tap; history,
+    full backups and manual practice shares retain them. Restoring the chart
+    does not duplicate entries. Never claim an immutable audit or coach
+    verification from local data or a typed team code. Sharing is an explicit
+    manual snapshot, not automatic team access. No price or permissions change
+    is authorized by these recordings. `test/practice-sessions.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player
