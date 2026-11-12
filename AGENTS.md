@@ -43,6 +43,8 @@ the same page:
 - **Tally and Scout keep the field in view.** Coach's empty sheet shows the field below its opponent picker; Scout's full team cards sit below its field. Compact Tally keeps a reference field. Player returns to the field when opening Tally/Scout and fits it on landscape tablets. Generate its layout wrapper from `tools/teaser_field_view.js` through `node tools/teaser_rules.js`; never reset teams or recorded points to fix a view.
 - **Player's Clear team** clears a selected Tally/Scout opponent, not the joined team.
   It preserves saved history; `tools/teaser_selection.js` is its generated source.
+- **Scout field ends**: every Scout view has Switch ends and Swap every point
+  beside its match controls, with both teams' ends named and earlier points preserved.
 
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
