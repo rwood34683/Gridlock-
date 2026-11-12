@@ -60,13 +60,13 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    const was=await play(p,{points:1,ago:60000});
    await p.evaluate(()=>{setPitTeam("right",teamsHere().find(t=>t.name!=="Dynasty").name);});
    const next=await p.evaluate(()=>S.right.name);assert.notEqual(next,"Dynasty");
-   await p.evaluate(()=>newMatch());const s=await now(p);
+   await p.evaluate(()=>freshMatch());const s=await now(p);
    assert.notEqual(s.id,was.id);assert.equal(s.vs,next);assert.equal(s.right,true);assert.ok(s.ids.includes(was.id));assert.equal(s.results,was.results);
   });
   await check("New match with the pit cleared on a played sheet starts blank; on a blank sheet it asks for the team",async p=>{
-   const was=await play(p,{points:1,ago:60000});await p.evaluate(()=>{S.right={};save(S);newMatch();});let s=await now(p);
+   const was=await play(p,{points:1,ago:60000});await p.evaluate(()=>{S.right={};save(S);freshMatch();});let s=await now(p);
    assert.notEqual(s.id,was.id);assert.equal(s.vs,"");assert.ok(s.ids.includes(was.id));
-   await p.evaluate(()=>newMatch());const t=await now(p);assert.equal(t.id,s.id,"no second blank sheet");assert.equal(t.matches,s.matches);
+   await p.evaluate(()=>freshMatch());const t=await now(p);assert.equal(t.id,s.id,"no second blank sheet");assert.equal(t.matches,s.matches);
    assert.match(t.root,/Pick the team you play next first/);
   });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}

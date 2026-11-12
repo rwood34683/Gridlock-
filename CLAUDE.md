@@ -1425,10 +1425,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     - An unfinished match always resumes as it was, however old. Never infer
       that it was abandoned, at launch, at sign-in or anywhere else.
     - A finished match stays on screen with New match leading.
-    - **New match** on a played sheet starts blank (`newMatchBlank()`): both
+    - The **New match** button (`freshMatch()`) on a played sheet starts blank
+      (`newMatchBlank()`): both
       pits cleared, an unnamed sheet, Tally on "Who are you playing?". If he
       has already put a different, next team in the right pit, it starts
-      against them as before.
+      against them as before. A button that names the team ("Start a match
+      vs Dynasty") is his pick and still calls `newMatch()`.
     - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
     `test/fresh-start.cjs`.
 

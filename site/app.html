@@ -15333,7 +15333,7 @@ function tally(){
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
     <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Quick log</button>
-    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="freshMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
   ${sec("Where the points come from", value.length && !S.tallyValueOpen
@@ -15698,7 +15698,7 @@ window.tapBack = () => {
 // on a finished sheet that is New match: a reflex double tap closed the sheet.
 window.tapNewMatch = () => {
   if(inGuard()){ _lastEnd = {..._lastEnd, at: 0}; return flash("That point ended the match. Tap New match again to start the next sheet."); }
-  window.newMatch();
+  window.freshMatch();
 };
 // Next point redraws in the same place, so a double tap skipped two points.
 let _lastNext = null;
@@ -15848,24 +15848,29 @@ window.newMatch = () => {
   // throwing a system alert and bouncing to Scout.
   // Tally opens on who-are-you-playing; with the pit cleared on a named sheet
   // that gate stays hidden, so the reason is said either way.
-  // A sheet that was played is closed with its opponent. New match on it
-  // starts blank — nobody in either pit, Tally asking who he plays — unless he
-  // has already put the next team in the right pit. The sheet he leaves is
-  // kept whole under Matches; an unfinished one is never closed for him, at
-  // launch or anywhere else: only this button does it.
-  const cur = curMatch(), played = !!cur && !sheetEmpty(cur), sameTeam = newMatchBlank();
-  if(!pitNamed("right") && !played){ set({tab:"tally"}); return flash("Pick the team you play next first — New match starts the sheet against them."); }
+  if(!pitNamed("right")){ set({tab:"tally"}); return flash("Pick the team you play next first — New match starts the sheet against them."); }
   if(!gameGuard()) return;   // the one question, asked by New match and the Schedule alike
-  if(sameTeam){
-    const was = matchLabel(cur);
-    S.left = {}; S.right = {}; S.arrival = {}; S.voice = {};
-    openSheet({vs: ""});
-    S.tab = "tally"; S.quick = false;
-    save(S); render();
-    return flash(`New sheet. ${was} is kept under More › Matches. Pick who you play.`);
-  }
   openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
+};
+/* The New match button.
+ *
+ * A sheet that was played is closed with its opponent: the button starts
+ * blank — nobody in either pit, Tally asking who he plays — unless he has
+ * already put a different, next team in the right pit, when it starts against
+ * them. The sheet he leaves is kept whole under Matches. An unfinished sheet
+ * is never closed for him, at launch or anywhere else: only this button does
+ * it. A button that names the team ("Start a match vs Dynasty") is his pick,
+ * and goes straight to newMatch(). */
+window.freshMatch = () => {
+  if(!newMatchBlank()) return window.newMatch();
+  if(!gameGuard()) return;
+  const was = matchLabel(curMatch());
+  S.left = {}; S.right = {}; S.arrival = {}; S.voice = {};
+  openSheet({vs: ""});
+  S.tab = "tally"; S.quick = false;
+  save(S); render();
+  flash(`New sheet. ${was} is kept under More › Matches. Pick who you play.`);
 };
 /* The one door every new sheet opens through — New match, Watch this game and
  * We play on the Schedule. Three things happen here and used to happen in one
@@ -16407,7 +16412,7 @@ function matchStrip(){
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()">Next point</button>`}
-    <button class="btn" onclick="newMatch()">New match</button>
+    <button class="btn" onclick="freshMatch()">New match</button>
   </div>${/* A game watched off the fence is charted on Scout, and its points were
         scored only on Tally: a tab and back every point. The two named
         result buttons ride here on a watched sheet, through the same guard. */""}${
@@ -20054,7 +20059,7 @@ function moreBody(k){
           `<option value="${esc(n)}"${n === matchVs() ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
         <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("this.blur()")}/>
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
-      <button class="btn btn--block" onclick="newMatch()">${
+      <button class="btn btn--block" onclick="freshMatch()">${
         newMatchBlank()?"New match — pick who you play":pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       ${sheetSize(curMatch()) ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="sendSheet()">Send this sheet to another coach</button>
       <p class="note">Two phones on one match — one on the tally, one charting off the fence: send the sheet, he taps
