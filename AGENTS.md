@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Rules** is in Coach's More dashboard and the Team/Player preview headers.
+  `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
+
 - **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.
 
 - **Player status at a glance**: Tally and Scout show the current point's recorded Alive/Dead, Shooting and Diving beside each player; missing status stays unknown. The popup reads the newest matching check, as percentages do.

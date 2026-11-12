@@ -19,7 +19,8 @@ the phone bar. No automatic tutorial or invented metrics. Active match sign-in
 and reload resume the screen already in use.
 
 Claude's separate preview/audit changes are preserved. This branch starts from
-main c857c5738f7af4580c61d477e3e5c8c96d1ce04e and does not replace Claude's
+main c857c5738f7af4580c61d477e3e5c8c96d1ce04e and includes main's PR #335
+merge, 892c5939fc7747bebeef7dde5c9d73ceb5afae1f. It does not replace Claude's
 branch or publish its previews. Synchronization requires bringing the reviewed
 PRs together, rebuilding all artifacts from one commit, and comparing hashes;
 a matching prompt alone is not proof that the apps match.
@@ -44,3 +45,12 @@ resolve the conflict rather than silently overwrite a coach's work.
 The Home PR does not enable cloud services or alter access. Validate #326
 together with Home and Claude's audit branch before release; record the common
 source commit, rebuilt artifact hashes and a test-account cross-device handoff.
+
+## More dashboard and Rules
+
+The owner's follow-up asks for More to read like a dashboard and rulebooks in
+all three apps. More uses grouped cards with the existing search, access gates,
+counts and return focus. Rules is under Before the game; its official sources
+are also accessible from Team and Player preview headers. See `RULEBOOKS.md`.
+The previews remain separate Coming soon apps. No rulebook text or PDF is
+bundled and opening a source needs a deliberate tap and a connection.

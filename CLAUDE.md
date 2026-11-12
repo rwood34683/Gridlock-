@@ -63,6 +63,13 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Rules opens the three official 2026 rulebook source pages, only after a tap.
+  Keep the shared catalog in `docs/rulebooks.json`; run `node tools/rulebook-links.js`
+  after changes. This is the sole external-link exception in the Team/Player
+  previews. No embedded PDF, copied league text, logo, iframe, prefetch or automatic
+  request. The Rules screen says a connection is needed and to save the PDF before
+  the event. Never hand-edit the generated rulebook-links blocks.
+
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,
   measured layouts, team data and source citations; they are not branding.
