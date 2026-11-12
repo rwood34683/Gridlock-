@@ -1582,6 +1582,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     manual snapshot, not automatic team access. No price or permissions change
     is authorized by these recordings. `test/practice-sessions.cjs`.
 
+90. **The same account's details on an already-open device.** With League sync
+    enabled, a known device checks on return/reconnect and every 30 seconds
+    while visible. Receive only when its acknowledged season is unchanged,
+    its account/epoch still match, and it is idle both before and after the
+    read. Preserve and read back a recovery copy before replacing. Never
+    replace typing, recording selections, voice drafts, a running break clock,
+    or a drawing session. Retain device-only boards, practice logs and display
+    preferences. Conflicts, missing checkpoints and server deletions require
+    a choice; manual file replacement cancels a pending read and pauses sync.
+    No-op checks do not upload. Keep the adapter boundary and synchronous
+    save; no fetch in the app. `test/automatic-season.cjs` uses separate browser
+    stores and a mock account server, never real coaches. This is one current
+    account season, not simultaneous multi-coach editing or team-code access.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`

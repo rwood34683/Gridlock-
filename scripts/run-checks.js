@@ -20,6 +20,7 @@ const SUITES = {
   "field-visible": "test/field-visible.cjs",
   "scout-ends": "test/scout-ends.cjs",
   "device-season": "test/device-season.cjs",
+  "automatic-season": "test/automatic-season.cjs",
   "practice-sessions": "test/practice-sessions.cjs",
   "teaser-browser": "test/teaser-browser.cjs",
   "player-overview": "test/player-overview.cjs",
