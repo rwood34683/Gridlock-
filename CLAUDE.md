@@ -1362,6 +1362,30 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     available yet. They keep their own `gridlock_*` storage keys and never a
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
+    On 11 Nov 2026 the owner asked for the Player preview in the coach
+    app's look. `tools/teaser_theme.py` recolours it in place: black ground,
+    red secondary type, the coach field's dark ground and its bunker ramps
+    (purple was never a paint, so it reads neutral), white clear lanes and
+    grey blocked ones. Sunlight and colour-blind modes are left alone. Run
+    it with `--check` to see whether anything is left to change.
+    The same day both previews came off July's events and the UPRA badge:
+    `tools/teaser_fields.js` writes the coach app's seven measured fields,
+    their twelve breaks (`BREAK_PLANTS`) and its team board (names and
+    registration, no points, no seeded threat) between the `coachfields`
+    markers, draws each bunker to its footprint in its map's paint
+    (`tools/teaser_draw.js`, ported from `bunkerShape`), and gives both the
+    coach app's icons. Never hand-edit the block; `test/teasers.cjs` runs
+    `--check`, so a field or plant changed in the coach app fails until the
+    previews are regenerated.
+    The independent preview review also checks actual rendered controls on
+    phone and tablet: at least 44 px in both dimensions, with accessible
+    names, and every tab and More item opens without page errors or sends.
+    Disabled fetch code and referee rule text must not remain bundled.
+    Reset tendencies uses the existing two-tap confirmation, never a browser
+    dialog. Change the generator sources, then regenerate; the `coachwalk`
+    block belongs to `tools/teaser_walk.js` through `teaser_rules.js`.
+    `test/teaser-browser.cjs` exercises both previews and compares every
+    measured bunker and break plant with the coach source.
 
 84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
     format as two dropdowns and folds the rest away. PR #316 (Codex) adds:
@@ -1393,6 +1417,72 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
       button is never greyed out.
     Help answers "How do I install the app on my phone?".
     `test/install-button.cjs`.
+
+86. ~~Blank on first use and on New match.~~ Done. The owner saw a team already
+    in Tally and Scout and asked for both to start on choosing the team. His
+    rule (11 Nov 2026):
+    - First use: both pits empty, Tally asks who he plays.
+    - An unfinished match always resumes as it was, however old. Never infer
+      that it was abandoned, at launch, at sign-in or anywhere else.
+    - A finished match stays on screen with New match leading.
+    - The **New match** button (`freshMatch()`) on a played sheet starts blank
+      (`newMatchBlank()`): both
+      pits cleared, an unnamed sheet, Tally on "Who are you playing?". If he
+      has already put a different, next team in the right pit, it starts
+      against them as before. A button that names the team ("Start a match
+      vs Dynasty") is his pick and still calls `newMatch()`.
+    - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
+    `test/fresh-start.cjs`.
+
+87. ~~The gold-copy audit.~~ Done. On 12 Nov 2026 four reviewers each
+    reproduced defects in a browser before reporting them, and a fifth
+    researched what coaches expect. Fixed, each with a test:
+    - **Schedule** (`test/schedule-audit.cjs`): a pasted weekday with no date
+      lands inside the event, never before its first day; numeric and "Day 5 -
+      Sunday Nov 15" headers are read; a team's name on its own line is not a
+      header; a pasted field or pit is kept as `f`; the day plan lists only
+      games still to come; games after his last game against a team are not
+      offered as scouting.
+    - **Recording** (`test/recording-audit.cjs`): `playerQuick()` goes through
+      the opponent gate, so nothing is written onto the blank sheet;
+      `rebindChecks()` moves an observation to the row a merge kept for the
+      same man; `openSheet()` clears the arrival and voice team when it is not
+      a team on the new sheet; on a watched game both Tally columns are the
+      two teams by number, never his roster.
+    - **New match** (`test/fresh-start.cjs`): after a watched game it starts
+      blank even with nothing logged; a message raised while the breakout
+      sheet is open stands under the header, clear of Save.
+    - **Previews** (generators only): Team and Player store under their own
+      prefixes (`previewStore`), a backup names its app and the other app
+      refuses it, they install as "GL Team" and "GL Player", and Player has no
+      referee tool, no claim that the coach sees Practice and no outbound link
+      rows.
+    From the research, all counts or his own words:
+    - Reports › Player: points played, won, lost, the difference
+      (`repManPoints`), counted where the written five names him or a row
+      carries his name. Never roster order.
+    - Match review: "Off the break: we lost A of B charted, they lost C of D"
+      (`reviewBreakLine`).
+    - A scouting row takes the name of the person watching (`S.scoutWho`,
+      `setScoutWho`), and the day plan says who it is.
+    - **How much to record** at the foot of Tally (`S.tallyDepth`,
+      `TALLY_DEPTHS`): Full chart (default), Score and outs, Score only. It
+      hides controls, never data.
+    - The short breakout sheet (`S.tallyShort`, off by default): who and
+      whether he made it, with More about him one tap away. A man with more
+      already answered shows it all.
+    - **Share this field as a picture** on Scout (`shareFieldPicture`): a PNG
+      drawn on the phone from the field on screen, held in page memory only
+      (`_fieldPic`), never saved with the season, nothing fetched.
+    And four smaller ones the reviewers raised:
+    - Tally's first-run hint sits under the chart, not over the field: above
+      it, the hint took the room the field is fitted into. The fit itself is
+      unchanged.
+    - A pasted "9am" is a clock, and one o'clock to six with no AM or PM is
+      the afternoon.
+    - A typed game can go on any day of the event (`LAYOUTS[k].days`).
+    - A scout row says "Already watched" with the score.
+    `test/tally-depth.cjs`.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
