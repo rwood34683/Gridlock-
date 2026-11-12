@@ -45,6 +45,9 @@ the same page:
   It preserves saved history; `tools/teaser_selection.js` is its generated source.
 - **Scout field ends**: every Scout view has Switch ends and Swap every point
   beside its match controls, with both teams' ends named and earlier points preserved.
+- **Saved codes on the sideline**: Tally and every Scout view read the saved
+  code-word list. Their fields show saved team bunker names even with Names
+  off; names remain scoped to the layout and personal words stay on cards.
 
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.

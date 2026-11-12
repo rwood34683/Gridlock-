@@ -1572,6 +1572,15 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
+directly in the folded Team codes reference. Saved whole-team bunker names
+show on their fields even with Names off; the full official key still follows
+the Names control. Read the same layout-scoped `bunkerCalls` as Codes, never a
+second copy. A word being typed is not saved; personal words stay on cards.
+Edits, clearing, reload and season restore must refresh both recording screens
+without changing a match, point, score, observation or another field's names.
+`test/code-rollover.cjs` checks these paths and phone/tablet layouts.
+
 Confirmations and messages (12 Nov 2026): every "are you sure" goes through
 `askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is
 the system's question; in the published preview (`window.gridlockPreview`),
