@@ -1,4 +1,6 @@
 node_modules/
+# Owner-supplied reference pack. Includes private rosters/history; never ship it.
+gridlock-handoff/
 dist/
 site/build/
 work/

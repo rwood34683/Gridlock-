@@ -1596,6 +1596,27 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     stores and a mock account server, never real coaches. This is one current
     account season, not simultaneous multi-coach editing or team-code access.
 
+91. **World Cup handoff is an optional season import.** `data/worldcup-2026-season-copy.json`
+    adds the owner's 646 schedule rows and Lone Star film suggestions through
+    Account & backups → Merge it in. The corrected 78-row seed overlaps two
+    imports, so `allGames` shows 722 unique fixtures, preserves legacy seed
+    links/hide preferences, and accepts the imported IDs too. Retain public
+    game/entry/team IDs, null slots and sources as scalar reference fields;
+    snapshot scores never become Tally results. Known playoff slots are not
+    teams in Your team's day. Film imports keep existing coach edits, use names
+    or source references rather than jersey alone, and append notes once.
+    Team tendencies stay in team notes. Unknown/conflicting numbers stay blank;
+    the source wording and VERIFY flags remain in the notes. No threat, bunker
+    location, hometown, match or out is inferred. Regenerate the import with
+    `node scripts/import-worldcup-handoff.js`; `--check` checks it and the seed
+    provenance. The private handoff folder stays ignored and out of releases.
+    `docs/WORLD-CUP-HANDOFF.md` records every mapping gap and how to load it.
+    Schedule division is keyed by published event/division IDs, not inferred
+    from the team's name or playing format. It filters the team picker, games,
+    calendar and scouting plan, and travels in the season copy. All divisions
+    restores the full list; unknown divisions stay unassigned. The public team
+    directory groups by division and keeps same-club entry IDs separate.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`

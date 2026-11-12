@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **World Cup handoff:** optional season import, 722 unique fixtures and source-labelled Lone Star film suggestions; never create Tally outs from reference elims.
+  Schedule division separates same-club entries in team choice, games and scouting plans; the public directory groups by division. See `docs/WORLD-CUP-HANDOFF.md`.
+
 - **Account sync receives while signed in.** Previously acknowledged devices
   check on return/reconnect and every 30 seconds while visible and idle. Codes,
   names and records use the same season copy. Never replace drafts or unsent

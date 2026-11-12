@@ -922,6 +922,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .player-dialog .player-extra summary{font-weight:700}
 .player-percentages{margin-top:12px;min-width:0}
 .player-percentages summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:700;overflow-wrap:anywhere}
+.film-suggestion{grid-column:1/-1;min-width:0}
+.film-suggestion summary{min-height:44px;padding:12px 0;cursor:pointer;overflow-wrap:anywhere}
+.film-suggestion .note{overflow-wrap:anywhere}
 .player-percentages .note{margin:8px 0;max-width:60ch}
 .player-percent-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
 .player-percent-grid>div{border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
@@ -2092,7 +2095,9 @@ SOFTWARE.
     if(book) return book;
     const d=root.WorldCup2026Data.read();
     book={d,entries:index(d.entries,"entry_id"),locations:index(d.locations,"entry_id"),search:new Map()};
-    book.sorted=[...d.entries].sort((a,b)=>a.team_name.localeCompare(b.team_name,"en") || a.division.localeCompare(b.division,"en") || a.entry_id.localeCompare(b.entry_id));
+    const order=new Map(d.divisions.map((v,i)=>[v.event_id+":"+v.division_id,i]));
+    book.sorted=[...d.entries].sort((a,b)=>(order.get(a.event_id+":"+a.division_id)??Infinity)-(order.get(b.event_id+":"+b.division_id)??Infinity)
+      || a.team_name.localeCompare(b.team_name,"en") || a.entry_id.localeCompare(b.entry_id));
     for(const e of book.sorted) {
       const l=book.locations.get(e.entry_id);
       book.search.set(e.entry_id,fold([e.team_name,e.division,e.bracket,l?.hometown_raw,l?.hometown_country,l?.home_field_name].join(" ")));
@@ -2119,8 +2124,10 @@ SOFTWARE.
   function results() {
     const list=selectedRows(), pages=Math.max(1,Math.ceil(list.length/PAGE)), page=Math.max(0,Math.min(pages-1,Number(view().page)||0));
     const start=page*PAGE;
+    const groups=new Map();
+    list.slice(start,start+PAGE).forEach(e=>{const key=e.event_id+":"+e.division_id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);});
     return `<p class="note" role="status" aria-live="polite">${list.length ? `${list.length} entries · showing ${start+1}–${Math.min(start+PAGE,list.length)}` : "No entries found in this snapshot. Try another division or name."}</p>
-      <div class="list">${list.slice(start,start+PAGE).map(teamButton).join("")}</div>
+      ${[...groups].map(([key,entries])=>`<section class="cup-division-group" data-division="${esc(key)}"><h3 class="panel__title">${esc(entries[0].division)}${entries[0].event_id!=="9322"?" · NCPA":""}</h3><div class="list">${entries.map(teamButton).join("")}</div></section>`).join("")}
       ${pages>1?`<div class="btnrow cup-pages">${page>0?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(-1)">Previous teams</button>':""}<span class="note">Page ${page+1} of ${pages}</span>${page<pages-1?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(1)">Next teams</button>':""}</div>`:""}`;
   }
   function listPage() {
@@ -3349,84 +3356,84 @@ const SCHEDULE = {
   read:"PBLeagues · NXL World Cup · print schedule · Wed 11 – Sat 14 Nov · printed 1 Nov 2026",
   covers:"Prelims, Wednesday to Saturday 3:30 PM: Pro on Wednesday, Pro X-Ball Thursday to Saturday, and two Semi-Pro championship games Saturday morning. Nothing after Saturday 3:30 PM, and no Sunday, was on the pages read.",
   games:[
-    {d:"2026-11-11", t:"07:00", h:"New Jersey Jesters", a:"ZuriCaos", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"07:15", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"07:30", h:"New York Wrecking Crew", a:"Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"07:45", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:00", h:"Chicago Distortion", a:"Aruba Madness", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:00", h:"New Jersey Leverage", a:"ZuriCaos", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:15", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:15", h:"Texas Hurricanes", a:"LTF", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:30", h:"Seattle Uprising", a:"Ranger Warsaw", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:30", h:"Dallas SUWT", a:"Shock", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:45", h:"San Diego Dynasty", a:"Oregon IKONIK", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"08:45", h:"Brooklyn Wolfpack", a:"Puerto Rico tppcrew", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:00", h:"Orlando Red Legion", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:00", h:"Texas FIT", a:"Aruba Madness", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:15", h:"San Antonio X-Factor", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:15", h:"Perris ASG Aftermath", a:"ALA Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:30", h:"New Jersey Jesters", a:"New Jersey Leverage", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:30", h:"Los Angeles Collision", a:"Ranger Warsaw", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:45", h:"Houston Heat", a:"Texas Hurricanes", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"09:45", h:"Las Vegas Shock", a:"Oregon IKONIK", f:"Lone Wolf · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"10:00", h:"New York Wrecking Crew", a:"Dallas SUWT", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"10:15", h:"Chicago Aftershock", a:"Brooklyn Wolfpack", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"10:30", h:"Detroit Infamous", a:"Edmonton Impact", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"10:45", h:"Tampa Bay Damage", a:"Royal City Seadogs", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"11:00", h:"Chicago Distortion", a:"Texas FIT", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"11:15", h:"Los Angeles Ironmen", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"11:30", h:"Seattle Uprising", a:"Los Angeles Collision", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"11:45", h:"San Diego Dynasty", a:"Las Vegas Shock", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"12:00", h:"Detroit Infamous", a:"San Antonio X-Factor", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-11", t:"12:15", h:"Tampa Bay Damage", a:"Orlando Red Legion", f:"NXL Pro · Pit 1", dv:"Pro"},
-    {d:"2026-11-12", t:"07:30", h:"Chicago Distortion", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"07:30", h:"New Jersey Leverage", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"08:30", h:"Los Angeles Ironmen", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"08:30", h:"CK Hurricanes", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"09:30", h:"San Diego Dynasty", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"09:30", h:"Seattle Uprising", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"10:30", h:"Los Angeles Ironmen", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"10:30", h:"CK Hurricanes", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"12:30", h:"Houston Heat", a:"LTF", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"12:30", h:"Atlanta Jungle Cats", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"13:30", h:"Detroit Infamous", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"13:30", h:"San Antonio X-Factor", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"14:30", h:"PaintballFIT", a:"Houston Heat", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"14:30", h:"TonTon Arsenal", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-12", t:"15:30", h:"Detroit Infamous", a:"LTF", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-12", t:"15:30", h:"San Antonio X-Factor", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"07:30", h:"Los Angeles Ironmen", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"07:30", h:"CK Hurricanes", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"08:30", h:"San Diego Dynasty", a:"Los Angeles Collision", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"08:30", h:"Seattle Uprising", a:"Royal City Seadogs", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"09:30", h:"Red Legion", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"09:30", h:"Edmonton Impact", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"10:30", h:"San Diego Dynasty", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"10:30", h:"Seattle Uprising", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"12:30", h:"PaintballFIT", a:"Perris ASG Aftermath", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"12:30", h:"TonTon Arsenal", a:"Chicago Aftershock", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"13:30", h:"Edmonton Impact", a:"Tampa Bay Damage", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"13:30", h:"Red Legion", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"14:30", h:"PaintballFIT", a:"LTF", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"14:30", h:"TonTon Arsenal", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-13", t:"15:30", h:"Detroit Infamous", a:"Houston Heat", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-13", t:"15:30", h:"San Antonio X-Factor", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"07:30", h:"Blast Camp", a:"Noobies", f:"NXL Pro · Pit 1", dv:"Semi-Pro X-Ball championship"},
-    {d:"2026-11-14", t:"07:30", h:"Preferred mob", a:"Rejects", f:"NXL Pro · Pit 2", dv:"Semi-Pro X-Ball championship"},
-    {d:"2026-11-14", t:"08:30", h:"Los Angeles Collision", a:"ALA Warsaw", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"08:30", h:"Royal City Seadogs", a:"New York Xtreme", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"09:30", h:"San Diego Dynasty", a:"Los Angeles Ironmen", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"09:30", h:"Seattle Uprising", a:"CK Hurricanes", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"10:30", h:"Los Angeles Collision", a:"Chicago Distortion", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"10:30", h:"Royal City Seadogs", a:"New Jersey Leverage", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"12:30", h:"Perris ASG Aftermath", a:"LTF", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"12:30", h:"Chicago Aftershock", a:"Puerto Rico tppcrew", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"13:30", h:"Edmonton Impact", a:"Red Legion", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"13:30", h:"Tampa Bay Damage", a:"Ranger Warsaw", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"14:30", h:"Perris ASG Aftermath", a:"Houston Heat", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"14:30", h:"Chicago Aftershock", a:"Atlanta Jungle Cats", f:"NXL Pro · Pit 2"},
-    {d:"2026-11-14", t:"15:30", h:"PaintballFIT", a:"Detroit Infamous", f:"NXL Pro · Pit 1"},
-    {d:"2026-11-14", t:"15:30", h:"TonTon Arsenal", a:"San Antonio X-Factor", f:"NXL Pro · Pit 2"},
+    {"d":"2026-11-11","t":"07:00","h":"New Jersey Jesters","a":"ZuriCaos","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|07:00|new jersey jesters|zuricaos","srcId":"4071627","game_id":"4071627","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"7:00 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-0","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071627","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"New Jersey Jesters","home_entry_id":"236288","home_team_id":"7rqxeBlzJVGMkAeh","home_slot_label":null,"away_name":"ZuriCaos","away_entry_id":"236307","away_team_id":"fTLjes1oKiGscLVz","away_slot_label":null},
+    {"d":"2026-11-11","t":"07:15","h":"Houston Heat","a":"LTF","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|07:15|houston heat|ltf","srcId":"4071628","game_id":"4071628","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"7:15 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-0","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071628","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Houston Heat","home_entry_id":"236287","home_team_id":"bkZuqlBFJBIH16gt","home_slot_label":null,"away_name":"LTF","away_entry_id":"237087","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-11","t":"07:30","h":"New York Wrecking Crew","a":"Shock","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|07:30|new york wrecking crew|shock","srcId":"4071629","game_id":"4071629","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"7:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"7-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071629","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"New York Wrecking Crew","home_entry_id":"236286","home_team_id":"b13H2mx5s95UwNtf","home_slot_label":null,"away_name":"Shock","away_entry_id":"236306","away_team_id":"Y4SUWADkjczqS6B2","away_slot_label":null},
+    {"d":"2026-11-11","t":"07:45","h":"Chicago Aftershock","a":"Puerto Rico tppcrew","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|07:45|chicago aftershock|puerto rico tppcrew","srcId":"4071630","game_id":"4071630","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"7:45 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"3-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071630","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Aftershock","home_entry_id":"236285","home_team_id":"V2AAgXBXiTdpFeRP","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236293","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:00","h":"Chicago Distortion","a":"Aruba Madness","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:00|chicago distortion|aruba madness","srcId":"4071631","game_id":"4071631","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:00 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-2","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071631","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Distortion","home_entry_id":"236300","home_team_id":"0LGtv1qD0cPV4D4u","home_slot_label":null,"away_name":"Aruba Madness","away_entry_id":"236661","away_team_id":"85hwtzsBIVTNqA4r","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:00","h":"Rejects","a":"ZuriCaos","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:00|new jersey leverage|zuricaos","srcId":"4071649","game_id":"4071649","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:00 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"6-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071649","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Rejects","home_entry_id":null,"home_team_id":null,"home_slot_label":null,"away_name":"ZuriCaos","away_entry_id":"236307","away_team_id":"fTLjes1oKiGscLVz","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:15","h":"Los Angeles Ironmen","a":"ALA Warsaw","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:15|los angeles ironmen|ala warsaw","srcId":"4071632","game_id":"4071632","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:15 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"4-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071632","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Ironmen","home_entry_id":"236299","home_team_id":"BxcLngKxZwVI5lTB","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"237086","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:15","h":"Texas Hurricanes","a":"LTF","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:15|texas hurricanes|ltf","srcId":"4071650","game_id":"4071650","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:15 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"6-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071650","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Texas Hurricanes","home_entry_id":"236290","home_team_id":"4DPW19s397Nbaijf","home_slot_label":null,"away_name":"LTF","away_entry_id":"237087","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:30","h":"Seattle Uprising","a":"Ranger Warsaw","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:30|seattle uprising|ranger warsaw","srcId":"4071633","game_id":"4071633","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"6-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071633","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236298","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"Ranger Warsaw","away_entry_id":"237088","away_team_id":"NQfMYfw2NYYTaOeR","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:30","h":"Dallas SUWT","a":"Shock","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:30|dallas suwt|shock","srcId":"4071651","game_id":"4071651","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:30 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"4-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071651","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Dallas SUWT","home_entry_id":"236291","home_team_id":"94pTSFeQnn6bfhP9","home_slot_label":null,"away_name":"Shock","away_entry_id":"236306","away_team_id":"Y4SUWADkjczqS6B2","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:45","h":"San Diego Dynasty","a":"Oregon IKONIK","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:45|san diego dynasty|oregon ikonik","srcId":"4071634","game_id":"4071634","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:45 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"6-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071634","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236297","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"Oregon IKONIK","away_entry_id":"236305","away_team_id":"jB9ql05thPJawlZ9","away_slot_label":null},
+    {"d":"2026-11-11","t":"08:45","h":"Brooklyn Wolfpack","a":"Puerto Rico tppcrew","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|08:45|brooklyn wolfpack|puerto rico tppcrew","srcId":"4071652","game_id":"4071652","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"8:45 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"3-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071652","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Brooklyn Wolfpack","home_entry_id":"236292","home_team_id":"kZ2yLTnFI1C4bS3V","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236293","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:00","h":"Orlando Red Legion","a":"Royal City Seadogs","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:00|orlando red legion|royal city seadogs","srcId":"4071635","game_id":"4071635","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:00 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"6-2","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071635","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Orlando Red Legion","home_entry_id":"236283","home_team_id":"YwUPK0CAwfhjTWso","home_slot_label":null,"away_name":"Royal City Seadogs","away_entry_id":"236284","away_team_id":"VBgu2DjTG3ftWbNa","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:00","h":"Texas FIT","a":"Aruba Madness","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:00|texas fit|aruba madness","srcId":"4071653","game_id":"4071653","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:00 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"6-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071653","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Texas FIT","home_entry_id":"236301","home_team_id":"7fKhreK8xnDfr2rG","home_slot_label":null,"away_name":"Aruba Madness","away_entry_id":"236661","away_team_id":"85hwtzsBIVTNqA4r","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:15","h":"San Antonio X-Factor","a":"Edmonton Impact","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:15|san antonio x-factor|edmonton impact","srcId":"4071636","game_id":"4071636","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:15 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"2-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071636","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Antonio X-Factor","home_entry_id":"236295","home_team_id":"ZKeLDRObA8uTlN2u","home_slot_label":null,"away_name":"Edmonton Impact","away_entry_id":"236296","away_team_id":"Cw5f2WKdHxWhLcCU","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:15","h":"Perris ASG Aftermath","a":"ALA Warsaw","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:15|perris asg aftermath|ala warsaw","srcId":"4071654","game_id":"4071654","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:15 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"5-0","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071654","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Perris ASG Aftermath","home_entry_id":"236302","home_team_id":"rB9bNzYIsJvae53p","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"237086","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:30","h":"New Jersey Jesters","a":"Rejects","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:30|new jersey jesters|new jersey leverage","srcId":"4071637","game_id":"4071637","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"2-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071637","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"New Jersey Jesters","home_entry_id":"236288","home_team_id":"7rqxeBlzJVGMkAeh","home_slot_label":null,"away_name":"Rejects","away_entry_id":null,"away_team_id":null,"away_slot_label":null},
+    {"d":"2026-11-11","t":"09:30","h":"Los Angeles Collision","a":"Ranger Warsaw","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:30|los angeles collision|ranger warsaw","srcId":"4071655","game_id":"4071655","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:30 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"1-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071655","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Collision","home_entry_id":"236303","home_team_id":"n02tWhOzikH0pidQ","home_slot_label":null,"away_name":"Ranger Warsaw","away_entry_id":"237088","away_team_id":"NQfMYfw2NYYTaOeR","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:45","h":"Houston Heat","a":"Texas Hurricanes","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:45|houston heat|texas hurricanes","srcId":"4071638","game_id":"4071638","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:45 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"3-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071638","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Houston Heat","home_entry_id":"236287","home_team_id":"bkZuqlBFJBIH16gt","home_slot_label":null,"away_name":"Texas Hurricanes","away_entry_id":"236290","away_team_id":"4DPW19s397Nbaijf","away_slot_label":null},
+    {"d":"2026-11-11","t":"09:45","h":"Las Vegas Shock","a":"Oregon IKONIK","f":"Lone Wolf · Pit 1","dv":"Pro","id":"sch:2026-11-11|09:45|las vegas shock|oregon ikonik","srcId":"4071656","game_id":"4071656","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"9:45 AM","field":"Lone Wolf","pit":1,"round":"Prelims","score":"2-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071656","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Las Vegas Shock","home_entry_id":"236304","home_team_id":"NxIdNKbSvYbKKGlu","home_slot_label":null,"away_name":"Oregon IKONIK","away_entry_id":"236305","away_team_id":"jB9ql05thPJawlZ9","away_slot_label":null},
+    {"d":"2026-11-11","t":"10:00","h":"New York Wrecking Crew","a":"Dallas SUWT","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|10:00|new york wrecking crew|dallas suwt","srcId":"4071639","game_id":"4071639","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"10:00 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-0","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071639","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"New York Wrecking Crew","home_entry_id":"236286","home_team_id":"b13H2mx5s95UwNtf","home_slot_label":null,"away_name":"Dallas SUWT","away_entry_id":"236291","away_team_id":"94pTSFeQnn6bfhP9","away_slot_label":null},
+    {"d":"2026-11-11","t":"10:15","h":"Chicago Aftershock","a":"Brooklyn Wolfpack","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|10:15|chicago aftershock|brooklyn wolfpack","srcId":"4071640","game_id":"4071640","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"10:15 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"4-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071640","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Aftershock","home_entry_id":"236285","home_team_id":"V2AAgXBXiTdpFeRP","home_slot_label":null,"away_name":"Brooklyn Wolfpack","away_entry_id":"236292","away_team_id":"kZ2yLTnFI1C4bS3V","away_slot_label":null},
+    {"d":"2026-11-11","t":"10:30","h":"Detroit Infamous","a":"Edmonton Impact","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|10:30|detroit infamous|edmonton impact","srcId":"4071641","game_id":"4071641","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"10:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"7-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071641","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Detroit Infamous","home_entry_id":"236294","home_team_id":"tGqR6LaDkTiOcB8l","home_slot_label":null,"away_name":"Edmonton Impact","away_entry_id":"236296","away_team_id":"Cw5f2WKdHxWhLcCU","away_slot_label":null},
+    {"d":"2026-11-11","t":"10:45","h":"Tampa Bay Damage","a":"Royal City Seadogs","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|10:45|tampa bay damage|royal city seadogs","srcId":"4071642","game_id":"4071642","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"10:45 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"1-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071642","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Tampa Bay Damage","home_entry_id":"236282","home_team_id":"LvSxug1gDAaN323a","home_slot_label":null,"away_name":"Royal City Seadogs","away_entry_id":"236284","away_team_id":"VBgu2DjTG3ftWbNa","away_slot_label":null},
+    {"d":"2026-11-11","t":"11:00","h":"Chicago Distortion","a":"Texas FIT","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|11:00|chicago distortion|texas fit","srcId":"4071643","game_id":"4071643","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"11:00 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"2-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071643","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Distortion","home_entry_id":"236300","home_team_id":"0LGtv1qD0cPV4D4u","home_slot_label":null,"away_name":"Texas FIT","away_entry_id":"236301","away_team_id":"7fKhreK8xnDfr2rG","away_slot_label":null},
+    {"d":"2026-11-11","t":"11:15","h":"Los Angeles Ironmen","a":"Perris ASG Aftermath","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|11:15|los angeles ironmen|perris asg aftermath","srcId":"4071644","game_id":"4071644","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"11:15 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"3-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071644","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Ironmen","home_entry_id":"236299","home_team_id":"BxcLngKxZwVI5lTB","home_slot_label":null,"away_name":"Perris ASG Aftermath","away_entry_id":"236302","away_team_id":"rB9bNzYIsJvae53p","away_slot_label":null},
+    {"d":"2026-11-11","t":"11:30","h":"Seattle Uprising","a":"Los Angeles Collision","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|11:30|seattle uprising|los angeles collision","srcId":"4071645","game_id":"4071645","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"11:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-0","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071645","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236298","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"Los Angeles Collision","away_entry_id":"236303","away_team_id":"n02tWhOzikH0pidQ","away_slot_label":null},
+    {"d":"2026-11-11","t":"11:45","h":"San Diego Dynasty","a":"Las Vegas Shock","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|11:45|san diego dynasty|las vegas shock","srcId":"4071646","game_id":"4071646","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"11:45 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071646","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236297","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"Las Vegas Shock","away_entry_id":"236304","away_team_id":"NxIdNKbSvYbKKGlu","away_slot_label":null},
+    {"d":"2026-11-11","t":"12:00","h":"Detroit Infamous","a":"San Antonio X-Factor","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|12:00|detroit infamous|san antonio x-factor","srcId":"4071647","game_id":"4071647","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"12:00 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":"4-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071647","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Detroit Infamous","home_entry_id":"236294","home_team_id":"tGqR6LaDkTiOcB8l","home_slot_label":null,"away_name":"San Antonio X-Factor","away_entry_id":"236295","away_team_id":"ZKeLDRObA8uTlN2u","away_slot_label":null},
+    {"d":"2026-11-11","t":"12:15","h":"Tampa Bay Damage","a":"Orlando Red Legion","f":"NXL Pro · Pit 1","dv":"Pro","id":"sch:2026-11-11|12:15|tampa bay damage|orlando red legion","srcId":"4071648","game_id":"4071648","event_id":"9322","division_id":"28336","division":"Pro 3v3 X-Ball","day":"Wednesday","date":"2026-11-11","time":"12:15 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":"3-6","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4071648","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Tampa Bay Damage","home_entry_id":"236282","home_team_id":"LvSxug1gDAaN323a","home_slot_label":null,"away_name":"Orlando Red Legion","away_entry_id":"236283","away_team_id":"YwUPK0CAwfhjTWso","away_slot_label":null},
+    {"d":"2026-11-12","t":"07:30","h":"Chicago Distortion","a":"ALA Warsaw","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|07:30|chicago distortion|ala warsaw","srcId":"4085889","game_id":"4085889","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"7:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"2-6","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085889","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Distortion","home_entry_id":"236207","home_team_id":"0LGtv1qD0cPV4D4u","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"236252","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-12","t":"07:30","h":"New Jersey Leverage","a":"New York Xtreme","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|07:30|new jersey leverage|new york xtreme","srcId":"4085897","game_id":"4085897","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"7:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":"7-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085897","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"New Jersey Leverage","home_entry_id":"236214","home_team_id":"p6OSQN6ipesOD3Qp","home_slot_label":null,"away_name":"New York Xtreme","away_entry_id":"236215","away_team_id":"L95CWOxdIJvYckAY","away_slot_label":null},
+    {"d":"2026-11-12","t":"08:30","h":"Los Angeles Ironmen","a":"Los Angeles Collision","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|08:30|los angeles ironmen|los angeles collision","srcId":"4085890","game_id":"4085890","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"8:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"5-3","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085890","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Ironmen","home_entry_id":"236213","home_team_id":"BxcLngKxZwVI5lTB","home_slot_label":null,"away_name":"Los Angeles Collision","away_entry_id":"236212","away_team_id":"n02tWhOzikH0pidQ","away_slot_label":null},
+    {"d":"2026-11-12","t":"08:30","h":"CK Hurricanes","a":"Royal City Seadogs","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|08:30|ck hurricanes|royal city seadogs","srcId":"4085898","game_id":"4085898","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"8:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":"6-5","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085898","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"CK Hurricanes","home_entry_id":"236208","home_team_id":"yYE1KWmnU3tJOU2f","home_slot_label":null,"away_name":"Royal City Seadogs","away_entry_id":"236219","away_team_id":"VBgu2DjTG3ftWbNa","away_slot_label":null},
+    {"d":"2026-11-12","t":"09:30","h":"San Diego Dynasty","a":"Chicago Distortion","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|09:30|san diego dynasty|chicago distortion","srcId":"4085891","game_id":"4085891","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"9:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"7-2","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085891","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236220","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"Chicago Distortion","away_entry_id":"236207","away_team_id":"0LGtv1qD0cPV4D4u","away_slot_label":null},
+    {"d":"2026-11-12","t":"09:30","h":"Seattle Uprising","a":"New Jersey Leverage","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|09:30|seattle uprising|new jersey leverage","srcId":"4085899","game_id":"4085899","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"9:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":"7-1","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085899","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236221","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"New Jersey Leverage","away_entry_id":"236214","away_team_id":"p6OSQN6ipesOD3Qp","away_slot_label":null},
+    {"d":"2026-11-12","t":"10:30","h":"Los Angeles Ironmen","a":"ALA Warsaw","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|10:30|los angeles ironmen|ala warsaw","srcId":"4085892","game_id":"4085892","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"10:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":"2-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085892","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Ironmen","home_entry_id":"236213","home_team_id":"BxcLngKxZwVI5lTB","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"236252","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-12","t":"10:30","h":"CK Hurricanes","a":"New York Xtreme","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|10:30|ck hurricanes|new york xtreme","srcId":"4085900","game_id":"4085900","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"10:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":"8-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085900","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"CK Hurricanes","home_entry_id":"236208","home_team_id":"yYE1KWmnU3tJOU2f","home_slot_label":null,"away_name":"New York Xtreme","away_entry_id":"236215","away_team_id":"L95CWOxdIJvYckAY","away_slot_label":null},
+    {"d":"2026-11-12","t":"12:30","h":"Houston Heat","a":"LTF","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|12:30|houston heat|ltf","srcId":"4085893","game_id":"4085893","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"12:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":"7-4","status":"Final","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085893","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Houston Heat","home_entry_id":"236211","home_team_id":"bkZuqlBFJBIH16gt","home_slot_label":null,"away_name":"LTF","away_entry_id":"236253","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-12","t":"12:30","h":"Atlanta Jungle Cats","a":"Puerto Rico tppcrew","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|12:30|atlanta jungle cats|puerto rico tppcrew","srcId":"4085901","game_id":"4085901","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"12:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":"8-7","status":"Unofficial","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085901","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Atlanta Jungle Cats","home_entry_id":"236206","home_team_id":"yUbBwOvw3Ryo2L2E","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236251","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-12","t":"13:30","h":"Detroit Infamous","a":"Perris ASG Aftermath","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|13:30|detroit infamous|perris asg aftermath","srcId":"4085894","game_id":"4085894","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"1:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":"0-2","status":"Unofficial","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085894","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Detroit Infamous","home_entry_id":"236209","home_team_id":"tGqR6LaDkTiOcB8l","home_slot_label":null,"away_name":"Perris ASG Aftermath","away_entry_id":"236217","away_team_id":"rB9bNzYIsJvae53p","away_slot_label":null},
+    {"d":"2026-11-12","t":"13:30","h":"San Antonio X-Factor","a":"Chicago Aftershock","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|13:30|san antonio x-factor|chicago aftershock","srcId":"4085902","game_id":"4085902","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"1:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":"0-2","status":"Unofficial","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085902","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Antonio X-Factor","home_entry_id":"236126","home_team_id":"ZKeLDRObA8uTlN2u","home_slot_label":null,"away_name":"Chicago Aftershock","away_entry_id":"236249","away_team_id":"V2AAgXBXiTdpFeRP","away_slot_label":null},
+    {"d":"2026-11-12","t":"14:30","h":"PaintballFIT","a":"Houston Heat","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|14:30|paintballfit|houston heat","srcId":"4085895","game_id":"4085895","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"2:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085895","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"PaintballFIT","home_entry_id":"236216","home_team_id":"dbBCywTMd0IAjOJG","home_slot_label":null,"away_name":"Houston Heat","away_entry_id":"236211","away_team_id":"bkZuqlBFJBIH16gt","away_slot_label":null},
+    {"d":"2026-11-12","t":"14:30","h":"TonTon Arsenal","a":"Atlanta Jungle Cats","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|14:30|tonton arsenal|atlanta jungle cats","srcId":"4085903","game_id":"4085903","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"2:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085903","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"TonTon Arsenal","home_entry_id":"236223","home_team_id":"lbrDZrreMn3Nchq4","home_slot_label":null,"away_name":"Atlanta Jungle Cats","away_entry_id":"236206","away_team_id":"yUbBwOvw3Ryo2L2E","away_slot_label":null},
+    {"d":"2026-11-12","t":"15:30","h":"Detroit Infamous","a":"LTF","f":"NXL Pro · Pit 1","id":"sch:2026-11-12|15:30|detroit infamous|ltf","srcId":"4085896","game_id":"4085896","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"3:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085896","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Detroit Infamous","home_entry_id":"236209","home_team_id":"tGqR6LaDkTiOcB8l","home_slot_label":null,"away_name":"LTF","away_entry_id":"236253","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-12","t":"15:30","h":"San Antonio X-Factor","a":"Puerto Rico tppcrew","f":"NXL Pro · Pit 2","id":"sch:2026-11-12|15:30|san antonio x-factor|puerto rico tppcrew","srcId":"4085904","game_id":"4085904","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Thursday","date":"2026-11-12","time":"3:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4085904","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Antonio X-Factor","home_entry_id":"236126","home_team_id":"ZKeLDRObA8uTlN2u","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236251","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-13","t":"07:30","h":"Los Angeles Ironmen","a":"Chicago Distortion","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|07:30|los angeles ironmen|chicago distortion","srcId":"4086125","game_id":"4086125","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"7:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086125","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Ironmen","home_entry_id":"236213","home_team_id":"BxcLngKxZwVI5lTB","home_slot_label":null,"away_name":"Chicago Distortion","away_entry_id":"236207","away_team_id":"0LGtv1qD0cPV4D4u","away_slot_label":null},
+    {"d":"2026-11-13","t":"07:30","h":"CK Hurricanes","a":"New Jersey Leverage","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|07:30|ck hurricanes|new jersey leverage","srcId":"4086133","game_id":"4086133","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"7:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086133","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"CK Hurricanes","home_entry_id":"236208","home_team_id":"yYE1KWmnU3tJOU2f","home_slot_label":null,"away_name":"New Jersey Leverage","away_entry_id":"236214","away_team_id":"p6OSQN6ipesOD3Qp","away_slot_label":null},
+    {"d":"2026-11-13","t":"08:30","h":"San Diego Dynasty","a":"Los Angeles Collision","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|08:30|san diego dynasty|los angeles collision","srcId":"4086126","game_id":"4086126","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"8:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086126","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236220","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"Los Angeles Collision","away_entry_id":"236212","away_team_id":"n02tWhOzikH0pidQ","away_slot_label":null},
+    {"d":"2026-11-13","t":"08:30","h":"Seattle Uprising","a":"Royal City Seadogs","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|08:30|seattle uprising|royal city seadogs","srcId":"4086134","game_id":"4086134","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"8:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086134","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236221","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"Royal City Seadogs","away_entry_id":"236219","away_team_id":"VBgu2DjTG3ftWbNa","away_slot_label":null},
+    {"d":"2026-11-13","t":"09:30","h":"Red Legion","a":"Tampa Bay Damage","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|09:30|red legion|tampa bay damage","srcId":"4086127","game_id":"4086127","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"9:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086127","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Red Legion","home_entry_id":"236218","home_team_id":"2qAmdAHERdjVnMW6","home_slot_label":null,"away_name":"Tampa Bay Damage","away_entry_id":"236222","away_team_id":"LvSxug1gDAaN323a","away_slot_label":null},
+    {"d":"2026-11-13","t":"09:30","h":"Edmonton Impact","a":"Ranger Warsaw","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|09:30|edmonton impact|ranger warsaw","srcId":"4086135","game_id":"4086135","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"9:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086135","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Edmonton Impact","home_entry_id":"236210","home_team_id":"Cw5f2WKdHxWhLcCU","home_slot_label":null,"away_name":"Ranger Warsaw","away_entry_id":"236248","away_team_id":"NQfMYfw2NYYTaOeR","away_slot_label":null},
+    {"d":"2026-11-13","t":"10:30","h":"San Diego Dynasty","a":"ALA Warsaw","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|10:30|san diego dynasty|ala warsaw","srcId":"4086128","game_id":"4086128","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"10:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086128","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236220","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"236252","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-13","t":"10:30","h":"Seattle Uprising","a":"New York Xtreme","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|10:30|seattle uprising|new york xtreme","srcId":"4086136","game_id":"4086136","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"10:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086136","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236221","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"New York Xtreme","away_entry_id":"236215","away_team_id":"L95CWOxdIJvYckAY","away_slot_label":null},
+    {"d":"2026-11-13","t":"12:30","h":"PaintballFIT","a":"Perris ASG Aftermath","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|12:30|paintballfit|perris asg aftermath","srcId":"4086129","game_id":"4086129","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"12:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086129","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"PaintballFIT","home_entry_id":"236216","home_team_id":"dbBCywTMd0IAjOJG","home_slot_label":null,"away_name":"Perris ASG Aftermath","away_entry_id":"236217","away_team_id":"rB9bNzYIsJvae53p","away_slot_label":null},
+    {"d":"2026-11-13","t":"12:30","h":"TonTon Arsenal","a":"Chicago Aftershock","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|12:30|tonton arsenal|chicago aftershock","srcId":"4086137","game_id":"4086137","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"12:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086137","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"TonTon Arsenal","home_entry_id":"236223","home_team_id":"lbrDZrreMn3Nchq4","home_slot_label":null,"away_name":"Chicago Aftershock","away_entry_id":"236249","away_team_id":"V2AAgXBXiTdpFeRP","away_slot_label":null},
+    {"d":"2026-11-13","t":"13:30","h":"Edmonton Impact","a":"Tampa Bay Damage","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|13:30|edmonton impact|tampa bay damage","srcId":"4086130","game_id":"4086130","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"1:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086130","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Edmonton Impact","home_entry_id":"236210","home_team_id":"Cw5f2WKdHxWhLcCU","home_slot_label":null,"away_name":"Tampa Bay Damage","away_entry_id":"236222","away_team_id":"LvSxug1gDAaN323a","away_slot_label":null},
+    {"d":"2026-11-13","t":"13:30","h":"Red Legion","a":"Ranger Warsaw","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|13:30|red legion|ranger warsaw","srcId":"4086138","game_id":"4086138","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"1:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086138","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Red Legion","home_entry_id":"236218","home_team_id":"2qAmdAHERdjVnMW6","home_slot_label":null,"away_name":"Ranger Warsaw","away_entry_id":"236248","away_team_id":"NQfMYfw2NYYTaOeR","away_slot_label":null},
+    {"d":"2026-11-13","t":"14:30","h":"PaintballFIT","a":"LTF","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|14:30|paintballfit|ltf","srcId":"4086131","game_id":"4086131","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"2:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086131","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"PaintballFIT","home_entry_id":"236216","home_team_id":"dbBCywTMd0IAjOJG","home_slot_label":null,"away_name":"LTF","away_entry_id":"236253","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-13","t":"14:30","h":"TonTon Arsenal","a":"Puerto Rico tppcrew","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|14:30|tonton arsenal|puerto rico tppcrew","srcId":"4086139","game_id":"4086139","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"2:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086139","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"TonTon Arsenal","home_entry_id":"236223","home_team_id":"lbrDZrreMn3Nchq4","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236251","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-13","t":"15:30","h":"Detroit Infamous","a":"Houston Heat","f":"NXL Pro · Pit 1","id":"sch:2026-11-13|15:30|detroit infamous|houston heat","srcId":"4086132","game_id":"4086132","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"3:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086132","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Detroit Infamous","home_entry_id":"236209","home_team_id":"tGqR6LaDkTiOcB8l","home_slot_label":null,"away_name":"Houston Heat","away_entry_id":"236211","away_team_id":"bkZuqlBFJBIH16gt","away_slot_label":null},
+    {"d":"2026-11-13","t":"15:30","h":"San Antonio X-Factor","a":"Atlanta Jungle Cats","f":"NXL Pro · Pit 2","id":"sch:2026-11-13|15:30|san antonio x-factor|atlanta jungle cats","srcId":"4086140","game_id":"4086140","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Friday","date":"2026-11-13","time":"3:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086140","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Antonio X-Factor","home_entry_id":"236126","home_team_id":"ZKeLDRObA8uTlN2u","home_slot_label":null,"away_name":"Atlanta Jungle Cats","away_entry_id":"236206","away_team_id":"yUbBwOvw3Ryo2L2E","away_slot_label":null},
+    {"d":"2026-11-14","t":"07:30","h":"Blast Camp","a":"Noobies","f":"NXL Pro · Pit 1","dv":"Semi-Pro X-Ball championship","id":"sch:2026-11-14|07:30|blast camp|noobies","srcId":"4086425","game_id":"4086425","event_id":"9322","division_id":"28325","division":"Champions - Semi-Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"7:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086425","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Blast Camp","home_entry_id":"236235","home_team_id":"RcNjlSUqI9aJe8c6","home_slot_label":null,"away_name":"Noobies","away_entry_id":"236236","away_team_id":"4WfYKF9nXTRu3uQe","away_slot_label":null},
+    {"d":"2026-11-14","t":"07:30","h":"Preferred mob","a":"Rejects","f":"NXL Pro · Pit 2","dv":"Semi-Pro X-Ball championship","id":"sch:2026-11-14|07:30|preferred mob|rejects","srcId":"4086433","game_id":"4086433","event_id":"9322","division_id":"28325","division":"Champions - Semi-Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"7:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086433","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Preferred mob","home_entry_id":"236237","home_team_id":"4wujOrn0NVGtcLqx","home_slot_label":null,"away_name":"Rejects","away_entry_id":"236238","away_team_id":"Mkggpi8Vhpm58q8k","away_slot_label":null},
+    {"d":"2026-11-14","t":"08:30","h":"Los Angeles Collision","a":"ALA Warsaw","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|08:30|los angeles collision|ala warsaw","srcId":"4086426","game_id":"4086426","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"8:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086426","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Collision","home_entry_id":"236212","home_team_id":"n02tWhOzikH0pidQ","home_slot_label":null,"away_name":"ALA Warsaw","away_entry_id":"236252","away_team_id":"kB8utlgt9GoXCTLy","away_slot_label":null},
+    {"d":"2026-11-14","t":"08:30","h":"Royal City Seadogs","a":"New York Xtreme","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|08:30|royal city seadogs|new york xtreme","srcId":"4086434","game_id":"4086434","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"8:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086434","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Royal City Seadogs","home_entry_id":"236219","home_team_id":"VBgu2DjTG3ftWbNa","home_slot_label":null,"away_name":"New York Xtreme","away_entry_id":"236215","away_team_id":"L95CWOxdIJvYckAY","away_slot_label":null},
+    {"d":"2026-11-14","t":"09:30","h":"San Diego Dynasty","a":"Los Angeles Ironmen","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|09:30|san diego dynasty|los angeles ironmen","srcId":"4086427","game_id":"4086427","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"9:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086427","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"San Diego Dynasty","home_entry_id":"236220","home_team_id":"NULRcbYNCM3HfLiK","home_slot_label":null,"away_name":"Los Angeles Ironmen","away_entry_id":"236213","away_team_id":"BxcLngKxZwVI5lTB","away_slot_label":null},
+    {"d":"2026-11-14","t":"09:30","h":"Seattle Uprising","a":"CK Hurricanes","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|09:30|seattle uprising|ck hurricanes","srcId":"4086435","game_id":"4086435","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"9:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086435","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Seattle Uprising","home_entry_id":"236221","home_team_id":"6FYh7gTHAf42gkZ0","home_slot_label":null,"away_name":"CK Hurricanes","away_entry_id":"236208","away_team_id":"yYE1KWmnU3tJOU2f","away_slot_label":null},
+    {"d":"2026-11-14","t":"10:30","h":"Los Angeles Collision","a":"Chicago Distortion","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|10:30|los angeles collision|chicago distortion","srcId":"4086428","game_id":"4086428","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"10:30 AM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086428","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Los Angeles Collision","home_entry_id":"236212","home_team_id":"n02tWhOzikH0pidQ","home_slot_label":null,"away_name":"Chicago Distortion","away_entry_id":"236207","away_team_id":"0LGtv1qD0cPV4D4u","away_slot_label":null},
+    {"d":"2026-11-14","t":"10:30","h":"Royal City Seadogs","a":"New Jersey Leverage","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|10:30|royal city seadogs|new jersey leverage","srcId":"4086436","game_id":"4086436","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"10:30 AM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086436","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Royal City Seadogs","home_entry_id":"236219","home_team_id":"VBgu2DjTG3ftWbNa","home_slot_label":null,"away_name":"New Jersey Leverage","away_entry_id":"236214","away_team_id":"p6OSQN6ipesOD3Qp","away_slot_label":null},
+    {"d":"2026-11-14","t":"12:30","h":"Perris ASG Aftermath","a":"LTF","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|12:30|perris asg aftermath|ltf","srcId":"4086429","game_id":"4086429","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"12:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086429","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Perris ASG Aftermath","home_entry_id":"236217","home_team_id":"rB9bNzYIsJvae53p","home_slot_label":null,"away_name":"LTF","away_entry_id":"236253","away_team_id":"WBHh3VlqMjUjOobJ","away_slot_label":null},
+    {"d":"2026-11-14","t":"12:30","h":"Chicago Aftershock","a":"Puerto Rico tppcrew","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|12:30|chicago aftershock|puerto rico tppcrew","srcId":"4086437","game_id":"4086437","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"12:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086437","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Aftershock","home_entry_id":"236249","home_team_id":"V2AAgXBXiTdpFeRP","home_slot_label":null,"away_name":"Puerto Rico tppcrew","away_entry_id":"236251","away_team_id":"7j5RIGbrCghvDhDW","away_slot_label":null},
+    {"d":"2026-11-14","t":"13:30","h":"Edmonton Impact","a":"Red Legion","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|13:30|edmonton impact|red legion","srcId":"4086430","game_id":"4086430","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"1:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086430","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Edmonton Impact","home_entry_id":"236210","home_team_id":"Cw5f2WKdHxWhLcCU","home_slot_label":null,"away_name":"Red Legion","away_entry_id":"236218","away_team_id":"2qAmdAHERdjVnMW6","away_slot_label":null},
+    {"d":"2026-11-14","t":"13:30","h":"Tampa Bay Damage","a":"Ranger Warsaw","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|13:30|tampa bay damage|ranger warsaw","srcId":"4086438","game_id":"4086438","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"1:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086438","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Tampa Bay Damage","home_entry_id":"236222","home_team_id":"LvSxug1gDAaN323a","home_slot_label":null,"away_name":"Ranger Warsaw","away_entry_id":"236248","away_team_id":"NQfMYfw2NYYTaOeR","away_slot_label":null},
+    {"d":"2026-11-14","t":"14:30","h":"Perris ASG Aftermath","a":"Houston Heat","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|14:30|perris asg aftermath|houston heat","srcId":"4086431","game_id":"4086431","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"2:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086431","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Perris ASG Aftermath","home_entry_id":"236217","home_team_id":"rB9bNzYIsJvae53p","home_slot_label":null,"away_name":"Houston Heat","away_entry_id":"236211","away_team_id":"bkZuqlBFJBIH16gt","away_slot_label":null},
+    {"d":"2026-11-14","t":"14:30","h":"Chicago Aftershock","a":"Atlanta Jungle Cats","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|14:30|chicago aftershock|atlanta jungle cats","srcId":"4086439","game_id":"4086439","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"2:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086439","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"Chicago Aftershock","home_entry_id":"236249","home_team_id":"V2AAgXBXiTdpFeRP","home_slot_label":null,"away_name":"Atlanta Jungle Cats","away_entry_id":"236206","away_team_id":"yUbBwOvw3Ryo2L2E","away_slot_label":null},
+    {"d":"2026-11-14","t":"15:30","h":"PaintballFIT","a":"Detroit Infamous","f":"NXL Pro · Pit 1","id":"sch:2026-11-14|15:30|paintballfit|detroit infamous","srcId":"4086432","game_id":"4086432","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"3:30 PM","field":"NXL Pro","pit":1,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086432","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"PaintballFIT","home_entry_id":"236216","home_team_id":"dbBCywTMd0IAjOJG","home_slot_label":null,"away_name":"Detroit Infamous","away_entry_id":"236209","away_team_id":"tGqR6LaDkTiOcB8l","away_slot_label":null},
+    {"d":"2026-11-14","t":"15:30","h":"TonTon Arsenal","a":"San Antonio X-Factor","f":"NXL Pro · Pit 2","id":"sch:2026-11-14|15:30|tonton arsenal|san antonio x-factor","srcId":"4086440","game_id":"4086440","event_id":"9322","division_id":"28302","division":"Pro X-Ball","day":"Saturday","date":"2026-11-14","time":"3:30 PM","field":"NXL Pro","pit":2,"round":"Prelims","score":null,"status":"Scheduled","source_url":"https://pbleagues.com/event/9322/schedule?action=stats&id=4086440","retrieved_at":"2026-11-12T14:06:25.927650-05:00","home_name":"TonTon Arsenal","home_entry_id":"236223","home_team_id":"lbrDZrreMn3Nchq4","home_slot_label":null,"away_name":"San Antonio X-Factor","away_entry_id":"236126","away_team_id":"ZKeLDRObA8uTlN2u","away_slot_label":null},
   ]
 };
 // Days in the order they are played, named the way a coach says them.
@@ -3451,15 +3458,60 @@ function allGames(){
   // A league row's id is the game itself — day, clock, the two teams — not
   // its place in the list: the rows he took off were remembered by index, so
   // a re-read that added a Sunday game above them hid the wrong games.
-  const seeded = SCHEDULE.games.map(g => ({...g, layout: SCHEDULE.layout, id:"sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a), seed:true}));
+  const seeded = SCHEDULE.games.map(g => ({...g, layout: SCHEDULE.layout, id:g.id || "sch:" + g.d + "|" + g.t + "|" + foldName(g.h) + "|" + foldName(g.a), seed:true}));
   const mine = (Array.isArray(S.games) ? S.games : []).filter(g => g && g.id);
-  return [...seeded, ...mine].filter(g => !gone.has(g.id))
+  // The refreshed public file includes two corrected seed games. Retain its
+  // source data and import ID, but show each once under its stable seed ID.
+  // Match by both published ID and fixture: a coach's rescheduled game stays his.
+  const fixture = g => [g.srcId,g.d,g.t,foldName(g.h),foldName(g.a)].join("|");
+  const bySource = new Map(mine.filter(g => g.srcId && g.id === "imp:" + g.srcId).map(g => [fixture(g),g]));
+  const imported = new Set();
+  const combined = seeded.map(g => {
+    const copy = bySource.get(fixture(g));
+    if(!copy) return g;
+    imported.add(copy.id); return {...g,...copy,id:g.id,importId:copy.id,seed:true};
+  });
+  return [...combined, ...mine.filter(g => !imported.has(g.id))].filter(g => !gone.has(g.id) && !gone.has(g.importId))
     .sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t) || (a.g || "").localeCompare(b.g || ""));
 }
+// Published event + division IDs keep a club's separate entries apart. A row
+// with no division stays unassigned; never infer it from a team name or format.
+const gameDivisionName = g => typeof g.division === "string" && g.division.trim() ? g.division : typeof g.dv === "string" ? g.dv : "";
+const divisionIdPart = value => (typeof value === "string" && value.trim()) || (typeof value === "number" && Number.isFinite(value) && value > 0);
+const publishedDivisionKey = g => divisionIdPart(g.event_id) && divisionIdPart(g.division_id) ? String(g.event_id) + ":" + String(g.division_id) : "";
+const gameDivisionKey = g => publishedDivisionKey(g) || (gameDivisionName(g) ? "name:" + foldName(gameDivisionName(g)) : "unrecorded");
+function scheduleDivisions(games = allGames()){
+  const groups = new Map();
+  games.forEach(g => {
+    const id = gameDivisionKey(g), group = groups.get(id) || {id,name:gameDivisionName(g) || "Division not recorded",count:0};
+    group.count++; groups.set(id,group);
+  });
+  return [...groups.values()].sort((a,b) => a.name.localeCompare(b.name,undefined,{numeric:true}) || a.id.localeCompare(b.id));
+}
+const gamesInDivision = games => S.scheduleDivision ? games.filter(g => gameDivisionKey(g) === S.scheduleDivision) : games;
+const scheduleGames = () => gamesInDivision(allGames());
+function selectedScheduleFields(){
+  const g = S.scheduleDivision && allGames().find(g => gameDivisionKey(g) === S.scheduleDivision);
+  return g && gameDivisionKey(g) !== "unrecorded" ? {dv:gameDivisionName(g),
+    ...(publishedDivisionKey(g) ? {event_id:g.event_id,division_id:g.division_id,division:gameDivisionName(g),...(g.layout ? {layout:g.layout} : {})} : {})} : {};
+}
+window.setScheduleDivision = value => {
+  if(typeof value !== "string" || value.length > 180 || (value && !scheduleDivisions().some(d => d.id === value))) return flash("Choose a division on this schedule.");
+  const games = allGames().filter(g => !value || gameDivisionKey(g) === value);
+  const present = games.some(g => [g.h,g.a].some(t => foldName(t) === foldName(S.myTeam)));
+  set({scheduleDivision:value,myTeam:!value || present ? S.myTeam || "" : "",gameOpen:null});
+};
 function yourDaySec(games){
-  const teams = [...new Map([...games.flatMap(g => [g.h, g.a]), S.myTeam].filter(Boolean).map(t => [foldName(t), t])).values()].sort((a, b) => a.localeCompare(b));
+  const divisions = scheduleDivisions(games), chosen = S.scheduleDivision || "";
+  const divisionPick = `<div class="fld"><label for="schedule-division">Schedule division</label>
+    <select id="schedule-division" onchange="setScheduleDivision(this.value)"><option value="">All divisions</option>${
+      chosen && !divisions.some(d => d.id === chosen) ? `<option selected value="${esc(chosen)}">Saved division — no games loaded</option>` : ""}${
+      divisions.map(d => `<option value="${esc(d.id)}"${chosen === d.id ? " selected" : ""}>${esc(d.name)} · ${d.count} ${d.count === 1 ? "game" : "games"}</option>`).join("")}</select></div>`;
+  games = gamesInDivision(games);
+  const teams = [...new Map([...games.flatMap(g => [g.home_slot_label && !g.home_entry_id ? "" : g.h,
+    g.away_slot_label && !g.away_entry_id ? "" : g.a]), S.myTeam].filter(Boolean).map(t => [foldName(t), t])).values()].sort((a, b) => a.localeCompare(b));
   const team = S.myTeam && teams.find(t => foldName(t) === foldName(S.myTeam)) || "";
-  const pick = `<div class="fld"><label for="my-team">Your team at this event</label>
+  const pick = divisionPick + `<div class="fld"><label for="my-team">Your team at this event</label>
     <select id="my-team" onchange="setMyTeam(this.value)"><option value="">Pick your team</option>${
       teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
     <details class="coach-terms"><summary>Team not listed?</summary><div class="fld"><label for="my-team-name">Team name</label>
@@ -3562,7 +3614,7 @@ function scoutPlanSec(team, day, now){
   const row = r => {
     const g = r.g, head = `<span class="assign__job"><span class="daylight__line">${lightDot(r.kind)}</span>${esc(scoutWhen(g, now))}<br>${where(g)}</span>`;
     if(r.kind !== "scout") return `<div class="assign daylight--${r.kind}">
-      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${g.dv ? " · " + esc(g.dv) : ""}</span>
+      <span class="assign__body">${head}<span class="assign__who"><b>v ${esc(r.opp)}</b>${gameDivisionName(g) ? " · " + esc(gameDivisionName(g)) : ""}</span>
         <span class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet" onclick="openPrep(${jsq(r.opp)})">Before you play them</button>
         <button class="btn btn--quiet" onclick="tellTeam(${jsq(g.id)})">Tell the team</button></span></span>
       <button class="btn btn--quiet" onclick="playGame(${jsq(g.id)},'${side(g, r.opp)}')">Start sheet</button></div>`;
@@ -3572,7 +3624,7 @@ function scoutPlanSec(team, day, now){
         r.for.map(f => `You play ${esc(f.opp)} ${esc(dayName(f.mine.d).split(",")[0])} ${esc(gameClock(f.mine))}`).join(" · ")}<br>${r.clash
         ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — ${scoutWho(g) ? esc(scoutWho(g)) + " is watching" : "send someone"}</b>`
         : scoutWho(g) ? `${esc(scoutWho(g))} is watching` : "Free for you to watch"}${
-        (w => w ? `<br><b style="color:var(--ink)">Already watched · ${(sc => sc.us + "–" + sc.them)(scoreOf(w.id))}</b>` : "")((S.matches || []).find(m => m && m.watch && m.sched === g.id && !sheetEmpty(m)))}</span>
+        (w => w ? `<br><b style="color:var(--ink)">Already watched · ${(sc => sc.us + "–" + sc.them)(scoreOf(w.id))}</b>` : "")((S.matches || []).find(m => m && m.watch && gameRef(g,m.sched) && !sheetEmpty(m)))}</span>
       <input class="scout-who" style="margin-top:var(--s2)" aria-label="Who is watching ${esc(g.h)} v ${esc(g.a)}" placeholder="Who is watching?" maxlength="24" autocomplete="off" value="${esc(scoutWho(g))}" onchange="setScoutWho(${jsq(g.id)},this.value)"${onEnter("this.blur()")}/></span>
       <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
   };
@@ -3592,7 +3644,9 @@ function scoutPlanSec(team, day, now){
 function gameSub(g){
   return [g.dv || "", g.f || "", g.g ? g.g + " Prelims" : (g.seed ? "Prelims" : "")].filter(Boolean).join(" · ");
 }
-function gameById(id){ return allGames().find(g => g.id === id) || null; }
+const gameRef = (g,id) => !!id && (g.id === id || g.importId === id || (g.seed && g.srcId && id === "imp:" + g.srcId &&
+  !(Array.isArray(S.games) ? S.games : []).some(row => row.id === id)));
+function gameById(id){ return allGames().find(g => gameRef(g,id)) || null; }
 /* His team's day at an event. A coach is in two places at once: his own game
  * at 2:00 and the team he has to scout playing at 2:30 in the other pit — and
  * when one pit runs behind, both move. He picks his team once (`myTeam`);
@@ -3610,7 +3664,7 @@ function gameClock(g){
 }
 function teamGames(team){
   const f = foldName(team); if(!f) return [];
-  return allGames().filter(g => foldName(g.h) === f || foldName(g.a) === f).sort((x, y) => gameAt(x) - gameAt(y));
+  return scheduleGames().filter(g => foldName(g.h) === f || foldName(g.a) === f).sort((x, y) => gameAt(x) - gameAt(y));
 }
 const across = (g, team) => foldName(g.h) === foldName(team) ? g.a : g.h;
 function teamDay(team){
@@ -3912,7 +3966,7 @@ function calSpanName(e){
 }
 function calItems(){
   const items = [];
-  allGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
+  scheduleGames().forEach(g => items.push({id: "g|" + g.id, cal: g.seed ? "league" : "mine", d: g.d, t: g.t,
     title: `${g.h} v ${g.a}`, sub: gameSub(g), game: g}));
   (S.matches || []).filter(m => m && m.at && !sheetEmpty(m)).forEach(m => {
     const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
@@ -4453,7 +4507,7 @@ const COPY_VERSION = 1;
 // path is mid-animation, a half-typed join code — is this session's business.
 const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
                   "arrivalSightings","arrivalShots","voiceEvents","playerChecks","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
-                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds","myTeam","fmtDone"];
+                  "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds","myTeam","scheduleDivision","fmtDone"];
 
 let _hadLocal = false;      // was there a real save to come back to?
 let _storeFail = "";        // ...and can we still write one?
@@ -7863,6 +7917,15 @@ const SAME = {
 // or notes from two walks. Recursing keeps both lists while scalar conflicts
 // follow the documented incoming-value rule. Point lineups and path corners
 // remain whole values; combining them would invent a lineup or a route.
+function appendFilmNotes(mine, incoming){
+  let out = String(mine || "");
+  String(incoming || "").split("\n\n").filter(Boolean).forEach(note => {
+    const source = /Source: ([^\s·]+)/.exec(note);
+    if(out.includes(note) || (source && out.includes("Source: " + source[1] + " ·"))) return;
+    out = [out,note].filter(Boolean).join("\n\n");
+  });
+  return out;
+}
 function mergeMapValue(mine, incoming, trail){
   if(Array.isArray(mine) && Array.isArray(incoming)){
     const end = trail[trail.length - 1];
@@ -7879,6 +7942,15 @@ function mergeMapValue(mine, incoming, trail){
     if(!identity) return (trail[0] === "lineups" || trail[0] === "pathEdits") ? mine : incoming;
     const out = mine.slice(), indexes = new Map(out.map((x, i) => [identity(x), i]));
     incoming.forEach(x => {
+      if(trail[0] === "scout" && end === "players" && x.suggested === true && x.from === "film-suggestion" && x.sourceId){
+        // Suggestions never merge two men merely because a number matches,
+        // and never overwrite a coach's name, wire, number, plants or threat.
+        const i = out.findIndex(p => p.sourceId === x.sourceId || (p.name && foldName(p.name) === foldName(x.name)));
+        if(i < 0) out.push(x);
+        else out[i] = {...x,...out[i],note:appendFilmNotes(out[i].note,x.note)};
+        indexes.clear(); out.forEach((p,i) => indexes.set(identity(p),i));
+        return;
+      }
       const key = identity(x), i = indexes.get(key);
       if(i === undefined){ indexes.set(key, out.length); out.push(x); }
       // A team both phones added keeps this phone's spelling: the rows here
@@ -7891,7 +7963,8 @@ function mergeMapValue(mine, incoming, trail){
   }
   if(plainRecord(mine) && plainRecord(incoming)){
     const out = {...mine};
-    Object.entries(incoming).forEach(([k, v]) => { out[k] = mergeMapValue(mine[k], v, trail.concat(k)); });
+    Object.entries(incoming).forEach(([k, v]) => { out[k] = trail[0] === "scout" && incoming.filmSuggestions === true && k === "notes"
+      ? appendFilmNotes(mine[k],v) : mergeMapValue(mine[k], v, trail.concat(k)); });
     return out;
   }
   return incoming;
@@ -8052,7 +8125,7 @@ function copyDataError(data){
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
-    matchId:str, matchState:str, teamCode:str, division:str, myTeam:v=>str(v)&&v.length<=60, fmtDone:v=>typeof v==="boolean",
+    matchId:str, matchState:str, teamCode:str, division:str, myTeam:v=>str(v)&&v.length<=60, scheduleDivision:v=>str(v)&&v.length<=180, fmtDone:v=>typeof v==="boolean",
     // The format he answered, and the ones he saved under a name.
     fmt:row, fmts:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
     calKinds:list(v => row(v) && str(v.id) && token(v.id) && str(v.name)),
@@ -8441,7 +8514,7 @@ window.loadCopy = (mode, suppliedText, checkedRestore) => {
   // off are his own choices, not records: an assistant's copy merged in used
   // to swap his pits for theirs, turn off the calls they do not run and hide
   // the schedule rows they did not want.
-  const HERE = ["fmt", "teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo", "myTeam", "fmtDone"];
+  const HERE = ["fmt", "teamCode", "matchId", "point", "layoutKey", "script", "callPicked", "division", "matchState", "left", "right", "offPlays", "gamesOff", "blastTo", "myTeam", "scheduleDivision", "fmtDone"];
   const mine = {};
   HERE.forEach(k => { mine[k] = S[k]; });
   // Who won a point is the one thing two phones can disagree on outright. The
@@ -16825,6 +16898,7 @@ function gameGuard(){
 }
 // Opens the game's row on the schedule list and brings it under the thumb.
 window.jumpGame = id => {
+  id = gameById(id)?.id || id;
   set({gameOpen: id});
   const el = [...document.querySelectorAll("[data-game]")].find(x => x.getAttribute("data-game") === id);
   if(el) el.scrollIntoView({block: "start"});
@@ -16833,7 +16907,7 @@ window.watchGame = id => {
   const g = gameById(id); if(!g) return;
   // A game already being watched is one sheet: Watch again reopens it rather
   // than starting "game 2" at 0–0 and splitting it across two sheets.
-  const had = (S.matches || []).find(m => m && m.watch && m.sched === g.id);
+  const had = (S.matches || []).find(m => m && m.watch && gameRef(g,m.sched));
   if(had){
     const moved = toGameField(g);
     // An older sheet is the same wall as opening it from Matches.
@@ -16880,11 +16954,12 @@ window.dropGame = id => {
 // never deleted — only remembered as taken off — so putting them back is
 // forgetting that.
 window.restoreGames = () => { const n = (S.gamesOff || []).length; S.gamesOff = []; save(S); flash(n ? `${n} ${n === 1 ? "row is" : "rows are"} back on the list.` : ""); };
-window.newGame = () => set({gameNew: {d: SCHEDULE.games[0].d, t: "09:00", h: "", a: "", g: ""}});
+window.newGame = () => set({gameNew: {...selectedScheduleFields(),d: SCHEDULE.games[0].d, t: "09:00", h: "", a: "", g: ""}});
 window.setGameField = (k, v) => { S.gameNew = {...(S.gameNew || {}), [k]: clean(v)}; save(S); };
 // The same game twice — one day, one clock, the same two teams — is one row
 // typed twice or one page pasted twice, not two games.
-const sameGame = (a, b) => !!a && !!b && a.d === b.d && a.t === b.t && foldName(a.h) === foldName(b.h) && foldName(a.a) === foldName(b.a);
+const sameGame = (a, b) => !!a && !!b && a.d === b.d && a.t === b.t && foldName(a.h) === foldName(b.h) && foldName(a.a) === foldName(b.a)
+  && (gameDivisionKey(a) === "unrecorded" || gameDivisionKey(b) === "unrecorded" || gameDivisionKey(a) === gameDivisionKey(b));
 const gameOnList = g => allGames().find(x => sameGame(x, g)) || null;
 /* A clock the way a coach types it — "13:45", "1:45 PM", "1:45pm", "9", "9am",
  * "0900", "1345" — read to the HH:MM the schedule keeps, or "" when it is not a
@@ -16908,7 +16983,8 @@ window.saveGame = () => {
   const t = clockOf(n.t || "09:00");
   if(!t) return flash(`"${(n.t || "").trim()}" is not a time. Type it like 13:45 or 1:45 PM.`);
   const row = {id: gameId(), d: n.d || SCHEDULE.games[0].d, t,
-               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim(), layout: S.layoutKey};
+               h: n.h.trim(), a: n.a.trim(), g: (n.g || "").trim(), layout: n.layout || S.layoutKey,
+               ...(n.dv ? {dv:n.dv} : {}), ...(n.event_id && n.division_id ? {event_id:n.event_id,division_id:n.division_id,division:n.division} : {})};
   const had = gameOnList(row);
   if(had) return flash(`${had.h} v ${had.a} is already on the list at ${clockName(had.t)}.`);
   S.games = [...(S.games || []), row];
@@ -17059,6 +17135,8 @@ function parseSchedule(text){
 }
 window.readSchedule = () => {
   const rows = parseSchedule(S.gamePaste || "");
+  const division = selectedScheduleFields();
+  rows.forEach(g => Object.assign(g,division));
   if(!rows.length)
     return flash("Nothing in that looked like a game. One game a line, with a time and both teams — "
                + "for example: 9:00 AM  Dynasty vs Impact"
@@ -18209,6 +18287,7 @@ function pit(side,T,label){
           <div class="rost__ps rost__ps--pit">
             <label><span class="note">Wire</span>
               <select onchange="editScoutPlayer('${side}',${i},'wire',this.value)">
+                ${m.wire && !SCOUT_WIRES.includes(m.wire) ? `<option selected value="${esc(m.wire)}">${esc(m.wire)}</option>` : ""}
                 ${SCOUT_WIRES.map(w=>`<option${m.wire===w?" selected":""}>${w}</option>`).join("")}
               </select></label>
             <label><span class="note">Threat</span>
@@ -18222,6 +18301,7 @@ function pit(side,T,label){
               </select></label>
             <button class="btn btn--quiet" style="grid-column:1/-1" onclick="openArrival('${side}',${i})">How did they get there?</button>
           </div>
+          ${m.suggested ? `<details class="film-suggestion"><summary>Suggested film note${m.confidence ? " · " + esc(m.confidence) : ""}</summary><p class="note">${esc(m.note)}</p></details>` : ""}
           <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
         </div>`).join("")}</div>`
@@ -19766,7 +19846,7 @@ const HELP = {
          "Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Open Game by game for every opponent and each of their earlier games, marked free to watch or clashing with your own. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
-         "Every game at this event, by day, read off the league's page.",
+         "Loaded games for this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
          "Nothing is fetched: paste a schedule off the league's page, or type a game."]},
@@ -20982,7 +21062,11 @@ function moreBody(k){
         </div>`).join("")}</div>`, matchLabel(curMatch())):"");
   }
   if(k==="schedule"){
-    const games = allGames();
+    const all = allGames(), games = gamesInDivision(all);
+    const importedSnapshot = games.filter(g => g.id.startsWith("imp:") && g.event_id === "9322" && g.retrieved_at)
+      .map(g => Date.parse(g.retrieved_at)).filter(Number.isFinite).sort((a,b) => b-a)[0];
+    const snapshotNote = importedSnapshot ? `<p class="note">Loaded World Cup schedule · read ${esc(new Date(importedSnapshot).toLocaleString("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}))} Eastern.
+      A snapshot, not live updates. Playoff slots stay unnamed until teams are published. Published scores are reference only; your match results come from Tally.</p>` : "";
     const days = [...new Set(games.map(g => g.d))];
     const mine = new Set((S.games || []).map(g => g.id));
     const open = S.gameOpen;
@@ -20998,7 +21082,7 @@ function moreBody(k){
     const named = (m, g) => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a));
     // The game a sheet was opened from; an older sheet kept it in `game`.
     const schedOf = m => m.sched || (m.game && !fmtGame(m.game) ? m.game : null);
-    const had = g => (S.matches || []).filter(m => schedOf(m) ? schedOf(m) === g.id
+    const had = g => (S.matches || []).filter(m => schedOf(m) ? gameRef(g,schedOf(m))
         : named(m, g) && (m.layout || "lso") === gameField(g) && dayOf(m.at) === g.d)
       .filter(m => !sheetEmpty(m))
       .sort((a, b) => a.at - b.at)
@@ -21041,12 +21125,13 @@ function moreBody(k){
     const nowMs = Date.now(), at = g => Date.parse(`${g.d}T${g.t || "00:00"}`) || 0;
     const byClock = [...games].sort((x, y) => at(x) - at(y));
     const nextG = byClock.find(g => at(g) >= nowMs - 15 * 60000) || null;
-    const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">Next game on the full schedule · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
-    return yourDaySec(games) + jump + calendarSec() + sec("The schedule", `<p class="lede">Every game at this event. <b>Watch this game</b> puts both
+    const jump = nextG ? `<button class="btn btn--block" onclick="jumpGame(${jsq(nextG.id)})">${S.scheduleDivision ? "Next game in this division" : "Next game on the full schedule"} · ${esc(dayName(nextG.d))} ${esc(clockName(nextG.t))} · ${esc(nextG.h)} v ${esc(nextG.a)} ›</button>` : "";
+    return yourDaySec(all) + jump + calendarSec() + sec("The schedule", `<p class="lede">${S.scheduleDivision ? "Games in your selected division." : "Games loaded for this event."} <b>Watch this game</b> puts both
         teams in the pits and opens a sheet that counts against them and never against you — it is how
         you scout a team you play tomorrow. <b>We play</b> starts your own match against whichever of
         the two is across the tape.</p>
-      <p class="note">${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
+      ${snapshotNote}
+      <p class="note">Built-in rows: ${esc(SCHEDULE.event)} · ${esc(SCHEDULE.div)} · ${esc(SCHEDULE.field)}</p>
       <p class="aid">Read off the league, not worked out here: <b>${esc(SCHEDULE.read)}</b>.
         ${esc(SCHEDULE.covers)} This schedule does not refresh automatically. Check it against the league's page
         nearer the event and paste or type anything that moved.</p>`,
@@ -21054,7 +21139,7 @@ function moreBody(k){
     + days.map(d => sec(dayName(d), `<div class="assigns">${
         games.filter(g => g.d === d).map(row).join("")}</div>`,
         games.filter(g => g.d === d).length + " games")).join("")
-    + sec("Add a game", n
+    + sec("Add a game", (S.scheduleDivision || n?.dv ? `<p class="note">Adding to ${esc(n?.dv || selectedScheduleFields().dv || "Division not recorded")}.</p>` : "") + (n
       ? `<div id="game-new"></div><div class="fld"><label>Day</label>
            <select onchange="setGameField('d',this.value)">${
              /* The event's own days too: Sunday is the day the league's list
@@ -21073,10 +21158,10 @@ function moreBody(k){
            <button class="btn grow" onclick="saveGame()">Add it</button>
            <button class="btn btn--quiet" onclick="set({gameNew:null})">Cancel</button>
          </div>`
-      : `<button class="btn btn--quiet btn--block" onclick="newGame()">+ A game the list does not have</button>`)
+      : `<button class="btn btn--quiet btn--block" onclick="newGame()">+ A game the list does not have</button>`))
     + ((S.gamesOff || []).length ? `<p class="note" style="margin-top:var(--s3)">${(S.gamesOff || []).length} ${(S.gamesOff || []).length === 1 ? "league row" : "league rows"} taken off the list. Nothing is deleted — the league's rows are the league's.
         <button class="btn btn--quiet read-line__go" onclick="restoreGames()">Put them back</button></p>` : "")
-    + sec("Paste a schedule", `<p class="lede">Copy the schedule off the league's page and drop it in.
+    + sec("Paste a schedule", `${S.scheduleDivision ? `<p class="note">Adding to ${esc(selectedScheduleFields().dv || "Division not recorded")}.</p>` : ""}<p class="lede">Copy the schedule off the league's page and drop it in.
         One game a line, with a clock and both teams — <i>9:00 AM Dynasty vs Impact</i>. A line that is
         only a date sets the day for the games under it.</p>
       <textarea rows="5" placeholder="Friday, Sep 18&#10;9:00 AM  Detroit Infamous vs Atlanta Jungle Cats"
