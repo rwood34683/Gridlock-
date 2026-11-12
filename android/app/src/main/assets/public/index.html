@@ -15397,7 +15397,7 @@ function tallyPointControls(){
       ? `<button class="btn" data-undo-point onclick="undoClearTallyPoint()">Undo clear</button>`
       : `<span class="note" style="margin:0;text-align:center;align-self:center">Nothing to undo</span>`}</div>
     <button class="btn btn--quiet grow" data-reset-match onclick="resetTallyMatch()">Reset match</button>
-  </div><p class="note">Clear affects this point only. Reset starts a new match; this one stays in Matches.</p>`;
+  </div><p class="note">Clear removes this point. Reset starts fresh; this match stays in Matches.</p>`;
 }
 // Reset beside the chart shares New match's confirmation and kept-sheet flow.
 // The original New match control at the foot of the sheet stays in place.
