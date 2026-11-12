@@ -492,6 +492,109 @@ const FIELD = key => ({ key, name: "Test " + key, bunkers: Array.from({ length: 
     await ctx.close();
   });
 
+  for (const missing of [false, true]) await test(`an open tab's recovery copy survives a ${missing ? "missing" : "delayed"} heartbeat in another tab`, async () => {
+    const { ctx, open } = await fresh();
+    try {
+      const a = await open(), b = await open();
+      await b.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+      await a.evaluate(() => { S.roster = [{ name: "Only In A", num: 4 }]; save(S); });
+      const owner = await a.evaluate(() => {
+        const key = window.gridlockRecoveryCopies().find(c => c.mine).key;
+        return { key, liveKey: TAB_LIVE + TAB_ID, before: localStorage.getItem(TAB_LIVE + TAB_ID), now: Date.now() + 60000 };
+      });
+      // The owner refreshes its heartbeat, but B still sees its earlier storage
+      // snapshot. Force that interleaving rather than waiting for CI to hit it.
+      await a.evaluate(now => { Date.now = () => now; tabAlive(); }, owner.now);
+      await b.evaluate(({ owner, missing }) => {
+        Date.now = () => owner.now;
+        const get = Storage.prototype.getItem;
+        Storage.prototype.getItem = function (k) {
+          return k === owner.liveKey ? (missing ? null : owner.before) : get.call(this, k);
+        };
+        window.__deletesAsked = 0;
+        window.confirm = () => { window.__deletesAsked++; return true; };
+      }, { owner, missing });
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), owner.key), false, "an open owner still protects the copy");
+      assert.equal(await b.evaluate(() => window.__deletesAsked), 0, "do not even offer to delete an open tab's copy");
+      assert.ok(JSON.parse(await stored(b, owner.key)).data.roster.some(r => r.name === "Only In A"));
+      // Closing the real owner releases its claim; the same old timestamp in B
+      // must not leave an orphan copy impossible to delete.
+      await a.close();
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), owner.key), true);
+      assert.equal(await stored(b, owner.key), null);
+      assert.equal(await b.evaluate(() => window.__deletesAsked), 1);
+      assert.deepEqual(b.errs, []);
+    } finally { await ctx.close(); }
+  });
+
+  await test("a refused ownership check keeps the recovery copy and explains why", async () => {
+    const { ctx, open } = await fresh();
+    try {
+      const a = await open(), b = await open();
+      await b.evaluate(() => { S.entered = true; S.role = "staff"; S.email = "recovery-test@example.test"; set({ tab: "more", more: "nexus" }); });
+      await b.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+      await a.evaluate(() => { S.roster = [{ name: "Only In A", num: 4 }]; save(S); });
+      const key = await a.evaluate(() => window.gridlockRecoveryCopies().find(c => c.mine).key);
+      await b.evaluate(() => {
+        const now = Date.now() + 60000; Date.now = () => now;
+        Object.defineProperty(navigator, "locks", { configurable: true, value: { request: () => Promise.reject(new Error("unavailable")) } });
+        window.__deletesAsked = 0; window.confirm = () => { window.__deletesAsked++; return true; };
+      });
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), key), false);
+      assert.ok(await stored(b, key));
+      assert.equal(await b.evaluate(() => window.__deletesAsked), 0);
+      assert.match(await b.locator("#root").innerText(), /could not check.*another tab/i);
+      assert.deepEqual(b.errs, []);
+    } finally { await ctx.close(); }
+  });
+
+  await test("without browser locks, a fresh heartbeat protects the copy and a closed tab's copy can be deleted", async () => {
+    const { ctx, open } = await fresh();
+    await ctx.addInitScript(() => Object.defineProperty(navigator, "locks", { configurable: true, value: undefined }));
+    try {
+      const a = await open(), b = await open();
+      await b.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+      await a.evaluate(() => { S.roster = [{ name: "Only In A", num: 4 }]; save(S); });
+      const key = await a.evaluate(() => window.gridlockRecoveryCopies().find(c => c.mine).key);
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), key), false);
+      assert.ok(await stored(b, key));
+      await a.close();
+      await b.evaluate(() => { const now = Date.now() + 60000; Date.now = () => now; });
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), key), true);
+      assert.equal(await stored(b, key), null);
+      assert.deepEqual(b.errs, []);
+    } finally { await ctx.close(); }
+  });
+
+  for (const during of ["ownership check", "confirmation"]) await test(`a recovery copy changed during ${during} is never deleted`, async () => {
+    const { ctx, open } = await fresh();
+    try {
+      const a = await open(), b = await open();
+      await b.evaluate(() => { S.results = [{ m: S.matchId, pt: 1, won: "us" }]; save(S); });
+      await a.evaluate(() => { S.roster = [{ name: "Only In A", num: 4 }]; save(S); });
+      const key = await a.evaluate(() => window.gridlockRecoveryCopies().find(c => c.mine).key);
+      await a.close();
+      await b.evaluate(({ key, during }) => {
+        const now = Date.now() + 60000; Date.now = () => now;
+        const change = () => {
+          const copy = JSON.parse(localStorage.getItem(key));
+          copy.data.roster.push({ name: "Newer work", num: 5 });
+          localStorage.setItem(key, JSON.stringify(copy));
+        };
+        window.__deletesAsked = 0;
+        window.confirm = () => { window.__deletesAsked++; if (during === "confirmation") change(); return true; };
+        if (during === "ownership check") {
+          const request = navigator.locks.request.bind(navigator.locks);
+          Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (...args) => { change(); return request(...args); } } });
+        }
+      }, { key, during });
+      assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), key), false);
+      assert.ok(JSON.parse(await stored(b, key)).data.roster.some(r => r.name === "Newer work"));
+      assert.equal(await b.evaluate(() => window.__deletesAsked), during === "confirmation" ? 1 : 0);
+      assert.deepEqual(b.errs, []);
+    } finally { await ctx.close(); }
+  });
+
   await test("a recovery copy deleted from another tab is put back before the tab says it is safe", async () => {
     const { ctx, open } = await fresh();
     const a = await open(), b = await open();

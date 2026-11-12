@@ -4548,6 +4548,14 @@ const HERE_KEY = STORE_KEY + ".here";
 const TAB_COPY = STORE_KEY + ".tab.";
 const TAB_LIVE = STORE_KEY + ".live.";
 const TAB_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+// A heartbeat can reach another tab late, or stop while this page is asleep.
+// The browser owns this claim for the document's lifetime and releases it on
+// close/navigation, including a crash. It never delays a synchronous save.
+// Keep the heartbeat too, for older builds and browsers without Web Locks.
+try{
+  if(navigator.locks && typeof navigator.locks.request === "function")
+    navigator.locks.request(TAB_LIVE + TAB_ID, () => new Promise(() => {})).catch(() => {});
+}catch(e){}
 /* A save is known by its own id, never by its time: two tabs saving in the
  * same millisecond — or on a clock that does not move — wrote the same
  * savedAt, and the tab that compared times read the other's save as its own
@@ -4732,17 +4740,32 @@ window.gridlockRecoveryCopies = () => {
  * own copy is the one it is still saving into while it is stale, so it cannot
  * be deleted from here; another tab's copy written in the last half minute may
  * be one that tab is still writing, and waits. */
-window.dropRecoveryCopy = key => {
+window.dropRecoveryCopy = async key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
   if(!c) return false;
   if(c.mine && _tabCopyAt){ flash("This tab is still keeping its changes in that copy. Reload first, or merge it in."); return false; }
-  let live = 0; try{ live = +localStorage.getItem(TAB_LIVE + key.slice(TAB_COPY.length)) || 0; }catch(e){}
-  if(!c.mine && live && Date.now() - live < 30000){ flash("The tab that wrote that copy is still open and keeping its changes in it. Close that tab first."); return false; }
-  if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
-  if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
-  try{ localStorage.removeItem(key); }catch(e){ return false; }
-  render();
-  return true;
+  const owner = TAB_LIVE + key.slice(TAB_COPY.length);
+  const inUse = () => { flash("The tab that wrote that copy is still open and keeping its changes in it. Close that tab first."); return false; };
+  const remove = () => {
+    let live = 0; try{ live = +localStorage.getItem(owner) || 0; }catch(e){}
+    if(!c.mine && live && Date.now() - live < 30000) return inUse();
+    if(!c.mine && Date.now() - c.at < 30000){ flash("Another tab wrote that copy a moment ago and may still be saving into it. Try again in a minute."); return false; }
+    try{
+      // The wait or the confirmation may outlive the copy the coach selected.
+      // Never remove a newer copy under the same key.
+      if(localStorage.getItem(key) !== c.text) return false;
+      if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
+      if(localStorage.getItem(key) !== c.text) return false;
+      localStorage.removeItem(key);
+    }catch(e){ return false; }
+    render();
+    return true;
+  };
+  try{
+    if(navigator.locks && typeof navigator.locks.request === "function")
+      return await navigator.locks.request(owner, {ifAvailable:true}, lock => lock ? remove() : inUse());
+  }catch(e){ flash("We could not check whether another tab is using this copy. Try again."); return false; }
+  return remove();
 };
 window.mergeRecoveryCopy = key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
