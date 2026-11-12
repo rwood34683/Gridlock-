@@ -105,6 +105,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem("gridlock_team")).code),"IMPACT-7QX2","Player's team is untouched");
    }finally{await c.close();}
   });
+  await require('./player-clear-team.cjs')({check,browser,base,out});
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

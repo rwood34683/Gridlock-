@@ -284,7 +284,16 @@ function apply(src, kind) {
     }
     src = src.split(from).join(to);
   }
-  return require("./rulebook-links").preview(src);
+  src = require("./rulebook-links").preview(src);
+  if (kind === "player") {
+    const start = "<!-- player-selection:begin -->", end = "<!-- player-selection:end -->";
+    const code = fs.readFileSync(path.join(__dirname, "teaser_selection.js"), "utf8").trimEnd();
+    const block = start + "\n<script>\n" + code + "\n</script>\n" + end;
+    const a = src.indexOf(start), b = src.indexOf(end);
+    src = a >= 0 && b > a ? src.slice(0, a) + block + src.slice(b + end.length)
+      : src.replace("</body>", block + "\n</body>");
+  }
+  return src;
 }
 
 const check = process.argv.includes("--check");

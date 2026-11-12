@@ -1380,6 +1380,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     available yet. They keep their own `gridlock_*` storage keys and never a
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
+    Player's **Clear team** in Tally and Scout clears the selected opponent,
+    never the team joined with a code. Confirm against the current selection
+    and sheet; retain all scored points, scouting notes and player history.
+    Clearing the right pit starts a blank sheet when match sheets are present,
+    only after that transition is saved. A refused save keeps the selection.
+    Edit `tools/teaser_selection.js` and run `node tools/teaser_rules.js`.
     On 11 Nov 2026 the owner asked for the Player preview in the coach
     app's look. `tools/teaser_theme.py` recolours it in place: black ground,
     red secondary type, the coach field's dark ground and its bunker ramps

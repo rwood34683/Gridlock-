@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Player's Clear team** clears a selected Tally/Scout opponent, not the joined team.
+  It preserves saved history; `tools/teaser_selection.js` is its generated source.
+
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 
