@@ -135,6 +135,12 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    const undo=p.getByRole("button",{name:"Undo clear",exact:true});await undo.scrollIntoViewIfNeeded();assert.ok((await undo.boundingBox()).height>=44);
    if(process.env.TALLY_RESET_SHOTS){fs.mkdirSync(process.env.TALLY_RESET_SHOTS,{recursive:true});await p.screenshot({path:path.join(process.env.TALLY_RESET_SHOTS,`${viewport.width}x${viewport.height}.png`)});}
    await undo.click();assert.ok(Object.values(await pointRows(p)).some(a=>a.length));
+   const kept=await p.evaluate(()=>S.matchId);
+   await p.locator("[data-reset-match]").click();await p.waitForTimeout(300);
+   assert.equal(await p.evaluate(id=>!!matchById(id),kept),true);
+   assert.equal(await p.evaluate(()=>matchVs()),"");
+   const prompt=await p.locator("#tally-opp").boundingBox();
+   assert.ok(prompt&&prompt.y>=0&&prompt.y+Math.min(prompt.height,120)<=viewport.height,"Reset brings the next opponent prompt on screen");
   },viewport);
  }finally{await browser.close();await new Promise(r=>server.close(r));console.log(`\n${passed} PASS, ${failed} FAIL`);if(failed)process.exitCode=1;}
 })();

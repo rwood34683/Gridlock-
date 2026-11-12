@@ -15393,9 +15393,15 @@ function tallyPointControls(){
   return `<div class="btnrow" style="margin:var(--s3) 0" aria-label="Point controls">
     <button class="btn btn--quiet grow" data-clear-point onclick="clearTallyPoint()"${sheetField() ? " disabled" : ""}>Clear point ${sheetPoint()}</button>
     <button class="btn grow" data-undo-point onclick="undoClearTallyPoint()"${canUndoPointClear() ? "" : " disabled"}>Undo clear</button>
-    <button class="btn btn--quiet grow" data-reset-match onclick="freshMatch()">Reset match</button>
+    <button class="btn btn--quiet grow" data-reset-match onclick="resetTallyMatch()">Reset match</button>
   </div><p class="note">Clear affects this point only. Reset starts a new match; this one stays in Matches.</p>`;
 }
+// Reset beside the chart shares New match's confirmation and kept-sheet flow.
+// The original New match control at the foot of the sheet stays in place.
+window.resetTallyMatch = () => {
+  if(!S.entered || !staffed() || S.tab !== "tally") return;
+  window.freshMatch();
+};
 window.clearTallyPoint = () => {
   if(!pointEditReady()) return;
   const mid = S.matchId, pt = sheetPoint(), before = pointRecordCopy(mid,pt), stamp = pointClearStamp(mid,pt);
