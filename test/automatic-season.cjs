@@ -110,6 +110,13 @@ const adapter=fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js")
       await b.evaluate(()=>{const el=document.createElement("input");el.id="late-draft";document.body.append(el);el.focus();el.value="Keep this";__finish();});await settled(b);
       assert.equal(await b.locator("#late-draft").inputValue(),"Keep this");assert.equal(await b.evaluate(()=>S.codes[0].word),"Blue");
     });
+    await check("a pending incoming copy reports waiting without redrawing an unfinished form",async()=>{
+      const {a,b}=await fixture();await change(a);
+      await b.evaluate(()=>{const el=document.createElement("textarea");el.id="pending-note";document.getElementById("root").append(el);el.value="Keep this draft";_seasonInputAt=0;return sendSeason(false);});await settled(b);
+      assert.equal(await b.locator("#pending-note").inputValue(),"Keep this draft");
+      assert.equal(await b.evaluate(()=>S.codes[0].word),"Blue");assert.match(await b.evaluate(()=>S.syncSaid),/waiting to open/);
+      await b.locator("#pending-note").evaluate(el=>el.remove());await receive(b);assert.equal(await b.evaluate(()=>S.codes[0].word),"Rocket");
+    });
     await check("both-edited copies pause, preserve local data and never overwrite the account",async()=>{
       const {a,b}=await fixture();await change(a);await b.evaluate(()=>set({messages:["Unsent phone note"]}));const remote=clone(row),count=writes();
       await receive(b);assert.equal(await b.evaluate(()=>S.syncOn),false);assert.deepEqual(await b.evaluate(()=>S.messages),["Unsent phone note"]);

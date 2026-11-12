@@ -3504,7 +3504,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Send a new device's season before checking the signed-in account's saved
   copy. Account handoff uses the immutable account id, an acknowledged revision
   and a SHA-256 checkpoint of the season (not its changing export timestamp).
-  An opted-in device may adopt a newer saved season at sign-in only if its own
+  An opted-in device may adopt a newer saved season at sign-in or while idle only if its own
   season still matches that checkpoint. Preserve and read back its recovery
   copy first. New devices, both-edited copies and deletions require an explicit
   choice; every upload still uses the server's revision check. Reading a copy

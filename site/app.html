@@ -13991,9 +13991,9 @@ let _syncTail = Promise.resolve(), _syncDeleting = false, _syncReviewing = false
 let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
 let _seasonReceiving = null, _seasonInputAt = 0, _seasonReceiveTimer = null;
 function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
-function syncStatus(data){
+function syncStatus(data, paint = true){
   Object.assign(S,data);_syncStatusWrite=true;
-  try{save(S);}finally{_syncStatusWrite=false;}render();
+  try{save(S);}finally{_syncStatusWrite=false;}if(paint) render();
 }
 // A stale tab never sends: its season is older than the one another tab saved.
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
@@ -14067,7 +14067,10 @@ async function sendSeason(manual){
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
   _syncSending=false;
   if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
-  if(r?.incoming){ await receiveAccountSeason(); return; }
+  if(r?.incoming){
+    syncStatus({syncSaid:"Newer saved changes are waiting to open when you finish typing or recording. Get saved season opens them now."},seasonReceiveIdle());
+    await receiveAccountSeason(); return;
+  }
   if(r && r.ok === true){
     syncYes(true);
     // A slow send covers the snapshot it took, not edits made while it waited.
