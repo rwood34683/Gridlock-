@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Scout field ends**: every Scout view has Switch ends and Swap every point
+  beside its match controls, with both teams' ends named and earlier points preserved.
+
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 

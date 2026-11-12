@@ -275,6 +275,7 @@ button.ctx__ev b{color:var(--mute)}
 
 .lede{color:var(--mute);font-size:var(--t-sm);line-height:1.5}
 .note{color:var(--dim);font-size:var(--t-xs);line-height:1.5}
+.ends-teams{flex-basis:20rem;font-size:var(--t-sm)}
 .auth-intro{margin-top:0;font-size:var(--t-sm)}
 .auth-data{margin:4px 0 12px}
 .auth-data summary{min-height:44px;padding:12px 0;cursor:pointer;color:var(--mute);font-size:var(--t-sm);line-height:20px;font-weight:600}
@@ -6627,10 +6628,13 @@ function displayPaths(){
   return ps.map(p => ({...p, from: mirrorFt(p.from), to: mirrorFt(p.to), via: (p.via || []).map(mirrorFt), mirrored: true}));
 }
 const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
-function endsChip(){
+function endsChip(both = false){
   const e = ourEnd(), m = curMatch(), swap = !!(m && m.swapEnds);
-  return `<div class="btnrow" style="align-items:center;margin-top:var(--s2)">
-    <span class="note grow" style="margin:0">${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}${(m && m.flips || []).length ? ` · switched at point ${(m.flips).join(", ")}` : ""}</span>
+  const label = both
+    ? `${esc(m && m.watch ? m.home || "Home" : S.myTeam || "Your team")}: <b style="color:var(--ink)">${e} end</b> · ${esc(m && m.watch ? m.away || "Away" : matchVs() || "Other team")}: <b style="color:var(--ink)">${e === "left" ? "right" : "left"} end</b>`
+    : `${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}`;
+  return `<div class="btnrow" role="group" aria-label="Field ends" style="align-items:center;margin-top:var(--s2)">
+    <span class="note grow${both ? " ends-teams" : ""}" style="margin:0">${label}${(m && m.flips || []).length ? ` · switched at point ${(m.flips).join(", ")}` : ""}</span>
     <button class="btn btn--quiet" onclick="switchEnds()">Switch ends</button>
     <button class="tgl ${swap ? "on" : ""}" onclick="setSwapEnds(${!swap})" aria-pressed="${swap}"><i></i>Swap every point</button>
   </div>`;
@@ -17133,10 +17137,13 @@ function scout(){
   // The match and the point ride under the views on every one of them. The
   // strip sat under the pits, which Arrival and Voice do not draw, so a coach
   // on How did they get there had no Next point and no way to switch games.
-  if(view === "arrival") return navigation + matchStrip() + scoutArrival();
+  // Ends belong to that same sheet, including a game watched from the fence.
+  // Keep their control on every Scout view; it uses the existing point history.
+  const matchControls = matchStrip() + endsChip(true);
+  if(view === "arrival") return navigation + matchControls + scoutArrival();
   // The house rule is not optional on one sub-tab. Arrival carries its own
   // version of this line; the voice log had none at all.
-  if(view === "voice") return navigation + matchStrip() + scoutVoice()
+  if(view === "voice") return navigation + matchControls + scoutVoice()
     + `<p class="aid"><b>A training aid, not a prediction.</b> Everything here is counted from what you
        logged or scored yourself. Officials govern the live call.</p>`;
   // Every sub-tab but the board reads off the team in the right pit. With
@@ -17151,7 +17158,7 @@ function scout(){
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
   return `${tip("scout","Left pit and right pit. Tendency is your film read — the Counter ranking is a training aid, not a prediction.")}
   ${navigation}
-  ${matchStrip()}
+  ${matchControls}
 
   ${/* Two pits read as two opponents, and a coach asked which one he was
         playing. The right pit is the team he plays — Tally, Counter and the
@@ -19666,7 +19673,7 @@ const HELP_Q = [
   ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
-  ["We switched ends.", "Switch ends, under the field on Tally (and on Playbook once a call is picked). The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
+  ["We switched ends.", "Tap Switch ends beside the match controls on Scout, under the field on Tally, or on Playbook once a call is picked. Scout names both teams and their ends, including games you are watching. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
   ["The field looks wrong for this event.", "Tap the event's name at the top. Choose Season, Event and Layout, then Use layout. Past events stay available while their layouts are saved here. Every tab follows the chosen field; a match already scored keeps its original field. The call beside it opens Change the call."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],

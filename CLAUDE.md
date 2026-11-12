@@ -392,6 +392,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     directions all stay in the frame they were set in. The field marks your
     end with a bar in your colour.
 
+    Scout keeps **Switch ends** and **Swap every point** beside its match
+    controls on every sub-tab, naming both teams' ends from the current sheet.
+    Reuse `endsChip(true)` and the existing `switchEnds` history; never swap
+    team identities, scores or earlier points to turn the field. A watched
+    game's labels are its home and away teams, not an unrelated pit selection.
+    `test/scout-ends.cjs` holds the controls, history and phone/tablet fit.
+
 30. ~~The clock between points.~~ Done — X-Ball gives a coach a set time from
     the hang to the next buzzer to call the break and set his five, and it is
     the only clock in the app he runs himself: the point clock and the match
