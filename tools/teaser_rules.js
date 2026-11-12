@@ -223,6 +223,15 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["no sends", "`).join('')}`:''}</span></a>", "`).join('')}`:''}<br><span style=\"font-size:10.5px;color:#ff5a52\">Video links are not in this preview</span></span></div>"],
   ["no sends", "<a href=\"${prEsc(u)}\" target=\"_blank\" rel=\"noopener\" class=\"ld\" style=\"display:flex;gap:8px", "<div class=\"ld\" style=\"display:flex;gap:8px"],
   ["no sends", "<span>${prEsc(t)}</span></a>`).join('');}", "<span>${prEsc(t)}<br><span style=\"font-size:10.5px;color:#ff5a52\">Links are not in this preview</span></span></div>`).join('');}"],
+  // Player (owner, 12 Nov 2026): Tally and Scout's Matchup, Breakouts, Layers
+  // and Games work as the coach app's do. The code is tools/teaser_coachplay.js.
+  ["coach tally", "function renderTally(){if(MODE==='tally')TSCOPE=null;", "function renderTally(){if(MODE==='tally'){cpTally();return;}if(MODE==='tally')TSCOPE=null;", ["player"]],
+  ["coach scout", "  if(scView==='log')return renderScoutBreakouts();\n  if(scView==='layers')return renderScoutLayers();\n  if(scView==='games')return renderGames();", "  if(scView==='log')return cpBreakouts();\n  if(scView==='layers')return cpLayers();\n  if(scView==='games')return cpGames();", ["player"]],
+  ["coach scout", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');}return;}", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');cpMatchup(P);}return;}", ["player"]],
+  ["coach scout", 'data-scview="matchup">Matchup &amp; Sim<', 'data-scview="matchup">Matchup<', ["player"]],
+  ["coach scout", 'data-scview="layers">Historical layers<', 'data-scview="layers">Layers<', ["player"]],
+  ["coach scout", 'data-scview="games">Games &amp; replay<', 'data-scview="games">Games<', ["player"]],
+  ["coach scout", "Games &amp; replay and Historical layers are open too.", "Breakouts, Layers and Games read the sheets you keep on Tally.", ["player"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -266,8 +275,20 @@ function walkBlock(src) {
   return old.test(src) ? src.replace(old, () => block) : src;
 }
 
+// The coach app's Tally and Scout (Player only), between markers too.
+const PLACE = fs.readFileSync(path.join(__dirname, "teaser_coachplay.js"), "utf8").trimEnd();
+const P0 = "/* coachplay:begin \u2014 generated from tools/teaser_coachplay.js, never hand-edit */", P1 = "/* coachplay:end */";
+function placeBlock(src, kind) {
+  if (kind !== "player") return src;
+  const a = src.indexOf(P0), b = src.indexOf(P1), block = P0 + "\n" + PLACE + "\n" + P1 + "\n";
+  if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + P1.length + 1);
+  const at = src.indexOf("function tallyClick(e){try{");
+  return at < 0 ? src : src.slice(0, at) + block + src.slice(at);
+}
+
 function apply(src, kind) {
   src = walkBlock(src);
+  src = placeBlock(src, kind);
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step applies wherever what it looks for is still in the file. A step whose
   // result contains what it looks for is skipped once that result is there, or

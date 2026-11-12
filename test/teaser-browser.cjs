@@ -105,6 +105,81 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem("gridlock_team")).code),"IMPACT-7QX2","Player's team is untouched");
    }finally{await c.close();}
   });
+ // Player (owner, 12 Nov 2026): Tally and Scout's Matchup, Breakouts, Layers and
+ // Games work as the coach app's do, opening on step 2, with nothing added.
+ for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": Tally and Scout work as the coach app's",async()=>{
+  const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="tally"]').click();
+   assert.equal(await p.locator('[data-cp="tell"][aria-pressed="true"]').count(),1,"Tally opens on step 2");
+   assert.match(await p.locator("#panel").innerText(),/Who are you playing\?/,"no opponent, no sheet");
+   const tap=async id=>{const at=await p.evaluate(id=>{const g=document.querySelector('[data-bid="'+id+'"]');g.scrollIntoView({block:"center"});const r=g.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};},id);await p.mouse.click(at.x,at.y);};
+   const ids=await p.evaluate(()=>BUN.filter(b=>b.x<60).slice(0,2).map(b=>b.id).concat(BUN.filter(b=>b.x>90).slice(0,2).map(b=>b.id)));
+   await tap(ids[0]);assert.equal(await p.evaluate(()=>SH.rows.length),0,"a tap with nobody to play logs nothing");
+   await p.evaluate(()=>{Rsel={di:0,ti:0};});const team=await p.evaluate(()=>teamName(Rsel));
+   await p.locator('[data-cp="where"]').click();for(const id of [ids[0],ids[1],ids[2],ids[2]])await tap(id);
+   let s=await p.evaluate(()=>SH.rows.map(r=>r.side+":"+r.bid+":"+r.todo));
+   assert.deepEqual(s,[`us:${ids[0]}:true`,`us:${ids[1]}:true`,`them:${ids[2]}:true`,`them:${ids[2]}:true`],"step 1 is a man a tap, yours or theirs by half");
+   await p.locator('[data-cp="tell"]').click();assert.equal(await p.evaluate(()=>cpDraft.bid),ids[0],"step 2 opens the first man to tell");
+   await p.locator('[data-cs="shot"]').click();await p.locator('[data-pf="from"]').click();await tap(ids[3]);
+   await p.locator('#cpSheet [data-who="1"]').click();
+   s=await p.evaluate(()=>({row:SH.rows.find(r=>r.who==="1"),next:cpDraft&&cpDraft.bid}));
+   assert.equal(s.row.made,false);assert.equal(s.row.from,ids[3],"shot from a field tap");assert.equal(s.next,ids[1],"his name logs him and the next man opens");
+   await p.locator('#cpSheet [data-who="2"]').click();assert.equal(await p.evaluate(()=>SH.rows.find(r=>r.who==="2").made),true,"a name alone is made it");
+   await p.locator('[data-cp="right"]').click();await p.locator('[data-cp="won"]').click();
+   s=await p.evaluate(()=>({score:cpScore(cpMatch().id),pt:SH.point,vs:cpMatch().vs,read:SH.results[0].read}));
+   assert.deepEqual(s,{score:{us:1,them:0},pt:2,vs:team,read:"right"});
+   assert.match(await p.locator("#panel").innerText(),/Where the points come from[\s\S]*\+1/i,"the bunker that won the point counts it");
+   await p.locator('[data-cp="back"]').first().click();s=await p.evaluate(()=>({score:cpScore(cpMatch().id),pt:SH.point,read:cpRead}));
+   assert.deepEqual(s,{score:{us:0,them:0},pt:1,read:"right"},"Back a point takes its result and keeps the read");
+   await p.locator('[data-cp="lost"]').click();
+   await p.locator('.tabs button[data-m="scout"]').click();
+   const views=await p.locator("[data-scview]").evaluateAll(es=>es.map(e=>e.textContent));assert.deepEqual(views,["Matchup","Breakouts","Layers","Games"],"the same four sub-tabs, named as the coach app names them");
+   assert.doesNotMatch(await p.locator("#panel").innerText(),/win%/i);
+   await p.locator('[data-scview="log"]').first().click();await tap(ids[3]);await tap(ids[3]);await p.locator('[data-tb5="log"]').click();
+   await p.locator("[data-tc]").first().click();
+   s=await p.evaluate(()=>({t:SH.theirs.map(t=>[t.pt,t.plants.length,!!t.call]),todo:SH.rows.filter(r=>r.pt===2&&r.side==="them"&&r.todo).length}));
+   assert.deepEqual(s,{t:[[2,2,true]],todo:2},"their five and their call land on this point, and their men wait to be told on Tally");
+   assert.match(await p.locator("#panel").innerText(),/Their record[\s\S]*1 of 1 logged/i);
+   await p.locator('[data-scview="layers"]').first().click();assert.match(await p.locator("#panel").innerText(),/Your outs · 1/);
+   await p.locator('[data-scview="games"]').first().click();await p.locator("[data-gm]").first().click();
+   assert.match(await p.locator("#panel").innerText(),/Point 1[\s\S]*They won it · right read[\s\S]*Point 2/);
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 12 Nov 2026: a tap on Scout's field did nothing. Every Scout field
+ // takes a tap: no team says so, a team starts their five, and their details
+ // are told on Scout once the five is logged.
+ for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": a touch on Scout's field starts their five, then their details",async()=>{
+  const c=await browser.newContext({viewport:{width,height},hasTouch:true}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').tap();assert.equal(await p.evaluate(()=>scView),"matchup");
+   const tap=async id=>{const at=await p.evaluate(id=>{const g=document.querySelector('[data-bid="'+id+'"]');g.scrollIntoView({block:"center"});const r=g.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};},id);await p.touchscreen.tap(at.x,at.y);};
+   const ids=await p.evaluate(()=>BUN.filter(b=>b.x>90).slice(0,2).map(b=>b.id));
+   await tap(ids[0]);
+   assert.equal(await p.evaluate(()=>document.activeElement&&document.activeElement.closest("#sideR")?"pit":"elsewhere"),"pit","no team: the tap goes to the right pit's picker");
+   assert.equal(await p.evaluate(()=>cpTheirPick.length),0);
+   await p.locator("#sideR .pickSel").selectOption({index:1});
+   await tap(ids[0]);assert.deepEqual(await p.evaluate(()=>[scView,cpTheirPick.slice()]),["log",[ids[0]]],"a tap on Matchup starts their five on Breakouts");
+   await tap(ids[1]);await tap(ids[1]);assert.equal(await p.evaluate(()=>cpTheirPick.length),3);
+   await p.locator('[data-tb5="log"]').tap();
+   assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[0],"logging the five opens the first man's details on Scout");
+   assert.equal(await p.locator("#cpSheet").count(),1);
+   await p.locator('#cpSheet [data-cs="shot"]').tap();await p.locator('#cpSheet [data-who="3"]').tap();
+   assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[1],"his name logs him and opens the next");
+   for(let i=0;i<2;i++)await p.locator('#cpSheet [data-cs="log"]').tap();
+   const r=await p.evaluate(()=>({todo:SH.rows.filter(r=>r.todo).length,them:SH.rows.filter(r=>r.side==="them").map(r=>r.made),draft:cpDraft}));
+   assert.deepEqual(r,{todo:0,them:[false,true,true],draft:null},"all three told");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ await check("the Team preview keeps its own tally",async()=>{
+  const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
+ });
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

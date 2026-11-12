@@ -1418,6 +1418,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     2026): `teasers/player/wordmark.jpg`, cut from `site/img/logo-gridlock.jpg`
     to 72 px with its black lifted to the header's #0b0c0d, written into the
     header by `tools/teaser_fields.js`. No blend mode; Team keeps its mark.
+    The Player preview's Tally and Scout work as the coach app's (owner,
+    12 Nov 2026), with no screen added: Tally is the break chart (who you
+    play from the right pit, the point counted inside one match, We won it /
+    They won it, Back a point, Next point, right or wrong read, 1 · Where
+    they went and 2 · What happened — opening on step 2 — the man's sheet as
+    the coach's, the route drawn round the bunkers, Where the points come
+    from, the point's log); Scout keeps Matchup, Breakouts, Layers and Games,
+    named as the coach names them, each reading the same sheets (their five
+    and their call, outs and rotations, every sheet point by point). Counts
+    only, no win% model. Stored under the Player app's own `gridlock_sheets`.
+    The code is `tools/teaser_coachplay.js`, inserted between the `coachplay`
+    markers by `tools/teaser_rules.js` (Player only); the Team preview keeps
+    its own tally.
+    Every Scout field takes a tap (owner, 12 Nov 2026): with nobody in the
+    right pit it says so and moves to the pit's picker; with a team, a tap on
+    Matchup, Layers or Games starts their five on Breakouts, and Log their
+    five opens each man's details there, the next after each Log.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
