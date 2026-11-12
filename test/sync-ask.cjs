@@ -86,7 +86,7 @@ const { createServer } = require("../scripts/serve");
       await p.evaluate(() => set({ entered: true, role: "staff", email: "coach@example.test", fmtAsk: false }));
       assert.doesNotMatch(await root(p), /Back up your season/i, "not asked after a relaunch");
       await p.evaluate(() => set({ tab: "more", more: "nexus" }));
-      assert.match(await root(p), /Send my season to my account/, "the switch is still on Nexus");
+      assert.match(await root(p), /Turn on sync/, "the switch is still on Nexus");
     });
     await check("a second account on the same phone is asked its own question", async p => {
       await signIn(p, "first@example.test");

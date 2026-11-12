@@ -388,14 +388,14 @@ const ROSTER = [
   });
   check("with the adapter, Nexus offers League sync and says it is off until you turn it on", await ev(() => {
     const t = document.getElementById("root").innerText;
-    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Send my season to my account/.test(t);
+    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Turn on sync/.test(t);
   }));
   check("turning it on pushes the whole season through the adapter", await ev(async () => {
     window.toggleSync();
     await new Promise(r => setTimeout(r, 20));
     if(window.__pushes.length !== 1) return false;
     const p = JSON.parse(window.__pushes[0].payload);
-    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Kept with your account on our account server/.test(S.syncSaid);
+    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Saved to your account/.test(S.syncSaid);
   }));
   check("now the data-lives line says the season is going up", await ev(() =>
     /one current copy is kept with your account on our account server/i.test(document.getElementById("root").innerText)));
