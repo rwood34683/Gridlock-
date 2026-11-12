@@ -284,6 +284,7 @@ function apply(src, kind) {
     }
     src = src.split(from).join(to);
   }
+  src = require("./teaser_field_view").apply(src, kind);
   return require("./rulebook-links").preview(src);
 }
 

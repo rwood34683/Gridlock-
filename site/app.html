@@ -15731,32 +15731,24 @@ function tally(){
   ${/* Both sentences sit in one grid cell and only the one in force is
         visible, so the box is the same height nudged or not: a tap on the
         field that lit it used to grow it, and the field slid under his thumb. */""}
-  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Set the other team before you tally. Every out on this sheet is logged against them, and everything you learn is kept against their name.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Name them first. A break logged against nobody can never be attached to a team.</span></p>
+  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Choose the other team before recording a point.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Name them first. Nothing has been recorded.</span></p>
     ${pitNamed("right") ? `<button class="btn btn--lg btn--block" onclick="playPit()">Play ${esc(pitOf("right").name)}</button>
     <p class="note">The team in the right pit on Scout. Or someone else:</p>` : ""}
     <select onchange="setPitTeam('right',this.value)" aria-label="The team you are playing">
       <option value="" selected>Pick the other team\u2026</option>
       ${teamsHere().map(t=>`<option>${esc(t.name)}</option>`).join("")}
     </select>
-    ${/* Divisions change every season and a sideline is not where a coach
-          hunts for Division › Missing a team. A name typed here is added to
-          this division and put in the right pit in one tap. */""}
-    <div class="who2" style="margin-top:var(--s3)">
-      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Not on the list? Type their name</span>
-        <input id="oppName" placeholder="Team name" autocapitalize="words" onkeydown="if(event.key==='Enter') playNamed()"/></label>
-      <div style="display:flex;flex-direction:column;gap:4px"><span class="note" aria-hidden="true">&nbsp;</span>
-        <button class="btn" onclick="playNamed()">Play them</button></div>
-    </div>
-    <p class="note">Or open a game on <b>More \u203a Schedule</b> and tap <b>We play</b>.</p>`,
+    <button class="btn btn--quiet" onclick="document.getElementById('oppName').scrollIntoView({block:'center'});document.getElementById('oppName').focus()">Team not listed? Type their name</button>`,
     "No opponent yet") + `</div>` : ""}
 
   ${/* A phone on its side is the shape the quick log was built for, and the
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
   ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
-  ${depth !== "full" ? `<div class="depth-note" data-depth-note><p class="note" style="margin:0">Recording <b>${depth === "score" ? "the score only" : "the score and outs"}</b> on this phone. The break chart is put away; nothing logged is removed.</p>
+  ${depth !== "full" ? `<div class="depth-note" data-depth-note><p class="note" style="margin:0">Recording <b>${depth === "score" ? "the score only" : "the score and outs"}</b> on this phone. Your recorded details are kept.</p>
       <button class="btn btn--quiet" onclick="setTallyDepth('full')">Show the full chart</button></div>` : ""}
-  ${depth !== "full" ? "" : sec("Break chart", `${/* One line over the field, not three boxes: the score is
+  ${depth !== "full" ? sec("Field", `<div class="field-wrap" id="tally-field-reference">${fieldSVG({static:true,noPaths:true,names:true})}</div>`) : ""}
+  ${depth !== "full" ? "" : sec("Break chart", `${!matchVs() ? `<div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>` : ""}${/* One line over the field, not three boxes: the score is
         in the header too, and the field started 410 px down a phone under a
         hero score and three tiles. A watched game has no "you": the two sides
         are the two teams on it. */""}<div class="tally-head">
@@ -15775,12 +15767,22 @@ function tally(){
       : inOvertime() ? `<p class="aid"><b>Overtime — next point wins it.</b> Level at ${sc.us}–${sc.them} when the clock ran out.</p>`
       : matchPoint() ? `<p class="aid"><b>${esc(matchPointWord())}.</b> ${raceTo() ? `First to ${raceTo()}` : ""}${raceTo() && mercy() ? ", or " : ""}${mercy() ? `${raceTo() ? "a" : "A"} ${mercy()}-point lead ends it` : ""}.</p>` : ""}
     ${stepStrip}
-    <div class="tally-chart"><div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>
+    <div class="tally-chart">${matchVs() ? `<div class="field-wrap" id="tally-map">${fieldSVG({static:true, pick:true, noPaths:true, overlay:tallyOverlay()})}</div>` : ""}
     ${endsChip()}
     ${sel ? breakoutSheet() : placeSide + (last && !last.todo && step === "record" ? `<div class="btnrow" style="align-items:center"><p class="note grow" style="margin:0">Logged: <b style="color:var(--ink)">${esc(describeBreakout(last))}</b>.</p>
         <button class="btn btn--quiet" onclick="editBreakout(${jsq(last.id)})">Fix it</button>
         <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
+  ${!matchVs() ? sec("Type the other team", `    ${/* Divisions change every season and a sideline is not where a coach
+          hunts for Division › Missing a team. A name typed here is added to
+          this division and put in the right pit in one tap. */""}
+    <div class="who2" style="margin-top:var(--s3)">
+      <label style="display:flex;flex-direction:column;gap:4px"><span class="note">Not on the list? Type their name</span>
+        <input id="oppName" placeholder="Team name" autocapitalize="words" onkeydown="if(event.key==='Enter') playNamed()"/></label>
+      <div style="display:flex;flex-direction:column;gap:4px"><span class="note" aria-hidden="true">&nbsp;</span>
+        <button class="btn" onclick="playNamed()">Play them</button></div>
+    </div>
+    <p class="note">Or open a game on <b>More \u203a Schedule</b> and tap <b>We play</b>.</p>`) : ""}
   ${/* The first-run hint sits under the chart, not over it: above the field
         it took the room the field is fitted into, and the field was drawn a
         third smaller until the hint was dismissed. */""}
@@ -16024,13 +16026,13 @@ function tally(){
    A tap on the field never lands on We won it. */
 const TALLY_FIELD_MIN = 170;
 function fitTallyField(svg, bar, main){
-  if(!svg.isConnected || !bar.isConnected || !main.isConnected) return;
+  if(!svg.isConnected || (bar && !bar.isConnected) || !main.isConnected) return;
   svg.style.maxHeight = ""; svg.style.width = "";
-  const mr = main.getBoundingClientRect(), fr = svg.getBoundingClientRect(), br = bar.getBoundingClientRect();
+  const mr = main.getBoundingClientRect(), fr = svg.getBoundingClientRect(), br = bar ? bar.getBoundingClientRect() : {height:0};
   const top = fr.top - mr.top + main.scrollTop;
   const room = Math.floor(main.clientHeight - br.height - top - 8);
   const fits = fr.height <= room || room >= TALLY_FIELD_MIN;
-  bar.classList.toggle("resultbar--flow", !fits);
+  if(bar) bar.classList.toggle("resultbar--flow", !fits);
   // The ends row (Breaking from the … · Switch ends · Swap every point) sits
   // straight under the field, and fitting the field alone left it behind the
   // bar on an iPhone (screenshotted 7 Nov 2026). Leave it room too, unless
@@ -16057,12 +16059,12 @@ function placeFlash(){
 let _tallyFitObserver;
 function watchTallyField(){
   if(_tallyFitObserver){ _tallyFitObserver.disconnect(); _tallyFitObserver = null; }
-  const svg = document.querySelector("#tally-map svg.field"), bar = document.querySelector(".resultbar"),
+  const svg = document.querySelector(S.tab === "scout" ? ".main .field-wrap svg.field" : "#tally-map svg.field, #tally-field-reference svg.field"), bar = document.querySelector(".resultbar"),
         main = document.querySelector(".main");
-  if(!svg || !bar || !main || typeof ResizeObserver !== "function") return;
+  if(!svg || !main || typeof ResizeObserver !== "function") return;
   _tallyFitObserver = new ResizeObserver(() => fitTallyField(svg, bar, main));
   _tallyFitObserver.observe(main);
-  _tallyFitObserver.observe(bar);
+  if(bar) _tallyFitObserver.observe(bar);
 }
 function resultBarShown(){
   return S.tab === "tally" && !nobodyToPlay() && !sheetField() && !matchOver() && !selBunker() && !S.quick;
@@ -17117,6 +17119,9 @@ function matchStrip(){
       <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${esc(sideWord("them"))} won it</button>
     </div>` : ""}`;
 }
+function scoutMatchControls(){
+  return matchStrip() + `<button class="btn btn--quiet" onclick="document.querySelector('.pits').scrollIntoView({block:'start'})">${pitNamed("right") ? "Team details" : "Choose teams"}</button>`;
+}
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
   const view=S.scoutTab||"matchup";
@@ -17145,41 +17150,23 @@ function scout(){
   // is exempt — it is where you pick one.
   const body = (!R.named && view !== "board")
     ? sec("Who are you playing?", `<div class="empty">Nothing here until the other team is in the
-        right pit. Tap a row on Division to load one, or pick from the card above.</div>
+        right pit. Tap a row on Division to load one, or pick from Team details below.</div>
         <button class="btn btn--block" onclick="set({scoutTab:'board'})">Open Division</button>`)
     : {matchup:scoutMatchup,breakouts:scoutBreakouts,anticipate:scoutAnticipate,
        counter:scoutCounter,layers:scoutLayers,games:scoutGames,board:scoutBoard}[view]();
-  return `${tip("scout","Left pit and right pit. Tendency is your film read — the Counter ranking is a training aid, not a prediction.")}
-  ${navigation}
-  ${matchStrip()}
+  return `${navigation}
 
   ${/* Two pits read as two opponents, and a coach asked which one he was
         playing. The right pit is the team he plays — Tally, Counter and the
         sheet all read it; the left is a second team: the other side of a game
         he is watching, or someone he wants beside them. */""}
-  ${/* Matchup is where the two pits are read and edited, so it gets the full
-        cards. Every other sub-tab is about something else — their five, the
-        counter, a replay — and two full cards above it put that something two
-        screens down on a phone. A named pit folds to one line there; tap it
-        to open the card, tap again to fold it. An empty pit stays open,
-        because picking a team is the first thing to do. */""}
-  <div class="pits">${["left","right"].map(side => {
-      const w = !!(curMatch()||{}).watch,
-            T = side === "left" ? L : R,
-            label = side === "left" ? (w ? "Left pit · the home side" : "Left pit · a team you watch") : (w ? "Right pit · the away side" : "Right pit · who you play");
-      // Off Matchup a pit folds to one line. An empty right pit stays open,
-      // because nothing below works until he says who he is playing; an
-      // empty left pit is optional and used to put a twenty-row picker above
-      // the counter on every sub-tab.
-      return view === "matchup" || (!T.named && side === "right") || S.pitOpen === side ? pit(side, T, label) : pitLine(side, T, label);
-    }).join("")}</div>
+  ${/* Team cards stay below the field so a full roster never hides it. */""}
 
-  ${/* Games and Division are tables. A break drawn over a list of twenty teams
-       is a call nobody made on that screen, so those two get the pits and the
-       match strip and nothing else. Breakouts draws its own field — the one he
-       taps where their five ended up — and a second field above it put that
-       job two screens down on a phone. */""}
-  ${["games","board","breakouts","layers"].includes(view) ? "" : sec("The break", `<div class="seg seg--wrap">
+  ${/* Table views show an empty reference field. Breakouts and Layers draw
+       their own recorded field; never draw the same field twice. */""}
+  ${["games","board","breakouts","layers"].includes(view) ? "" : sec("The break", `    <div class="field-wrap" data-live>${fieldSVG({both:true, noPaths:!R.named, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", homeFive:!!(curMatch()||{}).watch && (S.scoutShow||"them")!=="them", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+    ${scoutMatchControls()}
+    <div class="seg seg--wrap">
       <button class="${(S.scoutShow||"them")==="them"?"on":""}" onclick="set({scoutShow:'them'})">${(curMatch()||{}).watch ? esc(R.named ? R.name : "Away") : "Theirs"}</button>
       <button class="${S.scoutShow==="us"?"on":""}" onclick="set({scoutShow:'us'})">${(curMatch()||{}).watch ? esc(L.named ? L.name : "Home") : "Yours"}</button>
       <button class="${S.scoutShow==="both"?"on":""}" onclick="set({scoutShow:'both'})">Both</button>
@@ -17200,7 +17187,7 @@ function scout(){
       <button class="tgl ${S.theirOn?"on":""}" onclick="set({theirOn:!S.theirOn})"><i></i>Their five</button>
       <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
-    <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", homeFive:!!(curMatch()||{}).watch && (S.scoutShow||"them")!=="them", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+
     <button class="btn btn--quiet btn--block" style="margin:var(--s2) 0" data-field-pic onclick="shareFieldPicture(${jsq(R.named ? R.name : "")})">Share this field as a picture</button>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
@@ -17223,12 +17210,26 @@ function scout(){
       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:50%;border:2px solid #ffb020"></i>traded both ways · a gunfight</span>`:""}
     </div>
     ${S.theirOn&&!plantsLogged()?`<div class="empty">Nobody placed on ${esc(curLayout().name)} yet. Log their five on
-      the pit card above and set <b>Plants on</b> for each man you have seen set up.</div>`:""}
+      the pit card below and set <b>Plants on</b> for each man you have seen set up.</div>`:""}
     ${S.outsOn&&!outsLogged()?`<div class="empty">No outs logged on ${esc(curLayout().name)} yet. Tally an out
       and set <b>Shot at</b> on it, and the field marks where the point was decided.</div>`:""}
 `)}
 
+  ${(["games","board"].includes(view) || (!R.named && ["breakouts","layers"].includes(view))) ? sec("Field", `<div class="field-wrap" data-scout-reference>${fieldSVG({static:true,noPaths:true,names:true})}</div>`) : ""}
+  ${(["games","board"].includes(view) || (!R.named && ["breakouts","layers"].includes(view))) ? scoutMatchControls() : ""}
   ${body}
+  ${tip("scout","Left pit and right pit. Tendency is your film read — the Counter ranking is a training aid, not a prediction.")}
+
+  <div class="pits">${["left","right"].map(side => {
+      const w = !!(curMatch()||{}).watch,
+            T = side === "left" ? L : R,
+            label = side === "left" ? (w ? "Left pit · the home side" : "Left pit · a team you watch") : (w ? "Right pit · the away side" : "Right pit · who you play");
+      // Off Matchup a pit folds to one line. An empty right pit stays open,
+      // because recording needs an opponent; an
+      // empty left pit is optional and used to put a twenty-row picker above
+      // the counter on every sub-tab.
+      return view === "matchup" || (!T.named && side === "right") || S.pitOpen === side ? pit(side, T, label) : pitLine(side, T, label);
+    }).join("")}</div>
 
   ${/* The house rule outranks the layout: this line is on Scout whichever
        sub-tab is open, so it stays outside the break section that Games and
@@ -18279,9 +18280,10 @@ function scoutBreakouts(){
   const whose = watch && pitNamed("left") && pitNamed("right") ? `<div class="seg seg--wrap" aria-label="Whose five">
       ${["left","right"].map(sd => `<button class="${side===sd?"on":""}" onclick="switchScoutSide('${sd}')">${esc(pitOf(sd).name)}</button>`).join("")}
     </div>` : "";
-  return sec("Where did they go?", `${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(poss(R.name))}` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
+  return sec("Where did they go?", `    <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
+    ${scoutMatchControls()}
+    ${whose}<p class="lede">Tap the field where each of ${watch ? `${esc(poss(R.name))}` : "their"} ${sideSize() === 5 ? "five" : sideSize()} ended up, in any order —
       two or three on one bunker is a tap each. No names needed — tell each man later on Tally, step 2.</p>
-    <div class="field-wrap" id="their-map">${fieldSVG({static:true,noPaths:true,pick:true,overlay:fiveSquares(picked,2,2,side==="left"?"#e5342f":"#3d8bff")})}</div>
     ${fixing ? `<p class="warn">Fixing ${fixing.pt ? `point ${fixing.pt}'s five` : "a five logged for the season"}. Tap a man's × to take him off, tap the field to put one on, then Save.</p>` : ""}
     <div class="btnrow">
       <button class="btn" onclick="logTheirFive('${side}')">${fixing ? `Save the five${fixing.pt ? ` · point ${fixing.pt}` : ""}` : `Log ${watch ? `${esc(poss(R.name))}` : "their"} ${sideSize() === 5 ? "five" : sideSize()} · point ${pt}`}</button>
@@ -18375,13 +18377,14 @@ function scoutLayers(){
     ? lay(o => (on.theirOuts && o.side==="them" && vs(o)) || (on.yourOuts && o.side==="us" && vs(o)))
     : false;
   const any=live.reduce((n,[k])=>n+counts[k],0);
-  return sec("Layers", `<p class="lede">${w ? `Everything you have logged on ${esc(sideWord("us"))} v ${esc(sideWord("them"))}` : `Everything you have logged against ${esc(R.name)}`} on
+  return sec("Layers", `    <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?mvVs:false, theirMoves:!!on.theirMoves})}</div>
+    ${scoutMatchControls()}
+    <p class="lede">${w ? `Everything you have logged on ${esc(sideWord("us"))} v ${esc(sideWord("them"))}` : `Everything you have logged against ${esc(R.name)}`} on
       ${esc(curLayout().name)}, drawn where it happened. Rings are traffic, arrows are rotations — green ${w ? esc(poss(sideWord("us"))) : "yours"}, blue ${w ? esc(poss(sideWord("them"))) : "theirs"}, the number on a blue one how often it was seen.</p>
     <div class="toggles">
       ${LAYERS.map(([k,n,d])=>`<button class="tgl ${on[k]?"on":""}"
         onclick="toggleLayer('${k}')"><i></i>${esc(name(k,n))} · ${counts[k]}</button>`).join("")}
     </div>
-    <div class="field-wrap">${fieldSVG({static:true, heat, noPaths:true, moves:on.rotations?mvVs:false, theirMoves:!!on.theirMoves})}</div>
     ${any?`<p class="note">${live.map(([k,n])=>`${counts[k]} ${esc(w && (k==="theirOuts"||k==="yourOuts") ? name(k,n) : n.toLowerCase())}`).join(" · ")}.</p>`
         :`<div class="empty">Nothing logged against ${esc(R.name)} on this field yet. Outs get a bunker on
           the Tally tab, on the point you are on.</div>`}`,

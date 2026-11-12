@@ -2423,7 +2423,7 @@ function tallyClick(e){try{
   if(id!=null)tallySelect(id);
 }catch(err){}}
 /* Scroll the tapped bunker's options into view so they're visible on a phone. */
-function scrollTallyOptions(){if(typeof tallyPopupOn==='function'&&tallyPopupOn())return;try{const b=document.getElementById('tSelBlock');if(b&&b.scrollIntoView)b.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}}
+function scrollTallyOptions(){if(typeof tallyPopupOn==='function'&&tallyPopupOn())return;try{const b=document.getElementById('tSelBlock');if(b&&b.scrollIntoView)b.scrollIntoView({behavior:'instant',block:'start'});}catch(e){}}
 function exportTally(){const data=tallyFor()[tScope()];const rows=Object.entries(data).map(([id,t])=>({id,lab:bLabelId(id),...t,att:t.made+t.dead,net:(t.ptsWon||0)-(t.ptsLost||0)})).sort((a,b)=>b.net-a.net);
   let csv='bunker,made,dead,attempts,make_pct,pts_won,pts_lost,net_pts\n';
   rows.forEach(r=>{csv+=`${(''+r.lab).replace(/,/g,' ')},${r.made},${r.dead},${r.att},${r.att?Math.round(100*r.made/r.att):0},${r.ptsWon||0},${r.ptsLost||0},${r.net}\n`;});
@@ -2688,7 +2688,7 @@ function renderBoard(){
      <td>${'★'.repeat(r.threat)}${'☆'.repeat(5-r.threat)}</td>
      <td><button class="ld" data-s="L">◀L</button> <button class="ld" data-s="R">R▶</button></td>`;
     tr.querySelectorAll('.tg button').forEach(b=>b.onclick=()=>{r.tend=+b.dataset.t;saveScout();renderBoard();});
-    tr.querySelectorAll('.ld').forEach(b=>b.onclick=()=>{if(b.dataset.s==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();window.scrollTo({top:0,behavior:'smooth'});});
+    tr.querySelectorAll('.ld').forEach(b=>b.onclick=()=>{if(b.dataset.s==='L')Lsel={di,ti};else Rsel={di,ti};renderScout();window.scrollTo({top:0,behavior:'instant'});});
     tb.appendChild(tr);
   });
 }
@@ -4041,7 +4041,7 @@ function renderWalk(){const B=document.getElementById('walkbox');if(!B)return;
   B.querySelector('#wkWhere').onchange=e=>{walkPick=e.target.value;walkShut=null;walkRedraw(false);};
   B.querySelector('#wkAdd').onclick=walkAdd;
   B.querySelectorAll('[data-wkdel]').forEach(x=>x.onclick=()=>walkDel(+x.dataset.wkdel));
-  const ln=B.querySelector('#wkLanes');if(ln)ln.onclick=()=>{const i=BUN.indexOf(walkPickedBun());if(i<0)return;sightSel=i;if(typeof setMode==='function')setMode('sight');sightSel=i;if(typeof renderSight==='function')renderSight();window.scrollTo({top:0,behavior:'smooth'});};
+  const ln=B.querySelector('#wkLanes');if(ln)ln.onclick=()=>{const i=BUN.indexOf(walkPickedBun());if(i<0)return;sightSel=i;if(typeof setMode==='function')setMode('sight');sightSel=i;if(typeof renderSight==='function')renderSight();window.scrollTo({top:0,behavior:'instant'});};
   walkStickies();}
 /* coachwalk:end */
 function draw(){if(MODE==='play')renderPlay();else if(MODE==='ref')renderRef();else if(MODE==='tally')renderTally();else if(MODE==='assess')renderAssess();else if(MODE==='codes')renderCodes();else if(MODE==='move')renderMove();else if(MODE==='lineup')renderLineups();else if(MODE==='myline')renderLineView();else if(MODE==='msg')renderMsg();else if(MODE==='team')renderTeam();else if(MODE==='practice')renderPractice();else if(MODE==='log')renderLog();else if(MODE==='iq')renderIQ();else if(MODE==='crew')renderCrew();else if(MODE==='lang')renderLang();else if(MODE==='ready')renderReady();else if(MODE==='nexus')renderNexus();else if(MODE==='ops')renderOps();else if(MODE==='evops')renderEvops();else if(MODE==='crm')renderCrm();else if(MODE==='gov')renderGov();else if(MODE==='sight')renderSight();else if(MODE==='walk')renderWalk();else renderScout();}
@@ -4672,7 +4672,7 @@ function msgUpsell(m){const nm=m==='team'?'Team':m==='myline'?'My Line':'Message
 function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='walk')ws.remove();}if(SUB_TABS.includes(m)&&msgLocked()){msgUpsell(m);return;}MODE=m;if(typeof TSCOPE!=='undefined')TSCOPE=null;{var _sh=document.getElementById('tallySheet');if(_sh)_sh.style.display='none';}if(typeof lnPbStop==='function')lnPbStop();
   if(typeof svg!=='undefined'&&svg&&!editMode&&m!=='sight')svg.onclick=null;
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===m||(b.id==='moreBtn'&&(window.MORE_TABS||[]).includes(m))));
-  {const at=document.querySelector('.tabs button.on');if(at&&at.scrollIntoView)try{at.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});}catch(e){}}
+  {const at=document.querySelector('.tabs button.on');if(at&&at.scrollIntoView)try{at.scrollIntoView({inline:'center',block:'nearest',behavior:'instant'});}catch(e){}}
   show('topPlay',m==='play');show('topRef',m==='ref');show('topScout',m==='scout');show('topLog',m==='log');
   show('rolesRow',m==='scout');show('boardBox',m==='scout');
   const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='practice');
@@ -4800,5 +4800,27 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
 <dialog id="rulebooksDialog" aria-labelledby="rulebooksTitle"><h2 id="rulebooksTitle">Rules</h2><p class="rules-note">Open the official rulebook for your format. A connection is needed; save the PDF on your device before the event.</p><div class="rules-books"><a class="rules-book" href="https://www.nxlpaintball.com/match-play-rulebook" target="_blank" rel="noopener noreferrer"><b>Match play</b><span>3v3, 5v5, 7v7, 10v10, Classic and Pump</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class="rules-book" href="https://www.nxlpaintball.com/divisional-x-ball-rulebook" target="_blank" rel="noopener noreferrer"><b>Divisional X-Ball</b><span>Divisional X-Ball</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class="rules-book" href="https://www.nxlpaintball.com/pro-x-ball-rulebook" target="_blank" rel="noopener noreferrer"><b>Pro X-Ball</b><span>Professional division</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a></div><p class="rules-note">Check the edition and event updates with the organizer. Officials make the live call.</p><form method="dialog"><button class="ld" autofocus>Close</button></form></dialog>
 <script>(function(){const dialog=document.getElementById("rulebooksDialog");let back=null;const open=b=>{back=b;b.focus();dialog.showModal();};dialog.addEventListener("close",()=>{if(back&&back.isConnected)back.focus();});const make=(b,tag)=>{b.id="rulebooksOpen";b.type="button";b.textContent="Rules";b.setAttribute("aria-haspopup","dialog");return b;};const menu=document.getElementById("moreMenu"),nx=menu&&menu.querySelector("[data-mm=\"nexus\"]");if(nx){const b=make(nx.cloneNode(false));b.dataset.mm="rules";nx.before(b);b.addEventListener("click",e=>{e.stopPropagation();menu.style.display="none";open(document.getElementById("moreBtn")||b);});return;}const tab=document.querySelector(".tabs button[data-m=\"nexus\"]");if(tab){const b=make(document.createElement("button"));b.dataset.m="rules";tab.before(b);b.addEventListener("click",()=>open(b));return;}const header=document.querySelector("header"),b=make(document.createElement("button"));b.className="ld";header.appendChild(b);b.addEventListener("click",()=>open(b));})();</script>
 <!-- rulebook-links:end -->
+<!-- player-field-view:begin -->
+<style>
+body.player-field-view .fieldbox{display:flex;justify-content:center}
+body.player-field-view #field{max-height:var(--player-field-height,60dvh);max-width:100%;width:100%;height:auto}
+</style>
+<script>
+(function(){
+ if(EDITION!=='player')return;
+ const field=document.querySelector('.fieldbox'),pits=document.getElementById('topScout'),panel=document.getElementById('panel');
+ // Keep the existing pickers, ratings and notes together below the field.
+ panel.before(pits);
+ const fit=()=>{if(MODE!=='tally'&&MODE!=='scout')return;const top=field.getBoundingClientRect().top+scrollY;
+  document.body.style.setProperty('--player-field-height',Math.max(160,innerHeight-top-28)+'px');};
+ const mode=setMode;
+ setMode=function(m){mode(m);document.body.classList.toggle('player-field-view',MODE==='tally'||MODE==='scout');
+  if(MODE==='tally'||MODE==='scout'){fit();window.scrollTo(0,0);}};
+ addEventListener('resize',fit);
+ if(typeof ResizeObserver==='function'){const watch=new ResizeObserver(fit);watch.observe(document.querySelector('header'));watch.observe(document.querySelector('.tabs'));}
+ document.body.classList.toggle('player-field-view',MODE==='tally'||MODE==='scout');fit();
+})();
+</script>
+<!-- player-field-view:end -->
 </body>
 </html>
