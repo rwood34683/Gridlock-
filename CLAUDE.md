@@ -1583,6 +1583,34 @@ help never starts recording and makes no guarantee about a connected input:
 the device/browser's speech service chooses it. `test/voice-point.cjs` and the
 existing voice/parser/native-speech tests cover this flow.
 
+Match heat map (11 Nov 2026): Bunker stats can read one match or all own
+matches on the current field. Reports opens the current match's map when it
+belongs to that field. `statMatch` is scratch, cleared on reload/restore and
+field changes; a deleted or unavailable match must show no data rather than
+silently broadening to the season. The selected side, match and opponent
+filter every count, including the picked bunker's detail. Do not append
+season-wide bunker-book counts to a filtered match. Went there and Shot there
+each drive the numbers, rings and scale from that one measure, never their
+sum. Scores alone do not create locations. Watched games and other fields
+(including legacy rows whose field is known only from their match) stay out.
+Only an in-scope tally out can replace its duplicate breakout out; a legacy
+row with no side is yours, consistently in the filter and duplicate check.
+Show the count of distinct recorded points/matches and retain the thin-sample
+mark. Neither viewing nor filtering changes the active match, point, scores
+or season records. `test/match-heat.cjs` covers these rules.
+
+The daily table uses the same filtered traffic as that heat map, with separate
+Went there and Shot there views. Each row shows the team's bunker call, the
+exact count and its one-decimal share of the complete selected total (never
+just the visible rows, never a win probability). Keep every nonzero bunker,
+highest count first. Group by the parent match's recorded calendar date in
+the device's time zone, not UTC date slicing and not the entry's creation or
+edit time. Missing/unreadable dates and orphan records stay under Date not
+recorded; do not substitute today. `statDay` and `statView` are scratch. Day
+changes clear the match selection and field changes clear the day; unavailable
+selections remain empty. The table, heat map, shared text and CSV must agree
+on day, match, side, opponent, end frame and measure. `test/daily-bunkers.cjs`
+checks the photo's 5-of-14 example, midnight/DST, unknown dates and exports.
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
