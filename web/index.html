@@ -10982,12 +10982,20 @@ window.playerQuick = (field, value) => {
   }
   const previous=v.check;
   if(previous && previous[field]===value && field!=="alive") return;
+  // One named man, one observation a point. A check made by his name and a
+  // second bound to his chart row (he was placed, then named) were two rows:
+  // the newer one was read and the Shooting or Diving on the older was lost.
+  // The first write after that folds them: what the newer row does not say,
+  // the older one still does, and the older rows go.
+  const twins=d.player ? (S.playerChecks || []).filter(c=>c && c!==previous && c.m===d.m && c.pt===d.pt && c.side===d.side
+    && c.layout===S.layoutKey && foldName(c.player)===foldName(d.player)).sort((a,b)=>(b.at||0)-(a.at||0)) : [];
+  const carry=k=>previous && previous[k]!=null ? previous[k] : ((twins.find(c=>c[k]!=null) || {})[k] ?? null);
   const row={id:previous?.id || "pc-"+Date.now().toString(36)+Math.random().toString(36).slice(2,9),
     m:d.m,pt:d.pt,side:d.side,layout:S.layoutKey,player:d.player,breakoutId:r?.id || "",
-    alive:previous?.alive ?? null,shooting:previous?.shooting ?? null,diving:previous?.diving ?? null,
+    alive:carry("alive"),shooting:carry("shooting"),diving:carry("diving"),
     at:Date.now(),[field]:value};
   S.playerChecks=[...(S.playerChecks || []).filter(c=>SAME.playerChecks(c)!==SAME.playerChecks(row)
-    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous))),row];
+    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous)) && !twins.includes(c)),row];
   if(r) S.breakouts=S.breakouts.map(x=>x.id===r.id ? {...x,todo:false} : x);
   save(S);
   _playerSaid=unsavedWork() ? "Not saved. Keep this tab open and save a copy in Account & backups."

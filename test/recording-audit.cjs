@@ -98,6 +98,17 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.deepEqual(requests,[],"nothing is fetched or sent");
    await p.evaluate(()=>set({scoutTab:"breakouts"}));assert.equal(await p.locator("#field-pic").count(),0,"it leaves with the screen");
   });
+  await check("a man observed by name and then through his chart row keeps both observations as one",async page=>{
+   const p=await page();
+   await p.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();showNamedPlayer("us",S.roster[0].name);playerQuick("shooting",true);closePlayerDetails();
+    const b=curLayout().bunkers.filter(b=>b.x<60)[4];S.tallyStep="record";S.tallyMode="record";tallyTap([b.x,b.y]);setDraft({player:S.roster[0].name,alive:true});logBreakout();});
+   const id=await p.evaluate(()=>S.breakouts.find(r=>r.m===S.matchId).id);
+   await p.evaluate(id=>{showPlayerDetails(id);},id);await p.waitForTimeout(400);
+   await p.evaluate(()=>{playerQuick("diving",true);closePlayerDetails();});
+   const r=await p.evaluate(()=>({n:S.playerChecks.filter(c=>c.m===S.matchId).length,row:S.playerChecks.find(c=>c.m===S.matchId),status:playerStatusText("us",S.roster[0].name,S.breakouts.find(r=>r.m===S.matchId).id)}));
+   assert.equal(r.n,1,"one observation for the man");assert.equal(r.row.shooting,true,"what was seen first is kept");assert.equal(r.row.diving,true);
+   assert.match(r.status,/Shooting · Diving/);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} recording audit checks passed.`);if(failed)process.exit(1);
 })();
