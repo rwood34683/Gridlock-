@@ -18,7 +18,21 @@ const end = '<!-- rulebook-links:end -->';
 function preview(src) {
   const block = start+'\n<style>'+css+'#rulebooksDialog{width:min(620px,calc(100% - 24px));max-height:85dvh;overflow:auto;border:1px solid #3a3f40;border-radius:16px;padding:20px;background:#0b0c0d;color:#efedeb}#rulebooksDialog::backdrop{background:#000b}#rulebooksDialog button,#rulebooksOpen{min-width:44px;min-height:44px}#rulebooksDialog h2{margin:0 0 12px}#rulebooksOpen{margin:6px 0}</style>\n'
     + '<dialog id="rulebooksDialog" aria-labelledby="rulebooksTitle"><h2 id="rulebooksTitle">Rules</h2>'+markup+'<form method="dialog"><button class="ld" autofocus>Close</button></form></dialog>\n'
-    + '<script>(function(){const header=document.querySelector("header"),dialog=document.getElementById("rulebooksDialog"),button=document.createElement("button");button.id="rulebooksOpen";button.className="ld";button.textContent="Rules";button.setAttribute("aria-haspopup","dialog");header.appendChild(button);button.addEventListener("click",()=>dialog.showModal());dialog.addEventListener("close",()=>button.focus());})();</script>\n'+end;
+    + '<script>(function(){'
+    // Rules sits in the More menu just above Nexus (owner, 12 Nov 2026); a
+    // preview with no More menu puts it in the tab row before Nexus. It opens
+    // only on a tap, and focus goes back to what opened it.
+    + 'const dialog=document.getElementById("rulebooksDialog");let back=null;'
+    + 'const open=b=>{back=b;b.focus();dialog.showModal();};'
+    + 'dialog.addEventListener("close",()=>{if(back&&back.isConnected)back.focus();});'
+    + 'const make=(b,tag)=>{b.id="rulebooksOpen";b.type="button";b.textContent="Rules";b.setAttribute("aria-haspopup","dialog");return b;};'
+    + 'const menu=document.getElementById("moreMenu"),nx=menu&&menu.querySelector("[data-mm=\\"nexus\\"]");'
+    + 'if(nx){const b=make(nx.cloneNode(false));b.dataset.mm="rules";nx.before(b);'
+    + 'b.addEventListener("click",e=>{e.stopPropagation();menu.style.display="none";open(document.getElementById("moreBtn")||b);});return;}'
+    + 'const tab=document.querySelector(".tabs button[data-m=\\"nexus\\"]");'
+    + 'if(tab){const b=make(document.createElement("button"));b.dataset.m="rules";tab.before(b);b.addEventListener("click",()=>open(b));return;}'
+    + 'const header=document.querySelector("header"),b=make(document.createElement("button"));b.className="ld";header.appendChild(b);b.addEventListener("click",()=>open(b));'
+    + '})();</script>\n'+end;
   const a=src.indexOf(start), b=src.indexOf(end);
   if(a>=0 && b>a) return src.slice(0,a)+block+src.slice(b+end.length);
   if(!src.includes('</body>')) throw new Error('Preview has no body end.');

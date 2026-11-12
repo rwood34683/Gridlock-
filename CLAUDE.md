@@ -75,6 +75,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   previews. No embedded PDF, copied league text, logo, iframe, prefetch or automatic
   request. The Rules screen says a connection is needed and to save the PDF before
   the event. Never hand-edit the generated rulebook-links blocks.
+  In the Player preview, Rules is in the More menu just above Nexus; in the
+  Team preview, which has no More menu, it is the tab just before Nexus
+  (owner, 12 Nov 2026). Never a loose header button.
 
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,

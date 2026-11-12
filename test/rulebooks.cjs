@@ -25,6 +25,10 @@ const ROOT=path.resolve(__dirname,"..");
       }else{
         if(kind==="player"){await p.locator('#joinCode').fill('IMPACT-7QX2');await p.locator('#joinGo').click();}
         assert.equal(await p.locator('#rulebooksDialog').isVisible(),false,'does not open itself');
+        // Rules sits just above Nexus: in Player's More menu, in Team's tab row.
+        assert.equal(await p.locator('header > .ld#rulebooksOpen').count(),0,'not a loose header button');
+        assert.equal(await p.evaluate(()=>{const r=document.getElementById('rulebooksOpen'),n=r&&r.nextElementSibling;return !!n&&(n.dataset.mm||n.dataset.m)==='nexus';}),true,'Rules sits right above Nexus');
+        if(kind==="player"){assert.equal(await p.locator('#rulebooksOpen').isVisible(),false,'inside More until More is opened');await p.locator('#moreBtn').click();}
         await p.getByRole('button',{name:'Rules',exact:true}).click();
       }
       const saved=await p.evaluate(()=>JSON.stringify({...localStorage}));
@@ -47,8 +51,8 @@ const ROOT=path.resolve(__dirname,"..");
         if(process.env.CAPTURE_RULES)await p.screenshot({path:path.join(ROOT,'docs/screenshots/rules/more-'+width+'x'+height+'.png'),fullPage:true});
         await context.setOffline(true);await p.locator('[data-tool="rules"]').click();assert.equal(await p.locator('.rules-book').count(),3);
       }else{
-        await p.keyboard.press('Escape');assert.equal(await p.locator('#rulebooksDialog').isVisible(),false);assert.equal(await p.evaluate(()=>document.activeElement.id),'rulebooksOpen');
-        await context.setOffline(true);await p.locator('#rulebooksOpen').click();await p.getByRole('button',{name:'Close',exact:true}).click();assert.equal(await p.locator('#rulebooksDialog').isVisible(),false);
+        await p.keyboard.press('Escape');assert.equal(await p.locator('#rulebooksDialog').isVisible(),false);assert.equal(await p.evaluate(()=>document.activeElement.id),kind==="player"?'moreBtn':'rulebooksOpen');
+        await context.setOffline(true);if(kind==="player")await p.locator('#moreBtn').click();await p.locator('#rulebooksOpen').click();await p.getByRole('button',{name:'Close',exact:true}).click();assert.equal(await p.locator('#rulebooksDialog').isVisible(),false);
       }
       assert.deepEqual(errors,[]);pass++;console.log('PASS '+kind+' Rules, explicit links, unchanged data, navigation and layout '+width+'x'+height);
     }catch(e){fail++;console.error('FAIL '+kind+' '+width+'x'+height+': '+e.stack);}finally{await context.close();}
