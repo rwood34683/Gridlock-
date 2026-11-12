@@ -6,7 +6,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
  const server=createServer({root:path.resolve(__dirname,"..")});await new Promise(r=>server.listen(0,"127.0.0.1",r));
  const base="http://127.0.0.1:"+server.address().port,browser=await chromium.launch(launchOptions());
  const out=path.resolve("work/field-visible");fs.mkdirSync(out,{recursive:true});let passed=0,failed=0;const evidence=[];
- async function check(name,vp,fn){const c=await browser.newContext({viewport:vp,serviceWorkers:"block"}),p=await c.newPage(),errors=[];
+ async function check(name,vp,fn){const c=await browser.newContext({viewport:vp,hasTouch:true,serviceWorkers:"block"}),p=await c.newPage(),errors=[];
   p.setDefaultTimeout(5000);p.on("pageerror",e=>errors.push(e.message));p.on("dialog",d=>d.accept());
   try{await fn(p);assert.deepEqual(errors,[]);passed++;console.log("PASS "+name);}
   catch(e){failed++;console.error("FAIL "+name+": "+e.stack);}finally{await c.close();}}
@@ -16,13 +16,26 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
   assert(r.width>=170&&r.height>=170,name+": usable field size "+JSON.stringify(r));assert(r.top>=r.ceiling&&r.bottom<=r.floor+1,name+": whole field visible "+JSON.stringify(r));assert.equal(r.overflow,false,name+": no sideways scroll");
   evidence.push({name,...r});await p.screenshot({path:path.join(out,name+".png")});
  }
+ try{
  await check("Scout's recording and history views keep one field visible",{width:375,height:667},async p=>{
   await coach(p);await p.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();});
   for(const view of ["breakouts","layers","games","board"]){await p.evaluate(v=>set({tab:"scout",scoutTab:v}),view);assert.equal(await p.locator(".main .field-wrap svg").count(),1);await field(p,".main .field-wrap svg","coach-scout-"+view);}
   await p.evaluate(()=>{S.left={};S.right={};openSheet({vs:""});});
   for(const view of ["breakouts","layers"]){await p.evaluate(v=>set({tab:"scout",scoutTab:v}),view);assert.equal(await p.locator(".main .field-wrap svg").count(),1);await field(p,".main .field-wrap svg","coach-scout-empty-"+view);}
  });
- try{
+ await check("Player field taps stay on the intended bunker after choosing a team",{width:1024,height:768},async p=>{
+  await player(p);await p.evaluate(()=>setMode("scout"));
+  // On the coach-style Player flow a blank Scout field sends the player to
+  // this picker. Follow the real path, then tap again without waiting for an
+  // animation. The older preview opens its picker directly.
+  const ids=await p.evaluate(()=>BUN.filter(b=>b.x>90).slice(0,2).map(b=>b.id));
+  const tap=async id=>{const at=await p.locator('#field [data-bid="'+id+'"]').evaluate(e=>{e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};});await p.touchscreen.tap(at.x,at.y);};
+  const coachStyle=await p.evaluate(()=>typeof cpScoutTap==='function');if(coachStyle)await tap(ids[0]);
+  await p.locator('#sideR .pickSel').selectOption({index:1});
+  if(coachStyle){await tap(ids[0]);assert.deepEqual(await p.evaluate(()=>cpTheirPick.slice()),[ids[0]]);}
+  await p.evaluate(()=>setMode("tally"));await field(p,"#field","player-tablet-after-picker");
+  for(const id of ids){await tap(id);assert.equal(String(await p.evaluate(()=>typeof cpDraft!=="undefined" ? cpDraft?.bid : tallySel)),id);}
+ });
  for(const [width,height] of [[375,667],[390,844],[768,1024],[1024,768]]){const vp={width,height},size=width+"x"+height;
   await check("Coach blank Tally and Scout show the field at "+size,vp,async p=>{
    await coach(p);await p.evaluate(()=>{S.left={};S.right={};openSheet({vs:""});set({tab:"tally",tallyDepth:"full"});});

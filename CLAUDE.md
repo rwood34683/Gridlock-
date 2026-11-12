@@ -68,7 +68,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   cards below the field; Score only and Score and outs keep a reference field
   without reopening detailed recording controls. Player fits the measured
   field on phone/tablet screens and returns to the top on Tally/Scout tab
-  changes without clearing selections or records. Its generated wrapper lives
+  changes without clearing selections or records. App-initiated page jumps
+  in Player are instant so a second field tap cannot chase a scrolling bunker.
+  Its generated wrapper lives
   in `tools/teaser_field_view.js`, applied by `tools/teaser_rules.js`.
   `test/field-visible.cjs` checks blank/active views, retained teams and records,
   field taps, compact modes and the typed-opponent path at phone/tablet sizes.

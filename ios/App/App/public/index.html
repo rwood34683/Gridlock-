@@ -14783,7 +14783,7 @@ function tally(){
   ${/* Both sentences sit in one grid cell and only the one in force is
         visible, so the box is the same height nudged or not: a tap on the
         field that lit it used to grow it, and the field slid under his thumb. */""}
-  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Choose the other team before recording a point.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Choose the team first. Nothing has been recorded.</span></p>
+  ${!matchVs() ? `<div id="tally-opp"${S.tallyNudge ? ' class="opp-nudge"' : ""}>` + sec("Who are you playing?", `<p class="lede opp-lede"><span${S.tallyNudge ? ' class="opp-off" aria-hidden="true"' : ""}>Choose the other team before recording a point.</span><span${S.tallyNudge ? "" : ' class="opp-off" aria-hidden="true"'}>Name them first. Nothing has been recorded.</span></p>
     ${pitNamed("right") ? `<button class="btn btn--lg btn--block" onclick="playPit()">Play ${esc(pitOf("right").name)}</button>
     <p class="note">The team in the right pit on Scout. Or someone else:</p>` : ""}
     <select onchange="setPitTeam('right',this.value)" aria-label="The team you are playing">

@@ -25,6 +25,11 @@ body.player-field-view #field{max-height:var(--player-field-height,60dvh);max-wi
 ${end}`;
 exports.apply=(src,kind)=>{
  if(kind!=="player")return src;
+ // Never animate the page between a field tap, its picker and the next tap.
+ // Includes the coachplay picker when that generator is present. Cancelling
+ // an in-flight smooth scroll still allows a queued compositor frame to move
+ // the page; make these app-initiated jumps instant from the start instead.
+ src=src.replaceAll("behavior:'smooth'","behavior:'instant'");
  const a=src.indexOf(start),b=src.indexOf(end);
  return a>=0&&b>a?src.slice(0,a)+block+src.slice(b+end.length):src.replace("</body>",block+"\n</body>");
 };
