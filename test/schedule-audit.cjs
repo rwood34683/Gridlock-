@@ -63,6 +63,21 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.ok(r.out.length>0);for(const x of r.out)assert.equal(x.bad,0,x.opp+" is offered after he has played them");
    assert.ok(r.free>=0);
   });
+  await check("a scouting game says who is watching it, on the row and in the day plan",async p=>{
+   await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;S.myTeam="Houston Heat";const day=teamDay("Houston Heat");
+    Date.now=()=>gameAt(day[0].g)-2*3600000;set({tab:"more",more:"schedule"});});
+   const box=p.locator("#root input.scout-who").first();await box.scrollIntoViewIfNeeded();
+   const h=(await box.boundingBox()).height;assert.ok(h>=44,"the box is a full-size target: "+h);
+   await box.fill("  Marsh <b> ");await box.blur();
+   const r=await p.evaluate(()=>({who:Object.values(S.scoutWho||{}),plan:dayPlanText("Houston Heat",Date.now()),err:copyDataError(JSON.parse(JSON.stringify(S)))||""}));
+   assert.deepEqual(r.who,["Marsh <b>"]);assert.match(r.plan,/Marsh <b> is watching/);assert.equal(r.err,"");
+   await p.evaluate(()=>set({tab:"more",more:"schedule"}));
+   const root=await p.evaluate(()=>document.getElementById("root"));
+   assert.match(await p.evaluate(()=>document.getElementById("root").innerText),/Marsh <b> is watching/,"printed as text");
+   assert.equal(await p.locator("#root .scout-plan b b").count(),0,"never as markup");
+   await p.reload();assert.deepEqual(await p.evaluate(()=>Object.values(S.scoutWho||{})),["Marsh <b>"],"kept across a relaunch");
+   await p.evaluate(()=>setScoutWho(Object.keys(S.scoutWho)[0],""));assert.deepEqual(await p.evaluate(()=>Object.keys(S.scoutWho)),[]);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} schedule audit checks passed.`);if(failed)process.exit(1);
 })();

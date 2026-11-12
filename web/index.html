@@ -2559,6 +2559,17 @@ function dayLights(day, now){
   return [...own, ...scout].sort((a, b) => gameAt(a.g) - gameAt(b.g) || (a.kind === "scout") - (b.kind === "scout"));
 }
 const lightDot = k => `<span class="daylight" style="background:${DAY_LIGHT[k][1]}" aria-hidden="true"></span><b class="daylight__word" style="color:${DAY_LIGHT[k][1]}">${DAY_LIGHT[k][0]}</b>`;
+/* Who is watching a scouting game. A plan that says "send someone" to a game
+ * that clashes with his own leaves the job with nobody: he names the person,
+ * and the row and the day plan sent to the team say who it is. A name he
+ * typed, kept on this phone beside the pits he set as running late. Saved
+ * without a redraw, because the next tap is the button beside the box. */
+function scoutWho(g){ return String((S.scoutWho || {})[g.id] || ""); }
+window.setScoutWho = (id, v) => {
+  const name = clean(v).replace(/\s+/g, " ").trim().slice(0, 24), r = {...(S.scoutWho || {})};
+  if(name) r[id] = name; else delete r[id];
+  S.scoutWho = r; save(S);
+};
 function scoutPlanSec(team, day, now){
   const rows = dayLights(day, now);
   if(!rows.length) return `<p class="note">${esc(team)}'s games on this schedule are all played.</p>`;
@@ -2575,8 +2586,9 @@ function scoutPlanSec(team, day, now){
       <span class="assign__body">${head}
       <span class="assign__who"><b>Scout ${esc(r.for.map(f => f.opp).join(" and "))}</b> — ${esc(g.h)} v ${esc(g.a)}<br>${
         r.for.map(f => `You play ${esc(f.opp)} ${esc(dayName(f.mine.d).split(",")[0])} ${esc(gameClock(f.mine))}`).join(" · ")}<br>${r.clash
-        ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — send someone</b>`
-        : "Free for you to watch"}</span></span>
+        ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — ${scoutWho(g) ? esc(scoutWho(g)) + " is watching" : "send someone"}</b>`
+        : scoutWho(g) ? `${esc(scoutWho(g))} is watching` : "Free for you to watch"}</span>
+      <input class="scout-who" style="margin-top:var(--s2)" aria-label="Who is watching ${esc(g.h)} v ${esc(g.a)}" placeholder="Who is watching?" maxlength="24" autocomplete="off" value="${esc(scoutWho(g))}" onchange="setScoutWho(${jsq(g.id)},this.value)"${onEnter("this.blur()")}/></span>
       <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
   };
   const nextPlay = rows.find(r => r.kind !== "scout"), nextScout = rows.find(r => r.kind === "scout");
@@ -2827,7 +2839,7 @@ function dayPlanText(team, now = Date.now()){
   const scout = scoutPlan(day, now).filter(r => r.g.d === d);
   if(scout.length){
     L.push("", "Scouting:");
-    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? " (clashes with our game — who's going?)" : ""}`));
+    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? ` (clashes with our game — ${scoutWho(r.g) ? scoutWho(r.g) + " is watching" : "who's going?"})` : scoutWho(r.g) ? ` — ${scoutWho(r.g)} is watching` : ""}`));
   }
   if(Object.keys(S.runLate || {}).some(k => k.startsWith(d + "|"))) L.push("", "Times include the pits running late.");
   return L.join("\n");
@@ -17001,6 +17013,12 @@ function matchReview(mid){
           calls: callRows, theirs: theirRows,
           lost: {us: lostAt("us"), them: lostAt("them")}, outs: {us: outs.filter(o => o.side === "us").length, them: outs.filter(o => o.side === "them").length},
           men: {us: men("us"), them: men("them")}, charted: charted.length,
+          // Off the break, one line: the men each side lost on the break out of
+          // the men of that side who were charted and told. A count of the
+          // chart, so a point nobody charted says nothing.
+          brk: (() => { const told = side => charted.filter(r => r.side === side && !r.todo && (r.alive === true || r.alive === false));
+            const us = told("us"), them = told("them");
+            return {us: us.length, them: them.length, lost: us.filter(r => r.alive === false).length, took: them.filter(r => r.alive === false).length}; })(),
           pens: {us: pens.filter(p => p.side === "us").reduce((n, p) => n + (p.cost || 0), 0), them: pens.filter(p => p.side === "them").reduce((n, p) => n + (p.cost || 0), 0), n: pens.length},
           tos: tos.map(t => t.side), sideName};
 }
@@ -17029,7 +17047,8 @@ function reviewSec(mid){
       <span class="fact"><b>${r.points}</b><span>${r.points === 1 ? "Point scored" : "Points scored"}</span></span>
       ${r.charted ? `<span class="fact"><b>${r.charted}</b><span>Men charted</span></span>` : ""}
       ${r.reads.n ? `<span class="fact"><b>${r.reads.right} of ${r.reads.n}</b><span>Right read</span></span>` : ""}
-    </div><p class="lede"><b style="color:var(--ink)">${esc(reviewResult(r))}</b> · ${esc(r.field)}</p>`);
+    </div><p class="lede"><b style="color:var(--ink)">${esc(reviewResult(r))}</b> · ${esc(r.field)}</p>
+    ${r.brk.us + r.brk.them ? `<p class="lede" data-review-break>${esc(reviewBreakLine(r))}</p>` : ""}`);
   if(!watch) blocks.push(r.calls.length ? `<h3 class="panel__title">Your calls</h3><div class="kv">${r.calls.map(c =>
       `<div class="kv__row"><span class="kv__k">${callName2(c.key)}</span><span class="kv__v">called ${c.n} · ${rec(c.won, c.won + c.lost)}</span></div>`).join("")}</div>`
     : `<p class="note">No calls logged on this sheet. Log it on the point sheet and the review says what each call won.</p>`);
@@ -17052,11 +17071,18 @@ function reviewSec(mid){
     <p class="aid">Counted from what was logged on this sheet. Grades stay on this phone and are not in the shared text.</p>
     ${S.reviewId && S.reviewId !== S.matchId ? `<button class="btn btn--quiet btn--block" onclick="set({reviewId:null})">Back to the sheet on now</button>` : ""}`, matchLabel(m)) + `</div>`;
 }
+// "Off the break: we lost 2 of 9 charted, Dynasty lost 4 of 7 charted".
+function reviewBreakLine(r){
+  const watch = !!r.m.watch, us = r.sideName("us"), them = r.sideName("them");
+  const one = (who, lost, n) => n ? `${who} lost ${lost} of ${n} charted` : "";
+  return "Off the break: " + [one(watch ? us : "we", r.brk.lost, r.brk.us), one(them, r.brk.took, r.brk.them)].filter(Boolean).join(", ");
+}
 function reviewText(mid){
   const r = matchReview(mid); if(!r) return "";
   const {m} = r, watch = !!m.watch, them = r.sideName("them"), us = r.sideName("us");
   const L = [`${watch ? `${us} v ${them}` : `vs ${them}`} · ${dayOf(m.at)}${m.note ? " · " + m.note : ""}`, `${reviewResult(r)} · ${r.field}`];
   if(r.reads.n) L.push(`Right read ${r.reads.right} of ${r.reads.n}`);
+  if(r.brk.us + r.brk.them) L.push(reviewBreakLine(r));
   if(r.calls.length){ L.push("", "Our calls:"); r.calls.forEach(c => L.push(`- ${callName(c.key)}: called ${c.n}, won ${c.won} of ${c.won + c.lost}`)); }
   if(r.theirs.length){ L.push("", watch ? "What they ran:" : `What ${them} ran:`); r.theirs.forEach(c => L.push(`- ${watch ? c.team + " · " : ""}${callName(c.key)}: ran ${c.n}${c.decided ? `, won ${c.won} of ${c.decided}` : ""}`)); }
   if(r.lost.us.length) L.push("", `${watch ? `Where ${us}` : "Where we"} lost men: ${r.lost.us.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
