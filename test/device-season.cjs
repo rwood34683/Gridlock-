@@ -59,7 +59,7 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
     const laptop=await device(1440,900),tablet=await device(820,1180),phone=await device(390,844);
     await check("laptop opts in before sending; account, team and whole season travel together",async()=>{
       await signIn(laptop);assert.equal(writes(),0);
-      await laptop.evaluate(()=>set({myTeam:"Test Paintball",fmtDone:true,fmtAsk:false,roster:[{name:"Test Coach",num:"7",pos:"Back"}],messages:["Walk the field at nine"],games:[{id:"fixture-1",d:"2026-11-11",t:"10:00",h:"Test Paintball",a:"Test Opponent"}]}));
+      await laptop.evaluate(()=>set({myTeam:"Test Paintball",fmtDone:true,fmtAsk:false,roster:[{name:"Test Coach",num:"7",pos:"Back"}],messages:["Walk the field at nine"],games:[{id:"fixture-1",d:"2026-11-11",t:"10:00",h:"Test Paintball",a:"Test Opponent"}],teamCode:"TEST-ONLY",codes:[{word:"Blue",means:"Hold the left wire"}],breakCalls:{snake:"Rocket"},bunkerCalls:{[S.layoutKey]:{[curLayout().bunkers[0].id]:"Home"}}}));
       await laptop.getByRole("button",{name:"Yes, back it up",exact:true}).click();await settled(laptop);
       assert.equal(writes(),0,"Yes checks the account first");
       await laptop.getByRole("button",{name:"Use this device's season",exact:true}).click();await settled(laptop);
@@ -86,6 +86,13 @@ const adapter = fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js
         assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
         if(process.env.GRIDLOCK_TEST_SHOTS) await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,p===phone?"phone-season-ready.png":"tablet-season-ready.png")});
       }
+    });
+    await check("team code, signal words, play calls and bunker calls follow the account to both devices",async()=>{
+      const keys=["teamCode","codes","breakCalls","bunkerCalls","roster","games","myTeam"];
+      const expected=await laptop.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,S[k]])),keys);
+      for(const p of [tablet,phone]) assert.deepEqual(await p.evaluate(keys=>Object.fromEntries(keys.map(k=>[k,S[k]])),keys),expected);
+      assert.equal(expected.codes[0].word,"Blue");assert.equal(expected.breakCalls.snake,"Rocket");
+      assert.equal(writes(),1,"reading the saved season on another device must not upload it again");
     });
     await check("phone and tablet show three switching steps with recovery options folded away",async()=>{
       for(const p of [tablet,phone]){

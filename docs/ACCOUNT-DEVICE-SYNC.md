@@ -32,7 +32,11 @@ choosing if you need to combine their records. File import's Merge option remain
 available; the sync flow never guesses how conflicting scores should combine.
 
 The selected team, schedule, format, roster, scouting, plays and match records
-travel in the full season. A squad-only import does not change which team or
+travel in the full season, including team codes, signal words, play calls and
+bunker calls. This matches the owner's 11 November recording, “Syncing Data
+Across Devices” (https://app.heypocket.com/app/share/wrHsHQt1). The three-device
+suite compares those values explicitly after both tablet and phone restore.
+A squad-only import does not change which team or
 match this device is working on. Passwords, session tokens and purchases are not
 season data. A different account cannot automatically upload the previous
 account's local season. A deleted server copy stays deleted until an explicit
