@@ -1434,6 +1434,50 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
     `test/fresh-start.cjs`.
 
+87. ~~The gold-copy audit.~~ Done. On 12 Nov 2026 four reviewers each
+    reproduced defects in a browser before reporting them, and a fifth
+    researched what coaches expect. Fixed, each with a test:
+    - **Schedule** (`test/schedule-audit.cjs`): a pasted weekday with no date
+      lands inside the event, never before its first day; numeric and "Day 5 -
+      Sunday Nov 15" headers are read; a team's name on its own line is not a
+      header; a pasted field or pit is kept as `f`; the day plan lists only
+      games still to come; games after his last game against a team are not
+      offered as scouting.
+    - **Recording** (`test/recording-audit.cjs`): `playerQuick()` goes through
+      the opponent gate, so nothing is written onto the blank sheet;
+      `rebindChecks()` moves an observation to the row a merge kept for the
+      same man; `openSheet()` clears the arrival and voice team when it is not
+      a team on the new sheet; on a watched game both Tally columns are the
+      two teams by number, never his roster.
+    - **New match** (`test/fresh-start.cjs`): after a watched game it starts
+      blank even with nothing logged; a message raised while the breakout
+      sheet is open stands under the header, clear of Save.
+    - **Previews** (generators only): Team and Player store under their own
+      prefixes (`previewStore`), a backup names its app and the other app
+      refuses it, they install as "GL Team" and "GL Player", and Player has no
+      referee tool, no claim that the coach sees Practice and no outbound link
+      rows.
+    From the research, all counts or his own words:
+    - Reports › Player: points played, won, lost, the difference
+      (`repManPoints`), counted where the written five names him or a row
+      carries his name. Never roster order.
+    - Match review: "Off the break: we lost A of B charted, they lost C of D"
+      (`reviewBreakLine`).
+    - A scouting row takes the name of the person watching (`S.scoutWho`,
+      `setScoutWho`), and the day plan says who it is.
+    - **How much to record** at the foot of Tally (`S.tallyDepth`,
+      `TALLY_DEPTHS`): Full chart (default), Score and outs, Score only. It
+      hides controls, never data.
+    - The short breakout sheet (`S.tallyShort`, off by default): who and
+      whether he made it, with More about him one tap away. A man with more
+      already answered shows it all.
+    - **Share this field as a picture** on Scout (`shareFieldPicture`): a PNG
+      drawn on the phone from the field on screen, held in page memory only
+      (`_fieldPic`), never saved with the season, nothing fetched.
+    Left as it is: the Tally field is small while the first-run hint is up,
+    because fitting the field above the result bar is a tested design.
+    `test/tally-depth.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player

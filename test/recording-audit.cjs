@@ -82,6 +82,22 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    for(const m of ["team","nexus"]){await p.evaluate(m=>{closePlayerDetails();set({tab:"more",more:m});},m);
     assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll("#root summary")].filter(e=>e.offsetParent&&e.getBoundingClientRect().height<44).map(e=>e.innerText)),[],"every fold on "+m+" is a full-size target");}
   });
+  await check("the Scout field shares as a picture drawn on the phone, and the picture is never saved with the season",async page=>{
+   const p=await page();const requests=[];p.on("request",r=>{if(!/^(data:|http:\/\/127\.0\.0\.1)/.test(r.url()))requests.push(r.url());});
+   await p.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();set({tab:"scout",scoutTab:"matchup"});});
+   const btn=p.locator("#root [data-field-pic]").first();await btn.scrollIntoViewIfNeeded();
+   assert.ok((await btn.boundingBox()).height>=44);await btn.click();
+   await p.waitForSelector("#field-pic img");
+   const r=await p.evaluate(async()=>{const img=document.querySelector("#field-pic img");await img.decode();
+    const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;const g=c.getContext("2d");g.drawImage(img,0,0);
+    const d=g.getImageData(0,0,c.width,c.height).data;const seen=new Set();for(let i=0;i<d.length;i+=4*97)seen.add(d[i]+","+d[i+1]+","+d[i+2]);
+    return {w:img.naturalWidth,h:img.naturalHeight,colours:seen.size,alt:img.alt,inSeason:JSON.stringify(S).includes("data:image/png"),stored:(localStorage.getItem("gridlock.coach.v2")||"").includes("data:image/png")};});
+   assert.equal(r.w,1200);assert.ok(r.h>600);assert.ok(r.colours>=6,"the field is drawn in its colours, not a blank: "+r.colours);
+   assert.match(r.alt,/Dynasty · .+ · counted from what was logged/);
+   assert.equal(r.inSeason,false);assert.equal(r.stored,false,"the picture is not written into the season");
+   assert.deepEqual(requests,[],"nothing is fetched or sent");
+   await p.evaluate(()=>set({scoutTab:"breakouts"}));assert.equal(await p.locator("#field-pic").count(),0,"it leaves with the screen");
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} recording audit checks passed.`);if(failed)process.exit(1);
 })();

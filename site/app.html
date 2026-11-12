@@ -7081,6 +7081,7 @@ function set(patch){
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
   if(S.handText && !("handText" in patch) && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) S.handText = null;
+  if(_fieldPic && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) _fieldPic = null;
   // Any call set through here is a call he picked: a picker, Call it on the
   // read line, Open on Team, a rank row on the Counter. The app's own moves
   // (fixBreak, a play turned off, the drill) write S.script directly.
@@ -16636,6 +16637,7 @@ function scout(){
       <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
     <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", homeFive:!!(curMatch()||{}).watch && (S.scoutShow||"them")!=="them", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+    <button class="btn btn--quiet btn--block" style="margin:var(--s2) 0" data-field-pic onclick="shareFieldPicture(${jsq(R.named ? R.name : "")})">Share this field as a picture</button>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
             a left-pit team on that side of the field. */""}
@@ -18733,6 +18735,62 @@ window.copyHandText = () => {
     navigator.clipboard.writeText(t).then(() => flash("Copied."), () => flash("Select the text and copy it — the browser would not let the app do it."));
   } else flash("Select the text and copy it — this browser has no clipboard for the app.");
 };
+/* The field as a picture, to hand to the players.
+ *
+ * A scouting read is a drawing: where they plant, the lanes, their shooter.
+ * The text that Send to your staff hands over cannot carry it. This draws the
+ * field on screen, exactly as it reads there, into a PNG made on the phone —
+ * nothing is fetched or sent — and gives it to the share sheet where the
+ * phone can share a file, else shows it on screen to press and hold. The
+ * picture lives in page memory only (`_fieldPic`): it is never saved with
+ * the season, and it leaves with the screen it was made on. */
+let _fieldPic = null;
+const FIELD_PIC_PROPS = ["fill","fill-opacity","stroke","stroke-width","stroke-dasharray","stroke-linecap","stroke-linejoin","stroke-opacity","opacity",
+  "font-family","font-size","font-weight","letter-spacing","text-anchor","dominant-baseline","paint-order","display","visibility"];
+async function fieldPicture(svg, caption){
+  const copy = svg.cloneNode(true), from = [svg, ...svg.querySelectorAll("*")], to = [copy, ...copy.querySelectorAll("*")];
+  // The page's stylesheet does not travel with a picture: each shape takes
+  // the colours it is drawn in now, as its own.
+  from.forEach((el, i) => { const cs = getComputedStyle(el); to[i].setAttribute("style", FIELD_PIC_PROPS.map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
+  const vb = svg.viewBox.baseVal, W = 1200, H = Math.round(W * (vb && vb.width ? vb.height / vb.width : 0.8)), foot = 64;
+  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg"); copy.setAttribute("width", W); copy.setAttribute("height", H);
+  const img = new Image();
+  await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error("The picture could not be drawn.")); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copy)); });
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H + foot;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#0b0c0d"; g.fillRect(0, 0, W, H + foot); g.drawImage(img, 0, 0, W, H);
+  g.fillStyle = "#efedeb"; g.font = "600 26px system-ui, -apple-system, sans-serif"; g.textBaseline = "middle";
+  g.fillText(String(caption).slice(0, 80), 24, H + foot / 2, W - 48);
+  return cv;
+}
+window.shareFieldPicture = async who => {
+  const svg = document.querySelector("#root .field-wrap svg");
+  if(!svg) return flash("There is no field on this screen to share.");
+  const caption = [who, curLayout().name, "counted from what was logged"].filter(Boolean).join(" · ");
+  let cv;
+  try{ cv = await fieldPicture(svg, caption); }catch(e){ return flash("This phone could not make the picture. Send to your staff still hands over the read as text."); }
+  const name = `gridlock-field-${foldName(who || curLayout().name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "field"}.png`;
+  try{
+    const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+    const file = blob && typeof File === "function" ? new File([blob], name, {type: "image/png"}) : null;
+    if(file && navigator.canShare && navigator.canShare({files: [file]})){
+      try{ await navigator.share({files: [file], title: caption}); return; }
+      catch(e){ if(e && e.name === "AbortError") return; }
+    }
+  }catch(e){}
+  _fieldPic = {title: caption, name, url: cv.toDataURL("image/png")};
+  render(); toMainTop();
+};
+window.closeFieldPic = () => { _fieldPic = null; render(); };
+function fieldPicBox(){
+  if(!_fieldPic) return "";
+  return `<div class="panel" id="field-pic" role="region" aria-label="Field picture">
+    <h3 class="panel__title">Field picture</h3>
+    <p class="note">No share sheet for a picture here. Press and hold the picture to save or share it.</p>
+    <img src="${_fieldPic.url}" alt="${esc(_fieldPic.title)}" style="width:100%;height:auto;border-radius:var(--r-2,8px)"/>
+    <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet grow" onclick="closeFieldPic()">Close</button></div>
+  </div>`;
+}
 function handOffBox(){
   const h = S.handText; if(!h || !h.text) return "";
   return `<div class="panel" id="handoff" role="region" aria-label="${esc(h.title)}">
@@ -20801,7 +20859,7 @@ function shell(){
       </div>`}
       ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
     </header>
-    <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
+    <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${fieldPicBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs" aria-label="Main screens">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}"${S.tab===k ? ' aria-current="page"' : ""} onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
