@@ -40,6 +40,10 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Tally point controls**: Clear point removes only the selected point, with
+  a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
+  points closes earlier-point list views; recorded history is never a filter.
+
 - **Rules** is in Coach's More dashboard and the Team/Player preview headers.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 

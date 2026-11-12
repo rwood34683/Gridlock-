@@ -1523,6 +1523,16 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Tally reset (owner, 12 Nov 2026): Reset match starts fresh and keeps the old
+sheet under Matches. Clear point asks first and removes only that match's
+selected point: every SHEET_LISTS row, scouting break and explicit lineup.
+Do not renumber later points or erase another match, season observations,
+rosters or bunker codes. Undo clear is one in-memory snapshot and refuses
+newer work, another account, field or point, stale tabs, reload and restore.
+Preview confirmation names the exact point and contents. A new point closes
+the earlier-point list views. Keep recording-depth and format preferences.
+`test/tally-reset.cjs` holds these data and phone/tablet checks.
+
 Confirmations and messages (12 Nov 2026): every "are you sure" goes through
 `askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is
 the system's question; in the published preview (`window.gridlockPreview`),
