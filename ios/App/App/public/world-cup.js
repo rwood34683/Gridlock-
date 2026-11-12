@@ -11,7 +11,9 @@
     if(book) return book;
     const d=root.WorldCup2026Data.read();
     book={d,entries:index(d.entries,"entry_id"),locations:index(d.locations,"entry_id"),search:new Map()};
-    book.sorted=[...d.entries].sort((a,b)=>a.team_name.localeCompare(b.team_name,"en") || a.division.localeCompare(b.division,"en") || a.entry_id.localeCompare(b.entry_id));
+    const order=new Map(d.divisions.map((v,i)=>[v.event_id+":"+v.division_id,i]));
+    book.sorted=[...d.entries].sort((a,b)=>(order.get(a.event_id+":"+a.division_id)??Infinity)-(order.get(b.event_id+":"+b.division_id)??Infinity)
+      || a.team_name.localeCompare(b.team_name,"en") || a.entry_id.localeCompare(b.entry_id));
     for(const e of book.sorted) {
       const l=book.locations.get(e.entry_id);
       book.search.set(e.entry_id,fold([e.team_name,e.division,e.bracket,l?.hometown_raw,l?.hometown_country,l?.home_field_name].join(" ")));
@@ -38,8 +40,10 @@
   function results() {
     const list=selectedRows(), pages=Math.max(1,Math.ceil(list.length/PAGE)), page=Math.max(0,Math.min(pages-1,Number(view().page)||0));
     const start=page*PAGE;
+    const groups=new Map();
+    list.slice(start,start+PAGE).forEach(e=>{const key=e.event_id+":"+e.division_id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);});
     return `<p class="note" role="status" aria-live="polite">${list.length ? `${list.length} entries · showing ${start+1}–${Math.min(start+PAGE,list.length)}` : "No entries found in this snapshot. Try another division or name."}</p>
-      <div class="list">${list.slice(start,start+PAGE).map(teamButton).join("")}</div>
+      ${[...groups].map(([key,entries])=>`<section class="cup-division-group" data-division="${esc(key)}"><h3 class="panel__title">${esc(entries[0].division)}${entries[0].event_id!=="9322"?" · NCPA":""}</h3><div class="list">${entries.map(teamButton).join("")}</div></section>`).join("")}
       ${pages>1?`<div class="btnrow cup-pages">${page>0?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(-1)">Previous teams</button>':""}<span class="note">Page ${page+1} of ${pages}</span>${page<pages-1?'<button class="btn btn--quiet" onclick="WorldCup2026.pageBy(1)">Next teams</button>':""}</div>`:""}`;
   }
   function listPage() {
