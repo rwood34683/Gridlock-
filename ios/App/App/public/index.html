@@ -9137,6 +9137,15 @@ window.callTap = at => { const b = nearestBunker(at); if(b){ S.callPick = b.id; 
 // Codes: tap a labelled bunker and give it the team's own name right there,
 // on whichever field the Codes picker is reading. The same store and the same
 // one-word-one-bunker rule as Team › Bunker calls.
+// Read the saved words directly: recording screens must never keep another
+// copy that goes stale when the coach edits Codes or restores a season.
+function teamCodeReference(){
+  const codes = S.codes || [];
+  if(!codes.length) return "";
+  return `<details class="coach-terms team-codes" style="overflow-wrap:anywhere"><summary>Team codes · ${codes.length}</summary>
+    ${codes.map(c => `<p class="note"><b style="color:var(--ink)">${esc(c.word)}</b><br>${esc(c.means || "No meaning saved")}</p>`).join("")}
+    <button class="btn btn--quiet" onclick="set({tab:'more',more:'codes'})">Edit codes</button></details>`;
+}
 const codesKey = () => LAYOUTS[S.codesField] ? S.codesField : S.layoutKey;
 const onCodesField = fn => { const keep = S.layoutKey; S.layoutKey = codesKey(); try { return fn(); } finally { S.layoutKey = keep; } };
 (function codeTapping(){
@@ -10436,8 +10445,11 @@ function fieldSVG(opts={}, runnersOnly){
           all read through it. The names are a layer now like everything else:
           forced on where a named bunker is the subject (Sightlines, Movement,
           Bunker stats, the arrival trail and Team's own naming) and on the
-          Names chip everywhere else. */""}
-    ${(opts.names || S.namesOn) ? bunkerLabels(layout.bunkers, sx, sy) : ""}
+          Names chip everywhere else. A saved team word is useful on the
+          sideline even with that layer off; Tally and Scout keep those names
+          visible without adding the whole official key. */""}
+    ${bunkerLabels((opts.names || S.namesOn) ? layout.bunkers
+      : (S.tab === "tally" || S.tab === "scout") ? layout.bunkers.filter(b => bunkerCalls()[b.id]) : [], sx, sy)}
     <g class="live">${paths}</g>
     ${/* Their men sit above the break, or a marker disappears under a path the
           moment the two coincide — which is exactly where a scouted plant and a
@@ -14837,6 +14849,7 @@ function tally(){
         it took the room the field is fitted into, and the field was drawn a
         third smaller until the hint was dismissed. */""}
   ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
+  ${teamCodeReference()}
   ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   ${deckPanel()}
@@ -16181,7 +16194,7 @@ function scout(){
   const navigation = `<div class="seg seg--wrap" aria-label="Scout views">${
       SCOUT_TABS.filter(([k]) => PRIMARY.includes(k)).map(navBtn).join("")}
       <button class="${showExtra?"on":""}" onclick="set({scoutNavMore:!S.scoutNavMore})" aria-expanded="${showExtra}">More ${showExtra?"\u25b4":"\u25be"}</button></div>${
-      showExtra ? `<div class="seg seg--wrap" style="margin-top:6px" aria-label="More Scout views">${extraTabs.map(navBtn).join("")}</div>` : ""}`;
+      showExtra ? `<div class="seg seg--wrap" style="margin-top:6px" aria-label="More Scout views">${extraTabs.map(navBtn).join("")}</div>` : ""}` + teamCodeReference();
   // The match and the point ride under the views on every one of them. The
   // strip sat under the pits, which Arrival and Voice do not draw, so a coach
   // on How did they get there had no Next point and no way to switch games.
@@ -20225,8 +20238,7 @@ function moreBody(k){
   }
   if(k==="codes"){
     const codes=S.codes||[];
-    return sec("Codes", `<p class="lede">The word and what it means. A list of words on its own is no use to
-      the player who joined last week.</p>
+    return sec("Codes", `<p class="lede">Save your words here. Open Team codes on Tally or Scout to read them during a game.</p>
       ${codes.length?`<div class="assigns">${codes.map((c,i)=>`<div class="assign">
           <span class="assign__body">
             <input value="${esc(c.word)}" onchange="editCode(${i},'word',this.value)" style="font-weight:700"/>
@@ -20296,7 +20308,7 @@ function moreBody(k){
             <span class="assign__who">${esc(tag(id))}${who ? " · " + esc(who) + " only" : " · the whole team"}</span></span>
             <button class="btn btn--danger" onclick="${who ? `clearPlayerCall(${jsq(who)},${jsq(id)},${jsq(lk)})` : `clearCall(${jsq(id)},${jsq(lk)})`}">Clear</button></div>`).join("")}</div>`
             : `<div class="empty">None yet — tap a bunker on the field above to name it.</div>`}
-          <p class="note">The team's name replaces the code everywhere in the app; a player's own word shows on his card only. The code is still what the map says.</p>`;
+          <p class="note">Saved team names show on Tally and Scout for this field. A player's own word shows on his card only. The code is still what the map says.</p>`;
       })()}`,
       `${BUNKER_CODE.filter(([c])=>codeCount(c)).length} of ${BUNKER_CODE.length} here`);
     } finally { S.layoutKey = keep; }
