@@ -174,12 +174,14 @@ h1,h2,h3,p{margin:0}
    where the call was: a 28-letter play left "NXL LONE STAR OPEN · GARLAN…" and
    no call at all on a 320 px phone, and the call is the thing read between
    points. */
-.ctx__ev{min-width:max(44px,3.5em);flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__ev{min-width:max(44px,3.5em);flex:0 100000 auto;overflow:hidden;text-overflow:ellipsis}
 .ctx__call{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 /* Shrink is shared in proportion: at 1 against the event's 999 the call
    still lost a fraction of a pixel while the event had room to give, and its
-   ellipsis read "SNAKE STA…". At .0001 it gives nothing until the event is
-   down to its stub. */
+   ellipsis read "SNAKE STA…" (and, at 375 px, "PICK THE CA…"). The call stays
+   at 1 — below 1, a lone shrinking item absorbs only that fraction of the
+   overflow and the section is pushed off — and the event shrinks at 100000,
+   so the call's share is far under a pixel until the event is at its stub. */
 .ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
@@ -9476,7 +9478,14 @@ function statDayKey(at){
 function statDays(){
   const days = new Map();
   statMatches().forEach(m => { const d = recordedDate(m.at); if(d) days.set(statDayKey(m.at), STAT_DAY_FMT.format(d)); });
-  return [...days].sort((a,b) => b[0].localeCompare(a[0])).concat([["undated","Date not recorded"]]);
+  // "Date not recorded" only when something is: a sheet with no readable
+  // date, or a row whose sheet is gone. Offered always, it was a day that
+  // opened on an empty table.
+  const here = r => r && typeof r === "object" && (!r.layout || r.layout === S.layoutKey);
+  const undated = statMatches().some(m => !recordedDate(m.at)) || S.statDay === "undated"
+    || [...(S.breakouts || []), ...(S.tally || [])].some(r => here(r) && r.m && !matchById(r.m));
+  const list = [...days].sort((a,b) => b[0].localeCompare(a[0]));
+  return undated ? list.concat([["undated","Date not recorded"]]) : list;
 }
 function statDayLabel(){ return !S.statDay ? "All days" : (statDays().find(([key]) => key === S.statDay) || [0,"Day no longer available"])[1]; }
 function statDayMatches(){ return statMatches().filter(m => !S.statDay || statDayKey(m.at) === S.statDay); }
@@ -13819,8 +13828,7 @@ window.selectBunker = id => {
   // The sheet opens under the field, and on a phone that is below the fold: the
   // coach tapped a bunker and saw nothing happen. Bring the field to the top so
   // the field and the questions under it share the screen while he traces.
-  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
-  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  fieldThenSheet();
 };
 /* The run he made, worked out from what the coach already told the sheet.
  *
@@ -13910,6 +13918,21 @@ function routeOf(row){
   return (row.route && row.route.length) ? row.route : autoRoute(row);
 }
 
+/* The sheet opens under the field. Bring the field to the top, then make sure
+ * the sheet's first questions are not under its own Log bar: on a small phone
+ * the field fills the screen and the bar covered all of the sheet that showed,
+ * so the only thing to tap was Log on a man with no name. When both cannot
+ * fit, the questions win; the field is a scroll away. */
+function fieldThenSheet(){
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(!main || !map) return;
+  main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  const sheet = document.querySelector(".tally-chart .tsheet"), bar = sheet && sheet.querySelector(".tsheet__act");
+  if(!sheet || !bar) return;
+  const barTop = Math.min(bar.getBoundingClientRect().top, main.getBoundingClientRect().bottom);
+  const need = sheet.getBoundingClientRect().top + 150 - barTop;
+  if(need > 0) main.scrollTop += need;
+}
 window.tallyTap = at => {
   // Nobody to log against is nobody to log. The sheet used to open anyway and
   // Log stored the break with vs "" — a point charted into a void while the
@@ -14034,8 +14057,7 @@ window.editBreakout = id => {
     movedTo:r.movedTo || "", movedDelayed:!!r.movedDelayed, routeType:r.routeType || "",
     route:(r.route || []).map(p => ({...p}))};
   save(S); render();
-  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
-  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  fieldThenSheet();
 };
 // Step two opens on the first man still to tell, so "what happened" starts
 // the moment he says the five are down.
@@ -15380,10 +15402,13 @@ window.tapResult = won => {
   const mine = c => c.m === mid && c.pt === pt && !c.auto;
   const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(mine)
     ? {script: S.script, layout: S.layoutKey, pt, m: mid, vs: matchVs(), auto: true} : null;
+  // The call goes in before the result so the one save endPoint() makes
+  // carries both: a second whole-season write per scored point was the
+  // slowest tap on a full season. A refused result takes it back out.
+  const callsWas = S.calls;
+  if(call) S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))];
   window.endPoint(won);
-  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(mine)){
-    S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))]; save(S);
-  }
+  if(call && !(S.results || []).some(x => x.m === mid && x.pt === pt)){ S.calls = callsWas; save(S); }
   // Say what was scored, so a tap on the wrong one is caught while it is
   // still one tap back.
   if((S.results || []).length >= before && _lastEnd && _lastEnd.pt === pt){
@@ -20543,7 +20568,7 @@ function quickLog(){
   // its buttons down the way it does on a finished race and names the field.
   const off = sheetField(), over = matchOver() || !!off, ot = inOvertime(), mp = matchPoint();
   const tail = off ? "other field" : over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
-  return `<div class="qlog">
+  return `<div class="qlog" role="dialog" aria-modal="true" aria-label="Quick log">
     <div class="qlog__top">
       ${clockChip()}
       <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tail ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${tail}</small>` : ""}</span>
@@ -20608,6 +20633,23 @@ window.openQuick = () => {
   }catch(e){}
   set({quick:true, quickPick:false});
 };
+/* The Quick log covers the whole screen, so nothing under it may be reached:
+ * a Tab from it walked into the hidden point sheet, and Enter on Time's up
+ * there ended a race to four at 2–1. Everything beside it is inert while it
+ * is open (a message stays readable), Escape closes it, and focus starts in
+ * it and goes back to the button that opened it. */
+function guardQuick(){
+  document.querySelectorAll("[data-qlog-inert]").forEach(el => { el.inert = false; el.removeAttribute("data-qlog-inert"); });
+  const q = document.querySelector("#root .qlog"), root = document.getElementById("root");
+  if(!q || !root) return;
+  for(let n = q; n && n !== root; n = n.parentElement)
+    for(const sib of n.parentElement ? n.parentElement.children : [])
+      if(sib !== n && !sib.inert && !sib.classList.contains("flash")){ sib.inert = true; sib.setAttribute("data-qlog-inert", ""); }
+  if(!q.contains(document.activeElement)) q.querySelector("button")?.focus({preventScroll:true});
+}
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && S.quick && !document.querySelector("dialog[open]")){ e.preventDefault(); window.closeQuick(); }
+}, true);
 window.closeQuick = () => {
   try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
   try{
@@ -20615,6 +20657,7 @@ window.closeQuick = () => {
     if(r && r.catch) r.catch(()=>{});
   }catch(e){}
   set({quick:false, quickPick:false});
+  [...document.querySelectorAll('#root [onclick^="openQuick"]')].find(b => b.offsetParent)?.focus({preventScroll:true});
 };
 
 /* ============================================================
@@ -20982,6 +21025,7 @@ function render(){
   if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
   watchTallyField();
   placeFlash();
+  guardQuick();
   _screenObserver.takeRecords(); _screenDirty = false;
   renderPlayerDetails();
 }

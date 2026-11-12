@@ -102,6 +102,52 @@ const ADAPTER=fs.readFileSync(path.resolve(__dirname,"../native/gridlock-cloud.j
    const r=await b.evaluate(()=>({tab:S.tab,vs:matchVs(),sc:matchScore()}));
    assert.equal(r.tab,"tally");assert.equal(r.vs,"Dynasty");assert.deepEqual(r.sc,{us:1,them:1});
   });
+  // The phone and tablet journey review, the same day.
+  const seeded=async(phone,size)=>{const p=await phone();if(size)await p.setViewportSize(size);
+   await p.evaluate(s=>{localStorage.setItem("gridlock.coach.v2",JSON.stringify(s));},require("../scripts/seed"));await p.reload();
+   await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;set({tab:"tally"});});return p;};
+  await check("the Quick log is a real full-screen layer: nothing under it can be reached, and Escape closes it",async({phone})=>{
+   const p=await seeded(phone);const before=await p.evaluate(()=>JSON.stringify([matchScore(),!!curMatch().timeUp]));
+   await p.getByRole("button",{name:/Quick log/}).first().click();
+   for(let i=0;i<40;i++){await p.keyboard.press("Tab");
+    const inside=await p.evaluate(()=>{const a=document.activeElement;return !a||a===document.body||!!a.closest(".qlog");});
+    assert.equal(inside,true,"focus left the Quick log on Tab "+(i+1));}
+   assert.equal(await p.evaluate(()=>JSON.stringify([matchScore(),!!curMatch().timeUp])),before,"nothing under it was used");
+   await p.keyboard.press("Escape");
+   assert.equal(await p.evaluate(()=>S.quick),false);
+   assert.equal(await p.evaluate(()=>document.querySelectorAll("[inert]").length),0,"nothing is left inert");
+  });
+  await check("a scored point writes the whole season once",async({phone})=>{
+   const p=await seeded(phone);
+   const n=await p.evaluate(()=>{let writes=0;const set=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(k,v){if(k==="gridlock.coach.v2")writes++;return set.call(this,k,v);};
+    S.callPicked=true;tapResult("us");Storage.prototype.setItem=set;
+    return {writes,call:(S.calls||[]).some(c=>c.m===S.matchId&&c.pt===S.point-1&&c.auto)};});
+   assert.equal(n.call,true,"the standing call is still logged with the result");
+   assert.equal(n.writes,1,"one whole-season write, not "+n.writes);
+  });
+  await check("on a small phone a tapped bunker shows the sheet's first questions above its Log bar",async({phone})=>{
+   const p=await seeded(phone,{width:375,height:667});
+   await p.evaluate(()=>{const b=curLayout().bunkers.find(x=>x.id==="MT#1")||curLayout().bunkers[0];S.tallyStep="tell";tallyTap([b.x,b.y]);});
+   await p.waitForTimeout(150);
+   const r=await p.evaluate(()=>{const bar=document.querySelector(".tsheet__act").getBoundingClientRect();
+    const chips=[...document.querySelectorAll(".tsheet button")].filter(b=>!b.closest(".tsheet__act"));
+    const shown=chips.filter(b=>{const q=b.getBoundingClientRect();return q.height&&q.bottom<=bar.top&&q.top>=0;});
+    return {shown:shown.length,first:shown[0]&&shown[0].innerText};});
+   assert.ok(r.shown>=2,"questions showing above the bar: "+JSON.stringify(r));
+  });
+  await check("at 375 px the header keeps the call whole and gives way on the event",async({phone})=>{
+   const p=await phone();await p.setViewportSize({width:375,height:667});await p.evaluate(()=>set({tab:"home"}));
+   const r=await p.evaluate(()=>{const t=document.querySelector(".ctx__call .ctx__t"),sec=document.querySelector(".ctx__sec"),hdr=document.querySelector(".ctx");
+    return {cut:t.scrollWidth-t.clientWidth,sec:sec?sec.getBoundingClientRect().right<=hdr.getBoundingClientRect().right+1:true};});
+   assert.equal(r.cut,0,"the call is not cut");assert.equal(r.sec,true,"the section stays on the line");
+  });
+  await check("Bunker stats offers Date not recorded only when something is",async({phone})=>{
+   const p=await seeded(phone);
+   const r=await p.evaluate(()=>{const has=()=>statDays().some(([k])=>k==="undated");const a=has();
+    S.matches=S.matches.map((m,i)=>i===0?{...m,at:0}:m);return [a,has()];});
+   assert.deepEqual(r,[false,true]);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} interaction audit checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

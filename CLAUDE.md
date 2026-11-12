@@ -1532,7 +1532,13 @@ Checking the account's saved season never takes the screen while a match is
 on the sheet; leaving that check pauses sharing for now and keeps the coach's
 yes. A season adopted with a match under way opens on Tally (Scout for a
 watched game). A season row (no sheet) is counted where it was tapped; every
-spreadsheet date is the phone's own day. `test/interaction-audit.cjs`,
+spreadsheet date is the phone's own day. The Quick log is a modal layer:
+everything beside it is inert, Escape closes it and focus returns to its
+button. A scored point writes the whole season once, the standing call with
+it. A bunker tapped on a small phone scrolls the sheet's first questions above
+its Log bar. In the header the event shrinks at 100000 and the call at 1 (never
+below 1, or the section falls off). Bunker stats offers Date not recorded only
+when something is undated. `test/interaction-audit.cjs`,
 `test/data-audit.cjs`.
 
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
