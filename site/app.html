@@ -3554,7 +3554,12 @@ window.openPrep = team => { set({tab: "more", more: "prep", prepTeam: String(tea
 // Their games still to come at this event that he is not in.
 function theirGamesToWatch(team, now = Date.now()){
   const me = S.myTeam ? foldName(S.myTeam) : "";
-  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
+  // Once he has played them for the last time at this event, a later game of
+  // theirs is not one to watch for it: only games before his last game against
+  // them are offered, when he has one on the schedule.
+  const mine = me ? teamGames(S.myTeam).filter(g => foldName(across(g, S.myTeam)) === foldName(team) && gameAt(g) + SLOT_MIN * 60000 >= now) : [];
+  const last = mine.length ? Math.max(...mine.map(gameAt)) : Infinity;
+  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && gameAt(g) < last && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
 }
 // His next game against them, if both are on the schedule.
 function myGameVs(team, now = Date.now()){
@@ -3719,7 +3724,9 @@ function dayPlanText(team, now = Date.now()){
   const day = teamDay(team), next = day.find(d => gameAt(d.g) + SLOT_MIN * 60000 >= now);
   if(!next) return "";
   const d = next.g.d, lead = pitLead(), L = [`${team} — ${dayName(d)}`, ""];
-  day.filter(x => x.g.d === d).forEach(({g, opp}) =>
+  // Only what is still to come: a game already played, with a pit time in the
+  // past, is not part of a plan.
+  day.filter(x => x.g.d === d && gameAt(x.g) + SLOT_MIN * 60000 >= now).forEach(({g, opp}) =>
     L.push(`${gameClock(g)} v ${opp} · ${g.f || "field not printed"}${lead ? ` · at the pit by ${clockAt(gameAt(g) - lead * 60000)}` : ""}`));
   const scout = scoutPlan(day, now).filter(r => r.g.d === d);
   if(scout.length){
@@ -16083,7 +16090,7 @@ const SCH_DIV = /^(?:(?:NXL|USXBL|PSP|WCPPL|MAPL|CFOA|NCPA|Pro|Semi[- ]?Pro|D[1-
 function parseSchedule(text){
   const out = [];
   let skipped = 0;
-  let day = SCHEDULE.games[0].d;
+  let day = SCHEDULE.games[0].d, dated = false;
   const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
   (text || "").split(/\r?\n/).forEach(raw => {
     // Everything but the tab collapses: a table copied off a page separates its
@@ -16099,7 +16106,7 @@ function parseSchedule(text){
       if(mi < 0) return false;
       const y = (iso && iso[1]) || (/\b(20\d{2})\b/.exec(line) || [])[1]
              || SCHEDULE.games[0].d.slice(0, 4);
-      day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`; dated = true;
       return true;
     };
     // A weekday with no date ("Sun 11:00 …", or "Sunday" on a line of its own)
@@ -16109,16 +16116,31 @@ function parseSchedule(text){
     const byWeekday = txt => {
       const w = /^\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|,|$)/i.exec(txt); if(!w) return false;
       const want = WD.indexOf(w[1].toLowerCase()), base = new Date(day + "T12:00:00");
-      for(let k = -3; k <= 3; k++){ const d = new Date(base); d.setDate(base.getDate() + k);
-        if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; return true; } }
+      // Before any date has been read the day is the event's first, and a
+      // weekday is looked for forward of it: "Sun" on a Wednesday start is the
+      // Sunday of that event, not the Sunday three days before it. Once a date
+      // has been read, it is the day of that name nearest the one in hand.
+      for(const k of (dated ? [0, 1, -1, 2, -2, 3, -3] : [0, 1, 2, 3, 4, 5, 6])){ const d = new Date(base); d.setDate(base.getDate() + k);
+        if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; dated = true; return true; } }
       return false;
     };
     const clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
     if(!clock){
-      if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; return; }
-      if(md && setDay(mon(md[1]), md[2])) return;
-      if(dm && setDay(mon(dm[2]), dm[1])) return;
-      if(line.length <= 12) byWeekday(line);
+      if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; dated = true; return; }
+      // Every "word number" on the line is tried, not only the first: in
+      // "Day 5 - Sunday Nov 15" the first is "Day 5", which is no month.
+      const mdAny = [...line.matchAll(/\b([A-Za-z]{3,9})\.? (\d{1,2})\b/g)].find(m => mon(m[1]) >= 0);
+      if(mdAny && setDay(mon(mdAny[1]), mdAny[2])) return;
+      const dmAny = [...line.matchAll(/\b(\d{1,2}) ([A-Za-z]{3,9})\b/g)].find(m => mon(m[2]) >= 0);
+      if(dmAny && setDay(mon(dmAny[2]), dmAny[1])) return;
+      // "11/15", "Sunday 11/15/2026": a header with the date in numbers.
+      const num = line.length <= 30 ? /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(line) : null;
+      if(num && +num[1] >= 1 && +num[1] <= 12 && +num[2] >= 1 && +num[2] <= 31 && setDay(+num[1] - 1, num[2])) return;
+      // A weekday header: the weekday with nothing beside it but round words
+      // and punctuation ("Sunday", "Finals Sunday"). A team's name on a line
+      // of its own ("Sun Devils") is not a header and moves nothing.
+      const wd = /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\b\.?/i.exec(line);
+      if(wd && !line.replace(wd[0], " ").replace(/\b(?:day|finals?|prelims?|semis?|quarters?|games?|schedule)\b|[\d\s,.\-\u2013\u2014:\u00b7|\/]+/ig, "")) byWeekday(wd[0]);
       return;
     }
     // The clock through the same door a typed game goes through: "25:99" is
@@ -16133,7 +16155,7 @@ function parseSchedule(text){
     const preMd = /\b([A-Za-z]{3,9})\.? (\d{1,2})\b/.exec(pre);
     const preDm = /\b(\d{1,2}) ([A-Za-z]{3,9})\b/.exec(pre);
     const preNum = /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(pre);
-    if(preIso){ day = `${preIso[1]}-${preIso[2]}-${preIso[3]}`; pre = pre.replace(preIso[0], " "); }
+    if(preIso){ day = `${preIso[1]}-${preIso[2]}-${preIso[3]}`; dated = true; pre = pre.replace(preIso[0], " "); }
     else if(preMd && mon(preMd[1]) >= 0){ setDay(mon(preMd[1]), preMd[2]); pre = pre.replace(preMd[0], " "); }
     else if(preDm && mon(preDm[2]) >= 0){ setDay(mon(preDm[2]), preDm[1]); pre = pre.replace(preDm[0], " "); }
     else if(preNum && +preNum[1] >= 1 && +preNum[1] <= 12){ setDay(+preNum[1] - 1, preNum[2]); pre = pre.replace(preNum[0], " "); }
@@ -16171,8 +16193,13 @@ function parseSchedule(text){
       .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x) && !SCH_DIV.test(x));
     if(bits.length < 2 || foldName(bits[0]) === foldName(bits[1])){ skipped++; return; }   // a team against itself is a mis-read line
     const g = (/\b([A-D]) ?Prelims?\b/i.exec(line) || [])[1] || "";
+    // The field and pit the line printed are kept as the league's rows keep
+    // them: they were taken off the team names and then thrown away, so the
+    // scout list said "Field not printed" about a line that printed it.
+    const fld = (/(?:\bField\s*|\(F\s*|\bF)(\d+)\b/i.exec(rest) || [])[1], pit = (/\bPit\s*(\d+)\b/i.exec(rest) || [])[1];
+    const f = [fld ? "Field " + fld : "", pit ? "Pit " + pit : ""].filter(Boolean).join(" \u00b7 ");
     out.push({id: gameId() + out.length, d: day, t, h: bits[0].slice(0, 40),
-              a: bits[1].slice(0, 40), g: g.toUpperCase(), layout: S.layoutKey});
+              a: bits[1].slice(0, 40), g: g.toUpperCase(), layout: S.layoutKey, ...(f ? {f} : {})});
   });
   out.skipped = skipped;
   return out;
@@ -19441,6 +19468,24 @@ function repManSheets(name){
             out: outs.length, grade: grades.length ? Math.round(grades.reduce((s, a) => s + a.score, 0) / grades.length * 10) / 10 : 0, graded: grades.length};
   }).filter(x => x.n || x.out || x.graded);
 }
+/* The line a player already knows from the league's stat page: the points he
+ * was on, how many of them were won, and the difference. A count, like every
+ * other number here. He was on a point when the five written for it names
+ * him, or when anything was logged against his name on it; a point with
+ * neither says nothing about who played it, so roster order is never used. */
+function repManPoints(name){
+  const mine = new Set();
+  [[S.breakouts, "player"], [S.tally, "name"], [S.playerChecks, "player"]].forEach(([list, key]) =>
+    (list || []).forEach(r => { if(r && repOn(r) && r.side === "us" && r[key] === name) mine.add(r.m + "|" + r.pt); }));
+  const t = {n: 0, won: 0, lost: 0};
+  (S.results || []).forEach(r => {
+    if(!repOn(r) || !(r.pt > 0)) return;
+    if(!mine.has(r.m + "|" + r.pt) && !lineupAt(r.pt, r.m).includes(name)) return;
+    t.n++; if(r.won === "us") t.won++; else t.lost++;
+  });
+  return t;
+}
+const repManPointsLine = t => `${t.n} ${t.n === 1 ? "point" : "points"} played · won ${t.won}, lost ${t.lost} · ${t.won - t.lost > 0 ? "+" : ""}${t.won - t.lost} · won ${Math.round(t.won / t.n * 100)}% (${repOf(t.won, t.n)})`;
 function repManBunkers(name){
   const rows = (S.breakouts || []).filter(r => repOn(r) && r.side === "us" && r.player === name && r.layout === S.layoutKey);
   return {to: repTally(rows.filter(r => r.bunker), r => frameId(r.bunker, r.m, r.pt)).map(([id, n]) => [repBunker(id), n]),
@@ -19590,13 +19635,15 @@ function repPlayerPage(){
     <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`);
   const pick = `<div class="fld"><label for="rep-man">Player</label><select id="rep-man" onchange="set({repMan:this.value})">
       ${names.map(n => `<option value="${esc(n)}"${n === name ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div>`;
-  const per = repManSheets(name), b = repManBunkers(name);
+  const per = repManSheets(name), b = repManBunkers(name), pts = repManPoints(name);
   const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
   const out = [sec("Player", pick + (per.length ? `<div class="facts">
       <span class="fact"><b>${tot.n}</b><span>Breaks charted</span></span>
       <span class="fact"><b>${repOf(tot.made, tot.n)}</b><span>Made it</span></span>
       <span class="fact"><b>${tot.out}</b><span>Times out</span></span>
-    </div>` : `<p class="note">Nothing charted for ${esc(name)} on these sheets yet.</p>`), name)];
+    </div>` : `<p class="note">Nothing charted for ${esc(name)} on these sheets yet.</p>`)
+    + (pts.n ? `<p class="lede" data-man-points>${esc(repManPointsLine(pts))}</p>
+      <p class="note">Scored points where the five written for the point names him, or something was logged against his name.</p>` : ""), name)];
   if(!per.length) return out.join("");
   out.push(sec("Sheet by sheet", repBars(`${name}, sheet by sheet`, per.map(x => ({label: matchLabel(x.m), text: x.n ? `made it ${repOf(x.made, x.n)}${x.out ? ` · out ${x.out}` : ""}` : `out ${x.out}`,
       segs: [{n: x.made, cls: "us"}, {n: x.shot, cls: "them"}, {n: x.n - x.made - x.shot, cls: "none"}]})), [["us", "made it"], ["them", "shot on the break"], ["none", "not told"]])
@@ -19740,6 +19787,7 @@ function manReportText(name){
   const per = repManSheets(name), b = repManBunkers(name);
   const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
   const L = [`${name} · ${S.repAll ? "every event" : curLayout().name}`, `${tot.n} breaks charted · made it ${repOf(tot.made, tot.n)} · shot on the break ${tot.shot} · out ${tot.out}`];
+  const pts = repManPoints(name); if(pts.n) L.push(repManPointsLine(pts));
   if(b.to.length) L.push(`Breaks to: ${b.to.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
   if(b.from.length) L.push(`Shot on the break from: ${b.from.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
   if(per.length){ L.push("", "Sheet by sheet:"); per.forEach(x => L.push(`- ${matchLabel(x.m)}: ${x.n ? `made it ${repOf(x.made, x.n)}` : "no breaks charted"}${x.out ? `, out ${x.out}` : ""}`)); }
