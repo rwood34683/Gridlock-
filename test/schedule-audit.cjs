@@ -95,6 +95,23 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.match(await p.evaluate(()=>document.querySelector("#root .scout-plan").innerText),/Already watched · 1–0/);
    assert.ok(id);
   });
+  await check("the line-by-line review of 12 Nov: weekdays, months and clocks that were still misread",async p=>{
+   assert.deepEqual(await days(p,"Wed 9:00 AM Rejects vs Blast Camp\nSun 9:00 AM Dynasty vs Impact"),
+    ["2026-11-11 09:00 Rejects v Blast Camp","2026-11-15 09:00 Dynasty v Impact"],"a second weekday still lands inside the event");
+   assert.deepEqual(await days(p,"Nov 11\n9:00 AM Rejects vs Blast Camp\nSun 9:00 AM Dynasty vs Impact"),
+    ["2026-11-11 09:00 Rejects v Blast Camp","2026-11-15 09:00 Dynasty v Impact"]);
+   assert.deepEqual(await days(p,"Division 4 Novice 5-man\n9:00 AM Rejects vs Blast Camp"),["2026-11-11 09:00 Rejects v Blast Camp"],"Novice 5 is not November the fifth");
+   assert.deepEqual(await days(p,"Mayhem 5\n9:00 AM Rejects vs Blast Camp"),["2026-11-11 09:00 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"November 13\n9:00 AM Rejects vs Blast Camp"),["2026-11-13 09:00 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"Thu 06:30 Rejects vs Blast Camp"),["2026-11-12 06:30 Rejects v Blast Camp"],"a leading zero is the 24-hour clock");
+   assert.deepEqual(await days(p,"Thu 6:30 Rejects vs Blast Camp"),["2026-11-12 18:30 Rejects v Blast Camp"]);
+  });
+  await check("once his last game against a team is over, none of their later games is offered",async p=>{
+   const r=await p.evaluate(()=>{S.myTeam="Houston Heat";const mine=teamGames("Houston Heat"),out=[];
+    for(const opp of [...new Set(mine.map(g=>across(g,"Houston Heat")))]){const last=Math.max(...mine.filter(x=>foldName(across(x,"Houston Heat"))===foldName(opp)).map(gameAt));
+     out.push({opp,after:theirGamesToWatch(opp,last+3*3600000).length});}return out;});
+   assert.ok(r.length>0);for(const x of r)assert.equal(x.after,0,x.opp+" is still offered after his last game against them");
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} schedule audit checks passed.`);if(failed)process.exit(1);
 })();

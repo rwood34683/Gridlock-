@@ -63,6 +63,12 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(r.hint,true,"the hint is shown");assert.equal(r.under,true,"under the field");
    assert.equal(r.withHint,r.without,"the field is the same size with the hint up");
   });
+  await check("opening a man's sheet with the chart put away brings the chart back and says so",async p=>{
+   await p.evaluate(()=>{setTallyDepth("score");set({flash:""});editBreakout(S.breakouts[0].id);});
+   const r=await p.evaluate(()=>({depth:tallyDepth(),sheet:!!document.querySelector("#root #tally-sheet"),flash:S.flash}));
+   assert.equal(r.depth,"full");assert.equal(r.sheet,true,"his sheet is on screen");assert.match(r.flash,/Full chart is back on/);
+   await p.evaluate(()=>tallyDone());assert.ok(await p.locator("#root .resultbar").count()>0,"the result buttons are back");
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} tally depth checks passed.`);if(failed)process.exit(1);
 })();

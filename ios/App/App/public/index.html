@@ -2670,7 +2670,7 @@ function theirGamesToWatch(team, now = Date.now()){
   // Once he has played them for the last time at this event, a later game of
   // theirs is not one to watch for it: only games before his last game against
   // them are offered, when he has one on the schedule.
-  const mine = me ? teamGames(S.myTeam).filter(g => foldName(across(g, S.myTeam)) === foldName(team) && gameAt(g) + SLOT_MIN * 60000 >= now) : [];
+  const mine = me ? teamGames(S.myTeam).filter(g => foldName(across(g, S.myTeam)) === foldName(team)) : [];
   const last = mine.length ? Math.max(...mine.map(gameAt)) : Infinity;
   return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && gameAt(g) < last && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
 }
@@ -7066,17 +7066,24 @@ function alignSheet(id){
  * man nobody named, his bunker — and one with no such row is dropped. */
 function rebindChecks(before){
   const live = new Map((S.breakouts || []).filter(r => r && r.id).map(r => [r.id, r]));
-  const bound = new Set((S.playerChecks || []).filter(c => c && c.breakoutId && live.has(c.breakoutId)).map(c => c.breakoutId));
+  const bound = new Set((S.playerChecks || []).filter(c => c && c.breakoutId && live.has(c.breakoutId)).map(c => c.breakoutId)), fold = [];
   S.playerChecks = (S.playerChecks || []).map(c => {
     if(!c || !c.breakoutId || live.has(c.breakoutId)) return c;
     const was = before.get(c.breakoutId); if(!was) return null;
     const same = r => r.m === was.m && r.pt === was.pt && r.side === was.side
       && (was.player ? foldName(r.player) === foldName(was.player) : !r.player && r.bunker === was.bunker);
-    const kept = [...live.values()].filter(same), to = kept.find(r => !bound.has(r.id)) || kept[0];
-    if(!to) return null;
-    bound.add(to.id);
-    return {...c, breakoutId: to.id, player: to.player || ""};
+    const kept = [...live.values()].filter(same), free = kept.find(r => !bound.has(r.id));
+    if(!free){
+      // The row kept already has this phone's own observation: what it does
+      // not say, the other phone's fills in, and nothing it says is hidden.
+      if(kept[0]) fold.push([kept[0].id, c]);
+      return null;
+    }
+    bound.add(free.id);
+    return {...c, breakoutId: free.id, player: free.player || ""};
   }).filter(Boolean);
+  fold.forEach(([id, c]) => { S.playerChecks = S.playerChecks.map(x => x && x.breakoutId === id
+    ? {...x, alive: x.alive ?? c.alive ?? null, shooting: x.shooting ?? c.shooting ?? null, diving: x.diving ?? c.diving ?? null} : x); });
   // The same sheet merged again brings the same check, bound to the row that
   // went: moved again, it is the check this phone already holds.
   const ids = new Set();
@@ -13589,7 +13596,11 @@ function placeAt(b){
 window.editBreakout = id => {
   const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
   if(r.layout !== S.layoutKey){ flash(`That man was charted on ${(LAYOUTS[r.layout] || {}).name || "another field"}.`); return; }
-  S.tallyStep = "record"; S.tallyEdit = id; S.tallySel = r.bunker; S.tallyPickFor = null;
+  // His sheet lives in the break chart: with the chart put away (Score and
+  // outs, Score only) it opened nowhere, and hid the result buttons as well.
+  const back = tallyDepth() !== "full"; if(back) S.tallyDepth = "full";
+  S.tallyStep = "record"; S.tallyEdit = id; S.tallySel = r.bunker; S.tallyPickFor = null; S.tallyMoreOpen = null;
+  if(back) S.flash = "Full chart is back on, to show his sheet.";
   S.tallyDraft = {side:r.side, sideSet:true, player:r.player || "", alive:r.alive, shotFrom:r.shotFrom || "",
     entry:r.entry || "", dir:r.dir == null ? null : r.dir, shootAt:r.shootAt || "", delayed:!!r.delayed,
     movedTo:r.movedTo || "", movedDelayed:!!r.movedDelayed, routeType:r.routeType || "",
@@ -13704,6 +13715,7 @@ function tallyFieldBack(){
 }
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
+  S.tallyMoreOpen = null;   // the next man on this bunker opens short again
   if(!matchVs()) return needOpponent();
   // Telling a placed man's story writes over his row: same id, same point.
   const editing = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
@@ -14874,6 +14886,7 @@ window.nextPoint = () => {
   S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
 };
 function clearPointScratch(){
+  S.tallyMoreOpen = null;
   S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
   // placing all of them first — and by half: Theirs set for one man who
@@ -15048,7 +15061,11 @@ function newMatchBlank(){
   // A watched game is two teams he never picked as an opponent: New match
   // after it starts blank even when nothing was logged, or the away side in
   // the right pit became the team he "plays".
-  return !!cur && (!!cur.watch || (!sheetEmpty(cur) && (!pitNamed("right") || foldName(cur.vs) === foldName(S.right.name))));
+  // unless he has since put a different, next team in the right pit.
+  if(!cur) return false;
+  const pit = pitNamed("right") ? foldName(S.right.name) : "";
+  if(cur.watch) return !pit || pit === foldName(cur.home) || pit === foldName(cur.away);
+  return !sheetEmpty(cur) && (!pit || foldName(cur.vs) === pit);
 }
 window.newMatch = () => {
   // The opponent is stamped on every out this sheet records, so it has to be a
@@ -15289,7 +15306,7 @@ const SCH_DIV = /^(?:(?:NXL|USXBL|PSP|WCPPL|MAPL|CFOA|NCPA|Pro|Semi[- ]?Pro|D[1-
 function parseSchedule(text){
   const out = [];
   let skipped = 0;
-  let day = SCHEDULE.games[0].d, dated = false;
+  let day = SCHEDULE.games[0].d, dated = false, named = false;   // a date read; a weekday read
   const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
   (text || "").split(/\r?\n/).forEach(raw => {
     // Everything but the tab collapses: a table copied off a page separates its
@@ -15319,9 +15336,16 @@ function parseSchedule(text){
       // weekday is looked for forward of it: "Sun" on a Wednesday start is the
       // Sunday of that event, not the Sunday three days before it. Once a date
       // has been read, it is the day of that name nearest the one in hand.
-      for(const k of (dated ? [0, 1, -1, 2, -2, 3, -3] : [0, 1, 2, 3, 4, 5, 6])){ const d = new Date(base); d.setDate(base.getDate() + k);
-        if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; dated = true; return true; } }
-      return false;
+      // A weekday never lands before the event's first day when the day in
+      // hand is inside the event: "Wed … / Sun …" put Sunday three days before
+      // the event began. A weekday is not a date, so it does not set `dated`.
+      const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const first = SCHEDULE.games[0].d, inEvent = day >= first;
+      const at = k => { const d = new Date(base); d.setDate(base.getDate() + k); return d; };
+      const k = (dated || named ? [0, 1, -1, 2, -2, 3, -3] : []).find(n => at(n).getDay() === want && (!inEvent || iso(at(n)) >= first));
+      const pick = k !== undefined ? k : [0, 1, 2, 3, 4, 5, 6].find(n => at(n).getDay() === want);
+      if(pick === undefined) return false;
+      day = iso(at(pick)); named = true; return true;
     };
     let clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
     // "9am Dynasty vs Impact": a clock with no minutes was not a clock, and the
@@ -15331,9 +15355,11 @@ function parseSchedule(text){
       if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; dated = true; return; }
       // Every "word number" on the line is tried, not only the first: in
       // "Day 5 - Sunday Nov 15" the first is "Day 5", which is no month.
-      const mdAny = [...line.matchAll(/\b([A-Za-z]{3,9})\.? (\d{1,2})\b/g)].find(m => mon(m[1]) >= 0);
+      // A real month only: "Novice 5-man" is not November the fifth.
+      const MONTH = /^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)$/i;
+      const mdAny = [...line.matchAll(/\b([A-Za-z]{3,9})\.? (\d{1,2})\b/g)].find(m => MONTH.test(m[1]));
       if(mdAny && setDay(mon(mdAny[1]), mdAny[2])) return;
-      const dmAny = [...line.matchAll(/\b(\d{1,2}) ([A-Za-z]{3,9})\b/g)].find(m => mon(m[2]) >= 0);
+      const dmAny = [...line.matchAll(/\b(\d{1,2}) ([A-Za-z]{3,9})\b/g)].find(m => MONTH.test(m[2]));
       if(dmAny && setDay(mon(dmAny[2]), dmAny[1])) return;
       // "11/15", "Sunday 11/15/2026": a header with the date in numbers.
       const num = line.length <= 30 ? /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(line) : null;
@@ -15350,7 +15376,7 @@ function parseSchedule(text){
     // A league page prints "1:30" for the afternoon: with no AM or PM, one
     // o'clock to six is the afternoon, because no game is played at 1:30 at
     // night. Seven to twelve is as printed, and 13:30 is 13:30.
-    const half = clock[3] || (+clock[1] >= 1 && +clock[1] <= 6 ? "PM" : "");
+    const half = clock[3] || (!/^0/.test(clock[1]) && +clock[1] >= 1 && +clock[1] <= 6 ? "PM" : "");
     const t = clockOf(`${clock[1]}:${clock[2]}${half ? " " + half : ""}`);
     if(!t){ skipped++; return; }
     // A date on the same line, ahead of the clock — "Sat Sep 19 9:00 AM",
@@ -17893,7 +17919,8 @@ window.shareFieldPicture = async who => {
       catch(e){ if(e && e.name === "AbortError") return; }
     }
   }catch(e){}
-  _fieldPic = {title: caption, name, url: cv.toDataURL("image/png")};
+  try{ _fieldPic = {title: caption, name, url: cv.toDataURL("image/png")}; }
+  catch(e){ return flash("This phone could not make the picture. Send to your staff still hands over the read as text."); }
   render(); toMainTop();
 };
 window.closeFieldPic = () => { _fieldPic = null; render(); };

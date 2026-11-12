@@ -98,6 +98,12 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.ok(f,"the refusal is on screen");assert.ok(act,"the sheet is still open");
    assert.ok(f.y+f.height<=act.y||f.y>=act.y+act.height,"the message does not sit over the action bar: "+JSON.stringify({f,act}));
   });
+  await check("New match after a watched game keeps the next team he has already put in the right pit",async p=>{
+   const r=await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;set({tab:"more",more:"schedule"});const g=allGames()[0];watchGame(g.id);endPoint("us");
+    const next=teamsHere().find(t=>foldName(t.name)!==foldName(g.h)&&foldName(t.name)!==foldName(g.a)).name;setPitTeam("right",next);freshMatch();
+    return {next,vs:matchVs(),right:S.right.name,watch:!!curMatch().watch};});
+   assert.equal(r.vs,r.next);assert.equal(r.right,r.next);assert.equal(r.watch,false);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} fresh-start checks passed.`);if(failed)process.exit(1);
 })();
