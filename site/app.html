@@ -174,12 +174,14 @@ h1,h2,h3,p{margin:0}
    where the call was: a 28-letter play left "NXL LONE STAR OPEN · GARLAN…" and
    no call at all on a 320 px phone, and the call is the thing read between
    points. */
-.ctx__ev{min-width:max(44px,3.5em);flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__ev{min-width:max(44px,3.5em);flex:0 100000 auto;overflow:hidden;text-overflow:ellipsis}
 .ctx__call{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 /* Shrink is shared in proportion: at 1 against the event's 999 the call
    still lost a fraction of a pixel while the event had room to give, and its
-   ellipsis read "SNAKE STA…". At .0001 it gives nothing until the event is
-   down to its stub. */
+   ellipsis read "SNAKE STA…" (and, at 375 px, "PICK THE CA…"). The call stays
+   at 1 — below 1, a lone shrinking item absorbs only that fraction of the
+   overflow and the section is pushed off — and the event shrinks at 100000,
+   so the call's share is far under a pixel until the event is at its stub. */
 .ctx__sec{flex:none}
 .ctx b{color:var(--ink);font-weight:700}
 .ctx__sep{color:var(--dim)}
@@ -1051,7 +1053,7 @@ svg.field [data-pick]{cursor:crosshair}
 }
 .flash{position:fixed;left:50%;transform:translateX(-50%);
   bottom:calc(70px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  z-index:60;max-width:calc(100% - 32px);width:max-content;text-align:left;
+  z-index:75;max-width:calc(100% - 32px);width:max-content;text-align:left;
   background:var(--panel-2);border:1px solid var(--accent);border-radius:var(--r-md);
   padding:12px var(--s4);color:var(--ink);font-size:var(--t-sm);line-height:1.4;cursor:pointer;
   box-shadow:0 14px 34px -12px rgba(0,0,0,.85);animation:flashin .16s ease-out}
@@ -4024,7 +4026,7 @@ window.calKindRename = (id, v) => {
 window.calKindDrop = id => {
   const k = calKindsMine().find(x => x.id === id); if(!k) return;
   const used = (S.calEvents || []).filter(e => e && e.kind === id).length;
-  if(used && !confirm(`Take ${k.name} off the + Create list? The ${used} on the calendar stay, as Other.`)) return;
+  if(used && !askFirst(`Take ${k.name} off the + Create list? The ${used} on the calendar stay, as Other.`, ["calendar-kind", id, k])) return;
   S.calEvents = (S.calEvents || []).map(e => e && e.kind === id ? {...e, kind: "other"} : e);
   S.calKinds = calKindsMine().filter(x => x.id !== id); markGone("calKinds", id);
   flash(`${k.name} is off the list.`); save(S); render();
@@ -4081,7 +4083,7 @@ window.calSave = () => {
 window.calEdit = id => { const e = (S.calEvents || []).find(x => x.id === id); if(e) { set({calNew: {...e}}); requestAnimationFrame(() => { const el = document.getElementById("cal-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); }); } };
 window.calDrop = id => {
   const e = (S.calEvents || []).find(x => x.id === id); if(!e) return;
-  if(!confirm(`Take ${e.title} on ${calSpanName(e)} off the calendar${calSpan(e).length > 1 ? " — every day of it" : ""}? It is not kept anywhere else.`)) return;
+  if(!askFirst(`Take ${e.title} on ${calSpanName(e)} off the calendar${calSpan(e).length > 1 ? " — every day of it" : ""}? It is not kept anywhere else.`, ["calendar-event", id, e])) return;
   S.calEvents = S.calEvents.filter(x => x.id !== id); markGone("calEvents", id); S.calOpen = null;
   flash(`${e.title} is off the calendar.`); save(S); render();
 };
@@ -4261,7 +4263,7 @@ function teamHas(name){
 }
 window.delTeam = name => {
   const id = divisionOf().id, has = teamHas(name);
-  if(has.any && !confirm(`${name} has ${has.text}. Take them off the board? Nothing logged is deleted — typing the name again puts them back with all of it.`)) return;
+  if(has.any && !askFirst(`${name} has ${has.text}. Take them off the board? Nothing logged is deleted — typing the name again puts them back with all of it.`)) return;
   S.teams = {...(S.teams || {}), [id]: addedTeams(id).filter(t => t.name !== name)};
   save(S); flash(has.any ? `${name} is off the board. What is logged against them stays (${has.text}) — type the name again to put them back.` : `${name} is off the board.`);
 };
@@ -4754,7 +4756,7 @@ window.dropRecoveryCopy = async key => {
       // The wait or the confirmation may outlive the copy the coach selected.
       // Never remove a newer copy under the same key.
       if(localStorage.getItem(key) !== c.text) return false;
-      if(!confirm("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
+      if(!askFirst("Delete this recovery copy? What it holds is not kept anywhere else.", ["recovery", key, c.text])) return false;
       if(localStorage.getItem(key) !== c.text) return false;
       localStorage.removeItem(key);
     }catch(e){ return false; }
@@ -5361,7 +5363,7 @@ window.deleteField = key => {
   // A blank sheet that followed him onto the field was not played on it.
   const sheets = (S.matches || []).filter(m => m && m.layout === key && !sheetEmpty(m)).length;
   if(sheets){ flash(`${sheets} sheet${sheets === 1 ? " was" : "s were"} played on ${f.name}, so the field stays — they are read on it.`); return; }
-  if(f.bunkers.length && !confirm(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`)) return;
+  if(f.bunkers.length && !askFirst(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`, ["field", key, f])) return;
   S.fields = S.fields.filter(x => x.key !== key);
   markGone("fields", key);
   if(FIELD_MAPS[key]){ delete FIELD_MAPS[key]; keepMaps(); }
@@ -5395,7 +5397,7 @@ window.fieldTap = at => {
     if(tw0 && fieldReady(f) && f.bunkers.length - 1 < FIELD_MIN && inUse)
       return flash(`On the fifty ${sel.id} stands alone and ${tw0} goes, which leaves ${f.name} under ${FIELD_MIN} bunkers. Place another bunker first.`);
     const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
-    if(twUses && !confirm(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
+    if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
     // cleared after it left the bunker ringed with Turn and Take it off live.
     S.fieldEdit = {...ed, sel: null};
@@ -5463,7 +5465,7 @@ window.fieldRemove = () => {
      && (S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m))))
     return flash(`${f.name} needs at least ${FIELD_MIN} bunkers to stay playable${(S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m)) ? " — a sheet was played on it" : ""}. Place another bunker first, then take this one off.`);
   const uses = ids.reduce((n, id) => n + bunkerUses(f.key, id), 0);
-  if(uses && !confirm(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
+  if(uses && !askFirst(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${ids.join(" or ")}. Take ${ids.length === 2 ? "both" : "it"} off anyway? What was logged keeps the name.`)) return;
   S.fieldEdit = {...ed, sel: null};
   noteGone(f.key, ids);
   patchField(f.key, list => list.filter(b => !ids.includes(b.id)), `Took off ${ids.join(" and ")}.`);
@@ -5572,7 +5574,7 @@ window.fieldMapTurn = () => new Promise(done => {
 window.fieldMapShow = () => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, hideMap: !S.fieldEdit.hideMap}; save(S); render(); };
 window.fieldMapDrop = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key); if(!f || !mapOf(f)) return;
-  if(!confirm(`Take the map off ${f.name}? The bunkers stay where they are and go back to grey, because nothing else says their paint.`)) return;
+  if(!askFirst(`Take the map off ${f.name}? The bunkers stay where they are and go back to grey, because nothing else says their paint.`)) return;
   delete FIELD_MAPS[f.key]; keepMaps();
   S.fields = S.fields.map(x => x.key === f.key ? {...x, bunkers: x.bunkers.map(b => { const c = {...b}; delete c.c; return c; })} : x);
   MAP_PIX = null; registerFields();
@@ -5772,7 +5774,10 @@ function recordedDate(t){
 }
 const dayOf = t => { const d = recordedDate(t); return d ? DAY_FMT.format(d) : "Date not recorded"; };
 const matchWhen = t => { const d = recordedDate(t); return d ? MATCH_TIME_FMT.format(d) : "Date not recorded"; };
-const dateStamp = t => { const d = recordedDate(t); return d ? d.toISOString().slice(0, 10) : ""; };
+// The day on this phone's calendar, never the UTC day: an evening sheet in
+// the Americas is already tomorrow in UTC, and the spreadsheet put it there.
+const localDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const dateStamp = t => { const d = recordedDate(t); return d ? localDay(d) : ""; };
 function gameNth(m){
   if(!m) return "";
   // Read once a sheet a draw: every label read the whole list of sheets.
@@ -6236,7 +6241,7 @@ window.useFmt = id => {
 };
 window.dropFmt = id => {
   const p = (S.fmts || []).find(x => x.id === id); if(!p) return;
-  if(!confirm(`Delete the saved format ${p.name}?`)) return;
+  if(!askFirst(`Delete the saved format ${p.name}?`, ["format", id, p])) return;
   S.fmts = S.fmts.filter(x => x.id !== id); save(S); render();
 };
 // The four answers for one pair, each with where it came from. A value
@@ -6366,7 +6371,7 @@ window.deckAction = action => {
     if(!deckActive() || (d && d.phase === "waiting")) return;
     S.clockEnd = 0; deckSet("waiting", ended);
   }else if(action === "over"){
-    if(!deckActive() || !confirm("The other match has finished? Your remaining points will use your normal break clock.")) return;
+    if(!deckActive() || !askFirst("The other match has finished? Your remaining points will use your normal break clock.")) return;
     patchMatch({deckEnded:true});
     S.clockEnd = ended && (!d || d.phase !== "playing") ? Math.max(Date.now(), ended + deckRest() * 1000) : 0;
     _buzzed = false; deckTurn = null; save(S);
@@ -7079,7 +7084,7 @@ window.dropPlay = k => {
   // A play he built is work — five taps a field — and the calls logged under
   // it are his record. Delete asks when there is either, and the calls keep
   // the play's name afterwards rather than printing its key.
-  if(bits && !confirm(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
+  if(bits && !askFirst(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`, ["play", k, p])) return;
   const name = callName(k);   // read before the play goes, or the flash prints its key
   markGone("plays", k);
   // The name stays behind where anything still names the key — a call, their
@@ -7151,7 +7156,7 @@ window.setBreakCall = key => {
 };
 window.clearBreakCalls = () => {
   const n = Object.values(S.breakCalls || {}).filter(v => String(v || "").trim()).length;
-  if(n && !confirm(`Put the app's own names back on ${n === 1 ? "the one call" : `all ${n} calls`} you named? Every call logged keeps its record; only the words change.`)) return;
+  if(n && !askFirst(`Put the app's own names back on ${n === 1 ? "the one call" : `all ${n} calls`} you named? Every call logged keeps its record; only the words change.`)) return;
   S.breakCalls = {}; save(S); flash(n ? "The app's names are back on every call." : "");
 };
 
@@ -7256,6 +7261,11 @@ function set(patch){
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
   if(S.handText && !("handText" in patch) && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) S.handText = null;
+  // A message is about the screen it was said on. One raised by the code on
+  // its way to a new screen stays; one the coach reads and then walks away
+  // from does not sit over the next screen's buttons.
+  if("flash" in patch) _flashAt = Date.now();
+  else if(S.flash && Date.now() - _flashAt > 1000 && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))){ S.flash = ""; clearTimeout(_flashT); }
   if(_fieldPic && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) _fieldPic = null;
   // Any call set through here is a call he picked: a picker, Call it on the
   // read line, Open on Team, a rank row on the Counter. The app's own moves
@@ -7480,7 +7490,7 @@ window.delPlayer = i => {
   const list = [...(S.roster || [])];
   const gone = (list[i] || {}).name;
   const has = gone ? manHas(gone) : {any: false, text: ""};
-  if(has.any && !confirm(`${gone} has ${has.text} on your sheets. Take him off the squad? What he did stays under his name — nothing logged is deleted.`)) return;
+  if(has.any && !askFirst(`${gone} has ${has.text} on your sheets. Take him off the squad? What he did stays under his name — nothing logged is deleted.`, ["player", i, list[i]])) return;
   list.splice(i, 1);
   S.roster = list;
   // He also has to come off any point he was written into, or the five reads
@@ -8059,7 +8069,7 @@ window.saveCopy = async scope => {
   if(copyExporting) return;
   const capturedAt = Date.now();
   const text = copyPayload(scope);
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = localDay(new Date());
   const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
   if(typeof window.gridlockExportFile === "function"){
     copyExporting = true;
@@ -8358,7 +8368,7 @@ window.loadCopy = (mode, suppliedText, checkedRestore) => {
   // sentence above a file box — one tap, no question. When the phone holds a
   // season, it asks, and names what it would throw away.
   if(mode === "replace" && seasonHere() && checkedRestore !== ACCOUNT_RESTORE){
-    if(!confirm(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`)){
+    if(!askFirst(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`, ["replace", copyDraft])){
       S.copyStatus = "Nothing replaced. Save a copy of this phone first, then come back."; save(S); render(); return;
     }
   }
@@ -9622,7 +9632,7 @@ window.resetPath = id => {
 window.resetAllPaths = () => {
   const all = {...(S.pathEdits || {})};
   const edited = currentPaths().filter(p => all[pathKey(p.id)]).length;
-  if(edited && !confirm(`Put ${edited === 1 ? "the one path you drew" : `all ${edited} paths you drew`} back on the routed line?`)) return;
+  if(edited && !askFirst(`Put ${edited === 1 ? "the one path you drew" : `all ${edited} paths you drew`} back on the routed line?`)) return;
   currentPaths().forEach(p => delete all[pathKey(p.id)]);
   S.pathEdits = all; pathsChanged(); save(S); render();
 };
@@ -9812,7 +9822,7 @@ window.addWalk = () => {
 };
 window.delWalk = i => {
   const list = [...walkNotes()], was = list[i];
-  if(was && !confirm(`Take this note off ${was.where || "the field"}? It is not kept anywhere else.`)) return;
+  if(was && !askFirst(`Take this note off ${was.where || "the field"}? It is not kept anywhere else.`, ["walk", S.layoutKey, i, was])) return;
   list.splice(i, 1);
   S.walk = {...(S.walk || {}), [S.layoutKey]: list}; save(S); render();
 };
@@ -9941,7 +9951,7 @@ window.editCode = (i, field, value) => {
 };
 window.delCode = i => {
   const list = [...(S.codes || [])], was = list[i];
-  if(was && !confirm(`Take "${was.word || was.code || "this word"}" out of the codes?`)) return;
+  if(was && !askFirst(`Take "${was.word || was.code || "this word"}" out of the codes?`, ["code", i, was])) return;
   list.splice(i, 1);
   S.codes = list; save(S); render();
 };
@@ -10218,7 +10228,7 @@ function squadCode(){
   return S.teamCode;
 }
 window.rollSquadCode = () => {
-  if(!confirm("A new code makes copies already out there read as another squad. Change it?")) return;
+  if(!askFirst("A new code makes copies already out there read as another squad. Change it?")) return;
   S.teamCode = newSquadCode(); save(S); render();
 };
 
@@ -10416,7 +10426,14 @@ function statDayKey(at){
 function statDays(){
   const days = new Map();
   statMatches().forEach(m => { const d = recordedDate(m.at); if(d) days.set(statDayKey(m.at), STAT_DAY_FMT.format(d)); });
-  return [...days].sort((a,b) => b[0].localeCompare(a[0])).concat([["undated","Date not recorded"]]);
+  // "Date not recorded" only when something is: a sheet with no readable
+  // date, or a row whose sheet is gone. Offered always, it was a day that
+  // opened on an empty table.
+  const here = r => r && typeof r === "object" && (!r.layout || r.layout === S.layoutKey);
+  const undated = statMatches().some(m => !recordedDate(m.at)) || S.statDay === "undated"
+    || [...(S.breakouts || []), ...(S.tally || [])].some(r => here(r) && r.m && !matchById(r.m));
+  const list = [...days].sort((a,b) => b[0].localeCompare(a[0]));
+  return undated ? list.concat([["undated","Date not recorded"]]) : list;
 }
 function statDayLabel(){ return !S.statDay ? "All days" : (statDays().find(([key]) => key === S.statDay) || [0,"Day no longer available"])[1]; }
 function statDayMatches(){ return statMatches().filter(m => !S.statDay || statDayKey(m.at) === S.statDay); }
@@ -10469,7 +10486,10 @@ const statThin = v => !v || Math.max(v.visits, v.outs) < STAT_THIN;
 // Has any break on this field been charted from the far end? Only then is
 // "turned to your end" different from "as played", and the switch shows.
 function statEndsMoved(){
-  return (S.breakouts || []).some(r => r && r.m && (!r.layout || r.layout === S.layoutKey) && !watchedMatch(r.m) && ourEnd(r.pt, matchById(r.m)) === "right");
+  // Shown whenever any row was broken from another end than the one shown
+  // now: from the right end every left-end row is drawn on its twin too.
+  const now = ourEnd();
+  return (S.breakouts || []).some(r => r && r.m && (!r.layout || r.layout === S.layoutKey) && !watchedMatch(r.m) && ourEnd(r.pt, matchById(r.m)) !== now);
 }
 function statTeams(){
   const seen = new Map();
@@ -12768,7 +12788,7 @@ window.loadEventFile = input => {
   fr.readAsText(f);
 };
 window.dropEventData = () => {
-  if(!confirm("Take the event data off this phone? Rosters and histories go; nothing you logged does, and you can load the file again.")) return;
+  if(!askFirst("Take the event data off this phone? Rosters and histories go; nothing you logged does, and you can load the file again.")) return;
   set({evdSaid: "Taking the event data off this phone…"});
   evdQueue(() => new Promise(ok => {
     EVD = null; EVD_STATE = "none";
@@ -13028,7 +13048,7 @@ window.delScoutPlayer = (side, i) => {
   S.pasteNote = "";   // "Added 5." beside four men is a count that is no longer true
   const p = (pitOf(side).players || [])[i]; if(!p) return;
   const has = theirManHas(p), who = theirTag(p) || "This man";
-  if(has.any && !confirm(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`)) return;
+  if(has.any && !askFirst(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`, ["scout-player", side, i, p])) return;
   editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
   flash(has.any ? `${who} is off the card. What is logged stays (${has.text}).` : `${who} is off the card.`);
 };
@@ -13603,7 +13623,7 @@ window.doAuth = async () => {
     // Creating over an account that is already here is how a coach who meant to
     // sign in loses the one he had — nothing else on the phone can get it back.
     if(acc.email && !sameEmail(acc.email, email) &&
-       !confirm(`This phone already has ${acc.email}. A new account replaces that sign-in and `
+       !askFirst(`This phone already has ${acc.email}. A new account replaces that sign-in and `
               + `there is no way back to it. Your season is kept separately and is not touched. Continue?`)) return;
     const salt = newSalt(), hash = await hashPass(pass, salt);
     if(attempt !== _authAttempt) return;
@@ -13689,7 +13709,10 @@ function deviceSeasonCurrent(t){ return sameSync(t) && S.entered && S.role === "
 function deviceSeasonShown(){
   if(_deviceChoice && !deviceSeasonCurrent(_deviceChoice.t)) _deviceChoice = null;
   if(_deviceChecking && !deviceSeasonCurrent(_deviceChecking)) _deviceChecking = null;
-  return !!(_deviceChoice || _deviceChecking);
+  // Only a choice the coach has to make takes the screen. While the server is
+  // merely being asked, a coach with a match on his sheet keeps the app: the
+  // account must never stand between him and the point he is calling.
+  return !!(_deviceChoice || (_deviceChecking && sheetEmpty(curMatch())));
 }
 function deviceSeasonPage(){
   const pending = _deviceChoice, r = pending?.r, hasCopy = r && !r.missing && !r.removed;
@@ -13704,12 +13727,21 @@ function deviceSeasonPage(){
         <p class="note">This sends the season you have here and replaces the one saved with your account. Only choose it if this is the copy you want on your other devices.</p>
         <button class="btn btn--quiet btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button></details>` :
       `<button class="btn btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button>`}` : ""}
-    <button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`);
+    ${_deviceChecking && !pending ? `<button class="btn btn--quiet btn--block" onclick="skipDeviceCheck()">Not now — check next time I sign in</button>`
+      : `<button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`}`);
 }
 window.cancelDeviceSeason = () => {
   ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
   clearSyncRetry(); syncYes(false); markSyncAsked();
   syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sync is off. Your season stays on this device."});
+};
+// Leaving the check before it answers pauses sharing on this device for now
+// and keeps the coach's yes: the next sign-in asks the account again. Turning
+// sync off for good is a choice he makes, never the price of getting to Tally.
+window.skipDeviceCheck = () => {
+  ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
+  clearSyncRetry();
+  syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sharing is paused on this device. Your season stays here; the next sign-in checks your account again."});
 };
 async function applyDeviceSeason(choice){
   const {t,r,snapshot} = choice;
@@ -13732,6 +13764,11 @@ async function applyDeviceSeason(choice){
   }
   if(!deviceSeasonCurrent(t)) return false;
   _deviceChoice = null; _deviceChecking = null; _lastAutoSync = Date.now(); syncYes(true);
+  // The sign-in chose Home for the empty sheet this device had. The season it
+  // took may have a match under way, and an active match resumes: on Tally,
+  // or on Scout for a game he was watching. A finished one stays on Home.
+  const on = curMatch();
+  if(S.tab === "home" && on && !sheetEmpty(on) && !matchOver()) S.tab = on.watch ? "scout" : "tally";
   syncStatus({syncOn:true,syncAsk:false,syncAt:capturedAt,syncSaid:"Your saved season is ready on this device. Sync is on."});
   // If a coach edited while the checkpoint was being saved, that work still sends.
   if(deviceSeasonText(adopted) !== deviceSeasonText()){ _syncDirty=true; scheduleSync(0); }
@@ -13801,7 +13838,7 @@ window.chooseDeviceSeason = async which => {
     finally{ if(_deviceChecking===c.t) _deviceChecking=null; render(); }
     return;
   }
-  if(!confirm(`Send this device's full season to ${S.email}?${c.r.missing || c.r.removed ? "" : " This replaces the season saved with that account."} Only continue if this is the season you want on your other devices.`)) return;
+  if(!askFirst(`Send this device's full season to ${S.email}?${c.r.missing || c.r.removed ? "" : " This replaces the season saved with that account."} Only continue if this is the season you want on your other devices.`)) return;
   if(!deviceSeasonCurrent(c.t) || c.snapshot !== deviceSeasonText()) return checkAccountSeason(true);
   // Keep the other side too, before an explicit choice replaces the server copy.
   if(!c.r.missing && !c.r.removed){
@@ -13957,7 +13994,7 @@ function queueSeasonPush(t){
 // Sign out from a tap asks first: on a sideline a stray thumb on Sign out was
 // the account gone mid-match. The season stays on the phone either way.
 window.askSignOut = () => {
-  if(!confirm(`Sign out${S.email ? " of " + S.email : ""}? Your season stays on this phone.${S.syncOn ? " League sync pauses until you sign in again." : ""}`)) return;
+  if(!askFirst(`Sign out${S.email ? " of " + S.email : ""}? Your season stays on this phone.${S.syncOn ? " League sync pauses until you sign in again." : ""}`)) return;
   window.staffSignOut();
 };
 window.openAccount = () => set({tab: "more", more: "nexus", evPick: false});
@@ -14034,13 +14071,13 @@ window.reviewCloudSeason = async () => {
         // Merely accepting a revision must not bypass the read-before-write gate.
         _syncReviewing=false; return checkAccountSeason(true);
       }
-      if(!confirm((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
+      if(!askFirst((r.removed?"This account's cloud copy was removed.":"This account has no cloud copy.")+" Start sharing this phone's current season?")) return back("Nothing changed.");
       if(!cloud.acceptSeason(r.user.id,r.revision)) return syncStatus({syncSaid:"This phone could not save the cloud revision. Nothing sent."});
       S.syncOn=true;return syncNow();
     }
     const raw=typeof r.payload==="string"?r.payload:JSON.stringify(r.payload), checked=readCopy(raw);
     if(checked.error) return back("The cloud copy is not a readable season. Your phone is unchanged.");
-    if(!confirm("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
+    if(!askFirst("Restore the cloud season onto this phone? Your current season will be kept as a recovery copy, and you will confirm replacement next. Sharing stays paused.")) return back("Nothing restored. Your phone is unchanged.");
     if(!keepPreRestore()) return back("There is not enough room to preserve this phone's season. Save a copy before restoring.");
     if(window.loadCopy("replace",raw)!==true) return back("Nothing restored. Your phone is unchanged.");
     syncYes(false); // A restored season stays paused after the next sign-in too.
@@ -14109,7 +14146,7 @@ window.deleteSynced = async () => {
     ++_syncEpoch;
     return set({syncOn: false, syncSaid: canSync() ? "League sync is off on this phone. This build cannot remove the server copy — contact support for help." : "League sync is off on this phone. This build cannot remove what was already sent — ask your league to take it down."});
   }
-  if(!confirm(canSync() ? "Remove your season copy from our account server? What is on this phone stays." : "Remove everything this phone sent to your league? What is on this phone stays.")) return;
+  if(!askFirst(canSync() ? "Remove your season copy from our account server? What is on this phone stays." : "Remove everything this phone sent to your league? What is on this phone stays.")) return;
   clearSyncRetry();
   ++_syncEpoch;
   const t = syncTicket();
@@ -14140,7 +14177,7 @@ window.deleteCloudAccount = async () => {
   const phrase=document.getElementById("deleteAccountPhrase")?.value||"";
   const code=document.getElementById("deleteAccountCode")?.value||"";
   if(!password||phrase!=="DELETE MY ACCOUNT")return set({syncSaid:"Enter your password and type DELETE MY ACCOUNT. Nothing was deleted."});
-  if(!confirm("Permanently delete this Gridlock account and its cloud season? This cannot be undone. The season saved on this phone stays here; save a copy if you need it."))return;
+  if(!askFirst("Permanently delete this Gridlock account and its cloud season? This cannot be undone. The season saved on this phone stays here; save a copy if you need it."))return;
   const attempt=++_authAttempt;clearSyncRetry();++_syncEpoch;S.syncOn=false;_accountDeleting=true;
   syncStatus({syncSaid:"Confirming account deletion…"});
   let result;try{result=await cloud.deleteAccount(password,phrase,code);}catch(e){}
@@ -14739,8 +14776,7 @@ window.selectBunker = id => {
   // The sheet opens under the field, and on a phone that is below the fold: the
   // coach tapped a bunker and saw nothing happen. Bring the field to the top so
   // the field and the questions under it share the screen while he traces.
-  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
-  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  fieldThenSheet();
 };
 /* The run he made, worked out from what the coach already told the sheet.
  *
@@ -14830,6 +14866,21 @@ function routeOf(row){
   return (row.route && row.route.length) ? row.route : autoRoute(row);
 }
 
+/* The sheet opens under the field. Bring the field to the top, then make sure
+ * the sheet's first questions are not under its own Log bar: on a small phone
+ * the field fills the screen and the bar covered all of the sheet that showed,
+ * so the only thing to tap was Log on a man with no name. When both cannot
+ * fit, the questions win; the field is a scroll away. */
+function fieldThenSheet(){
+  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
+  if(!main || !map) return;
+  main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  const sheet = document.querySelector(".tally-chart .tsheet"), bar = sheet && sheet.querySelector(".tsheet__act");
+  if(!sheet || !bar) return;
+  const barTop = Math.min(bar.getBoundingClientRect().top, main.getBoundingClientRect().bottom);
+  const need = sheet.getBoundingClientRect().top + 150 - barTop;
+  if(need > 0) main.scrollTop += need;
+}
 window.tallyTap = at => {
   // Nobody to log against is nobody to log. The sheet used to open anyway and
   // Log stored the break with vs "" — a point charted into a void while the
@@ -14861,7 +14912,7 @@ window.tallyTap = at => {
   const r = pointRows().find(x => x.bunker === b.id && x.todo);
   // Opening him drops what the man in hand was told, so ask first.
   if(r && draftChanged() && S.tallyEdit !== r.id
-     && !confirm(`${S.tallyEdit ? "Your changes to the man you were on are not saved" : "The man you were on is not logged"}. Leave him and tell the man on ${bunkerLabel(b.id)}?`)) return;
+     && !askFirst(`${S.tallyEdit ? "Your changes to the man you were on are not saved" : "The man you were on is not logged"}. Leave him and tell the man on ${bunkerLabel(b.id)}?`)) return;
   if(r) return editBreakout(r.id);
   // One more man is a new row. With a placed man's sheet open, the draft and
   // tallyEdit were his: Save moved him onto this bunker with his answers and
@@ -14954,8 +15005,7 @@ window.editBreakout = id => {
     movedTo:r.movedTo || "", movedDelayed:!!r.movedDelayed, routeType:r.routeType || "",
     route:(r.route || []).map(p => ({...p}))};
   save(S); render();
-  const main = document.querySelector(".main"), map = document.getElementById("tally-map");
-  if(main && map) main.scrollTop += map.getBoundingClientRect().top - main.getBoundingClientRect().top - 6;
+  fieldThenSheet();
 };
 // Step two opens on the first man still to tell, so "what happened" starts
 // the moment he says the five are down.
@@ -15217,6 +15267,10 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
 // the other way round is its twin here. Both sides turn together, so one rule
 // serves both: their five tapped in from either end are the same five.
 function frameId(id, mid, pt){
+  // A season row has no sheet and so no end: it is counted where it was
+  // tapped. Asking ourEnd() without a sheet answered with the sheet in play
+  // now, so one row moved bunker every time the coach switched ends.
+  if(!mid || !matchById(mid)) return id;
   // Asked once a charted row by every count across points; the end a point
   // was broken from does not change within one draw.
   const k = "end|" + mid + "|" + pt;
@@ -16296,10 +16350,13 @@ window.tapResult = won => {
   const mine = c => c.m === mid && c.pt === pt && !c.auto;
   const call = !(curMatch()||{}).watch && callSet() && !(S.calls || []).some(mine)
     ? {script: S.script, layout: S.layoutKey, pt, m: mid, vs: matchVs(), auto: true} : null;
+  // The call goes in before the result so the one save endPoint() makes
+  // carries both: a second whole-season write per scored point was the
+  // slowest tap on a full season. A refused result takes it back out.
+  const callsWas = S.calls;
+  if(call) S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))];
   window.endPoint(won);
-  if(call && (S.results || []).some(x => x.m === mid && x.pt === pt) && !(S.calls || []).some(mine)){
-    S.calls = [{...call, at: Date.now()}, ...(S.calls || []).filter(c => !(c.m === mid && c.pt === pt))]; save(S);
-  }
+  if(call && !(S.results || []).some(x => x.m === mid && x.pt === pt)){ S.calls = callsWas; save(S); }
   // Say what was scored, so a tap on the wrong one is caught while it is
   // still one tap back.
   if((S.results || []).length >= before && _lastEnd && _lastEnd.pt === pt){
@@ -16362,15 +16419,23 @@ window.backPoint = () => {
     // leaves them on the point they were charted on — moved, they stood on a
     // point nobody charted them on, broken from the other end.
     const toScored = (S.results || []).some(r => r && r.m === mid && r.pt === to);
-    if(left.length){
+    // A voice recap and the sightings it wrote belong to the same point as
+    // the men: left behind, they kept a point nobody played on the sheet.
+    const onFrom = a => (a || []).filter(r => r && r.m === mid && r.pt === from).length;
+    const notes = onFrom(S.voiceEvents) + onFrom(S.arrivalSightings) + onFrom(S.arrivalShots);
+    if(left.length || notes){
       if(!toScored && !(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
-        S.breakouts = S.breakouts.map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
+        const back = a => (a || []).map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
+        S.voiceEvents = back(S.voiceEvents); S.arrivalSightings = back(S.arrivalSightings); S.arrivalShots = back(S.arrivalShots);
+        S.breakouts = (S.breakouts || []).map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
         S.tally = (S.tally || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
         S.playerChecks = (S.playerChecks || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
         // Their men placed on Tally are their five on Scout: it moves with them.
         try{ syncTallyFive(mid, from); syncTallyFive(mid, to); }catch(e){}
-        carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`;
-      } else if(toScored) carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} stay on point ${from}. Score point ${to} again and you are back on them.`;
+        carried = left.length ? `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`
+          : `What you noted on point ${from} came back to point ${to}.`;
+      } else if(!left.length) carried = "";
+      else if(toScored) carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} stay on point ${from}. Score point ${to} again and you are back on them.`;
       else carried = `Point ${from} still has ${left.length} ${left.length === 1 ? "man" : "men"} charted — Next point to tell them, or take them off there.`;
     }
   }
@@ -16556,7 +16621,7 @@ const untoldOn = mid => (S.breakouts || []).filter(r => r && r.m === mid && r.to
 function gameGuard(){
   const cur = curMatch();
   const n = cur ? sheetSize(cur) : 0, owed = cur ? untoldOn(cur.id) : 0;
-  return !n || confirm(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
+  return !n || askFirst(`Close the sheet ${matchLabel(cur)}? It keeps its ${n} `
     + `${n === 1 ? "entry" : "entries"} — the point goes back to 1 for the new one.`
     + (owed ? ` ${owed} ${owed === 1 ? "man" : "men"} placed on it ${owed === 1 ? "is" : "are"} still to tell: open it again from Matches to finish.` : ""));
 }
@@ -16608,7 +16673,7 @@ window.playGame = (id, which) => {
    off rather than deleted out of the list. His own are simply removed. */
 window.dropGame = id => {
   const g = gameById(id); if(!g) return;
-  if(!confirm(`Take ${g.h} v ${g.a} off the list?`)) return;
+  if(!askFirst(`Take ${g.h} v ${g.a} off the list?`, ["game", id, g])) return;
   if(g.seed) S.gamesOff = [...new Set([...(S.gamesOff || []), id])];
   else S.games = (S.games || []).filter(x => x.id !== id);
   set({gameOpen: S.gameOpen === id ? null : S.gameOpen});
@@ -16877,7 +16942,7 @@ window.delSheet = id => {
   const m = matchById(id); if(!m) return;
   const pts = (S.results || []).filter(r => r && r.m === id).length, rest = sheetSize(m) - pts;
   const what = [pts ? `${pts} ${pts === 1 ? "point" : "points"} scored` : "", rest ? `${rest} ${rest === 1 ? "thing" : "things"} logged` : ""].filter(Boolean).join(" and ");
-  if(what && !confirm(`Delete ${matchLabel(m)} — ${what}? It goes from the record, self-scout and every read, and it cannot be undone. Save a copy first if any of it matters.`)) return;
+  if(what && !askFirst(`Delete ${matchLabel(m)} — ${what}? It goes from the record, self-scout and every read, and it cannot be undone. Save a copy first if any of it matters.`, ["sheet", id, m])) return;
   const label = matchLabel(m);
   if(id === S.matchId) openSheet({vs: ""});
   dropSheetRows(id);
@@ -17718,7 +17783,7 @@ window.resetArrivalSightings = () => {
   const rows = arrivalSightings(), shots = arrivalShots();
   if(!rows.length && !shots.length){ S.arrival = {...(S.arrival || {}),notice:"Nothing recorded on this point to clear."}; render(); return; }
   const what = [rows.length ? `${rows.length} sighting${rows.length===1?"":"s"}` : "", shots.length ? `${shots.length} shot${shots.length===1?"":"s"}` : ""].filter(Boolean).join(" and ");
-  if(!confirm(`Clear ${what} for this opponent, match and point?`)) return;
+  if(!askFirst(`Clear ${what} for this opponent, match and point?`, ["sightings", rows, shots])) return;
   const ids = new Set(rows.map(o=>o.id)), hids = new Set(shots.map(o=>o.id));
   S.arrivalSightings = (S.arrivalSightings || []).filter(o=>!ids.has(o.id));
   S.arrivalShots = (S.arrivalShots || []).filter(o=>!hids.has(o.id));
@@ -18409,7 +18474,7 @@ function matchReview(mid){
   const key = (id, pt) => here ? frameId(id, m.id, pt) : id;
   const label = id => { if(!id) return "";
     // The word for it, else its code: "MD" is three bunkers on some fields.
-    const shown = here && m.id === S.matchId ? shownBunker(id) : id;
+    const shown = here ? shownBunker(id) : id;
     const b = lay.bunkers.find(x => x.id === shown); return b ? (here ? cardName(b) : (b.id || b.n)) : shown; };
   const tally = (list, f) => Object.entries(list.reduce((a, x) => { const k = f(x); if(k) a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]);
   const sideName = s => m.watch ? (s === "us" ? m.home || "Home" : m.away || "Away") : s === "us" ? "You" : m.vs || "Them";
@@ -19034,13 +19099,13 @@ window.setClass = (code, key, val) => {
 // sign-ins with it, and asks first when anyone has signed.
 window.delClass = code => {
   const n = (S.responses || []).filter(r => r && r.code === code).length;
-  if(n && !confirm(`Delete this class and its ${n} sign-in${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  if(n && !askFirst(`Delete this class and its ${n} sign-in${n === 1 ? "" : "s"}? This cannot be undone.`, ["class", code, (S.responses || []).filter(r => r && r.code === code)])) return;
   S.classes = (S.classes || []).filter(c => c.code !== code);
   S.responses = (S.responses || []).filter(r => !(r && r.code === code));
   save(S); render();
 };
 window.dropResponse = (code, name) => {
-  if(!confirm(`Take ${name} off this sheet? What they wrote on signing in goes with them.`)) return;
+  if(!askFirst(`Take ${name} off this sheet? What they wrote on signing in goes with them.`, ["response", code, name])) return;
   S.responses = (S.responses || []).filter(r => !(r && r.code === code && r.name === name));
   save(S); render();
 };
@@ -19182,7 +19247,7 @@ window.renameGroup = (id, v) => {
 window.delGroup = id => {
   const g = (S.groups || []).find(x => x.id === id); if(!g) return;
   const n = (g.members || []).length;
-  if(n && !confirm(`Delete ${g.name} and its ${n} ${n === 1 ? "member" : "members"}? The blasts already logged keep their text.`)) return;
+  if(n && !askFirst(`Delete ${g.name} and its ${n} ${n === 1 ? "member" : "members"}? The blasts already logged keep their text.`, ["group", id, g])) return;
   S.groups=S.groups.filter(g=>g.id!==id);
   if(S.blastTo) S.blastTo=S.blastTo.filter(x=>x!==id);
   save(S); render();
@@ -19203,7 +19268,7 @@ window.addMem = id => {
 };
 window.delMem = (id,i) => {
   const g = (S.groups || []).find(x => x.id === id), was = g && g.members[i];
-  if(was && !confirm(`Take ${was.name || "this member"} off ${g.name}? Their number is not kept anywhere else.`)) return;
+  if(was && !askFirst(`Take ${was.name || "this member"} off ${g.name}? Their number is not kept anywhere else.`, ["member", id, i, was])) return;
   S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g); save(S); render();
 };
 // Text the app hands over — a card, a class link, a blast. The phone app has
@@ -20441,7 +20506,7 @@ const REPORT_CSV = {
 window.exportReport = async key => {
   const make = REPORT_CSV[key]; if(!make) return;
   const [stem, text] = make();
-  const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${new Date().toISOString().slice(0, 10)}.csv`;
+  const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${localDay(new Date())}.csv`;
   const lines = csvRows(text);
   if(lines < 1){ flash("Nothing in that list yet, so there is no spreadsheet to make."); return; }
   if(typeof window.gridlockExportTable === "function"){
@@ -21352,7 +21417,7 @@ function recoveryCopiesSec(){
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];
-  if(was !== undefined && !confirm(`Take this note off the squad list? It is not kept anywhere else.`)) return;
+  if(was !== undefined && !askFirst(`Take this note off the squad list? It is not kept anywhere else.`, ["message", i, was])) return;
   S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render();
 };
 window.sendMsg = () => {
@@ -21451,7 +21516,7 @@ function quickLog(){
   // its buttons down the way it does on a finished race and names the field.
   const off = sheetField(), over = matchOver() || !!off, ot = inOvertime(), mp = matchPoint();
   const tail = off ? "other field" : over ? "final" : ot ? "OT" : raceTo() ? `to ${raceTo()}` : mercy() ? `±${mercy()}` : "";
-  return `<div class="qlog">
+  return `<div class="qlog" role="dialog" aria-modal="true" aria-label="Quick log">
     <div class="qlog__top">
       ${clockChip()}
       <span class="score-chip"><b>${sc.us}</b><i>–</i><b>${sc.them}</b>${tail ? `<small style="font-size:.7em;opacity:.75;margin-left:5px">${tail}</small>` : ""}</span>
@@ -21483,6 +21548,9 @@ function quickLog(){
       <button class="btn btn--quiet grow" onclick="closeQuick()">Back to the sheet</button>
     </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
             : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${esc(matchPointWord(mp))}.</b> ${raceTo() ? `First to ${raceTo()}.` : mercy() ? `A ${mercy()}-point lead ends it.` : ""}</p>` : ""}
+    ${/* On a split deck the turn is part of scoring: without it here a result
+          tap was refused under this layer and nothing seemed to happen. */""}
+    ${watch ? "" : deckPanel()}
     <div class="qlog__score">
       <button class="btn btn--lg" onclick="tapResult('us')">${esc(us)} won it</button>
       <button class="btn btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${esc(them)} won it</button>
@@ -21513,6 +21581,23 @@ window.openQuick = () => {
   }catch(e){}
   set({quick:true, quickPick:false});
 };
+/* The Quick log covers the whole screen, so nothing under it may be reached:
+ * a Tab from it walked into the hidden point sheet, and Enter on Time's up
+ * there ended a race to four at 2–1. Everything beside it is inert while it
+ * is open (a message stays readable), Escape closes it, and focus starts in
+ * it and goes back to the button that opened it. */
+function guardQuick(){
+  document.querySelectorAll("[data-qlog-inert]").forEach(el => { el.inert = false; el.removeAttribute("data-qlog-inert"); });
+  const q = document.querySelector("#root .qlog"), root = document.getElementById("root");
+  if(!q || !root) return;
+  for(let n = q; n && n !== root; n = n.parentElement)
+    for(const sib of n.parentElement ? n.parentElement.children : [])
+      if(sib !== n && !sib.inert && !sib.classList.contains("flash")){ sib.inert = true; sib.setAttribute("data-qlog-inert", ""); }
+  if(!q.contains(document.activeElement)) q.querySelector("button")?.focus({preventScroll:true});
+}
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && S.quick && !document.querySelector("dialog[open]")){ e.preventDefault(); window.closeQuick(); }
+}, true);
 window.closeQuick = () => {
   try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
   try{
@@ -21520,6 +21605,7 @@ window.closeQuick = () => {
     if(r && r.catch) r.catch(()=>{});
   }catch(e){}
   set({quick:false, quickPick:false});
+  [...document.querySelectorAll('#root [onclick^="openQuick"]')].find(b => b.offsetParent)?.focus({preventScroll:true});
 };
 
 /* ============================================================
@@ -21592,7 +21678,7 @@ window.wbUndo  = () => { if(!wbMarks().length) return flash("Nothing drawn on th
 // back, so it asks first the way every other delete in here does.
 window.wbWipe  = () => {
   const n = wbMarks().length; if(!n) return flash("Nothing drawn on this board yet.");
-  if(!confirm(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`)) return;
+  if(!askFirst(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`, ["board", wbMarks()])) return;
   set({wb: withWbMarks([])});
 };
 // One delegated listener, so it survives every repaint. Only live on the board.
@@ -21642,6 +21728,25 @@ window.wbWipe  = () => {
 // A quick non-blocking message, where the app used to throw a system alert.
 // Auto-clears; tap to dismiss. Validation belongs on screen, not in a modal.
 let _flashT = 0;
+var _flashAt = 0;
+/* Every "are you sure" goes through here. On a phone and in a browser it is
+ * the system's own question. The published preview runs inside a page that
+ * may refuse those questions without a word, which made New match, Delete and
+ * Replace look dead there; in the preview the question is a second tap
+ * instead: the first tap says what will happen, the same tap again within
+ * eight seconds goes ahead. */
+var _askArm = "", _askUntil = 0;
+function askFirst(msg, target){
+  if(!window.gridlockPreview) return confirm(msg);
+  const text = String(msg || "");
+  // Two notes can ask the same question. The second tap must still name the
+  // same item and contents, on the same account, sheet, point and field.
+  const arm = JSON.stringify([text, target, S.email, S.matchId, S.point, S.layoutKey]);
+  if(_askArm === arm && Date.now() < _askUntil){ _askArm = ""; _askUntil = 0; return true; }
+  _askArm = arm; _askUntil = Date.now() + 8000;
+  window.flash(text + " Tap the same button again to go ahead.");
+  return false;
+}
 // A refusal changes nothing in the season, and a box he typed in but never
 // left (a kid's sign-in, a member's phone, a code's meaning) is not in S: the
 // redraw that shows the message blanked every one of them. When the season is
@@ -21670,7 +21775,7 @@ function retype(boxes){
 window.flash = msg => {
   const same = _lastSeason !== null && seasonText(S) === _lastSeason;
   const boxes = same ? typedBoxes() : [];
-  S.flash = String(msg || "");
+  S.flash = String(msg || ""); _flashAt = Date.now();
   save(S); render();
   if(boxes.length) retype(boxes);
   clearTimeout(_flashT);
@@ -21685,7 +21790,7 @@ window.flash = msg => {
    nothing logs here" over a sheet nobody had touched. A blank sheet goes with
    him; one with anything on it stays where it was played. */
 window.clearRecovery = () => {
-  if(!confirm("Clear the unreadable saved text from this phone? Copy it first if you still need it.")) return;
+  if(!askFirst("Clear the unreadable saved text from this phone? Copy it first if you still need it.", ["unreadable", _recoveryText])) return;
   _recoveryText = "";
   try{ localStorage.removeItem(RECOVERY_KEY); }catch(e){}
   set({flash: "Cleared. The warning will not come back."});
@@ -21871,6 +21976,7 @@ function render(){
   if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
   watchTallyField();
   placeFlash();
+  guardQuick();
   _screenObserver.takeRecords(); _screenDirty = false;
   renderPlayerDetails();
 }

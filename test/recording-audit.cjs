@@ -129,6 +129,28 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(r.n,1,"one observation for the man");assert.equal(r.row.shooting,true,"what was seen first is kept");assert.equal(r.row.diving,true);
    assert.match(r.status,/Shooting · Diving/);
   });
+  await check("a merge folds the other phone's observation into this phone's own on the same man, hiding neither",async page=>{
+   const A=await page(),B=await page();
+   const first=await A.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();logCall();return sheetPayload(S.matchId);});
+   await B.evaluate(t=>{loadCopy("merge",t);openMatchNow(JSON.parse(t).sheet);set({tab:"tally"});},first);
+   const chart=p=>p.evaluate(()=>{set({tab:"tally"});const b=curLayout().bunkers.filter(b=>b.x<60)[4];S.tallyStep="record";S.tallyMode="record";tallyTap([b.x,b.y]);
+    setDraft({player:S.roster[0].name,alive:true,side:"us",sideSet:true});logBreakout();return S.breakouts.find(r=>r.m===S.matchId).id;});
+   const aid=await chart(A),bid=await chart(B);
+   await A.evaluate(id=>{showPlayerDetails(id);playerQuick("diving",true);closePlayerDetails();},aid);
+   await B.evaluate(id=>{showPlayerDetails(id);playerQuick("shooting",true);closePlayerDetails();},bid);
+   const back=await B.evaluate(()=>sheetPayload(S.matchId));
+   const r=await A.evaluate(t=>{loadCopy("merge",t);const m=S.matchId,rows=S.breakouts.filter(r=>r.m===m),ids=new Set(rows.map(r=>r.id)),checks=S.playerChecks.filter(c=>c.m===m);
+    return {rows:rows.length,checks:checks.length,orphans:checks.filter(c=>c.breakoutId&&!ids.has(c.breakoutId)).length,status:playerStatusText(rows[0].side,rows[0].player,rows[0].id)};},back);
+   assert.equal(r.rows,1);assert.equal(r.orphans,0);assert.equal(r.checks,1,"one observation for the man");
+   assert.match(r.status,/Shooting/,"what the other phone saw is there");assert.match(r.status,/Diving/,"and what this phone saw is not hidden");
+  });
+  await check("a field picture that cannot be made says so",async page=>{
+   const p=await page();
+   await p.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();set({tab:"scout",scoutTab:"matchup",flash:""});
+    HTMLCanvasElement.prototype.toBlob=function(cb){cb(null);};HTMLCanvasElement.prototype.toDataURL=function(){throw new Error("tainted");};});
+   await p.locator("#root [data-field-pic]").first().click();await p.waitForTimeout(600);
+   assert.match(await p.evaluate(()=>S.flash||""),/could not make the picture/);assert.equal(await p.locator("#field-pic").count(),0);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} recording audit checks passed.`);if(failed)process.exit(1);
 })();

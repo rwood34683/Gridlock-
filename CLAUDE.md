@@ -63,6 +63,12 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- A preview's second-tap confirmation belongs to the selected item and its
+  contents, not just the question's words. Pass an item identity to `askFirst`
+  when two controls can ask the same question; changed copies, notes, accounts,
+  sheets, points or fields need a fresh first tap. Real browsers keep their
+  system confirmation.
+
 - Rules opens the three official 2026 rulebook source pages, only after a tap.
   Keep the shared catalog in `docs/rulebooks.json`; run `node tools/rulebook-links.js`
   after changes. This is the sole external-link exception in the Team/Player
@@ -1516,6 +1522,30 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     layouts; `docs/RULES-CHECK.md` records the verified timing distinction.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Confirmations and messages (12 Nov 2026): every "are you sure" goes through
+`askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is
+the system's question; in the published preview (`window.gridlockPreview`),
+which may refuse system questions silently, it is the same tap a second time
+within eight seconds, said on screen. A message the coach has read (shown more
+than a second) leaves when he changes tab, More section or Scout view; one
+raised on the way to a new screen stays. `test/ask-first.cjs`.
+
+After the five merges (12 Nov 2026): Back a point carries a voice recap and
+its sightings with the men charted on the point it leaves. On a split deck
+the turn controls are in the Quick log too, and a message stands above it.
+Checking the account's saved season never takes the screen while a match is
+on the sheet; leaving that check pauses sharing for now and keeps the coach's
+yes. A season adopted with a match under way opens on Tally (Scout for a
+watched game). A season row (no sheet) is counted where it was tapped; every
+spreadsheet date is the phone's own day. The Quick log is a modal layer:
+everything beside it is inert, Escape closes it and focus returns to its
+button. A scored point writes the whole season once, the standing call with
+it. A bunker tapped on a small phone scrolls the sheet's first questions above
+its Log bar. In the header the event shrinks at 100000 and the call at 1 (never
+below 1, or the section falls off). Bunker stats offers Date not recorded only
+when something is undated. `test/interaction-audit.cjs`,
+`test/data-audit.cjs`.
 
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
