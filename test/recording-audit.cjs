@@ -69,6 +69,19 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(r.vs,"Houston Heat","the new sheet keeps its name");
    assert.ok(!r.onNew.includes("San Diego Dynasty"),"nothing of the last team is stamped on it");
   });
+  await check("on a watched game both columns are the two teams by number, and none of his players is on the sheet",async page=>{
+   const p=await page();
+   await p.evaluate(()=>{set({tab:"more",more:"schedule"});watchGame(allGames()[0].id);set({tab:"tally"});});
+   const r=await p.evaluate(()=>({home:curMatch().home,names:[...document.querySelectorAll("#root .who2 .assign__job")].map(e=>e.textContent.trim()),
+    roster:S.roster.map(x=>x.name),text:document.querySelector("#root .who2").innerText}));
+   assert.ok(r.names.length>=10&&r.names.every(n=>/^#\d+$/.test(n)),"every row is a number: "+r.names.join(","));
+   for(const n of r.roster)assert.ok(!r.text.includes(n),n+" is not listed on a game he is not in");
+   assert.ok(r.text.toUpperCase().includes(r.home.toUpperCase()),"the left column is named for the home side");
+   await p.locator("#root .who2 .assign").first().click();
+   assert.match(await p.locator("#player-details").innerText(),/#1/);
+   for(const m of ["team","nexus"]){await p.evaluate(m=>{closePlayerDetails();set({tab:"more",more:m});},m);
+    assert.deepEqual(await p.evaluate(()=>[...document.querySelectorAll("#root summary")].filter(e=>e.offsetParent&&e.getBoundingClientRect().height<44).map(e=>e.innerText)),[],"every fold on "+m+" is a full-size target");}
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} recording audit checks passed.`);if(failed)process.exit(1);
 })();

@@ -1150,6 +1150,8 @@ svg.field [data-pick]{cursor:crosshair}
 .cup p{max-width:72ch}
 .cup p,.cup a,.cup .list__name,.cup .list__desc,.cup h3{overflow-wrap:anywhere}
 .cup summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--ink)}
+/* A fold is a button: the two that were a line of type tall. */
+.rost__paste>summary,.codes-key>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
 .cup-about{margin-top:var(--s3)}
 .cup-pages{align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:var(--s3)}
 .cup-history article{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
@@ -15308,13 +15310,16 @@ function tally(){
           that actually charts them. */""}
     ${(curMatch()||{}).watch ? `<div class="fld">
          <p class="warn">This is a game you are <b>watching</b> — ${esc(sideWord("us"))} v
-           ${esc(sideWord("them"))}. The score and the field below still work; the five in the
-           columns are <b>your</b> roster, so chart what these two do on Scout instead.</p>
+           ${esc(sideWord("them"))}. The score and the field below still work; both columns are these
+           two teams by number, and none of your players is on this sheet. Chart their fives on Scout.</p>
          <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'breakouts'})">Open Scout</button>
        </div>` : ""}
     <div class="who2">
-      ${(yw => col("us", (curMatch()||{}).watch ? `${yw} · not on this field`
-              : mine.length?yw:`${yw} · no names yet`, "var(--red)",
+      ${/* On a watched game the left column is the home side by number, never
+            his roster: a man of his tapped out there was filed under the home
+            team in that sheet's review. */""}
+      ${(curMatch()||{}).watch ? col("us", esc(sideWord("us")), "var(--red)", Array.from({length: sideSize()}, (_, i) => "#" + (i + 1)))
+        : (yw => col("us", mine.length?yw:`${yw} · no names yet`, "var(--red)",
             mine.length?mine.map(p=>p.name):Array.from({length:sideSize()},(_,i)=>String(i+1))))(sideSize()===5?"Your five":`Your ${sideSize()}`)}
       ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",theirNames())}
     </div>
