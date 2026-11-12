@@ -117,11 +117,11 @@ function cpSheetWire(P){const d=cpDraft;if(!d)return;const up=()=>cpRedraw();
    of yours there (each point once a bunker). */
 function cpValue(){const out={},seen={};SH.rows.forEach(r=>{if(r.lay!==layoutKey||r.side!=='us'||r.todo)return;const o=out[r.bid]||(out[r.bid]={n:0,made:0,won:0,lost:0});o.n++;if(r.made)o.made++;
   const k=r.bid+'|'+r.m+'|'+r.pt;if(seen[k])return;seen[k]=1;const res=cpResult(r.m,r.pt);if(res){if(res.won==='us')o.won++;else o.lost++;}});return out;}
-function cpTally(){if(MODE!=='tally')return;field();svg.onclick=cpTallyTap;const m=cpMatch(),vs=cpVs(),s=cpScore(m.id),here=cpRowsAt(m.id,SH.point),val=cpValue();
+function cpTally(){if(MODE!=='tally')return;field();cpGround();svg.onclick=cpTallyTap;const m=cpMatch(),vs=cpVs(),s=cpScore(m.id),here=cpRowsAt(m.id,SH.point),val=cpValue();
   BUN.forEach(b=>{const v=val[b.id];if(!v)return;const net=v.won-v.lost,col=net>0?'#3ecf8e':net<0?'#e0a33a':'#3a3f40';el('circle',{cx:X(b.x),cy:Y(b.y),r:3.6,fill:'none',stroke:col,'stroke-width':1.1,opacity:.9,'pointer-events':'none'});
     el('text',{x:X(b.x),y:Y(b.y)-4.5,fill:col,'font-size':2.5,'text-anchor':'middle','font-weight':800,'pointer-events':'none'}).textContent=v.n;});
   const seen={};here.forEach((r,i)=>{if(!r.todo)cpDrawRoute(r,r.side==='us'?'#e5342f':'#3d8bff',cpDraft&&cpDraft.id===r.id?1:.7);});
-  here.forEach(r=>{const b=cpBunker(r.bid);if(!b)return;const k=seen[r.bid]=(seen[r.bid]||0)+1;cpMan(b,k,r.side==='us'?'#e5342f':'#3d8bff',!r.todo,cpTag(r).replace('#',''),cpDraft&&cpDraft.id===r.id);});
+  {const c={us:0,them:0};cpSquares(here.map(r=>({id:r.bid,col:r.side==='us'?'#e5342f':'#3d8bff',n:++c[r.side],shot:r.made===false&&!r.todo,ring:!!(cpDraft&&cpDraft.id===r.id)})));}
   if(cpDraft){[['at','#ffffff'],['moved','#efedeb'],['from','#ff5a52']].forEach(([k,c])=>{const b=cpBunker(cpDraft[k]);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.2,fill:'none',stroke:c,'stroke-width':.8,'stroke-dasharray':'1.2 .8','pointer-events':'none'});});
     if(cpDraft.todo===false||cpDraft.made!=null)cpDrawRoute(cpDraft,cpDraft.side==='us'?'#e5342f':'#3d8bff',1);}
   const lg=document.getElementById('legend');if(lg)lg.innerHTML=cpPickFor?'<span>Tap the bunker for '+(cpPickFor==='at'?'Shooting at':cpPickFor==='moved'?'Moved to':'Shot from')+'.</span>':'<span>A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</span>';
@@ -165,19 +165,36 @@ function cpScoutTap(e){const id=cpFieldTap(e);if(id==null)return;const team=cpPi
 function cpScoutHead(P){svg.onclick=cpScoutTap;const w=document.createElement('div');w.innerHTML=scViewToggle()+cpStrip();[...w.children].reverse().forEach(c=>P.insertBefore(c,P.firstChild));
   P.querySelectorAll('[data-scview]').forEach(b=>b.onclick=()=>{scView=b.dataset.scview;cpGame=null;if(typeof svg!=='undefined'&&svg)svg.onclick=null;renderScout();});cpWire(P,renderScout);}
 function cpNoTeam(P,what){svg.onclick=cpScoutTap;P.innerHTML=`<div class="iqrow" style="border-color:#efedeb;font-size:12px">Pick who you play in the right pit and ${what}.</div>`;cpScoutHead(P);}
-function cpMatchup(P){svg.onclick=cpScoutTap;P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const team=cpPit();if(!team)return;cpTallyFive(team);const five=cpFiveNow(team);
+function cpMatchup(P){svg.onclick=cpScoutTap;cpGround();P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const team=cpPit();if(!team)return;cpTallyFive(team);const five=cpFiveNow(team);
   const w=document.createElement('div');w.innerHTML=`<div class="lbl" style="margin-top:8px">Their five · point ${SH.point}</div><div style="font-size:12px;color:#ff5a52">${five.length?five.map(id=>hesc(bLabelId(id))).join(' · '):'Not logged yet. Tap where they went on Breakouts.'}</div>`;P.appendChild(w);
   P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const t=document.createElement('div');t.innerHTML=cpStrip();P.insertBefore(t.firstChild,P.children[1]||null);cpWire(P,renderScout);}
 /* Their five on Scout's field, drawn as the coach app's fiveSquares draws it:
    a rounded square in the pit's colour, a white edge, the man's number in
    white, over a faint dark shadow. Two or more on one bunker sit side by side. */
-function cpFive(ids,col){const r=3.1,many=id=>ids.filter(x=>x===id).length;
-  ids.forEach((id,i)=>{const b=cpBunker(id);if(!b)return;const k=ids.slice(0,i).filter(x=>x===id).length,n=many(id),x=X(b.x)+(k-(n-1)/2)*(r*2+.75),y=Y(b.y);
+/* The coach app's field ground on Tally and Scout: ten dark stripes in place
+   of the grid, a fine frame, a faint dashed fifty and two end lines, the red
+   bar down your end line, and no bunker codes (a word the team gave a bunker
+   still shows, as the coach app shows its saved words). */
+function cpGround(){if(!svg)return;const first=svg.querySelector('rect');
+  svg.querySelectorAll('line[stroke="#1d2022"]').forEach(l=>l.remove());
+  const codes=new Set(BUN.map(b=>b.n));svg.querySelectorAll('text[font-size="2.2"]').forEach(t=>{if(codes.has(t.textContent))t.remove();});
+  if(first){first.setAttribute('stroke','none');const at=first.nextSibling,add=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);svg.insertBefore(e,at);return e;};
+    for(let i=1;i<10;i+=2)add('rect',{x:i*15,y:0,width:15,height:120,fill:'#0c0d0e'});
+    add('rect',{x:0,y:0,width:150,height:120,fill:'none',stroke:'#33383a','stroke-width':.5,opacity:.9});
+    add('line',{x1:2,y1:0,x2:2,y2:120,stroke:'#e8e8e8','stroke-width':.4,opacity:.22});add('line',{x1:148,y1:0,x2:148,y2:120,stroke:'#e8e8e8','stroke-width':.4,opacity:.22});
+    add('rect',{x:-3,y:0,width:1.25,height:120,fill:'#e5342f',opacity:.8});}
+  const mid=svg.querySelector('line[x1="75"][x2="75"]');if(mid){mid.setAttribute('stroke-width','.4');mid.setAttribute('stroke-dasharray','2.5 3.5');mid.setAttribute('opacity','.26');}}
+function cpFive(ids,col){cpSquares(ids.map((id,i)=>({id,col,n:i+1})));}
+/* One numbered square a man, each item {id, col, n, ring}; any men on one
+   bunker, whichever side, stand side by side so every number can be read. */
+function cpSquares(items){const r=3.1,ids=items.map(m=>m.id),many=id=>ids.filter(x=>x===id).length;
+  items.forEach((m,i)=>{const id=m.id,col=m.col,b=cpBunker(id);if(!b)return;const k=ids.slice(0,i).filter(x=>x===id).length,n=many(id),x=X(b.x)+(k-(n-1)/2)*(r*2+.75),y=Y(b.y);
+    if(m.ring)el('circle',{cx:x,cy:y,r:r+1.6,fill:'none',stroke:'#ffffff','stroke-width':.7,'pointer-events':'none'});
     el('rect',{x:x-r-.3,y:y-r-.3,width:r*2+.6,height:r*2+.6,rx:1.2,fill:'#000',opacity:.55,'pointer-events':'none'});
     el('rect',{x:x-r,y:y-r,width:r*2,height:r*2,rx:1,fill:col,stroke:'#efedeb','stroke-width':.65,'pointer-events':'none'});
-    const t=el('text',{x,y:y+1.3,fill:'#fff','font-size':3.5,'text-anchor':'middle','font-weight':800,'pointer-events':'none'});t.textContent=String(i+1);});}
+    const t=el('text',{x,y:y+1.3,fill:'#fff','font-size':3.5,'text-anchor':'middle','font-weight':800,'pointer-events':'none'});t.textContent=m.shot?'✕':String(m.n);});}
 function cpTallyFive(team){cpFive(cpFiveNow(team),'#3d8bff');}
-function cpBreakouts(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'their five and their call log against them');return;}
+function cpBreakouts(){field();cpGround();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'their five and their call log against them');return;}
   cpFive(cpTheirPick,'#3d8bff');
   if(!cpTheirPick.length)cpTallyFive(team);
   if(cpDraft){[['at','#ffffff'],['moved','#efedeb'],['from','#ff5a52']].forEach(([k,c])=>{const b=cpBunker(cpDraft[k]);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.2,fill:'none',stroke:c,'stroke-width':.8,'stroke-dasharray':'1.2 .8','pointer-events':'none'});});const b=cpBunker(cpDraft.bid);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.6,fill:'none',stroke:'#ffffff','stroke-width':.9,'pointer-events':'none'});}
@@ -204,7 +221,7 @@ function cpBreakouts(){field();const P=document.getElementById('panel');const te
     else{if(!cpTheirPick.length){gToast('Tap where they went on the field first.');return;}const plants=cpTheirPick.slice();cpLogTheir(team,{plants});if(on)cpPlaceFive(plants);cpTheirPick=[];cpTheirHist=[];if(on)cpOpenNext(true);gToast('Their five logged'+(on?' on point '+SH.point+'. Now tell each man.':' for the season'));}
     cpBreakouts();});
   P.querySelectorAll('[data-tc]').forEach(b=>b.onclick=()=>{const k=b.dataset.tc;cpLogTheir(team,{call:k});gToast(playName(k)+' logged'+(on?' on point '+SH.point:' for the season'));cpBreakouts();});}
-function cpLayers(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'what you have logged against them is drawn here');return;}
+function cpLayers(){field();cpGround();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'what you have logged against them is drawn here');return;}
   const ms=new Set(SH.matches.filter(m=>m.vs===team).map(m=>m.id)),rows=SH.rows.filter(r=>ms.has(r.m)&&r.lay===layoutKey&&!r.todo);
   const outs=s=>{const o={};rows.forEach(r=>{if(r.side===s&&r.made===false)o[r.bid]=(o[r.bid]||0)+1;});return o;},moves=s=>{const o={};rows.forEach(r=>{if(r.side===s&&r.moved){const k=r.bid+'>'+r.moved;o[k]=(o[k]||0)+1;}});return o;};
   const L={theirOuts:['Their outs',outs('them'),'#3d8bff'],ourOuts:['Your outs',outs('us'),'#e5342f'],ourMoves:['Your rotations',moves('us'),'#3ecf8e'],theirMoves:['Their rotations',moves('them'),'#3d8bff']};
@@ -221,7 +238,7 @@ function cpStory(m,pt){const res=cpResult(m.id,pt),before={us:0,them:0};SH.resul
   if(t&&t.call)out.push('They ran '+playName(t.call));if(t&&t.plants&&t.plants.length)out.push('Their five: '+t.plants.map(bLabelId).join(' · '));
   rows.forEach(r=>out.push((r.side==='us'?'Yours':'Theirs')+' · '+bLabelId(r.bid)+(cpTag(r)?' · '+cpTag(r):'')+' · '+(r.made?'made it':'shot on the break'+(r.from?' from '+bLabelId(r.from):''))));
   out.push(res?(res.won==='us'?'You won it':'They won it')+(res.read?' · '+res.read+' read':''):'No result');return out;}
-function cpGames(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'every sheet against them is listed here');return;}
+function cpGames(){field();cpGround();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'every sheet against them is listed here');return;}
   const ms=SH.matches.filter(m=>m.vs===team&&cpLogged(m.id)).sort((a,b)=>b.at-a.at);let h=`<div class="lbl">Games · ${hesc(team)}</div>`;
   if(!ms.length)h+=`<div style="font-size:12px;color:#ff5a52">No game against ${hesc(team)} yet. Score a point on Tally and it shows up here.</div>`;
   ms.forEach(m=>{const s=cpScore(m.id),day=new Date(m.at).toLocaleDateString([],{month:'short',day:'numeric'});h+=`<button type="button" class="ld ${cpGame===m.id?'on':''}" data-gm="${m.id}" style="display:block;width:100%;text-align:left;margin-bottom:4px">${hesc(day)} · ${s.us}–${s.them}${m.id===SH.matchId?' · on now':''}</button>`;

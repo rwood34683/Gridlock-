@@ -1451,6 +1451,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Their five on Scout's field draw as the coach app's `fiveSquares` does
     (`cpFive`): a blue rounded square, white edge, the man's number in white,
     two on one bunker side by side (owner, 12 Nov 2026).
+    Tally and Scout draw on the coach app's field ground (`cpGround`): ten
+    dark stripes instead of the grid, a fine frame, the faint dashed fifty,
+    the red bar down your end and no bunker codes (a team's own word stays).
+    Tally's men are the same numbered squares, yours red and theirs blue,
+    numbered within each side, ✕ for a man shot on the break.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
