@@ -1436,7 +1436,7 @@ so the four quick buttons stay in view. `test/player-percentages.cjs`.
 Tally's player and placed-player lists, and Scout's Players this point, show
 the recorded current status plus Shooting and Diving without opening the popup.
 They use the same scoped observations as percentages; no observation stays
-Status not recorded. The popup uses the newest matching check, never an older
+Not recorded. The popup uses the newest matching check, never an older
 imported row's choices. Cache these derived reads for one render only, never
 in the season or across edits. `test/player-overview.cjs`.
 

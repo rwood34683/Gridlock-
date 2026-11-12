@@ -29,12 +29,12 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
  try{
   await check("Tally shows saved status and observations without opening each player",async p=>{
    assert.match(await roster(p,"Reyes").innerText(),/Alive · Shooting · Diving/);
-   assert.match(await roster(p,"Lane").innerText(),/Status not recorded/);
+   assert.match(await roster(p,"Lane").innerText(),/Not recorded/);
    assert.match(await chart(p,"reyes").innerText(),/Alive · Shooting · Diving/);
   });
   await check("Scout shows both named and unnamed players without guessing status",async p=>{
    await p.evaluate(()=>{S.playerChecks.push({...S.playerChecks[0],id:"u",breakoutId:"unnamed",player:"",side:"them",alive:false,shooting:null});set({tab:"scout",scoutTab:"breakouts"});});
-   assert.equal(await p.locator('[data-player-status="seven"]').innerText(),"Status not recorded");
+   assert.equal(await p.locator('[data-player-status="seven"]').innerText(),"Not recorded");
    assert.equal(await p.locator('[data-player-status="unnamed"]').innerText(),"Dead · Diving");
   });
   await check("status changes update the list after Close and survive reload",async p=>{
@@ -44,7 +44,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
   });
   await check("old points and the other side never supply a player's current status",async p=>{
    await p.evaluate(()=>{S.playerChecks=[];S.breakouts[0].alive=true;S.playerChecks.push({id:"old",m:"overview",pt:1,layout:"mwo",player:"Reyes",side:"us",alive:false,at:1794409201000},{id:"other",m:"overview",pt:2,layout:"mwo",player:"Reyes",side:"them",alive:false,at:1794409201000});render();});
-   assert.match(await roster(p,"Reyes").innerText(),/Status not recorded/);assert.doesNotMatch(await roster(p,"Reyes").innerText(),/Dead|Alive/);
+   assert.match(await roster(p,"Reyes").innerText(),/Not recorded/);assert.doesNotMatch(await roster(p,"Reyes").innerText(),/Dead|Alive/);
   });
   await check("popup and percentages both use the newest matching observation",async p=>{
    await p.evaluate(()=>{S.playerChecks.push({...S.playerChecks[0],id:"new",at:1794409202000,shooting:false,diving:false});showPlayerDetails("reyes");});
