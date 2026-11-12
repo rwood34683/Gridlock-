@@ -54,6 +54,15 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.match(await p.locator("#tally-sheet").innerText(),/Shooting which way\?/i,"a man with more already answered shows it all");
    await p.reload();assert.equal(await p.evaluate(()=>S.tallyShort),true,"the choice is kept");
   });
+  await check("the first-run hint sits under the chart, so the field is drawn at its full size",async p=>{
+   const r=await p.evaluate(async()=>{const size=()=>{const s=document.querySelector("#root #tally-map svg");return Math.round(s.getBoundingClientRect().height);};
+    S.tips={...S.tips,tally:false};set({tab:"tally"});await new Promise(r=>setTimeout(r,400));
+    const tip=document.querySelector("#root .tip"),map=document.querySelector("#root #tally-map");const withHint=size();
+    const under=tip&&map&&tip.getBoundingClientRect().top>=map.getBoundingClientRect().bottom;
+    S.tips={...S.tips,tally:true};set({});await new Promise(r=>setTimeout(r,400));return {withHint,without:size(),under,hint:!!tip};});
+   assert.equal(r.hint,true,"the hint is shown");assert.equal(r.under,true,"under the field");
+   assert.equal(r.withHint,r.without,"the field is the same size with the hint up");
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} tally depth checks passed.`);if(failed)process.exit(1);
 })();

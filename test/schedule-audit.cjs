@@ -78,6 +78,23 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.reload();assert.deepEqual(await p.evaluate(()=>Object.values(S.scoutWho||{})),["Marsh <b>"],"kept across a relaunch");
    await p.evaluate(()=>setScoutWho(Object.keys(S.scoutWho)[0],""));assert.deepEqual(await p.evaluate(()=>Object.keys(S.scoutWho)),[]);
   });
+  await check("a clock with no minutes is read, and an afternoon time with no AM or PM is the afternoon",async p=>{
+   assert.deepEqual(await days(p,"Thu 9am Rejects vs Blast Camp"),["2026-11-12 09:00 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"Thu 2 PM Rejects vs Blast Camp"),["2026-11-12 14:00 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"Thu 1:30 Rejects vs Blast Camp"),["2026-11-12 13:30 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"Thu 9:00 Rejects vs Blast Camp"),["2026-11-12 09:00 Rejects v Blast Camp"],"nine with no AM or PM stays the morning");
+   assert.deepEqual(await days(p,"Thu 13:45 Rejects vs Blast Camp"),["2026-11-12 13:45 Rejects v Blast Camp"]);
+   assert.deepEqual(await days(p,"Thu 1:30 AM Rejects vs Blast Camp"),["2026-11-12 01:30 Rejects v Blast Camp"],"what the page printed wins");
+  });
+  await check("a typed game can be put on any day of the event, and a scout row says when it was already watched",async p=>{
+   await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;S.myTeam="Houston Heat";const day=teamDay("Houston Heat");
+    Date.now=()=>gameAt(day[0].g)-2*3600000;set({tab:"more",more:"schedule",gameNew:{d:SCHEDULE.games[0].d,t:"",h:"",a:""}});});
+   const opts=await p.locator('#root select[onchange^="setGameField(\'d\'"] option').evaluateAll(o=>o.map(x=>x.value));
+   assert.ok(opts.includes("2026-11-15"),"Sunday is offered: "+opts.join(","));
+   const id=await p.evaluate(()=>{set({gameNew:null});const r=scoutPlan(teamDay("Houston Heat"),Date.now())[0];watchGame(r.g.id);endPoint("us");set({tab:"more",more:"schedule"});return r.g.id;});
+   assert.match(await p.evaluate(()=>document.querySelector("#root .scout-plan").innerText),/Already watched · 1–0/);
+   assert.ok(id);
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} schedule audit checks passed.`);if(failed)process.exit(1);
 })();

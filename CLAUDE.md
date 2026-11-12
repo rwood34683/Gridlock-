@@ -1474,8 +1474,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     - **Share this field as a picture** on Scout (`shareFieldPicture`): a PNG
       drawn on the phone from the field on screen, held in page memory only
       (`_fieldPic`), never saved with the season, nothing fetched.
-    Left as it is: the Tally field is small while the first-run hint is up,
-    because fitting the field above the result bar is a tested design.
+    And four smaller ones the reviewers raised:
+    - Tally's first-run hint sits under the chart, not over the field: above
+      it, the hint took the room the field is fitted into. The fit itself is
+      unchanged.
+    - A pasted "9am" is a clock, and one o'clock to six with no AM or PM is
+      the afternoon.
+    - A typed game can go on any day of the event (`LAYOUTS[k].days`).
+    - A scout row says "Already watched" with the score.
     `test/tally-depth.cjs`.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)

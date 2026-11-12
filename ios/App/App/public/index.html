@@ -2591,7 +2591,8 @@ function scoutPlanSec(team, day, now){
       <span class="assign__who"><b>Scout ${esc(r.for.map(f => f.opp).join(" and "))}</b> — ${esc(g.h)} v ${esc(g.a)}<br>${
         r.for.map(f => `You play ${esc(f.opp)} ${esc(dayName(f.mine.d).split(",")[0])} ${esc(gameClock(f.mine))}`).join(" · ")}<br>${r.clash
         ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — ${scoutWho(g) ? esc(scoutWho(g)) + " is watching" : "send someone"}</b>`
-        : scoutWho(g) ? `${esc(scoutWho(g))} is watching` : "Free for you to watch"}</span>
+        : scoutWho(g) ? `${esc(scoutWho(g))} is watching` : "Free for you to watch"}${
+        (w => w ? `<br><b style="color:var(--ink)">Already watched · ${(sc => sc.us + "–" + sc.them)(scoreOf(w.id))}</b>` : "")((S.matches || []).find(m => m && m.watch && m.sched === g.id && !sheetEmpty(m)))}</span>
       <input class="scout-who" style="margin-top:var(--s2)" aria-label="Who is watching ${esc(g.h)} v ${esc(g.a)}" placeholder="Who is watching?" maxlength="24" autocomplete="off" value="${esc(scoutWho(g))}" onchange="setScoutWho(${jsq(g.id)},this.value)"${onEnter("this.blur()")}/></span>
       <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
   };
@@ -14299,8 +14300,7 @@ function tally(){
     : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`);
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
-  return `${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
-
+  return `
   ${/* A fresh sheet has no opponent, and every out is stamped with who you are
         playing. Tallying against nobody logs a break the app can never attach to
         a team — so before the field, the sheet asks who, right here, and one tap
@@ -14358,6 +14358,10 @@ function tally(){
         <button class="btn btn--quiet" onclick="editBreakout(${jsq(last.id)})">Fix it</button>
         <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
+  ${/* The first-run hint sits under the chart, not over it: above the field
+        it took the room the field is fitted into, and the field was drawn a
+        third smaller until the hint was dismissed. */""}
+  ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
   ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   <div id="point-sheet"></div>${sec("Point sheet", `
@@ -15311,7 +15315,10 @@ function parseSchedule(text){
         if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; dated = true; return true; } }
       return false;
     };
-    const clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
+    let clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
+    // "9am Dynasty vs Impact": a clock with no minutes was not a clock, and the
+    // line was dropped without being counted as skipped.
+    if(!clock){ const bare = /\b(\d{1,2})\s*(am|pm)\b/i.exec(line); if(bare) clock = Object.assign([bare[0], bare[1], "00", bare[2]], {index: bare.index}); }
     if(!clock){
       if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; dated = true; return; }
       // Every "word number" on the line is tried, not only the first: in
@@ -15332,7 +15339,11 @@ function parseSchedule(text){
     }
     // The clock through the same door a typed game goes through: "25:99" is
     // not a time, and a line carrying one is not a game.
-    const t = clockOf(`${clock[1]}:${clock[2]}${clock[3] ? " " + clock[3] : ""}`);
+    // A league page prints "1:30" for the afternoon: with no AM or PM, one
+    // o'clock to six is the afternoon, because no game is played at 1:30 at
+    // night. Seven to twelve is as printed, and 13:30 is 13:30.
+    const half = clock[3] || (+clock[1] >= 1 && +clock[1] <= 6 ? "PM" : "");
+    const t = clockOf(`${clock[1]}:${clock[2]}${half ? " " + half : ""}`);
     if(!t){ skipped++; return; }
     // A date on the same line, ahead of the clock — "Sat Sep 19 9:00 AM",
     // "9/19 9:00", "2026-09-19 09:00" — is the game's day, not a team: it was
@@ -19322,7 +19333,9 @@ function moreBody(k){
     + sec("Add a game", n
       ? `<div id="game-new"></div><div class="fld"><label>Day</label>
            <select onchange="setGameField('d',this.value)">${
-             [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
+             /* The event's own days too: Sunday is the day the league's list
+                does not reach, and it was not in the picker to type a game on. */
+             [...new Set([...days, ...(((LAYOUTS[SCHEDULE.layout] || {}).days) || []), n.d])].sort().map(d => `<option value="${esc(d)}" ${
                n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
          <div class="fld"><label>Time · 24-hour, like 13:45</label>
            <input value="${esc(n.t)}" maxlength="8" onchange="setGameField('t',this.value)" ${onEnter(`setGameField('t',this.value);saveGame()`)}/></div>
