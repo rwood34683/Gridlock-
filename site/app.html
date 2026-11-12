@@ -15871,6 +15871,9 @@ window.freshMatch = () => {
   S.tab = "tally"; S.quick = false;
   save(S); render();
   flash(`New sheet. ${was} is kept under More › Matches. Pick who you play.`);
+  // The button sits low on Tally: without this the prompt it leads to was
+  // left above the screen.
+  toMainTop();
 };
 /* The one door every new sheet opens through — New match, Watch this game and
  * We play on the Schedule. Three things happen here and used to happen in one

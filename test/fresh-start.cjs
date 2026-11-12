@@ -69,6 +69,17 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.evaluate(()=>freshMatch());const t=await now(p);assert.equal(t.id,s.id,"no second blank sheet");assert.equal(t.matches,s.matches);
    assert.match(t.root,/Pick the team you play next first/);
   });
+  for(const [word,width,height] of [["phone",390,844],["tablet",768,1024],["tablet on its side",1024,768]])
+  await check("New match tapped low on Tally brings the opponent prompt into view on a "+word,async p=>{
+   await p.setViewportSize({width,height});
+   await play(p,{points:2,ago:60000});await p.evaluate(()=>set({tab:"tally"}));
+   const btn=p.locator('#root button[onclick="freshMatch()"]').first();await btn.scrollIntoViewIfNeeded();
+   if(width<740)assert.ok(await p.evaluate(()=>{const m=document.querySelector(".main");return Math.max(m?m.scrollTop:0,scrollY)>100;}),"the button is low on the page");
+   await btn.click();await p.waitForTimeout(300);
+   assert.equal(await p.evaluate(()=>matchVs()),"");
+   const box=await p.locator("#tally-opp").boundingBox();assert.ok(box,"the prompt is drawn");
+   assert.ok(box.y>=0&&box.y+Math.min(box.height,120)<=height,"the prompt is on screen: "+JSON.stringify(box));
+  });
  }finally{await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} fresh-start checks passed.`);if(failed)process.exit(1);
 })();
