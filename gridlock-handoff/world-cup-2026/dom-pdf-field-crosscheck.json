@@ -1,0 +1,32 @@
+{
+  "rows": 12,
+  "compared_fields_per_row": 5,
+  "differences": [
+    {
+      "field": "division_as_published",
+      "dom": "Division 4 X-Ball",
+      "pdf": "Division 4 X- Ball"
+    },
+    {
+      "field": "division_as_published",
+      "dom": "Division 4 X-Ball",
+      "pdf": "Division 4 X- Ball"
+    },
+    {
+      "field": "division_as_published",
+      "dom": "Division 4 X-Ball",
+      "pdf": "Division 4 X- Ball"
+    },
+    {
+      "field": "division_as_published",
+      "dom": "Division 4 X-Ball",
+      "pdf": "Division 4 X- Ball"
+    },
+    {
+      "field": "division_as_published",
+      "dom": "Division 4 X-Ball",
+      "pdf": "Division 4 X- Ball"
+    }
+  ],
+  "notes": "Whitespace-normalized equality only; no semantic corrections applied."
+}

@@ -1,0 +1,26 @@
+{
+  "person_id": "157234",
+  "rows": 12,
+  "pdf_rows": 12,
+  "same_exact_row_link_context_keys": true,
+  "sample": [
+    {
+      "event_date_as_published": "01/31/2026",
+      "event_date_iso": "2026-01-31",
+      "event_name": "EXL - EXL RAGE IN THE CAGE|2026",
+      "event_id": "9152",
+      "event_url": "https://pbleagues.com/event/9152",
+      "team_name": "Avalanche PB",
+      "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=udwc1H44wxLrJ5Vg",
+      "division_as_published": "Division 4 X-Ball",
+      "place_as_published": "1st of 11",
+      "classification_score_as_published": "200*",
+      "classification_context": "On This Division 4 5v5 Roster: Division 4 (577.1428)",
+      "role_at_historical_event": null,
+      "participation_basis": "classification_scored_event_history",
+      "extraction_status": "structured_dom_cell_anchor_labels_verified",
+      "raw_row_as_published": null,
+      "raw_layout_line_number": null
+    }
+  ]
+}

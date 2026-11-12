@@ -1,0 +1,53 @@
+{
+  "team": "Chicago Aftershock",
+  "erid": "lOgvxlJM59gR4jzw",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=lOgvxlJM59gR4jzw",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Ryan Hoskinson",
+      "pid": "29202"
+    },
+    {
+      "jersey": null,
+      "name": "Jared Lackey",
+      "pid": "13175"
+    },
+    {
+      "jersey": null,
+      "name": "Clayton Hughes",
+      "pid": "162344"
+    },
+    {
+      "jersey": null,
+      "name": "Joseph Rooney",
+      "pid": "160651"
+    },
+    {
+      "jersey": null,
+      "name": "Gant MacLellan",
+      "pid": "7679"
+    },
+    {
+      "jersey": null,
+      "name": "Maxim Stancel",
+      "pid": "206359"
+    },
+    {
+      "jersey": null,
+      "name": "Mason Hinds",
+      "pid": "138729"
+    },
+    {
+      "jersey": null,
+      "name": "Jet Isidro",
+      "pid": "175276"
+    },
+    {
+      "jersey": null,
+      "name": "Daniela Rojas Jr",
+      "pid": "175286"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

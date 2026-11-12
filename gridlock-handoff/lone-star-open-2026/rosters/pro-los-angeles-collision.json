@@ -1,0 +1,58 @@
+{
+  "team": "Los Angeles Collision",
+  "erid": "tM0JElAxLgifGo1D",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=tM0JElAxLgifGo1D",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Ethan Jose Castro",
+      "pid": "140916"
+    },
+    {
+      "jersey": null,
+      "name": "Lucas Alindajao III",
+      "pid": "61884"
+    },
+    {
+      "jersey": null,
+      "name": "Jordan Boyum",
+      "pid": "40482"
+    },
+    {
+      "jersey": null,
+      "name": "Guillermo Ramirez",
+      "pid": "40636"
+    },
+    {
+      "jersey": null,
+      "name": "Lucas Tamura",
+      "pid": "202454"
+    },
+    {
+      "jersey": null,
+      "name": "Evan Middleton",
+      "pid": "191072"
+    },
+    {
+      "jersey": null,
+      "name": "Daniel Park",
+      "pid": "9116"
+    },
+    {
+      "jersey": null,
+      "name": "Avery Nguyen",
+      "pid": "196290"
+    },
+    {
+      "jersey": null,
+      "name": "Vince Newell",
+      "pid": "187718"
+    },
+    {
+      "jersey": null,
+      "name": "Brandon Trujillo",
+      "pid": "159323"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

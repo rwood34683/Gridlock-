@@ -1,0 +1,168 @@
+{
+  "event": "Lone Star Open 2026",
+  "eid": 9321,
+  "lid": 316,
+  "source": "https://mlpb.pbleagues.com/cgi-bin/showteams.cgi?EID=9321&LID=316",
+  "teams": [
+    {
+      "team": "Atlanta Jungle Cats",
+      "slug": "atlanta-jungle-cats",
+      "erid": "DGmUoLavm5dEly3P",
+      "player_count": 8,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-atlanta-jungle-cats.json"
+    },
+    {
+      "team": "Chicago Aftershock",
+      "slug": "chicago-aftershock",
+      "erid": "lOgvxlJM59gR4jzw",
+      "player_count": 9,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-chicago-aftershock.json"
+    },
+    {
+      "team": "Chicago Distortion",
+      "slug": "chicago-distortion",
+      "erid": "mLMseziMMxZNZngH",
+      "player_count": 9,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-chicago-distortion.json"
+    },
+    {
+      "team": "CK Hurricanes",
+      "slug": "ck-hurricanes",
+      "erid": "abksbYxq6Q5MIPuE",
+      "player_count": 11,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-ck-hurricanes.json"
+    },
+    {
+      "team": "Detroit Infamous",
+      "slug": "detroit-infamous",
+      "erid": "5JCXyF7veg2Y2zmY",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-detroit-infamous.json"
+    },
+    {
+      "team": "Edmonton Impact",
+      "slug": "edmonton-impact",
+      "erid": "Ck8loQfdO6Lzqaeg",
+      "player_count": 11,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-edmonton-impact.json"
+    },
+    {
+      "team": "Houston Heat",
+      "slug": "houston-heat",
+      "erid": "AyoHJ82yK3Gq0Ddy",
+      "player_count": 8,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-houston-heat.json"
+    },
+    {
+      "team": "Los Angeles Collision",
+      "slug": "los-angeles-collision",
+      "erid": "tM0JElAxLgifGo1D",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-los-angeles-collision.json"
+    },
+    {
+      "team": "Los Angeles Ironmen",
+      "slug": "los-angeles-ironmen",
+      "erid": "ZF2YoU8p7U6aNhG5",
+      "player_count": 8,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-los-angeles-ironmen.json"
+    },
+    {
+      "team": "New Jersey Leverage",
+      "slug": "new-jersey-leverage",
+      "erid": "P2xnWPz6jP2JT30c",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-new-jersey-leverage.json"
+    },
+    {
+      "team": "New York Xtreme",
+      "slug": "new-york-xtreme",
+      "erid": "X0I9pQj6EXXcMgKt",
+      "player_count": 9,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-new-york-xtreme.json"
+    },
+    {
+      "team": "PaintballFIT",
+      "slug": "paintballfit",
+      "erid": "dKDBppmdf8B4BXZk",
+      "player_count": 7,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-paintballfit.json"
+    },
+    {
+      "team": "Perris ASG Aftermath",
+      "slug": "perris-asg-aftermath",
+      "erid": "E6t88yJJlWiI0PGx",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-perris-asg-aftermath.json"
+    },
+    {
+      "team": "Red Legion",
+      "slug": "red-legion",
+      "erid": "99nCQxR5MCaqTBal",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-red-legion.json"
+    },
+    {
+      "team": "Royal City Seadogs",
+      "slug": "royal-city-seadogs",
+      "erid": "fhwWzcZ486QDnfWv",
+      "player_count": 8,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-royal-city-seadogs.json"
+    },
+    {
+      "team": "San Antonio X-Factor",
+      "slug": "san-antonio-x-factor",
+      "erid": "97SDOA2CvSffuAgH",
+      "player_count": 10,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-san-antonio-x-factor.json"
+    },
+    {
+      "team": "San Diego Dynasty",
+      "slug": "san-diego-dynasty",
+      "erid": "wbdv36k9vQFDmDO7",
+      "player_count": 12,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-san-diego-dynasty.json"
+    },
+    {
+      "team": "Seattle Uprising",
+      "slug": "seattle-uprising",
+      "erid": "ZetwZDhLHEcCAXDC",
+      "player_count": 9,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-seattle-uprising.json"
+    },
+    {
+      "team": "Tampa Bay Damage",
+      "slug": "tampa-bay-damage",
+      "erid": "xkJeIYtz0sQ4Dbta",
+      "player_count": 11,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-tampa-bay-damage.json"
+    },
+    {
+      "team": "TonTon Arsenal",
+      "slug": "tonton-arsenal",
+      "erid": "V7DvXn7CIQlnKNJg",
+      "player_count": 7,
+      "with_jersey": 0,
+      "json": "/workspace/paintball/lso/rosters/pro-tonton-arsenal.json"
+    }
+  ]
+}

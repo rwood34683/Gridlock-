@@ -1,0 +1,58 @@
+{
+  "team": "San Antonio X-Factor",
+  "erid": "97SDOA2CvSffuAgH",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=97SDOA2CvSffuAgH",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Cody Bayless",
+      "pid": "7706"
+    },
+    {
+      "jersey": null,
+      "name": "William (Billy) Bernacchia III",
+      "pid": "1796"
+    },
+    {
+      "jersey": null,
+      "name": "Demetrius Ninios",
+      "pid": "40274"
+    },
+    {
+      "jersey": null,
+      "name": "Matt Jackson",
+      "pid": "25645"
+    },
+    {
+      "jersey": null,
+      "name": "Carlos Cortes Jr",
+      "pid": "37312"
+    },
+    {
+      "jersey": null,
+      "name": "Thomas Guest",
+      "pid": "73916"
+    },
+    {
+      "jersey": null,
+      "name": "Colt Roberts",
+      "pid": "1311"
+    },
+    {
+      "jersey": null,
+      "name": "Nico Hyde",
+      "pid": "58868"
+    },
+    {
+      "jersey": null,
+      "name": "Alex Martinez",
+      "pid": "4272"
+    },
+    {
+      "jersey": null,
+      "name": "Tj Danner Jr",
+      "pid": "33959"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

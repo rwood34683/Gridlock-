@@ -1,0 +1,48 @@
+{
+  "team": "Los Angeles Ironmen",
+  "erid": "ZF2YoU8p7U6aNhG5",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=ZF2YoU8p7U6aNhG5",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Alex Rosati Jr",
+      "pid": "85982"
+    },
+    {
+      "jersey": null,
+      "name": "Caleb Abuhl",
+      "pid": "27727"
+    },
+    {
+      "jersey": null,
+      "name": "Christopher Lennon",
+      "pid": "98942"
+    },
+    {
+      "jersey": null,
+      "name": "Henry Sentz",
+      "pid": "63261"
+    },
+    {
+      "jersey": null,
+      "name": "Cj Canter II",
+      "pid": "52122"
+    },
+    {
+      "jersey": null,
+      "name": "Jesse Stephens Jr",
+      "pid": "55542"
+    },
+    {
+      "jersey": null,
+      "name": "Patrick Kraft Jr",
+      "pid": "76088"
+    },
+    {
+      "jersey": null,
+      "name": "Kyle Nicholaou",
+      "pid": "54867"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

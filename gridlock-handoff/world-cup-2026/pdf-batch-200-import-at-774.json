@@ -1,0 +1,17 @@
+{
+  "batch": "pdf-manifest-next200-at-774-captured",
+  "profiles_imported_this_batch": 200,
+  "zeros_this_batch": 2,
+  "rows_imported_this_batch": 2239,
+  "cumulative_imported": 774,
+  "remaining_not_retrieved": 2845,
+  "history_observations": 8299,
+  "participation_index_rows": 5885,
+  "unresolved_event_team_cells": 0,
+  "pdf_ancillary_nulls": 0,
+  "import_errors": [],
+  "import_warnings": [],
+  "separate_pdf_manifest": "authenticated/person-profile-pdf-manifest.jsonl",
+  "import_snapshot": "import-batches/person-profile-pdf-manifest-batch-400-at-774cap.jsonl",
+  "note": "Incremental exact PDF adapter import; browser queues/manifests untouched."
+}

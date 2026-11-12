@@ -1,0 +1,23 @@
+{
+  "counts": {
+    "profiles_imported": 228,
+    "zero_profiles_imported": 9,
+    "rows_imported": 2376,
+    "partial_profiles_repaired": 191,
+    "partial_rows_repaired": 2065,
+    "dom_profiles": 1,
+    "pdf_profiles": 227,
+    "rows_with_missing_ancillary_cells": 18
+  },
+  "errors": [],
+  "warnings": [],
+  "manifest_records_read": 374,
+  "associated_structured_people": 228,
+  "player_history_statuses": {
+    "not_retrieved": 3245,
+    "scored_event_history_imported": 363,
+    "scored_event_history_imported_zero_rows": 11
+  },
+  "history_observations": 3963,
+  "participation_index_rows": 2845
+}

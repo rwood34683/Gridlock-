@@ -1,0 +1,63 @@
+{
+  "team": "Edmonton Impact",
+  "erid": "Ck8loQfdO6Lzqaeg",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=Ck8loQfdO6Lzqaeg",
+  "players": [
+    {
+      "jersey": null,
+      "name": "John Parrish",
+      "pid": "20544"
+    },
+    {
+      "jersey": null,
+      "name": "Brandon Cornell",
+      "pid": "73338"
+    },
+    {
+      "jersey": null,
+      "name": "Chad George",
+      "pid": "28108"
+    },
+    {
+      "jersey": null,
+      "name": "Timothy Stanczak",
+      "pid": "7685"
+    },
+    {
+      "jersey": null,
+      "name": "Justin Cornell",
+      "pid": "22731"
+    },
+    {
+      "jersey": null,
+      "name": "Nicholas Leival",
+      "pid": "56830"
+    },
+    {
+      "jersey": null,
+      "name": "Dalton Vanderbyl",
+      "pid": "15384"
+    },
+    {
+      "jersey": null,
+      "name": "Tyler Harmon",
+      "pid": "995"
+    },
+    {
+      "jersey": null,
+      "name": "Tyler Panlilio",
+      "pid": "149433"
+    },
+    {
+      "jersey": null,
+      "name": "Conner Kelley",
+      "pid": "130609"
+    },
+    {
+      "jersey": null,
+      "name": "Zachary Yachimec",
+      "pid": "2895"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

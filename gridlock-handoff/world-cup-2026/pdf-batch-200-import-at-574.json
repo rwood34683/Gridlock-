@@ -1,0 +1,626 @@
+{
+  "batch": "pdf-manifest-200-at-574-captured",
+  "profiles_imported_this_batch": 200,
+  "zeros_this_batch": 5,
+  "rows_imported_this_batch": 2097,
+  "cumulative_imported": 574,
+  "remaining_not_retrieved": 3045,
+  "history_observations": 6060,
+  "participation_index_rows": 4349,
+  "import_errors": [],
+  "rerun_after_warning_fix": {
+    "unchanged_structured_captures_skipped": 428,
+    "profiles_imported": 0,
+    "warnings": [
+      {
+        "person_id": null,
+        "epid": "HWeVz54jfvtdVp0s",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "0nfNk34uqFeYIsAQ",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "J6N6VO1OXZcEEQ3E",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "m731aRuQDKTSX5Op",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "9ozd28o3vyGyVfg1",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "zywGs0j6AVrWqA1I",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "nYBLg3M9Y2zm6QOr",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "pdgtEYnAzyHHkBer",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "vEZykuxVbDfwDGkI",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "JSMpXhzu3irWOBXc",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "VXvq2UwyiIFVvgaL",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "IOmb67XmdB97MJLG",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "xSzFInniYIwkQZP1",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "D05gO4qVeWdGOY0i",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "9T0LVSzab9oCqNCr",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1RQELYAObFRlkSlH",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "YDu9NrMIuLKb7SC1",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "cyvFqfi3KzsRiYJe",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "sRf28U6Okvz6GTeY",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1F45886CF7A0934D",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "3txaMyJA6XQY5ZKY",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "E32F58AC15B10FD1",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "4FF27590A30FA24C",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "jHfX3FVgcA7kgrXM",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "rRB2G3PF08WLjGFc",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "CGvTOxYAik9UWOxR",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "EDE1D43616F3D7C7",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "O1xRpLMORDUJZ9pl",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "48eGudHByAhI6cEu",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "V2OAOABOaD8K7hWC",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "848FE54E1155F7CF",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "oAQWOETYUP1FrYBC",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "bOdseTSZrnO9V9s2",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "d3EUuCA0ASMfQYgR",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "6B9CC9126815E9BD",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "NcLXgrElrQRlmB0t",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "qBtycx5Gj9CpjEWf",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "9b1gKqIy8GVw5YiV",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "FF0F1300A74CE05B",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "IXZJpp43kBCIjMri",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "feop5RKoLfUA4gbb",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1C4F4840903B5504",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "E14C84F1C2BCBA12",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "l8kJqL7mfIM2vmJn",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "6AI0kKSGLYutmvDp",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "HRhMtjR25JBmCj0s",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "KAYOrHpkN3aI6aRv",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "484ACC160F226029",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "hbFImFJqWtTeYBkM",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "uwAq1E3uM4mzrrMq",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "E374AFBDF666197F",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "895642E301988B56",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "vfqTgPhIRz1aVxxB",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "Qjpu2cTuYkXh9OLd",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "owgq6ni0suB5ZPEs",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "hqbKbP3ddTUMIKeh",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "ZJwlXlKfvStx267q",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1BC7A9DC196C5B66",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "092C6E63E03AFE98",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "46E9764E69B6F1F6",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "eXLRMB3pVut0VaxD",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "klCRWwLqpQHX6bwt",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "389DE9CD71AC9547",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "t6awO7lFahsAC4oV",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "bRzUgibyreEdbTcA",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "CelhOxu78Y9nE6yP",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "HYp2MQQPb8bTJmLO",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "9Jn57juvzOM9igiY",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "BapruVlG9zUrPXlZ",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "XqnBl3iF7VbqsPfW",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "3BEFBCB24D063752",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "AA07D64A5777D803",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "sj9J0M47gygqce5P",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "83F1D66CEB12DEA3",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "S5n7U8VVzkDlKjl4",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "BPgl822dQqRL40vR",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1AC2B828272A2EBC",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "pjSxIDLP412mr31O",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "60E6935FA89F74C9",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "itddwYAjFHhRPpfL",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "FZsYdDMz0bEXehy3",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "PjnhdWzEA0Gw5Wqi",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "62F90048E8A64EDB",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "A8CCDB8827DF4EB7",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "DF7470BA8BF867AA",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "982A36908961E530",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "OLkOOoMnGEzJPzHA",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "349644468399CD1C",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "JYmByMa2uWZ9yFxP",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "pKz6KrnV7KNNWJiA",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "2d55AZSST1ov5wAE",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "MYdYR1Aqj44sHhhT",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "DqB2EROiAIxSjUmO",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "3Yg9iAKjIHDGtI5F",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "68A87ABBFB0A240C",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "rnOWG0Er88E2IdHf",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "hhndpC8IfRz5zFe0",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "mQIKDaesIhX1upt0",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "bRT5nLGm34Qw7VRG",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "8B9nhm2LqLfD3Kbv",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "p6kacN77NOov6Baz",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "185oL8f0RptgWR8K",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "ezuT92CdGhkRdE6J",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "ZSQJPgxqkOXhTxWE",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "C66121C0DC3D11A8",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "u5pOEOCk9kmFNQXG",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "t4uC9d5pt3PWnNbU",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "3B33C28E672F1950",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "gW8LaON3DNN7ekFU",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "vXT1GrjmOeGJPwZH",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "tW89VQ3UJDjx0b41",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "YsCOoZ46XEfiJqPZ",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "lCtFoqa59K2Wukqb",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "PFtyEd0ZSi3sOgqL",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "mlruNUatZEfQE3Bh",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "A534E11A46626D67",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "mfkSOKCZagoUmEsH",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "Y3ZT6qgv7sWfVzTA",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "1FF433E0744ACC4A",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      },
+      {
+        "person_id": null,
+        "epid": "F6rooDpFlpql7yCD",
+        "error": "Completed PDF manifest record has no resolvable associated PDF under approved roots"
+      }
+    ],
+    "errors": []
+  },
+  "note": "Separate authenticated/person-profile-pdf-manifest.jsonl supported via filepath; prior HTML primary manifest retained. Browser queues untouched.",
+  "batch_import_errors": [],
+  "batch_import_warnings_final": [],
+  "html_transport_pdf_hints_skipped": 120,
+  "unchanged_canonical_after_rerun": 428,
+  "separate_pdf_manifest": "authenticated/person-profile-pdf-manifest.jsonl",
+  "filepath_field_supported": true,
+  "shared_transport_pdf_guard": true
+}

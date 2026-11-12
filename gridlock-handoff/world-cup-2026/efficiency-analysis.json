@@ -1,0 +1,42 @@
+{
+  "queue_people": 3619,
+  "unique_person_ids": 3619,
+  "unique_primary_urls": 3619,
+  "unique_primary_epids": 3619,
+  "imported_current_players": 146,
+  "remaining": 3473,
+  "alternative_urls": 1337,
+  "offline_sample_tests": [
+    {
+      "file": "person-sample-ZPLwHGdKVYDIxLEn.html",
+      "rows": 12,
+      "all_dates_and_names_present": true,
+      "linked_event_rows": 12
+    },
+    {
+      "file": "person-0Z0RtJHT4mw16kar.html",
+      "rows": 12,
+      "all_dates_and_names_present": true,
+      "linked_event_rows": 12
+    },
+    {
+      "file": "person-24E477C4ABC2766E.html",
+      "rows": 6,
+      "all_dates_and_names_present": true,
+      "linked_event_rows": 6
+    }
+  ],
+  "sample_parse_elapsed_seconds": 0.1184,
+  "generated_at": "2026-11-08T18:34:42.950112-05:00",
+  "observed_end_to_end_pace": {
+    "profiles": 25,
+    "minutes": 9,
+    "remaining_minutes_if_unchanged": 1250.28,
+    "caveat": "Single observed batch end-to-end, includes overhead; not a guaranteed sustained collection rate."
+  },
+  "sources": [
+    "https://pbleagues.com/linfo.html",
+    "https://mlpb.pbleagues.com/contacts",
+    "https://pblidb.org/"
+  ]
+}

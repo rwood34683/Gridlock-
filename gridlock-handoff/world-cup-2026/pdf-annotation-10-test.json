@@ -1,0 +1,254 @@
+[
+  {
+    "name": "Alexander Green",
+    "rows": 0,
+    "expected": 0,
+    "match": true,
+    "zero": true,
+    "all_names_urls_present": true,
+    "complete_other_cells": 0,
+    "sample": []
+  },
+  {
+    "name": "Amanda Scheller",
+    "rows": 0,
+    "expected": 0,
+    "match": true,
+    "zero": true,
+    "all_names_urls_present": true,
+    "complete_other_cells": 0,
+    "sample": []
+  },
+  {
+    "name": "Allan Pinedo",
+    "rows": 1,
+    "expected": 1,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 1,
+    "sample": [
+      {
+        "event_date_as_published": "05/03/2026",
+        "event_date_iso": "2026-05-03",
+        "event_name": "NXL - Mid-Atlantic Open",
+        "event_id": "9319",
+        "event_url": "https://pbleagues.com/event/9319",
+        "team_name": "Storm Riders",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=GCyksah9wQPOhn8i",
+        "division_as_published": "Division 5 5v5",
+        "place_as_published": "5th of 13",
+        "classification_score_as_published": "70",
+        "classification_context": "On This Division 5 5v5 Roster: Beginner (35)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Allison Vick",
+    "rows": 1,
+    "expected": 1,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 1,
+    "sample": [
+      {
+        "event_date_as_published": "07/12/2026",
+        "event_date_iso": "2026-07-12",
+        "event_name": "USXBL - MAXT Florida Classic",
+        "event_id": "9131",
+        "event_url": "https://pbleagues.com/event/9131",
+        "team_name": "CLASSIFIED",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=zNBTiGZXorsAHyq8",
+        "division_as_published": "Division 6 3v3",
+        "place_as_published": "17th of 20",
+        "classification_score_as_published": "6.052625",
+        "classification_context": "On This Division 5 5v5 Roster: Beginner (3.0263125)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Anthony Vitale",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "11/08/2006",
+        "event_date_iso": "2006-11-08",
+        "event_name": "PSP - World Cup",
+        "event_id": "210",
+        "event_url": "https://pbleagues.com/event/210",
+        "team_name": "New York Xtreme",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=shFQ12zcQRyZJEvv",
+        "division_as_published": "Pro X- Ball™",
+        "place_as_published": "8th of 16",
+        "classification_score_as_published": "142.7136*",
+        "classification_context": "On This Masters X-Ball Roster: Division 4 (202.5)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Antonio De Jesus",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "02/09/2020",
+        "event_date_iso": "2020-02-09",
+        "event_name": "MVPS - MVPS 2020 - Winter Classic",
+        "event_id": "6683",
+        "event_url": "https://pbleagues.com/event/6683",
+        "team_name": "Combine Three",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=YAdxNdoYkNNh3FHw",
+        "division_as_published": "Division 2 RaceTo-5",
+        "place_as_published": "5th of 7",
+        "classification_score_as_published": "68*",
+        "classification_context": "On This Amateur 10v10 Roster: Division 4 (121.275)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Andres Temoli",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "08/20/2017",
+        "event_date_iso": "2017-08-20",
+        "event_name": "TAP - Torneo Argentino de Paintball 2017 - Fecha 2",
+        "event_id": "5597",
+        "event_url": "https://pbleagues.com/event/5597",
+        "team_name": "El Clan",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=vrrCZstDc7HG2NaL",
+        "division_as_published": "OPEN (D4) X-Ball",
+        "place_as_published": "1st of 10",
+        "classification_score_as_published": "27.2*",
+        "classification_context": "On This Amateur 3v3 Roster: Division 5 (49.378472)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Anthony Peralta",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "08/22/2026",
+        "event_date_iso": "2026-08-22",
+        "event_name": "MSXL - MSXL Louisville Open",
+        "event_id": "9239",
+        "event_url": "https://pbleagues.com/event/9239",
+        "team_name": "Malicious",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=cV9Wg9GdcFdJK23e",
+        "division_as_published": "Division 4 X- Ball",
+        "place_as_published": "1st of 26",
+        "classification_score_as_published": "200*",
+        "classification_context": "On This Division 4 X-Ball Roster: Division 4 (393.5466)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Austin Arguelles",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "06/07/2024",
+        "event_date_iso": "2024-06-07",
+        "event_name": "WCPPL - West Coast Classic",
+        "event_id": "8497",
+        "event_url": "https://pbleagues.com/event/8497",
+        "team_name": "Grind City",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=3m2qI6B9hvjcJf4p",
+        "division_as_published": "Premier (Pre) X-Ball",
+        "place_as_published": "7th of 18",
+        "classification_score_as_published": "491.29416*",
+        "classification_context": "On This Division 3 5v5 Roster: Division 3 (1058.9008)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  },
+  {
+    "name": "Audrey Vazquez",
+    "rows": 12,
+    "expected": 12,
+    "match": true,
+    "zero": false,
+    "all_names_urls_present": true,
+    "complete_other_cells": 12,
+    "sample": [
+      {
+        "event_date_as_published": "07/13/2025",
+        "event_date_iso": "2025-07-13",
+        "event_name": "CEPL - WORLD WAR PAINT THROWDOWN",
+        "event_id": "8802",
+        "event_url": "https://pbleagues.com/event/8802",
+        "team_name": "Cali Cartel",
+        "team_roster_url": "https://pbleagues.com/cgi-bin/roster.cgi?ERID=AH0PAlZBBsAbvYDV",
+        "division_as_published": "Division 4 X- Ball",
+        "place_as_published": "1st of 12",
+        "classification_score_as_published": "200*",
+        "classification_context": "On This Division 3 X-Ball Roster: Division 4 (590)",
+        "role_at_historical_event": null,
+        "participation_basis": "classification_scored_event_history",
+        "extraction_status": "pdf_uri_rectangles_event_team_verified",
+        "raw_row_as_published": null,
+        "raw_layout_line_number": null
+      }
+    ]
+  }
+]

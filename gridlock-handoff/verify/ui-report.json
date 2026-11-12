@@ -1,0 +1,43 @@
+{
+  "passed": 11,
+  "failed": 0,
+  "screenshots": [
+    "verify/01-event-data-loaded.png",
+    "verify/02-season-copy-merged.png",
+    "verify/03-schedule.png",
+    "verify/04-schedule-dynasty.png"
+  ],
+  "counts": {
+    "event_data": {
+      "state": "ready",
+      "entries": 680,
+      "people": 4381,
+      "names": 572,
+      "teams": 592
+    },
+    "merge": {
+      "before": 0,
+      "after": 646,
+      "status": "Merged in a copy — new here: 646 games added",
+      "all": 724
+    },
+    "schedule": {
+      "games": 724,
+      "teamNames": 449,
+      "hasScheduleWord": true,
+      "sample": [
+        "2026-11-11 07:00 New Jersey Jesters v ZuriCaos",
+        "2026-11-11 07:15 Houston Heat v LTF",
+        "2026-11-11 07:30 New York Wrecking Crew v Shock"
+      ],
+      "rootChars": 74352
+    },
+    "dynasty_day": {
+      "mine": 9,
+      "mentionsDynasty": true,
+      "textSlice": "2\n–\n1\nto 4\nACCOUNT\nHome\nNXL LONE STAR OPEN · GARLAND\n▾\n·\nSNAKE STACK\n▾\n· SCHEDULE\n‹ More\nYOUR TEAM'S DAY\n9 games\nYOUR TEAM AT THIS EVENT\nPick your team\n302 DESTROYERS\n316 Threat\nAAA JACKALS 2\nAfterlife D4\nAftershock\nAG Knights\nAggression\nALA Warsaw\nAll-Americans 2\nANONYMOUS\nAPEX.\nAPF FAMILY\nARMADA\nArmy\nAruba Madness\nAtlanta Jungle Cats\nAtlanta OutKast\nAvalanche PB Mech\nBaltimore Nevermores\nBANDIDO"
+    }
+  },
+  "notes": [],
+  "ok": true
+}

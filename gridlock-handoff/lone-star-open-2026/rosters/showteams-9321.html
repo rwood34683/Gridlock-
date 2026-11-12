@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<HTML>  
+<HEAD> 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8S6M6X0LHT"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8S6M6X0LHT');
+</script>
+
+<TITLE>PBLi - World's #1 Paintball Event Registration System</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+ 	<!--<meta name="viewport" content="width=device-width,height=device-height,minimum-scale=1.0,maximum-scale=1.0">-->
+ 	<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" >
+<meta property="og:image" content="/APPAfb_250.png" >
+<!-- This site is light-only by design. Declaring it stops Chrome's auto-dark
+     ("Darken websites") and similar from re-tinting form controls, which left
+     reset.css's forced-black input text sitting on a browser-chosen background. -->
+<meta name="color-scheme" content="light">
+<!-- Roboto 400+700 is the body/UI font; Play stays for #appaTopMenu, where a display
+     face belongs. One request serves both. The old Play-only request had no 700 cut,
+     so every bold on the site was browser-synthesised faux bold. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Play|Roboto:400,700">
+<link rel='stylesheet' href='/reset.css' type='text/css'>
+<link rel='stylesheet' href='/style.css?v=44' type='text/css'>
+<link rel='stylesheet' href='/includes/genericons/genericons.css' type='text/css'>
+<!--<LINK REL="SHORTCUT ICON" HREF="/APPAIcon.ico"> -->
+<link rel='icon' href='/favicon-64.png'>
+<link href='https://fonts.googleapis.com/css?family=Syncopate:400,700' rel='stylesheet' type='text/css'>		
+<!--SQUAREUP-->
+<!--1.3.2-->
+<script src='https://ajax.googleapis.com/ajax/libs/mootools/1.4.5/mootools-yui-compressed.js'></script>
+<script src='/scripts/mootoolsmore.js'></script>
+<script src='/scripts/sprintf.js'></script>
+<!-- CAUTION: do NOT name the ad script's element or its host here. displayHeader()
+     filters this file LINE BY LINE by substring, so a comment line mentioning one
+     drops out on its own for league logins. That happened on 2026-08-13: the line
+     carrying this comment's opener vanished and the remaining lines rendered as
+     visible text at the top of every page for league users, while anonymous
+     visitors saw nothing wrong. Same applies to the analytics and MooTools names.
+     The AdSense loader used to sit here as well as on headertop.html:23, so every
+     CGI page pulled it twice, which makes auto-placement erratic (a phantom ad was
+     landing inside register.cgi's team table). The headertop.html copy is the one
+     kept: it renders on every CGI page too (TestVal.pm:3060 opens it
+     unconditionally) AND on the ~30k static .html pages that SSI-include
+     header.html -> headertop.html but never head.html, so its coverage is a strict
+     superset of this one. Removed 2026-08-13. -->
+
+<script type='text/javascript' src='https://pbleagues.com/scripts/MooCountdown.js'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/calendar.js?v=1790537710'></script>
+<link rel=StyleSheet HREF='https://pbleagues.com/scripts/calendar.css'>
+<script type='text/javascript' src='https://pbleagues.com/scripts/tinytab.js?v=4'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/ModalBox.js'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/floatingtips.js?v=1790537984'></script>
+</HEAD> 
+<body>
+		<div id='appaMainContainer'>
+			<div id='appaTopMenuContainer'>
+				<div id='appaTopMenu'>
+					<ul>
+						<li><a href='/leagues-info'>Promoter Information</a></li>
+						<li><a href='/contact.html?LID=316'>Contact Us</a></li>
+					</ul>
+				</div>
+			</div>
+		    
+			<div id='appaMainInnerContainer'>
+				<div id='appaMainInnerContainerTable'>
+					<div id='appaMainInnerTable'>
+						<div id='appaInnerLeftBuffer'> </div>
+						<div id='appaInnerContainer'>
+							<!-- Mobile nav toggle. Pure CSS (checkbox + label, no script) so it works
+							     identically on CGI pages and on the static pages that SSI-include this
+							     file. It has to sit HERE, as a sibling that PRECEDES both the header
+							     container and the menu container, because the rules in Section 4 of the
+							     main stylesheet reach them with the ~ combinator. Those rules only
+							     collapse a menu that HAS this toggle, so the legacy *new.html header
+							     chain, which does not carry one, keeps its always-open nav. -->
+							<input type='checkbox' id='appaNavToggle'>
+							<div id='appaInnerHeaderContainer'>
+								<div id='appaInnerHeaderSiteLogo'>
+									<A HREF="/"><IMG SRC="//pbleagues.com/PBLI_4_tiny.png" id='APPALogo' alt="PBLi Shield Logo"></A> 
+								</div>
+								<div id='appaInnerHeaderAdBar'>
+									<!--Below is one line so TestVal::top processing skips all of it for league users.-->
+									<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7671519147882660" crossorigin="anonymous"></script> <!-- 2025NewAds --> <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-7671519147882660" data-ad-slot="5707614440"></ins> <script> (adsbygoogle = window.adsbygoogle || []).push({}); </script>
+								</div>
+								<div id='appaInnerHeaderLeagueLogo'>
+<a href="https://nxlpaintball.com"><img height=100 src="/uploads/leagues/b0hunkmue6euxg7d_128.webp"></a>								</div> 
+								<label for='appaNavToggle' id='appaNavToggleLabel'><span id='appaNavToggleBars'></span>Menu</label>
+								<div id='appaInnerHeaderLoginBox'>
+<span class="xx-small">Login As:</span>
+
+<FORM METHOD=POST NAME="LoginForm" ID="LoginForm" ACTION="https://mlpb.pbleagues.com/cgi-bin/showteams.cgi">
+<TABLE>
+		<TR>
+			<TD ALIGN=RIGHT class="xx-small">Login:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=text SIZE=12 MAXLENGTH=90 NAME="login">
+		</TR><TR>
+			<TD ALIGN=RIGHT class="xx-small">Password:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=password SIZE=12 MAXLENGTH=90 NAME="password"></TD></TR><TR><TD COLSPAN=2 class="xx-small"><A HREF="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</A></TD>
+		</TR><TR><TD COLSPAN=2 class="xx-small">or <A HREF="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</A></TD></TR>
+<TR>
+				<TD>&nbsp;</TD>
+				<TD ALIGN=LEFT class="xx-small">
+					<INPUT TYPE=submit VALUE="Login" class="xx-small">
+				</TD>
+			</TR>
+</TABLE>
+			<INPUT TYPE=hidden NAME="LID" VALUE="316">
+			<INPUT TYPE=hidden NAME="EID" VALUE="9321">
+			<INPUT TYPE=hidden NAME="RID" VALUE="">
+			<INPUT TYPE=hidden NAME="ETID" VALUE="">
+			<INPUT TYPE=hidden NAME="TID" VALUE="">
+			<INPUT TYPE=hidden NAME="EPID" VALUE="">
+			<INPUT TYPE=hidden NAME="PID" VALUE="">
+			<INPUT TYPE=hidden NAME="ERID" VALUE="">
+			<INPUT TYPE=hidden NAME="page" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnuid" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnname" VALUE="">
+			<INPUT TYPE=hidden NAME="VID" VALUE="">
+			<INPUT TYPE=hidden NAME="EVID" VALUE="">
+			<INPUT TYPE=hidden NAME="reservation" VALUE="">
+			<INPUT TYPE=hidden NAME="refcode" VALUE="">
+</FORM>
+								</div>
+								
+								
+							</div>
+							<div id='appaInnerMainMenuContainer'>
+								<UL id="appaMainNavMenu"> 
+<LI><a href='https://nxlpaintball.com'>NXL Website</a></LI>
+									<LI><A HREF="/cgi-bin/playerprofile.cgi">Your Profile</a></LI> 
+									<LI><A HREF="/cgi-bin/teamprofile.cgi">Your Teams</a></LI>
+									<LI><A HREF="https://pbleagues.com/leagues">Events</a></LI> 
+									<LI><A HREF="/scores/">Scores</a></LI> 
+									<!--
+									<LI><A HREF="/mobileApp.html">Mobile App</a></LI>
+									-->
+									<!--MAINLINK-->
+								</UL>
+
+							</div>
+							<div id='appaMainContentContainer'>
+								<div id='appaMainContentInnerContainer'>
+									<div id='appaLoginBoxContainer'>
+										<div id='loginBox'>
+											<br>
+<span class="xx-small">Login As:</span>
+
+<FORM METHOD=POST NAME="LoginForm" ID="LoginForm" ACTION="https://mlpb.pbleagues.com/cgi-bin/showteams.cgi">
+<TABLE>
+		<TR>
+			<TD ALIGN=RIGHT class="xx-small">Login:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=text SIZE=12 MAXLENGTH=90 NAME="login">
+		</TR><TR>
+			<TD ALIGN=RIGHT class="xx-small">Password:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=password SIZE=12 MAXLENGTH=90 NAME="password"></TD></TR><TR><TD COLSPAN=2 class="xx-small"><A HREF="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</A></TD>
+		</TR><TR><TD COLSPAN=2 class="xx-small">or <A HREF="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</A></TD></TR>
+<TR>
+				<TD>&nbsp;</TD>
+				<TD ALIGN=LEFT class="xx-small">
+					<INPUT TYPE=submit VALUE="Login" class="xx-small">
+				</TD>
+			</TR>
+</TABLE>
+			<INPUT TYPE=hidden NAME="LID" VALUE="316">
+			<INPUT TYPE=hidden NAME="EID" VALUE="9321">
+			<INPUT TYPE=hidden NAME="RID" VALUE="">
+			<INPUT TYPE=hidden NAME="ETID" VALUE="">
+			<INPUT TYPE=hidden NAME="TID" VALUE="">
+			<INPUT TYPE=hidden NAME="EPID" VALUE="">
+			<INPUT TYPE=hidden NAME="PID" VALUE="">
+			<INPUT TYPE=hidden NAME="ERID" VALUE="">
+			<INPUT TYPE=hidden NAME="page" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnuid" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnname" VALUE="">
+			<INPUT TYPE=hidden NAME="VID" VALUE="">
+			<INPUT TYPE=hidden NAME="EVID" VALUE="">
+			<INPUT TYPE=hidden NAME="reservation" VALUE="">
+			<INPUT TYPE=hidden NAME="refcode" VALUE="">
+</FORM>
+
+				    <ins class='adsbygoogle' style='display:inline-block;width:160px;height:600px' 
+						data-ad-client='ca-pub-7671519147882660' 
+						data-ad-slot='2187294391'
+					></ins>
+				    <script>
+					<!--
+				    (adsbygoogle = window.adsbygoogle || []).push({}); // google_ad_client
+					-->
+				    </script>
+														</div>
+									</div>
+									<div id='mainPage'>
+<script>
+(function(){
+	try {
+		var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		if (!tz) { return; }
+		var cur = document.cookie.replace(/(?:(?:^|.*;\s*)tz\s*=\s*([^;]*).*$)|^.*$/, "$1");
+		if (cur === tz) { return; }
+		document.cookie = "tz=" + encodeURIComponent(tz) + ";path=/;max-age=31536000;samesite=lax";
+	} catch (e) { /* no Intl, or cookies blocked: server time is the fallback */ }
+})();
+</script>
+<script type='text/javascript'>
+( function($) {
+		
+		var tinytb;
+		window.addEvent('domready',function(){
+			var tabs = $$('.tab');
+			var tc = $$('.trays')[0];
+			if (tc){
+				tabs.each(function(tab){
+					tc.adopt(tab);
+				});
+			}
+			var contents = $$('.content');
+			var tco = $$('.contents')[0];
+			if (tco){
+				contents.each(function(cont){
+					tco.adopt(cont);
+				});
+			}
+			
+			tinytb = new TinyTab($$('ul.trays li.tab'),$$('ul.contents li.content'),{ trays: 1, defaults: new Array(0) });
+		});
+})(document.id);
+	</script>
+	<style type='text/css'>
+		ul.trays {
+			min-width: 50%;
+		}
+		ul.trays li.content table{
+			text-align: left;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		ul.trays li.content {
+			text-align: center;
+		}
+	</style>
+<P CLASS="heading"><A HREF="https://nxlpaintball.com">National XBall League - Lone Star Open</A></P><BR><B>Event Location:</B> Audubon Park, Garland, Texas
+(<a href='/cgi-bin/maps.cgi?EID=9321'>Map</a>)
+(<a href="https://maps.google.com/maps?f=d&daddr=32.8450600,-96.6198920">Directions</a>)
+<BR><B>Event Date:</B> Thursday, 17 September 2026
+ to Sunday, 20 September<BR><B>Registration Deadline:</B> Wednesday, 26 August
+<BR><BR>
+<H3>Entry Fee Deadlines and Team Limits</H3><BR>
+<TABLE class="center" BORDER=1>
+<thead><TR><TH>Group</TH>
+<TH>Signed Up</TH><TH>Paid</TH><TH>Limit</TH><TH>Class</TH><TH>Through <br>
+Tuesday,<BR>11 August</TH>
+<TH>Through <br>
+Tuesday,<BR>25 August</TH>
+<TH>Through <br>
+Wednesday,<BR>26 August</TH>
+<TH>Signed Up</TH><TH>Paid</TH><TH>Limit</TH></TR></thead>
+<tbody>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=1>Pro X-Ball<BR>(Fri-Sun)</TD>
+    <TD ROWSPAN=1>20</TD>
+    <TD ROWSPAN=1>20</TD>
+    <TD ROWSPAN=1>20</TD>
+      <TD>Pro</TD>
+<TD>$4,000 </td>
+<TD>$4,150 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$4,300 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>20</TD>
+      <TD>20</TD>
+      <TD>20</TD>
+  </TR>
+  <TR class=divGroupLight>
+    <TD ROWSPAN=4>X-Ball<BR>(Fri-Sun)</TD>
+    <TD ROWSPAN=4>82</TD>
+    <TD ROWSPAN=4>82</TD>
+    <TD ROWSPAN=4>131</TD>
+      <TD>Semi-Pro</TD>
+<TD>$3,300 </td>
+<TD>$3,450 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$3,600 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>25</TD>
+      <TD>25</TD>
+      <TD>35</TD>
+  </TR>
+  <TR class=divGroupLight>
+      <TD>Division 2</TD>
+<TD>$3,300 </td>
+<TD>$3,450 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$3,600 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>17</TD>
+      <TD>17</TD>
+      <TD>40</TD>
+  </TR>
+  <TR class=divGroupLight>
+      <TD>Division 3</TD>
+<TD>$3,000 </td>
+<TD>$3,150 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$3,300 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>19</TD>
+      <TD>19</TD>
+      <TD>60</TD>
+  </TR>
+  <TR class=divGroupLight>
+      <TD>Division 4</TD>
+<TD>$3,000 </td>
+<TD>$3,150 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$3,300 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>21</TD>
+      <TD>21</TD>
+      <TD>60</TD>
+  </TR>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=1>Division 5 X-Ball<BR>(Fri-Sat)</TD>
+    <TD ROWSPAN=1>7</TD>
+    <TD ROWSPAN=1>7</TD>
+    <TD ROWSPAN=1>20</TD>
+      <TD>Division 5</TD>
+<TD>$2,500 </td>
+<TD>$2,650 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$2,800 <br><span class='xxx-small'>($300 Late Fee)</span></td>
+      <TD>7</TD>
+      <TD>7</TD>
+      <TD>20</TD>
+  </TR>
+  <TR class=divGroupLight>
+    <TD ROWSPAN=1>Division 4 5v5<BR>(Sat)</TD>
+    <TD ROWSPAN=1>13</TD>
+    <TD ROWSPAN=1>13</TD>
+    <TD ROWSPAN=1>30</TD>
+      <TD>Division 4</TD>
+<TD>$1,200 </td>
+<TD>$1,275 <br><span class='xxx-small'>($75 Late Fee)</span></td>
+<TD>$1,350 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+      <TD>13</TD>
+      <TD>13</TD>
+      <TD>30</TD>
+  </TR>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=2>5v5<BR>(Sun)</TD>
+    <TD ROWSPAN=2>12</TD>
+    <TD ROWSPAN=2>12</TD>
+    <TD ROWSPAN=2>None</TD>
+      <TD>Division 3</TD>
+<TD>$1,200 </td>
+<TD>$1,275 <br><span class='xxx-small'>($75 Late Fee)</span></td>
+<TD>$1,350 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+      <TD>6</TD>
+      <TD>6</TD>
+      <TD>18</TD>
+  </TR>
+  <TR class=divGroupDark>
+      <TD>Division 5</TD>
+<TD>$1,200 </td>
+<TD>$1,275 <br><span class='xxx-small'>($75 Late Fee)</span></td>
+<TD>$1,350 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+      <TD>6</TD>
+      <TD>6</TD>
+      <TD>18</TD>
+  </TR>
+  <TR class=divGroupLight>
+    <TD ROWSPAN=1>Amateur 10v10<BR>(Sun)</TD>
+    <TD ROWSPAN=1>17</TD>
+    <TD ROWSPAN=1>17</TD>
+    <TD ROWSPAN=1>20</TD>
+      <TD>Amateur</TD>
+<TD>$1,700 </td>
+<TD>$1,850 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+<TD>$2,000 <br><span class='xxx-small'>($300 Late Fee)</span><br/><span class='xx-small'>* Open until 19 Sep at 21:00</span></td>
+      <TD>17</TD>
+      <TD>17</TD>
+      <TD>20</TD>
+  </TR>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=1>Classic - Open 7v7<BR>(Sat)</TD>
+    <TD ROWSPAN=1>6</TD>
+    <TD ROWSPAN=1>6</TD>
+    <TD ROWSPAN=1>9</TD>
+      <TD>Open</TD>
+<TD>$1,100 </td>
+<TD>$1,175 <br><span class='xxx-small'>($75 Late Fee)</span></td>
+<TD>$1,250 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+      <TD>6</TD>
+      <TD>6</TD>
+      <TD>9</TD>
+  </TR>
+  <TR class=divGroupLight>
+    <TD ROWSPAN=1>Classic - Open 5v5<BR>(Fri)</TD>
+    <TD ROWSPAN=1>6</TD>
+    <TD ROWSPAN=1>6</TD>
+    <TD ROWSPAN=1>18</TD>
+      <TD>Open</TD>
+<TD>$900 </td>
+<TD>$975 <br><span class='xxx-small'>($75 Late Fee)</span></td>
+<TD>$1,050 <br><span class='xxx-small'>($150 Late Fee)</span></td>
+      <TD>6</TD>
+      <TD>6</TD>
+      <TD>18</TD>
+  </TR>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=1>WNXL 5v5<BR>(Sun)</TD>
+    <TD ROWSPAN=1>3</TD>
+    <TD ROWSPAN=1>3</TD>
+    <TD ROWSPAN=1>9</TD>
+      <TD>WNXL</TD>
+<TD>$1,150 </td>
+<TD>$1,150 </td>
+<TD>$1,150 </td>
+      <TD>3</TD>
+      <TD>3</TD>
+      <TD>9</TD>
+  </TR>
+  <TR class=divGroupLight>
+    <TD ROWSPAN=1>WNXL 3v3<BR>(Sun)</TD>
+    <TD ROWSPAN=1>0</TD>
+    <TD ROWSPAN=1>0</TD>
+    <TD ROWSPAN=1>12</TD>
+      <TD>WNXL</TD>
+<TD>$360 </td>
+<TD>$360 </td>
+<TD>$360 <br/><span class='xx-small'>* Open until 20 Sep at 09:00</span></td>
+      <TD>0</TD>
+      <TD>0</TD>
+      <TD>12</TD>
+  </TR>
+  <TR class=divGroupDark>
+    <TD ROWSPAN=4>3v3<BR>(Sun)</TD>
+    <TD ROWSPAN=4>41</TD>
+    <TD ROWSPAN=4>41</TD>
+    <TD ROWSPAN=4>80</TD>
+      <TD>Amateur (D3)</TD>
+<TD>$375 </td>
+<TD>$375 </td>
+<TD>$375 <br/><span class='xx-small'>* Open until 20 Sep at 09:00</span></td>
+      <TD>5</TD>
+      <TD>5</TD>
+      <TD>27</TD>
+  </TR>
+  <TR class=divGroupDark>
+      <TD>Intermediate (D4)</TD>
+<TD>$360 </td>
+<TD>$360 </td>
+<TD>$360 <br/><span class='xx-small'>* Open until 20 Sep at 09:00</span></td>
+      <TD>13</TD>
+      <TD>13</TD>
+      <TD>54</TD>
+  </TR>
+  <TR class=divGroupDark>
+      <TD>Novice (D5)</TD>
+<TD>$360 </td>
+<TD>$360 </td>
+<TD>$360 <br/><span class='xx-small'>* Open until 19 Sep at 21:00</span></td>
+      <TD>23</TD>
+      <TD>23</TD>
+      <TD>24</TD>
+  </TR>
+  <TR class=divGroupDark>
+      <TD>Youth</TD>
+<TD>$300 </td>
+<TD>$300 </td>
+<TD>$300 <br/><span class='xx-small'>* Open until 20 Sep at 09:00</span></td>
+      <TD>0</TD>
+      <TD>0</TD>
+      <TD>54</TD>
+  </TR>
+<TR><TD COLSPAN=15>Payment deadlines are at 02:59 AM EDT unless otherwise noted above.</TD></TR>
+</tbody>
+</TABLE>
+<BR>109 X-Ball teams paid of 109 teams registered.
+<BR>17 10v10 teams paid of 17 teams registered.
+<BR>6 7v7 teams paid of 6 teams registered.
+<BR>34 5v5 teams paid of 34 teams registered.
+<BR>41 3v3 teams paid of 41 teams registered.
+<br>
+207 teams paid of 207 teams registered.<br>
+<p><h3><a href="/cgi-bin/freeagents.cgi?LID=316&EID=9321">Free Agents</a> for this event</h3></p><ul class='trays'></ul>
+<ul class='contents'></ul>
+
+<li class='tab'>Pro X-Ball (Fri-Sun) (20 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=yUbBwOvw3Ryo2L2E">Atlanta Jungle Cats</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=DGmUoLavm5dEly3P">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=V2AAgXBXiTdpFeRP">Chicago Aftershock</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=lOgvxlJM59gR4jzw">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0LGtv1qD0cPV4D4u">Chicago Distortion</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=mLMseziMMxZNZngH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=yYE1KWmnU3tJOU2f">CK Hurricanes</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=abksbYxq6Q5MIPuE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=tGqR6LaDkTiOcB8l">Detroit Infamous</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=5JCXyF7veg2Y2zmY">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Cw5f2WKdHxWhLcCU">Edmonton Impact</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Ck8loQfdO6Lzqaeg">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=bkZuqlBFJBIH16gt">Houston Heat</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=AyoHJ82yK3Gq0Ddy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=n02tWhOzikH0pidQ">Los Angeles Collision</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=tM0JElAxLgifGo1D">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=BxcLngKxZwVI5lTB">Los Angeles Ironmen</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ZF2YoU8p7U6aNhG5">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=p6OSQN6ipesOD3Qp">New Jersey Leverage</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=P2xnWPz6jP2JT30c">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=L95CWOxdIJvYckAY">New York Xtreme</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=X0I9pQj6EXXcMgKt">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=dbBCywTMd0IAjOJG">PaintballFIT</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=dKDBppmdf8B4BXZk">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=rB9bNzYIsJvae53p">Perris ASG Aftermath</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=E6t88yJJlWiI0PGx">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2qAmdAHERdjVnMW6">Red Legion</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=99nCQxR5MCaqTBal">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=VBgu2DjTG3ftWbNa">Royal City Seadogs</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=fhwWzcZ486QDnfWv">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ZKeLDRObA8uTlN2u">San Antonio X-Factor</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=97SDOA2CvSffuAgH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=NULRcbYNCM3HfLiK">San Diego Dynasty</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=wbdv36k9vQFDmDO7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=6FYh7gTHAf42gkZ0">Seattle Uprising</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ZetwZDhLHEcCAXDC">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=LvSxug1gDAaN323a">Tampa Bay Damage</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=xkJeIYtz0sQ4Dbta">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=lbrDZrreMn3Nchq4">TonTon Arsenal</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=V7DvXn7CIQlnKNJg">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+20 teams paid of 20 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Semi-Pro X-Ball (Fri-Sun) (25 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xpTCpgtTouejocNq">ARMADA</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=4eoYgN5yL8zeyUYH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=CfmMfMVzcqmbQ8Ic">BEEFY BOYS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=La5C3Rf5z4MO8QzE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=RcNjlSUqI9aJe8c6">Blast Camp</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=icRQLkZbVJuYEvHb">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=kZ2yLTnFI1C4bS3V">Brooklyn Wolfpack</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=DbUjOgDbalgOT7zq">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=YQArZUecd4nNvDrr">Clutch City Oilers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=poY4OxXlydFELys2">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=98FbnFWF5gzBktXC">Denver Altitude</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=2DBRLw9jUl2WwfyE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=tfodMWPFF2o9bPj4">Distortion Immortals</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=u4ZxdDGJGdiDcVET">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=8bSMn4RPtEQB23gc">EAVL</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7X5YbgSRrPgEUuUh">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=qGuxUWFvahORaeO8">KC Missouri Allstars</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=EWQDVN6n9uWEmx4L">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=vttdlKmjVpkk1BaP">LA Collison 2</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=cR8AHeZmqg2czI8l">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=NxIdNKbSvYbKKGlu">Las Vegas Shock</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=3eQnSfXekBIKBIn6">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=TWEkucEypkFPO6Sn">Legacy Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=luJjGl3qXjrq0naw">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=itJA2gGQEIVtY2AQ">Malicious</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=f4JvC0IexSvWBspj">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=krDxgu4uTecmkMfu">Miami Effect</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ST3ad5SHKX1epML1">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7rqxeBlzJVGMkAeh">New Jersey Jesters</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=DEPvoBZlTSc0yMBJ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=b13H2mx5s95UwNtf">New York Wrecking Crew</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=cq9aKrzeLc3HYGQN">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=4WfYKF9nXTRu3uQe">Noobies</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=kQoQkOJLSdaWODfs">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=jB9ql05thPJawlZ9">Oregon IKONIK</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=WsnpKv8atEw2YUJa">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=4wujOrn0NVGtcLqx">Preferred mob</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=AKVPciuyFGcc1ODk">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=YynKyIpTWUUWZqRC">Project x</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=oOZxIsSC6gY0VieM">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7j5RIGbrCghvDhDW">Puerto Rico tppcrew</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=LLmylHJfJ1ueYXLV">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Mkggpi8Vhpm58q8k">Rejects</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=D9WHX4Uw6oHjXJxB">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=KPvbvu5KDojOljLv">Shut up we're trying</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=2rvRDQbdo3hc5uUL">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HkfOJLKIFBjjashn">Texas Demolition</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Q7TqrYDf9eFA2040">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=fimjLee12QSm8WGg">Thunder Valley Blackout</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=mKDL8UrQUseVgKIA">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+25 teams paid of 25 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 2 X-Ball (Fri-Sun) (17 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=RvCFu57IyL8AGHsL">AG Knights</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=GcfynlzUxv1xTWzk">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xu6CVwNHhQIBMwvk">BC Riot</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=EpQ5TTuC3SBYXINR">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=mOOlmgmL2lnWHIB8">Brawl</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7MGodYAMSRD3YyOn">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0IVXrJgSVJN6zu1i">Cleveland Chaos</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=9qxDX7M1VX4z2Cfg">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xcVQpz1l3PqeH1IB">Control</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=5mtoGYacTrBQqHe4">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=MrAqcIC9tN6MATFZ">Corrupt</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=FtUdMy2eiduRJR15">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=cx00PVM3NedVbPHP">CWE POWER</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=bYbqLAZnqMDH2Rh7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=R0Owm9ClNevwsLah">Full Paintball Colombia</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=peAfYZYkZ1exDPB1">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ThjOa17zdZw7eOk9">Gulf Coast Ragtag Army</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=oj1qbzf5XFp33F3I">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=KqWnHkSCotOIqopS">LVL</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=GOZrs7BAMmTn2mLZ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=E2xv41ACp60M9Pqy">Omaha Jamz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=K3vcxgd1olUfLWSD">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=NUjmVeSchOwh88AJ">Panda Express Elite</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=EV7UTIIUtE7O4yoS">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=FFNRvPPyzSYaljiC">PTN</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=mbuIF7nkwDAzqO5N">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=R3MGcx4FBFX6Ot1h">Raze</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=NCCOM0dzi4ezCBGY">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=XPFKLL5Aifn4K4uF">STL Threat</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=mZwoNncQf3Az7rAP">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HAuoMMOTUQxGm3IA">TAKEOVER</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=XE8HrunUoZEkas46">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=kksjqdkDtibKy7Wr">Texas Titans</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=mWToBXikbmVTP3GL">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+17 teams paid of 17 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 3 X-Ball (Fri-Sun) (19 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=t5wT9XUilw00ffts">BEEFY BOYS D3</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=PqFySOoh8aqGVhXq">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ayeQSlTJyDDGR6Zq">BR FACTORY</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=qCekk4q72O0r0INq">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=fTyHmZMWiWzNkUuL">Clutch City Oilers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=l52oayJHwhDUcoTR">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=3Rxbkd0siirhCGFw">Free Smoke</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=wF9t7R7zL9BPaGGu">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7J2zpfx0iDAub2wW">Gunnerz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=VvDUpC03jlepea9j">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=1zFqRvbyLFATVUJ5">Hustle</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ikTK8kBSQOoKrVpT">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=oFYNxR4bGT8nC1Ff">Immortals D3</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=aeJy3Dn2Ws1Ad9LT">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=KCsfek6JDqpBbHDm">Legacy Gorillas</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=y1lzW4BkMVEidzRG">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=41nPpDejqDj17YbL">New England Storm</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=24vo3KmVl6eVfL2v">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ZrrqDsNFxBtq1sMa">New Jersey Filthy 3</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=43ZnvpjB6euf2mLW">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=eHenJfZWKn5XsNJY">OKC Mutiny</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=hrqfE2NtOjDMvRSm">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=pZVV322JHWyfUVle">Outlaw AP Prime</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=RfKGwzp42fQ6Qp6o">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=mq2f0mCDD4vAu94d">Protocol</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=r1QKrzn9jKAFEi7M">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=D9YkT5v0a9tAhjOE">Raiders X Apex</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=QKtGGrheN4HqvYk1">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=BsTSc7dy4da6Kzxe">Rejects.</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7G7RV8Tb86jSi1PJ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=p7KdIZbqio1Oj4P3">Smoke</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=BOip84LYXQGriPNw">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=WRkx7NZ6QpntNF0c">Veteran Militia Kilo</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=FyTUPCOudQz7qD6W">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=KINY2Hh8GCV8UG4J">WAR</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=qoTP2tnZrRLfa5Wz">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=uhRTnwYxxEDiBA82">Washed Up Boyz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=BtlLnQ3BCyeW2EtT">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+19 teams paid of 19 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 4 X-Ball (Fri-Sun) (21 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HY2dC0aWLkFNCTft">Atlanta OutKast</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=iVAsz2jdDAKmwxhC">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=jDhVc5x7ASnO91ss">Carolina Threat</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=2oGUIOmt5HNORxbE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=rEaWYEToqNbUQQnQ">ColdBlooded Warriors</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=1MTLwg5BQ0zyaMme">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=hk9KflFXd4zX0ias">DEFY Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=RWiM2QNm1v4m7MTy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=W78O6lvCBBMxRgdR">Defy Kidz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=J2a7xabL8NXqodBm">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Mv17xcsPSAIzG0YU">en3my of the state</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=dw2vlMDx0TlKd1vE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=SvxuEqIb7rZnexc0">Hydra Kidz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=cqGJUFi3Su3Lfv1H">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HM1TvWgOgewQxIFX">Kick'N Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=MAP6uNos0D8sEF1Y">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xh5pNBYpgrjHSMXy">LORDS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=lMD3ubTUA930w2VK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=O9TCjXCzbFoZyb0T">Marine Team Tun Tavern Edition</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=icwjmt1qCm8imIQA">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7qdxuK7t5KHH0tQx">Nashville Coyotes</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=qNPDf022C0q0SwU7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=TbTHacX5eP40bAFU">New Jersey Filthy 4</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=VhlItANeQfQagoQX">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=p9iDmfN8XXTrjpzk">OG Carolina Threat</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=rZgNUKckcjGl3op0">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=eA9UGPCanSnGa40C">Red Legion D4x</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=PoF0yckQhoSqvnos">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=zP48agSkZ6uZ7coz">Sunday Sleepers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=KKwqDv3JwuTas4VJ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=pJ96mMSiX5IPN8Xn">SUWT HYDRA</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=KsLdF4d3JVBhp7Fs">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=WwzTabX0l0l7DpiZ">Team Hyperion</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=YsLi0ymhbky12nwi">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=WwNOkn7W3MpvQAW4">The Leftovers II</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=4RO7a3EWPHBilR76">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HalecGK4W4ZAfwTO">TKO Texas KnockOut</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=c9lG3xphJcnYspb7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=nHdYUu8VRGEQv3GJ">Veteran Militia Charlie</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=8ndaKPrubBiqT1YE">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Hs08RvidWDsaXC9g">WILD DOGS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=rfQ8iJ34eaWhe04G">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+21 teams paid of 21 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 5 X-Ball (Fri-Sat) (7 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=NyJ6E2ELveUejjSD">Bear Ridge 5</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=br4W6YA3XSdmOI9u">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=p3TTnl4D7yrILeYA">Dallas Meanies</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=BdyUCOglmPpRpdet">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=YUImqMrCgUuMngqq">GRD</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=3uU71xTPd0VvdF1M">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=pYHtVrgSsEaHrvF0">Shut Up They're Trying</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=p2t1KHW3edd2BESf">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=m53G5f9nYOQggwc4">Team Blank</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=1sHB1axCnPqN93Fi">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Vs5AJMp9au763iam">The Leftovers III</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=WkVEAcBYURh0rJ6d">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2HiAaYiI2WE1vALV">TPP Black swans</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=5mnO1dl9KNPEmTXU">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+7 teams paid of 7 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 4 5v5 (Sat) (13 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=deP8SQoE6LAqSVAZ">ATP Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=PtdkBkpbxyfrNpBS">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=RVDMVWIAQl8tkn6z">CARTEL</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7BbdOA18NqL5puRB">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=XVichiNVPrhoSRug">Coldblooded Pirates</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=M9LWRiedeIv3LD6R">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=au4KOhGPLtl3L9FM">Elite Dynasty</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Wtyovst4wtGQn8gN">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=IjIXGypt95FMW69W">Hostile Ground</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=jnibs8odMJtcmX7y">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=GbYOravEp3nf9dja">Hydra</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=PIbvXiAADik2yjcy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=rcSim4MMK6QG8WEz">Legacy by PBGateway</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=77OhUDl4s1MD14KV">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=9DfH0VXz5YoMJdCs">NMI</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=N1vToS6kSSU7xtoH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=MrLJ3pKiVldX82cp">Royal Sirens</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=8FIPJhFB29GavnGR">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2wlDGftmvj66k8FY">Splat Houston</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=qN3mHtWijUxGWbuO">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2hZ2FiMXzLah1MMv">Tampa Bay Exile</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Db81CsP7TSMrW8uN">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=vNbM5H8HVJMr23Jt">TexeCutioners by PBGateway</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=wW4xlfJu5Vewwb2g">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ItOfxYOaQWtdXrNk">Wasted</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=YYvMVDKK8bhnXIU2">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+13 teams paid of 13 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 3 5v5 (Sun) (6 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=qOFi1mYNbZEd6Viu">NMI</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=NLEcOmmDiW04yHDa">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=tcNdIenihGvAvXxC">Papeletto</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=e0zJNVVnaBEftuOW">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=vVjdMso909jyLQiA">PHILIPPINES</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=BoSGaD5EZy2oXhtn">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=vwGklB9uEOgd7B4a">TAKEOVER</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=T7Nvdxq5GkY0Ye9D">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HFg6YKCb2wETwcro">The Leftovers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=iPC9g8ovrvD0nifi">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=peSbCfU96fUQntR4">Veteran Militia Zulu</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=FWo4zuBGgL3Le70I">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+6 teams paid of 6 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Division 5 5v5 (Sun) (6 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=IhCKbXNsQcT2Un7c">CC Sharks</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=JpFkUA3FYWYyRvVQ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=ePkyrZ52Q6tEVwiq">Factory Reset at TXR-EB</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=xZ798UG3sO5RLqSK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=nltvasIa1qBbbSIu">Lex Talionis at UH</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=6aiXtKNKcua9CGo5">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=CdbqYiOxIfKqCgUl">Nola Savages</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=EZTRacFCqoZWR7iy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=H30MQBgso61hpLc1">PDK</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=8ufq2Vs5qivL027d">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=pN7S2u0bVeRt5e8y">PHANTOM</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=jdCCjElg2j55E6JD">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+6 teams paid of 6 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Amateur 10v10 (Sun) (17 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=9sVwLkd7XzjKGLaR">Bazooka Sharks</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=gHcdxPVKPmBDHnBy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=AtAoJWPjT2Mc5kET">Bricktown Bucks</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=3c7Oluh66Y9Cu11z">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=dfboMj5Uqi7Jewsz">Chicago Aftershock</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=tTKxihhjtO34w9f7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=oIT6btBsbOzUcH0w">CRBN</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=C2sVvPrSLpZkhKmU">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=wPnRdd3zz5vK9Uir">Dirty.</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=FT9JRgXGssrwxRav">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=vwiR6O0nRV78H5GD">FC Dirty.</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pfUVu2hqo4hoOTT7">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=nE33pmDCpFjc9aP0">Houston VcK</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=e7EjFDurG0R3gwo3">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=G3VKaOncyDy8DNDE">Hydra Mentality</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=X4CrRvFm5eRT0ipR">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0E27Ag4P1nkg8m2E">Hydra.Fit</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=WHimMPBihEyp15Wc">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HXgSTcXZX1zSvEbD">MB55</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=TP2CFHSquF6JpEBS">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Lw6NWk7kLXhj6Wot">NWA United</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pXGDOzxnNslGjM6W">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=oCZBJrSsJ3R3fihK">PBGateway</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=yq2To5VnTPoB7VSK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=LIvPFTvDpPFLsWSr">PHILIPPINES</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=in3GB26S5zspu1RX">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=MGajiHdWLK5a7SVX">Pro Edge Goon Squad</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=dA81roMxW1T6HBpa">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=1oEsAtgbNKjtxTLd">Swamp Chickenz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=xb3YOFfqwJSVCidH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=qZx2aFEAmKM9w86g">Tulsa Saints</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=MpiPOufKQnvYo1fb">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=65YzL1ULXBtwoZIw">Without Remorse</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=34ZHrqFGM6d0mlLG">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+17 teams paid of 17 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Classic - Open 7v7 (Sat) (6 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=oCxg5USIWFEwbNMb">Aftershock</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=v8TgifxYuawODObf">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=wPnRdd3zz5vK9Uir">Dirty.</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=MjHeTG2wvFQ2qUbh">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Z6OOddPX3IKz0Q2Q">Doc's Raiders</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=bWgQcn0FuhmO96Te">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=GGxXwn5gTnAIUk4D">FZR</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pTiMl9rR2kRYKHxT">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=MhXEKZW7noq1bV94">Outlaw AP Aeros</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=cKo68AR8BAT3pliy">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=LIvPFTvDpPFLsWSr">PHILIPPINES</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=0uRfVK6BjOUC9gST">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+6 teams paid of 6 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Classic - Open 5v5 (Fri) (6 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2kWeKnIGtCjgB4g4">Aftershock</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=WFy0iy5uirXtDn2r">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7hDSV8qnraxksBrR">BP Rizing</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=acpRBCljX4SMS5H8">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Z6OOddPX3IKz0Q2Q">Doc's Raiders</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=jFmN3JNJIYrFWbWO">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xonRrF2AyJXQacbK">Papeletto Team</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Kk5d9Up9eBgL0NCZ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=LIvPFTvDpPFLsWSr">PHILIPPINES</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=84mPW7mZiv5pAaEf">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=BeXHPydFCwiq4noS">Wasted Mech</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=bKaJtkcVkowgICeI">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+6 teams paid of 6 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>WNXL 5v5 (Sun) (3 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=YM5BiAW13U3qQa07">OKC Vengeance</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=iqtpQwOBUbVwhpRN">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=mISq4Pt2kEhJAIG1">SMSC Ladyz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=RxasLmnkxMK6Y58L">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=K0pjfjZLvRfnC9xT">Sparrows</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=uJmgBKwS068avpXl">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+3 teams paid of 3 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Amateur (D3) 3v3 (Sun) (5 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=RVDMVWIAQl8tkn6z">CARTEL</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=2RCmTa79I6VejcWm">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Z6OOddPX3IKz0Q2Q">Doc's Raiders</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=TtrZi0CnlXntJxp1">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Orw7qqI1TnXNYk0I">Outlaw AP Society</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=jkA3zPLgdiUg2zeu">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=BYybg8fFOX22Gz43">THE NOBODYS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=gHdQ5Cu9bMFmHc6u">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=HEzoIOKC4O8g4P1A">THOSE GUYS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=u1cRIHGJGlCrrU2v">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+5 teams paid of 5 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Intermediate (D4) 3v3 (Sun) (13 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=XGokS4RjBKTQRUFT">Be someone</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=MEgEFHJoR3YFABe0">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=yA6askf2zH1psGZp">Cold Blooded PANDAS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=LnuOFelePkEUiG4F">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0QytnPIO5ukPzNWa">Cutthroat</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=h25XY4OX00g6cZUQ">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=YlFSPX9Lps8NdmXo">Dirty. Crew DFW</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Ixupcb5pQTn5YX8S">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7J2zpfx0iDAub2wW">Gunnerz</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pP4VSvu6VO69eJhF">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=9DfH0VXz5YoMJdCs">NMI</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ogemQs9hfkPw7z7V">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=6TWGeQENKOlrRabJ">Ronin</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=95WthChFkmGh0YEx">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0szFVAaQjlkrslWL">Team Blank Omen</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=aGcDIU8dtFwtzOJD">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=WwzTabX0l0l7DpiZ">Team Hyperion</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=AGaIPl7lzfc05j2K">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=nX2BNsxh0HacT5Gh">Team Hyperion Purple</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=lSgi6OMJkkzqRcoL">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=bAfMtRuQ2CvQ7Im6">The Leftovers INTERM</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=hcLAmGgh3eLV1kuF">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=F8dKOvS0fsJa16Y0">Veteran Militia Xray</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=Vz0Ieta7pVRMpjX9">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Ybow7JvPB7srQe73">Voltron and the Legion of Doom</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=BlKCrsejxveZLqDK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+13 teams paid of 13 teams registered in this division.
+<P>
+
+</li>
+
+<li class='tab'>Novice (D5) 3v3 (Sun) (23 Teams)</li>
+
+<li class='content'>
+
+<TABLE>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=eaNbIF4efHazE8TT">ATP Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=fnV8UDm6YeHbQCGn">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=5blltMDuLnUIyGHU">ATP Factory Blue</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=lhg5Gg4TDCdNfTTu">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=NyJ6E2ELveUejjSD">Bear Ridge 5</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pCthcqUSHMes3Lfw">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=zR0FKIP5LhZIsaMl">Bloodline Disciples</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=PoyjemPDKuoZEC7g">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=h465dsgomG9Z8J5S">Boat Club Ballers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=B9QcmkQ7BBuI2OHH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=7hDSV8qnraxksBrR">BP Rizing</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=OTrTEHTfsCp5xv9K">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=2GkJesqqk9PtoVr5">Bricktown Bucks Gold</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=HS08gwzt9dHffRaH">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=cjk6rexyp6QPgMb2">Bucks Bronze</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7Fo5DrZslanEJKXC">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=lkuZdlrML9MSCDZx">Dirty. by Design Factory</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=VlDmi4OlYaqVsgM8">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=48OaJOnxMHOkU4p9">EVIL DEEDS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=NHNyN6E3q9JJfU3v">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=QOvRXq6ZoJKjz0s1">Good Company</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=uk0jYYCBT9qBz4Mx">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=uzkVIE42xgqUv9Xw">Mystery Machine</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=QRrhj3Dx96Wr8kci">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=CdbqYiOxIfKqCgUl">Nola Savages</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=pBnLNluH9fncP5nK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=H30MQBgso61hpLc1">PDK</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ZP5JLEPTUYyneltb">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=CqWt6u4apLk4mqr8">RIV SQUIDS</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=YVJAETD3GTTmFqwI">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Y09UGbCvaeGodPIK">Supreme Verdict - Ballers</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=WcGio9AYKucoGxKK">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=4pLyy97FEMS5M0IF">Team Hyperion Black</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=LFtrShZuOag5hN6O">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=IdVHMEEK0ooIN68Z">The Meanies</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=HXhD5TasXlcIe7Q1">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=xkNdslWykk2rD4GY">The Meanies D5</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=s3wksPiyDykVTjxx">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=dNBQqFjmaAEF2J08">The Meanies D5 SVNT1</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=tmhMrjOqzjym9eSM">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=0cLPElHYpgYAfnaH">West Texas Chaos Elite</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=V4GZateOunrVKtbF">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Kt1K3z4tgLcS57IZ">Whos NEXT</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=7dawWLpqGORDAVlL">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+<TR><TD></TD><TD><A HREF="/cgi-bin/teamprofile.cgi?ETID=Tr9VBbfwXhTImhJf">WTF</a></td><td><A HREF="/cgi-bin/roster.cgi?ERID=ELsXUIBJqP8hvfiD">Roster</A></TD>
+<TD class=lgreen ALIGN=CENTER COLSPAN=2>Payment Accepted</TD>
+</TR>
+
+</TABLE>
+23 teams paid of 23 teams registered in this division.
+<P>
+
+</li>
+									</div>
+								</div>
+							</div>
+
+
+
+						</div>
+						<div id='appaInnerRightBuffer'> </div>
+					</div>
+				</div>
+			</div>
+			<div id='appaFooterContainer'>
+				<div id='appaFooter'>
+					<SPAN CLASS="xx-small">
+						Website contents and layout Copyright 2003-2024 by PBLi
+					</SPAN> 
+				</div>
+			</div>
+		</div>
+	<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a50398de6bde8ce4',t:'MTc5Mjk1NjIyMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+

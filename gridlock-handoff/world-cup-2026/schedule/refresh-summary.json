@@ -1,0 +1,39 @@
+{
+  "pulled_at": "2026-11-12T14:06:25.927650-05:00",
+  "games": 722,
+  "slots": 423,
+  "pit2": 299,
+  "resolution": {
+    "sides_resolved": 1274,
+    "sides_unresolved": 3,
+    "sides_slot": 167,
+    "games": 722
+  },
+  "unresolved": [
+    {
+      "game_id": "4071649",
+      "side": "home",
+      "division": "Pro 3v3 X-Ball",
+      "name": "Rejects"
+    },
+    {
+      "game_id": "4071637",
+      "side": "away",
+      "division": "Pro 3v3 X-Ball",
+      "name": "Rejects"
+    },
+    {
+      "game_id": "4047264",
+      "side": "away",
+      "division": "Pro 3v3 X-Ball",
+      "name": "Rejects"
+    }
+  ],
+  "xlsx": "/workspace/paintball/world-cup-2026/schedule/world-cup-2026-schedule.xlsx",
+  "csv": "/workspace/paintball/world-cup-2026/schedule/world-cup-2026-schedule.csv",
+  "games_json": "/workspace/paintball/world-cup-2026/schedule/games.json",
+  "data_block": "/workspace/paintball/world-cup-2026/schedule/data-block.tsx",
+  "schedule_json": "/workspace/paintball/world-cup-2026/schedule.json",
+  "tally_template": "/workspace/paintball/world-cup-2026/scout-tally-template.json",
+  "data_block_bytes": 64204
+}

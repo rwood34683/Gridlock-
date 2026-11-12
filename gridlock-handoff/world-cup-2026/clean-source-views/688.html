@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<title>Baltimore Nevermores at World Cup | PBLeagues.com</title>
+<meta content="Baltimore Nevermores at World Cup" property="og:title"/>
+<meta content="PBLI is the most experienced, most trusted provider of paintball tournament registration services. Our system is the most advanced, feature-rich software package for paintball tournament operations, designed and built by experienced event promoters." property="og:description"/>
+<meta content="" property="og:image"/>
+<meta content="" property="og:url"/>
+<meta content="PBLI is the most experienced, most trusted provider of paintball tournament registration services. Our system is the most advanced, feature-rich software package for paintball tournament operations, designed and built by experienced event promoters." name="description"/>
+<meta content="Paintball, Results, Scores, Fixtures, Standings, Live Paintball, Latest Paintball Results, Paintball Tournaments, Paintball Events, Statistics and news, Paintball leagues" name="keywords"/>
+<meta content="#2371B4" name="msapplication-TileColor"/>
+<meta content="#2371B4" name="theme-color"/>
+<link href="https://fonts.googleapis.com/css?family=Play" rel="stylesheet"/>
+<link href="/assets/plugins/bootstrap/css/bootstrap.css" rel="stylesheet"/>
+<link href="/assets/plugins/font-awesome/font-awesome.css" rel="stylesheet"/>
+<link href="/assets/plugins/bootstrap-select/css/bootstrap-select.css" rel="stylesheet"/>
+<link href="https://pbleagues.com/compiled/1788527634-compiled.css" rel="stylesheet"/>
+<style id="notify-bootstrap" type="text/css">.notifyjs-bootstrap-base {
+ font-weight: bold;
+ padding: 8px 15px 8px 14px;
+ text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+ background-color: #fcf8e3;
+ border: 1px solid #fbeed5;
+ -webkit-border-radius: 4px;
+ -moz-border-radius: 4px;
+ border-radius: 4px;
+ white-space: nowrap;
+ padding-left: 25px;
+ background-repeat: no-repeat;
+ background-position: 3px 7px;
+}
+.notifyjs-bootstrap-error {
+ color: #B94A48;
+ background-color: #F2DEDE;
+ border-color: #EED3D7;
+ background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAtRJREFUeNqkVc1u00AQHq+dOD+0poIQfkIjalW0SEGqRMuRnHos3DjwAH0ArlyQeANOOSMeAA5VjyBxKBQhgSpVUKKQNGloFdw4cWw2jtfMOna6JOUArDTazXi/b3dm55socPqQhFka++aHBsI8GsopRJERNFlY88FCEk9Yiwf8RhgRyaHFQpPHCDmZG5oX2ui2yilkcTT1AcDsbYC1NMAyOi7zTX2Agx7A9luAl88BauiiQ/cJaZQfIpAlngDcvZZMrl8vFPK5+XktrWlx3/ehZ5r9+t6e+WVnp1pxnNIjgBe4/6dAysQc8dsmHwPcW9C0h3fW1hans1ltwJhy0GxK7XZbUlMp5Ww2eyan6+ft/f2FAqXGK4CvQk5HueFz7D6GOZtIrK+srupdx1GRBBqNBtzc2AiMr7nPplRdKhb1q6q6zjFhrklEFOUutoQ50xcX86ZlqaZpQrfbBdu2R6/G19zX6XSgh6RX5ubyHCM8nqSID6ICrGiZjGYYxojEsiw4PDwMSL5VKsC8Yf4VRYFzMzMaxwjlJSlCyAQ9l0CW44PBADzXhe7xMdi9HtTrdYjFYkDQL0cn4Xdq2/EAE+InCnvADTf2eah4Sx9vExQjkqXT6aAERICMewd/UAp/IeYANM2joxt+q5VI+ieq2i0Wg3l6DNzHwTERPgo1ko7XBXj3vdlsT2F+UuhIhYkp7u7CarkcrFOCtR3H5JiwbAIeImjT/YQKKBtGjRFCU5IUgFRe7fF4cCNVIPMYo3VKqxwjyNAXNepuopyqnld602qVsfRpEkkz+GFL1wPj6ySXBpJtWVa5xlhpcyhBNwpZHmtX8AGgfIExo0ZpzkWVTBGiXCSEaHh62/PoR0p/vHaczxXGnj4bSo+G78lELU80h1uogBwWLf5YlsPmgDEd4M236xjm+8nm4IuE/9u+/PH2JXZfbwz4zw1WbO+SQPpXfwG/BBgAhCNZiSb/pOQAAAAASUVORK5CYII=);
+}
+.notifyjs-bootstrap-success {
+ color: #468847;
+ background-color: #DFF0D8;
+ border-color: #D6E9C6;
+ background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAutJREFUeNq0lctPE0Ecx38zu/RFS1EryqtgJFA08YCiMZIAQQ4eRG8eDGdPJiYeTIwHTfwPiAcvXIwXLwoXPaDxkWgQ6islKlJLSQWLUraPLTv7Gme32zoF9KSTfLO7v53vZ3d/M7/fIth+IO6INt2jjoA7bjHCJoAlzCRw59YwHYjBnfMPqAKWQYKjGkfCJqAF0xwZjipQtA3MxeSG87VhOOYegVrUCy7UZM9S6TLIdAamySTclZdYhFhRHloGYg7mgZv1Zzztvgud7V1tbQ2twYA34LJmF4p5dXF1KTufnE+SxeJtuCZNsLDCQU0+RyKTF27Unw101l8e6hns3u0PBalORVVVkcaEKBJDgV3+cGM4tKKmI+ohlIGnygKX00rSBfszz/n2uXv81wd6+rt1orsZCHRdr1Imk2F2Kob3hutSxW8thsd8AXNaln9D7CTfA6O+0UgkMuwVvEFFUbbAcrkcTA8+AtOk8E6KiQiDmMFSDqZItAzEVQviRkdDdaFgPp8HSZKAEAL5Qh7Sq2lIJBJwv2scUqkUnKoZgNhcDKhKg5aH+1IkcouCAdFGAQsuWZYhOjwFHQ96oagWgRoUov1T9kRBEODAwxM2QtEUl+Wp+Ln9VRo6BcMw4ErHRYjH4/B26AlQoQQTRdHWwcd9AH57+UAXddvDD37DmrBBV34WfqiXPl61g+vr6xA9zsGeM9gOdsNXkgpEtTwVvwOklXLKm6+/p5ezwk4B+j6droBs2CsGa/gNs6RIxazl4Tc25mpTgw/apPR1LYlNRFAzgsOxkyXYLIM1V8NMwyAkJSctD1eGVKiq5wWjSPdjmeTkiKvVW4f2YPHWl3GAVq6ymcyCTgovM3FzyRiDe2TaKcEKsLpJvNHjZgPNqEtyi6mZIm4SRFyLMUsONSSdkPeFtY1n0mczoY3BHTLhwPRy9/lzcziCw9ACI+yql0VLzcGAZbYSM5CCSZg1/9oc/nn7+i8N9p/8An4JMADxhH+xHfuiKwAAAABJRU5ErkJggg==);
+}
+.notifyjs-bootstrap-info {
+ color: #3A87AD;
+ background-color: #D9EDF7;
+ border-color: #BCE8F1;
+ background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QYFAhkSsdes/QAAA8dJREFUOMvVlGtMW2UYx//POaWHXg6lLaW0ypAtw1UCgbniNOLcVOLmAjHZolOYlxmTGXVZdAnRfXQm+7SoU4mXaOaiZsEpC9FkiQs6Z6bdCnNYruM6KNBw6YWewzl9z+sHImEWv+vz7XmT95f/+3/+7wP814v+efDOV3/SoX3lHAA+6ODeUFfMfjOWMADgdk+eEKz0pF7aQdMAcOKLLjrcVMVX3xdWN29/GhYP7SvnP0cWfS8caSkfHZsPE9Fgnt02JNutQ0QYHB2dDz9/pKX8QjjuO9xUxd/66HdxTeCHZ3rojQObGQBcuNjfplkD3b19Y/6MrimSaKgSMmpGU5WevmE/swa6Oy73tQHA0Rdr2Mmv/6A1n9w9suQ7097Z9lM4FlTgTDrzZTu4StXVfpiI48rVcUDM5cmEksrFnHxfpTtU/3BFQzCQF/2bYVoNbH7zmItbSoMj40JSzmMyX5qDvriA7QdrIIpA+3cdsMpu0nXI8cV0MtKXCPZev+gCEM1S2NHPvWfP/hL+7FSr3+0p5RBEyhEN5JCKYr8XnASMT0xBNyzQGQeI8fjsGD39RMPk7se2bd5ZtTyoFYXftF6y37gx7NeUtJJOTFlAHDZLDuILU3j3+H5oOrD3yWbIztugaAzgnBKJuBLpGfQrS8wO4FZgV+c1IxaLgWVU0tMLEETCos4xMzEIv9cJXQcyagIwigDGwJgOAtHAwAhisQUjy0ORGERiELgG4iakkzo4MYAxcM5hAMi1WWG1yYCJIcMUaBkVRLdGeSU2995TLWzcUAzONJ7J6FBVBYIggMzmFbvdBV44Corg8vjhzC+EJEl8U1kJtgYrhCzgc/vvTwXKSib1paRFVRVORDAJAsw5FuTaJEhWM2SHB3mOAlhkNxwuLzeJsGwqWzf5TFNdKgtY5qHp6ZFf67Y/sAVadCaVY5YACDDb3Oi4NIjLnWMw2QthCBIsVhsUTU9tvXsjeq9+X1d75/KEs4LNOfcdf/+HthMnvwxOD0wmHaXr7ZItn2wuH2SnBzbZAbPJwpPx+VQuzcm7dgRCB57a1uBzUDRL4bfnI0RE0eaXd9W89mpjqHZnUI5Hh2l2dkZZUhOqpi2qSmpOmZ64Tuu9qlz/SEXo6MEHa3wOip46F1n7633eekV8ds8Wxjn37Wl63VVa+ej5oeEZ/82ZBETJjpJ1Rbij2D3Z/1trXUvLsblCK0XfOx0SX2kMsn9dX+d+7Kf6h8o4AIykuffjT8L20LU+w4AZd5VvEPY+XpWqLV327HR7DzXuDnD8r+ovkBehJ8i+y8YAAAAASUVORK5CYII=);
+}
+.notifyjs-bootstrap-warn {
+ color: #C09853;
+ background-color: #FCF8E3;
+ border-color: #FBEED5;
+ background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAMAAAC6V+0/AAABJlBMVEXr6eb/2oD/wi7/xjr/0mP/ykf/tQD/vBj/3o7/uQ//vyL/twebhgD/4pzX1K3z8e349vK6tHCilCWbiQymn0jGworr6dXQza3HxcKkn1vWvV/5uRfk4dXZ1bD18+/52YebiAmyr5S9mhCzrWq5t6ufjRH54aLs0oS+qD751XqPhAybhwXsujG3sm+Zk0PTwG6Shg+PhhObhwOPgQL4zV2nlyrf27uLfgCPhRHu7OmLgAafkyiWkD3l49ibiAfTs0C+lgCniwD4sgDJxqOilzDWowWFfAH08uebig6qpFHBvH/aw26FfQTQzsvy8OyEfz20r3jAvaKbhgG9q0nc2LbZxXanoUu/u5WSggCtp1anpJKdmFz/zlX/1nGJiYmuq5Dx7+sAAADoPUZSAAAAAXRSTlMAQObYZgAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfdBgUBGhh4aah5AAAAlklEQVQY02NgoBIIE8EUcwn1FkIXM1Tj5dDUQhPU502Mi7XXQxGz5uVIjGOJUUUW81HnYEyMi2HVcUOICQZzMMYmxrEyMylJwgUt5BljWRLjmJm4pI1hYp5SQLGYxDgmLnZOVxuooClIDKgXKMbN5ggV1ACLJcaBxNgcoiGCBiZwdWxOETBDrTyEFey0jYJ4eHjMGWgEAIpRFRCUt08qAAAAAElFTkSuQmCC);
+}
+</style>
+<link href="/nxl/logo.png" rel="icon" type="image/png"/>
+
+
+
+<style>[wire\:loading], [wire\:loading\.delay], [wire\:loading\.inline-block], [wire\:loading\.inline], [wire\:loading\.block], [wire\:loading\.flex], [wire\:loading\.table], [wire\:loading\.grid], [wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short], [wire\:loading\.delay\.long], [wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest] {display:none;}[wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}input:-webkit-autofill, select:-webkit-autofill, textarea:-webkit-autofill {animation-duration: 50000s;animation-name: livewireautofill;}@keyframes livewireautofill { from {} }</style>
+
+<style id="core-notify" type="text/css">.notifyjs-corner {
+ position: fixed;
+ margin: 5px;
+ z-index: 8050;
+}
+
+.notifyjs-corner .notifyjs-wrapper,
+.notifyjs-corner .notifyjs-container {
+ position: relative;
+ display: block;
+ height: inherit;
+ width: inherit;
+ margin: 3px;
+}
+
+.notifyjs-wrapper {
+ z-index: 1;
+ position: absolute;
+ display: inline-block;
+ height: 0;
+ width: 0;
+}
+
+.notifyjs-container {
+ display: none;
+ z-index: 1;
+ position: absolute;
+}
+
+.notifyjs-hidable {
+ cursor: pointer;
+}
+
+[data-notify-text],[data-notify-html] {
+ position: relative;
+}
+
+.notifyjs-arrow {
+ position: absolute;
+ z-index: 2;
+ width: 0;
+ height: 0;
+}</style></head><body class="" data-no-instant="" style="">
+<div id="wrap">
+<div class="content">
+<header>
+<nav class="navbar navbar-inverse navbar-fixed-top" style="">
+<div class="navbar-black">
+<div class="container">
+<a href="https://pbleagues.com/leagues-info">Promoter Information</a>
+<a href="https://pbleagues.com/contacts">Contact Us</a>
+</div>
+</div>
+<div class="container">
+<div class="navbar-header">
+<button aria-controls="navbar" aria-expanded="false" class="navbar-toggle collapsed" data-target="#navbar" data-toggle="collapse" type="button">
+<span class="sr-only">Toggle</span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+</button>
+<a class="navbar-brand" data-instant="" href="/">
+<img alt="PB Leagues" src="/nxl/logo-sm.png"/>
+</a>
+<div class="hidden-sm hidden-md hidden-lg">
+<div class="pic" style="float: right; margin: 8px; width: 34px; height: 34px;
+							background-image: url('https://pbleagues.com/pictures_crop/73858.jpg?1567990037');"></div>
+<span style="float: right; color: #fff;line-height: 34px;margin-top: 8px; margin-right: 4px;">#73858</span>
+</div>
+</div>
+<div class="navbar-collapse collapse" id="navbar">
+<ul class="nav navbar-nav text-center-xs">
+<li class="hidden-xs active hidden-sm"><a href="/">Home</a></li>
+<li class=""><a href="/leagues">Leagues</a></li>
+<li class=""><a href="https://pbleagues.com/profile">My Profile</a></li>
+<li class=""><a href="https://pbleagues.com/teams#teams">My Teams</a></li>
+<li class=""><a href="/profile/schedule">Your Schedule</a></li>
+</ul>
+<ul class="nav navbar-nav navbar-right text-center-xs">
+<li class="dropdown">
+<a aria-expanded="false" aria-haspopup="true" class="dropdown-toggle userMenu" data-toggle="dropdown" href="#" role="button">
+<span>#73858</span>
+<div class="pic hidden-xs" style="background-image: url('https://pbleagues.com/pictures_crop/73858.jpg?1567990037')"></div>
+<span class="hidden-sm">Robert</span>
+<span class="caret"></span>
+</a>
+<ul class="dropdown-menu text-center-xs text-center-sm">
+<li><a href="/profile"><i class="fa fa-user"></i> My Profile</a></li>
+<li><a href="/teams"><i class="fa fa-users"></i> My Teams</a></li>
+<li><a href="/profile/schedule"><i class="fa fa-calendar"></i> Your Schedule</a></li>
+<li><a href="/profile/memberships"><i class="fa fa-id-card"></i> Memberships</a></li>
+<li><a href="/quit" rel="nofollow"><i class="fa fa-sign-out"></i> Log out</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+</header> <div id="content"><div class="container">
+<div class="row">
+<div class="col-xs-7">
+<div class="title">
+				Roster: <a href="/team/bpX5fM8s9IETLd8L">Baltimore Nevermores</a>
+</div>
+</div>
+<div class="col-xs-5 text-right" style="margin-bottom: 10px;">
+<a class="btn btn-default" href="https://pbleagues.com/cgi-bin/roster.cgi?ERID=NjOIyMLK8WSac4M1" target="_blank">Legacy Roster Page</a>
+</div>
+</div>
+<div class="row">
+<div class="col-sm-3">
+<br/>
+<table class="table table-condensed" style="font-size: 12px;">
+<tbody><tr>
+<td style="width: 35%;">Home Town</td>
+<td class="bold">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+			Baltimore, Maryland
+		</td>
+</tr>
+<tr>
+<td>Field</td>
+<td class="bold">
+<a href="https://www.nrpaintball.com/" target="_blank">NR Paintball</a>
+<br/>
+				Severn, Maryland
+			</td>
+</tr>
+<tr>
+<td>Registered</td>
+<td class="bold">
+				January 18, 2025
+			</td>
+</tr>
+<tr>
+<td class="text-center" colspan="2">
+</td>
+</tr>
+</tbody></table>
+<div class="text-center">
+<a class="btn btn-default" href="/cgi-bin/teamprofile.cgi?ETID=bpX5fM8s9IETLd8L" style="margin-bottom: 10px;">Legacy Team Page</a>
+</div>
+</div>
+<div class="col-md-9">
+<h4 style="margin-top: 0;">
+<a href="/event/9322">World Cup</a>
+</h4>
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#roster">
+<i class="fa fa-list"></i> Roster
+						</a>
+</li>
+<li class="">
+<a data-toggle="tab" href="#games">
+<i aria-hidden="true" class="fa fa-calendar"></i> Schedule
+						</a>
+</li>
+</ul>
+<div class="tab-content">
+<div class="tab-pane fade in active" id="roster">
+<ul class="actions-log text-danger"></ul>
+<h4>Coach (<span class="count-coach">1</span>)</h4>
+<div class="table-responsive">
+<table class="table table-bordered table-condensed table-striped table-hover sorttable rosterList" id="roster-coach" style="font-size: 12px;">
+<thead>
+<tr>
+<th></th>
+<th class="sorting-asc" data-sort="string" data-sort-default="desc">
+												Name, Surname
+											</th>
+<th>Checked In</th>
+<th>Reg. Fee</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="" data-id="158893">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/158893.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=otMqtn3J5amL8mRh" style="font-size: 13px;" target="_blank">
+			Alex Del Mar
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Coach
+			</td>
+</tr> </tbody>
+</table>
+</div>
+<h4>Players (<span class="count-player">8</span>)</h4>
+<div class="table-responsive">
+<table class="table table-bordered table-condensed table-striped table-hover sorttable rosterList" id="roster-player" style="font-size: 12px;">
+<thead>
+<tr>
+<th></th>
+<th class="sorting-asc" data-sort="string" data-sort-default="desc">
+												Name, Surname
+											</th>
+<th>Checked In</th>
+<th>Reg. Fee</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="" data-id="220539">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/220539.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=07hSvLerHEZlCFP1" style="font-size: 13px;" target="_blank">
+			Caitlyn Eisenhauer
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="63083">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/63083.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=OhETsdm9ObD40O1U" style="font-size: 13px;" target="_blank">
+			Crista Gonzales
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="215298">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/215298.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=6HpSpDbLRb3NQWVi" style="font-size: 13px;" target="_blank">
+			Lauren McGowan
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="87618">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/87618.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=yOG92T0gSWBKaDdv" style="font-size: 13px;" target="_blank">
+			Sony Phinitsovanna
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="143087">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/143087.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=oUR4OvdTvwQdrRkL" style="font-size: 13px;" target="_blank">
+			Brittney Rife
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="175787">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/175787.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="Canada" src="https://pbleagues.com/assets/images/flags/CA.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=cFlT1DBWEgMfuNEv" style="font-size: 13px;" target="_blank">
+			Ali Saczawa
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="226574">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/226574.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="Netherlands" src="https://pbleagues.com/assets/images/flags/NL.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=67b3h1sZcdnREOEC" style="font-size: 13px;" target="_blank">
+			Esther Van Ee
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr><tr class="" data-id="208819">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/208819.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=rQ8j5unIVsuu19Tu" style="font-size: 13px;" target="_blank">
+			Dallas Whitright
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Player
+			</td>
+</tr> </tbody>
+</table>
+</div>
+<h4>Staff (<span class="count-staff">7</span>)</h4>
+<div class="table-responsive">
+<table class="table table-bordered table-condensed table-striped table-hover sorttable rosterList" id="roster-staff" style="font-size: 12px;">
+<thead>
+<tr>
+<th></th>
+<th class="sorting-asc" data-sort="string" data-sort-default="desc">
+												Name, Surname
+											</th>
+<th>Checked In</th>
+<th>Reg. Fee</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="" data-id="211444">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/211444.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=fKAs72PRwBB41Lvb" style="font-size: 13px;" target="_blank">
+			Michael Bianco
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="51593">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/51593.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=6SG385nRfEVBlAB6" style="font-size: 13px;" target="_blank">
+			Reginald De  Palma
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="126265">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/126265.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=pdH3iznYnwZ8cuPR" style="font-size: 13px;" target="_blank">
+			Andrew Emerson
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="251876">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/251876.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=EDA85B53BCB7761C" style="font-size: 13px;" target="_blank">
+			Tyler Gonzales
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="70133">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/70133.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=hWm3ZeD4bGAzlUhI" style="font-size: 13px;" target="_blank">
+			Trenton Hunt
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="34178">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/34178.png" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=JpLdrwuHrBr2U1YN" style="font-size: 13px;" target="_blank">
+			Ryan McGowan
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr><tr class="" data-id="270628">
+<td style="padding: 0; width: 48px;">
+<img src="https://pbleagues.com/pictures_crop/270628.jpg" style="width: 60px; height: 60px;"/>
+</td>
+<td style="width: 240px;">
+<img class="flag-ico noWrap" data-original-title="United States" src="https://pbleagues.com/assets/images/flags/US.png?1" title=""/>
+<a class="itemName" href="/cgi-bin/rosterclass.cgi?ERID=NjOIyMLK8WSac4M1&amp;EPID=Asfl6xsy11iY0VUt" style="font-size: 13px;" target="_blank">
+			Zane Neiman
+		</a>
+</td>
+<td class="text-center vmiddle">
+					No
+			</td>
+<td class="text-center vmiddle">
+<span class="green bold">Yes</span>
+</td>
+<td class="vmiddle" style="width: 160px; padding: 2px; text-align: center;">
+					Staff
+			</td>
+</tr> </tbody>
+</table>
+</div>
+</div>
+<div class="tab-pane fade" id="games" style="overflow-x: hidden;">
+<div class="matches sm">
+<div class="loadSchedule" style="text-align: center; display: block;">
+<i class="fa fa-refresh fa-spin fa-fw"></i> Loading, please wait..
+							</div>
+<div class="list">
+<div class="row" style="font-size: 18px;">
+<div class="col-md-2 col-sm-3 col-xs-12 text-center-xs">
+<a class="reloadButton"><i aria-hidden="true" class="fa fa-refresh"></i></a>
+</div>
+<div class="col-sm-9 col-xs-12">
+<div class="row">
+<div class="col-xs-5">
+<div class="row">
+<div class="col-xs-11 text-right">
+						Home
+					</div>
+<div class="col-md-1 hidden-sm hidden-xs noPadding"></div>
+</div>
+</div>
+<div class="col-md-2 col-xs-2 text-center noPadding">
+				
+				Score
+			</div>
+<div class="col-xs-5">
+<div class="row">
+<div class="col-md-1 hidden-sm hidden-xs"></div>
+<div class="col-xs-11 col-xs-offset-1">
+						Away
+					</div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-sm-1 noRightPadding noLeftPadding hidden-xs hidden-sm">Bracket</div>
+</div>
+<div class="row">
+<div class="col-xs-12 text-center">
+<p class="text-danger">No games currently scheduled</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+<footer>
+<div class="navbar navbar-default navbar-static">
+<div class="container">
+<ul class="nav navbar-nav navbar-left text-center">
+<li>
+<p class="navbar-text">
+<i aria-hidden="true" class="fa fa-envelope-o fa-lg"></i> Questions? Email <a href="mailto:info@pbleagues.com" style="letter-spacing: 0.5px;">info@pbleagues.com</a>
+</p>
+</li>
+</ul>
+<ul class="nav navbar-nav navbar-right text-center">
+<li><p class="navbar-text bold">Paintball Leagues International © 2026</p></li>
+</ul>
+</div>
+</div>
+</footer>
+<div id="loader">
+<div class="progress">
+<div class="progress-bar progress-bar-striped active"></div>
+</div>
+</div>
+<div class="modal fade" id="liModal">
+<div class="modal-dialog modal-lg" role="document">
+<div class="modal-content"></div>
+</div>
+</div>
+<div class="modal fade" id="liModalExtra">
+<div class="modal-dialog modal-lg" role="document">
+<div class="modal-content"></div>
+</div>
+</div>
+
+</body></html>

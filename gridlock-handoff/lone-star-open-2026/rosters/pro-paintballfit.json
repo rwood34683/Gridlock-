@@ -1,0 +1,43 @@
+{
+  "team": "PaintballFIT",
+  "erid": "dKDBppmdf8B4BXZk",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=dKDBppmdf8B4BXZk",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Cyrus Garringer",
+      "pid": "193471"
+    },
+    {
+      "jersey": null,
+      "name": "Jacob Johnson",
+      "pid": "154036"
+    },
+    {
+      "jersey": null,
+      "name": "Tyler Luckau",
+      "pid": "125361"
+    },
+    {
+      "jersey": null,
+      "name": "Jonathan Chavez",
+      "pid": "111768"
+    },
+    {
+      "jersey": null,
+      "name": "Scott Stewart",
+      "pid": "117562"
+    },
+    {
+      "jersey": null,
+      "name": "Trenton Mason-Salinas",
+      "pid": "133572"
+    },
+    {
+      "jersey": null,
+      "name": "Jacob Sebaugh",
+      "pid": "74339"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

@@ -1,0 +1,63 @@
+{
+  "team": "Tampa Bay Damage",
+  "erid": "xkJeIYtz0sQ4Dbta",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=xkJeIYtz0sQ4Dbta",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Bryan Smith",
+      "pid": "1606"
+    },
+    {
+      "jersey": null,
+      "name": "Jacob Edwards",
+      "pid": "23693"
+    },
+    {
+      "jersey": null,
+      "name": "Chad Busiere",
+      "pid": "21296"
+    },
+    {
+      "jersey": null,
+      "name": "Christopher Horn",
+      "pid": "70517"
+    },
+    {
+      "jersey": null,
+      "name": "Chris Schehr",
+      "pid": "26856"
+    },
+    {
+      "jersey": null,
+      "name": "Alex Goldman",
+      "pid": "14329"
+    },
+    {
+      "jersey": null,
+      "name": "Mark Ireland",
+      "pid": "2523"
+    },
+    {
+      "jersey": null,
+      "name": "Christos Botsolas Jr",
+      "pid": "11657"
+    },
+    {
+      "jersey": null,
+      "name": "Keith Brown Jr",
+      "pid": "22746"
+    },
+    {
+      "jersey": null,
+      "name": "Daniel Holliday",
+      "pid": "26045"
+    },
+    {
+      "jersey": null,
+      "name": "Marcello Margott",
+      "pid": "7083"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

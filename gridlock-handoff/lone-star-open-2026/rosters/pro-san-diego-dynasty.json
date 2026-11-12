@@ -1,0 +1,68 @@
+{
+  "team": "San Diego Dynasty",
+  "erid": "wbdv36k9vQFDmDO7",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=wbdv36k9vQFDmDO7",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Kyle Barry",
+      "pid": "58533"
+    },
+    {
+      "jersey": null,
+      "name": "Ryan Greenspan",
+      "pid": "3004"
+    },
+    {
+      "jersey": null,
+      "name": "Alex Fraige",
+      "pid": "3003"
+    },
+    {
+      "jersey": null,
+      "name": "Harrison Frye",
+      "pid": "62920"
+    },
+    {
+      "jersey": null,
+      "name": "Stephen Omara",
+      "pid": "63599"
+    },
+    {
+      "jersey": null,
+      "name": "Yosh Rau",
+      "pid": "6860"
+    },
+    {
+      "jersey": null,
+      "name": "Joe Barrett",
+      "pid": "53504"
+    },
+    {
+      "jersey": null,
+      "name": "Archie Barnes",
+      "pid": "164176"
+    },
+    {
+      "jersey": null,
+      "name": "Eliot Weaver",
+      "pid": "55101"
+    },
+    {
+      "jersey": null,
+      "name": "Arturo Andrade",
+      "pid": "56462"
+    },
+    {
+      "jersey": null,
+      "name": "Michael Urena",
+      "pid": "47605"
+    },
+    {
+      "jersey": null,
+      "name": "Blake Yarber",
+      "pid": "37327"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

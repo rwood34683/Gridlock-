@@ -1,0 +1,43 @@
+{
+  "team": "TonTon Arsenal",
+  "erid": "V7DvXn7CIQlnKNJg",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=V7DvXn7CIQlnKNJg",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Hugo Verhaeghe",
+      "pid": "176466"
+    },
+    {
+      "jersey": null,
+      "name": "Peter Anfossi",
+      "pid": "166449"
+    },
+    {
+      "jersey": null,
+      "name": "Thomas Portier Jr",
+      "pid": "201759"
+    },
+    {
+      "jersey": null,
+      "name": "Axel Gaudin Sr",
+      "pid": "70849"
+    },
+    {
+      "jersey": null,
+      "name": "Ben Carroll",
+      "pid": "39082"
+    },
+    {
+      "jersey": null,
+      "name": "Thomas Szpytma",
+      "pid": "109811"
+    },
+    {
+      "jersey": null,
+      "name": "Adrien Krompholtz",
+      "pid": "170827"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

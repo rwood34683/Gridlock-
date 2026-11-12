@@ -1,0 +1,58 @@
+{
+  "team": "Perris ASG Aftermath",
+  "erid": "E6t88yJJlWiI0PGx",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=E6t88yJJlWiI0PGx",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Stephen Mazurek",
+      "pid": "18625"
+    },
+    {
+      "jersey": null,
+      "name": "Julian Velazquez",
+      "pid": "188347"
+    },
+    {
+      "jersey": null,
+      "name": "Zack Carter",
+      "pid": "155604"
+    },
+    {
+      "jersey": null,
+      "name": "Angel Frutos",
+      "pid": "154108"
+    },
+    {
+      "jersey": null,
+      "name": "Eric Arrieta",
+      "pid": "171090"
+    },
+    {
+      "jersey": null,
+      "name": "Grayson Gladstone",
+      "pid": "102906"
+    },
+    {
+      "jersey": null,
+      "name": "James Green",
+      "pid": "115555"
+    },
+    {
+      "jersey": null,
+      "name": "Cody Woodruff",
+      "pid": "31923"
+    },
+    {
+      "jersey": null,
+      "name": "Jeremy Doan",
+      "pid": "17344"
+    },
+    {
+      "jersey": null,
+      "name": "Devon Stuart",
+      "pid": "53684"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

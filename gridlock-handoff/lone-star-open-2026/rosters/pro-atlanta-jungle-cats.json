@@ -1,0 +1,48 @@
+{
+  "team": "Atlanta Jungle Cats",
+  "erid": "DGmUoLavm5dEly3P",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=DGmUoLavm5dEly3P",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Alexander Povilaitis",
+      "pid": "25048"
+    },
+    {
+      "jersey": null,
+      "name": "Michael McGowan",
+      "pid": "4196"
+    },
+    {
+      "jersey": null,
+      "name": "Ronny Tiner II",
+      "pid": "136575"
+    },
+    {
+      "jersey": null,
+      "name": "Davis Stephens",
+      "pid": "103976"
+    },
+    {
+      "jersey": null,
+      "name": "Joey Dipolito",
+      "pid": "33508"
+    },
+    {
+      "jersey": null,
+      "name": "Joseph Oller III",
+      "pid": "23225"
+    },
+    {
+      "jersey": null,
+      "name": "Aaron Rios",
+      "pid": "62084"
+    },
+    {
+      "jersey": null,
+      "name": "Aaron Pate",
+      "pid": "56623"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

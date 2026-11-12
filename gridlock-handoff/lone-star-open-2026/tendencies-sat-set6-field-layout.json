@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0",
+  "dataset": "lone_star_open_2026_sat_set6_field_layout",
+  "source": "LSO Sat Set 6 — Field Layout & Tendencies",
+  "canvas_id": "d5d82279-71bd-47a8-b7a0-8c357cee36b5",
+  "canvas_url": "https://cursor.com/canvas/store-24ed7f4b-1ee1-4c10-bd00-2f369baa9125/d5d82279-71bd-47a8-b7a0-8c357cee36b5",
+  "page_updated_utc": "2026-10-31T15:01:41.157Z",
+  "page_updated_et": "2026-10-31T11:01:41-05:00",
+  "team_count": 4,
+  "teams": [
+    {
+      "key": "seadogs",
+      "name": "Royal City Seadogs",
+      "colors": "cyan / teal",
+      "matchup": "vs New Jersey Leverage (primary feed)",
+      "outsN": 7,
+      "killsN": 25,
+      "outs": {
+        "snake": 28,
+        "dorito": 29,
+        "center": 14,
+        "home": 29,
+        "break": 0
+      },
+      "kills": {
+        "snake": 32,
+        "dorito": 24,
+        "center": 24,
+        "home": 12,
+        "break": 8
+      },
+      "layoutNotes": [
+        "Only 7 filmed outs all game (won 7–1): spread evenly across snake, dorito, home (Campbell #88 Hydra; #10 backline) — no single weak lane.",
+        "Kill map leans snake (32%) then dorito/center (24% each): repeated Leverage wipes P4, P5, P8 off both wires.",
+        "Closers: Salmon #40 buzzer P2; snake-runner buzzer P4; tape push P5. Only loss P6 was a 3-out Leverage snake run."
+      ],
+      "playerSeeds": [
+        {
+          "player": "Nick Campbell",
+          "jersey": "#88",
+          "role": "home / Hydra",
+          "note": "Out Point 1 Hydra back-left vs Leverage"
+        },
+        {
+          "player": "Shayne Salmon",
+          "jersey": "#40",
+          "role": "closer / wire",
+          "note": "Point 2 buzzer → Seadogs 2–0"
+        },
+        {
+          "player": "Seadogs #10",
+          "jersey": "#10",
+          "role": "home",
+          "note": "Point 3 backline walk-off; name VERIFY"
+        }
+      ],
+      "confidence": "film-only · n outs=7 · n kills=25 · full set (FINAL 7–1)"
+    },
+    {
+      "key": "leverage",
+      "name": "New Jersey Leverage",
+      "colors": "black / red",
+      "matchup": "vs Royal City Seadogs",
+      "outsN": 25,
+      "killsN": 7,
+      "outs": {
+        "snake": 32,
+        "dorito": 24,
+        "center": 24,
+        "home": 12,
+        "break": 8
+      },
+      "kills": {
+        "snake": 28,
+        "dorito": 29,
+        "center": 14,
+        "home": 29,
+        "break": 0
+      },
+      "layoutNotes": [
+        "Snake side is the leak: 32% of outs (Silverbelly snaps, snake corner/temple); dorito and center 24% each.",
+        "Three full wipes filmed (P4, P5, P8) plus a center penalty → mass walk-off on P3; two more penalty pulls on P7.",
+        "Only point won (P6) came from a snake run — their kills were dorito/home/snake-back lanes in that point."
+      ],
+      "playerSeeds": [
+        {
+          "player": "Leverage (unnamed)",
+          "jersey": "—",
+          "role": "Silverbelly / snake",
+          "note": "Repeated snap outs Point 2 + Point 3"
+        },
+        {
+          "player": "Leverage (unnamed)",
+          "jersey": "—",
+          "role": "dorito / cylinder",
+          "note": "Run-through bunker Point 2 on Seadogs tape push"
+        }
+      ],
+      "confidence": "film-only · n outs=25 · n kills=7 · full set (FINAL 1–7)"
+    },
+    {
+      "key": "aftermath",
+      "name": "Perris ASG Aftermath",
+      "colors": "black / red (score path + Gladstone)",
+      "matchup": "vs Chicago Distortion (dual-feed)",
+      "outsN": 5,
+      "killsN": 15,
+      "outs": {
+        "snake": 40,
+        "dorito": 20,
+        "center": 20,
+        "home": 0,
+        "break": 20
+      },
+      "kills": {
+        "snake": 40,
+        "dorito": 20,
+        "center": 14,
+        "home": 13,
+        "break": 13
+      },
+      "layoutNotes": [
+        "Re-read with the full set: Aftermath won 7–0 (or 7–1 VERIFY), so the P1 black/red winner is treated as Aftermath; the P1 wipe is Distortion's.",
+        "Kills lean snake (40%) — Distortion wipes P7 and snake walk-offs P4; tiny out sample (n=5, incl. Mazurek ×2 and Carter, PBLeagues-confirmed Aftermath).",
+        "Grayson Gladstone #95 on the black/red side fits the Aftermath roster."
+      ],
+      "playerSeeds": [
+        {
+          "player": "Grayson Gladstone",
+          "jersey": "#95",
+          "role": "snake (film)",
+          "note": "Seen in snake on black/red; roster-confirmed Aftermath"
+        },
+        {
+          "player": "Stephen Mazurek",
+          "jersey": "#51",
+          "role": "dorito / snake",
+          "note": "Out P5 dorito and P6 snake (separate points); roster-confirmed Aftermath"
+        },
+        {
+          "player": "Zack Carter",
+          "jersey": "#14",
+          "role": "snake",
+          "note": "Out P6 snake; roster-confirmed Aftermath"
+        },
+        {
+          "player": "Aftermath #4 (unnamed)",
+          "jersey": "#4",
+          "role": "unknown",
+          "note": "Seen on black/red in P1 (p1-a2) — name VERIFY"
+        }
+      ],
+      "confidence": "VERIFY dual-feed · n outs=5 · n kills=15 · full set (FINAL 7–0/7–1)"
+    },
+    {
+      "key": "distortion",
+      "name": "Chicago Distortion",
+      "colors": "black / red",
+      "matchup": "vs Aftermath (+ Seadogs cutaways VERIFY)",
+      "outsN": 15,
+      "killsN": 5,
+      "outs": {
+        "snake": 40,
+        "dorito": 20,
+        "center": 14,
+        "home": 13,
+        "break": 13
+      },
+      "kills": {
+        "snake": 40,
+        "dorito": 20,
+        "center": 20,
+        "home": 0,
+        "break": 20
+      },
+      "layoutNotes": [
+        "Snake is where they die: 40% of outs (snake entry/cylinder P4, snake + snake back corner P7).",
+        "Dorito 20% (Unger #67 P6); last-point P7 was a 5-man wipe in ~30s.",
+        "Film IDs: Nate Roberts #47 (PBLeagues; graphic said Matt), Unger #67, D'Acquisto #27, Wenck #23 — Distortion wore yellow/black in P1."
+      ],
+      "playerSeeds": [
+        {
+          "player": "Nate Roberts",
+          "jersey": "#47",
+          "role": "front / break",
+          "note": "Named on break cutaway; silver can P4 (PBLeagues-confirmed)"
+        },
+        {
+          "player": "Michael Unger",
+          "jersey": "#67",
+          "role": "dorito",
+          "note": "Out P6 dorito"
+        }
+      ],
+      "confidence": "VERIFY dual-feed · n outs=15 · n kills=5 · full set"
+    }
+  ]
+}

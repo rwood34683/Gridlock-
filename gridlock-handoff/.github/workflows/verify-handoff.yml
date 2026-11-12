@@ -1,0 +1,38 @@
+# Sample workflow for this handoff package (not for pushing to Gridlock-).
+# Rechecks schema, IDs, the app packer, and Gridlock's own evdUnpack/readCopy.
+name: Verify Gridlock handoff
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "export/gridlock/**"
+      - "export/gridlock-matched.json"
+      - "tools/**"
+      - "world-cup-2026/teams.json"
+      - "world-cup-2026/schedule.json"
+      - "world-cup-2026/rosters.json"
+      - ".github/workflows/verify-handoff.yml"
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Clone Gridlock (read-only, no push)
+        run: git clone --depth 1 --branch main https://github.com/rwood34683/Gridlock-.git "$RUNNER_TEMP/Gridlock-"
+      - name: Schema, packer, and app loaders
+        run: python3 tools/verify_handoff.py --repo "$RUNNER_TEMP/Gridlock-"
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-reports
+          path: verify/

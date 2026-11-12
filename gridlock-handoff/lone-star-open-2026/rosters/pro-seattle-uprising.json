@@ -1,0 +1,53 @@
+{
+  "team": "Seattle Uprising",
+  "erid": "ZetwZDhLHEcCAXDC",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=ZetwZDhLHEcCAXDC",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Alec Holland",
+      "pid": "150634"
+    },
+    {
+      "jersey": null,
+      "name": "Graham Arnold",
+      "pid": "36617"
+    },
+    {
+      "jersey": null,
+      "name": "Nathan Schroeder",
+      "pid": "18249"
+    },
+    {
+      "jersey": null,
+      "name": "Austin Woodward",
+      "pid": "18248"
+    },
+    {
+      "jersey": null,
+      "name": "Shane Howe",
+      "pid": "1162"
+    },
+    {
+      "jersey": null,
+      "name": "Ben Challenger",
+      "pid": "87379"
+    },
+    {
+      "jersey": null,
+      "name": "Cole Scott",
+      "pid": "34808"
+    },
+    {
+      "jersey": null,
+      "name": "Alexander Borromeo",
+      "pid": "36616"
+    },
+    {
+      "jersey": null,
+      "name": "Joel Eaton",
+      "pid": "23645"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

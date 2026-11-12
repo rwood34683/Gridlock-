@@ -1,0 +1,31 @@
+{
+  "counts": {
+    "html_manifest_without_resolvable_unique_pdf_skipped": 120,
+    "unchanged_structured_captures_skipped": 828,
+    "profiles_imported": 199,
+    "zero_profiles_imported": 13,
+    "rows_imported": 2050,
+    "partial_profiles_repaired": 0,
+    "partial_rows_repaired": 0,
+    "dom_profiles": 0,
+    "pdf_profiles": 199,
+    "rows_with_missing_ancillary_cells": 0
+  },
+  "errors": [
+    {
+      "person_id": "160381",
+      "file": "/workspace/browser-pdfs/pdf2-3ba423d0-2.pdf",
+      "error": "UNIQUE constraint failed: person_event_history.observation_id"
+    }
+  ],
+  "warnings": [],
+  "manifest_records_read": 3174,
+  "associated_structured_people": 1028,
+  "player_history_statuses": {
+    "not_retrieved": 2446,
+    "scored_event_history_imported": 1136,
+    "scored_event_history_imported_zero_rows": 37
+  },
+  "history_observations": 12569,
+  "participation_index_rows": 8799
+}

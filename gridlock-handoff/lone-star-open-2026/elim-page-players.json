@@ -1,0 +1,1430 @@
+{
+  "schema_version": "1.0",
+  "dataset": "lone_star_open_2026_elim_page_players",
+  "source_page": "Lone Star Open 2026 — Elim Database",
+  "canvas_id": "a9406542-765e-4ada-a15f-fbfc39c469cf",
+  "count": 203,
+  "players": [
+    {
+      "name": "Jacob Edwards",
+      "team": "Tampa Bay Damage",
+      "number": "#31",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film; Sat Set 5 film also claimed #21/#33 vs Margott #33 — jersey VERIFY film-only"
+    },
+    {
+      "name": "Alex Goldman",
+      "team": "Tampa Bay Damage",
+      "number": "#89",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Marcello Margott",
+      "team": "Tampa Bay Damage",
+      "number": "#33",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Chris Schehr",
+      "team": "Tampa Bay Damage",
+      "number": "#10",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO; # from film jersey"
+    },
+    {
+      "name": "Bryan Smith",
+      "team": "Tampa Bay Damage",
+      "number": "#18",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Christos Botsolas",
+      "team": "Tampa Bay Damage",
+      "number": "#4",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Keith Brown Jr",
+      "team": "Tampa Bay Damage",
+      "number": "#9",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Chad Busiere",
+      "team": "Tampa Bay Damage",
+      "number": "#7",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Daniel Holliday",
+      "team": "Tampa Bay Damage",
+      "number": "#23",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Christopher Horn",
+      "team": "Tampa Bay Damage",
+      "number": "#16",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Mark Ireland",
+      "team": "Tampa Bay Damage",
+      "number": "#22",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Alexander Berdnikov",
+      "team": "Red Legion",
+      "number": "#11",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Michael Johnson",
+      "team": "Red Legion",
+      "number": "#3",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO; # from film jersey"
+    },
+    {
+      "name": "Pavel Karsliev",
+      "team": "Red Legion",
+      "number": "#92",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Kirill Prikhidni",
+      "team": "Red Legion",
+      "number": "#75",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film (buzzer confirmed part2)"
+    },
+    {
+      "name": "Leonid Smotrov",
+      "team": "Red Legion",
+      "number": "#27",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film"
+    },
+    {
+      "name": "Sergey Solnyshkov",
+      "team": "Red Legion",
+      "number": "#23",
+      "role": "starter",
+      "source": "Pro Paintball DB LSO + film (#23; also possible #0 on film)"
+    },
+    {
+      "name": "Corey Hall",
+      "team": "Red Legion",
+      "number": "#19",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Thomas Hara",
+      "team": "Red Legion",
+      "number": "unknown",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Daniil Kuzmin",
+      "team": "Red Legion",
+      "number": "#33",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO + film (pit ID part2)"
+    },
+    {
+      "name": "Edilberto Vasquez Jr",
+      "team": "Red Legion",
+      "number": "#15",
+      "role": "roster",
+      "source": "Pro Paintball DB LSO"
+    },
+    {
+      "name": "Jacob Sebaugh",
+      "team": "Paintball FIT",
+      "number": "#12",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 + PBLeagues (was Sebaugh / Sebrugh); #12 per film"
+    },
+    {
+      "name": "Scott Stewart",
+      "team": "Paintball FIT",
+      "number": "#0/#9 VERIFY",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 + PBLeagues (name confirmed; # film-only, Fri Set 5 pit shows #9)"
+    },
+    {
+      "name": "Jonathan Chavez",
+      "team": "Paintball FIT",
+      "number": "#00",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred; prior film #4/#84 conflict retained in notes"
+    },
+    {
+      "name": "Chavez (prior #4/#84)",
+      "team": "Paintball FIT",
+      "number": "#4 / #84 (conflict)",
+      "role": "film",
+      "source": "YouTube film room (c00 #4, c01 #84) — superseded preferred #00 Jonathan"
+    },
+    {
+      "name": "Trenton Mason-Salinas",
+      "team": "Paintball FIT",
+      "number": "#34",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 + PBLeagues (was Mason-Salinas)"
+    },
+    {
+      "name": "Tyler Luckau",
+      "team": "Paintball FIT",
+      "number": "#45/#15 VERIFY",
+      "role": "film",
+      "source": "PBLeagues name confirmed (graphic 'Luchau'); # film-only, film shows both #45 and #15 (Fri Set 5 pit)"
+    },
+    {
+      "name": "Cyrus Garringer",
+      "team": "Paintball FIT",
+      "number": "#10",
+      "role": "film",
+      "source": "YouTube film room + PBLeagues Sat Set 5"
+    },
+    {
+      "name": "Jacob Johnson",
+      "team": "Paintball FIT",
+      "number": "#81",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 film ID + PBLeagues (name confirmed; # film-only)"
+    },
+    {
+      "name": "Hussain",
+      "team": "NY Xtreme",
+      "number": "#3",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "Navarro",
+      "team": "NY Xtreme",
+      "number": "#10",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "Lopez",
+      "team": "NY Xtreme",
+      "number": "#12",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "Taylor",
+      "team": "NY Xtreme",
+      "number": "#13",
+      "role": "film",
+      "source": "YouTube film room (c01 notes list under FIT — verify)"
+    },
+    {
+      "name": "Berkley",
+      "team": "NY Xtreme",
+      "number": "#26",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "unknown",
+      "team": "NY Xtreme",
+      "number": "#77",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "Johnson",
+      "team": "NY Xtreme",
+      "number": "#81",
+      "role": "film",
+      "source": "YouTube film room (c01 notes list under FIT — verify)"
+    },
+    {
+      "name": "Sebald",
+      "team": "NY Xtreme",
+      "number": "#115",
+      "role": "film",
+      "source": "YouTube film room"
+    },
+    {
+      "name": "Hawkins",
+      "team": "Wrecking Crew",
+      "number": "#0",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Taylor",
+      "team": "Wrecking Crew",
+      "number": "#7",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Reyes",
+      "team": "Wrecking Crew",
+      "number": "#11",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Barker",
+      "team": "Wrecking Crew",
+      "number": "#12",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Pinch",
+      "team": "Wrecking Crew",
+      "number": "#14",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Sloffer",
+      "team": "Wrecking Crew",
+      "number": "#22",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Dou",
+      "team": "Wrecking Crew",
+      "number": "#45",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "unknown",
+      "team": "Wrecking Crew",
+      "number": "#6",
+      "role": "film",
+      "source": "YouTube team cam"
+    },
+    {
+      "name": "unknown",
+      "team": "Wrecking Crew",
+      "number": "#44",
+      "role": "film",
+      "source": "YouTube team cam"
+    },
+    {
+      "name": "Findlay",
+      "team": "Ikonik",
+      "number": "#77",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Rolfsen",
+      "team": "Ikonik",
+      "number": "#25",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "Huntley",
+      "team": "Ikonik",
+      "number": "#18",
+      "role": "film",
+      "source": "YouTube team cam + PBLeagues Semi-Pro"
+    },
+    {
+      "name": "unknown",
+      "team": "Ikonik",
+      "number": "#21",
+      "role": "film",
+      "source": "YouTube team cam"
+    },
+    {
+      "name": "unknown",
+      "team": "Ikonik",
+      "number": "#33",
+      "role": "film",
+      "source": "YouTube team cam"
+    },
+    {
+      "name": "unknown",
+      "team": "Ikonik",
+      "number": "#5",
+      "role": "film",
+      "source": "YouTube team cam"
+    },
+    {
+      "name": "Williams",
+      "team": "Noobies",
+      "number": "#3",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Connor",
+      "team": "Noobies",
+      "number": "#7",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Navarro",
+      "team": "Noobies",
+      "number": "#8",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Schoemaker",
+      "team": "Noobies",
+      "number": "#20",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Rodriguez",
+      "team": "Noobies",
+      "number": "#33",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#57",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#83",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#88",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Dixon",
+      "team": "Noobies",
+      "number": "#181",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Kurtz",
+      "team": "Clutch City Oilers",
+      "number": "#2",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao (rest unidentifiable from this angle)"
+    },
+    {
+      "name": "Williams",
+      "team": "Noobies",
+      "number": "#3",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Connor",
+      "team": "Noobies",
+      "number": "#7",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Navarro",
+      "team": "Noobies",
+      "number": "#8",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Schoemaker",
+      "team": "Noobies",
+      "number": "#20",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Rodriguez",
+      "team": "Noobies",
+      "number": "#33",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#57",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#83",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "unknown",
+      "team": "Noobies",
+      "number": "#88",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Dixon",
+      "team": "Noobies",
+      "number": "#181",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao"
+    },
+    {
+      "name": "Kurtz",
+      "team": "Clutch City Oilers",
+      "number": "#2",
+      "role": "film",
+      "source": "YouTube raw cam vUCxjSV5Rao (rest unidentifiable this angle)"
+    },
+    {
+      "name": "Jet (Jetski)",
+      "team": "Chicago Aftershock",
+      "number": "#1",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Mason Hinds",
+      "team": "Chicago Aftershock",
+      "number": "#3",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Stancel",
+      "team": "Chicago Aftershock",
+      "number": "#16",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac (ID tentative)"
+    },
+    {
+      "name": "Rooney",
+      "team": "Chicago Aftershock",
+      "number": "#19",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Lackey",
+      "team": "Chicago Aftershock",
+      "number": "#21",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Clay Hughes",
+      "team": "Chicago Aftershock",
+      "number": "#27",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Hoskinson (Hoski)",
+      "team": "Chicago Aftershock",
+      "number": "#42",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Josh Taylor Jr",
+      "team": "NY Xtreme",
+      "number": "#13",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac (full name for Taylor #13)"
+    },
+    {
+      "name": "Fred Berkley",
+      "team": "NY Xtreme",
+      "number": "#26",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac (also spelled Berkeley)"
+    },
+    {
+      "name": "Demers",
+      "team": "NY Xtreme",
+      "number": "#77",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac (names the unknown #77)"
+    },
+    {
+      "name": "Balke",
+      "team": "NY Xtreme",
+      "number": "#72",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac part A"
+    },
+    {
+      "name": "Ronnie Dizon",
+      "team": "Houston Heat",
+      "number": "#4",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Bufton (Austin/Jacob)",
+      "team": "Houston Heat",
+      "number": "#18",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues (first name unclear)"
+    },
+    {
+      "name": "Andres Ramos Saldana",
+      "team": "Houston Heat",
+      "number": "#27",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Cody Mickowski",
+      "team": "Houston Heat",
+      "number": "#32",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Samuel Monville",
+      "team": "Houston Heat",
+      "number": "#66",
+      "role": "film",
+      "source": "Sat Set 4 MLPB+ + PBLeagues roster spelling (was Sam on film)"
+    },
+    {
+      "name": "Mikhail Knyazev (Mishka)",
+      "team": "Houston Heat",
+      "number": "#77",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Ryan Moorhead",
+      "team": "Houston Heat",
+      "number": "#85",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Joey Dipolito",
+      "team": "Atlanta Jungle Cats",
+      "number": "#7",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Davis Stephens",
+      "team": "Atlanta Jungle Cats",
+      "number": "#22",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Joseph Oller",
+      "team": "Atlanta Jungle Cats",
+      "number": "#80",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac + PBLeagues"
+    },
+    {
+      "name": "Ronny Tyner (Tiner)",
+      "team": "Atlanta Jungle Cats",
+      "number": "unknown",
+      "role": "roster",
+      "source": "PBLeagues; seen on film"
+    },
+    {
+      "name": "Aaron Pate",
+      "team": "Atlanta Jungle Cats",
+      "number": "unknown",
+      "role": "roster",
+      "source": "PBLeagues"
+    },
+    {
+      "name": "Alexander Povilaitis",
+      "team": "Atlanta Jungle Cats",
+      "number": "unknown",
+      "role": "roster",
+      "source": "PBLeagues"
+    },
+    {
+      "name": "Aaron Rios",
+      "team": "Atlanta Jungle Cats",
+      "number": "unknown",
+      "role": "roster",
+      "source": "PBLeagues"
+    },
+    {
+      "name": "Sterre… (partial)",
+      "team": "Atlanta Jungle Cats",
+      "number": "#21",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "unknown",
+      "team": "Atlanta Jungle Cats",
+      "number": "#24",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "unknown",
+      "team": "Atlanta Jungle Cats",
+      "number": "#97",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac"
+    },
+    {
+      "name": "Chavez",
+      "team": "Tampa Bay Damage",
+      "number": "#84",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 3 (FIT roster also lists a Chavez #4/#84 — conflict)"
+    },
+    {
+      "name": "Blaine",
+      "team": "Atlanta Jungle Cats",
+      "number": "#90",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 3"
+    },
+    {
+      "name": "McGowan",
+      "team": "Atlanta Jungle Cats",
+      "number": "#5",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 3"
+    },
+    {
+      "name": "Oller (Set 3 jersey)",
+      "team": "Atlanta Jungle Cats",
+      "number": "#3 (Set 3) vs #80 (Heat game) — conflict",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 3"
+    },
+    {
+      "name": "Nathan Schroeder",
+      "team": "Seattle Uprising",
+      "number": "#4",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred (was Nate Schroeder / Shrader); Set 2 film"
+    },
+    {
+      "name": "Graham Arnold",
+      "team": "Seattle Uprising",
+      "number": "#5",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Alec Holland",
+      "team": "Seattle Uprising",
+      "number": "#23",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred (was Ryan Holland #23 ambiguous)"
+    },
+    {
+      "name": "Alexander Borromeo",
+      "team": "Seattle Uprising",
+      "number": "#8 (A/B) / #3 (C) — conflict",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Austin Woodward",
+      "team": "Seattle Uprising",
+      "number": "#2",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 film #2 (also #3 notes) + PBLeagues; jersey VERIFY film-only"
+    },
+    {
+      "name": "Ben Challenger",
+      "team": "Seattle Uprising",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Cole Scott",
+      "team": "Seattle Uprising",
+      "number": "#21",
+      "role": "film",
+      "source": "Sat Set 2 + PBLeagues Sat Set 5; Uprising only — Sat Set 5 XF #21 Scott claim left unknown/VERIFY (no Scott on XF)"
+    },
+    {
+      "name": "Zach Patient",
+      "team": "Detroit Infamous",
+      "number": "#88 (part A listed #28 Uprising — conflict)",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Cody Bowen",
+      "team": "Detroit Infamous",
+      "number": "#69",
+      "role": "film",
+      "source": "Sat Set 2 film ID; roster: Kyle only (PBLeagues LSO Pro — no Cody Bowen)"
+    },
+    {
+      "name": "Kyle Bowen",
+      "team": "Detroit Infamous",
+      "number": "#69",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 (buzzer → Inf 9–4); PBLeagues roster: Kyle only"
+    },
+    {
+      "name": "Schonauer",
+      "team": "Detroit Infamous",
+      "number": "#49",
+      "role": "film",
+      "source": "Sat Set 2 film #49; PBLeagues jersey null; Sat Set 4 film #4 Dany Schonauer"
+    },
+    {
+      "name": "Dany Schonauer",
+      "team": "Detroit Infamous",
+      "number": "#4",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 (P13 snake); PBLeagues jersey null; film #4 (prior Set2 #49)"
+    },
+    {
+      "name": "Rob Velez",
+      "team": "Detroit Infamous",
+      "number": "#90 (part C only)",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Sam Silberg",
+      "team": "Detroit Infamous",
+      "number": "#19 (A) / #13 (B) — conflict",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Nathan (Abou-Hosn?)",
+      "team": "Detroit Infamous",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Eaton",
+      "team": "unclear (Uprising or Infamous)",
+      "number": "#89",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Thomas Guest",
+      "team": "San Antonio X-Factor",
+      "number": "#7",
+      "role": "film",
+      "source": "MLPB+ Sat Set 5 buzzer + PBLeagues (was Tom Guest); #7 vs #9 film VERIFY"
+    },
+    {
+      "name": "Cody Bayless",
+      "team": "San Antonio X-Factor",
+      "number": "#22",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred (was Bayliss); Set 2 + Set 5 film"
+    },
+    {
+      "name": "Tj Danner Jr",
+      "team": "San Antonio X-Factor",
+      "number": "#23",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred (was TJ Danner / Danier)"
+    },
+    {
+      "name": "Matt Jackson",
+      "team": "San Antonio X-Factor",
+      "number": "#12",
+      "role": "film",
+      "source": "Sat Set 2 + Sat Set 5 film + PBLeagues"
+    },
+    {
+      "name": "Colt Roberts",
+      "team": "San Antonio X-Factor",
+      "number": "#45",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 (not Nate); #45 vs #22 film VERIFY"
+    },
+    {
+      "name": "William (Billy) Bernacchia III",
+      "team": "San Antonio X-Factor",
+      "number": "#21",
+      "role": "film",
+      "source": "PBLeagues Sat Set 5 preferred; prior #21/#1 conflict noted"
+    },
+    {
+      "name": "Ninios",
+      "team": "San Antonio X-Factor",
+      "number": "#3",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Nico Hyde",
+      "team": "unclear (X-Factor in A / Hurricanes in B)",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Logan Dyer",
+      "team": "CK Hurricanes",
+      "number": "#15",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Konstantin Fedorov (Federov)",
+      "team": "CK Hurricanes",
+      "number": "#88",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Drew Bell",
+      "team": "CK Hurricanes",
+      "number": "#58",
+      "role": "film",
+      "source": "Sat Set 2 film #58; PBLeagues jersey null; Sat Set 4 film #20 Andrew Bell"
+    },
+    {
+      "name": "Andrew Bell",
+      "team": "CK Hurricanes",
+      "number": "#20",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 (P9); PBLeagues jersey null; film #20 (prior Drew #58)"
+    },
+    {
+      "name": "Justin Brinkman",
+      "team": "CK Hurricanes",
+      "number": "#11",
+      "role": "film",
+      "source": "Sat broadcast 3hxWhjK29Ac Set 2"
+    },
+    {
+      "name": "Aaron Brown",
+      "team": "CK Hurricanes",
+      "number": "#56",
+      "role": "film",
+      "source": "Sat Set 2 film ID; roster: Michael only (PBLeagues LSO Pro — no Aaron Brown)"
+    },
+    {
+      "name": "Jake Raffield",
+      "team": "CK Hurricanes",
+      "number": "#24/#26 VERIFY",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 (buzzer → Canes 3–2); PBLeagues name confirmed; # film-only, film shows #24 and #26"
+    },
+    {
+      "name": "Sam Brinkman",
+      "team": "CK Hurricanes",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk (RL vs Canes); VERIFY vs Justin Brinkman #11"
+    },
+    {
+      "name": "Kaito Warner Jr",
+      "team": "CK Hurricanes",
+      "number": "#53 VERIFY (film)",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk (RL vs Canes); PBLeagues name/team confirmed; # film-only from Fri 'Warner #53'"
+    },
+    {
+      "name": "Duran Martinez",
+      "team": "CK Hurricanes",
+      "number": "#18 VERIFY (film)",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk (RL vs Canes); PBLeagues name confirmed; # film-only (Fri Set 5 pit #18)"
+    },
+    {
+      "name": "Michael Brown",
+      "team": "CK Hurricanes",
+      "number": "#56",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 film ID; PBLeagues roster: Michael only (no Aaron)"
+    },
+    {
+      "name": "Gant MacLellan",
+      "team": "Chicago Aftershock",
+      "number": "#56",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 (P3); PBLeagues Aftershock; VERIFY side: film dual-feed"
+    },
+    {
+      "name": "Daniela Rojas Jr",
+      "team": "Chicago Aftershock",
+      "number": "#30",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 walkoff survivor FINAL Canes 8–5"
+    },
+    {
+      "name": "Maxim Stancel",
+      "team": "Chicago Aftershock",
+      "number": "#16",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 walkoff; merges prior Stancel #16"
+    },
+    {
+      "name": "Jonah Jamroz",
+      "team": "Detroit Infamous",
+      "number": "#9",
+      "role": "film",
+      "source": "MLPB+ Sat Set 4 notes / allowlist (film confirm sparse)"
+    },
+    {
+      "name": "LJ Guess",
+      "team": "San Antonio X-Factor",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "Brandon Holland",
+      "team": "San Antonio X-Factor",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "George Saldana",
+      "team": "Houston Heat",
+      "number": "#8",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "Howe",
+      "team": "Seattle Uprising",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "Sam",
+      "team": "Seattle Uprising",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "Holland",
+      "team": "Seattle Uprising",
+      "number": "#99 (vs Ryan Holland #23 — verify)",
+      "role": "film",
+      "source": "Fri broadcast 40IX7cok6Vk"
+    },
+    {
+      "name": "Malloy",
+      "team": "Red Legion",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF (VERIFY — also listed FIT in c1)"
+    },
+    {
+      "name": "Colt",
+      "team": "Paintball FIT",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Ben Carroll",
+      "team": "TonTon Arsenal",
+      "number": "#02",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF (as Benny Carroll); Fri Set 9 MLPB+ close-up graphic 'Carroll #02' (film-graphic entry, not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (TonTon)"
+    },
+    {
+      "name": "Fromholz",
+      "team": "TonTon Arsenal",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF (Kromholz/Krombholz spelling — verify)"
+    },
+    {
+      "name": "Enfosi",
+      "team": "TonTon Arsenal",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Hugo",
+      "team": "TonTon Arsenal",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Cody Woodruff",
+      "team": "Perris ASG Aftermath",
+      "number": "#8",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF; Sat Set 9 #8 yellow-flag penalty (film tagged Collision — team VERIFY; PBLeagues Aftermath)"
+    },
+    {
+      "name": "Devin Stuart",
+      "team": "Perris ASG Aftermath",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Eric Arrieta",
+      "team": "Perris ASG Aftermath",
+      "number": "#44",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF; Sat Set 9 #44 (film tagged Collision — team VERIFY; PBLeagues Aftermath)"
+    },
+    {
+      "name": "Grayson Gladstone",
+      "team": "Perris ASG Aftermath",
+      "number": "#95",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF; Sat Set 9 pit cam #95 + PBLeagues Aftermath"
+    },
+    {
+      "name": "Mazurick",
+      "team": "Perris ASG Aftermath",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF (also Mazurek)"
+    },
+    {
+      "name": "Zach Carter",
+      "team": "Perris ASG Aftermath",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Jeremy Dohn",
+      "team": "Perris ASG Aftermath",
+      "number": "unknown",
+      "role": "film",
+      "source": "Sun broadcast -NxgYj0epvk QF"
+    },
+    {
+      "name": "Stanczak",
+      "team": "Edmonton Impact",
+      "number": "#99",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis (RL vs Impact)"
+    },
+    {
+      "name": "Rabackoff",
+      "team": "Edmonton Impact",
+      "number": "#20",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis (buzzer → Impact 4)"
+    },
+    {
+      "name": "Yachimec",
+      "team": "Edmonton Impact",
+      "number": "#24",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis"
+    },
+    {
+      "name": "Leival / Levine (spelling VERIFY)",
+      "team": "Edmonton Impact",
+      "number": "#13",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis; spelling VERIFY"
+    },
+    {
+      "name": "Axel Gaudin Sr",
+      "team": "TonTon Arsenal",
+      "number": "#91",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis + Sat Set 10 film #91; PBLeagues TonTon (earlier Red Legion tag corrected)"
+    },
+    {
+      "name": "Anfossi (Enfosi/Infossi VERIFY)",
+      "team": "TonTon Arsenal",
+      "number": "#7",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis (buzzer → TonTon 5); spelling VERIFY vs Enfosi"
+    },
+    {
+      "name": "Szpytma",
+      "team": "TonTon Arsenal",
+      "number": "#89",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis; Fri Set 6 vs Dynasty graphic (snake runner, bunker)"
+    },
+    {
+      "name": "Zaghini",
+      "team": "TonTon Arsenal",
+      "number": "#31",
+      "role": "film",
+      "source": "MLPB+ Sun Set 4 semis"
+    },
+    {
+      "name": "Stephen Omara",
+      "team": "San Diego Dynasty",
+      "number": "#16",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 buzzer P2 (film Omara16/O'Mara16) + PBLeagues"
+    },
+    {
+      "name": "Yosh Rau",
+      "team": "San Diego Dynasty",
+      "number": "#32",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 + PBLeagues; Sun QF Rau #32"
+    },
+    {
+      "name": "Harrison Frye",
+      "team": "San Diego Dynasty",
+      "number": "#8",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 buzzer P7 (film Frye #8) + PBLeagues"
+    },
+    {
+      "name": "Alex Fraige",
+      "team": "San Diego Dynasty",
+      "number": "#13",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 film #13 — VERIFY: Fraige or Andrade (both PBLeagues Dynasty; jersey film-only)"
+    },
+    {
+      "name": "Henry Sentz",
+      "team": "Los Angeles Ironmen",
+      "number": "#5",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 film #5 + PBLeagues"
+    },
+    {
+      "name": "Patrick Kraft Jr",
+      "team": "Los Angeles Ironmen",
+      "number": "#17",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 film #17 + PBLeagues"
+    },
+    {
+      "name": "Jesse Stephens Jr",
+      "team": "Los Angeles Ironmen",
+      "number": "#29",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 film 'Stephens #29' + PBLeagues"
+    },
+    {
+      "name": "Vince Newell",
+      "team": "Los Angeles Collision",
+      "number": "#16",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 film #16 + PBLeagues EID 9321 Collision (name confirmed high; #16 film-only)"
+    },
+    {
+      "name": "Hugo Verhaeghe",
+      "team": "TonTon Arsenal",
+      "number": "#15",
+      "role": "film",
+      "source": "MLPB+ Sat Set 7 FINAL buzzer + PBLeagues TonTon (p2 Collision tag rejected)"
+    },
+    {
+      "name": "Tyler Harmon",
+      "team": "Edmonton Impact",
+      "number": "#12",
+      "role": "film",
+      "source": "MLPB+ Sat Set 8 buzzer P8; name/team PBLeagues-confirmed, number from film"
+    },
+    {
+      "name": "Caleb Abuhl",
+      "team": "Los Angeles Ironmen",
+      "number": "#7",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 film Abuhl #7 (buzzers P3 + P6) + PBLeagues Ironmen"
+    },
+    {
+      "name": "Christopher Lennon",
+      "team": "Los Angeles Ironmen",
+      "number": "#22",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 film Lennon #22 + PBLeagues Ironmen"
+    },
+    {
+      "name": "Clayton Rizzardo Jr",
+      "team": "Royal City Seadogs",
+      "number": "#9",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 film 'C. Rizzardo #9' + PBLeagues Seadogs"
+    },
+    {
+      "name": "Brandon Trujillo",
+      "team": "Los Angeles Collision",
+      "number": "#23",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 film #23 + PBLeagues Collision; OT-forcing buzzer side VERIFY"
+    },
+    {
+      "name": "Ethan Jose Castro",
+      "team": "Los Angeles Collision",
+      "number": "#5",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 pit cam #5 Castro (no elim) + PBLeagues Collision"
+    },
+    {
+      "name": "Avery Nguyen",
+      "team": "Los Angeles Collision",
+      "number": "#2",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 pit cam (mislabeled 'Aftermath pit') + PBLeagues Collision"
+    },
+    {
+      "name": "Jordan Boyum",
+      "team": "Los Angeles Collision",
+      "number": "#7",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 pit cam (mislabeled 'Aftermath pit') + PBLeagues Collision"
+    },
+    {
+      "name": "Guillermo Ramirez",
+      "team": "Los Angeles Collision",
+      "number": "#00",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 pit cam (mislabeled 'Aftermath pit') + PBLeagues Collision; confirmed PBLeagues Roster pro-allowlist.json event 9321 (LA Collision)"
+    },
+    {
+      "name": "Evan Middleton",
+      "team": "Los Angeles Collision",
+      "number": "#25",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 pit cam (mislabeled 'Aftermath pit') + PBLeagues Collision"
+    },
+    {
+      "name": "James Green",
+      "team": "Perris ASG Aftermath",
+      "number": "#42",
+      "role": "film",
+      "source": "MLPB+ Sat Set 9 film #42 Green (film tagged Collision OT out — team VERIFY) + PBLeagues Aftermath"
+    },
+    {
+      "name": "Michael Urena",
+      "team": "San Diego Dynasty",
+      "number": "#79",
+      "role": "film",
+      "source": "MLPB+ Sat Set 10 film Urena #79 + PBLeagues Dynasty"
+    },
+    {
+      "name": "Blake Yarber",
+      "team": "San Diego Dynasty",
+      "number": "#44",
+      "role": "film",
+      "source": "MLPB+ Sat Set 10 film 'Farber'; Fri Set 9 close-up graphic 'Yarber #44' (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Dynasty)"
+    },
+    {
+      "name": "Chris Caputo",
+      "team": "New Jersey Leverage",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic 'Caputo' (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Leverage)"
+    },
+    {
+      "name": "Sanborn",
+      "team": "New Jersey Leverage",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Leverage)"
+    },
+    {
+      "name": "De Los Santos",
+      "team": "New Jersey Leverage",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Leverage)"
+    },
+    {
+      "name": "Graham",
+      "team": "New Jersey Leverage",
+      "number": "#9",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Leverage)"
+    },
+    {
+      "name": "Arturo Andrade",
+      "team": "San Diego Dynasty",
+      "number": "#13",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic 'Andrade #13' (not assigned to elims); name confirmed PBLeagues Roster pro-allowlist.json event 9321 (Dynasty); separate Sat Set 7 Fraige/Andrade #13 jersey VERIFY still open"
+    },
+    {
+      "name": "unknown (graphic 'Harry'; possibly Harrison Frye) VERIFY",
+      "team": "San Diego Dynasty",
+      "number": "unknown",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); 'Harry' not a roster name per PBLeagues Roster pro-allowlist.json event 9321"
+    },
+    {
+      "name": "unknown TonTon #95 (graphic 'Giger', not on roster) VERIFY",
+      "team": "TonTon Arsenal",
+      "number": "#95",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); not on any roster per PBLeagues Roster pro-allowlist.json event 9321"
+    },
+    {
+      "name": "Blue",
+      "team": "Chicago Distortion",
+      "number": "#22",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Distortion)"
+    },
+    {
+      "name": "Unger",
+      "team": "Chicago Distortion",
+      "number": "#67",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Distortion)"
+    },
+    {
+      "name": "Haber-Mattie",
+      "team": "Chicago Distortion",
+      "number": "#4",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic 'Haber #4' (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 as Haber-Mattie (Distortion)"
+    },
+    {
+      "name": "Nate Roberts",
+      "team": "Chicago Distortion",
+      "number": "#47",
+      "role": "film",
+      "source": "Fri Set 9 MLPB+ close-up graphic (not assigned to elims); confirmed PBLeagues Roster pro-allowlist.json event 9321 (Distortion)"
+    }
+  ]
+}

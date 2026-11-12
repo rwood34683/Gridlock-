@@ -1,0 +1,15 @@
+{
+  "counts": {
+    "higher_fidelity_structured_evidence_already_present": 228,
+    "unchanged_files_skipped": 147
+  },
+  "errors": [],
+  "warnings": [
+    {
+      "file": "person-sample-otMqtn3J5amL8mRh.html",
+      "status": "sample_without_source_comment_skipped"
+    }
+  ],
+  "player_queue_count": 3619,
+  "other_roles_queue_count": 762
+}

@@ -1,0 +1,63 @@
+{
+  "team": "CK Hurricanes",
+  "erid": "abksbYxq6Q5MIPuE",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=abksbYxq6Q5MIPuE",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Michael Brown",
+      "pid": "133381"
+    },
+    {
+      "jersey": null,
+      "name": "Shon Saucedo",
+      "pid": "9523"
+    },
+    {
+      "jersey": null,
+      "name": "Kaito Warner Jr",
+      "pid": "41690"
+    },
+    {
+      "jersey": null,
+      "name": "Sam Brinkman",
+      "pid": "140859"
+    },
+    {
+      "jersey": null,
+      "name": "Logan Dyer",
+      "pid": "127127"
+    },
+    {
+      "jersey": null,
+      "name": "Andrew Bell",
+      "pid": "2768"
+    },
+    {
+      "jersey": null,
+      "name": "Jake Raffield",
+      "pid": "122804"
+    },
+    {
+      "jersey": null,
+      "name": "Konstantin Fedorov",
+      "pid": "3891"
+    },
+    {
+      "jersey": null,
+      "name": "John Brinkman",
+      "pid": "33493"
+    },
+    {
+      "jersey": null,
+      "name": "Duran Martinez",
+      "pid": "91321"
+    },
+    {
+      "jersey": null,
+      "name": "Charles Dowden Vii",
+      "pid": "159917"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

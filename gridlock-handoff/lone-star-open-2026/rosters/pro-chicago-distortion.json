@@ -1,0 +1,53 @@
+{
+  "team": "Chicago Distortion",
+  "erid": "mLMseziMMxZNZngH",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=mLMseziMMxZNZngH",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Nate Roberts",
+      "pid": "132808"
+    },
+    {
+      "jersey": null,
+      "name": "Kevin Wenck",
+      "pid": "55318"
+    },
+    {
+      "jersey": null,
+      "name": "Jackson Blue",
+      "pid": "148117"
+    },
+    {
+      "jersey": null,
+      "name": "Jeren Perez",
+      "pid": "221970"
+    },
+    {
+      "jersey": null,
+      "name": "David Haber-Mattie",
+      "pid": "55030"
+    },
+    {
+      "jersey": null,
+      "name": "Michael Unger",
+      "pid": "9441"
+    },
+    {
+      "jersey": null,
+      "name": "Matthew Askren",
+      "pid": "10117"
+    },
+    {
+      "jersey": null,
+      "name": "Alex D'Acquisto",
+      "pid": "152111"
+    },
+    {
+      "jersey": null,
+      "name": "Gunther Stumpf",
+      "pid": "149932"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<HTML>  
+<HEAD> 
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8S6M6X0LHT"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-8S6M6X0LHT');
+</script>
+
+<TITLE>PBLi - World's #1 Paintball Event Registration System</TITLE>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+ 	<!--<meta name="viewport" content="width=device-width,height=device-height,minimum-scale=1.0,maximum-scale=1.0">-->
+ 	<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" >
+<meta property="og:image" content="/APPAfb_250.png" >
+<!-- This site is light-only by design. Declaring it stops Chrome's auto-dark
+     ("Darken websites") and similar from re-tinting form controls, which left
+     reset.css's forced-black input text sitting on a browser-chosen background. -->
+<meta name="color-scheme" content="light">
+<!-- Roboto 400+700 is the body/UI font; Play stays for #appaTopMenu, where a display
+     face belongs. One request serves both. The old Play-only request had no 700 cut,
+     so every bold on the site was browser-synthesised faux bold. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Play|Roboto:400,700">
+<link rel='stylesheet' href='/reset.css' type='text/css'>
+<link rel='stylesheet' href='/style.css?v=44' type='text/css'>
+<link rel='stylesheet' href='/includes/genericons/genericons.css' type='text/css'>
+<!--<LINK REL="SHORTCUT ICON" HREF="/APPAIcon.ico"> -->
+<link rel='icon' href='/favicon-64.png'>
+<link href='https://fonts.googleapis.com/css?family=Syncopate:400,700' rel='stylesheet' type='text/css'>		
+<!--SQUAREUP-->
+<!--1.3.2-->
+<script src='https://ajax.googleapis.com/ajax/libs/mootools/1.4.5/mootools-yui-compressed.js'></script>
+<script src='/scripts/mootoolsmore.js'></script>
+<script src='/scripts/sprintf.js'></script>
+<!-- CAUTION: do NOT name the ad script's element or its host here. displayHeader()
+     filters this file LINE BY LINE by substring, so a comment line mentioning one
+     drops out on its own for league logins. That happened on 2026-08-13: the line
+     carrying this comment's opener vanished and the remaining lines rendered as
+     visible text at the top of every page for league users, while anonymous
+     visitors saw nothing wrong. Same applies to the analytics and MooTools names.
+     The AdSense loader used to sit here as well as on headertop.html:23, so every
+     CGI page pulled it twice, which makes auto-placement erratic (a phantom ad was
+     landing inside register.cgi's team table). The headertop.html copy is the one
+     kept: it renders on every CGI page too (TestVal.pm:3060 opens it
+     unconditionally) AND on the ~30k static .html pages that SSI-include
+     header.html -> headertop.html but never head.html, so its coverage is a strict
+     superset of this one. Removed 2026-08-13. -->
+
+<script type='text/javascript' src='https://pbleagues.com/scripts/MooCountdown.js'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/calendar.js?v=1790537710'></script>
+<link rel=StyleSheet HREF='https://pbleagues.com/scripts/calendar.css'>
+<script type='text/javascript' src='https://pbleagues.com/scripts/tinytab.js?v=4'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/ModalBox.js'></script>
+<script type='text/javascript' src='https://pbleagues.com/scripts/floatingtips.js?v=1790537984'></script>
+</HEAD> 
+<body>
+		<div id='appaMainContainer'>
+			<div id='appaTopMenuContainer'>
+				<div id='appaTopMenu'>
+					<ul>
+						<li><a href='/leagues-info'>Promoter Information</a></li>
+						<li><a href='/contact.html'>Contact Us</a></li>
+					</ul>
+				</div>
+			</div>
+		    
+			<div id='appaMainInnerContainer'>
+				<div id='appaMainInnerContainerTable'>
+					<div id='appaMainInnerTable'>
+						<div id='appaInnerLeftBuffer'> </div>
+						<div id='appaInnerContainer'>
+							<!-- Mobile nav toggle. Pure CSS (checkbox + label, no script) so it works
+							     identically on CGI pages and on the static pages that SSI-include this
+							     file. It has to sit HERE, as a sibling that PRECEDES both the header
+							     container and the menu container, because the rules in Section 4 of the
+							     main stylesheet reach them with the ~ combinator. Those rules only
+							     collapse a menu that HAS this toggle, so the legacy *new.html header
+							     chain, which does not carry one, keeps its always-open nav. -->
+							<input type='checkbox' id='appaNavToggle'>
+							<div id='appaInnerHeaderContainer'>
+								<div id='appaInnerHeaderSiteLogo'>
+									<A HREF="/"><IMG SRC="//pbleagues.com/PBLI_4_tiny.png" id='APPALogo' alt="PBLi Shield Logo"></A> 
+								</div>
+								<div id='appaInnerHeaderAdBar'>
+									<!--Below is one line so TestVal::top processing skips all of it for league users.-->
+									<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7671519147882660" crossorigin="anonymous"></script> <!-- 2025NewAds --> <ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px" data-ad-client="ca-pub-7671519147882660" data-ad-slot="5707614440"></ins> <script> (adsbygoogle = window.adsbygoogle || []).push({}); </script>
+								</div>
+								<div id='appaInnerHeaderLeagueLogo'>
+<a href="https://nxlpaintball.com"><img height=100 src="/uploads/leagues/b0hunkmue6euxg7d_128.webp"></a>								</div> 
+								<label for='appaNavToggle' id='appaNavToggleLabel'><span id='appaNavToggleBars'></span>Menu</label>
+								<div id='appaInnerHeaderLoginBox'>
+<span class="xx-small">Login As:</span>
+
+<FORM METHOD=POST NAME="LoginForm" ID="LoginForm" ACTION="https://mlpb.pbleagues.com/cgi-bin/roster.cgi">
+<TABLE>
+		<TR>
+			<TD ALIGN=RIGHT class="xx-small">Login:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=text SIZE=12 MAXLENGTH=90 NAME="login">
+		</TR><TR>
+			<TD ALIGN=RIGHT class="xx-small">Password:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=password SIZE=12 MAXLENGTH=90 NAME="password"></TD></TR><TR><TD COLSPAN=2 class="xx-small"><A HREF="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</A></TD>
+		</TR><TR><TD COLSPAN=2 class="xx-small">or <A HREF="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</A></TD></TR>
+<TR>
+				<TD>&nbsp;</TD>
+				<TD ALIGN=LEFT class="xx-small">
+					<INPUT TYPE=submit VALUE="Login" class="xx-small">
+				</TD>
+			</TR>
+</TABLE>
+			<INPUT TYPE=hidden NAME="LID" VALUE="">
+			<INPUT TYPE=hidden NAME="EID" VALUE="">
+			<INPUT TYPE=hidden NAME="RID" VALUE="">
+			<INPUT TYPE=hidden NAME="ETID" VALUE="">
+			<INPUT TYPE=hidden NAME="TID" VALUE="">
+			<INPUT TYPE=hidden NAME="EPID" VALUE="">
+			<INPUT TYPE=hidden NAME="PID" VALUE="">
+			<INPUT TYPE=hidden NAME="ERID" VALUE="xkJeIYtz0sQ4Dbta">
+			<INPUT TYPE=hidden NAME="page" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnuid" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnname" VALUE="">
+			<INPUT TYPE=hidden NAME="VID" VALUE="">
+			<INPUT TYPE=hidden NAME="EVID" VALUE="">
+			<INPUT TYPE=hidden NAME="reservation" VALUE="">
+			<INPUT TYPE=hidden NAME="refcode" VALUE="">
+</FORM>
+								</div>
+								
+								
+							</div>
+							<div id='appaInnerMainMenuContainer'>
+								<UL id="appaMainNavMenu"> 
+<LI><a href='https://nxlpaintball.com'>NXL Website</a></LI>
+									<LI><A HREF="/cgi-bin/playerprofile.cgi">Your Profile</a></LI> 
+									<LI><A HREF="/cgi-bin/teamprofile.cgi">Your Teams</a></LI>
+									<LI><A HREF="https://pbleagues.com/leagues">Events</a></LI> 
+									<LI><A HREF="/scores/">Scores</a></LI> 
+									<!--
+									<LI><A HREF="/mobileApp.html">Mobile App</a></LI>
+									-->
+									<!--MAINLINK-->
+								</UL>
+
+							</div>
+							<div id='appaMainContentContainer'>
+								<div id='appaMainContentInnerContainer'>
+									<div id='appaLoginBoxContainer'>
+										<div id='loginBox'>
+											<br>
+<span class="xx-small">Login As:</span>
+
+<FORM METHOD=POST NAME="LoginForm" ID="LoginForm" ACTION="https://mlpb.pbleagues.com/cgi-bin/roster.cgi">
+<TABLE>
+		<TR>
+			<TD ALIGN=RIGHT class="xx-small">Login:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=text SIZE=12 MAXLENGTH=90 NAME="login">
+		</TR><TR>
+			<TD ALIGN=RIGHT class="xx-small">Password:</TD>
+			<TD ALIGN=LEFT class="xx-small"><INPUT TYPE=password SIZE=12 MAXLENGTH=90 NAME="password"></TD></TR><TR><TD COLSPAN=2 class="xx-small"><A HREF="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</A></TD>
+		</TR><TR><TD COLSPAN=2 class="xx-small">or <A HREF="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</A></TD></TR>
+<TR>
+				<TD>&nbsp;</TD>
+				<TD ALIGN=LEFT class="xx-small">
+					<INPUT TYPE=submit VALUE="Login" class="xx-small">
+				</TD>
+			</TR>
+</TABLE>
+			<INPUT TYPE=hidden NAME="LID" VALUE="">
+			<INPUT TYPE=hidden NAME="EID" VALUE="">
+			<INPUT TYPE=hidden NAME="RID" VALUE="">
+			<INPUT TYPE=hidden NAME="ETID" VALUE="">
+			<INPUT TYPE=hidden NAME="TID" VALUE="">
+			<INPUT TYPE=hidden NAME="EPID" VALUE="">
+			<INPUT TYPE=hidden NAME="PID" VALUE="">
+			<INPUT TYPE=hidden NAME="ERID" VALUE="xkJeIYtz0sQ4Dbta">
+			<INPUT TYPE=hidden NAME="page" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnuid" VALUE="">
+			<INPUT TYPE=hidden NAME="pbnname" VALUE="">
+			<INPUT TYPE=hidden NAME="VID" VALUE="">
+			<INPUT TYPE=hidden NAME="EVID" VALUE="">
+			<INPUT TYPE=hidden NAME="reservation" VALUE="">
+			<INPUT TYPE=hidden NAME="refcode" VALUE="">
+</FORM>
+
+				    <ins class='adsbygoogle' style='display:inline-block;width:160px;height:600px' 
+						data-ad-client='ca-pub-7671519147882660' 
+						data-ad-slot='2187294391'
+					></ins>
+				    <script>
+					<!--
+				    (adsbygoogle = window.adsbygoogle || []).push({}); // google_ad_client
+					-->
+				    </script>
+														</div>
+									</div>
+									<div id='mainPage'>
+<script>
+(function(){
+	try {
+		var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		if (!tz) { return; }
+		var cur = document.cookie.replace(/(?:(?:^|.*;\s*)tz\s*=\s*([^;]*).*$)|^.*$/, "$1");
+		if (cur === tz) { return; }
+		document.cookie = "tz=" + encodeURIComponent(tz) + ";path=/;max-age=31536000;samesite=lax";
+	} catch (e) { /* no Intl, or cookies blocked: server time is the fallback */ }
+})();
+</script>
+<center>
+<p><font size=4><a href="https://pbleagues.com/event/9321">Lone Star Open</a> 2026</font></p><p><font size=4>Pro X-Ball (Fri-Sun)</font></p><p><h1><A HREF="/cgi-bin/teamprofile.cgi?ETID=LvSxug1gDAaN323a">Tampa Bay Damage</A> </h1></p>
+	<script type='text/javascript' src='/scripts/FloatingTips.Dialog.js'></script>
+	<script type='text/javascript' src='/scripts/roster_common.js?v=1786760060'></script>
+
+	<script type='text/javascript' src='/scripts/roster_master.js?v=1791935179'></script>
+	<script type='text/javascript'>
+			var thisURL = 'https://mlpb.pbleagues.com/cgi-bin/roster.cgi';
+			var canChangeMe = 0;
+			var rowHeader = '';
+			var rosterCols = [["Player<br>Reg. Fee",2],["ROLE",2],["Class",1]];
+			var pData = {"13344":{"IDRequired":"Yes","age":50,"staff":"Yes","PicApprove":"Yes","class":"Beginner","cansee":0,"thumbloc":"/pictures_crop/thumbs/13344.jpg","role":"staff","firstname":"Geoffrey","IDPaid":"Yes","cssclass":"white","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Beg","passprinted":null,"name":"Geoffrey Knapp","reclass":"No","IDSeason":"2026","IDPriceDisplay":"Paid","checkinmethod":"","checkedin":null,"flag":"","lastname":"Knapp","IDValid":"Yes"},"17109":{"IDSeason":"2026","IDPriceDisplay":"Paid","flag":"","checkinmethod":"","checkedin":null,"IDValid":"Yes","lastname":"Sola","passprinted":null,"name":"Michael Sola","reclass":"No","IDPrice":0,"classshort":"D3","IDImage":"<img border=0 src='/id_small.jpg'>","cssclass":"lyellow","IDPaid":"Yes","role":"staff","firstname":"Michael","cansee":0,"thumbloc":"/pictures/17109.jpg","age":36,"staff":"Yes","class":"Division 3","PicApprove":"Yes","IDRequired":"Yes"},"24137":{"staff":"Yes","PicApprove":"Yes","class":"Division 4","age":35,"IDRequired":"Yes","role":"staff","firstname":"Daniel","cansee":0,"thumbloc":"/pictures_crop/thumbs/24137.jpg","IDPrice":0,"classshort":"D4","IDImage":"<img border=0 src='/id_small.jpg'>","IDPaid":"Yes","cssclass":"lgreen","checkedin":null,"checkinmethod":"","flag":"","lastname":"Moore","IDValid":"Yes","IDSeason":"2026","IDPriceDisplay":"Paid","name":"Daniel Moore","reclass":"No","passprinted":null},"23693":{"name":"Jacob Edwards","reclass":"No","passprinted":null,"checkedin":null,"checkinmethod":"","flag":"","lastname":"Edwards","IDValid":"Yes","IDSeason":"2026","IDPriceDisplay":"Paid","IDPaid":"Yes","cssclass":"black","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro","cansee":0,"thumbloc":"/pictures_crop/thumbs/23693.png","role":"player","firstname":"Jacob","IDRequired":"Yes","staff":"No","PicApprove":"Yes","class":"Pro","age":31},"1606":{"reclass":"No","name":"Bryan Smith","passprinted":null,"lastname":"Smith","IDValid":"Yes","checkedin":null,"checkinmethod":"","flag":"","IDPriceDisplay":"Paid","IDSeason":"2026","IDPaid":"Yes","cssclass":"black","IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro","IDPrice":0,"thumbloc":"/pictures_crop/thumbs/1606.png","cansee":0,"firstname":"Bryan","role":"player","IDRequired":"Yes","PicApprove":"Yes","class":"Pro","staff":"No","age":41},"193179":{"IDPriceDisplay":"Paid","IDSeason":"2026","lastname":"Nichols","IDValid":"Yes","checkinmethod":"","checkedin":null,"flag":"","passprinted":null,"reclass":"No","name":"Clayton Nichols","IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"D3","IDPrice":0,"IDPaid":"Yes","cssclass":"lyellow","firstname":"Clayton","role":"staff","thumbloc":"/pictures_crop/thumbs/193179.jpg","cansee":0,"age":21,"PicApprove":"Yes","class":"Division 3","staff":"Yes","IDRequired":"Yes"},"2523":{"classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>","IDPrice":0,"IDPaid":"Yes","cssclass":"black","lastname":"Ireland","IDValid":"Yes","checkinmethod":"","checkedin":null,"flag":"","IDPriceDisplay":"Paid","IDSeason":"2026","reclass":"No","name":"Mark Ireland","passprinted":null,"PicApprove":"Yes","class":"Pro","staff":"No","age":40,"IDRequired":"Yes","firstname":"Mark","role":"player","thumbloc":"/pictures_crop/thumbs/2523.png","cansee":0},"204750":{"cansee":0,"thumbloc":"/pictures_crop/thumbs/204750.jpg","role":"staff","firstname":"Jasper","IDRequired":"Yes","staff":"Yes","PicApprove":"Yes","class":"Division 3","age":25,"name":"Jasper Long","reclass":"No","passprinted":null,"checkedin":null,"checkinmethod":"","flag":"","lastname":"Long","IDValid":"Yes","IDSeason":"2026","IDPriceDisplay":"Paid","IDPaid":"Yes","cssclass":"lyellow","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"D3"},"3005":{"cansee":0,"thumbloc":"/pictures_crop/thumbs/3005.jpg","role":"coach","firstname":"Kevin","IDRequired":"Yes","age":48,"staff":"Yes","class":"Pro","PicApprove":"Yes","passprinted":null,"name":"Kevin Bredthauer","reclass":"No","IDSeason":"2026","IDPriceDisplay":"Paid","flag":"","checkinmethod":"","checkedin":null,"IDValid":"Yes","lastname":"Bredthauer","cssclass":"black","IDPaid":"Yes","IDPrice":0,"classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>"},"5591":{"classshort":"Beg","IDImage":"<img border=0 src='/id_small.jpg'>","IDPrice":0,"cssclass":"white","IDPaid":"Yes","IDValid":"Yes","lastname":"Spears","flag":"","checkinmethod":"","checkedin":null,"IDPriceDisplay":"Paid","IDSeason":"2026","reclass":"No","name":"Samuel Spears","passprinted":null,"class":"Beginner","PicApprove":"Yes","staff":"Yes","age":52,"IDRequired":"Yes","firstname":"Samuel","role":"staff","thumbloc":"/pictures_crop/thumbs/5591.jpg","cansee":0},"70517":{"firstname":"Christopher","role":"player","thumbloc":"/pictures_crop/thumbs/70517.png","cansee":0,"class":"Pro","PicApprove":"Yes","staff":"No","age":30,"IDRequired":"Yes","IDValid":"Yes","lastname":"Horn","flag":"","checkedin":null,"checkinmethod":"","IDPriceDisplay":"Paid","IDSeason":"2026","reclass":"No","name":"Christopher Horn","passprinted":null,"classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>","IDPrice":0,"cssclass":"black","IDPaid":"Yes"},"2532":{"classshort":"D4","IDImage":"<img border=0 src='/id_small.jpg'>","IDPrice":0,"cssclass":"lgreen","IDPaid":"Yes","IDPriceDisplay":"Paid","IDSeason":"2026","IDValid":"Yes","lastname":"Blute","flag":"","checkinmethod":"","checkedin":null,"passprinted":null,"reclass":"No","name":"Joey Blute","age":48,"class":"Division 4","PicApprove":"Yes","staff":"Yes","IDRequired":"Yes","firstname":"Joey","role":"staff","thumbloc":"/pictures_crop/thumbs/2532.jpg","cansee":0},"14329":{"IDRequired":"Yes","age":36,"class":"Pro","PicApprove":"Yes","staff":"No","thumbloc":"/pictures_crop/thumbs/14329.png","cansee":0,"firstname":"Alex","role":"player","cssclass":"black","IDPaid":"Yes","classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>","IDPrice":0,"passprinted":null,"reclass":"No","name":"Alex Goldman","IDPriceDisplay":"Paid","IDSeason":"2026","IDValid":"Yes","lastname":"Goldman","flag":"","checkedin":null,"checkinmethod":""},"26045":{"cansee":0,"thumbloc":"/pictures_crop/thumbs/26045.png","role":"player","firstname":"Daniel","IDRequired":"Yes","age":42,"staff":"No","PicApprove":"Yes","class":"Pro","passprinted":null,"name":"Daniel Holliday","reclass":"No","IDSeason":"2026","IDPriceDisplay":"Paid","checkinmethod":"","checkedin":null,"flag":"","lastname":"Holliday","IDValid":"Yes","IDPaid":"Yes","cssclass":"black","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro"},"21296":{"cssclass":"black","IDPaid":"Yes","IDPrice":0,"classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>","name":"Chad Busiere","reclass":"No","passprinted":null,"flag":"","checkedin":null,"checkinmethod":"","IDValid":"Yes","lastname":"Busiere","IDSeason":"2026","IDPriceDisplay":"Paid","IDRequired":"Yes","staff":"No","class":"Pro","PicApprove":"Yes","age":38,"cansee":0,"thumbloc":"/pictures_crop/thumbs/21296.png","role":"player","firstname":"Chad"},"44646":{"IDPrice":0,"classshort":"D4","IDImage":"<img border=0 src='/id_small.jpg'>","IDPaid":"Yes","cssclass":"lgreen","IDSeason":"2026","IDPriceDisplay":"Paid","checkedin":null,"checkinmethod":"","flag":"","lastname":"Sullivan","IDValid":"Yes","passprinted":null,"name":"Kevin Sullivan II","reclass":"No","age":34,"staff":"Yes","PicApprove":"Yes","class":"Division 4","IDRequired":"Yes","role":"staff","firstname":"Kevin","cansee":0,"thumbloc":"/pictures_crop/thumbs/44646.jpg"},"11657":{"age":48,"staff":"No","PicApprove":"Yes","class":"Pro","IDRequired":"Yes","role":"player","firstname":"Christos","cansee":0,"thumbloc":"/pictures_crop/thumbs/11657.png","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro","IDPaid":"Yes","cssclass":"black","IDSeason":"2026","IDPriceDisplay":"Paid","checkinmethod":"","checkedin":null,"flag":"","lastname":"Botsolas","IDValid":"Yes","passprinted":null,"name":"Christos Botsolas Jr","reclass":"No"},"21222":{"class":"Division 3","PicApprove":"Yes","staff":"Yes","age":33,"IDRequired":"Yes","firstname":"Daniel","role":"media","thumbloc":"/pictures_crop/thumbs/21222.jpg","cansee":0,"classshort":"D3","IDImage":"<img border=0 src='/photo_small.jpg'>","IDPrice":0,"cssclass":"lyellow","IDPaid":null,"IDValid":"Yes","lastname":"Pena","flag":"","checkedin":null,"checkinmethod":"","IDPriceDisplay":"Paid","IDSeason":"2026","reclass":"No","name":"Daniel Pena","passprinted":null},"7083":{"passprinted":null,"reclass":"No","name":"Marcello Margott","IDPriceDisplay":"Paid","IDSeason":"2026","IDValid":"Yes","lastname":"Margott","flag":"","checkedin":null,"checkinmethod":"","cssclass":"black","IDPaid":"Yes","IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro","IDPrice":0,"thumbloc":"/pictures_crop/thumbs/7083.png","cansee":0,"firstname":"Marcello","role":"player","IDRequired":"Yes","age":36,"class":"Pro","PicApprove":"Yes","staff":"No"},"22746":{"IDSeason":"2026","IDPriceDisplay":"Paid","checkinmethod":"","checkedin":null,"flag":"","lastname":"Brown","IDValid":"Yes","passprinted":null,"name":"Keith Brown Jr","reclass":"No","IDPrice":0,"classshort":"Pro","IDImage":"<img border=0 src='/id_small.jpg'>","IDPaid":"Yes","cssclass":"black","role":"player","firstname":"Keith","cansee":0,"thumbloc":"/pictures_crop/thumbs/22746.png","age":33,"staff":"No","PicApprove":"Yes","class":"Pro","IDRequired":"Yes"},"117857":{"cansee":0,"thumbloc":"/pictures_crop/thumbs/117857.jpg","role":"staff","firstname":"Erica","IDRequired":"Yes","staff":"Yes","class":"None","PicApprove":"Yes","age":43,"name":"Erica Holliday","reclass":"No","passprinted":null,"flag":"","checkinmethod":"","checkedin":null,"IDValid":"Yes","lastname":"Holliday","IDSeason":"2026","IDPriceDisplay":"Paid","cssclass":"grey","IDPaid":"Yes","IDPrice":0,"classshort":"None","IDImage":"<img border=0 src='/id_small.jpg'>"},"26856":{"staff":"No","class":"Pro","PicApprove":"Yes","age":35,"IDRequired":"Yes","role":"player","firstname":"Chris","cansee":0,"thumbloc":"/pictures_crop/thumbs/26856.png","IDPrice":0,"IDImage":"<img border=0 src='/id_small.jpg'>","classshort":"Pro","cssclass":"black","IDPaid":"Yes","flag":"","checkedin":null,"checkinmethod":"","IDValid":"Yes","lastname":"Schehr","IDSeason":"2026","IDPriceDisplay":"Paid","name":"Chris Schehr","reclass":"No","passprinted":null}};
+			var curRoster={"media":{"21222":{"Lastname":"Pena","CachedClass":14,"CachedPoints":"513.0750","Staff":"Yes","Firstname":"Daniel"}},"staff":{"2532":{"CachedClass":16,"Lastname":"Blute","CachedPoints":"338.8807","Firstname":"Joey","Staff":"Yes"},"13344":{"Firstname":"Geoffrey","Staff":"Yes","CachedPoints":"10.4618","CachedClass":1,"Lastname":"Knapp"},"204750":{"CachedClass":14,"Lastname":"Long","CachedPoints":"1200.0000","Firstname":"Jasper","Staff":"Yes"},"17109":{"Staff":"Yes","Firstname":"Michael","CachedPoints":"693.8516","Lastname":"Sola","CachedClass":14},"24137":{"Firstname":"Daniel","Staff":"Yes","CachedPoints":"137.5300","CachedClass":16,"Lastname":"Moore"},"117857":{"CachedPoints":"0.0000","Lastname":"Holliday","CachedClass":0,"Staff":"Yes","Firstname":"Erica"},"44646":{"Firstname":"Kevin","Staff":"Yes","CachedPoints":"157.9200","CachedClass":16,"Lastname":"Sullivan"},"193179":{"Lastname":"Nichols","CachedClass":14,"CachedPoints":"1150.9092","Staff":"Yes","Firstname":"Clayton"},"5591":{"Lastname":"Spears","CachedClass":1,"CachedPoints":"15.9071","Staff":"Yes","Firstname":"Samuel"}},"player":{"1606":{"CachedPoints":"8088.0000","Lastname":"Smith","CachedClass":8,"Staff":"No","Firstname":"Bryan"},"23693":{"Staff":"No","Firstname":"Jacob","Lastname":"Edwards","CachedClass":8,"CachedPoints":"8720.0000"},"21296":{"CachedPoints":"8160.0000","Lastname":"Busiere","CachedClass":8,"Staff":"No","Firstname":"Chad"},"70517":{"CachedPoints":"8720.0000","CachedClass":8,"Lastname":"Horn","Firstname":"Christopher","Staff":"No"},"26856":{"Firstname":"Chris","Staff":"No","CachedClass":8,"Lastname":"Schehr","CachedPoints":"9376.0000"},"14329":{"Firstname":"Alex","Staff":"No","CachedPoints":"8553.5360","CachedClass":8,"Lastname":"Goldman"},"2523":{"Staff":"No","Firstname":"Mark","Lastname":"Ireland","CachedClass":8,"CachedPoints":"8720.0000"},"11657":{"Staff":"No","Firstname":"Christos","Lastname":"Botsolas","CachedClass":8,"CachedPoints":"6827.0848"},"22746":{"Staff":"No","Firstname":"Keith","CachedPoints":"8720.0000","Lastname":"Brown","CachedClass":8},"26045":{"CachedPoints":"8576.0000","Lastname":"Holliday","CachedClass":8,"Staff":"No","Firstname":"Daniel"},"7083":{"Firstname":"Marcello","Staff":"No","CachedPoints":"9056.0000","CachedClass":8,"Lastname":"Margott"}},"coach":{"3005":{"CachedPoints":"0.0000","Lastname":"Bredthauer","CachedClass":8,"Staff":"Yes","Firstname":"Kevin"}}};
+			var serverRoster={"media":{"21222":{"Lastname":"Pena","CachedClass":14,"CachedPoints":"513.0750","Staff":"Yes","Firstname":"Daniel"}},"staff":{"2532":{"CachedClass":16,"Lastname":"Blute","CachedPoints":"338.8807","Firstname":"Joey","Staff":"Yes"},"13344":{"Firstname":"Geoffrey","Staff":"Yes","CachedPoints":"10.4618","CachedClass":1,"Lastname":"Knapp"},"204750":{"CachedClass":14,"Lastname":"Long","CachedPoints":"1200.0000","Firstname":"Jasper","Staff":"Yes"},"17109":{"Staff":"Yes","Firstname":"Michael","CachedPoints":"693.8516","Lastname":"Sola","CachedClass":14},"24137":{"Firstname":"Daniel","Staff":"Yes","CachedPoints":"137.5300","CachedClass":16,"Lastname":"Moore"},"117857":{"CachedPoints":"0.0000","Lastname":"Holliday","CachedClass":0,"Staff":"Yes","Firstname":"Erica"},"44646":{"Firstname":"Kevin","Staff":"Yes","CachedPoints":"157.9200","CachedClass":16,"Lastname":"Sullivan"},"193179":{"Lastname":"Nichols","CachedClass":14,"CachedPoints":"1150.9092","Staff":"Yes","Firstname":"Clayton"},"5591":{"Lastname":"Spears","CachedClass":1,"CachedPoints":"15.9071","Staff":"Yes","Firstname":"Samuel"}},"player":{"1606":{"CachedPoints":"8088.0000","Lastname":"Smith","CachedClass":8,"Staff":"No","Firstname":"Bryan"},"23693":{"Staff":"No","Firstname":"Jacob","Lastname":"Edwards","CachedClass":8,"CachedPoints":"8720.0000"},"21296":{"CachedPoints":"8160.0000","Lastname":"Busiere","CachedClass":8,"Staff":"No","Firstname":"Chad"},"70517":{"CachedPoints":"8720.0000","CachedClass":8,"Lastname":"Horn","Firstname":"Christopher","Staff":"No"},"26856":{"Firstname":"Chris","Staff":"No","CachedClass":8,"Lastname":"Schehr","CachedPoints":"9376.0000"},"14329":{"Firstname":"Alex","Staff":"No","CachedPoints":"8553.5360","CachedClass":8,"Lastname":"Goldman"},"2523":{"Staff":"No","Firstname":"Mark","Lastname":"Ireland","CachedClass":8,"CachedPoints":"8720.0000"},"11657":{"Staff":"No","Firstname":"Christos","Lastname":"Botsolas","CachedClass":8,"CachedPoints":"6827.0848"},"22746":{"Staff":"No","Firstname":"Keith","CachedPoints":"8720.0000","Lastname":"Brown","CachedClass":8},"26045":{"CachedPoints":"8576.0000","Lastname":"Holliday","CachedClass":8,"Staff":"No","Firstname":"Daniel"},"7083":{"Firstname":"Marcello","Staff":"No","CachedPoints":"9056.0000","CachedClass":8,"Lastname":"Margott"}},"coach":{"3005":{"CachedPoints":"0.0000","Lastname":"Bredthauer","CachedClass":8,"Staff":"Yes","Firstname":"Kevin"}}};
+			var RID = 233135;
+			var ERID = 'xkJeIYtz0sQ4Dbta';
+			var LID = 316;
+			var EID = 9321;
+			// XBall roster: profile links carry &xball=1 so the profile opens on the XBall
+			// class tab -- the class THIS roster uses (pinfo::getProfileURL).  The server-built
+			// name link in pData already carries it; this is for the links the script builds.
+			var profileLinkSuffix = '&xball=1';
+			var validRoles = ["player","coach","staff"];
+			// Column flags -- ALL of them straight out of printRoster's %cols, which is
+			// also what pushed the matching header into rosterCols above. One value per
+			// column, one place it is decided.
+			var LIDCard = 1;
+			// Dual-brand 2026-08-26: no player classification on the airsoft site.
+			var showClassCol = 1;
+			var showEligibilityCol = 0;
+			var showDropCol = 0;
+			// Which control fills the Drop? column on the viewer's OWN row when they are
+			// not staff. _getPlayerRemoveCol posts PID<pid>=Remove back to roster.cgi:158.
+			var canSelfDrop = 0;
+			var roles={};
+			//var isLogin=0;
+			var isLogin=0;
+			var noCheckInButton=1;
+			// canCheckInCol = the column exists.  canCheckIn = the controls inside it are
+			// live.  They were the same value (and canCheckIn was read by nothing); they
+			// split when waiver viewing outlived check-in -- see %cols in printRoster.  A
+			// master/export login past daysAfterEditsAllowed gets the column with
+			// canCheckIn=0, i.e. check marks and Waiver links but no check-in controls.
+			var canCheckIn=0;
+			var canCheckInCol=0;
+			// Read-only signed waiver, per participant, in its own tab. Same predicate the
+			// Laravel view enforces for itself (canSeeLeagueCustomerData), so the link and
+			// the page it opens cannot disagree about who may look.
+			var canViewWaivers=0;
+			// Action menu (see printRoster). Mirrors ajax.cgi's participantAction gate
+			// exactly. Whether Check In appears in the menu is decided server-side, per
+			// participant, in pData[PID].actionOptions -- the client never re-derives it.
+			var canActOnParticipants = 0;
+			var onlineSignInEnabled=1;
+			var crewCard = 0;
+			var rClass = 8;
+			
+			var myPID = 0;
+			window.addEvent('domready',function(){
+				// No 'canCheckInCol = canCheckIn' here any more. That line silently threw
+				// away the server's value, so the cell obeyed canCheckIn() while the header
+				// obeyed has_priv() and the two could disagree. Both now come from
+				// %cols{checkIn} and there is nothing left to reconcile.
+				roles['coach']=1;
+				roles['player']=2;
+				roles['staff']=3;
+				roles['media']=4;
+				roles['spect']=5;
+				roles['reserve']=6;	
+				if ($('barcode')){
+					$('barcode').focus();
+				}
+				buildRosterForm();
+				var newID = $('newPlayerPID');
+				if (newID){
+					newID.addEvent('keydown',function(e){
+						if (e.key == 'enter'){
+							e.stop();
+							validatePlayerID(this.value,'player');
+						}
+					});
+				}
+				var newBirth=$('newPlayerBirthdate');
+				var newFirst=$('newPlayerFirstname');
+				var newLast=$('newPlayerLastname');
+				var fn = function(e){
+					if (e.key == 'enter'){
+						e.stop();
+						addPlayerByName(newFirst.value,newLast.value,newBirth.value,'player');
+					}
+				};
+				if (newBirth){
+					newBirth.addEvent('keydown',fn);
+				}
+				if (newFirst){newFirst.addEvent('keydown',fn);}
+				if (newLast){newLast.addEvent('keydown',fn);}
+			});
+
+	</script>
+	<link rel='stylesheet' href='/roster.css?v=1788505601' type='text/css'>
+	<style type="text/css">
+.appaStackCols.appaStacked { display: block !important; width: -moz-fit-content !important; width: fit-content !important; max-width: 100% !important; }
+.appaStackCols.appaStacked > div {
+	display: block !important;
+	width: -moz-fit-content;
+	width: fit-content;
+	max-width: 100%;
+	height: auto !important;
+	margin-bottom: 8px;
+}
+/* .appaStackRow: the other shape this keeps meeting -- a ONE-ROW <table> used
+   purely to line things up side by side (a label and a strip of payment
+   buttons, say), which is layout, not data. Stacked, each cell becomes its own
+   line. Kept separate from .appaStackCols because that one is for
+   display:table DIVs and cannot reach through tbody/tr. */
+table.appaStackRow.appaStacked { display: block; width: -moz-fit-content; width: fit-content; max-width: 100%; }
+table.appaStackRow.appaStacked tbody,
+table.appaStackRow.appaStacked tr { display: block; }
+table.appaStackRow.appaStacked td,
+table.appaStackRow.appaStacked th {
+	display: block;
+	width: auto;
+	max-width: 100%;
+	text-align: left;
+	white-space: normal;
+}
+</style>
+<script type="text/javascript">
+if (typeof window.appaStackWhenOverflow !== 'function') {
+	window._appaStackTargets = [];
+	window.appaStackApply = function() {
+		for (var i = 0; i < window._appaStackTargets.length; i++) {
+			var t = window._appaStackTargets[i];
+			t.el.classList.remove(t.cls);
+			// Nearest ancestor with real layout width: the direct parent can be a
+			// zero-clientWidth element (register.cgi's <form> lays out inline), which
+			// would otherwise read as "no room" -- or with a >0 guard, "never stack".
+			var p = t.el.parentNode;
+			while (p && p !== document.documentElement && !(p.clientWidth > 0)) { p = p.parentNode; }
+			var avail = (p && p.clientWidth > 0) ? p.clientWidth : document.documentElement.clientWidth;
+			// ...but never wider than the viewport. The whole page above #mainPage is
+			// display:table (#appaMainContainer down), and a table does not clip its
+			// content -- it GROWS to its min-content width. So on a phone the ancestor
+			// we just measured has already been stretched by this very element, and the
+			// compare reads "it fits" for exactly the element that caused the
+			// horizontal scrollbar. Clamping to the viewport makes the test mean what
+			// it says: stack when the user would otherwise have to scroll sideways.
+			// On a wide window the parent is the smaller of the two, so desktop
+			// behaviour is unchanged.
+			var vw = document.documentElement.clientWidth;
+			if (vw > 0 && avail > vw) { avail = vw; }
+			if (avail > 0 && t.el.scrollWidth > avail + 1) { t.el.classList.add(t.cls); }
+		}
+	};
+	window.appaStackWhenOverflow = function(id, cls) {
+		var el = document.getElementById(id);
+		if (!el) { return; }
+		window._appaStackTargets.push({ el: el, cls: cls });
+		window.appaStackApply();
+	};
+	window.addEventListener('resize', function(){ window.appaStackApply(); });
+	// Re-check after full load: late images/ads change both sides of the compare.
+	window.addEventListener('load', function(){ window.appaStackApply(); });
+}
+</script>
+<div id='roster-container' class='appaStackCols' style='display: table;'>
+<div style='display: table-cell; height: 100%; vertical-align: top; background-color: #DDFFDD; overflow: hidden;' >
+	<h2>Current Roster:</h2>
+<TABLE border=0 cellpadding=2>
+			<tbody id='RosterTable'>
+			</tbody>
+		</TABLE>
+	</div>
+<span id='droppedPIDS'></span>
+<div style='display: table-cell; vertical-align: top; background-color: #EEEEFF; overflow: hidden; height: 100%;'>
+</div>
+</div>
+<script type='text/javascript'>appaStackWhenOverflow('roster-container', 'appaStacked');</script>
+<div style='clear:both;'></div>
+<br/>
+<p><H3>Schedule</H3></p>
+<p><TABLE>
+<TR><TH>Round</TH><TH>Time</TH><TH>Field</TH><TH>Opponent</TH><TH>Score</TH></TR><TR><TD><A HREF="/scores/L316/E9321/scores/s255_r0.html">Preliminaries</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=2">Fri 10:00 AM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Home</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=AyoHJ82yK3Gq0Ddy">Houston Heat</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=2">
+									7-2</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r0.html">Preliminaries</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=4">Fri 12:00 PM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Home</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=5JCXyF7veg2Y2zmY">Detroit Infamous</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=4">
+									4-3</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r0.html">Preliminaries</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=118">Sat 10:00 AM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Home</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=DGmUoLavm5dEly3P">Atlanta Jungle Cats</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=118">
+									9-4</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r0.html">Preliminaries</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=120">Sat 12:00 PM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Home</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=ZetwZDhLHEcCAXDC">Seattle Uprising</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=0&GID=120">
+									4-3</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r2.html">Quarter-Finals</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=2&GID=1">Sun 9:00 AM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 2 - Home</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=ZetwZDhLHEcCAXDC">Seattle Uprising</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=2&GID=1">
+									5-2</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r3.html">Semi-Finals</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=3&GID=0">Sun 12:00 PM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Away</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=V7DvXn7CIQlnKNJg">TonTon Arsenal</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=3&GID=0">
+									10-4</A></TD></TR>
+<TR><TD><A HREF="/scores/L316/E9321/scores/s255_r4.html">Finals</A></TD><TD><a href="https://pbleagues.com/cgi-bin/showgame.cgi?EID=9321&size=255&round=4&GID=0">Sun 3:50 PM</a></TD><TD ALIGN=CENTER>NXL Pro - Pit 1 - Away</TD><TD><A HREF="/cgi-bin/roster.cgi?ERID=99nCQxR5MCaqTBal">Red Legion</A> (Pro) </TD><TD class=green align=center>
+								<A HREF="/cgi-bin/showgame.cgi?EID=9321&size=255&round=4&GID=0">
+									8-7</A></TD></TR>
+</TABLE>
+</center>
+									</div>
+								</div>
+							</div>
+
+
+
+						</div>
+						<div id='appaInnerRightBuffer'> </div>
+					</div>
+				</div>
+			</div>
+			<div id='appaFooterContainer'>
+				<div id='appaFooter'>
+					<SPAN CLASS="xx-small">
+						Website contents and layout Copyright 2003-2024 by PBLi
+					</SPAN> 
+				</div>
+			</div>
+		</div>
+	<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5039a27ed58efd6',t:'MTc5Mjk1NjI3Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+

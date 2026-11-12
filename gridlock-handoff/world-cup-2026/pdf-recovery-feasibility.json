@@ -1,0 +1,429 @@
+{
+  "tested_profiles": 10,
+  "sample_mix": {
+    "explicit_zero": 2,
+    "short": 2,
+    "long_wrapped": 6
+  },
+  "available_associated_pdfs": [],
+  "dated_rows_preserved_in_samples": 74,
+  "samples": [
+    {
+      "name": "Alexander Green",
+      "person_id": "290678",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=qnyvL15uetde7e5K&EPID=BFBD106FB0AC80DA",
+      "file": "authenticated/person-BFBD106FB0AC80DA.html",
+      "sha256": "032f30b25eb47772f2112fe61f4e15c1f80d3c80e647a6c22478b2ee591d727e",
+      "case": "explicit_zero",
+      "visible_dated_row_count": 0,
+      "explicit_zero": true,
+      "contexts": [],
+      "headers": [
+        {
+          "raw": "                 # Date Event/Team Division Place Score Details                               Division 2   1200",
+          "offsets": {
+            "Date": 19,
+            "Event/Team": 24,
+            "Division": 35,
+            "Place": 44,
+            "Score": 50,
+            "Details": 56
+          }
+        },
+        {
+          "raw": " # Date Event/Team Division Place Score Details           Division 1   1968",
+          "offsets": {
+            "Date": 3,
+            "Event/Team": 8,
+            "Division": 19,
+            "Place": 28,
+            "Score": 34,
+            "Details": 40
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Amanda Scheller",
+      "person_id": "287672",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=C1Gs7i6cXcpjrVR0&EPID=308FFE585AEF53A0",
+      "file": "authenticated/person-308FFE585AEF53A0.html",
+      "sha256": "db793f20e2db45b4a8c99e08663662785ce36b4424147409f2d096459084f36c",
+      "case": "explicit_zero",
+      "visible_dated_row_count": 0,
+      "explicit_zero": true,
+      "contexts": [],
+      "headers": [
+        {
+          "raw": "          #   Date    Event/Team      Division    Place   Score      Details                  Division 2   1200",
+          "offsets": {
+            "Date": 14,
+            "Event/Team": 22,
+            "Division": 38,
+            "Place": 50,
+            "Score": 58,
+            "Details": 69
+          }
+        },
+        {
+          "raw": " # Date Event/Team Division Place Score Details            Division 1    1968",
+          "offsets": {
+            "Date": 3,
+            "Event/Team": 8,
+            "Division": 19,
+            "Place": 28,
+            "Score": 34,
+            "Details": 40
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Allan Pinedo",
+      "person_id": "282110",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=C60PqkqpLRHCeOMX&EPID=AAC23AADD46116AA",
+      "file": "authenticated/person-AAC23AADD46116AA.html",
+      "sha256": "b62ad87a99c885767468243a03866ada980087104a0eb807115e5bd6640eb369",
+      "case": "short",
+      "visible_dated_row_count": 1,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Division 5 5v5 Roster: Beginner (35)"
+      ],
+      "headers": [
+        {
+          "raw": " #     Date           Event/Team           Division        Place     Score            Details            Semi-Pro     4800",
+          "offsets": {
+            "Date": 7,
+            "Event/Team": 22,
+            "Division": 43,
+            "Place": 59,
+            "Score": 69,
+            "Details": 86
+          }
+        },
+        {
+          "raw": " # Date Event/Team Division Place Score Details             Division 1       1968",
+          "offsets": {
+            "Date": 3,
+            "Event/Team": 8,
+            "Division": 19,
+            "Place": 28,
+            "Score": 34,
+            "Details": 40
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Allison Vick",
+      "person_id": "286622",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=5Z1uEK0Ku1JkuJb7&EPID=DC7288A26EB8DCDD",
+      "file": "authenticated/person-DC7288A26EB8DCDD.html",
+      "sha256": "afcff5ea763ae6ea99db05a2d4289ca4d000bdac5d4ff7bc0275ec40627ac999",
+      "case": "short",
+      "visible_dated_row_count": 1,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Division 5 5v5 Roster: Beginner (3.0263125)"
+      ],
+      "headers": [
+        {
+          "raw": " #     Date             Event/Team           Division     Place        Score        Details            Semi-Pro     4800",
+          "offsets": {
+            "Date": 7,
+            "Event/Team": 24,
+            "Division": 45,
+            "Place": 58,
+            "Score": 71,
+            "Details": 84
+          }
+        },
+        {
+          "raw": " # Date Event/Team Division Place Score Details           Division 1    1968",
+          "offsets": {
+            "Date": 3,
+            "Event/Team": 8,
+            "Division": 19,
+            "Place": 28,
+            "Score": 34,
+            "Details": 40
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Anthony Vitale",
+      "person_id": "23070",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=0QODCdN37FtPZ4Dy&EPID=J9Zl0RmMCiCzWvL2",
+      "file": "authenticated/person-J9Zl0RmMCiCzWvL2.html",
+      "sha256": "803b4b207baef2385e6f4da8c0ad015f65b312b224dbd570f969a8c15aadc054",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Masters X-Ball Roster: Division 4 (202.5)",
+        "Start of the 2026 Season: Division 4 (202.5)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date                Event/Team             Division    Place     Score     Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 26,
+            "Division": 49,
+            "Place": 61,
+            "Score": 71,
+            "Details": 81
+          }
+        },
+        {
+          "raw": "#     Date                Event/Team             Division    Place     Score     Details                more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 26,
+            "Division": 49,
+            "Place": 61,
+            "Score": 71,
+            "Details": 81
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Antonio De Jesus",
+      "person_id": "136034",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=dqMyLYhtBFVnk8YO&EPID=ygczKIRmKamQ3hhP",
+      "file": "authenticated/person-ygczKIRmKamQ3hhP.html",
+      "sha256": "5dac95b04aff84b5dd36a9b5ee83fb8ef5c0137094d03013055de64186d2fcb4",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Amateur 10v10 Roster: Division 4 (121.275)",
+        "Start of the 2026 Season: Division 4 (121.275)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date              Event/Team              Division    Place      Score     Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 48,
+            "Place": 60,
+            "Score": 71,
+            "Details": 81
+          }
+        },
+        {
+          "raw": "#     Date              Event/Team              Division    Place      Score     Details                more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 48,
+            "Place": 60,
+            "Score": 71,
+            "Details": 81
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Andres Temoli",
+      "person_id": "153797",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=BOpP0TiCGqFou16k&EPID=iW3rzUXxjmAiagV3",
+      "file": "authenticated/person-iW3rzUXxjmAiagV3.html",
+      "sha256": "0200b3f0a62db1e859ae46b62164e60de0c5e9ccbf4c2a09ec51f53906d075a6",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Amateur 3v3 Roster: Division 5 (49.378472)",
+        "Start of the 2026 Season: Division 5 (49.378472)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date              Event/Team           Division    Place    Score         Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 45,
+            "Place": 57,
+            "Score": 66,
+            "Details": 80
+          }
+        },
+        {
+          "raw": "#     Date              Event/Team           Division    Place    Score         Details               more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 45,
+            "Place": 57,
+            "Score": 66,
+            "Details": 80
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Anthony Peralta",
+      "person_id": "113523",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=50dlZDGxeJEI2szV&EPID=4U8Gg7xYMBbLUtGu",
+      "file": "authenticated/person-4U8Gg7xYMBbLUtGu.html",
+      "sha256": "2db8931ef327c5b12e93f0fcc9c485ddf24deb62a961485a99a6e8ff8c4ab21e",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Division 4 X-Ball Roster: Division 4 (393.5466)",
+        "Start of the 2026 Season: Division 5 (94.660012)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date              Event/Team             Division       Place     Score      Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 47,
+            "Place": 62,
+            "Score": 72,
+            "Details": 83
+          }
+        },
+        {
+          "raw": "#     Date             Event/Team             Division       Place      Score      Details                more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 23,
+            "Division": 46,
+            "Place": 61,
+            "Score": 72,
+            "Details": 83
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Austin Arguelles",
+      "person_id": "193120",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=BhTQlUQa013BLW9F&EPID=EYQ6To7PI22kj27M",
+      "file": "authenticated/person-EYQ6To7PI22kj27M.html",
+      "sha256": "1c1ad68a5c6d90320417dd9d879168e31c576aec8f0e31d8c3a2e9ed632689c4",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Division 3 5v5 Roster: Division 3 (1058.9008)",
+        "Start of the 2026 Season: Division 3 (854.6152)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date             Event/Team            Division       Place     Score      Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 23,
+            "Division": 45,
+            "Place": 60,
+            "Score": 70,
+            "Details": 81
+          }
+        },
+        {
+          "raw": "#     Date              Event/Team            Division      Place     Score      Details                more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 46,
+            "Place": 60,
+            "Score": 70,
+            "Details": 81
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    },
+    {
+      "name": "Audrey Vazquez",
+      "person_id": "37008",
+      "source_url": "https://pbleagues.com/cgi-bin/rosterclass.cgi?ERID=bAb1li3LPjihZgqd&EPID=VxZz1ibLSFDKwR1a",
+      "file": "authenticated/person-VxZz1ibLSFDKwR1a.html",
+      "sha256": "96b44441a6ff24354b72deb8068ae8f20bbf958d0f665e9004ad9fc41600b020",
+      "case": "long_wrapped",
+      "visible_dated_row_count": 12,
+      "explicit_zero": false,
+      "contexts": [
+        "On This Division 3 X-Ball Roster: Division 4 (590)",
+        "Start of the 2026 Season: Division 4 (454.6)"
+      ],
+      "headers": [
+        {
+          "raw": "#     Date               Event/Team             Division       Place      Score    Details",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 25,
+            "Division": 48,
+            "Place": 63,
+            "Score": 74,
+            "Details": 83
+          }
+        },
+        {
+          "raw": "#     Date              Event/Team           Division      Place       Score       Details                more than:",
+          "offsets": {
+            "Date": 6,
+            "Event/Team": 24,
+            "Division": 45,
+            "Place": 59,
+            "Score": 71,
+            "Details": 83
+          }
+        }
+      ],
+      "combined_event_team_cell_evident": true,
+      "separate_event_and_team_headers": false,
+      "complete_separate_event_team_values_recoverable_from_preserved_structure": false,
+      "reason": "Printed header is one Event/Team column. No preserved anchor/link rectangles identify the vertical boundary between wrapped event and wrapped team text within a dated row. Header offsets alone cannot separate these fields without inference."
+    }
+  ],
+  "conclusion": "No actual PDFs supplied. Safe date/context/zero extraction succeeds; 191 event/team splits remain unresolved. Separate Event and Team are not x-separated columns in the original printed table.",
+  "missing_artifact": "Actual person-EPID.pdf (with link annotations if retained), or original DOM Event/Team cell anchor text + href records bound to profile URL/time. transport_pdf basenames in the manifest are labels, not supplied files.",
+  "db_modified": false,
+  "network_used": false,
+  "browser_or_session_access": false
+}

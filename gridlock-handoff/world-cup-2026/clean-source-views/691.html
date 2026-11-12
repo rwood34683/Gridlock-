@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+
+
+<title>Player Classification</title>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<!--<meta name="viewport" content="width=device-width,height=device-height,minimum-scale=1.0,maximum-scale=1.0">-->
+<meta content="width=device-width,height=device-height,initial-scale=1.0" name="viewport"/>
+<meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+<meta content="/APPAfb_250.png" property="og:image"/>
+<!-- This site is light-only by design. Declaring it stops Chrome's auto-dark
+     ("Darken websites") and similar from re-tinting form controls, which left
+     reset.css's forced-black input text sitting on a browser-chosen background. -->
+<meta content="light" name="color-scheme"/>
+<!-- Roboto 400+700 is the body/UI font; Play stays for #appaTopMenu, where a display
+     face belongs. One request serves both. The old Play-only request had no 700 cut,
+     so every bold on the site was browser-synthesised faux bold. -->
+<link href="https://fonts.googleapis.com/css?family=Play|Roboto:400,700" rel="stylesheet"/>
+<link href="/reset.css" rel="stylesheet" type="text/css"/>
+<link href="/style.css?v=44" rel="stylesheet" type="text/css"/>
+<link href="/includes/genericons/genericons.css" rel="stylesheet" type="text/css"/>
+<!--<LINK REL="SHORTCUT ICON" HREF="/APPAIcon.ico"> -->
+<link href="/favicon-64.png" rel="icon"/>
+<link href="https://fonts.googleapis.com/css?family=Syncopate:400,700" rel="stylesheet" type="text/css"/>
+<!--SQUAREUP-->
+<!--1.3.2-->
+
+
+
+<!-- CAUTION: do NOT name the ad script's element or its host here. displayHeader()
+     filters this file LINE BY LINE by substring, so a comment line mentioning one
+     drops out on its own for league logins. That happened on 2026-08-13: the line
+     carrying this comment's opener vanished and the remaining lines rendered as
+     visible text at the top of every page for league users, while anonymous
+     visitors saw nothing wrong. Same applies to the analytics and MooTools names.
+     The AdSense loader used to sit here as well as on headertop.html:23, so every
+     CGI page pulled it twice, which makes auto-placement erratic (a phantom ad was
+     landing inside register.cgi's team table). The headertop.html copy is the one
+     kept: it renders on every CGI page too (TestVal.pm:3060 opens it
+     unconditionally) AND on the ~30k static .html pages that SSI-include
+     header.html -> headertop.html but never head.html, so its coverage is a strict
+     superset of this one. Removed 2026-08-13. -->
+
+
+<link href="https://pbleagues.com/scripts/calendar.css" rel="StyleSheet"/>
+
+
+
+</head>
+<body>
+<div id="appaMainContainer">
+<div id="appaTopMenuContainer">
+<div id="appaTopMenu">
+<ul>
+<li><a href="/leagues-info">Promoter Information</a></li>
+<li><a href="/contact.html">Contact Us</a></li>
+</ul>
+</div>
+</div>
+<div id="appaMainInnerContainer">
+<div id="appaMainInnerContainerTable">
+<div id="appaMainInnerTable">
+<div id="appaInnerLeftBuffer"> </div>
+<div id="appaInnerContainer">
+<!-- Mobile nav toggle. Pure CSS (checkbox + label, no script) so it works
+							     identically on CGI pages and on the static pages that SSI-include this
+							     file. It has to sit HERE, as a sibling that PRECEDES both the header
+							     container and the menu container, because the rules in Section 4 of the
+							     main stylesheet reach them with the ~ combinator. Those rules only
+							     collapse a menu that HAS this toggle, so the legacy *new.html header
+							     chain, which does not carry one, keeps its always-open nav. -->
+
+<div id="appaInnerHeaderContainer">
+<div id="appaInnerHeaderSiteLogo">
+<a href="/"><img alt="PBLi Shield Logo" id="APPALogo" src="//pbleagues.com/PBLI_4_tiny.png"/></a>
+</div>
+<div id="appaInnerHeaderAdBar">
+<!--Below is one line so TestVal::top processing skips all of it for league users.-->
+ <!-- 2025NewAds --> <ins class="adsbygoogle" data-ad-client="ca-pub-7671519147882660" data-ad-slot="5707614440" style="display:inline-block;width:728px;height:90px"></ins> 
+</div>
+<div id="appaInnerHeaderLeagueLogo">
+<a href="https://nxlpaintball.com"><img height="100" src="/uploads/leagues/b0hunkmue6euxg7d_128.webp"/></a> </div>
+<label for="appaNavToggle" id="appaNavToggleLabel"><span id="appaNavToggleBars"></span>Menu</label>
+<div id="appaInnerHeaderLoginBox">
+<span class="xx-small">Login As:</span>
+
+<table>
+<tr>
+<td align="RIGHT" class="xx-small">Login:</td>
+<td align="LEFT" class="xx-small">
+</td></tr><tr>
+<td align="RIGHT" class="xx-small">Password:</td>
+<td align="LEFT" class="xx-small"></td></tr><tr><td class="xx-small" colspan="2"><a href="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</a></td>
+</tr><tr><td class="xx-small" colspan="2">or <a href="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</a></td></tr>
+<tr>
+<td> </td>
+<td align="LEFT" class="xx-small">
+
+</td>
+</tr>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+</div>
+<div id="appaInnerMainMenuContainer">
+<ul id="appaMainNavMenu">
+<li><a href="https://nxlpaintball.com">NXL Website</a></li>
+<li><a href="/cgi-bin/playerprofile.cgi">Your Profile</a></li>
+<li><a href="/cgi-bin/teamprofile.cgi">Your Teams</a></li>
+<li><a href="/profile/schedule">Your Schedule</a></li>
+<li><a href="https://pbleagues.com/leagues">Events</a></li>
+<li><a href="/scores/">Scores</a></li>
+<!--
+									<LI><A HREF="/mobileApp.html">Mobile App</a></LI>
+									-->
+<!--MAINLINK-->
+</ul>
+</div>
+<div id="appaMainContentContainer">
+<div id="appaMainContentInnerContainer">
+<div id="appaLoginBoxContainer">
+<div id="loginBox">
+<br/>
+<span class="xx-small">Login As:</span>
+
+<table>
+<tr>
+<td align="RIGHT" class="xx-small">Login:</td>
+<td align="LEFT" class="xx-small">
+</td></tr><tr>
+<td align="RIGHT" class="xx-small">Password:</td>
+<td align="LEFT" class="xx-small"></td></tr><tr><td class="xx-small" colspan="2"><a href="https://pbleagues.com/cgi-bin/getid.cgi">Forget Login or Password?</a></td>
+</tr><tr><td class="xx-small" colspan="2">or <a href="https://pbleagues.com/cgi-bin/newplayer.cgi">Create Account</a></td></tr>
+<tr>
+<td> </td>
+<td align="LEFT" class="xx-small">
+
+</td>
+</tr>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<ins class="adsbygoogle" data-ad-client="ca-pub-7671519147882660" data-ad-slot="2187294391" style="display:inline-block;width:160px;height:600px"></ins>
+
+</div>
+</div>
+<div id="mainPage">
+
+<p></p><table class="error"><tr><td>Please log in to view this page.</td></tr></table>
+<p>You must be logged in to view this page.</p><p>You can log in at left.<p>If you do not currently have an account, you can sign up for one using the link below the sign-in boxes on the left.</p> </p></div>
+</div>
+</div>
+</div>
+<div id="appaInnerRightBuffer"> </div>
+</div>
+</div>
+</div>
+<div id="appaFooterContainer">
+<div id="appaFooter">
+<span class="xx-small">
+						Website contents and layout Copyright 2003-2024 by PBLi
+					</span>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,5079 @@
+{
+  "proposed": true,
+  "note": "PROPOSED scout/tally template keyed by game_id. This package does not contain Gridlock's own scout/tally code, and refresh.py does not invent tally rows. Join game_id → home_entry_id/away_entry_id → rosters.json (or roster_memberships.person_id) when recording an event.",
+  "event_id": "9322",
+  "retrieved_at": "2026-11-12T14:06:25.927650-05:00",
+  "event_types": [
+    "elim",
+    "kill",
+    "point_won",
+    "penalty"
+  ],
+  "tally_fields": [
+    "game_id",
+    "entry_id",
+    "point_no",
+    "player_person_id",
+    "event_type",
+    "bunker",
+    "timestamp",
+    "source",
+    "confidence"
+  ],
+  "games": [
+    {
+      "game_id": "4071627",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236288",
+      "away_entry_id": "236307",
+      "tallies": []
+    },
+    {
+      "game_id": "4071628",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236287",
+      "away_entry_id": "237087",
+      "tallies": []
+    },
+    {
+      "game_id": "4071629",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236286",
+      "away_entry_id": "236306",
+      "tallies": []
+    },
+    {
+      "game_id": "4071630",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236285",
+      "away_entry_id": "236293",
+      "tallies": []
+    },
+    {
+      "game_id": "4071631",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236300",
+      "away_entry_id": "236661",
+      "tallies": []
+    },
+    {
+      "game_id": "4071649",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": "236307",
+      "tallies": []
+    },
+    {
+      "game_id": "4071632",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236299",
+      "away_entry_id": "237086",
+      "tallies": []
+    },
+    {
+      "game_id": "4071650",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236290",
+      "away_entry_id": "237087",
+      "tallies": []
+    },
+    {
+      "game_id": "4071633",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236298",
+      "away_entry_id": "237088",
+      "tallies": []
+    },
+    {
+      "game_id": "4071651",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236291",
+      "away_entry_id": "236306",
+      "tallies": []
+    },
+    {
+      "game_id": "4071634",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236297",
+      "away_entry_id": "236305",
+      "tallies": []
+    },
+    {
+      "game_id": "4071652",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236292",
+      "away_entry_id": "236293",
+      "tallies": []
+    },
+    {
+      "game_id": "4071635",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236283",
+      "away_entry_id": "236284",
+      "tallies": []
+    },
+    {
+      "game_id": "4071653",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236301",
+      "away_entry_id": "236661",
+      "tallies": []
+    },
+    {
+      "game_id": "4071636",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236295",
+      "away_entry_id": "236296",
+      "tallies": []
+    },
+    {
+      "game_id": "4071654",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236302",
+      "away_entry_id": "237086",
+      "tallies": []
+    },
+    {
+      "game_id": "4071637",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236288",
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4071655",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236303",
+      "away_entry_id": "237088",
+      "tallies": []
+    },
+    {
+      "game_id": "4071638",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236287",
+      "away_entry_id": "236290",
+      "tallies": []
+    },
+    {
+      "game_id": "4071656",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236304",
+      "away_entry_id": "236305",
+      "tallies": []
+    },
+    {
+      "game_id": "4071639",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236286",
+      "away_entry_id": "236291",
+      "tallies": []
+    },
+    {
+      "game_id": "4079450",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236870",
+      "away_entry_id": "236184",
+      "tallies": []
+    },
+    {
+      "game_id": "4079461",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236864",
+      "away_entry_id": "236951",
+      "tallies": []
+    },
+    {
+      "game_id": "4071640",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236285",
+      "away_entry_id": "236292",
+      "tallies": []
+    },
+    {
+      "game_id": "4079451",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236188",
+      "away_entry_id": "236427",
+      "tallies": []
+    },
+    {
+      "game_id": "4079462",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236929",
+      "away_entry_id": "237056",
+      "tallies": []
+    },
+    {
+      "game_id": "4071641",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236294",
+      "away_entry_id": "236296",
+      "tallies": []
+    },
+    {
+      "game_id": "4071642",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236282",
+      "away_entry_id": "236284",
+      "tallies": []
+    },
+    {
+      "game_id": "4079452",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236057",
+      "away_entry_id": "236964",
+      "tallies": []
+    },
+    {
+      "game_id": "4079463",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236973",
+      "away_entry_id": "237080",
+      "tallies": []
+    },
+    {
+      "game_id": "4071643",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236300",
+      "away_entry_id": "236301",
+      "tallies": []
+    },
+    {
+      "game_id": "4071644",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236299",
+      "away_entry_id": "236302",
+      "tallies": []
+    },
+    {
+      "game_id": "4079453",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236350",
+      "away_entry_id": "232542",
+      "tallies": []
+    },
+    {
+      "game_id": "4079464",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236870",
+      "away_entry_id": "236951",
+      "tallies": []
+    },
+    {
+      "game_id": "4071645",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236298",
+      "away_entry_id": "236303",
+      "tallies": []
+    },
+    {
+      "game_id": "4079454",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236188",
+      "away_entry_id": "236864",
+      "tallies": []
+    },
+    {
+      "game_id": "4079465",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236929",
+      "away_entry_id": "236057",
+      "tallies": []
+    },
+    {
+      "game_id": "4071646",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236297",
+      "away_entry_id": "236304",
+      "tallies": []
+    },
+    {
+      "game_id": "4071647",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236294",
+      "away_entry_id": "236295",
+      "tallies": []
+    },
+    {
+      "game_id": "4079455",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "237056",
+      "away_entry_id": "236973",
+      "tallies": []
+    },
+    {
+      "game_id": "4079466",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236184",
+      "away_entry_id": "236350",
+      "tallies": []
+    },
+    {
+      "game_id": "4071648",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236282",
+      "away_entry_id": "236283",
+      "tallies": []
+    },
+    {
+      "game_id": "4079456",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236427",
+      "away_entry_id": "232542",
+      "tallies": []
+    },
+    {
+      "game_id": "4079467",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "237080",
+      "away_entry_id": "236870",
+      "tallies": []
+    },
+    {
+      "game_id": "4079457",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236951",
+      "away_entry_id": "236964",
+      "tallies": []
+    },
+    {
+      "game_id": "4079468",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236184",
+      "away_entry_id": "236973",
+      "tallies": []
+    },
+    {
+      "game_id": "4047263",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236286",
+      "away_entry_id": "236293",
+      "tallies": []
+    },
+    {
+      "game_id": "4047264",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236284",
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4079458",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236350",
+      "away_entry_id": "237056",
+      "tallies": []
+    },
+    {
+      "game_id": "4079469",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236057",
+      "away_entry_id": "236427",
+      "tallies": []
+    },
+    {
+      "game_id": "4047265",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236282",
+      "away_entry_id": "236290",
+      "tallies": []
+    },
+    {
+      "game_id": "4047266",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236298",
+      "away_entry_id": "236297",
+      "tallies": []
+    },
+    {
+      "game_id": "4079459",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236929",
+      "away_entry_id": "232542",
+      "tallies": []
+    },
+    {
+      "game_id": "4079470",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236864",
+      "away_entry_id": "237080",
+      "tallies": []
+    },
+    {
+      "game_id": "4047267",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236296",
+      "away_entry_id": "236301",
+      "tallies": []
+    },
+    {
+      "game_id": "4079460",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236188",
+      "away_entry_id": "236964",
+      "tallies": []
+    },
+    {
+      "game_id": "4047268",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236295",
+      "away_entry_id": "236302",
+      "tallies": []
+    },
+    {
+      "game_id": "4047269",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236283",
+      "away_entry_id": "236286",
+      "tallies": []
+    },
+    {
+      "game_id": "4047270",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236284",
+      "away_entry_id": "236282",
+      "tallies": []
+    },
+    {
+      "game_id": "4047271",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236294",
+      "away_entry_id": "236297",
+      "tallies": []
+    },
+    {
+      "game_id": "4085885",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236951",
+      "away_entry_id": "237080",
+      "tallies": []
+    },
+    {
+      "game_id": "4085887",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236188",
+      "away_entry_id": "236057",
+      "tallies": []
+    },
+    {
+      "game_id": "4047272",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236296",
+      "away_entry_id": "236295",
+      "tallies": []
+    },
+    {
+      "game_id": "4047273",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236283",
+      "away_entry_id": "236282",
+      "tallies": []
+    },
+    {
+      "game_id": "4086958",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "232542",
+      "away_entry_id": "236188",
+      "tallies": []
+    },
+    {
+      "game_id": "4086959",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236184",
+      "away_entry_id": "237080",
+      "tallies": []
+    },
+    {
+      "game_id": "4047274",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236296",
+      "away_entry_id": "236297",
+      "tallies": []
+    },
+    {
+      "game_id": "4086960",
+      "division": "Amateur 3v3 X-Ball",
+      "home_entry_id": "236188",
+      "away_entry_id": "237080",
+      "tallies": []
+    },
+    {
+      "game_id": "4047275",
+      "division": "Pro 3v3 X-Ball",
+      "home_entry_id": "236296",
+      "away_entry_id": "236282",
+      "tallies": []
+    },
+    {
+      "game_id": "4085905",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233197",
+      "away_entry_id": "236370",
+      "tallies": []
+    },
+    {
+      "game_id": "4085915",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236663",
+      "away_entry_id": "236384",
+      "tallies": []
+    },
+    {
+      "game_id": "4085925",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236937",
+      "away_entry_id": "236686",
+      "tallies": []
+    },
+    {
+      "game_id": "4085935",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236442",
+      "away_entry_id": "236388",
+      "tallies": []
+    },
+    {
+      "game_id": "4085945",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236885",
+      "away_entry_id": "236911",
+      "tallies": []
+    },
+    {
+      "game_id": "4085957",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237032",
+      "away_entry_id": "237270",
+      "tallies": []
+    },
+    {
+      "game_id": "4085969",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237232",
+      "away_entry_id": "236146",
+      "tallies": []
+    },
+    {
+      "game_id": "4085982",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237048",
+      "away_entry_id": "237346",
+      "tallies": []
+    },
+    {
+      "game_id": "4085994",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234063",
+      "away_entry_id": "232545",
+      "tallies": []
+    },
+    {
+      "game_id": "4086006",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236938",
+      "away_entry_id": "236653",
+      "tallies": []
+    },
+    {
+      "game_id": "4086018",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236349",
+      "away_entry_id": "236351",
+      "tallies": []
+    },
+    {
+      "game_id": "4086035",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236719",
+      "away_entry_id": "234127",
+      "tallies": []
+    },
+    {
+      "game_id": "4086052",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237011",
+      "away_entry_id": "237027",
+      "tallies": []
+    },
+    {
+      "game_id": "4086065",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236376",
+      "away_entry_id": "233703",
+      "tallies": []
+    },
+    {
+      "game_id": "4086078",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232547",
+      "away_entry_id": "236992",
+      "tallies": []
+    },
+    {
+      "game_id": "4086091",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236935",
+      "away_entry_id": "236925",
+      "tallies": []
+    },
+    {
+      "game_id": "4086104",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237542",
+      "away_entry_id": "236158",
+      "tallies": []
+    },
+    {
+      "game_id": "4086115",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "235550",
+      "away_entry_id": "236805",
+      "tallies": []
+    },
+    {
+      "game_id": "4085889",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236207",
+      "away_entry_id": "236252",
+      "tallies": []
+    },
+    {
+      "game_id": "4085897",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236214",
+      "away_entry_id": "236215",
+      "tallies": []
+    },
+    {
+      "game_id": "4086019",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236413",
+      "away_entry_id": "236996",
+      "tallies": []
+    },
+    {
+      "game_id": "4086036",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236347",
+      "away_entry_id": "236818",
+      "tallies": []
+    },
+    {
+      "game_id": "4085946",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "235135",
+      "away_entry_id": "236269",
+      "tallies": []
+    },
+    {
+      "game_id": "4085958",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236990",
+      "away_entry_id": "236107",
+      "tallies": []
+    },
+    {
+      "game_id": "4085970",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236436",
+      "away_entry_id": "237236",
+      "tallies": []
+    },
+    {
+      "game_id": "4085983",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232525",
+      "away_entry_id": "235641",
+      "tallies": []
+    },
+    {
+      "game_id": "4085995",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236277",
+      "away_entry_id": "236004",
+      "tallies": []
+    },
+    {
+      "game_id": "4086007",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236195",
+      "away_entry_id": "237244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086053",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236343",
+      "away_entry_id": "236975",
+      "tallies": []
+    },
+    {
+      "game_id": "4086066",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236200",
+      "away_entry_id": "236437",
+      "tallies": []
+    },
+    {
+      "game_id": "4086079",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236930",
+      "away_entry_id": "235330",
+      "tallies": []
+    },
+    {
+      "game_id": "4086092",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235627",
+      "away_entry_id": "237030",
+      "tallies": []
+    },
+    {
+      "game_id": "4085906",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236469",
+      "away_entry_id": "237190",
+      "tallies": []
+    },
+    {
+      "game_id": "4085916",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236314",
+      "away_entry_id": "237266",
+      "tallies": []
+    },
+    {
+      "game_id": "4085926",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236386",
+      "away_entry_id": "236434",
+      "tallies": []
+    },
+    {
+      "game_id": "4085936",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236355",
+      "away_entry_id": "236902",
+      "tallies": []
+    },
+    {
+      "game_id": "4086105",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236737",
+      "away_entry_id": "236152",
+      "tallies": []
+    },
+    {
+      "game_id": "4086116",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237149",
+      "away_entry_id": "235862",
+      "tallies": []
+    },
+    {
+      "game_id": "4086020",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237142",
+      "away_entry_id": "236702",
+      "tallies": []
+    },
+    {
+      "game_id": "4086037",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237068",
+      "away_entry_id": "236351",
+      "tallies": []
+    },
+    {
+      "game_id": "4085890",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236213",
+      "away_entry_id": "236212",
+      "tallies": []
+    },
+    {
+      "game_id": "4085898",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236208",
+      "away_entry_id": "236219",
+      "tallies": []
+    },
+    {
+      "game_id": "4085947",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236340",
+      "away_entry_id": "236911",
+      "tallies": []
+    },
+    {
+      "game_id": "4085959",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237315",
+      "away_entry_id": "237270",
+      "tallies": []
+    },
+    {
+      "game_id": "4085971",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232614",
+      "away_entry_id": "236146",
+      "tallies": []
+    },
+    {
+      "game_id": "4085984",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232576",
+      "away_entry_id": "237346",
+      "tallies": []
+    },
+    {
+      "game_id": "4085996",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237399",
+      "away_entry_id": "232545",
+      "tallies": []
+    },
+    {
+      "game_id": "4086008",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235777",
+      "away_entry_id": "236653",
+      "tallies": []
+    },
+    {
+      "game_id": "4086021",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236996",
+      "away_entry_id": "236349",
+      "tallies": []
+    },
+    {
+      "game_id": "4086038",
+      "division": "Masters X-Ball",
+      "home_entry_id": "233667",
+      "away_entry_id": "236201",
+      "tallies": []
+    },
+    {
+      "game_id": "4086054",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237011",
+      "away_entry_id": "236941",
+      "tallies": []
+    },
+    {
+      "game_id": "4086067",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236983",
+      "away_entry_id": "233703",
+      "tallies": []
+    },
+    {
+      "game_id": "4086080",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236985",
+      "away_entry_id": "236271",
+      "tallies": []
+    },
+    {
+      "game_id": "4086093",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236913",
+      "away_entry_id": "236691",
+      "tallies": []
+    },
+    {
+      "game_id": "4085907",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237542",
+      "away_entry_id": "235550",
+      "tallies": []
+    },
+    {
+      "game_id": "4085917",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236663",
+      "away_entry_id": "236158",
+      "tallies": []
+    },
+    {
+      "game_id": "4085927",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "237293",
+      "away_entry_id": "236686",
+      "tallies": []
+    },
+    {
+      "game_id": "4085937",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236388",
+      "away_entry_id": "235518",
+      "tallies": []
+    },
+    {
+      "game_id": "4086106",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236384",
+      "away_entry_id": "236805",
+      "tallies": []
+    },
+    {
+      "game_id": "4086117",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236370",
+      "away_entry_id": "236167",
+      "tallies": []
+    },
+    {
+      "game_id": "4086022",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236719",
+      "away_entry_id": "236818",
+      "tallies": []
+    },
+    {
+      "game_id": "4086039",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236702",
+      "away_entry_id": "237068",
+      "tallies": []
+    },
+    {
+      "game_id": "4085948",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "235135",
+      "away_entry_id": "236885",
+      "tallies": []
+    },
+    {
+      "game_id": "4085960",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237032",
+      "away_entry_id": "236107",
+      "tallies": []
+    },
+    {
+      "game_id": "4085972",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237232",
+      "away_entry_id": "237236",
+      "tallies": []
+    },
+    {
+      "game_id": "4085985",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237048",
+      "away_entry_id": "235641",
+      "tallies": []
+    },
+    {
+      "game_id": "4085997",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234063",
+      "away_entry_id": "236004",
+      "tallies": []
+    },
+    {
+      "game_id": "4086009",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236938",
+      "away_entry_id": "237244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086055",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236343",
+      "away_entry_id": "237027",
+      "tallies": []
+    },
+    {
+      "game_id": "4086068",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236376",
+      "away_entry_id": "236437",
+      "tallies": []
+    },
+    {
+      "game_id": "4086081",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236930",
+      "away_entry_id": "236992",
+      "tallies": []
+    },
+    {
+      "game_id": "4086094",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235627",
+      "away_entry_id": "236925",
+      "tallies": []
+    },
+    {
+      "game_id": "4085891",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236220",
+      "away_entry_id": "236207",
+      "tallies": []
+    },
+    {
+      "game_id": "4085899",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236221",
+      "away_entry_id": "236214",
+      "tallies": []
+    },
+    {
+      "game_id": "4086023",
+      "division": "Masters X-Ball",
+      "home_entry_id": "234127",
+      "away_entry_id": "236347",
+      "tallies": []
+    },
+    {
+      "game_id": "4086040",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237142",
+      "away_entry_id": "233667",
+      "tallies": []
+    },
+    {
+      "game_id": "4085908",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236225",
+      "away_entry_id": "236254",
+      "tallies": []
+    },
+    {
+      "game_id": "4085918",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236231",
+      "away_entry_id": "236234",
+      "tallies": []
+    },
+    {
+      "game_id": "4085928",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236937",
+      "away_entry_id": "236434",
+      "tallies": []
+    },
+    {
+      "game_id": "4085938",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236442",
+      "away_entry_id": "236902",
+      "tallies": []
+    },
+    {
+      "game_id": "4086107",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233197",
+      "away_entry_id": "236152",
+      "tallies": []
+    },
+    {
+      "game_id": "4086118",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236314",
+      "away_entry_id": "237190",
+      "tallies": []
+    },
+    {
+      "game_id": "4085949",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236340",
+      "away_entry_id": "236269",
+      "tallies": []
+    },
+    {
+      "game_id": "4085961",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236990",
+      "away_entry_id": "237315",
+      "tallies": []
+    },
+    {
+      "game_id": "4085973",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236436",
+      "away_entry_id": "232614",
+      "tallies": []
+    },
+    {
+      "game_id": "4085986",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232525",
+      "away_entry_id": "232576",
+      "tallies": []
+    },
+    {
+      "game_id": "4085998",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236277",
+      "away_entry_id": "237399",
+      "tallies": []
+    },
+    {
+      "game_id": "4086010",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236195",
+      "away_entry_id": "235777",
+      "tallies": []
+    },
+    {
+      "game_id": "4086024",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236413",
+      "away_entry_id": "236201",
+      "tallies": []
+    },
+    {
+      "game_id": "4086041",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "235443",
+      "away_entry_id": "235942",
+      "tallies": []
+    },
+    {
+      "game_id": "4086056",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236357",
+      "away_entry_id": "236044",
+      "tallies": []
+    },
+    {
+      "game_id": "4086069",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236345",
+      "away_entry_id": "237450",
+      "tallies": []
+    },
+    {
+      "game_id": "4086082",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232547",
+      "away_entry_id": "236985",
+      "tallies": []
+    },
+    {
+      "game_id": "4086095",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236935",
+      "away_entry_id": "236913",
+      "tallies": []
+    },
+    {
+      "game_id": "4085892",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236213",
+      "away_entry_id": "236252",
+      "tallies": []
+    },
+    {
+      "game_id": "4085900",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236208",
+      "away_entry_id": "236215",
+      "tallies": []
+    },
+    {
+      "game_id": "4086025",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236959",
+      "away_entry_id": "235624",
+      "tallies": []
+    },
+    {
+      "game_id": "4086042",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "234133",
+      "away_entry_id": "237359",
+      "tallies": []
+    },
+    {
+      "game_id": "4086057",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236941",
+      "away_entry_id": "236975",
+      "tallies": []
+    },
+    {
+      "game_id": "4086070",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236200",
+      "away_entry_id": "236983",
+      "tallies": []
+    },
+    {
+      "game_id": "4085909",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236469",
+      "away_entry_id": "237149",
+      "tallies": []
+    },
+    {
+      "game_id": "4085919",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233860",
+      "away_entry_id": "236960",
+      "tallies": []
+    },
+    {
+      "game_id": "4085929",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236386",
+      "away_entry_id": "237293",
+      "tallies": []
+    },
+    {
+      "game_id": "4085939",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236355",
+      "away_entry_id": "235518",
+      "tallies": []
+    },
+    {
+      "game_id": "4086108",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236737",
+      "away_entry_id": "236167",
+      "tallies": []
+    },
+    {
+      "game_id": "4086119",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237266",
+      "away_entry_id": "235862",
+      "tallies": []
+    },
+    {
+      "game_id": "4085950",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "235848",
+      "away_entry_id": "236239",
+      "tallies": []
+    },
+    {
+      "game_id": "4085962",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "232601",
+      "away_entry_id": "236240",
+      "tallies": []
+    },
+    {
+      "game_id": "4085974",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236339",
+      "away_entry_id": "237125",
+      "tallies": []
+    },
+    {
+      "game_id": "4085987",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236847",
+      "away_entry_id": "236003",
+      "tallies": []
+    },
+    {
+      "game_id": "4085999",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "236179",
+      "away_entry_id": "234981",
+      "tallies": []
+    },
+    {
+      "game_id": "4086011",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "236243",
+      "away_entry_id": "236244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086083",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235330",
+      "away_entry_id": "236271",
+      "tallies": []
+    },
+    {
+      "game_id": "4086096",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237030",
+      "away_entry_id": "236691",
+      "tallies": []
+    },
+    {
+      "game_id": "4086026",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236679",
+      "away_entry_id": "237047",
+      "tallies": []
+    },
+    {
+      "game_id": "4086043",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237172",
+      "away_entry_id": "235942",
+      "tallies": []
+    },
+    {
+      "game_id": "4086058",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237289",
+      "away_entry_id": "236445",
+      "tallies": []
+    },
+    {
+      "game_id": "4086071",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236345",
+      "away_entry_id": "236044",
+      "tallies": []
+    },
+    {
+      "game_id": "4087537",
+      "division": "Commander's Cup X-Ball",
+      "home_entry_id": "237075",
+      "away_entry_id": "233720",
+      "tallies": []
+    },
+    {
+      "game_id": "4086084",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236196",
+      "away_entry_id": "236247",
+      "tallies": []
+    },
+    {
+      "game_id": "4086097",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236245",
+      "away_entry_id": "236246",
+      "tallies": []
+    },
+    {
+      "game_id": "4085975",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237125",
+      "away_entry_id": "235382",
+      "tallies": []
+    },
+    {
+      "game_id": "4085988",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236339",
+      "away_entry_id": "236003",
+      "tallies": []
+    },
+    {
+      "game_id": "4086000",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "236179",
+      "away_entry_id": "236244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086012",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "236243",
+      "away_entry_id": "234981",
+      "tallies": []
+    },
+    {
+      "game_id": "4085910",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236228",
+      "away_entry_id": "236229",
+      "tallies": []
+    },
+    {
+      "game_id": "4085920",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236227",
+      "away_entry_id": "236224",
+      "tallies": []
+    },
+    {
+      "game_id": "4085930",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "237055",
+      "away_entry_id": "237054",
+      "tallies": []
+    },
+    {
+      "game_id": "4085940",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236337",
+      "away_entry_id": "237377",
+      "tallies": []
+    },
+    {
+      "game_id": "4086109",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237001",
+      "away_entry_id": "236960",
+      "tallies": []
+    },
+    {
+      "game_id": "4086120",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233860",
+      "away_entry_id": "235289",
+      "tallies": []
+    },
+    {
+      "game_id": "4085951",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "235848",
+      "away_entry_id": "236240",
+      "tallies": []
+    },
+    {
+      "game_id": "4085963",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "232601",
+      "away_entry_id": "236239",
+      "tallies": []
+    },
+    {
+      "game_id": "4086027",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236946",
+      "away_entry_id": "235624",
+      "tallies": []
+    },
+    {
+      "game_id": "4086044",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "235443",
+      "away_entry_id": "237359",
+      "tallies": []
+    },
+    {
+      "game_id": "4085893",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236211",
+      "away_entry_id": "236253",
+      "tallies": []
+    },
+    {
+      "game_id": "4085901",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236206",
+      "away_entry_id": "236251",
+      "tallies": []
+    },
+    {
+      "game_id": "4086059",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236357",
+      "away_entry_id": "237289",
+      "tallies": []
+    },
+    {
+      "game_id": "4086072",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237450",
+      "away_entry_id": "236445",
+      "tallies": []
+    },
+    {
+      "game_id": "4086085",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236776",
+      "away_entry_id": "236721",
+      "tallies": []
+    },
+    {
+      "game_id": "4086098",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236273",
+      "away_entry_id": "237269",
+      "tallies": []
+    },
+    {
+      "game_id": "4085976",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236326",
+      "away_entry_id": "234126",
+      "tallies": []
+    },
+    {
+      "game_id": "4085989",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237006",
+      "away_entry_id": "232583",
+      "tallies": []
+    },
+    {
+      "game_id": "4086001",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235310",
+      "away_entry_id": "237387",
+      "tallies": []
+    },
+    {
+      "game_id": "4086013",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236264",
+      "away_entry_id": "236903",
+      "tallies": []
+    },
+    {
+      "game_id": "4086028",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236959",
+      "away_entry_id": "236679",
+      "tallies": []
+    },
+    {
+      "game_id": "4086045",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "234133",
+      "away_entry_id": "237172",
+      "tallies": []
+    },
+    {
+      "game_id": "4085911",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233066",
+      "away_entry_id": "236815",
+      "tallies": []
+    },
+    {
+      "game_id": "4085921",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233891",
+      "away_entry_id": "236381",
+      "tallies": []
+    },
+    {
+      "game_id": "4085931",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "233332",
+      "away_entry_id": "237370",
+      "tallies": []
+    },
+    {
+      "game_id": "4085941",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236932",
+      "away_entry_id": "236949",
+      "tallies": []
+    },
+    {
+      "game_id": "4086060",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236950",
+      "away_entry_id": "232575",
+      "tallies": []
+    },
+    {
+      "game_id": "4086073",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235615",
+      "away_entry_id": "236181",
+      "tallies": []
+    },
+    {
+      "game_id": "4086110",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "236242",
+      "away_entry_id": "232534",
+      "tallies": []
+    },
+    {
+      "game_id": "4086121",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "236241",
+      "away_entry_id": "233121",
+      "tallies": []
+    },
+    {
+      "game_id": "4085952",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "234048",
+      "away_entry_id": "237188",
+      "tallies": []
+    },
+    {
+      "game_id": "4085964",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "233861",
+      "away_entry_id": "236890",
+      "tallies": []
+    },
+    {
+      "game_id": "4085894",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236209",
+      "away_entry_id": "236217",
+      "tallies": []
+    },
+    {
+      "game_id": "4085902",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236126",
+      "away_entry_id": "236249",
+      "tallies": []
+    },
+    {
+      "game_id": "4086029",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236946",
+      "away_entry_id": "237047",
+      "tallies": []
+    },
+    {
+      "game_id": "4086046",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "232531",
+      "away_entry_id": "236968",
+      "tallies": []
+    },
+    {
+      "game_id": "4086086",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234479",
+      "away_entry_id": "236892",
+      "tallies": []
+    },
+    {
+      "game_id": "4086099",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236426",
+      "away_entry_id": "235913",
+      "tallies": []
+    },
+    {
+      "game_id": "4085977",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236847",
+      "away_entry_id": "235382",
+      "tallies": []
+    },
+    {
+      "game_id": "4085990",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236880",
+      "away_entry_id": "236278",
+      "tallies": []
+    },
+    {
+      "game_id": "4086002",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234153",
+      "away_entry_id": "236395",
+      "tallies": []
+    },
+    {
+      "game_id": "4086014",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236415",
+      "away_entry_id": "237025",
+      "tallies": []
+    },
+    {
+      "game_id": "4086061",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236703",
+      "away_entry_id": "236688",
+      "tallies": []
+    },
+    {
+      "game_id": "4086074",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236391",
+      "away_entry_id": "237005",
+      "tallies": []
+    },
+    {
+      "game_id": "4086111",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236196",
+      "away_entry_id": "236246",
+      "tallies": []
+    },
+    {
+      "game_id": "4086122",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236245",
+      "away_entry_id": "236247",
+      "tallies": []
+    },
+    {
+      "game_id": "4085953",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236371",
+      "away_entry_id": "237013",
+      "tallies": []
+    },
+    {
+      "game_id": "4085965",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236182",
+      "away_entry_id": "232512",
+      "tallies": []
+    },
+    {
+      "game_id": "4085912",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236654",
+      "away_entry_id": "236323",
+      "tallies": []
+    },
+    {
+      "game_id": "4085922",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237001",
+      "away_entry_id": "234818",
+      "tallies": []
+    },
+    {
+      "game_id": "4085932",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236275",
+      "away_entry_id": "237055",
+      "tallies": []
+    },
+    {
+      "game_id": "4085942",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "232514",
+      "away_entry_id": "237377",
+      "tallies": []
+    },
+    {
+      "game_id": "4086030",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237231",
+      "away_entry_id": "236322",
+      "tallies": []
+    },
+    {
+      "game_id": "4086047",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236346",
+      "away_entry_id": "235996",
+      "tallies": []
+    },
+    {
+      "game_id": "4086087",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234134",
+      "away_entry_id": "236344",
+      "tallies": []
+    },
+    {
+      "game_id": "4086100",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236713",
+      "away_entry_id": "236908",
+      "tallies": []
+    },
+    {
+      "game_id": "4085895",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236216",
+      "away_entry_id": "236211",
+      "tallies": []
+    },
+    {
+      "game_id": "4085903",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236223",
+      "away_entry_id": "236206",
+      "tallies": []
+    },
+    {
+      "game_id": "4085978",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236406",
+      "away_entry_id": "237035",
+      "tallies": []
+    },
+    {
+      "game_id": "4085991",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237006",
+      "away_entry_id": "236980",
+      "tallies": []
+    },
+    {
+      "game_id": "4086003",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235310",
+      "away_entry_id": "237029",
+      "tallies": []
+    },
+    {
+      "game_id": "4086015",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236264",
+      "away_entry_id": "236967",
+      "tallies": []
+    },
+    {
+      "game_id": "4086112",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "235289",
+      "away_entry_id": "237408",
+      "tallies": []
+    },
+    {
+      "game_id": "4086031",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237419",
+      "away_entry_id": "232550",
+      "tallies": []
+    },
+    {
+      "game_id": "4086048",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236968",
+      "away_entry_id": "236358",
+      "tallies": []
+    },
+    {
+      "game_id": "4086062",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236383",
+      "away_entry_id": "232575",
+      "tallies": []
+    },
+    {
+      "game_id": "4086075",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234593",
+      "away_entry_id": "236181",
+      "tallies": []
+    },
+    {
+      "game_id": "4085954",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236408",
+      "away_entry_id": "237188",
+      "tallies": []
+    },
+    {
+      "game_id": "4085966",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237247",
+      "away_entry_id": "236890",
+      "tallies": []
+    },
+    {
+      "game_id": "4085913",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236226",
+      "away_entry_id": "236230",
+      "tallies": []
+    },
+    {
+      "game_id": "4085923",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236233",
+      "away_entry_id": "236232",
+      "tallies": []
+    },
+    {
+      "game_id": "4085933",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "233332",
+      "away_entry_id": "237054",
+      "tallies": []
+    },
+    {
+      "game_id": "4085943",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236337",
+      "away_entry_id": "236949",
+      "tallies": []
+    },
+    {
+      "game_id": "4086088",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234479",
+      "away_entry_id": "236776",
+      "tallies": []
+    },
+    {
+      "game_id": "4086101",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236426",
+      "away_entry_id": "236273",
+      "tallies": []
+    },
+    {
+      "game_id": "4085979",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237311",
+      "away_entry_id": "234126",
+      "tallies": []
+    },
+    {
+      "game_id": "4085992",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232583",
+      "away_entry_id": "236880",
+      "tallies": []
+    },
+    {
+      "game_id": "4086004",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237387",
+      "away_entry_id": "234153",
+      "tallies": []
+    },
+    {
+      "game_id": "4086016",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237025",
+      "away_entry_id": "236903",
+      "tallies": []
+    },
+    {
+      "game_id": "4086113",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "236242",
+      "away_entry_id": "233121",
+      "tallies": []
+    },
+    {
+      "game_id": "4086123",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "236241",
+      "away_entry_id": "232534",
+      "tallies": []
+    },
+    {
+      "game_id": "4086032",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237231",
+      "away_entry_id": "236720",
+      "tallies": []
+    },
+    {
+      "game_id": "4086049",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "232531",
+      "away_entry_id": "237318",
+      "tallies": []
+    },
+    {
+      "game_id": "4085896",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236209",
+      "away_entry_id": "236253",
+      "tallies": []
+    },
+    {
+      "game_id": "4085904",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236126",
+      "away_entry_id": "236251",
+      "tallies": []
+    },
+    {
+      "game_id": "4086063",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236950",
+      "away_entry_id": "236688",
+      "tallies": []
+    },
+    {
+      "game_id": "4086076",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235615",
+      "away_entry_id": "237005",
+      "tallies": []
+    },
+    {
+      "game_id": "4085955",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "234048",
+      "away_entry_id": "237013",
+      "tallies": []
+    },
+    {
+      "game_id": "4085967",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236182",
+      "away_entry_id": "233861",
+      "tallies": []
+    },
+    {
+      "game_id": "4086089",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236344",
+      "away_entry_id": "237269",
+      "tallies": []
+    },
+    {
+      "game_id": "4086102",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236713",
+      "away_entry_id": "236721",
+      "tallies": []
+    },
+    {
+      "game_id": "4086033",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236322",
+      "away_entry_id": "232550",
+      "tallies": []
+    },
+    {
+      "game_id": "4086050",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "235996",
+      "away_entry_id": "236358",
+      "tallies": []
+    },
+    {
+      "game_id": "4085914",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233066",
+      "away_entry_id": "236323",
+      "tallies": []
+    },
+    {
+      "game_id": "4085924",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "234818",
+      "away_entry_id": "237408",
+      "tallies": []
+    },
+    {
+      "game_id": "4085934",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236275",
+      "away_entry_id": "237370",
+      "tallies": []
+    },
+    {
+      "game_id": "4085944",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236932",
+      "away_entry_id": "232514",
+      "tallies": []
+    },
+    {
+      "game_id": "4085980",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236326",
+      "away_entry_id": "237035",
+      "tallies": []
+    },
+    {
+      "game_id": "4085993",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236980",
+      "away_entry_id": "236278",
+      "tallies": []
+    },
+    {
+      "game_id": "4086005",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237029",
+      "away_entry_id": "236395",
+      "tallies": []
+    },
+    {
+      "game_id": "4086017",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236415",
+      "away_entry_id": "236967",
+      "tallies": []
+    },
+    {
+      "game_id": "4086114",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236654",
+      "away_entry_id": "233891",
+      "tallies": []
+    },
+    {
+      "game_id": "4086124",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236815",
+      "away_entry_id": "236381",
+      "tallies": []
+    },
+    {
+      "game_id": "4086064",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236703",
+      "away_entry_id": "236383",
+      "tallies": []
+    },
+    {
+      "game_id": "4086077",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236391",
+      "away_entry_id": "234593",
+      "tallies": []
+    },
+    {
+      "game_id": "4085956",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236371",
+      "away_entry_id": "236408",
+      "tallies": []
+    },
+    {
+      "game_id": "4085968",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237247",
+      "away_entry_id": "232512",
+      "tallies": []
+    },
+    {
+      "game_id": "4086034",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237419",
+      "away_entry_id": "236720",
+      "tallies": []
+    },
+    {
+      "game_id": "4086051",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236346",
+      "away_entry_id": "237318",
+      "tallies": []
+    },
+    {
+      "game_id": "4086090",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236908",
+      "away_entry_id": "236892",
+      "tallies": []
+    },
+    {
+      "game_id": "4086103",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234134",
+      "away_entry_id": "235913",
+      "tallies": []
+    },
+    {
+      "game_id": "4085981",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236406",
+      "away_entry_id": "237311",
+      "tallies": []
+    },
+    {
+      "game_id": "4086141",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233197",
+      "away_entry_id": "236737",
+      "tallies": []
+    },
+    {
+      "game_id": "4086151",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237190",
+      "away_entry_id": "235862",
+      "tallies": []
+    },
+    {
+      "game_id": "4086161",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "235518",
+      "away_entry_id": "236902",
+      "tallies": []
+    },
+    {
+      "game_id": "4086171",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "237293",
+      "away_entry_id": "236434",
+      "tallies": []
+    },
+    {
+      "game_id": "4086181",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236990",
+      "away_entry_id": "237032",
+      "tallies": []
+    },
+    {
+      "game_id": "4086192",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236269",
+      "away_entry_id": "236885",
+      "tallies": []
+    },
+    {
+      "game_id": "4086203",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237048",
+      "away_entry_id": "232576",
+      "tallies": []
+    },
+    {
+      "game_id": "4086216",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237236",
+      "away_entry_id": "236146",
+      "tallies": []
+    },
+    {
+      "game_id": "4086228",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236004",
+      "away_entry_id": "232545",
+      "tallies": []
+    },
+    {
+      "game_id": "4086240",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237244",
+      "away_entry_id": "236653",
+      "tallies": []
+    },
+    {
+      "game_id": "4086252",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236702",
+      "away_entry_id": "236818",
+      "tallies": []
+    },
+    {
+      "game_id": "4086269",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237068",
+      "away_entry_id": "236201",
+      "tallies": []
+    },
+    {
+      "game_id": "4086286",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236983",
+      "away_entry_id": "236437",
+      "tallies": []
+    },
+    {
+      "game_id": "4086299",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237011",
+      "away_entry_id": "236343",
+      "tallies": []
+    },
+    {
+      "game_id": "4086312",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236935",
+      "away_entry_id": "237030",
+      "tallies": []
+    },
+    {
+      "game_id": "4086324",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236992",
+      "away_entry_id": "236985",
+      "tallies": []
+    },
+    {
+      "game_id": "4086336",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236314",
+      "away_entry_id": "236469",
+      "tallies": []
+    },
+    {
+      "game_id": "4086347",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237149",
+      "away_entry_id": "237266",
+      "tallies": []
+    },
+    {
+      "game_id": "4087541",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236710",
+      "away_entry_id": "237327",
+      "tallies": []
+    },
+    {
+      "game_id": "4087542",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236748",
+      "away_entry_id": "237437",
+      "tallies": []
+    },
+    {
+      "game_id": "4087543",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236758",
+      "away_entry_id": "235029",
+      "tallies": []
+    },
+    {
+      "game_id": "4087544",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237583",
+      "away_entry_id": "236433",
+      "tallies": []
+    },
+    {
+      "game_id": "4087545",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237242",
+      "away_entry_id": "236732",
+      "tallies": []
+    },
+    {
+      "game_id": "4087546",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237603",
+      "away_entry_id": "236658",
+      "tallies": []
+    },
+    {
+      "game_id": "4086125",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236213",
+      "away_entry_id": "236207",
+      "tallies": []
+    },
+    {
+      "game_id": "4086133",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236208",
+      "away_entry_id": "236214",
+      "tallies": []
+    },
+    {
+      "game_id": "4086253",
+      "division": "Masters X-Ball",
+      "home_entry_id": "233667",
+      "away_entry_id": "236351",
+      "tallies": []
+    },
+    {
+      "game_id": "4086270",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236996",
+      "away_entry_id": "236347",
+      "tallies": []
+    },
+    {
+      "game_id": "4087547",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237066",
+      "away_entry_id": "236871",
+      "tallies": []
+    },
+    {
+      "game_id": "4087548",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237504",
+      "away_entry_id": "234804",
+      "tallies": []
+    },
+    {
+      "game_id": "4087549",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237327",
+      "away_entry_id": "236944",
+      "tallies": []
+    },
+    {
+      "game_id": "4086182",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237315",
+      "away_entry_id": "236107",
+      "tallies": []
+    },
+    {
+      "game_id": "4086193",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "235135",
+      "away_entry_id": "236911",
+      "tallies": []
+    },
+    {
+      "game_id": "4086204",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232525",
+      "away_entry_id": "237346",
+      "tallies": []
+    },
+    {
+      "game_id": "4086217",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237232",
+      "away_entry_id": "232614",
+      "tallies": []
+    },
+    {
+      "game_id": "4086229",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234063",
+      "away_entry_id": "237399",
+      "tallies": []
+    },
+    {
+      "game_id": "4086241",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236195",
+      "away_entry_id": "236938",
+      "tallies": []
+    },
+    {
+      "game_id": "4086287",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236200",
+      "away_entry_id": "233703",
+      "tallies": []
+    },
+    {
+      "game_id": "4086300",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236941",
+      "away_entry_id": "237027",
+      "tallies": []
+    },
+    {
+      "game_id": "4086313",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235627",
+      "away_entry_id": "236691",
+      "tallies": []
+    },
+    {
+      "game_id": "4086325",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236930",
+      "away_entry_id": "236271",
+      "tallies": []
+    },
+    {
+      "game_id": "4087550",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237437",
+      "away_entry_id": "236334",
+      "tallies": []
+    },
+    {
+      "game_id": "4087551",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "235029",
+      "away_entry_id": "236710",
+      "tallies": []
+    },
+    {
+      "game_id": "4086142",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236152",
+      "away_entry_id": "236167",
+      "tallies": []
+    },
+    {
+      "game_id": "4086152",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237542",
+      "away_entry_id": "236384",
+      "tallies": []
+    },
+    {
+      "game_id": "4086162",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236355",
+      "away_entry_id": "236388",
+      "tallies": []
+    },
+    {
+      "game_id": "4086172",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236386",
+      "away_entry_id": "236937",
+      "tallies": []
+    },
+    {
+      "game_id": "4086337",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236663",
+      "away_entry_id": "236805",
+      "tallies": []
+    },
+    {
+      "game_id": "4086348",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236158",
+      "away_entry_id": "235550",
+      "tallies": []
+    },
+    {
+      "game_id": "4087552",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236433",
+      "away_entry_id": "236748",
+      "tallies": []
+    },
+    {
+      "game_id": "4086254",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236413",
+      "away_entry_id": "236719",
+      "tallies": []
+    },
+    {
+      "game_id": "4086271",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236702",
+      "away_entry_id": "234127",
+      "tallies": []
+    },
+    {
+      "game_id": "4087553",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236732",
+      "away_entry_id": "236758",
+      "tallies": []
+    },
+    {
+      "game_id": "4087554",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236658",
+      "away_entry_id": "237583",
+      "tallies": []
+    },
+    {
+      "game_id": "4087555",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236871",
+      "away_entry_id": "237242",
+      "tallies": []
+    },
+    {
+      "game_id": "4087556",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "234804",
+      "away_entry_id": "237603",
+      "tallies": []
+    },
+    {
+      "game_id": "4087557",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236944",
+      "away_entry_id": "237066",
+      "tallies": []
+    },
+    {
+      "game_id": "4087558",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236334",
+      "away_entry_id": "237504",
+      "tallies": []
+    },
+    {
+      "game_id": "4086126",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236220",
+      "away_entry_id": "236212",
+      "tallies": []
+    },
+    {
+      "game_id": "4086134",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236221",
+      "away_entry_id": "236219",
+      "tallies": []
+    },
+    {
+      "game_id": "4086183",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236990",
+      "away_entry_id": "237270",
+      "tallies": []
+    },
+    {
+      "game_id": "4086194",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236340",
+      "away_entry_id": "236885",
+      "tallies": []
+    },
+    {
+      "game_id": "4086205",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232576",
+      "away_entry_id": "235641",
+      "tallies": []
+    },
+    {
+      "game_id": "4086218",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236436",
+      "away_entry_id": "236146",
+      "tallies": []
+    },
+    {
+      "game_id": "4086230",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236277",
+      "away_entry_id": "232545",
+      "tallies": []
+    },
+    {
+      "game_id": "4086242",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235777",
+      "away_entry_id": "237244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086255",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237142",
+      "away_entry_id": "236349",
+      "tallies": []
+    },
+    {
+      "game_id": "4086272",
+      "division": "Masters X-Ball",
+      "home_entry_id": "233667",
+      "away_entry_id": "236996",
+      "tallies": []
+    },
+    {
+      "game_id": "4086288",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236376",
+      "away_entry_id": "236983",
+      "tallies": []
+    },
+    {
+      "game_id": "4086301",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237011",
+      "away_entry_id": "236975",
+      "tallies": []
+    },
+    {
+      "game_id": "4086314",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237030",
+      "away_entry_id": "236913",
+      "tallies": []
+    },
+    {
+      "game_id": "4086326",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232547",
+      "away_entry_id": "235330",
+      "tallies": []
+    },
+    {
+      "game_id": "4087559",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236710",
+      "away_entry_id": "236732",
+      "tallies": []
+    },
+    {
+      "game_id": "4087560",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236748",
+      "away_entry_id": "236658",
+      "tallies": []
+    },
+    {
+      "game_id": "4087561",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237327",
+      "away_entry_id": "235029",
+      "tallies": []
+    },
+    {
+      "game_id": "4087562",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237437",
+      "away_entry_id": "236433",
+      "tallies": []
+    },
+    {
+      "game_id": "4086143",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236737",
+      "away_entry_id": "236370",
+      "tallies": []
+    },
+    {
+      "game_id": "4086153",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236314",
+      "away_entry_id": "237149",
+      "tallies": []
+    },
+    {
+      "game_id": "4086163",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236442",
+      "away_entry_id": "235518",
+      "tallies": []
+    },
+    {
+      "game_id": "4086173",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236434",
+      "away_entry_id": "236686",
+      "tallies": []
+    },
+    {
+      "game_id": "4086338",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236469",
+      "away_entry_id": "235862",
+      "tallies": []
+    },
+    {
+      "game_id": "4086349",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237190",
+      "away_entry_id": "237266",
+      "tallies": []
+    },
+    {
+      "game_id": "4087563",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236758",
+      "away_entry_id": "236871",
+      "tallies": []
+    },
+    {
+      "game_id": "4087564",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237583",
+      "away_entry_id": "234804",
+      "tallies": []
+    },
+    {
+      "game_id": "4086256",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236201",
+      "away_entry_id": "236818",
+      "tallies": []
+    },
+    {
+      "game_id": "4086273",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236413",
+      "away_entry_id": "236351",
+      "tallies": []
+    },
+    {
+      "game_id": "4087565",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237242",
+      "away_entry_id": "237066",
+      "tallies": []
+    },
+    {
+      "game_id": "4087566",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237603",
+      "away_entry_id": "237504",
+      "tallies": []
+    },
+    {
+      "game_id": "4087567",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "235029",
+      "away_entry_id": "236944",
+      "tallies": []
+    },
+    {
+      "game_id": "4086184",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237032",
+      "away_entry_id": "237315",
+      "tallies": []
+    },
+    {
+      "game_id": "4086195",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236269",
+      "away_entry_id": "236911",
+      "tallies": []
+    },
+    {
+      "game_id": "4086206",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232525",
+      "away_entry_id": "237048",
+      "tallies": []
+    },
+    {
+      "game_id": "4086219",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232614",
+      "away_entry_id": "237236",
+      "tallies": []
+    },
+    {
+      "game_id": "4086231",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237399",
+      "away_entry_id": "236004",
+      "tallies": []
+    },
+    {
+      "game_id": "4086243",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236195",
+      "away_entry_id": "236653",
+      "tallies": []
+    },
+    {
+      "game_id": "4086289",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236437",
+      "away_entry_id": "233703",
+      "tallies": []
+    },
+    {
+      "game_id": "4086302",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236343",
+      "away_entry_id": "236941",
+      "tallies": []
+    },
+    {
+      "game_id": "4086315",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236925",
+      "away_entry_id": "236691",
+      "tallies": []
+    },
+    {
+      "game_id": "4086327",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236992",
+      "away_entry_id": "236271",
+      "tallies": []
+    },
+    {
+      "game_id": "4087568",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236433",
+      "away_entry_id": "236334",
+      "tallies": []
+    },
+    {
+      "game_id": "4087569",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236871",
+      "away_entry_id": "236710",
+      "tallies": []
+    },
+    {
+      "game_id": "4087570",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "234804",
+      "away_entry_id": "236748",
+      "tallies": []
+    },
+    {
+      "game_id": "4086127",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236218",
+      "away_entry_id": "236222",
+      "tallies": []
+    },
+    {
+      "game_id": "4086135",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236210",
+      "away_entry_id": "236248",
+      "tallies": []
+    },
+    {
+      "game_id": "4086257",
+      "division": "Masters X-Ball",
+      "home_entry_id": "237142",
+      "away_entry_id": "236347",
+      "tallies": []
+    },
+    {
+      "game_id": "4086274",
+      "division": "Masters X-Ball",
+      "home_entry_id": "236719",
+      "away_entry_id": "237068",
+      "tallies": []
+    },
+    {
+      "game_id": "4087571",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236732",
+      "away_entry_id": "237327",
+      "tallies": []
+    },
+    {
+      "game_id": "4087572",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236658",
+      "away_entry_id": "237437",
+      "tallies": []
+    },
+    {
+      "game_id": "4087573",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237066",
+      "away_entry_id": "236758",
+      "tallies": []
+    },
+    {
+      "game_id": "4086144",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233860",
+      "away_entry_id": "237001",
+      "tallies": []
+    },
+    {
+      "game_id": "4086154",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236158",
+      "away_entry_id": "236805",
+      "tallies": []
+    },
+    {
+      "game_id": "4086164",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236388",
+      "away_entry_id": "236902",
+      "tallies": []
+    },
+    {
+      "game_id": "4086174",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236937",
+      "away_entry_id": "237293",
+      "tallies": []
+    },
+    {
+      "game_id": "4086339",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233197",
+      "away_entry_id": "236167",
+      "tallies": []
+    },
+    {
+      "game_id": "4086350",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237542",
+      "away_entry_id": "236663",
+      "tallies": []
+    },
+    {
+      "game_id": "4087574",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237504",
+      "away_entry_id": "237583",
+      "tallies": []
+    },
+    {
+      "game_id": "4087575",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236944",
+      "away_entry_id": "237242",
+      "tallies": []
+    },
+    {
+      "game_id": "4087576",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236334",
+      "away_entry_id": "237603",
+      "tallies": []
+    },
+    {
+      "game_id": "4086185",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236107",
+      "away_entry_id": "237270",
+      "tallies": []
+    },
+    {
+      "game_id": "4086196",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "235135",
+      "away_entry_id": "236340",
+      "tallies": []
+    },
+    {
+      "game_id": "4086207",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "235641",
+      "away_entry_id": "237346",
+      "tallies": []
+    },
+    {
+      "game_id": "4086220",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236436",
+      "away_entry_id": "237232",
+      "tallies": []
+    },
+    {
+      "game_id": "4086232",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236277",
+      "away_entry_id": "234063",
+      "tallies": []
+    },
+    {
+      "game_id": "4086244",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236938",
+      "away_entry_id": "235777",
+      "tallies": []
+    },
+    {
+      "game_id": "4086258",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237359",
+      "away_entry_id": "235942",
+      "tallies": []
+    },
+    {
+      "game_id": "4086275",
+      "division": "Masters X-Ball",
+      "home_entry_id": "234127",
+      "away_entry_id": "236349",
+      "tallies": []
+    },
+    {
+      "game_id": "4086290",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237450",
+      "away_entry_id": "237289",
+      "tallies": []
+    },
+    {
+      "game_id": "4086303",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236345",
+      "away_entry_id": "236445",
+      "tallies": []
+    },
+    {
+      "game_id": "4086316",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236935",
+      "away_entry_id": "235627",
+      "tallies": []
+    },
+    {
+      "game_id": "4086328",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235330",
+      "away_entry_id": "236985",
+      "tallies": []
+    },
+    {
+      "game_id": "4087577",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "235029",
+      "away_entry_id": "236871",
+      "tallies": []
+    },
+    {
+      "game_id": "4087578",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236433",
+      "away_entry_id": "234804",
+      "tallies": []
+    },
+    {
+      "game_id": "4087579",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237066",
+      "away_entry_id": "236710",
+      "tallies": []
+    },
+    {
+      "game_id": "4087580",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237504",
+      "away_entry_id": "236748",
+      "tallies": []
+    },
+    {
+      "game_id": "4087581",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236758",
+      "away_entry_id": "236944",
+      "tallies": []
+    },
+    {
+      "game_id": "4087582",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237583",
+      "away_entry_id": "236334",
+      "tallies": []
+    },
+    {
+      "game_id": "4086128",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236220",
+      "away_entry_id": "236252",
+      "tallies": []
+    },
+    {
+      "game_id": "4086136",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236221",
+      "away_entry_id": "236215",
+      "tallies": []
+    },
+    {
+      "game_id": "4086259",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "235443",
+      "away_entry_id": "237172",
+      "tallies": []
+    },
+    {
+      "game_id": "4086276",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236679",
+      "away_entry_id": "235624",
+      "tallies": []
+    },
+    {
+      "game_id": "4087583",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236871",
+      "away_entry_id": "237327",
+      "tallies": []
+    },
+    {
+      "game_id": "4086291",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236200",
+      "away_entry_id": "236376",
+      "tallies": []
+    },
+    {
+      "game_id": "4086304",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237027",
+      "away_entry_id": "236975",
+      "tallies": []
+    },
+    {
+      "game_id": "4087584",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "234804",
+      "away_entry_id": "237437",
+      "tallies": []
+    },
+    {
+      "game_id": "4086145",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236236",
+      "away_entry_id": "236237",
+      "tallies": []
+    },
+    {
+      "game_id": "4086155",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236235",
+      "away_entry_id": "236238",
+      "tallies": []
+    },
+    {
+      "game_id": "4086165",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236355",
+      "away_entry_id": "236442",
+      "tallies": []
+    },
+    {
+      "game_id": "4086175",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236386",
+      "away_entry_id": "236686",
+      "tallies": []
+    },
+    {
+      "game_id": "4086340",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236370",
+      "away_entry_id": "236152",
+      "tallies": []
+    },
+    {
+      "game_id": "4086351",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236384",
+      "away_entry_id": "235550",
+      "tallies": []
+    },
+    {
+      "game_id": "4087585",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236710",
+      "away_entry_id": "237242",
+      "tallies": []
+    },
+    {
+      "game_id": "4086186",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "236239",
+      "away_entry_id": "236240",
+      "tallies": []
+    },
+    {
+      "game_id": "4086197",
+      "division": "Champions - Division 2 X-Ball",
+      "home_entry_id": "232601",
+      "away_entry_id": "235848",
+      "tallies": []
+    },
+    {
+      "game_id": "4086208",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236003",
+      "away_entry_id": "235382",
+      "tallies": []
+    },
+    {
+      "game_id": "4086221",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236847",
+      "away_entry_id": "237125",
+      "tallies": []
+    },
+    {
+      "game_id": "4086233",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236246",
+      "away_entry_id": "236247",
+      "tallies": []
+    },
+    {
+      "game_id": "4086245",
+      "division": "Champions - Division 5 X-Ball",
+      "home_entry_id": "236245",
+      "away_entry_id": "236196",
+      "tallies": []
+    },
+    {
+      "game_id": "4086317",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236925",
+      "away_entry_id": "236913",
+      "tallies": []
+    },
+    {
+      "game_id": "4086329",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "232547",
+      "away_entry_id": "236930",
+      "tallies": []
+    },
+    {
+      "game_id": "4087586",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236748",
+      "away_entry_id": "237603",
+      "tallies": []
+    },
+    {
+      "game_id": "4087587",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236732",
+      "away_entry_id": "235029",
+      "tallies": []
+    },
+    {
+      "game_id": "4087588",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236658",
+      "away_entry_id": "236433",
+      "tallies": []
+    },
+    {
+      "game_id": "4087589",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237327",
+      "away_entry_id": "237066",
+      "tallies": []
+    },
+    {
+      "game_id": "4086260",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "234133",
+      "away_entry_id": "235942",
+      "tallies": []
+    },
+    {
+      "game_id": "4086277",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236959",
+      "away_entry_id": "237047",
+      "tallies": []
+    },
+    {
+      "game_id": "4087590",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237437",
+      "away_entry_id": "237504",
+      "tallies": []
+    },
+    {
+      "game_id": "4087591",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237242",
+      "away_entry_id": "236758",
+      "tallies": []
+    },
+    {
+      "game_id": "4087592",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237603",
+      "away_entry_id": "237583",
+      "tallies": []
+    },
+    {
+      "game_id": "4086292",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236357",
+      "away_entry_id": "237450",
+      "tallies": []
+    },
+    {
+      "game_id": "4086305",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236044",
+      "away_entry_id": "237289",
+      "tallies": []
+    },
+    {
+      "game_id": "4087593",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236944",
+      "away_entry_id": "236732",
+      "tallies": []
+    },
+    {
+      "game_id": "4087594",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236334",
+      "away_entry_id": "236658",
+      "tallies": []
+    },
+    {
+      "game_id": "4089582",
+      "division": "Commander's Cup X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089583",
+      "division": "Commander's Cup X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": "237075",
+      "tallies": []
+    },
+    {
+      "game_id": "4087595",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237066",
+      "away_entry_id": "235029",
+      "tallies": []
+    },
+    {
+      "game_id": "4087596",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237504",
+      "away_entry_id": "236433",
+      "tallies": []
+    },
+    {
+      "game_id": "4087597",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236758",
+      "away_entry_id": "236710",
+      "tallies": []
+    },
+    {
+      "game_id": "4087598",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237583",
+      "away_entry_id": "236748",
+      "tallies": []
+    },
+    {
+      "game_id": "4087599",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237242",
+      "away_entry_id": "237327",
+      "tallies": []
+    },
+    {
+      "game_id": "4087600",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237603",
+      "away_entry_id": "237437",
+      "tallies": []
+    },
+    {
+      "game_id": "4087601",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236871",
+      "away_entry_id": "236732",
+      "tallies": []
+    },
+    {
+      "game_id": "4086234",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "234981",
+      "away_entry_id": "236244",
+      "tallies": []
+    },
+    {
+      "game_id": "4086246",
+      "division": "Champions - Division 4 X-Ball",
+      "home_entry_id": "236243",
+      "away_entry_id": "236179",
+      "tallies": []
+    },
+    {
+      "game_id": "4087602",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "234804",
+      "away_entry_id": "236658",
+      "tallies": []
+    },
+    {
+      "game_id": "4087603",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236710",
+      "away_entry_id": "236944",
+      "tallies": []
+    },
+    {
+      "game_id": "4086209",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236339",
+      "away_entry_id": "235382",
+      "tallies": []
+    },
+    {
+      "game_id": "4086222",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237125",
+      "away_entry_id": "236003",
+      "tallies": []
+    },
+    {
+      "game_id": "4086318",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236892",
+      "away_entry_id": "236776",
+      "tallies": []
+    },
+    {
+      "game_id": "4086330",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236426",
+      "away_entry_id": "236344",
+      "tallies": []
+    },
+    {
+      "game_id": "4087604",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236748",
+      "away_entry_id": "236334",
+      "tallies": []
+    },
+    {
+      "game_id": "4086146",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236228",
+      "away_entry_id": "236254",
+      "tallies": []
+    },
+    {
+      "game_id": "4086156",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236229",
+      "away_entry_id": "236234",
+      "tallies": []
+    },
+    {
+      "game_id": "4086166",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236949",
+      "away_entry_id": "237377",
+      "tallies": []
+    },
+    {
+      "game_id": "4086176",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "237370",
+      "away_entry_id": "237054",
+      "tallies": []
+    },
+    {
+      "game_id": "4086341",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "237001",
+      "away_entry_id": "237408",
+      "tallies": []
+    },
+    {
+      "game_id": "4086352",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233860",
+      "away_entry_id": "234818",
+      "tallies": []
+    },
+    {
+      "game_id": "4087605",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "235029",
+      "away_entry_id": "237242",
+      "tallies": []
+    },
+    {
+      "game_id": "4086261",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237172",
+      "away_entry_id": "237359",
+      "tallies": []
+    },
+    {
+      "game_id": "4086278",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236946",
+      "away_entry_id": "236679",
+      "tallies": []
+    },
+    {
+      "game_id": "4087606",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236433",
+      "away_entry_id": "237603",
+      "tallies": []
+    },
+    {
+      "game_id": "4086129",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236216",
+      "away_entry_id": "236217",
+      "tallies": []
+    },
+    {
+      "game_id": "4086137",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236223",
+      "away_entry_id": "236249",
+      "tallies": []
+    },
+    {
+      "game_id": "4087607",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237327",
+      "away_entry_id": "236758",
+      "tallies": []
+    },
+    {
+      "game_id": "4087608",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "237437",
+      "away_entry_id": "237583",
+      "tallies": []
+    },
+    {
+      "game_id": "4086293",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236044",
+      "away_entry_id": "236445",
+      "tallies": []
+    },
+    {
+      "game_id": "4086306",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236357",
+      "away_entry_id": "236345",
+      "tallies": []
+    },
+    {
+      "game_id": "4087609",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236732",
+      "away_entry_id": "237066",
+      "tallies": []
+    },
+    {
+      "game_id": "4087610",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236658",
+      "away_entry_id": "237504",
+      "tallies": []
+    },
+    {
+      "game_id": "4086235",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237387",
+      "away_entry_id": "236395",
+      "tallies": []
+    },
+    {
+      "game_id": "4086247",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236415",
+      "away_entry_id": "236264",
+      "tallies": []
+    },
+    {
+      "game_id": "4087611",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236944",
+      "away_entry_id": "236871",
+      "tallies": []
+    },
+    {
+      "game_id": "4087612",
+      "division": "Mounds - Open 5v5",
+      "home_entry_id": "236334",
+      "away_entry_id": "234804",
+      "tallies": []
+    },
+    {
+      "game_id": "4086210",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237035",
+      "away_entry_id": "234126",
+      "tallies": []
+    },
+    {
+      "game_id": "4086223",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232583",
+      "away_entry_id": "236278",
+      "tallies": []
+    },
+    {
+      "game_id": "4086262",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "234133",
+      "away_entry_id": "235443",
+      "tallies": []
+    },
+    {
+      "game_id": "4086279",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "235624",
+      "away_entry_id": "237047",
+      "tallies": []
+    },
+    {
+      "game_id": "4086319",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235913",
+      "away_entry_id": "236273",
+      "tallies": []
+    },
+    {
+      "game_id": "4086331",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234479",
+      "away_entry_id": "236713",
+      "tallies": []
+    },
+    {
+      "game_id": "4086187",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236182",
+      "away_entry_id": "236890",
+      "tallies": []
+    },
+    {
+      "game_id": "4086198",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237013",
+      "away_entry_id": "237188",
+      "tallies": []
+    },
+    {
+      "game_id": "4086147",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236236",
+      "away_entry_id": "236238",
+      "tallies": []
+    },
+    {
+      "game_id": "4086157",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236235",
+      "away_entry_id": "236237",
+      "tallies": []
+    },
+    {
+      "game_id": "4086167",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236337",
+      "away_entry_id": "232514",
+      "tallies": []
+    },
+    {
+      "game_id": "4086177",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "233332",
+      "away_entry_id": "237055",
+      "tallies": []
+    },
+    {
+      "game_id": "4086294",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237005",
+      "away_entry_id": "236181",
+      "tallies": []
+    },
+    {
+      "game_id": "4086307",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236688",
+      "away_entry_id": "232575",
+      "tallies": []
+    },
+    {
+      "game_id": "4086342",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236815",
+      "away_entry_id": "233891",
+      "tallies": []
+    },
+    {
+      "game_id": "4086353",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236654",
+      "away_entry_id": "233066",
+      "tallies": []
+    },
+    {
+      "game_id": "4086130",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236210",
+      "away_entry_id": "236222",
+      "tallies": []
+    },
+    {
+      "game_id": "4086138",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236218",
+      "away_entry_id": "236248",
+      "tallies": []
+    },
+    {
+      "game_id": "4086236",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234153",
+      "away_entry_id": "237029",
+      "tallies": []
+    },
+    {
+      "game_id": "4086248",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237025",
+      "away_entry_id": "236967",
+      "tallies": []
+    },
+    {
+      "game_id": "4086263",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236346",
+      "away_entry_id": "236968",
+      "tallies": []
+    },
+    {
+      "game_id": "4086280",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236959",
+      "away_entry_id": "236946",
+      "tallies": []
+    },
+    {
+      "game_id": "4086211",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236339",
+      "away_entry_id": "236847",
+      "tallies": []
+    },
+    {
+      "game_id": "4086224",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236980",
+      "away_entry_id": "236880",
+      "tallies": []
+    },
+    {
+      "game_id": "4086320",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234134",
+      "away_entry_id": "237269",
+      "tallies": []
+    },
+    {
+      "game_id": "4086332",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236892",
+      "away_entry_id": "236721",
+      "tallies": []
+    },
+    {
+      "game_id": "4086188",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "233861",
+      "away_entry_id": "232512",
+      "tallies": []
+    },
+    {
+      "game_id": "4086199",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "234048",
+      "away_entry_id": "236408",
+      "tallies": []
+    },
+    {
+      "game_id": "4086295",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235615",
+      "away_entry_id": "234593",
+      "tallies": []
+    },
+    {
+      "game_id": "4086308",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236950",
+      "away_entry_id": "236383",
+      "tallies": []
+    },
+    {
+      "game_id": "4086148",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236230",
+      "away_entry_id": "236232",
+      "tallies": []
+    },
+    {
+      "game_id": "4086158",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236227",
+      "away_entry_id": "236233",
+      "tallies": []
+    },
+    {
+      "game_id": "4086168",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236932",
+      "away_entry_id": "237377",
+      "tallies": []
+    },
+    {
+      "game_id": "4086178",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236275",
+      "away_entry_id": "237054",
+      "tallies": []
+    },
+    {
+      "game_id": "4086264",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237318",
+      "away_entry_id": "235996",
+      "tallies": []
+    },
+    {
+      "game_id": "4086281",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236720",
+      "away_entry_id": "232550",
+      "tallies": []
+    },
+    {
+      "game_id": "4086343",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236960",
+      "away_entry_id": "237408",
+      "tallies": []
+    },
+    {
+      "game_id": "4086354",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "234818",
+      "away_entry_id": "235289",
+      "tallies": []
+    },
+    {
+      "game_id": "4086237",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235310",
+      "away_entry_id": "236395",
+      "tallies": []
+    },
+    {
+      "game_id": "4086249",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236415",
+      "away_entry_id": "236903",
+      "tallies": []
+    },
+    {
+      "game_id": "4086131",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236216",
+      "away_entry_id": "236253",
+      "tallies": []
+    },
+    {
+      "game_id": "4086139",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236223",
+      "away_entry_id": "236251",
+      "tallies": []
+    },
+    {
+      "game_id": "4086212",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236326",
+      "away_entry_id": "237311",
+      "tallies": []
+    },
+    {
+      "game_id": "4086225",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237006",
+      "away_entry_id": "236278",
+      "tallies": []
+    },
+    {
+      "game_id": "4086321",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236344",
+      "away_entry_id": "236273",
+      "tallies": []
+    },
+    {
+      "game_id": "4086333",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234479",
+      "away_entry_id": "236908",
+      "tallies": []
+    },
+    {
+      "game_id": "4086189",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237247",
+      "away_entry_id": "236182",
+      "tallies": []
+    },
+    {
+      "game_id": "4086200",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236371",
+      "away_entry_id": "237188",
+      "tallies": []
+    },
+    {
+      "game_id": "4086265",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "232531",
+      "away_entry_id": "236358",
+      "tallies": []
+    },
+    {
+      "game_id": "4086282",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237419",
+      "away_entry_id": "236322",
+      "tallies": []
+    },
+    {
+      "game_id": "4086296",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236391",
+      "away_entry_id": "236181",
+      "tallies": []
+    },
+    {
+      "game_id": "4086309",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236703",
+      "away_entry_id": "232575",
+      "tallies": []
+    },
+    {
+      "game_id": "4086149",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236226",
+      "away_entry_id": "236224",
+      "tallies": []
+    },
+    {
+      "game_id": "4086159",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236231",
+      "away_entry_id": "236225",
+      "tallies": []
+    },
+    {
+      "game_id": "4086169",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "232514",
+      "away_entry_id": "236949",
+      "tallies": []
+    },
+    {
+      "game_id": "4086179",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "237055",
+      "away_entry_id": "237370",
+      "tallies": []
+    },
+    {
+      "game_id": "4086238",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "237387",
+      "away_entry_id": "237029",
+      "tallies": []
+    },
+    {
+      "game_id": "4086250",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236264",
+      "away_entry_id": "237025",
+      "tallies": []
+    },
+    {
+      "game_id": "4086344",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236323",
+      "away_entry_id": "233891",
+      "tallies": []
+    },
+    {
+      "game_id": "4086355",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "233066",
+      "away_entry_id": "236381",
+      "tallies": []
+    },
+    {
+      "game_id": "4086213",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236406",
+      "away_entry_id": "234126",
+      "tallies": []
+    },
+    {
+      "game_id": "4086226",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "232583",
+      "away_entry_id": "236980",
+      "tallies": []
+    },
+    {
+      "game_id": "4086322",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235913",
+      "away_entry_id": "237269",
+      "tallies": []
+    },
+    {
+      "game_id": "4086334",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236713",
+      "away_entry_id": "236776",
+      "tallies": []
+    },
+    {
+      "game_id": "4086190",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236890",
+      "away_entry_id": "232512",
+      "tallies": []
+    },
+    {
+      "game_id": "4086201",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236408",
+      "away_entry_id": "237013",
+      "tallies": []
+    },
+    {
+      "game_id": "4086266",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236968",
+      "away_entry_id": "235996",
+      "tallies": []
+    },
+    {
+      "game_id": "4086283",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237231",
+      "away_entry_id": "232550",
+      "tallies": []
+    },
+    {
+      "game_id": "4086132",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236209",
+      "away_entry_id": "236211",
+      "tallies": []
+    },
+    {
+      "game_id": "4086140",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236126",
+      "away_entry_id": "236206",
+      "tallies": []
+    },
+    {
+      "game_id": "4086297",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "234593",
+      "away_entry_id": "237005",
+      "tallies": []
+    },
+    {
+      "game_id": "4086310",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236383",
+      "away_entry_id": "236688",
+      "tallies": []
+    },
+    {
+      "game_id": "4086239",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "235310",
+      "away_entry_id": "234153",
+      "tallies": []
+    },
+    {
+      "game_id": "4086251",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236967",
+      "away_entry_id": "236903",
+      "tallies": []
+    },
+    {
+      "game_id": "4086267",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236346",
+      "away_entry_id": "232531",
+      "tallies": []
+    },
+    {
+      "game_id": "4086284",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "236322",
+      "away_entry_id": "236720",
+      "tallies": []
+    },
+    {
+      "game_id": "4086150",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236654",
+      "away_entry_id": "236815",
+      "tallies": []
+    },
+    {
+      "game_id": "4086160",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236960",
+      "away_entry_id": "235289",
+      "tallies": []
+    },
+    {
+      "game_id": "4086170",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236932",
+      "away_entry_id": "236337",
+      "tallies": []
+    },
+    {
+      "game_id": "4086180",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": "236275",
+      "away_entry_id": "233332",
+      "tallies": []
+    },
+    {
+      "game_id": "4086214",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237311",
+      "away_entry_id": "237035",
+      "tallies": []
+    },
+    {
+      "game_id": "4086227",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237006",
+      "away_entry_id": "236880",
+      "tallies": []
+    },
+    {
+      "game_id": "4086323",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236908",
+      "away_entry_id": "236721",
+      "tallies": []
+    },
+    {
+      "game_id": "4086335",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236426",
+      "away_entry_id": "234134",
+      "tallies": []
+    },
+    {
+      "game_id": "4086345",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "232534",
+      "away_entry_id": "233121",
+      "tallies": []
+    },
+    {
+      "game_id": "4086356",
+      "division": "Champions - Division 3 X-Ball",
+      "home_entry_id": "236241",
+      "away_entry_id": "236242",
+      "tallies": []
+    },
+    {
+      "game_id": "4086191",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "237247",
+      "away_entry_id": "233861",
+      "tallies": []
+    },
+    {
+      "game_id": "4086202",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236371",
+      "away_entry_id": "234048",
+      "tallies": []
+    },
+    {
+      "game_id": "4086298",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236391",
+      "away_entry_id": "235615",
+      "tallies": []
+    },
+    {
+      "game_id": "4086311",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": "236703",
+      "away_entry_id": "236950",
+      "tallies": []
+    },
+    {
+      "game_id": "4086268",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237318",
+      "away_entry_id": "236358",
+      "tallies": []
+    },
+    {
+      "game_id": "4086285",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": "237231",
+      "away_entry_id": "237419",
+      "tallies": []
+    },
+    {
+      "game_id": "4086215",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": "236406",
+      "away_entry_id": "236326",
+      "tallies": []
+    },
+    {
+      "game_id": "4086346",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": "236323",
+      "away_entry_id": "236381",
+      "tallies": []
+    },
+    {
+      "game_id": "4086441",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236229",
+      "away_entry_id": "236254",
+      "tallies": []
+    },
+    {
+      "game_id": "4086447",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236227",
+      "away_entry_id": "236230",
+      "tallies": []
+    },
+    {
+      "game_id": "4089399",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089405",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089527",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089534",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089541",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089546",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089567",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089571",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086425",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236235",
+      "away_entry_id": "236236",
+      "tallies": []
+    },
+    {
+      "game_id": "4086433",
+      "division": "Champions - Semi-Pro X-Ball",
+      "home_entry_id": "236237",
+      "away_entry_id": "236238",
+      "tallies": []
+    },
+    {
+      "game_id": "4089568",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089572",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089400",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089406",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089528",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089535",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089542",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089547",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086442",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236225",
+      "away_entry_id": "236234",
+      "tallies": []
+    },
+    {
+      "game_id": "4086448",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236224",
+      "away_entry_id": "236233",
+      "tallies": []
+    },
+    {
+      "game_id": "4089569",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089573",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086426",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236212",
+      "away_entry_id": "236252",
+      "tallies": []
+    },
+    {
+      "game_id": "4086434",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236219",
+      "away_entry_id": "236215",
+      "tallies": []
+    },
+    {
+      "game_id": "4089401",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089407",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089529",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089536",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089543",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089548",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089570",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089574",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086443",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236227",
+      "away_entry_id": "236226",
+      "tallies": []
+    },
+    {
+      "game_id": "4086449",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236231",
+      "away_entry_id": "236228",
+      "tallies": []
+    },
+    {
+      "game_id": "4086427",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236220",
+      "away_entry_id": "236213",
+      "tallies": []
+    },
+    {
+      "game_id": "4086435",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236221",
+      "away_entry_id": "236208",
+      "tallies": []
+    },
+    {
+      "game_id": "4089402",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089408",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089530",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089537",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089544",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089549",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086444",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236224",
+      "away_entry_id": "236232",
+      "tallies": []
+    },
+    {
+      "game_id": "4086450",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236234",
+      "away_entry_id": "236254",
+      "tallies": []
+    },
+    {
+      "game_id": "4089403",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089409",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089531",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089538",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089545",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089550",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086428",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236212",
+      "away_entry_id": "236207",
+      "tallies": []
+    },
+    {
+      "game_id": "4086436",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236219",
+      "away_entry_id": "236214",
+      "tallies": []
+    },
+    {
+      "game_id": "4086445",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236231",
+      "away_entry_id": "236229",
+      "tallies": []
+    },
+    {
+      "game_id": "4086451",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236230",
+      "away_entry_id": "236233",
+      "tallies": []
+    },
+    {
+      "game_id": "4089404",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089410",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089532",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089539",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089584",
+      "division": "Commander's Cup X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086446",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236228",
+      "away_entry_id": "236225",
+      "tallies": []
+    },
+    {
+      "game_id": "4086452",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": "236226",
+      "away_entry_id": "236232",
+      "tallies": []
+    },
+    {
+      "game_id": "4086429",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236217",
+      "away_entry_id": "236253",
+      "tallies": []
+    },
+    {
+      "game_id": "4086437",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236249",
+      "away_entry_id": "236251",
+      "tallies": []
+    },
+    {
+      "game_id": "4089331",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089333",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089533",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089540",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089339",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089343",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086430",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236210",
+      "away_entry_id": "236218",
+      "tallies": []
+    },
+    {
+      "game_id": "4086438",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236222",
+      "away_entry_id": "236248",
+      "tallies": []
+    },
+    {
+      "game_id": "4089332",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089334",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089340",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089344",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086431",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236217",
+      "away_entry_id": "236211",
+      "tallies": []
+    },
+    {
+      "game_id": "4086439",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236249",
+      "away_entry_id": "236206",
+      "tallies": []
+    },
+    {
+      "game_id": "4089341",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089345",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4086432",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236216",
+      "away_entry_id": "236209",
+      "tallies": []
+    },
+    {
+      "game_id": "4086440",
+      "division": "Pro X-Ball",
+      "home_entry_id": "236223",
+      "away_entry_id": "236126",
+      "tallies": []
+    },
+    {
+      "game_id": "4089342",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089346",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089287",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089289",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089337",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089338",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089413",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089414",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089577",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089578",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089288",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089290",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089553",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089554",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089349",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089350",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089412",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089335",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089411",
+      "division": "Division 3 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089575",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089576",
+      "division": "Division 5 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089286",
+      "division": "WNXL Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089347",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089551",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089552",
+      "division": "Division 4 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089336",
+      "division": "Division 2 X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    },
+    {
+      "game_id": "4089348",
+      "division": "Semi-Pro X-Ball",
+      "home_entry_id": null,
+      "away_entry_id": null,
+      "tallies": []
+    }
+  ]
+}

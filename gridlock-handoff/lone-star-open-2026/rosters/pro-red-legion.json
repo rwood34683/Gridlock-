@@ -1,0 +1,58 @@
+{
+  "team": "Red Legion",
+  "erid": "99nCQxR5MCaqTBal",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=99nCQxR5MCaqTBal",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Alexander Berdnikov",
+      "pid": "26691"
+    },
+    {
+      "jersey": null,
+      "name": "Pavel Karsliev",
+      "pid": "56861"
+    },
+    {
+      "jersey": null,
+      "name": "Michael Johnson",
+      "pid": "106344"
+    },
+    {
+      "jersey": null,
+      "name": "Corey Hall",
+      "pid": "44489"
+    },
+    {
+      "jersey": null,
+      "name": "Sergey Solnyshkov",
+      "pid": "34640"
+    },
+    {
+      "jersey": null,
+      "name": "Kirill Prikhidni",
+      "pid": "3892"
+    },
+    {
+      "jersey": null,
+      "name": "Daniil Kuzmin",
+      "pid": "192477"
+    },
+    {
+      "jersey": null,
+      "name": "Leonid Smotrov",
+      "pid": "108677"
+    },
+    {
+      "jersey": null,
+      "name": "Thomas Hara",
+      "pid": "129237"
+    },
+    {
+      "jersey": null,
+      "name": "Edilberto Vasquez Jr",
+      "pid": "109665"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

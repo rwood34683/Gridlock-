@@ -1,0 +1,10 @@
+{
+  "batch": "manifest unique successful positions 147-346, first PDF-derived 200",
+  "profiles": 200,
+  "rows_independently_preserved": 2065,
+  "manifest_annotated_rows": 2018,
+  "rows_in_six_missing_count_annotations": 47,
+  "explicit_zero_profiles": 9,
+  "errors": [],
+  "limitation": "PDF text lacks reliable cell boundaries/links; event/team and other wrapped columns stay NULL, raw full layout and dated row anchors preserved without guesses."
+}

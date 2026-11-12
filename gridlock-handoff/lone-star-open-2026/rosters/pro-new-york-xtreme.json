@@ -1,0 +1,53 @@
+{
+  "team": "New York Xtreme",
+  "erid": "X0I9pQj6EXXcMgKt",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=X0I9pQj6EXXcMgKt",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Jose Navarro",
+      "pid": "14904"
+    },
+    {
+      "jersey": null,
+      "name": "Josh Taylor",
+      "pid": "27365"
+    },
+    {
+      "jersey": null,
+      "name": "Chris Tiru",
+      "pid": "134090"
+    },
+    {
+      "jersey": null,
+      "name": "Shahyar Hussain",
+      "pid": "43335"
+    },
+    {
+      "jersey": null,
+      "name": "Charles Givens",
+      "pid": "109950"
+    },
+    {
+      "jersey": null,
+      "name": "Shawn Demers",
+      "pid": "216895"
+    },
+    {
+      "jersey": null,
+      "name": "Frederic Berkley",
+      "pid": "20072"
+    },
+    {
+      "jersey": null,
+      "name": "Sebastian Ivan Lopez",
+      "pid": "143019"
+    },
+    {
+      "jersey": null,
+      "name": "Jared Cester",
+      "pid": "7687"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

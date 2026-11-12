@@ -1,0 +1,58 @@
+{
+  "team": "New Jersey Leverage",
+  "erid": "P2xnWPz6jP2JT30c",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=P2xnWPz6jP2JT30c",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Christopher Sanborn",
+      "pid": "98042"
+    },
+    {
+      "jersey": null,
+      "name": "Mark Meiterman",
+      "pid": "64043"
+    },
+    {
+      "jersey": null,
+      "name": "Zach Moran",
+      "pid": "81927"
+    },
+    {
+      "jersey": null,
+      "name": "Travis Baskin Sr",
+      "pid": "100329"
+    },
+    {
+      "jersey": null,
+      "name": "Alfred De Los Santos",
+      "pid": "39049"
+    },
+    {
+      "jersey": null,
+      "name": "Scott Graham",
+      "pid": "87512"
+    },
+    {
+      "jersey": null,
+      "name": "Gilbert Sakaguchi II",
+      "pid": "130229"
+    },
+    {
+      "jersey": null,
+      "name": "Joseph Altamore Jr",
+      "pid": "3924"
+    },
+    {
+      "jersey": null,
+      "name": "Rob Altamore",
+      "pid": "7816"
+    },
+    {
+      "jersey": null,
+      "name": "Chris Caputo",
+      "pid": "93442"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

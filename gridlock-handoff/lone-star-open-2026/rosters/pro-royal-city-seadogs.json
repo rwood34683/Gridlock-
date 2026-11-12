@@ -1,0 +1,48 @@
+{
+  "team": "Royal City Seadogs",
+  "erid": "fhwWzcZ486QDnfWv",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=fhwWzcZ486QDnfWv",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Austin Kaus",
+      "pid": "131582"
+    },
+    {
+      "jersey": null,
+      "name": "Shayne Salmon",
+      "pid": "117141"
+    },
+    {
+      "jersey": null,
+      "name": "Nick Campbell",
+      "pid": "106721"
+    },
+    {
+      "jersey": null,
+      "name": "Derrick Weltz",
+      "pid": "60265"
+    },
+    {
+      "jersey": null,
+      "name": "Ryan Chantler",
+      "pid": "55778"
+    },
+    {
+      "jersey": null,
+      "name": "Clayton Rizzardo Jr",
+      "pid": "155044"
+    },
+    {
+      "jersey": null,
+      "name": "Mark Gawlikowski",
+      "pid": "101575"
+    },
+    {
+      "jersey": null,
+      "name": "Conor Smith",
+      "pid": "77134"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}

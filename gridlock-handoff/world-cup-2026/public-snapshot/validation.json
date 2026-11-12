@@ -1,0 +1,329 @@
+{
+  "event_id": "9322",
+  "registration_entries": 680,
+  "unique_source_team_ids": 592,
+  "divisions_with_entries": 34,
+  "college_divisions_with_zero_entries": 2,
+  "advertised_signed_up": 680,
+  "advertised_paid": 575,
+  "team_status_counts": {
+    "Payment Accepted": 562,
+    "Pending - Pay": 13,
+    "Registration Deadline Passed": 21,
+    "Pay Entry Fee": 84
+  },
+  "roster_status_counts": {
+    "public_event_roster": 30,
+    "public_empty_roster": 24,
+    "login_required": 626
+  },
+  "people": 429,
+  "memberships_by_role": {
+    "Coach": 36,
+    "Player": 271,
+    "Staff": 159
+  },
+  "duplicate_checks": {
+    "same_division_team_id": [],
+    "same_division_exact_name": []
+  },
+  "sqlite_integrity": "ok",
+  "foreign_key_violations": 0,
+  "source_count": 686,
+  "public_populated_rosters": 30,
+  "public_empty_rosters": 24,
+  "roster_coverage_by_division": [
+    {
+      "division_id": "28331",
+      "division": "Championship - Pro X-Ball (Thu-Sun)",
+      "entries": 4,
+      "statuses": {
+        "public_event_roster": 4
+      }
+    },
+    {
+      "division_id": "28302",
+      "division": "Pro X-Ball (Thu-Sun)",
+      "entries": 20,
+      "statuses": {
+        "public_event_roster": 19,
+        "public_empty_roster": 1
+      }
+    },
+    {
+      "division_id": "28320",
+      "division": "WNXL X-Ball (Thu-Sun)",
+      "entries": 12,
+      "statuses": {
+        "login_required": 12
+      }
+    },
+    {
+      "division_id": "28336",
+      "division": "Pro 3v3 X-Ball (Wed)",
+      "entries": 30,
+      "statuses": {
+        "public_event_roster": 7,
+        "public_empty_roster": 23
+      }
+    },
+    {
+      "division_id": "28335",
+      "division": "Amateur 3v3 X-Ball (Wed)",
+      "entries": 17,
+      "statuses": {
+        "login_required": 17
+      }
+    },
+    {
+      "division_id": "28325",
+      "division": "Championship - Semi-Pro X-Ball (Fri-Sun)",
+      "entries": 4,
+      "statuses": {
+        "login_required": 4
+      }
+    },
+    {
+      "division_id": "28326",
+      "division": "Championship - Division 2 X-Ball (Thu-Sun)",
+      "entries": 4,
+      "statuses": {
+        "login_required": 4
+      }
+    },
+    {
+      "division_id": "28327",
+      "division": "Championship - Division 3 X-Ball (Thu-Sun)",
+      "entries": 4,
+      "statuses": {
+        "login_required": 4
+      }
+    },
+    {
+      "division_id": "28328",
+      "division": "Championship - Division 4 X-Ball (Thu-Sun)",
+      "entries": 4,
+      "statuses": {
+        "login_required": 4
+      }
+    },
+    {
+      "division_id": "28329",
+      "division": "Championship - Division 5 X-Ball (Thu-Sun)",
+      "entries": 4,
+      "statuses": {
+        "login_required": 4
+      }
+    },
+    {
+      "division_id": "28303",
+      "division": "Semi-Pro X-Ball (Thu-Sun)",
+      "entries": 29,
+      "statuses": {
+        "login_required": 29
+      }
+    },
+    {
+      "division_id": "28304",
+      "division": "Division 2 X-Ball (Thu-Sun)",
+      "entries": 20,
+      "statuses": {
+        "login_required": 20
+      }
+    },
+    {
+      "division_id": "28305",
+      "division": "Division 3 X-Ball (Thu-Sun)",
+      "entries": 44,
+      "statuses": {
+        "login_required": 44
+      }
+    },
+    {
+      "division_id": "28306",
+      "division": "Division 4 X-Ball (Thu-Sun)",
+      "entries": 73,
+      "statuses": {
+        "login_required": 73
+      }
+    },
+    {
+      "division_id": "28316",
+      "division": "Division 5 X-Ball (Thu-Sun)",
+      "entries": 28,
+      "statuses": {
+        "login_required": 28
+      }
+    },
+    {
+      "division_id": "28318",
+      "division": "Masters X-Ball (Thu-Fri)",
+      "entries": 13,
+      "statuses": {
+        "login_required": 13
+      }
+    },
+    {
+      "division_id": "28307",
+      "division": "Division 3 5v5 (Sat-Sun)",
+      "entries": 16,
+      "statuses": {
+        "login_required": 16
+      }
+    },
+    {
+      "division_id": "28308",
+      "division": "Division 4 5v5 (Sat-Sun)",
+      "entries": 69,
+      "statuses": {
+        "login_required": 69
+      }
+    },
+    {
+      "division_id": "28301",
+      "division": "Division 5 5v5 (Sat-Sun)",
+      "entries": 31,
+      "statuses": {
+        "login_required": 31
+      }
+    },
+    {
+      "division_id": "28321",
+      "division": "WNXL Amateur 5v5 (Sat)",
+      "entries": 9,
+      "statuses": {
+        "login_required": 9
+      }
+    },
+    {
+      "division_id": "28317",
+      "division": "Amateur 10v10 (Sat-Sun)",
+      "entries": 11,
+      "statuses": {
+        "login_required": 11
+      }
+    },
+    {
+      "division_id": "28309",
+      "division": "Amateur 10v10 (Sun)",
+      "entries": 44,
+      "statuses": {
+        "login_required": 44
+      }
+    },
+    {
+      "division_id": "28312",
+      "division": "Classic Mounds - Open 10v10 (Sat)",
+      "entries": 12,
+      "statuses": {
+        "login_required": 12
+      }
+    },
+    {
+      "division_id": "28315",
+      "division": "Classic Mounds - Open 7v7 (Sun)",
+      "entries": 9,
+      "statuses": {
+        "login_required": 9
+      }
+    },
+    {
+      "division_id": "28311",
+      "division": "Classic Mounds - Open 5v5 (Fri)",
+      "entries": 20,
+      "statuses": {
+        "login_required": 20
+      }
+    },
+    {
+      "division_id": "28330",
+      "division": "Commander's Cup X-Ball (Fri-Sat)",
+      "entries": 5,
+      "statuses": {
+        "login_required": 5
+      }
+    },
+    {
+      "division_id": "28324",
+      "division": "Youth Advanced 5v5 (Sat)",
+      "entries": 6,
+      "statuses": {
+        "login_required": 6
+      }
+    },
+    {
+      "division_id": "28314",
+      "division": "Women - WNXL 3v3 (Sun)",
+      "entries": 3,
+      "statuses": {
+        "login_required": 3
+      }
+    },
+    {
+      "division_id": "28322",
+      "division": "Open 3v3 (Sun)",
+      "entries": 5,
+      "statuses": {
+        "login_required": 5
+      }
+    },
+    {
+      "division_id": "28310",
+      "division": "Amateur 3v3 (Sun)",
+      "entries": 11,
+      "statuses": {
+        "login_required": 11
+      }
+    },
+    {
+      "division_id": "28319",
+      "division": "Intermediate 3v3 (Sun)",
+      "entries": 35,
+      "statuses": {
+        "login_required": 35
+      }
+    },
+    {
+      "division_id": "28313",
+      "division": "Novice 3v3 (Sun)",
+      "entries": 63,
+      "statuses": {
+        "login_required": 63
+      }
+    },
+    {
+      "division_id": "28323",
+      "division": "Youth 3v3 (Sun)",
+      "entries": 7,
+      "statuses": {
+        "login_required": 7
+      }
+    },
+    {
+      "division_id": "29284",
+      "division": "Intermediate 3v3 X-Ball (Sat)",
+      "entries": 14,
+      "statuses": {
+        "login_required": 14
+      }
+    },
+    {
+      "division_id": "29285",
+      "division": "College X-Ball (Sat-Sun)",
+      "entries": 0,
+      "statuses": {}
+    },
+    {
+      "division_id": "29286",
+      "division": "College X-Ball (Sat-Sun) (10 Case Package)",
+      "entries": 0,
+      "statuses": {}
+    }
+  ],
+  "retrieval_start": "2026-11-08T17:17:04.371406-05:00",
+  "retrieval_end": "2026-11-08T17:29:13.536046-05:00",
+  "public_roster_unique_team_ids": 27,
+  "roster_http_status_counts": {
+    "200": 680
+  }
+}

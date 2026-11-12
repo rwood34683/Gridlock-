@@ -1,0 +1,33 @@
+{
+  "package": "world-cup-2026-gridlock-web",
+  "purpose": "JSON-first Claude-web oriented handoff; same provenance fields as full package; no SQLite binary; no clean-source-views bulk; no raw browser captures.",
+  "event_id": "9322",
+  "event_dates": "2026-11-11 to 2026-11-15",
+  "authoritative_coverage": "coverage-audit.json",
+  "start_here": "GRIDLOCK-START-HERE.md",
+  "counts": {
+    "registration_entries": 680,
+    "distinct_team_ids": 592,
+    "people": 4381,
+    "history_observations": 10501,
+    "player_history_statuses": {
+      "scored_event_history_imported": 950,
+      "not_retrieved": 2645,
+      "scored_event_history_imported_zero_rows": 24
+    },
+    "profiles_imported": 974,
+    "profiles_remaining_not_retrieved": 2645
+  },
+  "note": "If Claude web cannot accept large JSON, attach GRIDLOCK-START-HERE.md + schema.sql + coverage-audit.md + teams.json first, then add rosters/people/history as needed.",
+  "schedule": {
+    "file": "schedule.json",
+    "event_id": "9322",
+    "retrieved_at": "2026-11-12T14:06:25.927650-05:00",
+    "games": 722,
+    "sides_resolved": 1274,
+    "sides_slot": 167,
+    "sides_unresolved": 3,
+    "tally_template": "scout-tally-template.json",
+    "note": "Proposed game_tallies schema; not populated."
+  }
+}

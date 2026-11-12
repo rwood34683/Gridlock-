@@ -1,0 +1,58 @@
+{
+  "team": "Detroit Infamous",
+  "erid": "5JCXyF7veg2Y2zmY",
+  "source": "https://mlpb.pbleagues.com/cgi-bin/roster.cgi?ERID=5JCXyF7veg2Y2zmY",
+  "players": [
+    {
+      "jersey": null,
+      "name": "Kyle Bowen",
+      "pid": "4614"
+    },
+    {
+      "jersey": null,
+      "name": "Rob Velez",
+      "pid": "45321"
+    },
+    {
+      "jersey": null,
+      "name": "Trevor Resar",
+      "pid": "19824"
+    },
+    {
+      "jersey": null,
+      "name": "Nathan Aboulhosn",
+      "pid": "119920"
+    },
+    {
+      "jersey": null,
+      "name": "Sam Silberg",
+      "pid": "45235"
+    },
+    {
+      "jersey": null,
+      "name": "Kevin Rudulph",
+      "pid": "7403"
+    },
+    {
+      "jersey": null,
+      "name": "Dany Schonauer",
+      "pid": "22815"
+    },
+    {
+      "jersey": null,
+      "name": "Ryan Hall",
+      "pid": "98211"
+    },
+    {
+      "jersey": null,
+      "name": "Zack Patient",
+      "pid": "10566"
+    },
+    {
+      "jersey": null,
+      "name": "Jonah Jamroz",
+      "pid": "127384"
+    }
+  ],
+  "note": "Parsed from roster.cgi curRoster.player + pData (players only, staff/coach/media excluded); jersey null if not published"
+}
