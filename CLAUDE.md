@@ -1517,6 +1517,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Confirmations and messages (12 Nov 2026): every "are you sure" goes through
+`askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is
+the system's question; in the published preview (`window.gridlockPreview`),
+which may refuse system questions silently, it is the same tap a second time
+within eight seconds, said on screen. A message the coach has read (shown more
+than a second) leaves when he changes tab, More section or Scout view; one
+raised on the way to a new screen stays. `test/ask-first.cjs`.
+
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
 in one short line each. Keep the five direct tabs and a 44 px Home control
