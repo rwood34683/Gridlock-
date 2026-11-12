@@ -10792,13 +10792,16 @@ let _playerDetail = null;
 let _playerTap = null, _playerSaid = "";
 let _playerReturnFocus = null, _playerRootHidden = null;
 // Derived counts only: one player per point, with missing observations intact.
+const playerObservationKey=(pt,name,id)=>JSON.stringify([pt,foldName(name) ? "n:"+foldName(name) : "b:"+id]);
 function playerObservationRows(mid, side, layout){
+  return drawOnce("player-observations|"+JSON.stringify([mid,side,layout]),()=>playerObservationRowsFresh(mid,side,layout));
+}
+function playerObservationRowsFresh(mid, side, layout){
   const m=matchById(mid); if(!m || !["us","them"].includes(side)) return [];
   const on=r=>r && r.m===mid && r.side===side && Number.isInteger(r.pt) && r.pt>0 && (r.layout || m.layout)===layout;
   const rows=new Map(), ids=new Map();
-  const key=(pt,name,id)=>JSON.stringify([pt,foldName(name) ? "n:"+foldName(name) : "b:"+id]);
   const get=(pt,name,id)=>{
-    const k=key(pt,name,id);
+    const k=playerObservationKey(pt,name,id);
     if(!rows.has(k)) rows.set(k,{pt,player:foldName(name) ? name : "",break:null,check:null,out:false});
     return rows.get(k);
   };
@@ -10815,9 +10818,16 @@ function playerObservationRows(mid, side, layout){
     if(!r.check || c.at>r.check.at) r.check=c;
   }
   for(const o of (S.tally || []).filter(on)) if(foldName(o.name)) get(o.pt,o.name,"").out=true;
-  return [...rows.values()].map(r=>({pt:r.pt,player:r.player,
+  return [...rows].map(([key,r])=>({key,pt:r.pt,player:r.player,
     alive:r.out || r.check?.alive===false || (r.break?.alive===false && r.check?.alive!==true) ? false : r.check?.alive===true ? true : null,
     shooting:r.check?.shooting===true,diving:r.check?.diving===true}));
+}
+function playerStatusText(side,player="",id=""){
+  const rows=drawOnce("player-status|"+JSON.stringify([S.matchId,side,S.layoutKey]),()=>
+    new Map(playerObservationRows(S.matchId,side,S.layoutKey).map(r=>[r.key,r])));
+  const r=rows.get(playerObservationKey(sheetPoint(),player,id));
+  return [r?.alive===false ? "Dead" : r?.alive===true ? "Alive" : "Not recorded",
+    r?.shooting ? "Shooting" : "",r?.diving ? "Diving" : ""].filter(Boolean).join(" · ");
 }
 function playerShares(rows,total){
   const alive=rows.filter(r=>r.alive===true).length, dead=rows.filter(r=>r.alive===false).length;
@@ -10864,8 +10874,9 @@ function playerDetailData(){
     (S.breakouts || []).find(x => x && x.m === d.m && x.pt === d.pt && x.side === d.side && x.player === d.player);
   if(d.id && (!r || r.m !== d.m || r.pt !== d.pt || r.side !== d.side || (r.player || "") !== d.player || r.layout !== S.layoutKey)) return null;
   const out = d.player && (S.tally || []).find(o => o && o.m === d.m && o.pt === d.pt && o.side === d.side && o.name === d.player);
-  const check = (S.playerChecks || []).find(c => c && c.m===d.m && c.pt===d.pt && c.side===d.side && c.layout===S.layoutKey
-    && (c.breakoutId ? r && c.breakoutId===r.id : d.player && c.player===d.player));
+  const check = (S.playerChecks || []).filter(c => c && c.m===d.m && c.pt===d.pt && c.side===d.side && c.layout===S.layoutKey
+    && (c.breakoutId ? r && c.breakoutId===r.id : d.player && c.player===d.player))
+    .reduce((latest,c)=>!latest || c.at>latest.at ? c : latest,null);
   return {d,m,r,out,check,live:d.m === S.matchId && d.pt === sheetPoint() && !sheetField()};
 }
 window.closePlayerDetails = () => {
@@ -11033,7 +11044,7 @@ function scoutPlayerDetails(side){
   const sd = side === "left" ? "us" : "them", pt = sheetPoint();
   const rows = pointRows().filter(r => r.side === sd);
   if(!rows.length && !playerObservationRows(S.matchId,sd,S.layoutKey).some(r=>r.pt===pt)) return "";
-  return sec("Players this point",`<p class="note">Tap a player: Alive, Dead, Shooting or Diving.</p><div class="assigns">${rows.map((r,i) => `<button class="assign" onclick="showPlayerDetails(${jsq(r.id)})"><span class="assign__n">${i+1}</span><span class="assign__body"><span class="assign__job">${esc(r.player || "Player "+(i+1))}</span><span class="assign__who">${esc(bunkerLabel(r.bunker))} · Details</span></span></button>`).join("")}</div>${pointPercentages(sd)}`,`${pitOf(side).name} · Point ${pt}`);
+  return sec("Players this point",`<p class="note">Tap a player to update what you saw.</p><div class="assigns">${rows.map((r,i) => `<button class="assign" onclick="showPlayerDetails(${jsq(r.id)})"><span class="assign__n">${i+1}</span><span class="assign__body"><span class="assign__job">${esc(r.player || "Player "+(i+1))}</span><span class="assign__who">${esc(bunkerLabel(r.bunker))}</span><span class="assign__who" data-player-status="${esc(r.id)}">${playerStatusText(sd,r.player,r.id)}</span></span></button>`).join("")}</div>${pointPercentages(sd)}`,`${pitOf(side).name} · Point ${pt}`);
 }
 // Editing is an explicit move; reading the popup above never switches sheets.
 window.openManDetails = id => {
@@ -14116,7 +14127,7 @@ function tally(){
       ${names.map(n=>`<button class="assign" onclick="showNamedPlayer('${side}',${jsq(n)})">
         <span class="assign__n" style="background:${isOut(side,n)?"var(--line-lit)":colour}">${isOut(side,n)?"✕":"●"}</span>
         <span class="assign__body"><span class="assign__job">${esc(n)}</span>
-        <span class="assign__who">${isOut(side,n)?"Out · ":""}Player details</span></span>
+        <span class="assign__who">${playerStatusText(side,n)}</span></span>
       </button>`).join("")}
     </div></div>`;
 
@@ -14199,7 +14210,7 @@ function tally(){
         <button class="btn btn--quiet grow" style="justify-content:flex-start;text-align:left" onclick="showPlayerDetails(${jsq(r.id)})">
           <span><span style="color:${r.side === "them" ? "#3d8bff" : "#e5342f"}">●</span>&nbsp;${r.todo
             ? `${esc(bunkerLabel(r.bunker))} · ${esc(placeSideWord(r.side).toLowerCase())} · <span style="color:var(--warn)">what happened?</span>`
-            : esc(describeBreakout(r))}</span></button>
+            : esc(describeBreakout(r))}<span class="assign__who" style="display:block" data-player-status="${esc(r.id)}">${playerStatusText(r.side,r.player,r.id)}</span></span></button>
         <button class="btn btn--quiet" aria-label="Take this man off" onclick="undoBreakout(${jsq(r.id)})">✕</button></div>`).join("")}
     </div>`
     : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`);
@@ -14331,7 +14342,7 @@ function tally(){
              </div>`
           : `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">Time's up — match ends at this score</button>`)
         : ""}
-    <p class="note" style="margin-top:var(--s4)">Tap a player the moment he goes out. Anyone you logged as shot on the break above is already marked.</p>
+    <p class="note" style="margin-top:var(--s4)">Tap a player to record Alive, Dead, Shooting or Diving. Each tap saves.</p>
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
@@ -17959,7 +17970,7 @@ const HELP_Q = [
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
   ["Where are the player percentages?", "On Tally, open Point percentages for either team; on Scout, it is under Players this point. Each number shows its count, such as 3 of 5 · 60%. The team total uses this point’s starting players after penalties. In a player’s popup, Match percentages uses only that player’s logged points in this match. Alive and Dead show the last status recorded on each point. Missing observations stay unknown; Shooting and Diving can both apply."],
-  ["How do I see what happened to a player?", "On Tally, tap his name or his row under the field. On Scout, tap a player under Players this point or Where they plant. Tap Alive or Dead for his current status, and Shooting or Diving for what you saw. Each tap saves; Shooting and Diving can both be on. Tap either again to undo that observation. Next player stays on this point. More details keeps the bunker, breakout and out details. Missing answers stay Not recorded. Current status never guesses a breakout result or a shot location. Close returns to the same screen."],
+  ["How do I see what happened to a player?", "Tally and Scout's Players this point show each player's recorded status, Shooting and Diving beside their name. Not recorded means nobody has logged the status yet. Tap the name or a row under the field to update it. Tap Alive or Dead for current status, and Shooting or Diving for what you saw. Each tap saves; Shooting and Diving can both be on. Tap either again to undo that observation. Next player stays on this point. More details keeps the bunker, breakout and out details. Current status never guesses a breakout result or a shot location. Close returns to the same screen."],
   ["We don't call it that.", "Anything the app names, you can rename. More, then Team: Bunker calls gives a bunker your word for it, and Break calls does the same for the twelve. The five jobs inside a call are named on Playbook — pick the call, then tap Job on the man's row. Your words then show on Playbook, on the point sheet, on Scout, on his card and everywhere else. It only changes the label — every call and every out you have logged is stored as the thing itself, so renaming re-labels the whole season at once and loses nothing."],
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
