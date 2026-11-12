@@ -92,11 +92,11 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.evaluate(()=>{set({tab:"more",more:"wb",quick:true});tapResult("us");});
    assert.equal(await p.locator(".qlog").isVisible(),true);assert.equal(await p.evaluate(()=>matchScore().us),0);
   });
-  await check("a sign-in mid-match stays on the sheet; a sign-in with nothing under way opens the team's day",async p=>{
+  await check("a sign-in mid-match stays on the sheet; a sign-in with nothing under way opens Home",async p=>{
    await p.evaluate(()=>{openSheet({vs:"Fixture"});endPoint("us");set({tab:"tally",more:"",quick:false});afterSignIn();});
    assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["tally",""],"a match under way keeps the coach where he was");
    await p.evaluate(()=>{openSheet({vs:"Fresh"});set({tab:"tally"});afterSignIn();});
-   assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["more","schedule"]);
+   assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["home",null]);
   });
   await check("event dropdowns and the team plan fit phones and tablets",async p=>{
    for(const size of [{width:375,height:667},{width:820,height:1180},{width:1180,height:820}]){

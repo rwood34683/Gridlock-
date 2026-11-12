@@ -76,6 +76,25 @@ h1,h2,h3,p{margin:0}
 #tool-menu [hidden],#tool-clear[hidden],#tool-status[hidden]{display:none}
 #tool-menu{display:flex;flex-direction:column;gap:var(--s5)}
 #tool-find{min-width:0}
+#tool-menu .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3);border:0;background:none;overflow:visible}
+#tool-menu .list__row{min-width:0;min-height:112px;align-items:flex-start;padding:var(--s4);border:1px solid var(--line-lit);border-radius:var(--r-md);background:var(--panel)}
+#tool-menu .list__body{min-width:0;overflow-wrap:anywhere}
+#tool-menu .list__go{display:none}
+#tool-menu .list__row:hover,#tool-menu .list__row:focus-visible{background:var(--panel-2)}
+@container main (max-width:340px){#tool-menu .list{grid-template-columns:1fr}}
+.home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
+.home-tool{display:flex;flex-direction:column;gap:var(--s2);min-width:0;min-height:116px;padding:var(--s4);border:1px solid var(--line-lit);border-radius:var(--r-md);background:var(--panel);overflow-wrap:anywhere}
+.home-tool:hover,.home-tool:focus-visible{background:var(--panel-2)}
+.home-tool b{font-size:var(--t-lg)}
+.home-tool span{font-size:var(--t-sm);color:var(--mute)}
+.home-intro{display:flex;flex-direction:column;gap:var(--s2)}
+.home-intro h1{font-size:var(--t-hero)}
+.home-match{border-left:4px solid var(--red)}
+.home-match--watch{border-left-color:var(--blue)}
+.home-match .btnrow{margin-top:var(--s3)}
+.ctx__home{flex:none;min-width:44px;min-height:44px;margin:-12px 4px -12px 0;color:var(--ink);font:inherit;letter-spacing:0;text-transform:none;text-align:center}
+.ctx__home[aria-current]{border-bottom:2px solid var(--accent-lit)}
+@container main (max-width:340px){.home-tool{padding:var(--s3)}.home-tool b{font-size:var(--t-md)}}
 .beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .beta-note{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .app{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -155,7 +174,7 @@ h1,h2,h3,p{margin:0}
    where the call was: a 28-letter play left "NXL LONE STAR OPEN · GARLAN…" and
    no call at all on a 320 px phone, and the call is the thing read between
    points. */
-.ctx__ev{min-width:3.5em;flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
+.ctx__ev{min-width:max(44px,3.5em);flex:0 999 auto;overflow:hidden;text-overflow:ellipsis}
 .ctx__call{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 /* Shrink is shared in proportion: at 1 against the event's 999 the call
    still lost a fraction of a pixel while the event had room to give, and its
@@ -6110,7 +6129,7 @@ function fixBreak(){ if(!allPlays()[S.script]) S.script = defaultState().script;
 // a hand-edited file — threw on every render, and render is every screen, so
 // the app went white and relaunching did it again. Same guard as fixBreak(),
 // run at the top of render() so every door is covered.
-const TABS = ["playbook","tally","scout","sightlines","more"];
+const TABS = ["home","playbook","tally","scout","sightlines","more"];
 const SCOUT_VIEWS = ["matchup","breakouts","anticipate","counter","layers","games","board","arrival","voice"];
 function fixScreen(){
   if(!TABS.includes(S.tab)) S.tab = "playbook";
@@ -12544,9 +12563,9 @@ function syncAskDue(){
 }
 // Run after every sign-in that lands in the app.
 function afterSignIn(){
-  // Backup and format questions still come first; the team's day waits behind them.
+  // Backup and format questions still come first; Home waits behind them.
   // A coach signing in mid-match stays where he was: the sheet he is on wins.
-  if(S.entered && S.role === "staff" && sheetEmpty(curMatch())) set({tab:"more", more:"schedule", quick:false, evPick:false});
+  if(S.entered && S.role === "staff" && sheetEmpty(curMatch())) set({tab:"home", more:null, quick:false, evPick:false});
   if(!canSync() || !S.entered || S.role !== "staff") return;
   const id = syncAskId(); if(!id) return;
   if(syncList(SYNC_YES_KEY).has(id) && !S.syncOn && !_stale && !_syncDeleting){
@@ -17978,6 +17997,14 @@ window.sendBlast = () => {
    generated: if a screen changes, this changes with it, and the suite fails
    when a screen has no entry. */
 const HELP = {
+  home: {t:"Home", w:"Choose what you need to do next.",
+    how:["Playbook plans your break. Tally records your match. Scout records other teams. Sightlines checks lanes between bunkers.",
+         "Your team's day opens Schedule, where you choose your team and see its loaded games.",
+         "Continue match returns to the sheet you were using without changing its score or point. A watched game is labelled separately.",
+         "Tap Home beside the event name to come back. The five main tabs still go straight to their tools."],
+    watch:"Home reads what is on this device. It does not start a match, choose an opponent, turn on sharing or fill missing records."},
+  "more/home": {t:"Home", w:"Choose a tool or continue your current match.", how:["Tap Home beside the event name. Open Schedule for your team's day, or choose Playbook, Tally, Scout or Sightlines."]},
+  "more/rules": {t:"Rules", w:"Official rulebooks for Match play, Divisional X-Ball and Pro X-Ball.", how:["Open a rulebook in a new tab. You need a connection; save the PDF before the event.","Check the edition and event updates with the organizer. Officials make the live call."]},
   playbook: {t:"Playbook", w:"The call, drawn on the real field.",
     how:["Tap a break to pick it. The five paths redraw on the event layout.",
          "Play the break runs it, so you can watch who leaves first.",
@@ -19101,11 +19128,52 @@ function manReportText(name){
 }
 window.shareManReport = () => { const n = repManPicked().name; if(n) handOff(`${n}'s report`, manReportText(n)); };
 
+window.openCoachHome = () => { set({tab:"home", more:null, evPick:false}); toMainTop(); };
+window.resumeCoachSheet = () => {
+  const m = curMatch(); if(!m) return;
+  if(matchOver()) return openReview(m.id);
+  if(sheetField()) openMatchNow(m.id);
+  set({tab:m.watch ? "scout" : "tally", scoutTab:"matchup", more:null}); toMainTop();
+};
+// Orientation only: these cards use the same guarded screens as the main tabs.
+// Rendering Home never starts a match or changes a team, point or saved record.
+function coachHome(){
+  const m = curMatch(), named = m && (m.watch ? m.home && m.away : m.vs);
+  const sc = matchScore(), over = matchOver(), off = sheetField();
+  const team = String(S.myTeam || ""), games = team ? teamGames(team) : [];
+  const next = games.find(g => Number.isFinite(gameAt(g)) && gameAt(g) >= Date.now());
+  const tools = [
+    ["playbook","Playbook","Plan your break and each player's job."],
+    ["tally","Tally","Record your match, player by player and point by point."],
+    ["scout","Scout","Record other teams while you watch their games."],
+    ["sightlines","Sightlines","Check shooting lanes between bunkers."]
+  ];
+  return `<div class="home-intro"><p class="eyebrow">Coach home</p><h1>What do you want to do?</h1><p class="note">${team ? esc(team) : "Choose a tool below, or set up your team's day."}</p></div>
+    ${named ? `<section class="panel home-match${m.watch ? " home-match--watch" : ""}" aria-label="Current sheet">
+      <p class="note">${m.watch ? "Watching another game" : over ? "Match finished" : "Your match"}</p>
+      <h2 class="panel__title">${esc(m.watch ? `${m.home} v ${m.away}` : `vs ${m.vs}`)}</h2>
+      <p>${sc.us}–${sc.them} · ${over ? "Final" : `Point ${sheetPoint()}`}${off ? ` · ${esc(LAYOUTS[off].name)}` : ""}</p>
+      <div class="btnrow"><button class="btn" onclick="resumeCoachSheet()">${over ? "Review match" : off ? "Open match field" : m.watch ? "Continue scouting" : "Continue match"}</button></div>
+    </section>` : ""}
+    <div class="home-grid" aria-label="Coaching tools">${tools.map(([k,n,d])=>`<button class="home-tool" onclick="set({tab:'${k}',more:null,evPick:false})"><b>${n}</b><span>${d}</span>${gateFor(k) ? '<span>Team plan</span>' : ""}</button>`).join("")}</div>
+    <section class="panel" aria-label="Your team's day"><h2 class="panel__title">Your team's day</h2>
+      <p class="note">${!team ? "Choose your team to see opponents and scouting times." : next ? `Next scheduled: v ${esc(across(next,team))} · ${esc(dayName(next.d))} ${esc(gameClock(next))}${next.f ? ` · ${esc(next.f)}` : ""}` : games.length ? "No upcoming game on the loaded schedule. Open Schedule to review or add games." : `No schedule loaded for ${esc(team)}. Add or paste your games.`}</p>
+      <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'schedule'})">${team ? "Open schedule" : "Choose your team"}</button>
+      <button class="btn btn--quiet" onclick="set({tab:'more',more:'lineups'})">Set your lineup</button></div>
+    </section>
+    <div class="home-grid"><button class="home-tool" onclick="set({tab:'more',more:'reports'})"><b>Reports</b><span>Review results and export what you recorded.</span></button>
+      <button class="home-tool" onclick="openAccount()"><b>Account &amp; backups</b><span>Save a copy, manage sync or sign out.</span></button></div>`;
+}
+
+/* rulebook-links:begin — generated by tools/rulebook-links.js */
+function rulebooksPage(){return sec("Rules","<style>.rules-books{display:grid;gap:12px}.rules-book{display:flex;flex-direction:column;gap:6px;min-height:44px;padding:16px;border:1px solid #3a3f40;border-radius:12px;background:#111314;color:#efedeb;text-decoration:none;overflow-wrap:anywhere}.rules-book span,.rules-note{color:#ff5a52}.rules-book:focus-visible{outline:3px solid #efedeb;outline-offset:2px}.rules-note{max-width:65ch;line-height:1.5;margin:12px 0}</style><p class=\"rules-note\">Open the official rulebook for your format. A connection is needed; save the PDF on your device before the event.</p><div class=\"rules-books\"><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/match-play-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Match play</b><span>3v3, 5v5, 7v7, 10v10, Classic and Pump</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/divisional-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Divisional X-Ball</b><span>Divisional X-Ball</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/pro-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Pro X-Ball</b><span>Professional division</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a></div><p class=\"rules-note\">Check the edition and event updates with the organizer. Officials make the live call.</p>");}
+/* rulebook-links:end */
 const MORE_GROUPS=[
   ["Before the game",[
     ["team","Team","Roster, numbers and positions"],
     ["lineups","Lineups","Who is on this point"],
     ["format","Format","Division, how many a side, race, mercy and clock"],
+    ["rules","Rules","Official rulebooks for your format"],
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["worldcup","World Cup teams","2026 divisions and team entries"],
     ["walk","Walk","Notes from walking the field"],
@@ -19120,6 +19188,7 @@ const MORE_GROUPS=[
     ["assess","Assess","Grade a player after the point"],
     ["messages","Messages","Squad notes that stay with the team"]]],
   ["App",[
+    ["home","Home","Choose a coaching tool or continue your match"],
     ["plan","Plan","What is free, what Team adds, and restoring a purchase"],
     ["help","Help","Quick start, paintball terms and help for every screen"]]],
   // Nexus is where admin and staff sign in, and where the season is backed up.
@@ -19138,7 +19207,7 @@ const TOOL_WORDS={
   playbook:"plays breakout calls break plan", tally:"score scoring points won lost chart break clock",
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
-  format:"rules division game length", schedule:"calendar games fixtures times",
+  format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
   walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival", assess:"grades grading players", messages:"team notes",
@@ -19211,6 +19280,8 @@ function moreCount(k){
 function moreBody(k){
   const layoutName=curLayout().name;
   const roster=S.roster||[];
+  if(k==="home") return coachHome();
+  if(k==="rules") return rulebooksPage();
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
@@ -19943,11 +20014,11 @@ function shell(){
   // Straight after sign-in, the format comes first: one screen, no tabs, until Done.
   const askSync = syncAskShown(), asking = askSync || !!S.fmtAsk;
   const screenLabel = askSync ? "Back up your season" : asking ? "Match format"
-    : S.tab === "more" ? MORE_TITLES[S.more] || "More tools"
+    : S.tab === "home" ? "Coach home" : S.tab === "more" ? MORE_TITLES[S.more] || "More tools"
     : S.tab === "scout" ? "Scout · " + (SCOUT_TABS.find(([k])=>k===(S.scoutTab || "matchup")) || [, "Matchup"])[1]
     : (tabs.find(([k])=>k===S.tab) || [, "Coaching"])[1];
   const page = askSync ? syncAskPage() : asking ? fmtPage(true) : blocked ? upgradePanel(blocked)
-                       : {playbook,tally,scout,sightlines,more:morePage}[S.tab]();
+                       : {home:coachHome,playbook,tally,scout,sightlines,more:morePage}[S.tab]();
   const tut = S.showTutorial?`<div class="panel">
     <h3 class="panel__title">How it works</h3>
     ${tourRows()}
@@ -19995,7 +20066,7 @@ function shell(){
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
-        <span class="ctx__line">${Object.keys(LAYOUTS).length>1
+        <button class="ctx__home" onclick="openCoachHome()"${S.tab==="home" ? ' aria-current="page"' : ""}>Home</button><span class="ctx__line">${Object.keys(LAYOUTS).length>1
           ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`

@@ -73,7 +73,11 @@ for (const [kind, name] of [["team", "Team"], ["player", "Player"]]) {
   check(`${kind}: a backup holds only this app's keys`, h.includes("k.indexOf('gridlock_'+EDITION+'_')===0") && !h.includes("if(k&&k.indexOf('gridlock_')===0)data.keys[k]"));
   check(`${kind}: installs under its own home-screen name`, h.includes(`<meta name="apple-mobile-web-app-title" content="GL ${name}"/>`)
     && JSON.parse(Buffer.from(/href="data:application\/manifest\+json;base64,([A-Za-z0-9+/=]+)"/.exec(h)[1], "base64").toString("utf8")).short_name === `GL ${name}`);
-  check(`${kind}: no video or web link row opens a page outside the preview`, !/<a href="https?:/i.test(h) && !h.includes('<a href="${prEsc(u)}"'));
+  // Only the owner's explicit Rules references may leave the preview. Video,
+  // course and arbitrary links remain forbidden; there are still no sends.
+  const official = require("../docs/rulebooks.json").map(b=>b.url).sort();
+  const external = [...h.matchAll(/<a\b[^>]*\bhref="(https?:[^"\s]+)"/gi)].map(m=>m[1]).sort();
+  check(`${kind}: only the three official rulebook links can open outside the preview`, JSON.stringify(external)===JSON.stringify(official) && !h.includes('<a href="${prEsc(u)}"'));
 }
 {
   const h = rd("teasers/player/index.html");

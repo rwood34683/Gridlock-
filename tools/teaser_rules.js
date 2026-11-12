@@ -284,7 +284,7 @@ function apply(src, kind) {
     }
     src = src.split(from).join(to);
   }
-  return src;
+  return require("./rulebook-links").preview(src);
 }
 
 const check = process.argv.includes("--check");
