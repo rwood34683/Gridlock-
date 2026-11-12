@@ -180,6 +180,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });
+  await require('./player-clear-team.cjs')({check,browser,base,out});
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
