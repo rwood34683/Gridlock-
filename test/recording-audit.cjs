@@ -84,6 +84,10 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
   });
   await check("the Scout field shares as a picture drawn on the phone, and the picture is never saved with the season",async page=>{
    const p=await page();const requests=[];p.on("request",r=>{if(!/^(data:|http:\/\/127\.0\.0\.1)/.test(r.url()))requests.push(r.url());});
+   // Exercise the visible fallback deliberately. Windows Chromium supports
+   // native file sharing; otherwise this test opens an OS sheet and waits for
+   // an image the app correctly does not show. The native path is checked below.
+   await p.evaluate(()=>Object.defineProperty(navigator,"canShare",{configurable:true,value:()=>false}));
    await p.evaluate(()=>{set({tab:"tally",right:{name:"Dynasty"}});newMatch();set({tab:"scout",scoutTab:"matchup"});});
    const btn=p.locator("#root [data-field-pic]").first();await btn.scrollIntoViewIfNeeded();
    assert.ok((await btn.boundingBox()).height>=44);await btn.click();
@@ -97,6 +101,22 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(r.inSeason,false);assert.equal(r.stored,false,"the picture is not written into the season");
    assert.deepEqual(requests,[],"nothing is fetched or sent");
    await p.evaluate(()=>set({scoutTab:"breakouts"}));assert.equal(await p.locator("#field-pic").count(),0,"it leaves with the screen");
+  });
+  await check("the native picture share hands over a PNG, preserves the season and respects cancellation",async page=>{
+   const p=await page();await p.evaluate(()=>{
+    set({tab:"tally",right:{name:"Dynasty"}});newMatch();set({tab:"scout",scoutTab:"matchup"});
+    window.__shared=[];window.__cancelShare=false;
+    Object.defineProperty(navigator,"canShare",{configurable:true,value:data=>data.files.length===1&&data.files[0].type==="image/png"});
+    Object.defineProperty(navigator,"share",{configurable:true,value:async data=>{window.__shared.push(data);if(window.__cancelShare)throw new DOMException("Cancelled","AbortError");}});
+   });
+   const before=await p.evaluate(()=>JSON.stringify({...localStorage}));
+   await p.locator("#root [data-field-pic]").first().click();await p.waitForFunction(()=>__shared.length===1);
+   const pic=await p.evaluate(async()=>{const x=__shared[0],f=x.files[0],bitmap=await createImageBitmap(f);const r={name:f.name,type:f.type,w:bitmap.width,h:bitmap.height,title:x.title};bitmap.close();return r;});
+   assert.equal(pic.name,"gridlock-field-dynasty.png");assert.equal(pic.type,"image/png");assert.equal(pic.w,1200);assert.ok(pic.h>600);assert.match(pic.title,/Dynasty · .+ · counted from what was logged/);
+   assert.equal(await p.locator("#field-pic").count(),0,"successful native sharing does not show the fallback");
+   await p.evaluate(()=>{window.__cancelShare=true;});await p.locator("#root [data-field-pic]").first().click();await p.waitForFunction(()=>__shared.length===2);
+   assert.equal(await p.locator("#field-pic").count(),0,"Cancel does not open another share surface");
+   assert.equal(await p.evaluate(()=>JSON.stringify({...localStorage})),before,"sharing never saves the picture or changes the season");
   });
   await check("a man observed by name and then through his chart row keeps both observations as one",async page=>{
    const p=await page();
