@@ -275,6 +275,7 @@ button.ctx__ev b{color:var(--mute)}
 
 .lede{color:var(--mute);font-size:var(--t-sm);line-height:1.5}
 .note{color:var(--dim);font-size:var(--t-xs);line-height:1.5}
+.ends-teams{flex-basis:20rem;font-size:var(--t-sm)}
 .auth-intro{margin-top:0;font-size:var(--t-sm)}
 .auth-data{margin:4px 0 12px}
 .auth-data summary{min-height:44px;padding:12px 0;cursor:pointer;color:var(--mute);font-size:var(--t-sm);line-height:20px;font-weight:600}
@@ -4730,6 +4731,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  _pointClearUndo = null;
   s.statMatch = ""; s.statDay = ""; s.statView = "map"; s.statFilters = false;
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
@@ -5679,10 +5681,13 @@ function displayPaths(){
   return ps.map(p => ({...p, from: mirrorFt(p.from), to: mirrorFt(p.to), via: (p.via || []).map(mirrorFt), mirrored: true}));
 }
 const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
-function endsChip(){
+function endsChip(both = false){
   const e = ourEnd(), m = curMatch(), swap = !!(m && m.swapEnds);
-  return `<div class="btnrow" style="align-items:center;margin-top:var(--s2)">
-    <span class="note grow" style="margin:0">${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}${(m && m.flips || []).length ? ` · switched at point ${(m.flips).join(", ")}` : ""}</span>
+  const label = both
+    ? `${esc(m && m.watch ? m.home || "Home" : S.myTeam || "Your team")}: <b style="color:var(--ink)">${e} end</b> · ${esc(m && m.watch ? m.away || "Away" : matchVs() || "Other team")}: <b style="color:var(--ink)">${e === "left" ? "right" : "left"} end</b>`
+    : `${m && m.watch ? `${esc(sideWord("us"))} breaking` : "Breaking"} from the <b style="color:var(--ink)">${e} end</b> ${e === "left" ? "\u25c0" : "\u25b6"}`;
+  return `<div class="btnrow" role="group" aria-label="Field ends" style="align-items:center;margin-top:var(--s2)">
+    <span class="note grow${both ? " ends-teams" : ""}" style="margin:0">${label}${(m && m.flips || []).length ? ` · switched at point ${(m.flips).join(", ")}` : ""}</span>
     <button class="btn btn--quiet" onclick="switchEnds()">Switch ends</button>
     <button class="tgl ${swap ? "on" : ""}" onclick="setSwapEnds(${!swap})" aria-pressed="${swap}"><i></i>Swap every point</button>
   </div>`;
@@ -14852,6 +14857,7 @@ function tally(){
         third smaller until the hint was dismissed. */""}
   ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
   ${teamCodeReference()}
+  ${tallyPointControls()}
   ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   ${deckPanel()}
@@ -15361,6 +15367,8 @@ window.nextPoint = () => {
   save(S); render(); if(deckActive()) showDeck();
 };
 function clearPointScratch(){
+  _pointClearUndo = null;
+  S.tallyAllBreaks = false; S.tallyAllOuts = false;
   S.tallyMoreOpen = null;
   S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
@@ -15368,6 +15376,99 @@ function clearPointScratch(){
   // broke deep is not the next point's whole break.
   S.tallyStep = S.tallyMode === "place" ? "place" : "record"; S.tallyEdit = null; S.tallyPlace = "";
 }
+// Clearing a point is not Back a point: keep the cursor here and remove only
+// this point's entries. One in-memory undo belongs to that account and sheet;
+// it can never replace newer work or survive an import, reload or point change.
+var _pointClearUndo = null;
+const POINT_SCRATCH = ["tallySel","tallyDraft","tallyEdit","tallyPickFor","tallyLast","tallyRead",
+  "tallyPlace","tallyStep","tallyMoreOpen","theirPick","theirFix","theirLast","penOpen"];
+function pointRecordCopy(mid, pt){
+  const on = r => r && r.m === mid && r.pt === pt;
+  const indexed = rows => (rows || []).flatMap((r,i) => on(r) ? [{i,r}] : []);
+  return JSON.parse(JSON.stringify({
+    lists: Object.fromEntries(SHEET_LISTS.map(k => [k,indexed(S[k])])),
+    scouts: Object.fromEntries(Object.entries(S.scout || {}).filter(([,p]) => p && (p.breaks || []).some(on)).map(([k,p]) => [k,indexed(p.breaks)])),
+    lineup: (S.lineups || {})[lineKey(pt,mid)] || null,
+    match: matchById(mid),
+    scratch: Object.fromEntries(POINT_SCRATCH.map(k => [k,S[k]]))
+  }));
+}
+function pointClearStamp(mid, pt){
+  return JSON.stringify([S.matchId,S.point,S.layoutKey,S.email,syncAskId(),_syncEpoch,pointRecordCopy(mid,pt)]);
+}
+function pointEditReady(){
+  if(!S.entered || !staffed() || S.tab !== "tally") return false;
+  if(sheetField()){ flash("Open this match's field before clearing or restoring its point."); return false; }
+  try{
+    const cur = storedId();
+    if(_stale || (cur && cur !== _baseId)){ markStale(); flash("This tab has an older copy. Open the current copy before clearing or undoing a point."); return false; }
+  }catch(e){ flash("Cannot check the saved season. Try again before clearing this point."); return false; }
+  return true;
+}
+function canUndoPointClear(){
+  const u = _pointClearUndo;
+  return !!u && u.owner === S && u.after === pointClearStamp(u.mid,u.pt);
+}
+function tallyPointControls(){
+  return `<div class="btnrow" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:var(--s3) 0" role="group" aria-label="Point controls">
+    <button class="btn btn--quiet grow" data-clear-point onclick="clearTallyPoint()">Clear point ${sheetPoint()}</button>
+    <div data-undo-slot style="display:grid">${canUndoPointClear()
+      ? `<button class="btn" data-undo-point onclick="undoClearTallyPoint()">Undo clear</button>`
+      : `<span class="note" style="margin:0;text-align:center;align-self:center">Nothing to undo</span>`}</div>
+    <button class="btn btn--quiet grow" data-reset-match onclick="resetTallyMatch()">Reset match</button>
+  </div><p class="note">Clear removes this point. Reset starts fresh; this match stays in Matches.</p>`;
+}
+// Reset beside the chart shares New match's confirmation and kept-sheet flow.
+// The original New match control at the foot of the sheet stays in place.
+window.resetTallyMatch = () => {
+  if(!S.entered || !staffed() || S.tab !== "tally") return;
+  const before = S.matchId;
+  window.freshMatch();
+  if(S.matchId !== before) set({tallyValueOpen:false});
+};
+window.clearTallyPoint = () => {
+  if(!pointEditReady()) return;
+  const mid = S.matchId, pt = sheetPoint(), before = pointRecordCopy(mid,pt), stamp = pointClearStamp(mid,pt);
+  const count = Object.values(before.lists).reduce((n,a) => n+a.length,0) + Object.values(before.scouts).reduce((n,a) => n+a.length,0) + (before.lineup ? 1 : 0);
+  if(!count && !S.tallySel && !S.tallyDraft && !S.tallyRead && !(S.theirPick || []).length && !S.theirFix){
+    const undo = canUndoPointClear() ? _pointClearUndo : null;
+    clearPointScratch(); S.tallyValueOpen = false; _pointClearUndo = undo;
+    save(S); render(); flash(`Point ${pt} is already empty.${undo ? " Undo clear still puts it back." : " Earlier-point views are closed."}`); return;
+  }
+  if(!askFirst(`Clear point ${pt}? Its score, players, shots, notes, penalties and lineup will be cleared. Other points stay. Undo clear can put this point back.`,["clear-point",mid,pt,stamp])) return;
+  if(!pointEditReady() || stamp !== pointClearStamp(mid,pt)){ flash("The point changed. Check it before clearing it."); return; }
+  const on = r => r && r.m === mid && r.pt === pt;
+  if(typeof stopVoiceSession === "function") stopVoiceSession("Point cleared. Listening stopped.");
+  closePlayerDetails();
+  SHEET_LISTS.forEach(k => { if(Array.isArray(S[k])) S[k] = S[k].filter(r => !on(r)); });
+  Object.keys(S.scout || {}).forEach(k => {
+    const p = S.scout[k]; if(p && Array.isArray(p.breaks) && p.breaks.some(on)) S.scout[k] = {...p,breaks:p.breaks.filter(r => !on(r))};
+  });
+  const lineup = {...(S.lineups || {})}; delete lineup[lineKey(pt,mid)]; S.lineups = lineup;
+  const m = curMatch();
+  if(m && (m.timeUp || m.tie)) patchMatch({timeUp:false,tie:false});
+  if(m && m.ot && m.otFrom && pt < m.otFrom) patchMatch({ot:false,raceTo:m.raceWas > 0 ? m.raceWas : null,raceWas:null,otFrom:null});
+  const cursor = S.point;
+  S.point = pt; clearPointScratch(); S.tallyValueOpen = false; S.clockEnd = 0; deckTurn = null; _lastEnd = null;
+  S.matchState = derivedState();
+  _pointClearUndo = {owner:S,mid,pt,cursor,before,after:pointClearStamp(mid,pt)};
+  save(S); render();
+  flash(_storeFails.season ? `Point ${pt} cleared on this screen, but not saved. Undo clear puts it back.` : `Point ${pt} cleared. Undo clear puts it back.`);
+};
+window.undoClearTallyPoint = () => {
+  if(!pointEditReady()) return;
+  if(!canUndoPointClear()){ _pointClearUndo = null; render(); flash("The point changed. Undo will not replace newer work."); return; }
+  const u = _pointClearUndo, put = (rows,kept) => {
+    const out = [...(rows || [])]; kept.forEach(({i,r}) => out.splice(Math.min(i,out.length),0,r)); return out;
+  };
+  SHEET_LISTS.forEach(k => { if(u.before.lists[k].length) S[k] = put(S[k],u.before.lists[k]); });
+  Object.entries(u.before.scouts).forEach(([k,rows]) => { S.scout[k] = {...S.scout[k],breaks:put(S.scout[k].breaks,rows)}; });
+  if(u.before.lineup) S.lineups = {...S.lineups,[lineKey(u.pt,u.mid)]:u.before.lineup};
+  S.matches = S.matches.map(m => m.id === u.mid ? u.before.match : m);
+  S.point = u.cursor; clearPointScratch(); Object.assign(S,u.before.scratch);
+  S.matchState = derivedState(); save(S); render();
+  flash(_storeFails.season ? `Point ${u.pt} restored on this screen, but not saved.` : `Point ${u.pt} restored.`);
+};
 /* Who won it, and on to the next. One tap, because it happens between every
  * point of a long day. Recording it again on the same point replaces the old
  * answer rather than scoring it twice. */
@@ -16185,7 +16286,7 @@ function matchStrip(){
     </div>` : ""}`;
 }
 function scoutMatchControls(){
-  return matchStrip() + `<button class="btn btn--quiet" onclick="document.querySelector('.pits').scrollIntoView({block:'start'})">${pitNamed("right") ? "Team details" : "Choose teams"}</button>`;
+  return matchStrip() + endsChip(true) + `<button class="btn btn--quiet" onclick="document.querySelector('.pits').scrollIntoView({block:'start'})">${pitNamed("right") ? "Team details" : "Choose teams"}</button>`;
 }
 function scout(){
   const L=pitOf("left"),R=pitOf("right");
@@ -16203,10 +16304,13 @@ function scout(){
   // The match and the point ride under the views on every one of them. The
   // strip sat under the pits, which Arrival and Voice do not draw, so a coach
   // on How did they get there had no Next point and no way to switch games.
-  if(view === "arrival") return navigation + matchStrip() + scoutArrival();
+  // Ends belong to that same sheet, including a game watched from the fence.
+  // Keep their control on every Scout view; it uses the existing point history.
+  const matchControls = matchStrip() + endsChip(true);
+  if(view === "arrival") return navigation + matchControls + scoutArrival();
   // The house rule is not optional on one sub-tab. Arrival carries its own
   // version of this line; the voice log had none at all.
-  if(view === "voice") return navigation + matchStrip() + scoutVoice()
+  if(view === "voice") return navigation + matchControls + scoutVoice()
     + `<p class="aid"><b>A training aid, not a prediction.</b> Everything here is counted from what you
        logged or scored yourself. Officials govern the live call.</p>`;
   // Every sub-tab but the board reads off the team in the right pit. With
@@ -18734,7 +18838,7 @@ const HELP_Q = [
   ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
   ["We play 5-man, one point a game.", "Set Race to One point · 5-man. Every sheet is one point: tap who won it and the match is over, New match starts the next game. More › Matches keeps every one."],
-  ["We switched ends.", "Switch ends, under the field on Tally (and on Playbook once a call is picked). The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
+  ["We switched ends.", "Tap Switch ends beside the match controls on Scout, under the field on Tally, or on Playbook once a call is picked. Scout names both teams and their ends, including games you are watching. The break redraws from that end and the bunkers near you count as yours. On point one, or before anything is played, it corrects the end the sheet started from; after that it is a switch from this point on — the half, say — and the points already played keep the end they were played from (the chip says which point it switched at; tap again on that point to take it back). If your format swaps every point, turn on Swap every point once and the sheet alternates it for you. Every count across points — where the points come from, where they plant, the rings, the ghost five, men lost at a bunker — is kept by the job, so the same can broken to from either end is one row, and the field shows it on the end you are breaking from now."],
   ["Why does it say Pick the call?", "The app does not pick a call for you. Until you tap one — under the field on Playbook, on the point sheet, or by tapping the call at the top of any screen — the field draws no five and nothing you log carries a call. Once you pick one it stays picked."],
   ["The field looks wrong for this event.", "Tap the event's name at the top. Choose Season, Event and Layout, then Use layout. Past events stay available while their layouts are saved here. Every tab follows the chosen field; a match already scored keeps its original field. The call beside it opens Change the call."],
   ["Where do I log what the other team did?", "Scout, then Breakouts. Tap the field where each of their five ended up, up to five, in any order. You do not need their names."],

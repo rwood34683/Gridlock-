@@ -52,7 +52,7 @@ the same page:
   a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
   points closes earlier-point list views; recorded history is never a filter.
 
-- **Rules** is in Coach's More dashboard and the Team/Player preview headers.
+- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab before Nexus.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 
 - **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.
