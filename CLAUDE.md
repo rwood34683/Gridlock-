@@ -1406,6 +1406,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     2026): `teasers/player/wordmark.jpg`, cut from `site/img/logo-gridlock.jpg`
     to 72 px with its black lifted to the header's #0b0c0d, written into the
     header by `tools/teaser_fields.js`. No blend mode; Team keeps its mark.
+    The Player preview's Tally and Scout › Breakouts log in two steps (owner,
+    12 Nov 2026): **1 · Where they went** puts one man on the nearest bunker a
+    tap (a second tap, a second man; ✕ takes one off; ten at most), and
+    **2 · What happened** opens each placed man in the same details form,
+    the next one after each Log. Placed men are page-memory scratch per field
+    and scouted team, cleared when the point's result is saved. The flow is
+    `tools/teaser_place.js`, inserted between the `coachplace` markers by
+    `tools/teaser_rules.js` (Player only); the Team preview keeps one tap.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
