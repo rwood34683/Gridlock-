@@ -1582,6 +1582,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     manual snapshot, not automatic team access. No price or permissions change
     is authorized by these recordings. `test/practice-sessions.cjs`.
 
+90. **The same account's details on an already-open device.** With League sync
+    enabled, a known device checks on return/reconnect and every 30 seconds
+    while visible. Receive only when its acknowledged season is unchanged,
+    its account/epoch still match, and it is idle both before and after the
+    read. Preserve and read back a recovery copy before replacing. Never
+    replace typing, recording selections, voice drafts, a running break clock,
+    or a drawing session. Retain device-only boards, practice logs and display
+    preferences. Conflicts, missing checkpoints and server deletions require
+    a choice; manual file replacement cancels a pending read and pauses sync.
+    No-op checks do not upload. Keep the adapter boundary and synchronous
+    save; no fetch in the app. `test/automatic-season.cjs` uses separate browser
+    stores and a mock account server, never real coaches. This is one current
+    account season, not simultaneous multi-coach editing or team-code access.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
@@ -3490,7 +3504,7 @@ the count of them. Point numbers are per match and start at one. Lineups are key
 - Send a new device's season before checking the signed-in account's saved
   copy. Account handoff uses the immutable account id, an acknowledged revision
   and a SHA-256 checkpoint of the season (not its changing export timestamp).
-  An opted-in device may adopt a newer saved season at sign-in only if its own
+  An opted-in device may adopt a newer saved season at sign-in or while idle only if its own
   season still matches that checkpoint. Preserve and read back its recovery
   copy first. New devices, both-edited copies and deletions require an explicit
   choice; every upload still uses the server's revision check. Reading a copy

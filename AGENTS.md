@@ -40,6 +40,11 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Account sync receives while signed in.** Previously acknowledged devices
+  check on return/reconnect and every 30 seconds while visible and idle. Codes,
+  names and records use the same season copy. Never replace drafts or unsent
+  edits; both-edited copies require a choice. See `docs/ACCOUNT-DEVICE-SYNC.md`.
+
 - **Tally and Scout keep the field in view.** Coach's empty sheet shows the field below its opponent picker; Scout's full team cards sit below its field. Compact Tally keeps a reference field. Player returns to the field when opening Tally/Scout and fits it on landscape tablets. Generate its layout wrapper from `tools/teaser_field_view.js` through `node tools/teaser_rules.js`; never reset teams or recorded points to fix a view.
 - **Player's Clear team** clears a selected Tally/Scout opponent, not the joined team.
   It preserves saved history; `tools/teaser_selection.js` is its generated source.

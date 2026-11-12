@@ -8358,6 +8358,7 @@ function seasonHere(){
 // Only the checked account handoff may skip the ordinary replacement question.
 // It has already preserved and read back this device's season.
 const ACCOUNT_RESTORE = Symbol("checked account restore");
+const ACCOUNT_REFRESH = Symbol("checked idle account refresh");
 window.loadCopy = (mode, suppliedText, checkedRestore) => {
   const el = document.getElementById("copyIn");
   copyDraft = suppliedText == null ? (el ? el.value : copyDraft) : suppliedText;
@@ -8372,10 +8373,17 @@ window.loadCopy = (mode, suppliedText, checkedRestore) => {
   // Replace throws away what is on this phone, and the button said so in a
   // sentence above a file box — one tap, no question. When the phone holds a
   // season, it asks, and names what it would throw away.
-  if(mode === "replace" && seasonHere() && checkedRestore !== ACCOUNT_RESTORE){
+  if(mode === "replace" && seasonHere() && checkedRestore !== ACCOUNT_RESTORE && checkedRestore !== ACCOUNT_REFRESH){
     if(!askFirst(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`, ["replace", copyDraft])){
       S.copyStatus = "Nothing replaced. Save a copy of this phone first, then come back."; save(S); render(); return;
     }
+  }
+  // A chosen file wins over a background account read, even if the file has
+  // exactly the old contents. Replacing locally needs a new explicit choice
+  // before this device can resume account sharing.
+  if(mode === "replace" && checkedRestore !== ACCOUNT_RESTORE && checkedRestore !== ACCOUNT_REFRESH && canFollowSeason()){
+    ++_syncEpoch; clearSyncRetry(); syncYes(false); S.syncOn=false;
+    _deviceChoice=null; _deviceChecking=null; _devicePermit=null;
   }
   // Two squads' rosters stirred together is a mess nobody notices until the
   // five on Playbook are strangers. The code says whose copy this is; a merge
@@ -8412,6 +8420,12 @@ window.loadCopy = (mode, suppliedText, checkedRestore) => {
   const SESSION = ["entered","role","email","tab","more","scoutTab","tips","showTutorial","copyStatus","billing","preview"];
   const held = {};
   SESSION.forEach(k => { held[k] = S[k]; });
+  // Receiving an account update changes the season, not this device's board,
+  // practice log, display preferences or purchase. Scratch is still cleared
+  // below; a background refresh must first refuse any unfinished interaction.
+  if(checkedRestore === ACCOUNT_REFRESH) Object.keys(S).forEach(k => {
+    if(!KEEP_ALL.includes(k)) held[k] = S[k];
+  });
   /* A merge takes their records, never their place in the day.
    *
    * matchId, point, layoutKey and script are where *this* coach is standing:
@@ -13761,8 +13775,8 @@ window.skipDeviceCheck = () => {
   syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sharing is paused on this device. Your season stays here; the next sign-in checks your account again."});
 };
 async function applyDeviceSeason(choice){
-  const {t,r,snapshot} = choice;
-  if(!deviceSeasonCurrent(t) || snapshot !== deviceSeasonText()) return false;
+  const {t,r,snapshot,quiet} = choice;
+  if(!deviceSeasonCurrent(t) || snapshot !== deviceSeasonText() || (quiet && !seasonReceiveIdle())) return false;
   const raw = typeof r.payload === "string" ? r.payload : JSON.stringify(r.payload), checked = readCopy(raw);
   if(checked.error || checked.payload.scope !== "all"){
     syncStatus({syncSaid:"The saved season could not be read. Nothing replaced."}); return false;
@@ -13772,7 +13786,7 @@ async function applyDeviceSeason(choice){
   }
   // No await between the last check, preserving the old season and replacing it.
   S.syncOn = false;
-  if(window.loadCopy("replace",raw,ACCOUNT_RESTORE) !== true || _storeFail) return false;
+  if(window.loadCopy("replace",raw,quiet ? ACCOUNT_REFRESH : ACCOUNT_RESTORE) !== true || _storeFail) return false;
   if(S.fmtDone) S.fmtAsk = false;
   const adopted = copyPayload("all"), capturedAt = Date.now();
   if(!t.cloud.acceptSeason(r.user.id,r.revision) || !await t.cloud.rememberSeason(adopted,r.user.id,r.revision)){
@@ -13975,10 +13989,11 @@ function syncLabel(){
 let _lastAutoSync = 0, _syncEpoch = 0;
 let _syncTail = Promise.resolve(), _syncDeleting = false, _syncReviewing = false;
 let _syncTimer = null, _syncDirty = false, _syncSending = false, _syncStatusWrite = false;
+let _seasonReceiving = null, _seasonInputAt = 0, _seasonReceiveTimer = null;
 function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
-function syncStatus(data){
+function syncStatus(data, paint = true){
   Object.assign(S,data);_syncStatusWrite=true;
-  try{save(S);}finally{_syncStatusWrite=false;}render();
+  try{save(S);}finally{_syncStatusWrite=false;}if(paint) render();
 }
 // A stale tab never sends: its season is older than the one another tab saved.
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
@@ -13994,6 +14009,10 @@ function queueSeasonPush(t){
       if(!r?.ok) return r;
       if(r.user?.id !== t.uid) return {ok:false,conflict:true,said:"Your account changed. Sign in again before sending a season."};
       const permitted = _devicePermit && sameSync(_devicePermit.t) && _devicePermit.user === r.user.id && _devicePermit.revision === r.revision;
+      if(!permitted && r.known && r.unchanged && !r.removed && !r.missing && deviceSeasonText(payload) === deviceSeasonText()){
+        if(r.revision > r.base) return {ok:false,incoming:true};
+        if(r.base === r.revision) return {ok:true,unchanged:true};
+      }
       if(!permitted && (!r.known || r.base !== r.revision || r.removed))
         return {ok:false,conflict:true,said:"Another device has a season to check. Open Account & backups and choose Get saved season. Nothing was replaced."};
     }
@@ -14031,7 +14050,7 @@ function maybeSync(){
   scheduleSync();
 }
 function scheduleSync(delay){
-  if(!syncAllowed() || !_syncDirty || _syncSending) return;
+  if(!syncAllowed() || !_syncDirty || _syncSending || _seasonReceiving) return;
   clearTimeout(_syncTimer);
   const t=syncTicket();
   _syncTimer=setTimeout(()=>{_syncTimer=null;if(sameSync(t)&&syncAllowed()) sendSeason(false);},
@@ -14039,6 +14058,7 @@ function scheduleSync(delay){
 }
 async function sendSeason(manual){
   if(!syncAllowed() || _syncSending) return;
+  if(_seasonReceiving){ if(manual) _syncDirty=true; return; }
   const t = syncTicket(), capturedAt = Date.now();
   clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
@@ -14047,6 +14067,10 @@ async function sendSeason(manual){
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
   _syncSending=false;
   if(!sameSync(t) || !syncAllowed()){scheduleSync();return;}
+  if(r?.incoming){
+    syncStatus({syncSaid:"Newer saved changes are waiting to open when you finish typing or recording. Get saved season opens them now."},seasonReceiveIdle());
+    await receiveAccountSeason(); return;
+  }
   if(r && r.ok === true){
     syncYes(true);
     // A slow send covers the snapshot it took, not edits made while it waited.
@@ -14061,8 +14085,66 @@ async function sendSeason(manual){
   scheduleSync(90000);
 }
 window.syncNow = () => sendSeason(true);
-window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);}});
-window.addEventListener("pageshow",()=>{if(syncAllowed())maybeSync();});
+// A previously acknowledged device can receive while signed in. This is a
+// whole-season handoff, never a last-writer-wins merge of simultaneous edits.
+// Check again after every await: account switches, local edits and typing win.
+function seasonReceiveIdle(){
+  if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
+  if(document.activeElement?.matches("input,textarea,select,[contenteditable]:not([contenteditable=false])")) return false;
+  if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
+  // A blurred box may still hold an unsaved draft. Never discard it on a timer.
+  if([...document.querySelectorAll("input,textarea,select")].some(el => {
+    if(el.disabled || el.type === "hidden" || el.type === "button" || el.type === "submit") return false;
+    if(el.tagName === "SELECT"){
+      const options=[...el.options], defaults=options.filter(o => o.defaultSelected);
+      return defaults.length ? options.some(o => o.selected !== o.defaultSelected) : el.selectedIndex !== 0;
+    }
+    return ["checkbox","radio"].includes(el.type) ? el.checked !== el.defaultChecked : el.value !== el.defaultValue;
+  })) return false;
+  if(S.tallyDraft || S.tallySel || S.tallyEdit || S.tallyPlace || S.tallyPickFor || S.theirPick?.length || S.theirFix || S.pad || S.building || S.fieldEdit || S.editPath || S.quick || S.quickPick || S.penOpen || S.gameNew || S.gamePaste || S.calNew || S.calCustom || S.paste || S.codePick || S.codeName || S.bcName || S.asWho || S.showTutorial || S.clockEnd || S.rep?.running || copyDraft) return false;
+  if(S.arrival?.sightingBunker || S.arrival?.shotAt || S.arrival?.destination || S.arrival?.startBunker) return false;
+  if(typeof _voiceUI !== "undefined" && (_voiceUI.session || _voiceUI.draft || _voiceUI.edit)) return false;
+  return S.more !== "wb" && !document.getElementById("pod-go");
+}
+async function receiveAccountSeason(){
+  if(!canFollowSeason() || !syncAllowed() || _seasonReceiving || _syncSending || _deviceChecking || _deviceChoice || _syncReviewing || _accountDeleting || _storeFail || !seasonReceiveIdle()) return;
+  const t=syncTicket(), raw=copyPayload("all"), snapshot=deviceSeasonText(raw);
+  _seasonReceiving=t;
+  try{
+    const r=await t.cloud.deviceSeason(raw);
+    if(!deviceSeasonCurrent(t) || !syncAllowed() || _syncReviewing || _deviceChecking || _deviceChoice || snapshot !== deviceSeasonText() || !seasonReceiveIdle()) return;
+    if(!r?.ok) return; // A field without signal keeps working; the next check retries.
+    if(r.user?.id !== t.uid) return;
+    if(r.known && r.base === r.revision && !r.removed && !r.missing){
+      if(r.unchanged) clearSyncRetry(); // Screen navigation is not a season edit.
+      return;
+    }
+    if(r.known && r.unchanged && r.revision > r.base && !r.removed && !r.missing){
+      clearSyncRetry();
+      await applyDeviceSeason({t,r,snapshot,quiet:true});
+      return;
+    }
+    // Both edited, unknown checkpoint or deletion: keep both copies. Do not
+    // open a modal over a point; the account status explains the next action.
+    syncYes(false); clearSyncRetry();
+    syncStatus({syncOn:false,syncSaid:"Sync paused. Check the saved season in Account & backups › Get saved season. This device's changes and the account copy have not been replaced."});
+  }catch(e){ /* Retry later; a failed read never authorizes a write. */ }
+  finally{ if(_seasonReceiving === t) _seasonReceiving=null; scheduleSync(); }
+}
+function receiveSeasonSoon(){
+  if(!canFollowSeason() || !syncAllowed()) return;
+  clearTimeout(_seasonReceiveTimer);
+  _seasonReceiveTimer=setTimeout(()=>{_seasonReceiveTimer=null;receiveAccountSeason();},4500);
+}
+window.addEventListener("online",()=>{if(syncAllowed()){_syncDirty=true;scheduleSync(0);receiveSeasonSoon();}});
+window.addEventListener("pageshow",()=>{if(syncAllowed()){maybeSync();receiveSeasonSoon();}});
+// This guard also keeps the offline adapter/test harness free of browser timers.
+if(typeof document !== "undefined"){
+  for(const name of ["pointerdown","keydown","input","change"]) document.addEventListener(name,()=>{_seasonInputAt=Date.now();},true);
+  window.addEventListener("focus",receiveSeasonSoon);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState === "visible") receiveSeasonSoon();});
+  setInterval(()=>{receiveAccountSeason();},30000);
+}
 window.reviewCloudSeason = async () => {
   if(_syncReviewing || _syncDeleting || _accountDeleting || _stale) return;
   if(!S.entered || S.role !== "staff") return;
@@ -19771,7 +19853,7 @@ const HELP_Q = [
   ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
-  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season. You can also open More › Account & backups › Get saved season. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
+  ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
   ["I typed the other team's name wrong.", "Scout › Division, under Missing a team: every team you added has its name in a box. Fix the spelling there and every sheet, out, call and read against it follows. If the name you type is already on the list — the league's spelling, say — the two fold into one, their breaks and their men added up. Only teams you added can be renamed; the league's are the league's."],
   ["I picked the wrong team at the gate.", "More › Matches › This match, Played against: choose the team you actually played, or type one the board does not have, and every out, call, read and their five on this sheet moves to them. The right pit follows. A watched game has no 'vs' and no picker."],
   ["I deleted one of my plays.", "The calls you logged under it keep its name on every sheet — nothing logged is lost. The five on each field is gone, so build it again under the same name if you still run it. Delete asks first whenever a play has a five or a logged call behind it."],
@@ -21417,11 +21499,11 @@ function moreBody(k){
     <p class="note">Gridlock System · powered by UPRA</p>`)
   + cloudPageLinks()
   + (canSync() ? sec("League sync", `<p class="lede">Keep your season with your account. ${S.syncOn ? "Sync is on." : "League sync is off until you turn it on."}</p>
-    <p class="note">Your full season is kept as one current copy on our account server, where Gridlock PB LLC's administrators can review it. This includes your team, schedule, plays, scouting and results — the same as <b>Save everything</b>. Your password is not included. You can pause sync or delete the saved copy.</p>
+    <p class="note">Your full season is kept as one current copy on our account server, where Gridlock PB LLC's administrators can review it. This includes your team, code words, bunker names, schedule, plays, scouting and results — the same as <b>Save everything</b>. Your password is not included. You can pause sync or delete the saved copy.</p>
     ${canFollowSeason() ? `<ol class="sync-steps" aria-label="Switch devices">
       <li><b>Save here.</b> Turn on sync below. Tap <b>Sync now</b> and wait for <b>Saved to your account</b>.</li>
       <li><b>Sign in there.</b> Use the same email on your other device.</li>
-      <li><b>Open your season.</b> Choose <b>Use my saved season</b>.</li></ol>` : ""}
+      <li><b>Open your season.</b> Choose <b>Use my saved season</b> the first time on that device. After that, leave sync on.</li></ol>` : ""}
     <div class="toggles">
       <button class="tgl ${S.syncOn?"on":""}" onclick="toggleSync()"><i></i>${
         S.syncOn?"Pause sync":"Turn on sync"}</button>
@@ -21429,9 +21511,9 @@ function moreBody(k){
     ${S.syncOn ? `<div class="toggles">
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
       </div>
-      <p class="note">${S.syncAt ? "Last sent " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}New changes send automatically when you have a signal.</p>` : ""}
+      <p class="note">${S.syncAt ? "Last synced " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}New changes send automatically while the app is open and online, within 90 seconds. Tap Sync now before switching devices.</p>` : ""}
     ${S.syncSaid ? `<p class="note" role="status" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}
-    ${canFollowSeason() ? `<p class="note">Already signed in on this device? Tap below to check for saved changes. If both copies changed, you choose which to use.</p>
+    ${canFollowSeason() ? `<p class="note">With sync on, this device checks for saved changes when you return and every 30 seconds while the app is visible. Updates wait while you type or record. If both devices have changes, sync pauses and you choose which season to use. Get saved season checks now.</p>
       <button class="btn" onclick="continueDeviceSeason()">Get saved season</button>
       <details class="coach-terms"><summary>More backup options</summary><div class="sec__body">` : ""}
     <button class="btn btn--quiet" onclick="reviewCloudSeason()" ${_syncReviewing || _syncDeleting || _accountDeleting ? "disabled" : ""}>${_syncReviewing ? "Loading your cloud copy…" : "Review or restore cloud season"}</button>
