@@ -5104,7 +5104,7 @@ function fmtCombo(div){
 }
 const fmtPairName = p => p ? [p.level, (fmtForm(p.form) || {}).name].filter(Boolean).join(" · ") : "";
 const FMT_GAMES = [["xball","X-Ball",5],["5","5-man",5],["3","3-man",3],["7","7-man",7],["10","10-man",10]];
-const FMT_KEYS = ["div","game","raceTo","mercy","clock","time"];
+const FMT_KEYS = ["div","game","raceTo","mercy","clock","time","splitDeck","deckClock"];
 function fmt(){ return plainRecord(S.fmt) ? S.fmt : {}; }
 // Men a side on a sheet: its own count, else five.
 function sideSize(m){ m = m === undefined ? curMatch() : m; const n = m ? Number(m.size) : 0; return n > 0 && n <= 10 ? n : 5; }
@@ -5128,7 +5128,7 @@ function fmtSummary(f = fmt()){
     f.raceTo === 1 ? "one point" : f.raceTo > 0 ? `race to ${f.raceTo}` : f.raceTo === 0 && !(f.time > 0) ? "no race" : "",
     f.time > 0 ? `${f.time}-min game` : "",
     f.mercy > 0 ? `mercy ${f.mercy}` : "",
-    f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
+    f.splitDeck === 1 ? `Split deck${deckSeconds(f.deckClock) ? ` · ${mmss(f.deckClock)} changeover` : ""}` : f.clock > 0 ? `${mmss(f.clock)} between points` : ""].filter(Boolean);
   return bits.join(" · ");
 }
 // The size goes on the sheet he is on only while nothing is charted on it:
@@ -5141,12 +5141,23 @@ function fmtSize(id){
 }
 window.setFmt = (k, v) => {
   if(!FMT_KEYS.includes(k)) return;
+  if(k === "splitDeck" || k === "deckClock"){
+    const on = k === "splitDeck" ? Number(v) === 1 : fmt().splitDeck === 1;
+    const seconds = k === "deckClock" ? deckSeconds(Number(v)) : on ? (fmtRule(fmt().div)||{}).split || 0 : 0;
+    S.fmt = {...fmt(), splitDeck:on ? 1 : 0, deckClock:seconds};
+    patchMatch({splitDeck:on ? 1 : 0, deckClock:seconds, deckEnded:false});
+    deckTurn = null; S.clockEnd = 0;
+    if(on && (fmtRule(fmt().div)||{}).split){ S.fmt.clock = 120; patchMatch({breakClock:120}); }
+    save(S); render(); return;
+  }
   if(k === "div" || k === "game") v = String(v || "");
   else v = Number(v) > 0 ? Number(v) : 0;
   S.fmt = {...fmt(), [k]: v};
   const m = curMatch();
   if(k === "div"){
     fmtEdit = null;
+    S.fmt = {...S.fmt, splitDeck:0, deckClock:0};
+    patchMatch({splitDeck:0, deckClock:0, deckEnded:false}); deckTurn = null; S.clockEnd = 0;
     if(m) patchMatch({div: v});
     const combo = fmtCombo(v);
     if(combo) S.fmt = {...S.fmt, level: combo.level};
@@ -5240,6 +5251,8 @@ window.useFmt = id => {
   if(f.mercy !== undefined){ S.flash = ""; window.setMercy(f.mercy); if(S.flash) msgs.push(S.flash); }
   if(f.time !== undefined) setGameTime(f.time);
   if(f.clock !== undefined) window.setBreakClock(f.clock);
+  patchMatch({splitDeck:f.splitDeck === 1 ? 1 : 0, deckClock:deckSeconds(f.deckClock), deckEnded:false});
+  deckTurn = null; S.clockEnd = 0;
   save(S); flash(msgs.length ? msgs.join(" ") : `Using ${p.name}.`);
 };
 window.dropFmt = id => {
@@ -5258,7 +5271,7 @@ function fmtCard(c, div){
     : c.src === "rule" ? "No race — a game clock and a mercy lead" : "None listed";
   const clock = c.time === null ? null : c.time > 0 ? `${c.time}-minute game` : "None";
   const mer = c.mercy === null ? null : c.mercy > 0 ? `Ends the match at a ${c.mercy}-point lead` : "None";
-  const brk = c.clock === null ? null : `At least ${mmss(c.clock)}${c.split ? `; ${mmss(c.split)} on a split deck` : ""}`;
+  const brk = c.clock === null ? null : `At least ${mmss(c.clock)} between our points${c.split ? `; ${mmss(c.split)} split-deck changeover` : ""}`;
   return `<div class="panel fmt-card" style="margin-top:var(--s3)">
     <p class="note" style="margin:0"><b style="color:var(--ink)">${esc(fmtPairName(c) || fmtFull(div))}</b>${size ? ` · ${size[2]} a side` : ""}</p>
     <div class="tblwrap" style="margin-top:var(--s2)"><table class="tbl fmt-tbl"><tbody>
@@ -5300,7 +5313,8 @@ function fmtPage(first){
     ["Game clock", gt > 0 ? `${gt} min` : parts && !known ? "Not published" : "Off"],
     ...(race > 0 ? [["Race to", race === 1 ? "1 point" : `${race} points`]] : []),
     ...(mer > 0 ? [["Mercy", `${mer}-point lead`]] : []),
-    ...(clk > 0 ? [["Between points", mmss(clk)]] : [])];
+    ...(f.splitDeck === 1 ? [["Field use", "Split deck"], ["Changeover", deckSeconds(f.deckClock) ? mmss(f.deckClock) : "Choose below"]] : []),
+    ...(clk > 0 || (f.splitDeck === 1 && rule && rule.split) ? [[f.splitDeck === 1 ? "Our minimum break" : "Between points", mmss(f.splitDeck === 1 && rule && rule.split ? Math.max(120,clk) : clk)]] : [])];
   return sec(first ? "Your format" : "Format", `
     <p class="lede">${first ? (f.div ? "Change these later in More › Format." : "Choose a division. Change it later in More › Format.")
                             : "Used for new matches. Changes also apply to this match where possible."}</p>
@@ -5315,6 +5329,11 @@ function fmtPage(first){
     ${FMT_LEVELS.map(l => `<option value="${esc(l)}"${lvl === l && !other ? " selected" : ""}>${esc(l)}</option>`).join("")}<option value="Other"${other ? " selected" : ""}>${other && f.div !== "Other" ? esc(f.div) : "Other"}</option></select></div>
     ${other ? "" : `<div class="fld"><label for="fmt-form">Choose your format</label><select id="fmt-form" aria-label="Format played" onchange="pickFmtForm(this.value)"><option value=""${parts ? "" : " selected"}>Choose your format</option>${FMT_FORMS.map(x => `<option value="${esc(x.id)}"${parts && parts.form === x.id ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>`}
     ${f.div ? `<dl class="fmt-values" aria-label="Selected format">${values.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>` : `<p class="note">${lvl ? `Now pick what ${esc(lvl)} plays.` : "Choose a division and format."}</p>`}
+    ${f.div ? `<p class="note" style="margin-top:var(--s3)">Sharing the field with another match?</p>
+      <div class="seg seg--wrap" aria-label="Field use"><button class="${f.splitDeck === 1 ? "" : "on"}" onclick="setFmt('splitDeck',0)">Standard</button><button class="${f.splitDeck === 1 ? "on" : ""}" onclick="setFmt('splitDeck',1)">Split deck</button></div>
+      ${f.splitDeck === 1 ? `<p class="note">You play, then the other match plays. Tally keeps only your score. Follow the official's clock.</p>
+        <p class="note">Changeover after their point ends:</p><div class="seg seg--wrap" aria-label="Split-deck changeover">${[45,60,90,120].map(n=>`<button class="${f.deckClock === n ? "on" : ""}" onclick="setFmt('deckClock',${n})">${mmss(n)}${rule && rule.split === n ? " · rulebook" : ""}</button>`).join("")}</div>
+        ${!deckSeconds(f.deckClock) ? `<p class="note">Choose the changeover your event uses. No time is set yet.</p>` : ""}` : ""}` : ""}
     ${first ? `<button class="btn btn--block" style="margin-top:var(--s3)" onclick="fmtDone()">Done — start coaching</button>` : ""}
     ${combo ? `<details class="fmt-disclosure" id="fmt-rules"><summary>Rules and source</summary>${fmtCard(combo, f.div)}</details>` : ""}
     ${fmtGlance(f.div)}
@@ -5327,8 +5346,9 @@ function fmtPage(first){
     <div class="seg seg--wrap" aria-label="Game clock"><button class="${gt > 0 ? "" : "on"}" onclick="setFmt('time', 0)">Off</button>${FMT_TIMES.map(n => `<button class="${gt === n ? "on" : ""}" onclick="setFmt('time', ${n})">${n} min${rule && rule.time === n ? " · rulebook" : ""}</button>`).join("")}</div>
     <p class="note" style="margin-top:var(--s3)">Mercy rule — the match ends at a lead of:</p>
     <div class="seg seg--wrap" aria-label="Mercy rule"><button class="${mer ? "" : "on"}" onclick="setFmt('mercy', 0)">Off</button>${[3,4,5,6].map(n => `<button class="${mer === n ? "on" : ""}" onclick="setFmt('mercy', ${n})">${n} points${rule && rule.mercy === n ? " · rulebook" : ""}</button>`).join("")}</div>
-    <p class="note" style="margin-top:var(--s3)">Clock between points — starts itself when a point is scored:</p>
-    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${(rule ? [120, rule.split].filter(Boolean) : [45,60,90,120]).map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule ? (n === 120 ? " · standard" : " · split deck") : ""}</button>`).join("")}</div>
+    <p class="note" style="margin-top:var(--s3)">${f.splitDeck === 1 ? "Our minimum break — measured from the end of our point:" : "Clock between points — starts itself when a point is scored:"}</p>
+    <div class="seg seg--wrap" aria-label="Clock between points"><button class="${clk ? "" : "on"}" onclick="setFmt('clock', 0)">Off</button>${[45,60,90,120].map(n => `<button class="${clk === n ? "on" : ""}" onclick="setFmt('clock', ${n})">${mmss(n)}${rule && n === 120 ? " · standard" : ""}</button>`).join("")}</div>
+    ${f.splitDeck === 1 && rule && rule.split ? `<p class="note">This division needs at least 2:00 between its own points. The split-deck timer keeps that minimum even if a shorter break is selected.</p>` : ""}
     </details>
     <details class="fmt-disclosure"${f.div ? "" : " hidden"}><summary>Save this format</summary>
     <div class="fld" style="margin-top:var(--s4)"><label>Save these answers as</label>
@@ -5337,7 +5357,64 @@ function fmtPage(first){
     </details>
   `);
 }
-window.startBreakClock = () => { if(breakClock()){ S.clockEnd = Date.now() + breakClock() * 1000; _buzzed = false; render(); } };
+// Only the coach's preparation clock runs here. The other match's score and
+// game clock belong to its own sheet and the official. A reload/import never
+// resumes an assumed turn: the coach checks the field first.
+let deckTurn = null, lastDeckTap = null;
+const deckSeconds = n => [45,60,90,120].includes(n) ? n : 0;
+function splitDeck(m = curMatch()){ return !!m && m.splitDeck === 1 && !m.watch; }
+function deckActive(){ return splitDeck() && curMatch().deckEnded !== true; }
+function deckState(){
+  return deckTurn && deckTurn.m === S.matchId && deckTurn.pt === S.point && deckTurn.results === S.results ? deckTurn : null;
+}
+function deckSet(phase, ended = 0){ deckTurn = {m:S.matchId, pt:S.point, results:S.results, phase, ended}; }
+function deckRest(){ return Math.max((fmtRule((curMatch()||{}).div)||{}).split ? 120 : 0, breakClock()); }
+function prepClock(){ return splitDeck() ? deckRest() : breakClock(); }
+function showDeck(){ requestAnimationFrame(() => document.querySelector(".deck-panel")?.scrollIntoView({block:"center"})); }
+window.deckAction = action => {
+  if(!splitDeck() || nobodyToPlay() || sheetOver()) return;
+  const d = deckState(), ended = d ? d.ended : 0;
+  if(action === "finished"){
+    if(!deckActive() || !d || d.phase !== "waiting") return;
+    const seconds = deckSeconds(curMatch().deckClock);
+    if(!seconds) return flash("Choose your split-deck changeover in More › Format first.");
+    // Own-match rest and the changeover are separate minima (8.3, 9.3.12).
+    S.clockEnd = Math.max(Date.now() + seconds * 1000, ended ? ended + deckRest() * 1000 : 0);
+    _buzzed = false; deckSet("ready", ended);
+  }else if(action === "ours"){
+    S.clockEnd = 0; deckSet("playing", ended);
+  }else if(action === "waiting"){
+    if(!deckActive() || (d && d.phase === "waiting")) return;
+    S.clockEnd = 0; deckSet("waiting", ended);
+  }else if(action === "over"){
+    if(!deckActive() || !confirm("The other match has finished? Your remaining points will use your normal break clock.")) return;
+    patchMatch({deckEnded:true});
+    S.clockEnd = ended && (!d || d.phase !== "playing") ? Math.max(Date.now(), ended + deckRest() * 1000) : 0;
+    _buzzed = false; deckTurn = null; save(S);
+  }else return;
+  render(); showDeck();
+};
+window.tapDeck = action => {
+  if(lastDeckTap && lastDeckTap.m === S.matchId && Date.now() - lastDeckTap.at < RESULT_GUARD_MS)
+    return flash("Turn already changed. Check the field before tapping again.");
+  const before = deckTurn, ended = curMatch() && curMatch().deckEnded;
+  window.deckAction(action);
+  if(before !== deckTurn || ended !== (curMatch() && curMatch().deckEnded)) lastDeckTap = {m:S.matchId, at:Date.now()};
+};
+function deckPanel(){
+  if(!splitDeck() || nobodyToPlay() || sheetField() || matchOver()) return "";
+  const d = deckState(), phase = d ? d.phase : "check", solo = !deckActive();
+  const title = solo ? "Other match finished" : phase === "waiting" ? "Other match playing" : phase === "ready" ? "We're up next" : phase === "playing" ? "Our point" : "Which match is on?";
+  const button = (action, label) => `<button class="btn${action === "finished" || (action === "ours" && phase !== "waiting") ? "" : " btn--quiet"} grow" onclick="tapDeck('${action}')">${label}</button>`;
+  return `<section class="panel deck-panel" aria-label="Split deck" style="margin:var(--s3) 0">
+    <p class="note" style="margin:0">Split deck · Your score only</p><h3 style="margin:var(--s2) 0">${title}</h3>
+    <p class="note">${solo ? "Use your normal break between points." : phase === "waiting" ? "Get ready while they play. Tap below when their point ends." : phase === "ready" ? "Preparation timer only. Start on the official's signal." : phase === "playing" ? "Log our point when it ends." : "Check the field. The app does not know which match is playing."}</p>
+    ${S.clockEnd ? `<p class="note">Get ready · <b data-clock>${mmss(clockLeft())}</b></p>` : ""}
+    ${solo ? "" : `<div class="btnrow" style="flex-wrap:wrap">${phase === "waiting" ? button("finished", "Other point ended") : ""}${phase !== "playing" ? button("ours", "Our point is starting") : ""}${phase !== "waiting" ? button("waiting", "Other match playing") : ""}</div>
+    <details style="margin-top:var(--s2)"><summary>Has the other match ended?</summary><p class="note">If their match has ended, switch to normal breaks for the rest of ours.</p>${button("over", "Other match is over")}</details>`}
+  </section>`;
+}
+window.startBreakClock = () => { if(deckActive()) return flash("Use the Split deck controls on Tally when the other point ends."); if(prepClock()){ S.clockEnd = Date.now() + prepClock() * 1000; _buzzed = false; render(); } };
 window.stopBreakClock = () => { S.clockEnd = 0; render(); };
 const clockLeft = () => Math.max(0, Math.ceil(((S.clockEnd || 0) - Date.now()) / 1000));
 const mmss = n => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
@@ -14582,6 +14659,7 @@ function tally(){
   ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
   ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
+  ${deckPanel()}
   <div id="point-sheet"></div>${sec("Point sheet", `
   ${/* The call, on the sheet.
        *
@@ -14628,13 +14706,13 @@ function tally(){
       <p class="note grow" style="margin:0">Format: ${esc([(curMatch()||{}).div, (fmtGame((curMatch()||{}).game)||[])[1] || (sideSize() !== 5 ? sideSize() + " a side" : ""),
         raceTo() === 1 ? "one point" : raceTo() ? "race to " + raceTo() : "no race",
         gameTime() ? gameTime() + "-min game clock" : "",
-        mercy() ? "mercy " + mercy() : "", breakClock() ? mmss(breakClock()) + " between points" : ""].filter(Boolean).join(" · "))}</p>
+        mercy() ? "mercy " + mercy() : "", deckActive() ? "split deck" : prepClock() ? mmss(prepClock()) + " between points" : ""].filter(Boolean).join(" · "))}</p>
       <button class="btn btn--quiet" onclick="set({tab:'more',more:'format'})">Change the format</button>
     </div>
-    ${breakClock() ? `<div class="btnrow" style="align-items:center">
+    ${prepClock() && !deckActive() ? `<div class="btnrow" style="align-items:center">
         ${S.clockEnd ? `<span class="score-chip clock-chip grow ${clockLeft() === 0 ? "clock--out" : clockLeft() <= 15 ? "clock--late" : ""}" data-clock style="justify-content:center;font-size:var(--t-lg)">${mmss(clockLeft())}</span>
                        <button class="btn btn--quiet" onclick="stopBreakClock()">Stop</button>`
-                    : `<button class="btn btn--quiet grow" onclick="startBreakClock()">Start the ${mmss(breakClock())} clock</button>`}
+                    : `<button class="btn btn--quiet grow" onclick="startBreakClock()">Start the ${mmss(prepClock())} clock</button>`}
       </div>` : ""}
     ${/* The match clock belongs to the official; the coach only says when it
           ran out. Ahead: over at this score. Level: overtime, next point. */""}
@@ -15081,7 +15159,10 @@ window.undoOut = (i, key) => {
 window.nextPoint = () => {
   if(nobodyToPlay()) return needOpponent();
   if(sheetOver()) return;
-  S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
+  if(deckActive() && deckState() && deckState().phase === "waiting") return flash("The other match is playing. Our point stays where it is.");
+  S.point=(S.point||1)+1; clearPointScratch();
+  if(deckActive()){ S.clockEnd = 0; deckSet("waiting", Date.now()); }
+  save(S); render(); if(deckActive()) showDeck();
 };
 function clearPointScratch(){
   S.tallyMoreOpen = null;
@@ -15154,6 +15235,7 @@ window.tapResult = won => {
 };
 window.endPoint = won => {
   if(nobodyToPlay()) return needOpponent();
+  if(deckActive() && deckState() && deckState().phase === "waiting") return flash("The other match is playing. Tap Our point is starting before scoring our point.");
   // The sheet stands its result buttons down once the race is won, but the
   // handler is also reached from the landscape log, the Scout strip and
   // anything a later build wires to it. A finished match takes no more
@@ -15180,11 +15262,12 @@ window.endPoint = won => {
   // The hang is when the clock between points starts — and when the match is
   // over there is no next point, so the clock stops rather than counting down
   // to a buzzer that is not coming.
-  S.clockEnd = breakClock() && !matchOver() ? Date.now() + breakClock() * 1000 : 0;
+  S.clockEnd = prepClock() && !deckActive() && !matchOver() ? Date.now() + prepClock() * 1000 : 0;
+  if(deckActive() && !matchOver()) deckSet("waiting", Date.now()); else deckTurn = null;
   _buzzed = false;
   _lastEnd = {m: S.matchId, pt, at: Date.now()};
   save(S);
-  if(backToBoard) window.closeQuick(); else render();
+  if(backToBoard) window.closeQuick(); else { render(); if(deckActive()) showDeck(); }
 };
 // Back a point, because Next point is one tap and a sideline is a sideline.
 // It moves the cursor; it does not throw away what was logged on the point you
@@ -15238,7 +15321,7 @@ window.backPoint = () => {
   // Anything half-done on the point he is leaving would land on the point
   // he is going back to; and the clock between points was counting down to
   // a buzzer for a point that is no longer next.
-  clearPointScratch(); S.clockEnd = 0;
+  clearPointScratch(); S.clockEnd = 0; deckTurn = null;
   if(taken && taken.read) S.tallyRead = taken.read;
   S.matchState = derivedState();
   save(S); render();
@@ -15348,6 +15431,8 @@ function openSheet(fields){
   S.matches = [{id, at: Date.now(), layout: S.layoutKey,
                 raceTo: has("raceTo") ? (f.raceTo || null) : cur && (cur.ot ? cur.raceWas > 0 : cur.raceTo > 0) ? (cur.ot ? cur.raceWas : cur.raceTo) : null,
                 breakClock: has("clock") ? (f.clock || null) : cur && cur.breakClock > 0 ? cur.breakClock : null,
+                splitDeck: has("splitDeck") ? (f.splitDeck === 1 ? 1 : 0) : cur && cur.splitDeck === 1 ? 1 : 0,
+                deckClock: has("deckClock") ? deckSeconds(f.deckClock) : deckSeconds(cur && cur.deckClock), deckEnded:false,
                 gameTime: has("time") ? (f.time || null) : cur && cur.gameTime > 0 ? cur.gameTime : null,
                 mercy: has("mercy") ? (f.mercy || null) : cur && cur.mercy > 0 ? cur.mercy : null,
                 size: g ? g[2] : cur && cur.size > 0 ? cur.size : null,
@@ -15359,7 +15444,7 @@ function openSheet(fields){
                 end: cur && cur.end === "right" ? "right" : "left", swapEnds: !!(cur && cur.swapEnds),
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
-  S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
+  S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0; deckTurn = null;
   // How did they get there and the Voice log remember the team they were last
   // pointed at. On a sheet against somebody else that team was still picked,
   // and one Record stamped the old team on the new sheet and renamed it.
@@ -15687,7 +15772,7 @@ const openMatchNow = id => {
   if(m && m.watch){ S.left = {...(S.left || {}), name: m.home || ""}; S.right = {...(S.right || {}), name: m.away || m.vs || ""}; }
   else if(m && m.vs) S.right = {...(S.right || {}), name: m.vs};
   // And nothing half-done on the sheet he left comes with him.
-  clearPointScratch(); S.clockEnd = 0;
+  clearPointScratch(); S.clockEnd = 0; deckTurn = null;
   S.matchState = derivedState();
   save(S); render();
 };
@@ -18344,7 +18429,7 @@ const HELP = {
          "Not published means neither source gives that number for the pair: set it yourself from your event's rules. Nothing is guessed.",
          "Every format at a glance lists every pair with published numbers. Tap a row to use it.",
          "Divisional X-Ball is a game clock and a mercy lead, not a race. The game clock is the official's: tap Time's up on the point sheet when it runs out.",
-         "The break is at least 2:00; on a split deck it is 1:00, or 0:45 in Semi-Pro. Any answer can still be changed.",
+         "Choose Split deck when another match uses the field between your points. Our break stays at least 2:00; the changeover after their point is 1:00 for D2–D5 or 0:45 for Semi-Pro. Tally shows whose turn it is and keeps only our score. Unpublished changeovers must be chosen from your event's rules.",
          "Other is for an event this rulebook does not cover: set how many a side, the race, the mercy and the clock yourself.",
          "Every new sheet starts with these, and an answer here goes on the sheet you are on too.",
          "Save these answers keeps the whole format under a name. Use puts it back with one tap."]},
@@ -18429,7 +18514,8 @@ const HELP_Q = [
   ["When did I last back up?", () => canSync() ? "More › Matches says when you last saved a file. Nexus › Save a copy keeps a backup you control. League sync keeps one current full-season copy with your account on our account server; Gridlock PB LLC's administrators can review it. It is not a history of backups. Pause, review/restore or delete it in Nexus." : "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
   ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
-  ["How long between points?", "Set Clock between points under More › Format, from the times your format offers — the division you pick sets which, and Other offers them all. It starts the moment you tap who won the point, counts down in the header on every tab, and a tap on it stops it. The app does not know your league's number, so it never guesses one."],
+  ["How long between points?", "Set Clock between points under More › Format. In Standard mode it starts when you score a point, shows in the header on every tab, and a tap stops it. For split deck, choose Split deck on Format and use its controls on Tally. The game clock always belongs to the official."],
+  ["We play split deck. How do I track it?", "More › Format › Split deck. On Tally, score our point as usual, then the card says Other match playing. When their point ends, tap Other point ended. The preparation timer keeps our minimum break as well as the changeover. Tap Our point is starting on the official's signal. Their point never changes our score. If their whole match ends, open Has the other match ended? and tap Other match is over. After a reload, check which match is on before continuing."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
   ["I tapped the wrong bunker on Scout.", "On Breakouts, ↶ Undo takes back your last tap and Clear all empties the field (Undo brings it back); a man's × takes just him off. Logged already? Fix it under the field, or Fix in As you saw it, puts that five back on the field — change it and Save writes over it on the point it was logged on. On How did they get there, tap the right bunker, then Move here on the wrong sighting, or ✕ Remove it; a shot has its own ✕."],
   ["Time ran out and it's tied.", "Tap Time's up on the point sheet. Level, the sheet asks which your format does — it's a tie, and the match ends level, or overtime, and the next point wins it. Ahead, the match ends at this score. Tap Undo time's up if the official says otherwise. The app never keeps the match clock — the official does."],
