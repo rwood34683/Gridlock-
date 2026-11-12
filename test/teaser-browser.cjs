@@ -149,6 +149,34 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 12 Nov 2026: a tap on Scout's field did nothing. Every Scout field
+ // takes a tap: no team says so, a team starts their five, and their details
+ // are told on Scout once the five is logged.
+ for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": a touch on Scout's field starts their five, then their details",async()=>{
+  const c=await browser.newContext({viewport:{width,height},hasTouch:true}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').tap();assert.equal(await p.evaluate(()=>scView),"matchup");
+   const tap=async id=>{const at=await p.evaluate(id=>{const g=document.querySelector('[data-bid="'+id+'"]');g.scrollIntoView({block:"center"});const r=g.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};},id);await p.touchscreen.tap(at.x,at.y);};
+   const ids=await p.evaluate(()=>BUN.filter(b=>b.x>90).slice(0,2).map(b=>b.id));
+   await tap(ids[0]);
+   assert.equal(await p.evaluate(()=>document.activeElement&&document.activeElement.closest("#sideR")?"pit":"elsewhere"),"pit","no team: the tap goes to the right pit's picker");
+   assert.equal(await p.evaluate(()=>cpTheirPick.length),0);
+   await p.locator("#sideR .pickSel").selectOption({index:1});
+   await tap(ids[0]);assert.deepEqual(await p.evaluate(()=>[scView,cpTheirPick.slice()]),["log",[ids[0]]],"a tap on Matchup starts their five on Breakouts");
+   await tap(ids[1]);await tap(ids[1]);assert.equal(await p.evaluate(()=>cpTheirPick.length),3);
+   await p.locator('[data-tb5="log"]').tap();
+   assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[0],"logging the five opens the first man's details on Scout");
+   assert.equal(await p.locator("#cpSheet").count(),1);
+   await p.locator('#cpSheet [data-cs="shot"]').tap();await p.locator('#cpSheet [data-who="3"]').tap();
+   assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[1],"his name logs him and opens the next");
+   for(let i=0;i<2;i++)await p.locator('#cpSheet [data-cs="log"]').tap();
+   const r=await p.evaluate(()=>({todo:SH.rows.filter(r=>r.todo).length,them:SH.rows.filter(r=>r.side==="them").map(r=>r.made),draft:cpDraft}));
+   assert.deepEqual(r,{todo:0,them:[false,true,true],draft:null},"all three told");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });

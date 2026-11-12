@@ -1419,6 +1419,10 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     The code is `tools/teaser_coachplay.js`, inserted between the `coachplay`
     markers by `tools/teaser_rules.js` (Player only); the Team preview keeps
     its own tally.
+    Every Scout field takes a tap (owner, 12 Nov 2026): with nobody in the
+    right pit it says so and moves to the pit's picker; with a team, a tap on
+    Matchup, Layers or Games starts their five on Breakouts, and Log their
+    five opens each man's details there, the next after each Log.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 

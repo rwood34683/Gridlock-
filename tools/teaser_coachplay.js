@@ -22,6 +22,7 @@ var cpStep='tell',cpDraft=null,cpPickFor='',cpRead='',cpTheirPick=[],cpTheirHist
 function cpEmpty(){return {matches:[],matchId:'',point:1,results:[],rows:[],theirs:[]};}
 function cpLoad(){try{const o=JSON.parse(localStorage.getItem(CP_KEY)||'null');if(o&&Array.isArray(o.matches)){['results','rows','theirs'].forEach(k=>{if(!Array.isArray(o[k]))o[k]=[];});return o;}}catch(e){}return cpEmpty();}
 var SH=cpLoad();
+function cpRedraw(){if(MODE==='tally')cpTally();else if(MODE==='scout')renderScout();}
 function cpSave(){try{localStorage.setItem(CP_KEY,JSON.stringify(SH));return true;}catch(e){gToast('This phone would not keep that.');return false;}}
 function cpId(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function cpPit(){return (typeof Rsel!=='undefined'&&Rsel&&Rsel.ti>=0)?teamName(Rsel):'';}
@@ -73,7 +74,7 @@ function cpNew(){const m=cpMatch();if(!cpLogged(m.id)){m.vs='';m.at=Date.now();m
 function cpPlace(id){if(cpNeedOpp()||cpOffField())return false;const m=cpMatch(),side=cpSideOf(id),here=cpRowsAt(m.id,SH.point).filter(r=>r.side===side);
   if(here.length>=CP_SIDE){gToast((side==='us'?'Your':'Their')+' five are all charted on point '+SH.point+'.');return false;}
   const r={id:cpId('b'),m:m.id,pt:SH.point,lay:layoutKey,vs:m.vs,side,bid:id,who:'',made:null,from:'',entry:'',dir:null,at:'',delay:false,moved:'',late:false,todo:true};SH.rows.push(r);cpSave();return r;}
-function cpUntold(){const m=cpMatch();return cpRowsAt(m.id,SH.point).filter(r=>r.todo);}
+function cpUntold(){const m=cpMatch();return cpRowsAt(m.id,SH.point).filter(r=>r.todo&&(MODE!=='scout'||r.side==='them'));}
 function cpOpen(r){cpDraft=Object.assign({},r);cpPickFor='';}
 function cpOpenNext(quiet){const u=cpUntold();if(u.length){cpOpen(u[0]);return true;}cpDraft=null;if(!quiet)gToast('Everyone placed on point '+SH.point+' is told.');return false;}
 function cpTallyTap(e){const id=cpFieldTap(e);if(id==null)return;
@@ -102,7 +103,7 @@ function cpSheet(){const d=cpDraft,b=cpBunker(d.bid),opp=hesc(cpMatch().vs||'The
   h+=`<div class="lbl">Route</div><div style="font-size:11px;color:#ff5a52">Drawn for you, around the bunkers in the way, from the bunker he broke to.</div>`;
   h+=`<div class="row" style="gap:5px;margin-top:6px;position:sticky;bottom:0;background:#161818;padding:4px 0"><button type="button" class="ld on" data-cs="log" style="flex:1">✓ Log this breakout</button><button type="button" class="ld" data-cs="off">Take him off</button></div></div>`;
   return h;}
-function cpSheetWire(P){const d=cpDraft;if(!d)return;const up=()=>cpTally();
+function cpSheetWire(P){const d=cpDraft;if(!d)return;const up=()=>cpRedraw();
   P.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>{const a=b.dataset.cs;
     if(a==='done'){cpDraft=null;cpPickFor='';}else if(a==='us'||a==='them'){d.side=a;d.who='';}else if(a==='made'){d.made=d.made===true?null:true;d.from='';}else if(a==='shot'){d.made=d.made===false?null:false;}
     else if(a==='delay')d.delay=!d.delay;else if(a==='late')d.late=!d.late;else if(a==='log'){cpLog();}else if(a==='off'){cpOff(d.id);gToast('Taken off.');cpOpenNext(true);}up();});
@@ -155,34 +156,44 @@ function cpLogTheir(team,patch){const m=cpMatch(),on=m.vs===team,key=on?{m:m.id,
 function cpPlaceFive(plants){const m=cpMatch();const have=cpRowsAt(m.id,SH.point).filter(r=>r.side==='them').map(r=>r.bid);const left=have.slice();
   plants.forEach(id=>{const i=left.indexOf(id);if(i>=0){left.splice(i,1);return;}if(cpRowsAt(m.id,SH.point).filter(r=>r.side==='them').length>=CP_SIDE)return;
     SH.rows.push({id:cpId('b'),m:m.id,pt:SH.point,lay:layoutKey,vs:m.vs,side:'them',bid:id,who:'',made:null,from:'',entry:'',dir:null,at:'',delay:false,moved:'',late:false,todo:true});});cpSave();}
-function cpScoutHead(P){const w=document.createElement('div');w.innerHTML=scViewToggle()+cpStrip();[...w.children].reverse().forEach(c=>P.insertBefore(c,P.firstChild));
+function cpNoPit(){gToast('Pick who you play in the right pit first, then tap where they went.');const s=document.querySelector('#sideR .pickSel');if(s){s.scrollIntoView({block:'center',behavior:'smooth'});try{s.focus({preventScroll:true});}catch(e){}}}
+function cpScoutTap(e){const id=cpFieldTap(e);if(id==null)return;const team=cpPit();if(!team){cpNoPit();return;}
+  if(scView==='log'&&cpDraft){if(cpPickFor){if(id===cpDraft.bid){gToast('That is the bunker he broke to.');return;}cpDraft[cpPickFor]=id;cpPickFor='';renderScout();return;}
+    const u=cpUntold().find(r=>r.bid===id);if(u){cpOpen(u);renderScout();return;}}
+  if(cpTheirPick.length>=CP_SIDE){gToast('Five placed. ✕ one to move him, or Log their five.');if(scView!=='log'){scView='log';renderScout();}return;}
+  cpDraft=null;cpPickFor='';cpTheirHist.push(cpTheirPick.slice());cpTheirPick.push(id);if(scView!=='log'){scView='log';cpGame=null;}gToast('Their man on '+bLabelId(id)+' · '+cpTheirPick.length+' of 5');renderScout();}
+function cpScoutHead(P){svg.onclick=cpScoutTap;const w=document.createElement('div');w.innerHTML=scViewToggle()+cpStrip();[...w.children].reverse().forEach(c=>P.insertBefore(c,P.firstChild));
   P.querySelectorAll('[data-scview]').forEach(b=>b.onclick=()=>{scView=b.dataset.scview;cpGame=null;if(typeof svg!=='undefined'&&svg)svg.onclick=null;renderScout();});cpWire(P,renderScout);}
-function cpNoTeam(P,what){P.innerHTML=`<div class="iqrow" style="border-color:#efedeb;font-size:12px">Pick who you play in the right pit and ${what}.</div>`;cpScoutHead(P);}
-function cpMatchup(P){P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const team=cpPit();if(!team)return;cpTallyFive(team);const five=cpFiveNow(team);
+function cpNoTeam(P,what){svg.onclick=cpScoutTap;P.innerHTML=`<div class="iqrow" style="border-color:#efedeb;font-size:12px">Pick who you play in the right pit and ${what}.</div>`;cpScoutHead(P);}
+function cpMatchup(P){svg.onclick=cpScoutTap;P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const team=cpPit();if(!team)return;cpTallyFive(team);const five=cpFiveNow(team);
   const w=document.createElement('div');w.innerHTML=`<div class="lbl" style="margin-top:8px">Their five · point ${SH.point}</div><div style="font-size:12px;color:#ff5a52">${five.length?five.map(id=>hesc(bLabelId(id))).join(' · '):'Not logged yet. Tap where they went on Breakouts.'}</div>`;P.appendChild(w);
   P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const t=document.createElement('div');t.innerHTML=cpStrip();P.insertBefore(t.firstChild,P.children[1]||null);cpWire(P,renderScout);}
 function cpTallyFive(team){const seen={};cpFiveNow(team).forEach(id=>{const b=cpBunker(id);if(!b)return;const k=seen[id]=(seen[id]||0)+1;cpMan(b,k,'#3d8bff',true,'',false);});}
 function cpBreakouts(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'their five and their call log against them');return;}
-  svg.onclick=e=>{const id=cpFieldTap(e);if(id==null)return;if(cpTheirPick.length>=CP_SIDE){gToast('Five placed. ✕ one to move him.');return;}cpTheirHist.push(cpTheirPick.slice());cpTheirPick.push(id);cpBreakouts();};
   const seen={};cpTheirPick.forEach(id=>{const b=cpBunker(id);if(!b)return;const k=seen[id]=(seen[id]||0)+1;cpMan(b,k,'#3d8bff',true,String(k>1?k:''),false);});
   if(!cpTheirPick.length)cpTallyFive(team);
+  if(cpDraft){[['at','#ffffff'],['moved','#efedeb'],['from','#ff5a52']].forEach(([k,c])=>{const b=cpBunker(cpDraft[k]);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.2,fill:'none',stroke:c,'stroke-width':.8,'stroke-dasharray':'1.2 .8','pointer-events':'none'});});const b=cpBunker(cpDraft.bid);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.6,fill:'none',stroke:'#ffffff','stroke-width':.9,'pointer-events':'none'});}
   const m=cpMatch(),on=m.vs===team,mine=cpTheirs(team),calls={},plants={};let n=0;
   mine.forEach(t=>{if(t.call){calls[t.call]=(calls[t.call]||0)+1;n++;}(t.plants||[]).forEach(id=>{plants[id]=(plants[id]||0)+1;});});
   const cur=on?SH.theirs.find(x=>x.team===team&&x.m===m.id&&x.pt===SH.point):null;
-  let h=`<div class="lbl">Where did they go? · ${hesc(team)}</div><div style="font-size:12px;color:#ff5a52;margin-bottom:4px">Tap the field where each of their five ended up, in any order — two or three on one bunker is a tap each. No names needed — tell each man later on Tally, step 2.</div>`;
+  let h=`<div class="lbl">1 · Where did they go? · ${hesc(team)}</div><div style="font-size:12px;color:#ff5a52;margin-bottom:4px">Tap the field where each of their five ended up, in any order — two or three on one bunker is a tap each. No names needed. Then Log their five and tell each man below.</div>`;
   h+=cpTheirPick.length?`<div class="row" style="flex-wrap:wrap;gap:4px">`+cpTheirPick.map((id,i)=>`<button type="button" class="ld" data-tx="${i}" aria-label="Take ${hesc(bLabelId(id))} off">${hesc(bLabelId(id))} ×</button>`).join('')+`</div>`:`<div style="font-size:12px;color:#efedeb">Nothing placed yet. Tap a bunker for each man — tap it again to put a second man there.</div>`;
   h+=`<div class="row" style="gap:5px;margin-top:5px"><button type="button" class="ld on" data-tb5="log" style="flex:1">Log their five · ${on?'point '+SH.point:'season'}</button><button type="button" class="ld" data-tb5="undo">↶ Undo</button><button type="button" class="ld" data-tb5="clear">Clear all</button></div>`;
+  {const men=on?cpRowsAt(m.id,SH.point).filter(r=>r.side==='them'):[],left=men.filter(r=>r.todo).length;
+   if(men.length){h+=`<div class="lbl" style="margin-top:9px">2 · What happened · point ${SH.point}${left?' · '+left+' to tell':''}</div><div style="font-size:12px;color:#ff5a52;margin-bottom:4px">Tap a man for his details. Logging him opens the next.</div><div class="row" style="flex-wrap:wrap;gap:4px">`+men.map(r=>`<button type="button" class="ld ${cpDraft&&cpDraft.id===r.id?'on':''}" data-cr="${r.id}">${hesc(bLabelId(r.bid))}${cpTag(r)?' · '+hesc(cpTag(r)):''}${r.todo?' · to tell':r.made?' ✓':' ✕ shot'}</button>`).join('')+`</div>`;}
+   if(cpDraft)h+=cpSheet();}
   h+=`<div class="lbl" style="margin-top:9px">What they run · ${hesc(team)}</div><div style="font-size:12px;color:#ff5a52;margin-bottom:4px">Log their call as you see it. Their tendency is one word off film; this is the count behind it.</div><div class="row" style="flex-wrap:wrap;gap:4px">`+cpCalls().map(([k,nm])=>`<button type="button" class="ld ${cur&&cur.call===k?'on':''}" data-tc="${k}" aria-pressed="${!!(cur&&cur.call===k)}">${hesc(nm)}</button>`).join('')+`</div>`;
   if(!on)h+=`<div style="font-size:12px;color:#efedeb;margin-top:4px">This sheet is ${m.vs?hesc(m.vs):'not against anyone yet'}. ${hesc(team)} is not on it, so what you log here counts for the season on this field and never against a point.</div>`;
   const cs=Object.entries(calls).sort((a,b)=>b[1]-a[1]),ps=Object.entries(plants).sort((a,b)=>b[1]-a[1]);
   h+=`<div class="lbl" style="margin-top:9px">Their record</div>`+(cs.length?cs.map(([k,c])=>`<div style="font-size:12px">${hesc(playName(k))} — ${c} of ${n} logged</div>`).join(''):`<div style="font-size:12px;color:#ff5a52">Nothing logged on ${hesc(team)} yet. Tap their call above the moment you read it.</div>`);
   if(ps.length)h+=`<div class="lbl" style="margin-top:6px">Where they plant</div>`+ps.slice(0,8).map(([id,c])=>`<div style="font-size:12px">${hesc(bLabelId(id))} — ${c} of ${mine.filter(t=>t.plants&&t.plants.length).length} fives</div>`).join('');
-  P.innerHTML=h;cpScoutHead(P);
+  P.innerHTML=h;cpScoutHead(P);cpSheetWire(P);
+  P.querySelectorAll('[data-cr]').forEach(b=>b.onclick=()=>{const r=SH.rows.find(x=>x.id===b.dataset.cr);if(r)cpOpen(r);cpBreakouts();const sh=document.getElementById('cpSheet');if(sh)sh.scrollIntoView({block:'start'});});
   P.querySelectorAll('[data-tx]').forEach(b=>b.onclick=()=>{cpTheirHist.push(cpTheirPick.slice());cpTheirPick.splice(+b.dataset.tx,1);cpBreakouts();});
   P.querySelectorAll('[data-tb5]').forEach(b=>b.onclick=()=>{const a=b.dataset.tb5;
     if(a==='undo'){if(cpTheirHist.length)cpTheirPick=cpTheirHist.pop();else gToast('Nothing to undo.');}
     else if(a==='clear'){cpTheirHist.push(cpTheirPick.slice());cpTheirPick=[];}
-    else{if(!cpTheirPick.length){gToast('Tap where they went on the field first.');return;}const plants=cpTheirPick.slice();cpLogTheir(team,{plants});if(on)cpPlaceFive(plants);cpTheirPick=[];cpTheirHist=[];gToast('Their five logged'+(on?' on point '+SH.point+' — tell each man on Tally':' for the season'));}
+    else{if(!cpTheirPick.length){gToast('Tap where they went on the field first.');return;}const plants=cpTheirPick.slice();cpLogTheir(team,{plants});if(on)cpPlaceFive(plants);cpTheirPick=[];cpTheirHist=[];if(on)cpOpenNext(true);gToast('Their five logged'+(on?' on point '+SH.point+'. Now tell each man.':' for the season'));}
     cpBreakouts();});
   P.querySelectorAll('[data-tc]').forEach(b=>b.onclick=()=>{const k=b.dataset.tc;cpLogTheir(team,{call:k});gToast(playName(k)+' logged'+(on?' on point '+SH.point:' for the season'));cpBreakouts();});}
 function cpLayers(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'what you have logged against them is drawn here');return;}
