@@ -520,6 +520,10 @@ const FIELD = key => ({ key, name: "Test " + key, bunkers: Array.from({ length: 
       // Closing the real owner releases its claim; the same old timestamp in B
       // must not leave an orphan copy impossible to delete.
       await a.close();
+      // The browser frees a closed document's Web Lock a moment after close()
+      // resolves; wait for that release before asking, or the check races it.
+      await b.waitForFunction(name => !navigator.locks || navigator.locks.query()
+        .then(s => !s.held.some(l => l.name === name)), owner.liveKey);
       assert.equal(await b.evaluate(k => window.dropRecoveryCopy(k), owner.key), true);
       assert.equal(await stored(b, owner.key), null);
       assert.equal(await b.evaluate(() => window.__deletesAsked), 1);

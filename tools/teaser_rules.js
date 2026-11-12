@@ -16,6 +16,14 @@ const FILES = ["player", "team"].map(k => path.join(ROOT, `teasers/${k}/index.ht
 
 // [rule, find, replace] — plain text, every occurrence.
 const STEPS = [
+  // Practice is a manual, self-reported snapshot, not a verified team feed.
+  ["truthful practice sharing", "Nothing leaves this phone in this preview, so your coach sees your Practice tab only if you send it \\u2014 every drill you\\u2019ve logged, your growth, and where you\\u2019re at on Coach\\u2019s Corner. Make a code and send it to your coach.",
+    "Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified."],
+  ["truthful practice sharing", "You\\u2019re on your coach\\u2019s team, so your coach can see your Practice tab \\u2014 every drill you\\u2019ve logged, your growth, and where you\\u2019re at on Coach\\u2019s Corner. Make a code and send it to your coach.",
+    "Nothing is sent automatically. This code includes all your practice sessions, including earlier charts, notes and Coach\\u2019s Corner progress. Copy it and send it to your coach yourself. Results are self-reported, not coach-verified."],
+  ["truthful practice sharing", "Their Practice tab as of ${pgAgo(p.ts)} \\u00b7 read-only", "Self-reported snapshot from ${pgAgo(p.ts)} \\u00b7 all shared sessions \\u00b7 not coach-verified"],
+  ["practice stays local", "Nothing is sent automatically. This code includes all your practice sessions",
+    "Nothing leaves this phone in this preview unless you share it. Nothing is sent automatically. This code includes all your practice sessions"],
   // Independent review: compact tendency buttons need width as well as height.
   ["targets", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px}", ".tend button,.tg button,.iqchip,.iqopt{min-height:44px;min-width:44px}"],
   ["targets", '.stars{font-size:16px;letter-spacing:2px;cursor:pointer;margin-top:4px}.stars b{color:#ffd33a}.stars span{color:#f04a44}',
@@ -223,6 +231,15 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["no sends", "`).join('')}`:''}</span></a>", "`).join('')}`:''}<br><span style=\"font-size:10.5px;color:#ff5a52\">Video links are not in this preview</span></span></div>"],
   ["no sends", "<a href=\"${prEsc(u)}\" target=\"_blank\" rel=\"noopener\" class=\"ld\" style=\"display:flex;gap:8px", "<div class=\"ld\" style=\"display:flex;gap:8px"],
   ["no sends", "<span>${prEsc(t)}</span></a>`).join('');}", "<span>${prEsc(t)}<br><span style=\"font-size:10.5px;color:#ff5a52\">Links are not in this preview</span></span></div>`).join('');}"],
+  // Player (owner, 12 Nov 2026): Tally and Scout's Matchup, Breakouts, Layers
+  // and Games work as the coach app's do. The code is tools/teaser_coachplay.js.
+  ["coach tally", "function renderTally(){if(MODE==='tally')TSCOPE=null;", "function renderTally(){if(MODE==='tally'){cpTally();return;}if(MODE==='tally')TSCOPE=null;", ["player"]],
+  ["coach scout", "  if(scView==='log')return renderScoutBreakouts();\n  if(scView==='layers')return renderScoutLayers();\n  if(scView==='games')return renderGames();", "  if(scView==='log')return cpBreakouts();\n  if(scView==='layers')return cpLayers();\n  if(scView==='games')return cpGames();", ["player"]],
+  ["coach scout", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');}return;}", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');cpMatchup(P);}return;}", ["player"]],
+  ["coach scout", 'data-scview="matchup">Matchup &amp; Sim<', 'data-scview="matchup">Matchup<', ["player"]],
+  ["coach scout", 'data-scview="layers">Historical layers<', 'data-scview="layers">Layers<', ["player"]],
+  ["coach scout", 'data-scview="games">Games &amp; replay<', 'data-scview="games">Games<', ["player"]],
+  ["coach scout", "Games &amp; replay and Historical layers are open too.", "Breakouts, Layers and Games read the sheets you keep on Tally.", ["player"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -266,8 +283,20 @@ function walkBlock(src) {
   return old.test(src) ? src.replace(old, () => block) : src;
 }
 
+// The coach app's Tally and Scout (Player only), between markers too.
+const PLACE = fs.readFileSync(path.join(__dirname, "teaser_coachplay.js"), "utf8").trimEnd();
+const P0 = "/* coachplay:begin \u2014 generated from tools/teaser_coachplay.js, never hand-edit */", P1 = "/* coachplay:end */";
+function placeBlock(src, kind) {
+  if (kind !== "player") return src;
+  const a = src.indexOf(P0), b = src.indexOf(P1), block = P0 + "\n" + PLACE + "\n" + P1 + "\n";
+  if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + P1.length + 1);
+  const at = src.indexOf("function tallyClick(e){try{");
+  return at < 0 ? src : src.slice(0, at) + block + src.slice(at);
+}
+
 function apply(src, kind) {
   src = walkBlock(src);
+  src = placeBlock(src, kind);
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step applies wherever what it looks for is still in the file. A step whose
   // result contains what it looks for is skipped once that result is there, or
@@ -285,7 +314,16 @@ function apply(src, kind) {
     src = src.split(from).join(to);
   }
   src = require("./teaser_field_view").apply(src, kind);
-  return require("./rulebook-links").preview(src);
+  src = require("./rulebook-links").preview(src);
+  if (kind === "player") {
+    const start = "<!-- player-selection:begin -->", end = "<!-- player-selection:end -->";
+    const code = fs.readFileSync(path.join(__dirname, "teaser_selection.js"), "utf8").trimEnd();
+    const block = start + "\n<script>\n" + code + "\n</script>\n" + end;
+    const a = src.indexOf(start), b = src.indexOf(end);
+    src = a >= 0 && b > a ? src.slice(0, a) + block + src.slice(b + end.length)
+      : src.replace("</body>", block + "\n</body>");
+  }
+  return src;
 }
 
 const check = process.argv.includes("--check");

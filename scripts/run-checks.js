@@ -6,6 +6,8 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
+  "code-rollover": "test/code-rollover.cjs",
+  "tally-reset": "test/tally-reset.cjs",
   "ask-first": "test/ask-first.cjs",
   "data-audit": "test/data-audit.cjs",
   "interaction-audit": "test/interaction-audit.cjs",
@@ -16,7 +18,9 @@ const SUITES = {
   "rulebooks": "test/rulebooks.cjs",
   "coach-home": "test/coach-home.cjs",
   "field-visible": "test/field-visible.cjs",
+  "scout-ends": "test/scout-ends.cjs",
   "device-season": "test/device-season.cjs",
+  "practice-sessions": "test/practice-sessions.cjs",
   "teaser-browser": "test/teaser-browser.cjs",
   "player-overview": "test/player-overview.cjs",
   "player-percentages": "test/player-percentages.cjs",

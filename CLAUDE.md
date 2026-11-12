@@ -407,6 +407,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     directions all stay in the frame they were set in. The field marks your
     end with a bar in your colour.
 
+    Scout keeps **Switch ends** and **Swap every point** beside its match
+    controls on every sub-tab, naming both teams' ends from the current sheet.
+    Reuse `endsChip(true)` and the existing `switchEnds` history; never swap
+    team identities, scores or earlier points to turn the field. A watched
+    game's labels are its home and away teams, not an unrelated pit selection.
+    `test/scout-ends.cjs` holds the controls, history and phone/tablet fit.
+
 30. ~~The clock between points.~~ Done — X-Ball gives a coach a set time from
     the hang to the next buzzer to call the break and set his five, and it is
     the only clock in the app he runs himself: the point clock and the match
@@ -1392,6 +1399,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     available yet. They keep their own `gridlock_*` storage keys and never a
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
+    Player's **Clear team** in Tally and Scout clears the selected opponent,
+    never the team joined with a code. Confirm against the current selection
+    and sheet; retain all scored points, scouting notes and player history.
+    Clearing the right pit starts a blank sheet when match sheets are present,
+    only after that transition is saved. A refused save keeps the selection.
+    Edit `tools/teaser_selection.js` and run `node tools/teaser_rules.js`.
     On 11 Nov 2026 the owner asked for the Player preview in the coach
     app's look. `tools/teaser_theme.py` recolours it in place: black ground,
     red secondary type, the coach field's dark ground and its bunker ramps
@@ -1418,6 +1431,23 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     2026): `teasers/player/wordmark.jpg`, cut from `site/img/logo-gridlock.jpg`
     to 72 px with its black lifted to the header's #0b0c0d, written into the
     header by `tools/teaser_fields.js`. No blend mode; Team keeps its mark.
+    The Player preview's Tally and Scout work as the coach app's (owner,
+    12 Nov 2026), with no screen added: Tally is the break chart (who you
+    play from the right pit, the point counted inside one match, We won it /
+    They won it, Back a point, Next point, right or wrong read, 1 · Where
+    they went and 2 · What happened — opening on step 2 — the man's sheet as
+    the coach's, the route drawn round the bunkers, Where the points come
+    from, the point's log); Scout keeps Matchup, Breakouts, Layers and Games,
+    named as the coach names them, each reading the same sheets (their five
+    and their call, outs and rotations, every sheet point by point). Counts
+    only, no win% model. Stored under the Player app's own `gridlock_sheets`.
+    The code is `tools/teaser_coachplay.js`, inserted between the `coachplay`
+    markers by `tools/teaser_rules.js` (Player only); the Team preview keeps
+    its own tally.
+    Every Scout field takes a tap (owner, 12 Nov 2026): with nobody in the
+    right pit it says so and moves to the pit's picker; with a team, a tap on
+    Matchup, Layers or Games starts their five on Breakouts, and Log their
+    five opens each man's details there, the next after each Log.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
@@ -1539,8 +1569,38 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
       after redraw. The game clock remains the official's, never run here.
     `test/split-deck.cjs` covers the flow, timing, copy import and phone/tablet
     layouts; `docs/RULES-CHECK.md` records the verified timing distinction.
+89. **Player practice results, not session numbers.** The 11 November Pocket
+    recordings are indexed in `docs/RECORDING-NOTES-2026-11-11.md`. Practice in
+    the separate Player preview labels the drill's unit, numbers sessions for
+    the player, validates counts/times/ratings/dates and opens the recorded
+    drill's chart immediately after a confirmed local save. Hit drills keep
+    their fixed denominator: 1 of 10 is 10%, never a bare invented percentage.
+    Starting a fresh chart archives earlier entries after a second tap; history,
+    full backups and manual practice shares retain them. Restoring the chart
+    does not duplicate entries. Never claim an immutable audit or coach
+    verification from local data or a typed team code. Sharing is an explicit
+    manual snapshot, not automatic team access. No price or permissions change
+    is authorized by these recordings. `test/practice-sessions.cjs`.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
+directly in the folded Team codes reference. Saved whole-team bunker names
+show on their fields even with Names off; the full official key still follows
+the Names control. Read the same layout-scoped `bunkerCalls` as Codes, never a
+second copy. A word being typed is not saved; personal words stay on cards.
+Edits, clearing, reload and season restore must refresh both recording screens
+without changing a match, point, score, observation or another field's names.
+`test/code-rollover.cjs` checks these paths and phone/tablet layouts.
+Tally reset (owner, 12 Nov 2026): Reset match starts fresh and keeps the old
+sheet under Matches. Clear point asks first and removes only that match's
+selected point: every SHEET_LISTS row, scouting break and explicit lineup.
+Do not renumber later points or erase another match, season observations,
+rosters or bunker codes. Undo clear is one in-memory snapshot and refuses
+newer work, another account, field or point, stale tabs, reload and restore.
+Preview confirmation names the exact point and contents. A new point closes
+the earlier-point list views. Keep recording-depth and format preferences.
+`test/tally-reset.cjs` holds these data and phone/tablet checks.
 
 Confirmations and messages (12 Nov 2026): every "are you sure" goes through
 `askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is

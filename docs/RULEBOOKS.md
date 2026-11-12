@@ -10,7 +10,7 @@ fingerprints are recorded in `docs/rulebooks.json`.
 | Divisional X-Ball, 2026 | Divisional X-Ball | https://www.nxlpaintball.com/divisional-x-ball-rulebook |
 | Pro X-Ball, 2026 | Professional division | https://www.nxlpaintball.com/pro-x-ball-rulebook |
 
-Coach: **More > Rules**. Team and Player previews: **Rules** in the header.
+Coach: **More > Rules**. Player: **More > Rules**, above Nexus. Team: **Rules** tab, before Nexus.
 Opening a source needs a connection and a deliberate tap. The source opens in
 a new tab with no opener or referrer. Save its PDF to the device before an
 event if it is needed without signal. These are reference links, not a claim

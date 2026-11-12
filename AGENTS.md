@@ -41,11 +41,23 @@ the same page:
 ### Where things stand (keep this current when you change one)
 
 - **Tally and Scout keep the field in view.** Coach's empty sheet shows the field below its opponent picker; Scout's full team cards sit below its field. Compact Tally keeps a reference field. Player returns to the field when opening Tally/Scout and fits it on landscape tablets. Generate its layout wrapper from `tools/teaser_field_view.js` through `node tools/teaser_rules.js`; never reset teams or recorded points to fix a view.
+- **Player's Clear team** clears a selected Tally/Scout opponent, not the joined team.
+  It preserves saved history; `tools/teaser_selection.js` is its generated source.
+- **Scout field ends**: every Scout view has Switch ends and Swap every point
+  beside its match controls, with both teams' ends named and earlier points preserved.
+- **Saved codes on the sideline**: Tally and every Scout view read the saved
+  code-word list. Their fields show saved team bunker names even with Names
+  off; names remain scoped to the layout and personal words stay on cards.
+- **Tally point controls**: Clear point removes only the selected point, with
+  a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
+  points closes earlier-point list views; recorded history is never a filter.
 
-- **Rules** is in Coach's More dashboard and the Team/Player preview headers.
+- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab before Nexus.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 
 - **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.
+- **Recording feedback, 11 November**: `docs/RECORDING-NOTES-2026-11-11.md` covers all three Pocket recordings and distinguishes existing PRs from undecided pricing and permissions.
+  Player Practice logs measured results, shows the chart immediately, and can start a fresh chart while keeping history. Results and manual shares stay self-reported.
 
 - **Player status at a glance**: Tally and Scout show the current point's recorded Alive/Dead, Shooting and Diving beside each player; missing status stays unknown. The popup reads the newest matching check, as percentages do.
 - **Team and Player previews** stay separate in `teasers/`; never load them from coach builds or use `gridlock.coach.*` keys.
