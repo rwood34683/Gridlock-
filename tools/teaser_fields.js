@@ -182,6 +182,17 @@ function patchCode(src) {
   });
   // The mark beside the name is the one accent, not a red-and-blue wheel.
   src = src.replace("background:conic-gradient(from 210deg,#e5252a,#ad1515,#3d8bff,#e5252a)", "background:linear-gradient(180deg,#e5252a,#ad1515)");
+  // The Player preview leads with the owner's wordmark (12 Nov 2026), not a
+  // red square beside the word in type. It is the site's artwork, cut to the
+  // header's height with its black lifted to the header's #0b0c0d, so it sits
+  // on the bar with no box and no blend mode. "PLAYER EDITION" stays beside it.
+  if (/const EDITION='player'/.test(src)) {
+    const mark = "data:image/jpeg;base64," + fs.readFileSync(path.join(ROOT, "teasers/player/wordmark.jpg")).toString("base64");
+    const img = `<h1 class="wordmark"><img src="${mark}" alt="Gridlock" width="112" height="28"></h1>`;
+    src = src.replace(/<div class="logo"><\/div><h1>GRIDLOCK<\/h1>|<h1 class="wordmark"><img src="data:image\/jpeg;base64,[A-Za-z0-9+/=]+" alt="Gridlock" width="112" height="28"><\/h1>/, img);
+    if (!src.includes(".wordmark{"))
+      src = src.replace(".brand{display:flex;align-items:center;gap:9px}", ".brand{display:flex;align-items:center;gap:9px}.wordmark{margin:0;line-height:0;flex:none}.wordmark img{display:block;height:28px;width:auto}");
+  }
   // Three apps, three names on a home screen: all of them installed as "Gridlock".
   src = src.replace(/<meta name="apple-mobile-web-app-title" content="[^"]*"\/>/, `<meta name="apple-mobile-web-app-title" content="GL ${/const EDITION='team'/.test(src) ? "Team" : "Player"}"/>`);
   return src;

@@ -57,8 +57,11 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     await p.goto(base+"/teasers/"+kind+"/");await scan("start");assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(11, 12, 13)");
     if(kind==="player"){await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();await scan("joined");}
     const tabs=await p.locator(".tabs button:visible").evaluateAll(es=>es.map(e=>e.dataset.m));
-    assert.deepEqual(tabs,kind==="player"?["tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","nexus"]);
-    for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();await scan("tab-"+tab);
+    assert.deepEqual(tabs,kind==="player"?["tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","rules","nexus"]);
+    for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();
+     // Rules opens the rulebook window over the screen; it is closed before the screen is read.
+     if(tab==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}
+     await scan("tab-"+tab);
      if(kind==="player"&&tab==="tally"){await p.locator('#field [data-bid]').first().click();await scan('tally-picked');await p.locator('.tabs button[data-m="tally"]').click();}
      if(kind==="player"&&tab==="scout"){
       const pick=p.locator('.pickSel').first(),value=await pick.locator('option').evaluateAll(es=>es.find(e=>e.value).value);await pick.selectOption(value);await scan('scout-picked');
@@ -66,8 +69,8 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
      }
      if(tab==="more"){
       const items=await p.locator("#moreMenu button").evaluateAll(es=>es.map(e=>({attr:e.hasAttribute("data-mm")?"data-mm":"data-lock",value:e.dataset.mm||e.dataset.lock})));
-      assert.deepEqual(items.map(i=>i.value),["practice","nexus","team","myline","msg","play","lineup","move","assess","codes"]);
-      for(const item of items){if(!await p.locator("#moreMenu").isVisible())await p.locator("#moreBtn").click();await p.locator('#moreMenu ['+item.attr+'="'+item.value+'"]').click();await scan("more-"+item.value);for(const close of await p.getByRole("button",{name:/^(Close|Got it|OK|Back)$/i}).all())if(await close.isVisible())await close.click();}
+      assert.deepEqual(items.map(i=>i.value),["practice","rules","nexus","team","myline","msg","play","lineup","move","assess","codes"]);
+      for(const item of items){if(!await p.locator("#moreMenu").isVisible())await p.locator("#moreBtn").click();await p.locator('#moreMenu ['+item.attr+'="'+item.value+'"]').click();if(item.value==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}await scan("more-"+item.value);for(const close of await p.getByRole("button",{name:/^(Close|Got it|OK|Back)$/i}).all())if(await close.isVisible())await close.click();}
      }
     }
     assert.deepEqual(errors,[]);assert.deepEqual(dialogs,[]);
