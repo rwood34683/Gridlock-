@@ -3078,7 +3078,7 @@ window.calKindRename = (id, v) => {
 window.calKindDrop = id => {
   const k = calKindsMine().find(x => x.id === id); if(!k) return;
   const used = (S.calEvents || []).filter(e => e && e.kind === id).length;
-  if(used && !askFirst(`Take ${k.name} off the + Create list? The ${used} on the calendar stay, as Other.`)) return;
+  if(used && !askFirst(`Take ${k.name} off the + Create list? The ${used} on the calendar stay, as Other.`, ["calendar-kind", id, k])) return;
   S.calEvents = (S.calEvents || []).map(e => e && e.kind === id ? {...e, kind: "other"} : e);
   S.calKinds = calKindsMine().filter(x => x.id !== id); markGone("calKinds", id);
   flash(`${k.name} is off the list.`); save(S); render();
@@ -3135,7 +3135,7 @@ window.calSave = () => {
 window.calEdit = id => { const e = (S.calEvents || []).find(x => x.id === id); if(e) { set({calNew: {...e}}); requestAnimationFrame(() => { const el = document.getElementById("cal-new"); if(el) el.scrollIntoView({behavior: "smooth", block: "start"}); }); } };
 window.calDrop = id => {
   const e = (S.calEvents || []).find(x => x.id === id); if(!e) return;
-  if(!askFirst(`Take ${e.title} on ${calSpanName(e)} off the calendar${calSpan(e).length > 1 ? " — every day of it" : ""}? It is not kept anywhere else.`)) return;
+  if(!askFirst(`Take ${e.title} on ${calSpanName(e)} off the calendar${calSpan(e).length > 1 ? " — every day of it" : ""}? It is not kept anywhere else.`, ["calendar-event", id, e])) return;
   S.calEvents = S.calEvents.filter(x => x.id !== id); markGone("calEvents", id); S.calOpen = null;
   flash(`${e.title} is off the calendar.`); save(S); render();
 };
@@ -3808,7 +3808,7 @@ window.dropRecoveryCopy = async key => {
       // The wait or the confirmation may outlive the copy the coach selected.
       // Never remove a newer copy under the same key.
       if(localStorage.getItem(key) !== c.text) return false;
-      if(!askFirst("Delete this recovery copy? What it holds is not kept anywhere else.")) return false;
+      if(!askFirst("Delete this recovery copy? What it holds is not kept anywhere else.", ["recovery", key, c.text])) return false;
       if(localStorage.getItem(key) !== c.text) return false;
       localStorage.removeItem(key);
     }catch(e){ return false; }
@@ -4415,7 +4415,7 @@ window.deleteField = key => {
   // A blank sheet that followed him onto the field was not played on it.
   const sheets = (S.matches || []).filter(m => m && m.layout === key && !sheetEmpty(m)).length;
   if(sheets){ flash(`${sheets} sheet${sheets === 1 ? " was" : "s were"} played on ${f.name}, so the field stays — they are read on it.`); return; }
-  if(f.bunkers.length && !askFirst(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`)) return;
+  if(f.bunkers.length && !askFirst(`Delete ${f.name} and its ${f.bunkers.length} bunkers?`, ["field", key, f])) return;
   S.fields = S.fields.filter(x => x.key !== key);
   markGone("fields", key);
   if(FIELD_MAPS[key]){ delete FIELD_MAPS[key]; keepMaps(); }
@@ -5293,7 +5293,7 @@ window.useFmt = id => {
 };
 window.dropFmt = id => {
   const p = (S.fmts || []).find(x => x.id === id); if(!p) return;
-  if(!askFirst(`Delete the saved format ${p.name}?`)) return;
+  if(!askFirst(`Delete the saved format ${p.name}?`, ["format", id, p])) return;
   S.fmts = S.fmts.filter(x => x.id !== id); save(S); render();
 };
 // The four answers for one pair, each with where it came from. A value
@@ -6136,7 +6136,7 @@ window.dropPlay = k => {
   // A play he built is work — five taps a field — and the calls logged under
   // it are his record. Delete asks when there is either, and the calls keep
   // the play's name afterwards rather than printing its key.
-  if(bits && !askFirst(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`)) return;
+  if(bits && !askFirst(`${callName(k)} has ${bits}. Delete it? The calls logged keep its name; the five on each field is gone.`, ["play", k, p])) return;
   const name = callName(k);   // read before the play goes, or the flash prints its key
   markGone("plays", k);
   // The name stays behind where anything still names the key — a call, their
@@ -6542,7 +6542,7 @@ window.delPlayer = i => {
   const list = [...(S.roster || [])];
   const gone = (list[i] || {}).name;
   const has = gone ? manHas(gone) : {any: false, text: ""};
-  if(has.any && !askFirst(`${gone} has ${has.text} on your sheets. Take him off the squad? What he did stays under his name — nothing logged is deleted.`)) return;
+  if(has.any && !askFirst(`${gone} has ${has.text} on your sheets. Take him off the squad? What he did stays under his name — nothing logged is deleted.`, ["player", i, list[i]])) return;
   list.splice(i, 1);
   S.roster = list;
   // He also has to come off any point he was written into, or the five reads
@@ -7420,7 +7420,7 @@ window.loadCopy = (mode, suppliedText, checkedRestore) => {
   // sentence above a file box — one tap, no question. When the phone holds a
   // season, it asks, and names what it would throw away.
   if(mode === "replace" && seasonHere() && checkedRestore !== ACCOUNT_RESTORE){
-    if(!askFirst(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`)){
+    if(!askFirst(`Replace what is on this phone — ${copySummary(S)} — with this copy? It is thrown away. Save a copy of this phone first if any of it matters.`, ["replace", copyDraft])){
       S.copyStatus = "Nothing replaced. Save a copy of this phone first, then come back."; save(S); render(); return;
     }
   }
@@ -8874,7 +8874,7 @@ window.addWalk = () => {
 };
 window.delWalk = i => {
   const list = [...walkNotes()], was = list[i];
-  if(was && !askFirst(`Take this note off ${was.where || "the field"}? It is not kept anywhere else.`)) return;
+  if(was && !askFirst(`Take this note off ${was.where || "the field"}? It is not kept anywhere else.`, ["walk", S.layoutKey, i, was])) return;
   list.splice(i, 1);
   S.walk = {...(S.walk || {}), [S.layoutKey]: list}; save(S); render();
 };
@@ -9003,7 +9003,7 @@ window.editCode = (i, field, value) => {
 };
 window.delCode = i => {
   const list = [...(S.codes || [])], was = list[i];
-  if(was && !askFirst(`Take "${was.word || was.code || "this word"}" out of the codes?`)) return;
+  if(was && !askFirst(`Take "${was.word || was.code || "this word"}" out of the codes?`, ["code", i, was])) return;
   list.splice(i, 1);
   S.codes = list; save(S); render();
 };
@@ -12100,7 +12100,7 @@ window.delScoutPlayer = (side, i) => {
   S.pasteNote = "";   // "Added 5." beside four men is a count that is no longer true
   const p = (pitOf(side).players || [])[i]; if(!p) return;
   const has = theirManHas(p), who = theirTag(p) || "This man";
-  if(has.any && !askFirst(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`)) return;
+  if(has.any && !askFirst(`${who} has ${has.text}. Take him off the card? What was logged stays under his number — nothing is deleted.`, ["scout-player", side, i, p])) return;
   editProfile(side, {players: pitOf(side).players.filter((_, k) => k !== i)});
   flash(has.any ? `${who} is off the card. What is logged stays (${has.text}).` : `${who} is off the card.`);
 };
@@ -15725,7 +15725,7 @@ window.playGame = (id, which) => {
    off rather than deleted out of the list. His own are simply removed. */
 window.dropGame = id => {
   const g = gameById(id); if(!g) return;
-  if(!askFirst(`Take ${g.h} v ${g.a} off the list?`)) return;
+  if(!askFirst(`Take ${g.h} v ${g.a} off the list?`, ["game", id, g])) return;
   if(g.seed) S.gamesOff = [...new Set([...(S.gamesOff || []), id])];
   else S.games = (S.games || []).filter(x => x.id !== id);
   set({gameOpen: S.gameOpen === id ? null : S.gameOpen});
@@ -15994,7 +15994,7 @@ window.delSheet = id => {
   const m = matchById(id); if(!m) return;
   const pts = (S.results || []).filter(r => r && r.m === id).length, rest = sheetSize(m) - pts;
   const what = [pts ? `${pts} ${pts === 1 ? "point" : "points"} scored` : "", rest ? `${rest} ${rest === 1 ? "thing" : "things"} logged` : ""].filter(Boolean).join(" and ");
-  if(what && !askFirst(`Delete ${matchLabel(m)} — ${what}? It goes from the record, self-scout and every read, and it cannot be undone. Save a copy first if any of it matters.`)) return;
+  if(what && !askFirst(`Delete ${matchLabel(m)} — ${what}? It goes from the record, self-scout and every read, and it cannot be undone. Save a copy first if any of it matters.`, ["sheet", id, m])) return;
   const label = matchLabel(m);
   if(id === S.matchId) openSheet({vs: ""});
   dropSheetRows(id);
@@ -16835,7 +16835,7 @@ window.resetArrivalSightings = () => {
   const rows = arrivalSightings(), shots = arrivalShots();
   if(!rows.length && !shots.length){ S.arrival = {...(S.arrival || {}),notice:"Nothing recorded on this point to clear."}; render(); return; }
   const what = [rows.length ? `${rows.length} sighting${rows.length===1?"":"s"}` : "", shots.length ? `${shots.length} shot${shots.length===1?"":"s"}` : ""].filter(Boolean).join(" and ");
-  if(!askFirst(`Clear ${what} for this opponent, match and point?`)) return;
+  if(!askFirst(`Clear ${what} for this opponent, match and point?`, ["sightings", rows, shots])) return;
   const ids = new Set(rows.map(o=>o.id)), hids = new Set(shots.map(o=>o.id));
   S.arrivalSightings = (S.arrivalSightings || []).filter(o=>!ids.has(o.id));
   S.arrivalShots = (S.arrivalShots || []).filter(o=>!hids.has(o.id));
@@ -18151,13 +18151,13 @@ window.setClass = (code, key, val) => {
 // sign-ins with it, and asks first when anyone has signed.
 window.delClass = code => {
   const n = (S.responses || []).filter(r => r && r.code === code).length;
-  if(n && !askFirst(`Delete this class and its ${n} sign-in${n === 1 ? "" : "s"}? This cannot be undone.`)) return;
+  if(n && !askFirst(`Delete this class and its ${n} sign-in${n === 1 ? "" : "s"}? This cannot be undone.`, ["class", code, (S.responses || []).filter(r => r && r.code === code)])) return;
   S.classes = (S.classes || []).filter(c => c.code !== code);
   S.responses = (S.responses || []).filter(r => !(r && r.code === code));
   save(S); render();
 };
 window.dropResponse = (code, name) => {
-  if(!askFirst(`Take ${name} off this sheet? What they wrote on signing in goes with them.`)) return;
+  if(!askFirst(`Take ${name} off this sheet? What they wrote on signing in goes with them.`, ["response", code, name])) return;
   S.responses = (S.responses || []).filter(r => !(r && r.code === code && r.name === name));
   save(S); render();
 };
@@ -18299,7 +18299,7 @@ window.renameGroup = (id, v) => {
 window.delGroup = id => {
   const g = (S.groups || []).find(x => x.id === id); if(!g) return;
   const n = (g.members || []).length;
-  if(n && !askFirst(`Delete ${g.name} and its ${n} ${n === 1 ? "member" : "members"}? The blasts already logged keep their text.`)) return;
+  if(n && !askFirst(`Delete ${g.name} and its ${n} ${n === 1 ? "member" : "members"}? The blasts already logged keep their text.`, ["group", id, g])) return;
   S.groups=S.groups.filter(g=>g.id!==id);
   if(S.blastTo) S.blastTo=S.blastTo.filter(x=>x!==id);
   save(S); render();
@@ -18320,7 +18320,7 @@ window.addMem = id => {
 };
 window.delMem = (id,i) => {
   const g = (S.groups || []).find(x => x.id === id), was = g && g.members[i];
-  if(was && !askFirst(`Take ${was.name || "this member"} off ${g.name}? Their number is not kept anywhere else.`)) return;
+  if(was && !askFirst(`Take ${was.name || "this member"} off ${g.name}? Their number is not kept anywhere else.`, ["member", id, i, was])) return;
   S.groups=S.groups.map(g=>g.id===id?{...g,members:g.members.filter((_,k)=>k!==i)}:g); save(S); render();
 };
 // Text the app hands over — a card, a class link, a blast. The phone app has
@@ -20469,7 +20469,7 @@ function recoveryCopiesSec(){
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];
-  if(was !== undefined && !askFirst(`Take this note off the squad list? It is not kept anywhere else.`)) return;
+  if(was !== undefined && !askFirst(`Take this note off the squad list? It is not kept anywhere else.`, ["message", i, was])) return;
   S.messages=(S.messages||[]).filter((_,k)=>k!==i); save(S); render();
 };
 window.sendMsg = () => {
@@ -20730,7 +20730,7 @@ window.wbUndo  = () => { if(!wbMarks().length) return flash("Nothing drawn on th
 // back, so it asks first the way every other delete in here does.
 window.wbWipe  = () => {
   const n = wbMarks().length; if(!n) return flash("Nothing drawn on this board yet.");
-  if(!askFirst(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`)) return;
+  if(!askFirst(`Wipe ${n} ${n === 1 ? "mark" : "marks"} off this board? Undo cannot bring them back.`, ["board", wbMarks()])) return;
   set({wb: withWbMarks([])});
 };
 // One delegated listener, so it survives every repaint. Only live on the board.
@@ -20788,11 +20788,14 @@ var _flashAt = 0;
  * instead: the first tap says what will happen, the same tap again within
  * eight seconds goes ahead. */
 var _askArm = "", _askUntil = 0;
-function askFirst(msg){
+function askFirst(msg, target){
   if(!window.gridlockPreview) return confirm(msg);
   const text = String(msg || "");
-  if(_askArm === text && Date.now() < _askUntil){ _askArm = ""; _askUntil = 0; return true; }
-  _askArm = text; _askUntil = Date.now() + 8000;
+  // Two notes can ask the same question. The second tap must still name the
+  // same item and contents, on the same account, sheet, point and field.
+  const arm = JSON.stringify([text, target, S.email, S.matchId, S.point, S.layoutKey]);
+  if(_askArm === arm && Date.now() < _askUntil){ _askArm = ""; _askUntil = 0; return true; }
+  _askArm = arm; _askUntil = Date.now() + 8000;
   window.flash(text + " Tap the same button again to go ahead.");
   return false;
 }
@@ -20839,7 +20842,7 @@ window.flash = msg => {
    nothing logs here" over a sheet nobody had touched. A blank sheet goes with
    him; one with anything on it stays where it was played. */
 window.clearRecovery = () => {
-  if(!askFirst("Clear the unreadable saved text from this phone? Copy it first if you still need it.")) return;
+  if(!askFirst("Clear the unreadable saved text from this phone? Copy it first if you still need it.", ["unreadable", _recoveryText])) return;
   _recoveryText = "";
   try{ localStorage.removeItem(RECOVERY_KEY); }catch(e){}
   set({flash: "Cleared. The warning will not come back."});

@@ -51,6 +51,42 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.evaluate(id=>window.delSheet(id),was);assert.equal(await has(),false,"second tap deletes");
    assert.equal(dialogs.length,n);
   },{preview:true});
+  await check("the preview never confirms a different note just because its question is the same",async(p,dialogs,play)=>{
+   await play(p);const n=dialogs.length;
+   const r=await p.evaluate(()=>{
+    S.messages=[{text:"Keep A"},{text:"Keep B"}];
+    delMsg(0);const first=S.messages.map(m=>m.text);
+    delMsg(1);const other=S.messages.map(m=>m.text);
+    delMsg(1);return {first,other,last:S.messages.map(m=>m.text)};
+   });
+   assert.deepEqual(r.first,["Keep A","Keep B"]);
+   assert.deepEqual(r.other,["Keep A","Keep B"],"the other note needs its own second tap");
+   assert.deepEqual(r.last,["Keep A"]);assert.equal(dialogs.length,n);
+  },{preview:true});
+  await check("a changed note at the same position needs a fresh preview confirmation",async(p,dialogs,play)=>{
+   await play(p);
+   const r=await p.evaluate(()=>{
+    S.messages=[{text:"Old note"}];delMsg(0);
+    S.messages[0]={text:"New note"};delMsg(0);
+    const kept=S.messages.map(m=>m.text);delMsg(0);
+    return {kept,left:S.messages.length};
+   });
+   assert.deepEqual(r.kept,["New note"],"the first tap never authorized the replacement note");
+   assert.equal(r.left,0);
+  },{preview:true});
+  await check("preview confirmation is bound to the selected copy, account, match, point and field",async(p,dialogs,play)=>{
+   await play(p);
+   const r=await p.evaluate(()=>{
+    const results=[];const ask=target=>askFirst("Delete this recovery copy?",target);
+    results.push(ask(["recovery","A","old"]),ask(["recovery","B","old"]),ask(["recovery","B","new"]));
+    S.email="another@example.test";results.push(ask(["recovery","B","new"]));
+    S.matchId="another-sheet";results.push(ask(["recovery","B","new"]));
+    S.point=99;results.push(ask(["recovery","B","new"]));
+    S.layoutKey="another-field";results.push(ask(["recovery","B","new"]));
+    results.push(ask(["recovery","B","new"]));return results;
+   });
+   assert.deepEqual(r,[false,false,false,false,false,false,false,true]);
+  },{preview:true});
   await check("a message read and left does not follow the coach to the next screen",async p=>{
    await play(p);await p.evaluate(()=>window.flash("Saved on Tally."));assert.equal((await state(p)).shown,1);
    await p.waitForTimeout(1200);

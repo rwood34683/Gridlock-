@@ -63,6 +63,12 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- A preview's second-tap confirmation belongs to the selected item and its
+  contents, not just the question's words. Pass an item identity to `askFirst`
+  when two controls can ask the same question; changed copies, notes, accounts,
+  sheets, points or fields need a fresh first tap. Real browsers keep their
+  system confirmation.
+
 - Rules opens the three official 2026 rulebook source pages, only after a tap.
   Keep the shared catalog in `docs/rulebooks.json`; run `node tools/rulebook-links.js`
   after changes. This is the sole external-link exception in the Team/Player
