@@ -1163,6 +1163,10 @@ svg.field [data-pick]{cursor:crosshair}
 .cup p{max-width:72ch}
 .cup p,.cup a,.cup .list__name,.cup .list__desc,.cup h3{overflow-wrap:anywhere}
 .cup summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--ink)}
+/* A fold is a button: the two that were a line of type tall. */
+.who2--off{display:none}
+.depth-note{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:space-between;margin:0 0 var(--s3)}
+.rost__paste>summary,.codes-key>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
 .cup-about{margin-top:var(--s3)}
 .cup-pages{align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:var(--s3)}
 .cup-history article{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
@@ -3476,6 +3480,17 @@ function dayLights(day, now){
   return [...own, ...scout].sort((a, b) => gameAt(a.g) - gameAt(b.g) || (a.kind === "scout") - (b.kind === "scout"));
 }
 const lightDot = k => `<span class="daylight" style="background:${DAY_LIGHT[k][1]}" aria-hidden="true"></span><b class="daylight__word" style="color:${DAY_LIGHT[k][1]}">${DAY_LIGHT[k][0]}</b>`;
+/* Who is watching a scouting game. A plan that says "send someone" to a game
+ * that clashes with his own leaves the job with nobody: he names the person,
+ * and the row and the day plan sent to the team say who it is. A name he
+ * typed, kept on this phone beside the pits he set as running late. Saved
+ * without a redraw, because the next tap is the button beside the box. */
+function scoutWho(g){ return String((S.scoutWho || {})[g.id] || ""); }
+window.setScoutWho = (id, v) => {
+  const name = clean(v).replace(/\s+/g, " ").trim().slice(0, 24), r = {...(S.scoutWho || {})};
+  if(name) r[id] = name; else delete r[id];
+  S.scoutWho = r; save(S);
+};
 function scoutPlanSec(team, day, now){
   const rows = dayLights(day, now);
   if(!rows.length) return `<p class="note">${esc(team)}'s games on this schedule are all played.</p>`;
@@ -3492,8 +3507,10 @@ function scoutPlanSec(team, day, now){
       <span class="assign__body">${head}
       <span class="assign__who"><b>Scout ${esc(r.for.map(f => f.opp).join(" and "))}</b> — ${esc(g.h)} v ${esc(g.a)}<br>${
         r.for.map(f => `You play ${esc(f.opp)} ${esc(dayName(f.mine.d).split(",")[0])} ${esc(gameClock(f.mine))}`).join(" · ")}<br>${r.clash
-        ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — send someone</b>`
-        : "Free for you to watch"}</span></span>
+        ? `<b style="color:var(--warn)">Clashes with your ${esc(gameClock(r.clash))} game — ${scoutWho(g) ? esc(scoutWho(g)) + " is watching" : "send someone"}</b>`
+        : scoutWho(g) ? `${esc(scoutWho(g))} is watching` : "Free for you to watch"}${
+        (w => w ? `<br><b style="color:var(--ink)">Already watched · ${(sc => sc.us + "–" + sc.them)(scoreOf(w.id))}</b>` : "")((S.matches || []).find(m => m && m.watch && m.sched === g.id && !sheetEmpty(m)))}</span>
+      <input class="scout-who" style="margin-top:var(--s2)" aria-label="Who is watching ${esc(g.h)} v ${esc(g.a)}" placeholder="Who is watching?" maxlength="24" autocomplete="off" value="${esc(scoutWho(g))}" onchange="setScoutWho(${jsq(g.id)},this.value)"${onEnter("this.blur()")}/></span>
       <button class="btn btn--quiet" onclick="watchGame(${jsq(g.id)})">Watch</button></div>`;
   };
   const nextPlay = rows.find(r => r.kind !== "scout"), nextScout = rows.find(r => r.kind === "scout");
@@ -3567,7 +3584,12 @@ window.openPrep = team => { set({tab: "more", more: "prep", prepTeam: String(tea
 // Their games still to come at this event that he is not in.
 function theirGamesToWatch(team, now = Date.now()){
   const me = S.myTeam ? foldName(S.myTeam) : "";
-  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
+  // Once he has played them for the last time at this event, a later game of
+  // theirs is not one to watch for it: only games before his last game against
+  // them are offered, when he has one on the schedule.
+  const mine = me ? teamGames(S.myTeam).filter(g => foldName(across(g, S.myTeam)) === foldName(team)) : [];
+  const last = mine.length ? Math.max(...mine.map(gameAt)) : Infinity;
+  return teamGames(team).filter(g => gameAt(g) + SLOT_MIN * 60000 >= now && gameAt(g) < last && !(me && (foldName(g.h) === me || foldName(g.a) === me)));
 }
 // His next game against them, if both are on the schedule.
 function myGameVs(team, now = Date.now()){
@@ -3732,12 +3754,14 @@ function dayPlanText(team, now = Date.now()){
   const day = teamDay(team), next = day.find(d => gameAt(d.g) + SLOT_MIN * 60000 >= now);
   if(!next) return "";
   const d = next.g.d, lead = pitLead(), L = [`${team} — ${dayName(d)}`, ""];
-  day.filter(x => x.g.d === d).forEach(({g, opp}) =>
+  // Only what is still to come: a game already played, with a pit time in the
+  // past, is not part of a plan.
+  day.filter(x => x.g.d === d && gameAt(x.g) + SLOT_MIN * 60000 >= now).forEach(({g, opp}) =>
     L.push(`${gameClock(g)} v ${opp} · ${g.f || "field not printed"}${lead ? ` · at the pit by ${clockAt(gameAt(g) - lead * 60000)}` : ""}`));
   const scout = scoutPlan(day, now).filter(r => r.g.d === d);
   if(scout.length){
     L.push("", "Scouting:");
-    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? " (clashes with our game — who's going?)" : ""}`));
+    scout.forEach(r => L.push(`${gameClock(r.g)} ${r.g.h} v ${r.g.a} · ${r.g.f || "field not printed"} — for ${r.for.map(x => x.opp).join(" and ")}${r.clash ? ` (clashes with our game — ${scoutWho(r.g) ? scoutWho(r.g) + " is watching" : "who's going?"})` : scoutWho(r.g) ? ` — ${scoutWho(r.g)} is watching` : ""}`));
   }
   if(Object.keys(S.runLate || {}).some(k => k.startsWith(d + "|"))) L.push("", "Times include the pits running late.");
   return L.join("\n");
@@ -5571,7 +5595,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 function clearScratch(s = S){
   s.cupView = null; s.fmtGlance = false;
   s.tallySel = null; s.tallyDraft = null; s.tallyStep = s.tallyMode === "place" ? "place" : "record"; s.tallyEdit = null; s.tallyPlace = "";
-  s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false;
+  s.tallyRead = ""; s.tallyLast = ""; s.tallyPick = false; s.tallyMoreOpen = null;
   s.editPath = false; s.pad = null; s.replayPt = null; s.replayStep = null;
   s.helpFor = ""; s.helpQ = -1; s.promoTour = false; s.authSaid = "";
   s.verifyPhone = ""; s.verifySent = false; s.verifySaid = ""; s.pbPick = false; s.evPick = false; s.codesField = null; s.codePick = null; s.codeName = ""; s.codeWho = "";
@@ -7071,6 +7095,7 @@ function set(patch){
   // The hand-off box is the text he asked for on the screen he asked for it
   // on; it does not follow him to the next tab or section.
   if(S.handText && !("handText" in patch) && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) S.handText = null;
+  if(_fieldPic && (("tab" in patch && patch.tab !== S.tab) || ("more" in patch && patch.more !== S.more) || ("scoutTab" in patch && patch.scoutTab !== S.scoutTab))) _fieldPic = null;
   // Any call set through here is a call he picked: a picker, Call it on the
   // read line, Open on Team, a rank row on the Counter. The app's own moves
   // (fixBreak, a play turned off, the drill) write S.script directly.
@@ -7950,6 +7975,37 @@ function alignSheet(id){
   if(moving.length){ n += moving.length; book[m.vs] = {...profileOf(m.vs), breaks: [...moving, ...(profileOf(m.vs).breaks || [])]}; S.scout = book; }
   return n;
 }
+/* What was seen of a man follows the man. Both phones chart Reyes on point 1,
+ * the other phone taps Shooting in his popup, and the merge keeps this
+ * phone's row for him: the observation stayed bound to the row that went, so
+ * nothing read it and Reyes was "Not recorded". A check whose row is gone
+ * moves to the row kept for the same man on that point — his name, or for a
+ * man nobody named, his bunker — and one with no such row is dropped. */
+function rebindChecks(before){
+  const live = new Map((S.breakouts || []).filter(r => r && r.id).map(r => [r.id, r]));
+  const bound = new Set((S.playerChecks || []).filter(c => c && c.breakoutId && live.has(c.breakoutId)).map(c => c.breakoutId)), fold = [];
+  S.playerChecks = (S.playerChecks || []).map(c => {
+    if(!c || !c.breakoutId || live.has(c.breakoutId)) return c;
+    const was = before.get(c.breakoutId); if(!was) return null;
+    const same = r => r.m === was.m && r.pt === was.pt && r.side === was.side
+      && (was.player ? foldName(r.player) === foldName(was.player) : !r.player && r.bunker === was.bunker);
+    const kept = [...live.values()].filter(same), free = kept.find(r => !bound.has(r.id));
+    if(!free){
+      // The row kept already has this phone's own observation: what it does
+      // not say, the other phone's fills in, and nothing it says is hidden.
+      if(kept[0]) fold.push([kept[0].id, c]);
+      return null;
+    }
+    bound.add(free.id);
+    return {...c, breakoutId: free.id, player: free.player || ""};
+  }).filter(Boolean);
+  fold.forEach(([id, c]) => { S.playerChecks = S.playerChecks.map(x => x && x.breakoutId === id
+    ? {...x, alive: x.alive ?? c.alive ?? null, shooting: x.shooting ?? c.shooting ?? null, diving: x.diving ?? c.diving ?? null} : x); });
+  // The same sheet merged again brings the same check, bound to the row that
+  // went: moved again, it is the check this phone already holds.
+  const ids = new Set();
+  S.playerChecks = S.playerChecks.filter(c => !c || !c.id || (ids.has(c.id) ? false : (ids.add(c.id), true)));
+}
 function reconcileSheet(mid){
   let dupes = 0;
   const keepFirst = (list, keyOf) => {
@@ -8338,6 +8394,7 @@ window.loadCopy = (mode, suppliedText) => {
     if(teamsNow.length) S.copyStatus += ` · teams renamed: ${teamsNow.join(", ")}`;
     // The renames above rebuilt rows, so this phone's rows are told from the
     // copy's by id (rowKey), not by being the same objects they were.
+    const chartBefore = new Map((S.breakouts || []).filter(r => r && r.id).map(r => [r.id, r]));
     let dupes = overlapRows(shared, mineBefore);
     // A man placed on one phone and told on the other is the told man. Same
     // row (one phone placed him, sent the sheet, the other told him): the
@@ -8413,6 +8470,7 @@ window.loadCopy = (mode, suppliedText) => {
     // moved · 5 things kept once" read as if something had happened.
     if(aligned) countNotes.push(` · ${aligned} ${aligned === 1 ? "row" : "rows"} the other phone had under another team moved to the team the sheet is against here`);
     shared.forEach(id => { if(matchById(id)) dupes += reconcileSheet(id); });
+    rebindChecks(chartBefore);
     if(dupes) countNotes.push(` · ${dupes} thing${dupes === 1 ? "" : "s"} both phones logged kept once`);
     clashes.forEach((pts, id) => {
       const m = matchById(id); const list = [...new Set(pts)].sort((a, b) => a - b);
@@ -11830,6 +11888,9 @@ window.playerDetailOut = dead => {
 window.playerQuick = (field, value) => {
   const v = playerDetailData(); if(!v || !v.live) return closePlayerDetails();
   if(!["alive","shooting","diving"].includes(field) || typeof value !== "boolean") return;
+  // With nobody across the tape an observation was written onto the unnamed
+  // sheet: it stopped being blank, and picking the team no longer named it.
+  if(nobodyToPlay()){ closePlayerDetails(); return needOpponent(); }
   const now = performance.now();
   if(field !== "alive" && _playerTap?.field===field && now-_playerTap.at<350) return;
   _playerTap = {field,at:now};
@@ -11845,12 +11906,20 @@ window.playerQuick = (field, value) => {
   }
   const previous=v.check;
   if(previous && previous[field]===value && field!=="alive") return;
+  // One named man, one observation a point. A check made by his name and a
+  // second bound to his chart row (he was placed, then named) were two rows:
+  // the newer one was read and the Shooting or Diving on the older was lost.
+  // The first write after that folds them: what the newer row does not say,
+  // the older one still does, and the older rows go.
+  const twins=d.player ? (S.playerChecks || []).filter(c=>c && c!==previous && c.m===d.m && c.pt===d.pt && c.side===d.side
+    && c.layout===S.layoutKey && foldName(c.player)===foldName(d.player)).sort((a,b)=>(b.at||0)-(a.at||0)) : [];
+  const carry=k=>previous && previous[k]!=null ? previous[k] : ((twins.find(c=>c[k]!=null) || {})[k] ?? null);
   const row={id:previous?.id || "pc-"+Date.now().toString(36)+Math.random().toString(36).slice(2,9),
     m:d.m,pt:d.pt,side:d.side,layout:S.layoutKey,player:d.player,breakoutId:r?.id || "",
-    alive:previous?.alive ?? null,shooting:previous?.shooting ?? null,diving:previous?.diving ?? null,
+    alive:carry("alive"),shooting:carry("shooting"),diving:carry("diving"),
     at:Date.now(),[field]:value};
   S.playerChecks=[...(S.playerChecks || []).filter(c=>SAME.playerChecks(c)!==SAME.playerChecks(row)
-    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous))),row];
+    && (!previous || SAME.playerChecks(c)!==SAME.playerChecks(previous)) && !twins.includes(c)),row];
   if(r) S.breakouts=S.breakouts.map(x=>x.id===r.id ? {...x,todo:false} : x);
   save(S);
   _playerSaid=unsavedWork() ? "Not saved. Keep this tab open and save a copy in Account & backups."
@@ -14444,7 +14513,11 @@ function placeAt(b){
 window.editBreakout = id => {
   const r = (S.breakouts || []).find(x => x && x.id === id); if(!r) return;
   if(r.layout !== S.layoutKey){ flash(`That man was charted on ${(LAYOUTS[r.layout] || {}).name || "another field"}.`); return; }
-  S.tallyStep = "record"; S.tallyEdit = id; S.tallySel = r.bunker; S.tallyPickFor = null;
+  // His sheet lives in the break chart: with the chart put away (Score and
+  // outs, Score only) it opened nowhere, and hid the result buttons as well.
+  const back = tallyDepth() !== "full"; if(back) S.tallyDepth = "full";
+  S.tallyStep = "record"; S.tallyEdit = id; S.tallySel = r.bunker; S.tallyPickFor = null; S.tallyMoreOpen = null;
+  if(back) S.flash = "Full chart is back on, to show his sheet.";
   S.tallyDraft = {side:r.side, sideSet:true, player:r.player || "", alive:r.alive, shotFrom:r.shotFrom || "",
     entry:r.entry || "", dir:r.dir == null ? null : r.dir, shootAt:r.shootAt || "", delayed:!!r.delayed,
     movedTo:r.movedTo || "", movedDelayed:!!r.movedDelayed, routeType:r.routeType || "",
@@ -14559,6 +14632,7 @@ function tallyFieldBack(){
 }
 window.logBreakout = () => {
   const b = selBunker(); if(!b) return;
+  S.tallyMoreOpen = null;   // the next man on this bunker opens short again
   if(!matchVs()) return needOpponent();
   // Telling a placed man's story writes over his row: same id, same point.
   const editing = S.tallyEdit ? (S.breakouts || []).find(r => r && r.id === S.tallyEdit) : null;
@@ -14933,6 +15007,13 @@ function breakoutSheet(){
   const rowsPt = edRow ? breakoutsHere().filter(r => r.pt === rowPt && r.layout === S.layoutKey).sort((a, b) => a.at - b.at) : [];
   const nth = rowsPt.findIndex(r => r.id === S.tallyEdit) + 1;
   const more = tellBacklog().some(r => r.id !== S.tallyEdit);
+  // The short sheet: who, and whether he made it. Everything else is one tap
+  // away, and is shown anyway for a man who already has any of it answered,
+  // so nothing he logged is ever hidden from him. Off by default: the owner
+  // asked for every question on every tap, and that is still what it does
+  // until he chooses otherwise.
+  const answered = !!(d.entry || d.dir != null || d.shootAt || d.delayed || d.movedTo || d.routeType);
+  const short = !!S.tallyShort && !answered && S.tallyMoreOpen !== (S.tallyEdit || S.tallySel || "");
   return `<div class="tsheet" id="tally-sheet">
     <div class="btnrow" style="align-items:center">
       <span class="grow" style="min-width:min(100%,11rem)"><b style="font-size:var(--t-lg)">${esc(callOf(b))}</b>
@@ -14960,6 +15041,7 @@ function breakoutSheet(){
         <select style="flex:1 1 auto" onchange="setDraft({shotFrom:this.value})">${opts(far, d.shotFrom)}</select>
         ${d.shotFrom ? `<button class="btn btn--quiet" aria-label="Clear shot from" onclick="setDraft({shotFrom:''})">✕</button>` : ""}
       </div></div>` : ""}
+    ${short ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" data-more-about onclick="set({tallyMoreOpen:${jsq(S.tallyEdit || S.tallySel || "")}})">More about him — lane, timing, where he moved</button>` : `
     ${q("How did he get in?")}
     ${seg([[d.entry === "battle", "Battling in", flip("entry", "battle", d.entry === "battle")],
            [d.entry === "clean", "No pressure", flip("entry", "clean", d.entry === "clean")]])}
@@ -14992,7 +15074,8 @@ function breakoutSheet(){
     ${q("Route")}
     <p class="note" style="margin:0">Drawn for you, around the bunkers in the way, from the
       bunker he broke to${d.movedTo ? " and the one he moved to" : ""}${d.delayed ? " — dashed off the line, because you marked him delayed" : ""}.</p>
-    ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}
+    ${seg(ROUTE_TYPES.map(t => [d.routeType === t, esc(t), flip("routeType", t, d.routeType === t)]))}`}
+    <div class="btnrow" style="margin-top:var(--s3)"><button class="btn btn--quiet grow" aria-pressed="${!!S.tallyShort}" data-short-toggle onclick="set({tallyShort:${!S.tallyShort},tallyMoreOpen:null})">${S.tallyShort ? "Ask every question each time" : "Ask only who and whether he made it"}</button></div>
     <div class="tsheet__act"><div class="btnrow" style="flex-wrap:nowrap;margin-bottom:var(--s2)">
       <button class="btn btn--quiet grow" onclick="undoDraft()" aria-label="Undo — the last tap on this man">↶ Undo</button>
       <button class="btn btn--quiet grow" onclick="clearDraft()" aria-label="Clear all — this man's answers">Clear all</button></div>
@@ -15000,6 +15083,27 @@ function breakoutSheet(){
   </div>`;
 }
 
+/* How much he records, his choice per phone. A coach alone on the sideline
+ * in a blowout wants the score and nothing else under his thumb; one with an
+ * assistant wants every man charted. Full chart is the app as it always was
+ * and is the default; Outs puts the break chart away; Score only leaves the
+ * call, the read and who won it. It hides controls, never data: what was
+ * logged stays, and Full chart shows it again. */
+const TALLY_DEPTHS = [["full", "Full chart"], ["outs", "Score and outs"], ["score", "Score only"]];
+function tallyDepth(){ return TALLY_DEPTHS.some(d => d[0] === S.tallyDepth) ? S.tallyDepth : "full"; }
+window.setTallyDepth = d => {
+  if(!TALLY_DEPTHS.some(x => x[0] === d)) return;
+  // A sheet half-filled under a chart that is being put away is closed first.
+  set({tallyDepth: d, tallySel: null, tallyDraft: null, tallyEdit: null, tallyPickFor: null});
+  flash(d === "full" ? "Full chart: the field and every question are back." : d === "outs" ? "Score and outs: the break chart is put away. Nothing logged is removed." : "Score only: the call, the read and who won it. Nothing logged is removed.");
+  toMainTop();
+};
+function tallyDepthSec(){
+  const d = tallyDepth();
+  return sec("How much to record", `<p class="note">Choose what Tally asks for on this phone. It hides controls, never anything you logged.</p>
+    <div class="seg seg--wrap" aria-label="How much to record">${TALLY_DEPTHS.map(([k, label]) =>
+      `<button class="${d === k ? "on" : ""}" aria-pressed="${d === k}" onclick="setTallyDepth('${k}')">${label}</button>`).join("")}</div>`);
+}
 function tally(){
   const pt=sheetPoint();
   const sc=matchScore(), was=resultFor(pt);
@@ -15012,7 +15116,7 @@ function tally(){
   const isOut=(side,name)=>thisPoint.some(o=>o.side===side && o.name===name);
   // Not five minus outs: a side serving a 2-for-1 started this point with three.
   const alive=side=>Math.max(0, startUp(side, S.matchId, pt) - thisPoint.filter(o=>o.side===side).length);
-  const sel = selBunker();
+  const sel = selBunker(), depth = tallyDepth();
   const chart = breakoutsHere();
   const chartPt = chart.filter(r => r.pt === pt);
   const last = chart.find(r => r.id === S.tallyLast && r.pt === pt);
@@ -15133,8 +15237,7 @@ function tally(){
     : `<p class="note" style="margin:0">A green ring wins you points on this field, amber costs you. The number is how often your five have broken to it.</p>`);
   const valueEmpty = `<div class="empty">Nothing charted on ${esc(curLayout().name)} yet. Tap a bunker on the field above the moment a man breaks to it.</div>`;
 
-  return `${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
-
+  return `
   ${/* A fresh sheet has no opponent, and every out is stamped with who you are
         playing. Tallying against nobody logs a break the app can never attach to
         a team — so before the field, the sheet asks who, right here, and one tap
@@ -15165,7 +15268,9 @@ function tally(){
         only way into it was a button at the foot of the point sheet. On that
         one shape the offer is the first thing on the tab. */""}
   ${nobodyToPlay() ? "" : `<button class="btn btn--ghost btn--block turn-bar" onclick="openQuick()">⤢&nbsp; Quick log</button>`}
-  ${sec("Break chart", `${/* One line over the field, not three boxes: the score is
+  ${depth !== "full" ? `<div class="depth-note" data-depth-note><p class="note" style="margin:0">Recording <b>${depth === "score" ? "the score only" : "the score and outs"}</b> on this phone. The break chart is put away; nothing logged is removed.</p>
+      <button class="btn btn--quiet" onclick="setTallyDepth('full')">Show the full chart</button></div>` : ""}
+  ${depth !== "full" ? "" : sec("Break chart", `${/* One line over the field, not three boxes: the score is
         in the header too, and the field started 410 px down a phone under a
         hero score and three tiles. A watched game has no "you": the two sides
         are the two teams on it. */""}<div class="tally-head">
@@ -15190,7 +15295,11 @@ function tally(){
         <button class="btn btn--quiet" onclick="editBreakout(${jsq(last.id)})">Fix it</button>
         <button class="btn btn--quiet" onclick="undoBreakout(${jsq(last.id)})">Undo</button></div>` : "") + (step === "place" && todo ? `<button class="btn btn--lg btn--block" onclick="tallyStepTo('record')">Next · what happened to each&nbsp;→</button>` : "") + placedList}</div>`,
     matchLabel(curMatch()))}
-  ${pointPercentages("us",placeSideWord("us"))}${pointPercentages("them",placeSideWord("them"))}
+  ${/* The first-run hint sits under the chart, not over it: above the field
+        it took the room the field is fitted into, and the field was drawn a
+        third smaller until the hint was dismissed. */""}
+  ${tip("tally","Tap where each man went, then say what happened to each. Who won the point sets the score.")}
+  ${depth === "score" ? "" : pointPercentages("us",placeSideWord("us")) + pointPercentages("them",placeSideWord("them"))}
 
   <div id="point-sheet"></div>${sec("Point sheet", `
   ${/* The call, on the sheet.
@@ -15259,7 +15368,7 @@ function tally(){
              </div>`
           : `<button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="timeUp()">Time's up — match ends at this score</button>`)
         : ""}
-    <p class="note" style="margin-top:var(--s4)">Tap a player to record Alive, Dead, Shooting or Diving. Each tap saves.</p>
+    ${depth === "score" ? "" : `<p class="note" style="margin-top:var(--s4)">Tap a player to record Alive, Dead, Shooting or Diving. Each tap saves.</p>`}
     ${matchVs() && (S.right||{}).name && (S.right||{}).name !== matchVs()
       ? `<div class="fld">
            <p class="warn">This sheet is <b>${esc(matchVs())}</b>. The right pit is
@@ -15273,13 +15382,16 @@ function tally(){
           that actually charts them. */""}
     ${(curMatch()||{}).watch ? `<div class="fld">
          <p class="warn">This is a game you are <b>watching</b> — ${esc(sideWord("us"))} v
-           ${esc(sideWord("them"))}. The score and the field below still work; the five in the
-           columns are <b>your</b> roster, so chart what these two do on Scout instead.</p>
+           ${esc(sideWord("them"))}. The score and the field below still work; both columns are these
+           two teams by number, and none of your players is on this sheet. Chart their fives on Scout.</p>
          <button class="btn btn--quiet" onclick="set({tab:'scout',scoutTab:'breakouts'})">Open Scout</button>
        </div>` : ""}
-    <div class="who2">
-      ${(yw => col("us", (curMatch()||{}).watch ? `${yw} · not on this field`
-              : mine.length?yw:`${yw} · no names yet`, "var(--red)",
+    <div class="who2${depth === "score" ? " who2--off" : ""}">
+      ${/* On a watched game the left column is the home side by number, never
+            his roster: a man of his tapped out there was filed under the home
+            team in that sheet's review. */""}
+      ${(curMatch()||{}).watch ? col("us", esc(sideWord("us")), "var(--red)", Array.from({length: sideSize()}, (_, i) => "#" + (i + 1)))
+        : (yw => col("us", mine.length?yw:`${yw} · no names yet`, "var(--red)",
             mine.length?mine.map(p=>p.name):Array.from({length:sideSize()},(_,i)=>String(i+1))))(sideSize()===5?"Your five":`Your ${sideSize()}`)}
       ${col("them",esc((curMatch()||{}).watch ? sideWord("them") : (matchVs()||"Them")),"var(--blue)",theirNames())}
     </div>
@@ -15357,16 +15469,16 @@ function tally(){
     ${reads.length ? `<p class="note">Reads this match: <b style="color:var(--ink)">${right} right</b> · ${reads.length-right} wrong
       · ${Math.round(100*right/reads.length)}% right.</p>` : ""}
     <button class="btn btn--ghost btn--block" onclick="openQuick()">⤢&nbsp; Quick log</button>
-    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="newMatch()">New match</button>`}`,
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet btn--block" onclick="freshMatch()">New match</button>`}`,
     matchLabel(curMatch()))}
 
-  ${sec("Where the points come from", value.length && !S.tallyValueOpen
+  ${depth !== "full" ? "" : sec("Where the points come from", value.length && !S.tallyValueOpen
       ? `${valueSeg}${unevenBlock}${best && best.net > 0 ? `<p class="note" style="color:${bestColour}">${bestWord}: <b>${named(best.id)}</b> — +${best.net} on ${breaks(best.att)}.</p>` : ""}
          ${worst && worst.net < 0 ? `<p class="note" style="color:${worstColour}">${worstWord}: <b>${named(worst.id)}</b> — ${worst.net} on ${breaks(worst.att)}.</p>` : ""}
          <button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:true})">Every bunker · ${value.length} ${value.length === 1 ? "row" : "rows"}</button>`
       : valueSeg + unevenBlock + (value.length ? valueTable + `<button class="btn btn--quiet btn--block" onclick="set({tallyValueOpen:false})">Fold the table</button>` : valueEmpty), curLayout().name)}
 
-  ${chart.length ? sec("Breakouts", `<div class="assigns">
+  ${depth === "full" && chart.length ? sec("Breakouts", `<div class="assigns">
       ${(S.tallyAllBreaks ? chart.slice(0,40) : chartHere).map(r=>`<div class="assign">
         <span class="assign__n" style="background:${r.side==="them"?"var(--blue)":"var(--red)"};font-size:11px">${r.pt}</span>
         <span class="assign__body"><span class="assign__job">${esc(describeBreakout(r))}</span>
@@ -15379,7 +15491,7 @@ function tally(){
       : `${chart.length>40?`<p class="note">Showing the last 40 of ${chart.length}.</p>`:""}<button class="btn btn--quiet btn--block" onclick="set({tallyAllBreaks:false})">Only point ${pt}</button>`}`,
     chart.length+" on this sheet") : ""}
 
-  ${sec("Log", outs.length?`<div class="assigns">
+  ${depth === "score" ? "" : sec("Log", outs.length?`<div class="assigns">
       ${(S.tallyAllOuts ? outs.slice(0,40) : outsHere).map(o=>{
         // The log shows this match; Undo and the pickers write to the season.
         // So the index handed to them is the row's real place in S.tally, not
@@ -15411,7 +15523,7 @@ function tally(){
       ? `${outsHere.length ? `<p class="note">Bunkers can be set on the point you are on.</p>` : `<p class="note">No outs on point ${pt} yet.</p>`}${outs.length > outsHere.length ? `<button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:true})">Show all ${outs.length} on this sheet</button>` : ""}`
       : `<p class="note">${outs.length>40?`Showing the last 40 of ${outs.length}. `:""}Bunkers can be set on the point you are on.</p><button class="btn btn--quiet btn--block" onclick="set({tallyAllOuts:false})">Only point ${pt}</button>`}`
     : `<div class="empty">No outs yet. Tap a player above the moment he walks.</div>`,
-    outs.length?outs.length+" on this sheet":"")}${resultBar()}`;
+    outs.length?outs.length+" on this sheet":"")}${tallyDepthSec()}${resultBar()}`;
 }
 /* We won it / They won it, fixed to the foot of Tally whenever a point can
  * be scored. Not while a man's breakout sheet is open — that sheet has its own
@@ -15691,6 +15803,7 @@ window.nextPoint = () => {
   S.point=(S.point||1)+1; clearPointScratch(); save(S); render();
 };
 function clearPointScratch(){
+  S.tallyMoreOpen = null;
   S.theirPick = []; S.theirFix = null; S.theirLast = 0; _pickHist = []; _draftHist = {key: "", list: []}; S.tallySel = null; S.tallyLast = ""; S.tallyRead = ""; S.tallyDraft = null; S.tallyPickFor = null; S.penOpen = false;
   // A new point starts the way he charts — telling each man as he taps, or
   // placing all of them first — and by half: Theirs set for one man who
@@ -15722,7 +15835,7 @@ window.tapBack = () => {
 // on a finished sheet that is New match: a reflex double tap closed the sheet.
 window.tapNewMatch = () => {
   if(inGuard()){ _lastEnd = {..._lastEnd, at: 0}; return flash("That point ended the match. Tap New match again to start the next sheet."); }
-  window.newMatch();
+  window.freshMatch();
 };
 // Next point redraws in the same place, so a double tap skipped two points.
 let _lastNext = null;
@@ -15858,6 +15971,19 @@ window.backPoint = () => {
  * it. But it is a boundary you cannot undo by tapping again, so a match with
  * anything in it asks first.
  */
+// New match starts blank when the sheet in play was played and the right pit
+// does not already hold a different, next team.
+function newMatchBlank(){
+  const cur = curMatch();
+  // A watched game is two teams he never picked as an opponent: New match
+  // after it starts blank even when nothing was logged, or the away side in
+  // the right pit became the team he "plays".
+  // unless he has since put a different, next team in the right pit.
+  if(!cur) return false;
+  const pit = pitNamed("right") ? foldName(S.right.name) : "";
+  if(cur.watch) return !pit || pit === foldName(cur.home) || pit === foldName(cur.away);
+  return !sheetEmpty(cur) && (!pit || foldName(cur.vs) === pit);
+}
 window.newMatch = () => {
   // The opponent is stamped on every out this sheet records, so it has to be a
   // team the coach picked, not whoever the app happened to have in the pit.
@@ -15870,6 +15996,29 @@ window.newMatch = () => {
   if(!gameGuard()) return;   // the one question, asked by New match and the Schedule alike
   openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
+};
+/* The New match button.
+ *
+ * A sheet that was played is closed with its opponent: the button starts
+ * blank — nobody in either pit, Tally asking who he plays — unless he has
+ * already put a different, next team in the right pit, when it starts against
+ * them. The sheet he leaves is kept whole under Matches. An unfinished sheet
+ * is never closed for him, at launch or anywhere else: only this button does
+ * it. A button that names the team ("Start a match vs Dynasty") is his pick,
+ * and goes straight to newMatch(). */
+window.freshMatch = () => {
+  if(!newMatchBlank()) return window.newMatch();
+  if(!gameGuard()) return;
+  // An empty sheet is replaced, not kept: say "kept" only about one that is.
+  const was = sheetEmpty(curMatch()) ? "" : matchLabel(curMatch());
+  S.left = {}; S.right = {}; S.arrival = {}; S.voice = {};
+  openSheet({vs: ""});
+  S.tab = "tally"; S.quick = false;
+  save(S); render();
+  flash(was ? `New sheet. ${was} is kept under More › Matches. Pick who you play.` : "New sheet. Pick who you play.");
+  // The button sits low on Tally: without this the prompt it leads to was
+  // left above the screen.
+  toMainTop();
 };
 /* The one door every new sheet opens through — New match, Watch this game and
  * We play on the Schedule. Three things happen here and used to happen in one
@@ -15930,6 +16079,12 @@ function openSheet(fields){
                 ...fields},
                ...(S.matches || []).filter(x => x.id !== blank)];
   S.matchId = id; S.point = 1; S.tallyNudge = false; S.clockEnd = 0;
+  // How did they get there and the Voice log remember the team they were last
+  // pointed at. On a sheet against somebody else that team was still picked,
+  // and one Record stamped the old team on the new sheet and renamed it.
+  const onIt = [fields && fields.vs, fields && fields.home, fields && fields.away].filter(Boolean).map(foldName);
+  if(S.arrival && S.arrival.team && !onIt.includes(foldName(S.arrival.team))) S.arrival = {};
+  if(S.voice && S.voice.team && !onIt.includes(foldName(S.voice.team))) S.voice = {};
   // A new sheet starts clean: a read ticked or a sheet half-filled on the
   // old one must not land on this one's first point.
   clearPointScratch();
@@ -16068,7 +16223,7 @@ const SCH_DIV = /^(?:(?:NXL|USXBL|PSP|WCPPL|MAPL|CFOA|NCPA|Pro|Semi[- ]?Pro|D[1-
 function parseSchedule(text){
   const out = [];
   let skipped = 0;
-  let day = SCHEDULE.games[0].d;
+  let day = SCHEDULE.games[0].d, dated = false, named = false;   // a date read; a weekday read
   const MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
   (text || "").split(/\r?\n/).forEach(raw => {
     // Everything but the tab collapses: a table copied off a page separates its
@@ -16084,7 +16239,7 @@ function parseSchedule(text){
       if(mi < 0) return false;
       const y = (iso && iso[1]) || (/\b(20\d{2})\b/.exec(line) || [])[1]
              || SCHEDULE.games[0].d.slice(0, 4);
-      day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      day = `${y}-${String(mi + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`; dated = true;
       return true;
     };
     // A weekday with no date ("Sun 11:00 …", or "Sunday" on a line of its own)
@@ -16094,21 +16249,52 @@ function parseSchedule(text){
     const byWeekday = txt => {
       const w = /^\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\.?(?=\s|,|$)/i.exec(txt); if(!w) return false;
       const want = WD.indexOf(w[1].toLowerCase()), base = new Date(day + "T12:00:00");
-      for(let k = -3; k <= 3; k++){ const d = new Date(base); d.setDate(base.getDate() + k);
-        if(d.getDay() === want){ day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; return true; } }
-      return false;
+      // Before any date has been read the day is the event's first, and a
+      // weekday is looked for forward of it: "Sun" on a Wednesday start is the
+      // Sunday of that event, not the Sunday three days before it. Once a date
+      // has been read, it is the day of that name nearest the one in hand.
+      // A weekday never lands before the event's first day when the day in
+      // hand is inside the event: "Wed … / Sun …" put Sunday three days before
+      // the event began. A weekday is not a date, so it does not set `dated`.
+      const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const first = SCHEDULE.games[0].d, inEvent = day >= first;
+      const at = k => { const d = new Date(base); d.setDate(base.getDate() + k); return d; };
+      const k = (dated || named ? [0, 1, -1, 2, -2, 3, -3] : []).find(n => at(n).getDay() === want && (!inEvent || iso(at(n)) >= first));
+      const pick = k !== undefined ? k : [0, 1, 2, 3, 4, 5, 6].find(n => at(n).getDay() === want);
+      if(pick === undefined) return false;
+      day = iso(at(pick)); named = true; return true;
     };
-    const clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
+    let clock = /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)?/.exec(line);
+    // "9am Dynasty vs Impact": a clock with no minutes was not a clock, and the
+    // line was dropped without being counted as skipped.
+    if(!clock){ const bare = /\b(\d{1,2})\s*(am|pm)\b/i.exec(line); if(bare) clock = Object.assign([bare[0], bare[1], "00", bare[2]], {index: bare.index}); }
     if(!clock){
-      if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; return; }
-      if(md && setDay(mon(md[1]), md[2])) return;
-      if(dm && setDay(mon(dm[2]), dm[1])) return;
-      if(line.length <= 12) byWeekday(line);
+      if(iso){ day = `${iso[1]}-${iso[2]}-${iso[3]}`; dated = true; return; }
+      // Every "word number" on the line is tried, not only the first: in
+      // "Day 5 - Sunday Nov 15" the first is "Day 5", which is no month.
+      // A real month only: "Novice 5-man" is not November the fifth.
+      const MONTH = /^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)$/i;
+      const mdAny = [...line.matchAll(/\b([A-Za-z]{3,9})\.? (\d{1,2})\b/g)].find(m => MONTH.test(m[1]));
+      if(mdAny && setDay(mon(mdAny[1]), mdAny[2])) return;
+      const dmAny = [...line.matchAll(/\b(\d{1,2}) ([A-Za-z]{3,9})\b/g)].find(m => MONTH.test(m[2]));
+      if(dmAny && setDay(mon(dmAny[2]), dmAny[1])) return;
+      // "11/15", "Sunday 11/15/2026": a header with the date in numbers.
+      const num = line.length <= 30 ? /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(line) : null;
+      if(num && +num[1] >= 1 && +num[1] <= 12 && +num[2] >= 1 && +num[2] <= 31 && setDay(+num[1] - 1, num[2])) return;
+      // A weekday header: the weekday with nothing beside it but round words
+      // and punctuation ("Sunday", "Finals Sunday"). A team's name on a line
+      // of its own ("Sun Devils") is not a header and moves nothing.
+      const wd = /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\b\.?/i.exec(line);
+      if(wd && !line.replace(wd[0], " ").replace(/\b(?:day|finals?|prelims?|semis?|quarters?|games?|schedule)\b|[\d\s,.\-\u2013\u2014:\u00b7|\/]+/ig, "")) byWeekday(wd[0]);
       return;
     }
     // The clock through the same door a typed game goes through: "25:99" is
     // not a time, and a line carrying one is not a game.
-    const t = clockOf(`${clock[1]}:${clock[2]}${clock[3] ? " " + clock[3] : ""}`);
+    // A league page prints "1:30" for the afternoon: with no AM or PM, one
+    // o'clock to six is the afternoon, because no game is played at 1:30 at
+    // night. Seven to twelve is as printed, and 13:30 is 13:30.
+    const half = clock[3] || (!/^0/.test(clock[1]) && +clock[1] >= 1 && +clock[1] <= 6 ? "PM" : "");
+    const t = clockOf(`${clock[1]}:${clock[2]}${half ? " " + half : ""}`);
     if(!t){ skipped++; return; }
     // A date on the same line, ahead of the clock — "Sat Sep 19 9:00 AM",
     // "9/19 9:00", "2026-09-19 09:00" — is the game's day, not a team: it was
@@ -16118,7 +16304,7 @@ function parseSchedule(text){
     const preMd = /\b([A-Za-z]{3,9})\.? (\d{1,2})\b/.exec(pre);
     const preDm = /\b(\d{1,2}) ([A-Za-z]{3,9})\b/.exec(pre);
     const preNum = /\b(\d{1,2})\/(\d{1,2})(?:\/(?:20)?\d{2})?\b/.exec(pre);
-    if(preIso){ day = `${preIso[1]}-${preIso[2]}-${preIso[3]}`; pre = pre.replace(preIso[0], " "); }
+    if(preIso){ day = `${preIso[1]}-${preIso[2]}-${preIso[3]}`; dated = true; pre = pre.replace(preIso[0], " "); }
     else if(preMd && mon(preMd[1]) >= 0){ setDay(mon(preMd[1]), preMd[2]); pre = pre.replace(preMd[0], " "); }
     else if(preDm && mon(preDm[2]) >= 0){ setDay(mon(preDm[2]), preDm[1]); pre = pre.replace(preDm[0], " "); }
     else if(preNum && +preNum[1] >= 1 && +preNum[1] <= 12){ setDay(+preNum[1] - 1, preNum[2]); pre = pre.replace(preNum[0], " "); }
@@ -16156,8 +16342,13 @@ function parseSchedule(text){
       .filter(x => x && !/^(home|away|score|bracket|division|field)$/i.test(x) && !SCH_DIV.test(x));
     if(bits.length < 2 || foldName(bits[0]) === foldName(bits[1])){ skipped++; return; }   // a team against itself is a mis-read line
     const g = (/\b([A-D]) ?Prelims?\b/i.exec(line) || [])[1] || "";
+    // The field and pit the line printed are kept as the league's rows keep
+    // them: they were taken off the team names and then thrown away, so the
+    // scout list said "Field not printed" about a line that printed it.
+    const fld = (/(?:\bField\s*|\(F\s*|\bF)(\d+)\b/i.exec(rest) || [])[1], pit = (/\bPit\s*(\d+)\b/i.exec(rest) || [])[1];
+    const f = [fld ? "Field " + fld : "", pit ? "Pit " + pit : ""].filter(Boolean).join(" \u00b7 ");
     out.push({id: gameId() + out.length, d: day, t, h: bits[0].slice(0, 40),
-              a: bits[1].slice(0, 40), g: g.toUpperCase(), layout: S.layoutKey});
+              a: bits[1].slice(0, 40), g: g.toUpperCase(), layout: S.layoutKey, ...(f ? {f} : {})});
   });
   out.skipped = skipped;
   return out;
@@ -16411,7 +16602,7 @@ function matchStrip(){
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
     ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()">Next point</button>`}
-    <button class="btn" onclick="newMatch()">New match</button>
+    <button class="btn" onclick="freshMatch()">New match</button>
   </div>${/* A game watched off the fence is charted on Scout, and its points were
         scored only on Tally: a tab and back every point. The two named
         result buttons ride here on a watched sheet, through the same guard. */""}${
@@ -16504,6 +16695,7 @@ function scout(){
       <button class="tgl ${S.lanesOn?"on":""}" onclick="set({lanesOn:!S.lanesOn})"><i></i>Lanes</button>
     </div>`}
     <div class="field-wrap" data-live>${fieldSVG({both:true, show:S.scoutShow||"them", outs:!!S.outsOn, their:!!S.theirOn, theirFive:(S.scoutShow||"them")!=="us", homeFive:!!(curMatch()||{}).watch && (S.scoutShow||"them")!=="them", lanes:!!S.lanesOn && (S.scoutShow||"them")!=="us" && (pitOnSheet("right") || !!(curMatch()||{}).watch)})}</div>
+    <button class="btn btn--quiet btn--block" style="margin:var(--s2) 0" data-field-pic onclick="shareFieldPicture(${jsq(R.named ? R.name : "")})">Share this field as a picture</button>
     <div class="toggles" style="font-size:var(--t-xs);color:var(--dim)">
       ${/* The red paths are your five on your call. Only a watched game has
             a left-pit team on that side of the field. */""}
@@ -17828,6 +18020,12 @@ function matchReview(mid){
           calls: callRows, theirs: theirRows,
           lost: {us: lostAt("us"), them: lostAt("them")}, outs: {us: outs.filter(o => o.side === "us").length, them: outs.filter(o => o.side === "them").length},
           men: {us: men("us"), them: men("them")}, charted: charted.length,
+          // Off the break, one line: the men each side lost on the break out of
+          // the men of that side who were charted and told. A count of the
+          // chart, so a point nobody charted says nothing.
+          brk: (() => { const told = side => charted.filter(r => r.side === side && !r.todo && (r.alive === true || r.alive === false));
+            const us = told("us"), them = told("them");
+            return {us: us.length, them: them.length, lost: us.filter(r => r.alive === false).length, took: them.filter(r => r.alive === false).length}; })(),
           pens: {us: pens.filter(p => p.side === "us").reduce((n, p) => n + (p.cost || 0), 0), them: pens.filter(p => p.side === "them").reduce((n, p) => n + (p.cost || 0), 0), n: pens.length},
           tos: tos.map(t => t.side), sideName};
 }
@@ -17856,7 +18054,8 @@ function reviewSec(mid){
       <span class="fact"><b>${r.points}</b><span>${r.points === 1 ? "Point scored" : "Points scored"}</span></span>
       ${r.charted ? `<span class="fact"><b>${r.charted}</b><span>Men charted</span></span>` : ""}
       ${r.reads.n ? `<span class="fact"><b>${r.reads.right} of ${r.reads.n}</b><span>Right read</span></span>` : ""}
-    </div><p class="lede"><b style="color:var(--ink)">${esc(reviewResult(r))}</b> · ${esc(r.field)}</p>`);
+    </div><p class="lede"><b style="color:var(--ink)">${esc(reviewResult(r))}</b> · ${esc(r.field)}</p>
+    ${r.brk.us + r.brk.them ? `<p class="lede" data-review-break>${esc(reviewBreakLine(r))}</p>` : ""}`);
   if(!watch) blocks.push(r.calls.length ? `<h3 class="panel__title">Your calls</h3><div class="kv">${r.calls.map(c =>
       `<div class="kv__row"><span class="kv__k">${callName2(c.key)}</span><span class="kv__v">called ${c.n} · ${rec(c.won, c.won + c.lost)}</span></div>`).join("")}</div>`
     : `<p class="note">No calls logged on this sheet. Log it on the point sheet and the review says what each call won.</p>`);
@@ -17879,11 +18078,18 @@ function reviewSec(mid){
     <p class="aid">Counted from what was logged on this sheet. Grades stay on this phone and are not in the shared text.</p>
     ${S.reviewId && S.reviewId !== S.matchId ? `<button class="btn btn--quiet btn--block" onclick="set({reviewId:null})">Back to the sheet on now</button>` : ""}`, matchLabel(m)) + `</div>`;
 }
+// "Off the break: we lost 2 of 9 charted, Dynasty lost 4 of 7 charted".
+function reviewBreakLine(r){
+  const watch = !!r.m.watch, us = r.sideName("us"), them = r.sideName("them");
+  const one = (who, lost, n) => n ? `${who} lost ${lost} of ${n} charted` : "";
+  return "Off the break: " + [one(watch ? us : "we", r.brk.lost, r.brk.us), one(them, r.brk.took, r.brk.them)].filter(Boolean).join(", ");
+}
 function reviewText(mid){
   const r = matchReview(mid); if(!r) return "";
   const {m} = r, watch = !!m.watch, them = r.sideName("them"), us = r.sideName("us");
   const L = [`${watch ? `${us} v ${them}` : `vs ${them}`} · ${dayOf(m.at)}${m.note ? " · " + m.note : ""}`, `${reviewResult(r)} · ${r.field}`];
   if(r.reads.n) L.push(`Right read ${r.reads.right} of ${r.reads.n}`);
+  if(r.brk.us + r.brk.them) L.push(reviewBreakLine(r));
   if(r.calls.length){ L.push("", "Our calls:"); r.calls.forEach(c => L.push(`- ${callName(c.key)}: called ${c.n}, won ${c.won} of ${c.won + c.lost}`)); }
   if(r.theirs.length){ L.push("", watch ? "What they ran:" : `What ${them} ran:`); r.theirs.forEach(c => L.push(`- ${watch ? c.team + " · " : ""}${callName(c.key)}: ran ${c.n}${c.decided ? `, won ${c.won} of ${c.decided}` : ""}`)); }
   if(r.lost.us.length) L.push("", `${watch ? `Where ${us}` : "Where we"} lost men: ${r.lost.us.slice(0, 5).map(([b, n]) => `${b} ${n}`).join(", ")}`);
@@ -18587,6 +18793,63 @@ window.copyHandText = () => {
     navigator.clipboard.writeText(t).then(() => flash("Copied."), () => flash("Select the text and copy it — the browser would not let the app do it."));
   } else flash("Select the text and copy it — this browser has no clipboard for the app.");
 };
+/* The field as a picture, to hand to the players.
+ *
+ * A scouting read is a drawing: where they plant, the lanes, their shooter.
+ * The text that Send to your staff hands over cannot carry it. This draws the
+ * field on screen, exactly as it reads there, into a PNG made on the phone —
+ * nothing is fetched or sent — and gives it to the share sheet where the
+ * phone can share a file, else shows it on screen to press and hold. The
+ * picture lives in page memory only (`_fieldPic`): it is never saved with
+ * the season, and it leaves with the screen it was made on. */
+let _fieldPic = null;
+const FIELD_PIC_PROPS = ["fill","fill-opacity","stroke","stroke-width","stroke-dasharray","stroke-linecap","stroke-linejoin","stroke-opacity","opacity",
+  "font-family","font-size","font-weight","letter-spacing","text-anchor","dominant-baseline","paint-order","display","visibility"];
+async function fieldPicture(svg, caption){
+  const copy = svg.cloneNode(true), from = [svg, ...svg.querySelectorAll("*")], to = [copy, ...copy.querySelectorAll("*")];
+  // The page's stylesheet does not travel with a picture: each shape takes
+  // the colours it is drawn in now, as its own.
+  from.forEach((el, i) => { const cs = getComputedStyle(el); to[i].setAttribute("style", FIELD_PIC_PROPS.map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
+  const vb = svg.viewBox.baseVal, W = 1200, H = Math.round(W * (vb && vb.width ? vb.height / vb.width : 0.8)), foot = 64;
+  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg"); copy.setAttribute("width", W); copy.setAttribute("height", H);
+  const img = new Image();
+  await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error("The picture could not be drawn.")); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copy)); });
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H + foot;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#0b0c0d"; g.fillRect(0, 0, W, H + foot); g.drawImage(img, 0, 0, W, H);
+  g.fillStyle = "#efedeb"; g.font = "600 26px system-ui, -apple-system, sans-serif"; g.textBaseline = "middle";
+  g.fillText(String(caption).slice(0, 80), 24, H + foot / 2, W - 48);
+  return cv;
+}
+window.shareFieldPicture = async who => {
+  const svg = document.querySelector("#root .field-wrap svg");
+  if(!svg) return flash("There is no field on this screen to share.");
+  const caption = [who, curLayout().name, "counted from what was logged"].filter(Boolean).join(" · ");
+  let cv;
+  try{ cv = await fieldPicture(svg, caption); }catch(e){ return flash("This phone could not make the picture. Send to your staff still hands over the read as text."); }
+  const name = `gridlock-field-${foldName(who || curLayout().name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "field"}.png`;
+  try{
+    const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+    const file = blob && typeof File === "function" ? new File([blob], name, {type: "image/png"}) : null;
+    if(file && navigator.canShare && navigator.canShare({files: [file]})){
+      try{ await navigator.share({files: [file], title: caption}); return; }
+      catch(e){ if(e && e.name === "AbortError") return; }
+    }
+  }catch(e){}
+  try{ _fieldPic = {title: caption, name, url: cv.toDataURL("image/png")}; }
+  catch(e){ return flash("This phone could not make the picture. Send to your staff still hands over the read as text."); }
+  render(); toMainTop();
+};
+window.closeFieldPic = () => { _fieldPic = null; render(); };
+function fieldPicBox(){
+  if(!_fieldPic) return "";
+  return `<div class="panel" id="field-pic" role="region" aria-label="Field picture">
+    <h3 class="panel__title">Field picture</h3>
+    <p class="note">No share sheet for a picture here. Press and hold the picture to save or share it.</p>
+    <img src="${_fieldPic.url}" alt="${esc(_fieldPic.title)}" style="width:100%;height:auto;border-radius:var(--r-2,8px)"/>
+    <div class="btnrow" style="margin-top:var(--s2)"><button class="btn btn--quiet grow" onclick="closeFieldPic()">Close</button></div>
+  </div>`;
+}
 function handOffBox(){
   const h = S.handText; if(!h || !h.text) return "";
   return `<div class="panel" id="handoff" role="region" aria-label="${esc(h.title)}">
@@ -18862,7 +19125,8 @@ const HELP_Q = [
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
-  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
+  ["Tally asks for too much. Can I record less?", "Yes. At the foot of Tally, How much to record: Full chart is everything, Score and outs puts the break chart away, Score only leaves the call, the read and who won it. It is your choice on this phone and it hides controls, never anything you logged; Show the full chart brings it all back. On the breakout sheet, Ask only who and whether he made it shortens the questions for each man, with More about him one tap away."],
+  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. Tally and Scout start blank and ask who you are playing, unless the next team is already in the right pit. The point goes back to one and the old sheet is kept whole in Matches. A match you have not finished is never closed for you: it comes back as you left it, however long you were away."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
   ["Where are the player percentages?", "On Tally, open Point percentages for either team; on Scout, it is under Players this point. Each number shows its count, such as 3 of 5 · 60%. The team total uses this point’s starting players after penalties. In a player’s popup, Match percentages uses only that player’s logged points in this match. Alive and Dead show the last status recorded on each point. Missing observations stay unknown; Shooting and Diving can both apply."],
@@ -19433,6 +19697,24 @@ function repManSheets(name){
             out: outs.length, grade: grades.length ? Math.round(grades.reduce((s, a) => s + a.score, 0) / grades.length * 10) / 10 : 0, graded: grades.length};
   }).filter(x => x.n || x.out || x.graded);
 }
+/* The line a player already knows from the league's stat page: the points he
+ * was on, how many of them were won, and the difference. A count, like every
+ * other number here. He was on a point when the five written for it names
+ * him, or when anything was logged against his name on it; a point with
+ * neither says nothing about who played it, so roster order is never used. */
+function repManPoints(name){
+  const mine = new Set();
+  [[S.breakouts, "player"], [S.tally, "name"], [S.playerChecks, "player"]].forEach(([list, key]) =>
+    (list || []).forEach(r => { if(r && repOn(r) && r.side === "us" && r[key] === name) mine.add(r.m + "|" + r.pt); }));
+  const t = {n: 0, won: 0, lost: 0};
+  (S.results || []).forEach(r => {
+    if(!repOn(r) || !(r.pt > 0)) return;
+    if(!mine.has(r.m + "|" + r.pt) && !lineupAt(r.pt, r.m).includes(name)) return;
+    t.n++; if(r.won === "us") t.won++; else t.lost++;
+  });
+  return t;
+}
+const repManPointsLine = t => `${t.n} ${t.n === 1 ? "point" : "points"} played · won ${t.won}, lost ${t.lost} · ${t.won - t.lost > 0 ? "+" : ""}${t.won - t.lost} · won ${Math.round(t.won / t.n * 100)}% (${repOf(t.won, t.n)})`;
 function repManBunkers(name){
   const rows = (S.breakouts || []).filter(r => repOn(r) && r.side === "us" && r.player === name && r.layout === S.layoutKey);
   return {to: repTally(rows.filter(r => r.bunker), r => frameId(r.bunker, r.m, r.pt)).map(([id, n]) => [repBunker(id), n]),
@@ -19582,13 +19864,15 @@ function repPlayerPage(){
     <button class="btn btn--quiet btn--block" style="margin-top:var(--s3)" onclick="set({more:'team'})">Add your squad · Team</button></div>`);
   const pick = `<div class="fld"><label for="rep-man">Player</label><select id="rep-man" onchange="set({repMan:this.value})">
       ${names.map(n => `<option value="${esc(n)}"${n === name ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div>`;
-  const per = repManSheets(name), b = repManBunkers(name);
+  const per = repManSheets(name), b = repManBunkers(name), pts = repManPoints(name);
   const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
   const out = [sec("Player", pick + (per.length ? `<div class="facts">
       <span class="fact"><b>${tot.n}</b><span>Breaks charted</span></span>
       <span class="fact"><b>${repOf(tot.made, tot.n)}</b><span>Made it</span></span>
       <span class="fact"><b>${tot.out}</b><span>Times out</span></span>
-    </div>` : `<p class="note">Nothing charted for ${esc(name)} on these sheets yet.</p>`), name)];
+    </div>` : `<p class="note">Nothing charted for ${esc(name)} on these sheets yet.</p>`)
+    + (pts.n ? `<p class="lede" data-man-points>${esc(repManPointsLine(pts))}</p>
+      <p class="note">Scored points where the five written for the point names him, or something was logged against his name.</p>` : ""), name)];
   if(!per.length) return out.join("");
   out.push(sec("Sheet by sheet", repBars(`${name}, sheet by sheet`, per.map(x => ({label: matchLabel(x.m), text: x.n ? `made it ${repOf(x.made, x.n)}${x.out ? ` · out ${x.out}` : ""}` : `out ${x.out}`,
       segs: [{n: x.made, cls: "us"}, {n: x.shot, cls: "them"}, {n: x.n - x.made - x.shot, cls: "none"}]})), [["us", "made it"], ["them", "shot on the break"], ["none", "not told"]])
@@ -19732,6 +20016,7 @@ function manReportText(name){
   const per = repManSheets(name), b = repManBunkers(name);
   const tot = per.reduce((a, x) => ({n: a.n + x.n, made: a.made + x.made, shot: a.shot + x.shot, out: a.out + x.out}), {n: 0, made: 0, shot: 0, out: 0});
   const L = [`${name} · ${S.repAll ? "every event" : curLayout().name}`, `${tot.n} breaks charted · made it ${repOf(tot.made, tot.n)} · shot on the break ${tot.shot} · out ${tot.out}`];
+  const pts = repManPoints(name); if(pts.n) L.push(repManPointsLine(pts));
   if(b.to.length) L.push(`Breaks to: ${b.to.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
   if(b.from.length) L.push(`Shot on the break from: ${b.from.slice(0, 4).map(([k, n]) => `${k} ${n}`).join(", ")}`);
   if(per.length){ L.push("", "Sheet by sheet:"); per.forEach(x => L.push(`- ${matchLabel(x.m)}: ${x.n ? `made it ${repOf(x.made, x.n)}` : "no breaks charted"}${x.out ? `, out ${x.out}` : ""}`)); }
@@ -20046,7 +20331,9 @@ function moreBody(k){
     + sec("Add a game", n
       ? `<div id="game-new"></div><div class="fld"><label>Day</label>
            <select onchange="setGameField('d',this.value)">${
-             [...new Set([...days, n.d])].map(d => `<option value="${esc(d)}" ${
+             /* The event's own days too: Sunday is the day the league's list
+                does not reach, and it was not in the picker to type a game on. */
+             [...new Set([...days, ...(((LAYOUTS[SCHEDULE.layout] || {}).days) || []), n.d])].sort().map(d => `<option value="${esc(d)}" ${
                n.d === d ? "selected" : ""}>${esc(dayName(d))}</option>`).join("")}</select></div>
          <div class="fld"><label>Time · 24-hour, like 13:45</label>
            <input value="${esc(n.t)}" maxlength="8" onchange="setGameField('t',this.value)" ${onEnter(`setGameField('t',this.value);saveGame()`)}/></div>
@@ -20104,8 +20391,8 @@ function moreBody(k){
           `<option value="${esc(n)}"${n === matchVs() ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
         <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("this.blur()")}/>
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
-      <button class="btn btn--block" onclick="newMatch()">${
-        pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
+      <button class="btn btn--block" onclick="freshMatch()">${
+        newMatchBlank()?"New match — pick who you play":pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       ${sheetSize(curMatch()) ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="sendSheet()">Send this sheet to another coach</button>
       <p class="note">Two phones on one match — one on the tally, one charting off the fence: send the sheet, he taps
         Merge it in under Nexus › Load a copy, and both halves are on one sheet. Send it back the same way;
@@ -20679,11 +20966,11 @@ function shell(){
       </div>`}
       ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
     </header>
-    <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${tut}${page}
+    <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${fieldPicBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs" aria-label="Main screens">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}"${S.tab===k ? ' aria-current="page"' : ""} onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
-    ${S.flash ? `<div class="flash${resultBarShown() ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
 }

@@ -92,6 +92,22 @@ const SEED = require("../scripts/seed.js");
       assert.deepEqual(c[0], ["Team", "Call", "Ran", "Ahead", "Level", "Behind", "First point", "Won", "Decided"]);
       assert.equal(c.length, 4);
     });
+    await check("Player counts the points he was on, won and lost, and never from roster order or a watched game", async p => {
+      const r = await p.evaluate(() => {
+        S.lineups = {}; const a = S.roster[0].name, b = S.roster[1].name, c = S.roster[2].name;
+        const charted = repManPoints(a), none = repManPoints(b);
+        S.lineups = { "m1|3": [b, c] };   // written on point 3, carried to 4 and 5
+        const carried = repManPoints(b), stillA = repManPoints(a);
+        set({ repTab: "player", repMan: b });
+        return { charted, none, carried, stillA, line: (document.querySelector("#root [data-man-points]") || {}).textContent || "", text: manReportText(b) };
+      });
+      assert.deepEqual(r.charted, { n: 3, won: 1, lost: 2 }, "charted on m1 pt1, m1 pt2 and m2 pt1; the watched m4 is out");
+      assert.deepEqual(r.none, { n: 0, won: 0, lost: 0 }, "no five written and nothing logged says nothing");
+      assert.deepEqual(r.carried, { n: 3, won: 3, lost: 0 }, "a written five stands until it is changed");
+      assert.deepEqual(r.stillA, { n: 3, won: 1, lost: 2 });
+      assert.match(r.line, /3 points played · won 3, lost 0 · \+3 · won 100% \(3 of 3\)/);
+      assert.match(r.text, /3 points played · won 3, lost 0/);
+    });
     await check("Player reads one man sheet by sheet and shares no grade", async p => {
       await p.evaluate(() => set({ repTab: "player" }));
       const t = await root(p);
