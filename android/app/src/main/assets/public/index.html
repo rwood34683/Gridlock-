@@ -1051,7 +1051,7 @@ svg.field [data-pick]{cursor:crosshair}
 }
 .flash{position:fixed;left:50%;transform:translateX(-50%);
   bottom:calc(70px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
-  z-index:60;max-width:calc(100% - 32px);width:max-content;text-align:left;
+  z-index:75;max-width:calc(100% - 32px);width:max-content;text-align:left;
   background:var(--panel-2);border:1px solid var(--accent);border-radius:var(--r-md);
   padding:12px var(--s4);color:var(--ink);font-size:var(--t-sm);line-height:1.4;cursor:pointer;
   box-shadow:0 14px 34px -12px rgba(0,0,0,.85);animation:flashin .16s ease-out}
@@ -4824,7 +4824,10 @@ function recordedDate(t){
 }
 const dayOf = t => { const d = recordedDate(t); return d ? DAY_FMT.format(d) : "Date not recorded"; };
 const matchWhen = t => { const d = recordedDate(t); return d ? MATCH_TIME_FMT.format(d) : "Date not recorded"; };
-const dateStamp = t => { const d = recordedDate(t); return d ? d.toISOString().slice(0, 10) : ""; };
+// The day on this phone's calendar, never the UTC day: an evening sheet in
+// the Americas is already tomorrow in UTC, and the spreadsheet put it there.
+const localDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const dateStamp = t => { const d = recordedDate(t); return d ? localDay(d) : ""; };
 function gameNth(m){
   if(!m) return "";
   // Read once a sheet a draw: every label read the whole list of sheets.
@@ -7116,7 +7119,7 @@ window.saveCopy = async scope => {
   if(copyExporting) return;
   const capturedAt = Date.now();
   const text = copyPayload(scope);
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = localDay(new Date());
   const name = `gridlock-${scope === "squad" ? "squad" : "everything"}-${stamp}.json`;
   if(typeof window.gridlockExportFile === "function"){
     copyExporting = true;
@@ -9526,7 +9529,10 @@ const statThin = v => !v || Math.max(v.visits, v.outs) < STAT_THIN;
 // Has any break on this field been charted from the far end? Only then is
 // "turned to your end" different from "as played", and the switch shows.
 function statEndsMoved(){
-  return (S.breakouts || []).some(r => r && r.m && (!r.layout || r.layout === S.layoutKey) && !watchedMatch(r.m) && ourEnd(r.pt, matchById(r.m)) === "right");
+  // Shown whenever any row was broken from another end than the one shown
+  // now: from the right end every left-end row is drawn on its twin too.
+  const now = ourEnd();
+  return (S.breakouts || []).some(r => r && r.m && (!r.layout || r.layout === S.layoutKey) && !watchedMatch(r.m) && ourEnd(r.pt, matchById(r.m)) !== now);
 }
 function statTeams(){
   const seen = new Map();
@@ -12746,7 +12752,10 @@ function deviceSeasonCurrent(t){ return sameSync(t) && S.entered && S.role === "
 function deviceSeasonShown(){
   if(_deviceChoice && !deviceSeasonCurrent(_deviceChoice.t)) _deviceChoice = null;
   if(_deviceChecking && !deviceSeasonCurrent(_deviceChecking)) _deviceChecking = null;
-  return !!(_deviceChoice || _deviceChecking);
+  // Only a choice the coach has to make takes the screen. While the server is
+  // merely being asked, a coach with a match on his sheet keeps the app: the
+  // account must never stand between him and the point he is calling.
+  return !!(_deviceChoice || (_deviceChecking && sheetEmpty(curMatch())));
 }
 function deviceSeasonPage(){
   const pending = _deviceChoice, r = pending?.r, hasCopy = r && !r.missing && !r.removed;
@@ -12761,12 +12770,21 @@ function deviceSeasonPage(){
         <p class="note">This sends the season you have here and replaces the one saved with your account. Only choose it if this is the copy you want on your other devices.</p>
         <button class="btn btn--quiet btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button></details>` :
       `<button class="btn btn--block" onclick="chooseDeviceSeason('here')">Use this device's season</button>`}` : ""}
-    <button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`);
+    ${_deviceChecking && !pending ? `<button class="btn btn--quiet btn--block" onclick="skipDeviceCheck()">Not now — check next time I sign in</button>`
+      : `<button class="btn btn--quiet btn--block" onclick="cancelDeviceSeason()">Not now — keep sync off</button>`}`);
 }
 window.cancelDeviceSeason = () => {
   ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
   clearSyncRetry(); syncYes(false); markSyncAsked();
   syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sync is off. Your season stays on this device."});
+};
+// Leaving the check before it answers pauses sharing on this device for now
+// and keeps the coach's yes: the next sign-in asks the account again. Turning
+// sync off for good is a choice he makes, never the price of getting to Tally.
+window.skipDeviceCheck = () => {
+  ++_syncEpoch; _deviceChoice = null; _deviceChecking = null; _devicePermit = null;
+  clearSyncRetry();
+  syncStatus({syncOn:false,syncAsk:false,syncSaid:"Sharing is paused on this device. Your season stays here; the next sign-in checks your account again."});
 };
 async function applyDeviceSeason(choice){
   const {t,r,snapshot} = choice;
@@ -12789,6 +12807,11 @@ async function applyDeviceSeason(choice){
   }
   if(!deviceSeasonCurrent(t)) return false;
   _deviceChoice = null; _deviceChecking = null; _lastAutoSync = Date.now(); syncYes(true);
+  // The sign-in chose Home for the empty sheet this device had. The season it
+  // took may have a match under way, and an active match resumes: on Tally,
+  // or on Scout for a game he was watching. A finished one stays on Home.
+  const on = curMatch();
+  if(S.tab === "home" && on && !sheetEmpty(on) && !matchOver()) S.tab = on.watch ? "scout" : "tally";
   syncStatus({syncOn:true,syncAsk:false,syncAt:capturedAt,syncSaid:"Your saved season is ready on this device. Sync is on."});
   // If a coach edited while the checkpoint was being saved, that work still sends.
   if(deviceSeasonText(adopted) !== deviceSeasonText()){ _syncDirty=true; scheduleSync(0); }
@@ -14274,6 +14297,10 @@ window.setRead = read => set({tallyRead: S.tallyRead === read ? "" : read});
 // the other way round is its twin here. Both sides turn together, so one rule
 // serves both: their five tapped in from either end are the same five.
 function frameId(id, mid, pt){
+  // A season row has no sheet and so no end: it is counted where it was
+  // tapped. Asking ourEnd() without a sheet answered with the sheet in play
+  // now, so one row moved bunker every time the coach switched ends.
+  if(!mid || !matchById(mid)) return id;
   // Asked once a charted row by every count across points; the end a point
   // was broken from does not change within one draw.
   const k = "end|" + mid + "|" + pt;
@@ -15419,15 +15446,23 @@ window.backPoint = () => {
     // leaves them on the point they were charted on — moved, they stood on a
     // point nobody charted them on, broken from the other end.
     const toScored = (S.results || []).some(r => r && r.m === mid && r.pt === to);
-    if(left.length){
+    // A voice recap and the sightings it wrote belong to the same point as
+    // the men: left behind, they kept a point nobody played on the sheet.
+    const onFrom = a => (a || []).filter(r => r && r.m === mid && r.pt === from).length;
+    const notes = onFrom(S.voiceEvents) + onFrom(S.arrivalSightings) + onFrom(S.arrivalShots);
+    if(left.length || notes){
       if(!toScored && !(S.breakouts || []).some(r => r && r.m === mid && r.pt === to)){
-        S.breakouts = S.breakouts.map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
+        const back = a => (a || []).map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
+        S.voiceEvents = back(S.voiceEvents); S.arrivalSightings = back(S.arrivalSightings); S.arrivalShots = back(S.arrivalShots);
+        S.breakouts = (S.breakouts || []).map(r => r && r.m === mid && r.pt === from ? {...r, pt: to} : r);
         S.tally = (S.tally || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
         S.playerChecks = (S.playerChecks || []).map(o => o && o.m === mid && o.pt === from ? {...o, pt: to} : o);
         // Their men placed on Tally are their five on Scout: it moves with them.
         try{ syncTallyFive(mid, from); syncTallyFive(mid, to); }catch(e){}
-        carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`;
-      } else if(toScored) carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} stay on point ${from}. Score point ${to} again and you are back on them.`;
+        carried = left.length ? `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} came back to point ${to}.`
+          : `What you noted on point ${from} came back to point ${to}.`;
+      } else if(!left.length) carried = "";
+      else if(toScored) carried = `The ${left.length} ${left.length === 1 ? "man" : "men"} charted on point ${from} stay on point ${from}. Score point ${to} again and you are back on them.`;
       else carried = `Point ${from} still has ${left.length} ${left.length === 1 ? "man" : "men"} charted — Next point to tell them, or take them off there.`;
     }
   }
@@ -17466,7 +17501,7 @@ function matchReview(mid){
   const key = (id, pt) => here ? frameId(id, m.id, pt) : id;
   const label = id => { if(!id) return "";
     // The word for it, else its code: "MD" is three bunkers on some fields.
-    const shown = here && m.id === S.matchId ? shownBunker(id) : id;
+    const shown = here ? shownBunker(id) : id;
     const b = lay.bunkers.find(x => x.id === shown); return b ? (here ? cardName(b) : (b.id || b.n)) : shown; };
   const tally = (list, f) => Object.entries(list.reduce((a, x) => { const k = f(x); if(k) a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]);
   const sideName = s => m.watch ? (s === "us" ? m.home || "Home" : m.away || "Away") : s === "us" ? "You" : m.vs || "Them";
@@ -19498,7 +19533,7 @@ const REPORT_CSV = {
 window.exportReport = async key => {
   const make = REPORT_CSV[key]; if(!make) return;
   const [stem, text] = make();
-  const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${new Date().toISOString().slice(0, 10)}.csv`;
+  const name = `gridlock-${String(stem).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "report"}-${localDay(new Date())}.csv`;
   const lines = csvRows(text);
   if(lines < 1){ flash("Nothing in that list yet, so there is no spreadsheet to make."); return; }
   if(typeof window.gridlockExportTable === "function"){
@@ -20540,6 +20575,9 @@ function quickLog(){
       <button class="btn btn--quiet grow" onclick="closeQuick()">Back to the sheet</button>
     </div>` : `${ot ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>Overtime — next point wins it.</b></p>`
             : mp ? `<p class="qlog__hint" style="margin:0 0 var(--s2)"><b>${esc(matchPointWord(mp))}.</b> ${raceTo() ? `First to ${raceTo()}.` : mercy() ? `A ${mercy()}-point lead ends it.` : ""}</p>` : ""}
+    ${/* On a split deck the turn is part of scoring: without it here a result
+          tap was refused under this layer and nothing seemed to happen. */""}
+    ${watch ? "" : deckPanel()}
     <div class="qlog__score">
       <button class="btn btn--lg" onclick="tapResult('us')">${esc(us)} won it</button>
       <button class="btn btn--lg" style="background:var(--blue)" onclick="tapResult('them')">${esc(them)} won it</button>

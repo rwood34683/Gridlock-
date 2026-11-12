@@ -32,7 +32,7 @@ function syncHarness(){
   const context=vm.createContext({window:{gridlockCloud:cloud,addEventListener:(name,fn)=>events.set(name,fn),loadCopy:(_mode,raw)=>{restores.push(raw);return true;}},S:state,
     Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_stale:false,_recoveryUser:null,_recoveryBusy:false,
     STORE_KEY:'fixture.season',localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
-    confirm:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
+    confirm:message=>{prompts.push(message);return true;},askFirst:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
     copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},curMatch:()=>({id:'m1'}),sheetEmpty:()=>true,
     setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{at:clock+ms,fn});return id;},clearTimeout:id=>timers.delete(id)});
   const start=app.indexOf('const canSync ='),end=app.indexOf('window.deleteCloudAccount =',start);
@@ -138,7 +138,8 @@ function syncHarness(){
     let clock=1000000;const gate=deferred(),state={copiedAt:0,results:[]};
     const context=vm.createContext({window:{gridlockExportFile:()=>gate.promise},S:state,
       Date:class extends Date{constructor(){super(clock);}static now(){return clock;}},
-      copyPayload:()=>JSON.stringify({data:{results:state.results}}),copySummary:()=>'',save(){},render(){}});
+      copyPayload:()=>JSON.stringify({data:{results:state.results}}),copySummary:()=>'',save(){},render(){},
+      localDay:d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`});
     const start=app.indexOf('let copyExporting = false;'),end=app.indexOf('/* Two phones on one match',start);
     vm.runInContext(app.slice(start,end),context);
     const saving=vm.runInContext('window.saveCopy("all")',context);clock+=5000;state.results.push({at:clock});

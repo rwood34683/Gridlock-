@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
   "ask-first": "test/ask-first.cjs",
   "data-audit": "test/data-audit.cjs",
+  "interaction-audit": "test/interaction-audit.cjs",
   "daily-bunkers": "test/daily-bunkers.cjs",
   "match-heat": "test/match-heat.cjs",
   "voice-point": "test/voice-point.cjs",

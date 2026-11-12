@@ -1525,6 +1525,16 @@ within eight seconds, said on screen. A message the coach has read (shown more
 than a second) leaves when he changes tab, More section or Scout view; one
 raised on the way to a new screen stays. `test/ask-first.cjs`.
 
+After the five merges (12 Nov 2026): Back a point carries a voice recap and
+its sightings with the men charted on the point it leaves. On a split deck
+the turn controls are in the Quick log too, and a message stands above it.
+Checking the account's saved season never takes the screen while a match is
+on the sheet; leaving that check pauses sharing for now and keeps the coach's
+yes. A season adopted with a match under way opens on Tally (Scout for a
+watched game). A season row (no sheet) is counted where it was tapped; every
+spreadsheet date is the phone's own day. `test/interaction-audit.cjs`,
+`test/data-audit.cjs`.
+
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
 in one short line each. Keep the five direct tabs and a 44 px Home control
