@@ -1418,6 +1418,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Help answers "How do I install the app on my phone?".
     `test/install-button.cjs`.
 
+86. ~~Blank on first use and on New match.~~ Done. The owner saw a team already
+    in Tally and Scout and asked for both to start on choosing the team. His
+    rule (11 Nov 2026):
+    - First use: both pits empty, Tally asks who he plays.
+    - An unfinished match always resumes as it was, however old. Never infer
+      that it was abandoned, at launch, at sign-in or anywhere else.
+    - A finished match stays on screen with New match leading.
+    - **New match** on a played sheet starts blank (`newMatchBlank()`): both
+      pits cleared, an unnamed sheet, Tally on "Who are you playing?". If he
+      has already put a different, next team in the right pit, it starts
+      against them as before.
+    - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
+    `test/fresh-start.cjs`.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player

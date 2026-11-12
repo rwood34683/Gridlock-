@@ -9,7 +9,7 @@ const SUITES = {
   "teaser-browser": "test/teaser-browser.cjs",
   "player-percentages": "test/player-percentages.cjs",
   "player-details": "test/player-details.cjs",
-  "coach-flow": "test/coach-flow.cjs",
+  "coach-flow": "test/coach-flow.cjs", "fresh-start": "test/fresh-start.cjs",
   "world-cup": "test/world-cup.cjs",
   "pod-wars": "test/pod-wars.cjs",
   "render-performance": "test/render-performance.cjs",

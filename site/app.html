@@ -15834,6 +15834,12 @@ window.backPoint = () => {
  * it. But it is a boundary you cannot undo by tapping again, so a match with
  * anything in it asks first.
  */
+// New match starts blank when the sheet in play was played and the right pit
+// does not already hold a different, next team.
+function newMatchBlank(){
+  const cur = curMatch();
+  return !!cur && !sheetEmpty(cur) && (!!cur.watch || !pitNamed("right") || foldName(cur.vs) === foldName(S.right.name));
+}
 window.newMatch = () => {
   // The opponent is stamped on every out this sheet records, so it has to be a
   // team the coach picked, not whoever the app happened to have in the pit.
@@ -15842,8 +15848,22 @@ window.newMatch = () => {
   // throwing a system alert and bouncing to Scout.
   // Tally opens on who-are-you-playing; with the pit cleared on a named sheet
   // that gate stays hidden, so the reason is said either way.
-  if(!pitNamed("right")){ set({tab:"tally"}); return flash("Pick the team you play next first — New match starts the sheet against them."); }
+  // A sheet that was played is closed with its opponent. New match on it
+  // starts blank — nobody in either pit, Tally asking who he plays — unless he
+  // has already put the next team in the right pit. The sheet he leaves is
+  // kept whole under Matches; an unfinished one is never closed for him, at
+  // launch or anywhere else: only this button does it.
+  const cur = curMatch(), played = !!cur && !sheetEmpty(cur), sameTeam = newMatchBlank();
+  if(!pitNamed("right") && !played){ set({tab:"tally"}); return flash("Pick the team you play next first — New match starts the sheet against them."); }
   if(!gameGuard()) return;   // the one question, asked by New match and the Schedule alike
+  if(sameTeam){
+    const was = matchLabel(cur);
+    S.left = {}; S.right = {}; S.arrival = {}; S.voice = {};
+    openSheet({vs: ""});
+    S.tab = "tally"; S.quick = false;
+    save(S); render();
+    return flash(`New sheet. ${was} is kept under More › Matches. Pick who you play.`);
+  }
   openSheet({vs: (S.right||{}).name || ""});
   save(S); render();
 };
@@ -18831,7 +18851,7 @@ const HELP_Q = [
   ["Who do I need to scout, and when?", "More › Schedule, Your team's day. Pick your team and Play and scout, by the clock lists your day in time order with a light on each row — red Up to play (your next game, on now or inside the hour), green You play (a game of yours later), yellow Scout (a game of a team you still play) — each with its time and the field and pit it is on. Under it, each of your games lists the team you play and every game of theirs before it — said free for you to watch, or clashing with one of your own games so you can send someone. If a pit is running behind, open A pit running late? and set how far; the times move with it. Watch opens a sheet for that game."],
   ["Can I see the season in graphs, or in a spreadsheet?", "More › Reports. Your team, Opponent, Player and Season each draw what you logged as bars, with the count beside every bar. Spreadsheet (CSV) under a list saves it as a file for Excel, Numbers or Google Sheets, and Season has Every point and Every man charted for the whole season, one row each."],
   ["How did the match go?", "More › Matches. Under This match, Match review counts what was logged on the sheet: the score, what each of your calls won, what they ran, where you lost men and each man's breaks — made it, shot on the break and from where. Review on any kept sheet reads that one. Share the review with the squad hands it over as text for the team chat; your grades are not in it. When a match ends, Review this match is on the point sheet too."],
-  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. It asks who you are playing, puts the point back to one, and keeps the old sheet in Matches."],
+  ["How do I start a new game?", "New match, on the point sheet in Tally or under the pits on Scout. Tally and Scout start blank and ask who you are playing, unless the next team is already in the right pit. The point goes back to one and the old sheet is kept whole in Matches. A match you have not finished is never closed for you: it comes back as you left it, however long you were away."],
   ["How do I chart the break?", "On Tally, in two steps. 1 · Where they went: off the buzzer, tap the bunker each man broke to — one tap a man, yours and theirs by the half they land in. A second tap on a bunker puts a second man on it; ✕ in the list takes one off. 2 · What happened: each man you placed opens in turn — made it or shot, battling in, which way he was shooting, where he moved — and Save goes to the next. A point that ends before you have told them all keeps them: the list under the field says Point 3 · 2 still to tell, and one tap carries on. Their five placed on Tally are their five on Scout too."],
   ["I tapped the wrong player out.", "On Tally, tap his name to open Player details, then Alive. Quick log still takes a second tap on his name to put him back in. For a point you have already left, use Undo on his row in the log. Back a point also takes its result back."],
   ["Where are the player percentages?", "On Tally, open Point percentages for either team; on Scout, it is under Players this point. Each number shows its count, such as 3 of 5 · 60%. The team total uses this point’s starting players after penalties. In a player’s popup, Match percentages uses only that player’s logged points in this match. Alive and Dead show the last status recorded on each point. Missing observations stay unknown; Shooting and Diving can both apply."],
@@ -20035,7 +20055,7 @@ function moreBody(k){
         <input id="match-vs-new" aria-label="Team you played, if the board does not have it" placeholder="Or type a team the board does not have" maxlength="40" onchange="setMatchVs(this.value)"${onEnter("this.blur()")}/>
         <p class="note">Picked the wrong team at the gate? Choose the one you played and every out, call and read on this sheet moves with it. A team the board does not have joins the division.</p></div>` : ""}
       <button class="btn btn--block" onclick="newMatch()">${
-        pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
+        newMatchBlank()?"New match — pick who you play":pitNamed("right")?`New match vs ${esc(S.right.name)}`:"New match — pick the other team first"}</button>
       ${sheetSize(curMatch()) ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="sendSheet()">Send this sheet to another coach</button>
       <p class="note">Two phones on one match — one on the tally, one charting off the fence: send the sheet, he taps
         Merge it in under Nexus › Load a copy, and both halves are on one sheet. Send it back the same way;
