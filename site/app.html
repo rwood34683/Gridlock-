@@ -1719,12 +1719,37 @@ svg.field [data-pick]{cursor:crosshair}
  * Recognition and drafts are transient. Only completed event rows are saved. */
 "use strict";
 const _voiceUI = {phase:"idle",partial:"",status:"",draft:"",draftScope:"",generation:0,session:null,
-  availability:null,checking:false,editId:"",edit:null};
+  availability:null,checking:false,editId:"",edit:null,pointPick:null};
 const voiceKinds = {out:"Eliminated",move:"Position / move",hit:"Hit reported",note:"Observation"};
+function voicePoint(){
+  const base=sheetPoint(), pick=_voiceUI.pointPick;
+  if(pick && (pick.m!==S.matchId || pick.layout!==S.layoutKey || pick.base!==base || pick.season!==S.results || !S.entered)) _voiceUI.pointPick=null;
+  return _voiceUI.pointPick ? _voiceUI.pointPick.pt : base;
+}
+function voicePointLimit(){ return matchOver() ? sheetPoint() : Math.max(sheetPoint(), Number.isSafeInteger(lastPoint()) ? lastPoint() : 1); }
+window.pickVoicePoint = value => {
+  const pt=Number(value);
+  if(!Number.isSafeInteger(pt) || pt<1 || pt>voicePointLimit()){
+    _voiceUI.status="Choose a point already on this match, or the current point.";render();return;
+  }
+  stopVoiceSession("Point selected. Check the team, then start listening.");
+  _voiceUI.editId="";_voiceUI.edit=null;
+  _voiceUI.pointPick={m:S.matchId,layout:S.layoutKey,base:sheetPoint(),pt,season:S.results};
+  render();
+};
+window.openPointVoice = pt => {
+  if(nobodyToPlay()) return needOpponent();
+  if(sheetField()) return flash("Open this match's field before recording a point.");
+  stopVoiceSession("Check the team and point, then start listening.");
+  S.voice={...(S.voice||{}),team:matchVs(),player:"auto"};
+  S.tab="scout";S.scoutTab="voice";
+  window.pickVoicePoint(pt);save(S);
+  requestAnimationFrame(()=>document.getElementById("voice-live")?.scrollIntoView({block:"start"}));
+};
 function voiceContext(){
   const v=S.voice || {}, side=v.side === "left" ? "left" : "right", pit=pitOf(side);
   return {side,team:v.team || (pit.named ? pit.name : "Unidentified opponent"),named:!!(v.team || pit.named),player:v.player || "auto",
-    layout:S.layoutKey,m:S.matchId,pt:(typeof sheetPoint === "function" ? sheetPoint() : (S.point || 1)),language:v.language || "en-US"};
+    layout:S.layoutKey,m:S.matchId,pt:voicePoint(),language:v.language || "en-US"};
 }
 // The team as a value to carry across a change: the one the coach named, or
 // nothing. The placeholder is never written anywhere as if he had picked it.
@@ -1762,6 +1787,7 @@ function stopVoiceSession(message){
   if(window.gridlockSpeech) Promise.resolve(window.gridlockSpeech.stop()).catch(()=>{});
 }
 function guardVoiceSession(){
+  voicePoint();
   if(_voiceUI.session && (!S.entered || S.tab!=="scout" || S.scoutTab!=="voice" || voiceScope()!==_voiceUI.session.scope)){
     stopVoiceSession("Listening stopped because the player, team, point, field or screen changed.");
   }
@@ -1915,6 +1941,19 @@ window.openVoiceArrival = id => {
   S.arrival={side:e.side || "right",startEnd:e.side || "right",team:e.team,player:e.player,matchId:e.m,point:e.pt,layout:e.layout,destination:e.bunker};
   S.scoutTab="arrival";save(S);render();
 };
+function voicePointEvents(c=voiceContext()){
+  return (S.voiceEvents||[]).filter(e=>e.team===c.team && e.layout===c.layout && e.m===c.m && e.pt===c.pt);
+}
+window.shareVoicePoint = () => {
+  const c=voiceContext(), events=voicePointEvents(c);
+  if(!events.length) return flash("No voice notes for this team and point yet.");
+  stopVoiceSession("Listening stopped for the point recap.");
+  const text=[`${c.team} · Point ${c.pt}`,matchLabel(curMatch()),curLayout().name,
+    "Voice notes — the coach records the score separately.","",
+    ...events.map(e=>`${e.review ? "Needs review" : "Recorded"}: ${e.playerName || "Player not identified"} · ${voiceKinds[e.kind] || "Observation"}${e.bunker ? " · "+e.bunkerName+" ("+e.bunker+")" : ""}\n${e.text}`)].join("\n");
+  render();
+  handOff("Point recap",text);
+};
 function voiceEditor(event){
   const edit=_voiceUI.edit, players=voicePlayers(event.team);
   return `<div class="voice-editor"><div class="voice-grid">
@@ -1927,29 +1966,34 @@ function voiceEditor(event){
 function scoutVoice(){
   checkVoiceAvailability();
   const c=voiceContext(), players=voicePlayers(c.team), teams=[...new Set([c.team,...arrivalTeamNames()])];
-  const events=(S.voiceEvents || []).filter(e=>e.team===c.team && e.layout===c.layout && e.m===c.m && e.pt===c.pt
-    && (c.player==="auto" || e.player===c.player || e.review && !e.player)).slice().reverse();
+  const allEvents=voicePointEvents(c), events=allEvents.filter(e=>c.player==="auto" || e.player===c.player || e.review && !e.player).slice().reverse();
   const available=_voiceUI.availability, active=!!_voiceUI.session;
-  return sec("Voice log",`<p class="lede">Say who you’re watching and what happens. Each completed phrase is saved to their history with the current team, match and point.</p>
+  return sec("Voice log",`<p class="lede">Choose the team and point. Tap Start listening, then say what happened using your team's bunker calls.</p>
     ${arrivalGate(c)}
-    <p class="aid"><b>A scouting record, not a prediction.</b> Unclear events are saved for review. Confirmed locations join the route viewer; match scores stay under the coach’s control.</p>
+    <p class="note">Check the text and correct anything the mic got wrong. Voice notes do not change the score.</p>
     <div class="voice-grid">
       <div class="fld"><label for="voice-side">Their starting end</label><select id="voice-side" onchange="setVoice({side:this.value,team:voiceTeamValue()})"><option value="right"${c.side==='right'?' selected':''}>Right end → moving left</option><option value="left"${c.side==='left'?' selected':''}>Left end → moving right</option></select></div>
       <div class="fld"><label for="voice-team">Opponent team</label><select id="voice-team" onchange="setVoice({team:this.value})">${teams.map(t=>`<option value="${esc(t===c.team && !c.named ? "" : t)}"${t===c.team?' selected':''}>${esc(t===c.team && !c.named ? "Nobody in the pit yet" : t)}</option>`).join("")}</select></div>
       <div class="fld"><label for="voice-player">Player being watched</label><select id="voice-player" onchange="setVoice({player:this.value})"><option value="auto"${c.player==='auto'?' selected':''}>Detect name or jersey number</option>${players.map(p=>`<option value="${esc(p.key)}"${c.player===p.key?' selected':''}>${esc(voicePlayerLabel(p))}</option>`).join("")}</select></div>
     </div><div class="voice-tools"><button class="btn btn--quiet" onclick="voiceManagePlayers()">Manage team &amp; players</button></div>
-    <p class="note">${esc(curLayout().name)} · ${esc(matchLabel(curMatch()) || "Current match")} · Point ${c.pt} · English (US)</p>
-    <p class="note">Example: “Number seven is out.” For locations, use a unique bunker call from your field. Pause briefly between observations. Select one player to say “he moved to…” without repeating their name.</p>
-    <details><summary>Bunker calls for this field</summary><p class="note">Shared names need an exact ID or a unique team call. Set your own calls in Playbook.</p><p class="note">${voiceBunkers(c.layout).map(b=>esc([...new Set([b.id,...b.aliases])].join(" / "))).join(" · ")}</p></details>
-    <div class="voice-live" id="voice-live" data-listening="${active}"><p id="voice-status" class="voice-status" role="status">${esc(_voiceUI.status || "Ready to record")}</p><p id="voice-partial" class="voice-partial" aria-live="off">${esc(_voiceUI.partial || "Completed phrases are saved automatically.")}</p>
+    <p class="note">${esc(curLayout().name)} · ${esc(matchLabel(curMatch()) || "Current match")} · English (US)</p>
+    <div class="voice-live" id="voice-live" data-listening="${active}">
+    <div class="fld"><label for="voice-point">Point to record</label><input id="voice-point" type="number" min="1" max="${voicePointLimit()}" step="1" value="${c.pt}" onchange="pickVoicePoint(this.value)"></div>
+    <p class="aid"><b>Recording point ${c.pt} · ${esc(c.team)}</b>${c.pt!==sheetPoint() ? ` · Tally stays on point ${sheetPoint()}.` : ""}</p>
+    <div class="voice-tools">${c.pt>1 ? `<button class="btn btn--quiet" onclick="pickVoicePoint(${c.pt-1})">Previous point</button>` : ""}${c.pt!==sheetPoint() ? `<button class="btn btn--quiet" onclick="pickVoicePoint(${sheetPoint()})">Current point · ${sheetPoint()}</button>` : ""}<button class="btn btn--quiet" onclick="set({tab:'tally'})">Back to Tally</button></div>
+    <p id="voice-status" class="voice-status" role="status">${esc(_voiceUI.status || "Ready to record")}</p><p id="voice-partial" class="voice-partial" aria-live="off">${esc(_voiceUI.partial || "Completed phrases are saved automatically.")}</p>
       <div class="voice-tools">${active ? `<button class="btn" onclick="stopVoiceLog()">Stop listening</button>` : `<button class="btn${!available || !available.available ? " btn--quiet" : ""}" onclick="startVoiceLog()">Start listening</button>`}</div>
       <p class="note">${!available ? "Checking dictation support…" : !available.available ? "Dictation is unavailable in this browser or device. You can still record text below." : available.engine==='native' ? "Uses your device’s speech recognition service. Native transcripts appear when each phrase is finalized." : "Uses this browser’s speech recognition service; live words appear here before they are finalized."}</p>
       <p class="note">Starting asks for microphone access. Your device or browser’s speech provider may process audio online and require internet. Gridlock saves text locally and does not keep audio. Leaving this screen or changing context stops listening.</p>
     </div>
+    <p class="note">Example: “Number seven is out.” For locations, use a unique bunker call from your field. Pause briefly between observations. Select one player to say “he moved to…” without repeating their name.</p>
+    <details><summary>Bunker calls for this field</summary><p class="note">Uses the whole-team calls saved in More › Codes for this field. A shared or unclear call needs review; it never chooses a bunker for you.</p><button class="btn btn--quiet" onclick="set({tab:'more',more:'codes'})">Set team bunker calls</button><p class="note">${voiceBunkers(c.layout).map(b=>esc([...new Set([b.id,...b.aliases])].join(" / "))).join(" · ")}</p></details>
+    <details><summary>Set up your microphone</summary><ol class="note"><li>Connect or pair your microphone or headset with this laptop, phone or tablet.</li><li>Select it as the microphone in your device or browser settings. Check that it is not muted.</li><li>Tap Start listening here and allow microphone access. Say a short test phrase, check the text, then undo the test event.</li></ol><p class="note">Gridlock uses the speech service's microphone; this screen cannot choose a different input. If speech is unavailable or the field is too loud, type below or use your keyboard's dictation.</p></details>
     <div class="fld"><label for="voice-manual">Or type an observation</label><textarea id="voice-manual" maxlength="12000" placeholder="Number seven is out" oninput="editVoiceDraft(this.value)">${esc(_voiceUI.draft)}</textarea></div>
     ${_voiceUI.draft && _voiceUI.draftScope!==voiceScope() ? `<p class="note">This draft is from an earlier selection. Clear it or edit it for the current selection before recording.</p><button class="btn btn--quiet" onclick="clearVoiceDraft()">Clear draft</button>`:''}
     <button class="btn" onclick="recordVoiceText()">Record text</button>
     <h3>Point ${c.pt} · ${events.length} recorded event${events.length===1?'':'s'}</h3>
+    ${allEvents.length ? `<button class="btn btn--quiet" onclick="shareVoicePoint()">Share this point's notes</button><p class="note">Includes all players for this team and point, with unclear notes marked Needs review.</p>` : ""}
     <p class="note">Showing this team, player, field, match and point. Full backups include this history.</p>
     ${events.length ? events.map(e=>`<article class="voice-event${e.review?' voice-event--review':''}" data-voice-id="${esc(e.id)}">
       <div class="voice-meta">${esc(new Date(e.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}))} · ${e.source==='speech'?'Spoken':'Typed'}${e.corrected?' · Corrected':''}${e.review?' · Needs review':''}</div>
@@ -15368,6 +15412,7 @@ function tallyDepthSec(){
 }
 function tally(){
   const pt=sheetPoint();
+  const recapPoint=resultFor(pt) ? pt : resultFor(pt-1) ? pt-1 : pt;
   const sc=matchScore(), was=resultFor(pt);
   const bl=curLayout().bunkers;
   const mine=sideMen(pt);
@@ -15565,6 +15610,7 @@ function tally(){
 
   ${deckPanel()}
   <div id="point-sheet"></div>${sec("Point sheet", `
+    ${!nobodyToPlay() && !sheetField() ? `<div class="btnrow" style="margin-bottom:var(--s3)"><button class="btn btn--quiet" onclick="openPointVoice(${recapPoint})">Talk about point ${recapPoint}</button></div>` : ""}
   ${/* The call, on the sheet.
        *
        * The loop on a sideline is: point ends, who won it, what are we calling,
@@ -19235,8 +19281,10 @@ const HELP = {
          "Record shot logs where he was and where the paint went."],
     watch:"Green markers are sightings you recorded. Dashed lines are the app joining them up, not something you saw."},
   "scout/voice": {t:"Voice log", w:"Call the point out loud instead of tapping.",
-    how:["In Scout, open More, then Voice log. Pick the opponent and player, tap Start listening, then say what happened.",
+    how:["On Tally, Talk about point opens Voice log for the last scored point, or the current one if none just finished. You can also open Scout › More › Voice log. Check the team and Point to record before Start listening.",
+         "Connect your mic to this device and select it in device or browser settings. The voice screen has microphone setup steps and a typed fallback. It uses your whole-team bunker calls from More › Codes for this field.",
          "Completed phrases save automatically. Unclear events say Needs review; use Edit event or Undo event to correct them. Confirmed locations join the player's route. Voice log does not change the score.",
+         "Point to record lets you recap an earlier point without moving Tally's point or changing its score. Share this point's notes includes every player for that team and point, with unclear notes still marked for review.",
          "Type instead if the microphone is refused or it is too loud."]},
   "scout/counter": {t:"Counter", w:"Your answer to each of their calls.",
     how:["The picker ranks the twelve against their tendency and the score; a call you have run against them is ranked by what it won.",
