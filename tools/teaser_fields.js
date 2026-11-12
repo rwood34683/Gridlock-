@@ -176,13 +176,14 @@ function patchCode(src) {
   src = src.replace(/(href="data:application\/manifest\+json;base64,)([A-Za-z0-9+/=]+)"/, (_, a, b64) => {
     const m = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
     const kind = src.includes("Gridlock Team · preview") ? "Team" : "Player";
-    Object.assign(m, { name: `Gridlock ${kind} · preview`, short_name: "Gridlock", description: `Gridlock ${kind} preview. Not available yet.`,
+    Object.assign(m, { name: `Gridlock ${kind} · preview`, short_name: `GL ${kind}`, description: `Gridlock ${kind} preview. Not available yet.`,
       background_color: "#0b0c0d", theme_color: "#0b0c0d", icons: [{ src: icon, sizes: "192x192", type: "image/png", purpose: "any" }] });
     return a + Buffer.from(JSON.stringify(m)).toString("base64") + '"';
   });
   // The mark beside the name is the one accent, not a red-and-blue wheel.
   src = src.replace("background:conic-gradient(from 210deg,#e5252a,#ad1515,#3d8bff,#e5252a)", "background:linear-gradient(180deg,#e5252a,#ad1515)");
-  src = src.replace('<meta name="apple-mobile-web-app-title" content="GRIDLOCK"/>', '<meta name="apple-mobile-web-app-title" content="Gridlock"/>');
+  // Three apps, three names on a home screen: all of them installed as "Gridlock".
+  src = src.replace(/<meta name="apple-mobile-web-app-title" content="[^"]*"\/>/, `<meta name="apple-mobile-web-app-title" content="GL ${/const EDITION='team'/.test(src) ? "Team" : "Player"}"/>`);
   return src;
 }
 

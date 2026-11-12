@@ -91,6 +91,12 @@ Checked against main c857c5738f7af4580c61d477e3e5c8c96d1ce04e and Claude's
 preview branch 5ea3ccdb2f922fab5324b27d4c30a93838420158. Status is as of this
 review; an open PR is not a deployed feature.
 
+During implementation Claude added three audit commits, ending at
+44e120267e230f1d5ceb206ab80faaed9b7be03a. They are preserved in this review
+branch: schedule/report corrections, safe blank-sheet and observation handling,
+and separate Player/Team storage and backups. Only the overlapping manual-share
+sentence was reconciled, retaining its meaning and adding the self-report label.
+
 | Need | Where it stands |
 | --- | --- |
 | Team schedule and when to scout | Already in Coach: Your team's day, Play and scout by the clock, Before you play them. CLAUDE.md items 63, 75 and 80. |

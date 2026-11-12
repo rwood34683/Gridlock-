@@ -83,6 +83,25 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    }finally{await c.close();}
   });
  }
+  await check("Team and Player on one origin keep separate teams, and a Team backup is refused by Player",async()=>{
+   const c=await browser.newContext({acceptDownloads:true}),t=await c.newPage(),p=await c.newPage();
+   try{
+    await t.goto(base+"/teasers/team/");await t.evaluate(()=>localStorage.setItem("gridlock_team",JSON.stringify({code:"IMPACT-YWIX",coach:true})));
+    await p.goto(base+"/teasers/player/");await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+    const keys=await p.evaluate(()=>Object.keys(localStorage).sort());
+    assert.ok(keys.includes("gridlock_team_team")&&keys.includes("gridlock_player_team"),"each app has its own team key: "+keys.join(","));
+    assert.ok(keys.every(k=>!k.startsWith("gridlock_")||k.startsWith("gridlock_team_")||k.startsWith("gridlock_player_")),"no shared key: "+keys.join(","));
+    await t.reload();assert.equal(await t.evaluate(()=>JSON.parse(localStorage.getItem("gridlock_team")).code),"IMPACT-YWIX","Player joining did not overwrite Team's team");
+    assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem("gridlock_team")).code),"IMPACT-7QX2");
+    const backup=await t.evaluate(()=>{const data={_gridlock_backup:1,app:EDITION,ver:APP_VER,date:"x",keys:{}};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf("gridlock_"+EDITION+"_")===0)data.keys["gridlock_"+k.slice(("gridlock_"+EDITION+"_").length)]=localStorage.getItem(k);}return data;});
+    assert.equal(backup.app,"team");assert.ok(Object.keys(backup.keys).includes("gridlock_team")&&Object.keys(backup.keys).every(k=>!k.startsWith("gridlock_player_")),"a Team backup holds Team's data only");
+    await p.evaluate(()=>setMode("nexus"));
+    await p.locator("#bkUp").setInputFiles({name:"gridlock-team-backup.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify(backup))});
+    await p.waitForTimeout(400);
+    assert.match(await p.locator("#bkMsg").innerText(),/from the Gridlock Team app/);
+    assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem("gridlock_team")).code),"IMPACT-7QX2","Player's team is untouched");
+   }finally{await c.close();}
+  });
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});
