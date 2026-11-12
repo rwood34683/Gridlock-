@@ -1399,6 +1399,10 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Reset tendencies uses the existing two-tap confirmation, never a browser
     dialog. Change the generator sources, then regenerate; the `coachwalk`
     block belongs to `tools/teaser_walk.js` through `teaser_rules.js`.
+    The Player preview's header leads with the owner's wordmark (12 Nov
+    2026): `teasers/player/wordmark.jpg`, cut from `site/img/logo-gridlock.jpg`
+    to 72 px with its black lifted to the header's #0b0c0d, written into the
+    header by `tools/teaser_fields.js`. No blend mode; Team keeps its mark.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
