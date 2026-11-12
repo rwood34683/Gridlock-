@@ -223,16 +223,15 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["no sends", "`).join('')}`:''}</span></a>", "`).join('')}`:''}<br><span style=\"font-size:10.5px;color:#ff5a52\">Video links are not in this preview</span></span></div>"],
   ["no sends", "<a href=\"${prEsc(u)}\" target=\"_blank\" rel=\"noopener\" class=\"ld\" style=\"display:flex;gap:8px", "<div class=\"ld\" style=\"display:flex;gap:8px"],
   ["no sends", "<span>${prEsc(t)}</span></a>`).join('');}", "<span>${prEsc(t)}<br><span style=\"font-size:10.5px;color:#ff5a52\">Links are not in this preview</span></span></div>`).join('');}"],
-  // Player (owner, 12 Nov 2026): Tally and Scout › Breakouts log where every
-  // man went first, then what happened to each. The flow is tools/teaser_place.js.
-  ["two steps", "let h='<div class=\"lbl\">Bunker tally</div>';", "let h='<div class=\"lbl\">Bunker tally</div>'+placeBar();", ["player"]],
-  ["two steps", "if(id!=null)tallySelect(id);", "if(id!=null&&!placeTap(id))tallySelect(id);", ["player"]],
-  ["two steps", "document.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{tallySel=b.dataset.tb;", "document.querySelectorAll('[data-tb]').forEach(b=>b.onclick=()=>{if(placeTap(b.dataset.tb))return;tallySel=b.dataset.tb;", ["player"]],
-  ["two steps", "tallyLast={name:tallySel,made:made,pt:null,read:null,clean:cl};tallySel=null;", "tallyLast={name:tallySel,made:made,pt:null,read:null,clean:cl};placeTold(tallySel);tallySel=null;", ["player"]],
-  ["two steps", "if(typeof tallySheetSync==='function')if(tallyRoute.length)", "placeWire();if(typeof tallySheetSync==='function')if(tallyRoute.length)", ["player"]],
-  ["two steps", "tprLost=0;tprOpen=false;renderTally();};}", "tprLost=0;tprOpen=false;placeReset();renderTally();};}", ["player"]],
-  ["two steps", "Tap a bunker on the field — or pick one below — then log that player\\'s breakout (dead or alive, route). When the point is over, log the break result below.", "When the point is over, log the break result below.", ["player"]],
-  ["two steps", "Do this after you\\'ve logged all five players\\' breakouts for the point.", "Do this once every man placed this point is told.", ["player"]],
+  // Player (owner, 12 Nov 2026): Tally and Scout's Matchup, Breakouts, Layers
+  // and Games work as the coach app's do. The code is tools/teaser_coachplay.js.
+  ["coach tally", "function renderTally(){if(MODE==='tally')TSCOPE=null;", "function renderTally(){if(MODE==='tally'){cpTally();return;}if(MODE==='tally')TSCOPE=null;", ["player"]],
+  ["coach scout", "  if(scView==='log')return renderScoutBreakouts();\n  if(scView==='layers')return renderScoutLayers();\n  if(scView==='games')return renderGames();", "  if(scView==='log')return cpBreakouts();\n  if(scView==='layers')return cpLayers();\n  if(scView==='games')return cpGames();", ["player"]],
+  ["coach scout", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');}return;}", "const lk=P.querySelector('[data-lickey]');if(lk)lk.onclick=()=>setMode('nexus');cpMatchup(P);}return;}", ["player"]],
+  ["coach scout", 'data-scview="matchup">Matchup &amp; Sim<', 'data-scview="matchup">Matchup<', ["player"]],
+  ["coach scout", 'data-scview="layers">Historical layers<', 'data-scview="layers">Layers<', ["player"]],
+  ["coach scout", 'data-scview="games">Games &amp; replay<', 'data-scview="games">Games<', ["player"]],
+  ["coach scout", "Games &amp; replay and Historical layers are open too.", "Breakouts, Layers and Games read the sheets you keep on Tally.", ["player"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -276,9 +275,9 @@ function walkBlock(src) {
   return old.test(src) ? src.replace(old, () => block) : src;
 }
 
-// Where they went, then what happened (Player only), between markers too.
-const PLACE = fs.readFileSync(path.join(__dirname, "teaser_place.js"), "utf8").trimEnd();
-const P0 = "/* coachplace:begin \u2014 generated from tools/teaser_place.js, never hand-edit */", P1 = "/* coachplace:end */";
+// The coach app's Tally and Scout (Player only), between markers too.
+const PLACE = fs.readFileSync(path.join(__dirname, "teaser_coachplay.js"), "utf8").trimEnd();
+const P0 = "/* coachplay:begin \u2014 generated from tools/teaser_coachplay.js, never hand-edit */", P1 = "/* coachplay:end */";
 function placeBlock(src, kind) {
   if (kind !== "player") return src;
   const a = src.indexOf(P0), b = src.indexOf(P1), block = P0 + "\n" + PLACE + "\n" + P1 + "\n";
