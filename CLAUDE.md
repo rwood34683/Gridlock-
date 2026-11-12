@@ -1663,7 +1663,9 @@ when something is undated. `test/interaction-audit.cjs`,
 
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
-in one short line each. Keep the five direct tabs and a 44 px Home control
+in one short line each, then (owner, 12 Nov 2026) a card for every More tool in
+the menu's groups, Home itself and the hidden rows left off; each card opens
+its screen as the menu row does. Keep the five direct tabs and a 44 px Home control
 beside the event name. Home reads the current sheet and loaded schedule;
 never invent a game, score, lineup, performance number or sync state. Reading
 it changes no match data. Backup/format questions still lead on first sign-in,
