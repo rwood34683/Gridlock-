@@ -1493,6 +1493,28 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     - A scout row says "Already watched" with the score.
     `test/tally-depth.cjs`.
 
+88. ~~Split deck for our match.~~ Done (owner, 11 Nov 2026). More › Format
+    has Standard / Split deck. Tally tracks only our match: Our point → Other
+    match playing → We're up next. Score our point normally; tap **Other point
+    ended** for the changeover, then **Our point is starting** on the official's
+    signal. Their point never scores ours or advances our point number.
+    - Own-match rest and the changeover are separate. The 2026 divisional
+      rulebook, 8.3 and 9.3.12, keeps at least 2:00 between our own points;
+      Semi-Pro changes over in 0:45, D2–D5 in 1:00. Start the preparation
+      timer for the longer of the remaining own break and the changeover.
+      Unpublished divisions ask for a changeover; do not guess Pro's rules.
+    - **Other match is over** returns this sheet to normal breaks, after
+      confirmation. The next sheet keeps the saved split-deck choice.
+    - `splitDeck`, `deckClock` and `deckEnded` are scalar sheet settings;
+      `splitDeck` and `deckClock` also belong to saved formats. An old 45/60
+      second break does not silently become split deck. Turn and timer are
+      scratch, reset on reload, restore, sheet change and undo; the coach
+      checks the field. A watched match never inherits our handoff controls.
+    - Handoff buttons resist a second tap landing on a different button
+      after redraw. The game clock remains the official's, never run here.
+    `test/split-deck.cjs` covers the flow, timing, copy import and phone/tablet
+    layouts; `docs/RULES-CHECK.md` records the verified timing distinction.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
