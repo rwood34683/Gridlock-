@@ -2586,9 +2586,17 @@ function cpNoTeam(P,what){svg.onclick=cpScoutTap;P.innerHTML=`<div class="iqrow"
 function cpMatchup(P){svg.onclick=cpScoutTap;P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const team=cpPit();if(!team)return;cpTallyFive(team);const five=cpFiveNow(team);
   const w=document.createElement('div');w.innerHTML=`<div class="lbl" style="margin-top:8px">Their five · point ${SH.point}</div><div style="font-size:12px;color:#ff5a52">${five.length?five.map(id=>hesc(bLabelId(id))).join(' · '):'Not logged yet. Tap where they went on Breakouts.'}</div>`;P.appendChild(w);
   P.querySelectorAll('.iqrow').forEach(r=>{if(/NOT IN THIS PREVIEW/.test(r.textContent))r.remove();});const t=document.createElement('div');t.innerHTML=cpStrip();P.insertBefore(t.firstChild,P.children[1]||null);cpWire(P,renderScout);}
-function cpTallyFive(team){const seen={};cpFiveNow(team).forEach(id=>{const b=cpBunker(id);if(!b)return;const k=seen[id]=(seen[id]||0)+1;cpMan(b,k,'#3d8bff',true,'',false);});}
+/* Their five on Scout's field, drawn as the coach app's fiveSquares draws it:
+   a rounded square in the pit's colour, a white edge, the man's number in
+   white, over a faint dark shadow. Two or more on one bunker sit side by side. */
+function cpFive(ids,col){const r=3.1,many=id=>ids.filter(x=>x===id).length;
+  ids.forEach((id,i)=>{const b=cpBunker(id);if(!b)return;const k=ids.slice(0,i).filter(x=>x===id).length,n=many(id),x=X(b.x)+(k-(n-1)/2)*(r*2+.75),y=Y(b.y);
+    el('rect',{x:x-r-.3,y:y-r-.3,width:r*2+.6,height:r*2+.6,rx:1.2,fill:'#000',opacity:.55,'pointer-events':'none'});
+    el('rect',{x:x-r,y:y-r,width:r*2,height:r*2,rx:1,fill:col,stroke:'#efedeb','stroke-width':.65,'pointer-events':'none'});
+    const t=el('text',{x,y:y+1.3,fill:'#fff','font-size':3.5,'text-anchor':'middle','font-weight':800,'pointer-events':'none'});t.textContent=String(i+1);});}
+function cpTallyFive(team){cpFive(cpFiveNow(team),'#3d8bff');}
 function cpBreakouts(){field();const P=document.getElementById('panel');const team=cpPit();if(!team){cpNoTeam(P,'their five and their call log against them');return;}
-  const seen={};cpTheirPick.forEach(id=>{const b=cpBunker(id);if(!b)return;const k=seen[id]=(seen[id]||0)+1;cpMan(b,k,'#3d8bff',true,String(k>1?k:''),false);});
+  cpFive(cpTheirPick,'#3d8bff');
   if(!cpTheirPick.length)cpTallyFive(team);
   if(cpDraft){[['at','#ffffff'],['moved','#efedeb'],['from','#ff5a52']].forEach(([k,c])=>{const b=cpBunker(cpDraft[k]);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.2,fill:'none',stroke:c,'stroke-width':.8,'stroke-dasharray':'1.2 .8','pointer-events':'none'});});const b=cpBunker(cpDraft.bid);if(b)el('circle',{cx:X(b.x),cy:Y(b.y),r:4.6,fill:'none',stroke:'#ffffff','stroke-width':.9,'pointer-events':'none'});}
   const m=cpMatch(),on=m.vs===team,mine=cpTheirs(team),calls={},plants={};let n=0;

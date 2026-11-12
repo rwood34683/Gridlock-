@@ -166,6 +166,8 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.locator("#sideR .pickSel").selectOption({index:1});
    await tap(ids[0]);assert.deepEqual(await p.evaluate(()=>[scView,cpTheirPick.slice()]),["log",[ids[0]]],"a tap on Matchup starts their five on Breakouts");
    await tap(ids[1]);await tap(ids[1]);assert.equal(await p.evaluate(()=>cpTheirPick.length),3);
+   const marks=await p.evaluate(()=>[...document.querySelectorAll('#field text, svg text')].filter(t=>t.getAttribute("font-size")==="3.5"&&t.previousElementSibling&&t.previousElementSibling.getAttribute("fill")==="#3d8bff").map(t=>t.textContent));
+   assert.deepEqual(marks,["1","2","3"],"their men are the coach app's numbered blue squares, one number a man");
    await p.locator('[data-tb5="log"]').tap();
    assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[0],"logging the five opens the first man's details on Scout");
    assert.equal(await p.locator("#cpSheet").count(),1);

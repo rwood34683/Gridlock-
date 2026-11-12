@@ -1448,6 +1448,9 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     right pit it says so and moves to the pit's picker; with a team, a tap on
     Matchup, Layers or Games starts their five on Breakouts, and Log their
     five opens each man's details there, the next after each Log.
+    Their five on Scout's field draw as the coach app's `fiveSquares` does
+    (`cpFive`): a blue rounded square, white edge, the man's number in white,
+    two on one bunker side by side (owner, 12 Nov 2026).
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
