@@ -1460,6 +1460,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     step 1 and step 2, and Scout's Breakouts. A tap on the bunker of the man
     whose details are open always adds one more there. Nothing is taken out
     of the Player preview unless the owner asks (owner, 12 Nov 2026).
+    After joining with a team code the Player preview opens on **Home**, a
+    dashboard of its tabs (owner, 12 Nov 2026): one card a tab on the bar and a
+    row of the More menu, each with a line on what it is for and where you are
+    now, opened through that tab's own button. Home leads the bar; every tab
+    and More row stays. The cards are `tools/teaser_home.js`, inserted between
+    the `playerhome` markers by `tools/teaser_rules.js` (Player only).
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 

@@ -240,6 +240,12 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["coach scout", 'data-scview="layers">Historical layers<', 'data-scview="layers">Layers<', ["player"]],
   ["coach scout", 'data-scview="games">Games &amp; replay<', 'data-scview="games">Games<', ["player"]],
   ["coach scout", "Games &amp; replay and Historical layers are open too.", "Breakouts, Layers and Games read the sheets you keep on Tally.", ["player"]],
+  // Player (owner, 12 Nov 2026): after joining, a dashboard of the tabs opens
+  // instead of Tally; Home leads the bar. The cards are tools/teaser_home.js.
+  ["player home", "m==='codes'||m==='practice');", "m==='codes'||m==='practice'||m==='home');", ["player"]],
+  ["player home", "  show('practicebox',m==='practice');", "  show('practicebox',m==='practice');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["player"]],
+  ["player home", "EDITION==='player'?'tally':'play');", "EDITION==='player'?'home':'play');", ["player"]],
+  ["player home", "const ORDER=EDITION==='player'?['tally','scout','sight','walk']:[];", "const ORDER=EDITION==='player'?['home','tally','scout','sight','walk']:[];", ["player"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -294,9 +300,21 @@ function placeBlock(src, kind) {
   return at < 0 ? src : src.slice(0, at) + block + src.slice(at);
 }
 
+// The Player dashboard (Player only), between markers, after the coach Tally.
+const HOME = fs.readFileSync(path.join(__dirname, "teaser_home.js"), "utf8").trimEnd();
+const H0 = "/* playerhome:begin \u2014 generated from tools/teaser_home.js, never hand-edit */", H1 = "/* playerhome:end */";
+function homeBlock(src, kind) {
+  if (kind !== "player") return src;
+  const a = src.indexOf(H0), b = src.indexOf(H1), block = H0 + "\n" + HOME + "\n" + H1 + "\n";
+  if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + H1.length + 1);
+  const at = src.indexOf(P1);
+  return at < 0 ? src : src.slice(0, at + P1.length + 1) + block + src.slice(at + P1.length + 1);
+}
+
 function apply(src, kind) {
   src = walkBlock(src);
   src = placeBlock(src, kind);
+  src = homeBlock(src, kind);
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step applies wherever what it looks for is still in the file. A step whose
   // result contains what it looks for is skipped once that result is there, or

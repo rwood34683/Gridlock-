@@ -57,7 +57,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     await p.goto(base+"/teasers/"+kind+"/");await scan("start");assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(11, 12, 13)");
     if(kind==="player"){await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();await scan("joined");}
     const tabs=await p.locator(".tabs button:visible").evaluateAll(es=>es.map(e=>e.dataset.m));
-    assert.deepEqual(tabs,kind==="player"?["tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","rules","nexus"]);
+    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","rules","nexus"]);
     for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();
      // Rules opens the rulebook window over the screen; it is closed before the screen is read.
      if(tab==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}
@@ -196,6 +196,24 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.locator('.tabs button[data-m="tally"]').tap();assert.equal(await p.evaluate(()=>cpStep),"tell");
    await tap(L);await tap(L);
    assert.equal(await p.evaluate(id=>SH.rows.filter(r=>r.bid===id).length,L),2,"Tally step 2: two taps, two men on the bunker");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 12 Nov 2026: after joining, the Player app opens on a dashboard of
+ // its tabs rather than on Tally; every tab and More row stays where it was.
+ for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": opens on a dashboard of every tab, each card opens its screen",async()=>{
+  const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   assert.equal(await p.evaluate(()=>MODE),"home","opens on the dashboard, not Tally");
+   const cards=await p.locator("#homebox [data-home]").evaluateAll(es=>es.map(e=>e.innerText.split("\n")[0].replace(/ · More$/,"")));
+   assert.deepEqual(cards,["Tally","Scout","Sightlines","Walk","Practice","Rules","Nexus"],"one card a tab and a More row");
+   for(const [name,mode] of [["Tally","tally"],["Scout","scout"],["Sightlines","sight"],["Walk","walk"],["Practice","practice"],["Nexus","nexus"]]){
+    await p.locator('.tabs button[data-m="home"]').click();assert.equal(await p.evaluate(()=>MODE),"home","Home on the bar goes back");
+    await p.locator("#homebox [data-home]",{hasText:name}).first().click();assert.equal(await p.evaluate(()=>MODE),mode,name+" card opens "+mode);}
+   await p.locator('.tabs button[data-m="home"]').click();await p.locator("#homebox [data-home]",{hasText:"Rules"}).first().click();
+   assert.equal(await p.evaluate(()=>document.getElementById("rulebooksDialog").open),true,"Rules card opens the rulebooks");
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });

@@ -2661,6 +2661,49 @@ function cpGames(){field();cpGround();const P=document.getElementById('panel');c
     if(cpGame===m.id){const pts=new Set();SH.results.concat(SH.rows,SH.theirs).forEach(r=>{if(r.m===m.id&&r.pt)pts.add(r.pt);});[...pts].sort((a,b)=>a-b).forEach(pt=>{h+=`<div class="iqrow" style="border-color:#3a3f40;font-size:12px;margin-bottom:4px"><b>Point ${pt}</b>`+cpStory(m,pt).map(x=>`<div>${hesc(x)}</div>`).join('')+`</div>`;});}});
   P.innerHTML=h;cpScoutHead(P);P.querySelectorAll('[data-gm]').forEach(b=>b.onclick=()=>{cpGame=cpGame===b.dataset.gm?null:b.dataset.gm;cpGames();});}
 /* coachplay:end */
+/* playerhome:begin — generated from tools/teaser_home.js, never hand-edit */
+/* playerhome — the Player preview's dashboard (owner, 12 Nov 2026: "after
+   signing in, a dashboard with the tabs instead of opening into Tally").
+   Inserted by tools/teaser_rules.js between the playerhome markers, Player
+   only; edit it here. One card a screen the Player app opens — the tabs on
+   the bar and the rows of the More menu, as they stand — with a line on what
+   it is for and, where there is one, where you are now. A tap goes there
+   through that tab's own button, so nothing opens any other way. Nothing is
+   taken out: every tab and More row is still where it was, and Home is one
+   more tab at the front of the bar. Reading the dashboard changes nothing. */
+var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, and who won the point.',
+  scout:'Their five, their call and their record, team by team.',
+  sight:'Tap a bunker and see every clear lane from it.',
+  walk:'Notes on each bunker, stuck to the field.',
+  practice:'Your drills and practice results.',
+  rules:'The three official 2026 rulebooks. Needs a connection.',
+  nexus:'Backups and what is kept on this phone.',
+  team:'Your team and its code.',myline:'Your line and your spot in it.',msg:'Messages from your team.'};
+(function homeTab(){const bar=document.querySelector('.tabs');if(!bar||bar.querySelector('button[data-m="home"]'))return;
+  const b=document.createElement('button');b.dataset.m='home';b.textContent='Home';bar.insertBefore(b,bar.firstChild);
+  if(!document.getElementById('homebox')){const box=document.createElement('div');box.id='homebox';box.className='hidden';box.style.marginTop='2px';
+    const anchor=document.getElementById('practicebox');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);}})();
+function homeNow(m){try{
+  if(m==='tally'&&typeof SH!=='undefined'){const mt=SH.matches.find(x=>x.id===SH.matchId);if(mt&&mt.vs){const s=cpScore(mt.id);return 'vs '+mt.vs+' · point '+SH.point+' · '+s.us+'–'+s.them;}return 'No match yet. Pick who you play.';}
+  if(m==='scout'){const t=typeof cpPit==='function'?cpPit():'';return t?'Who you play: '+t:'Pick who you play in the right pit.';}
+  if(m==='sight'||m==='walk'){const ev=document.querySelector('header select');return ev&&ev.selectedOptions[0]?ev.selectedOptions[0].textContent:'';}
+  }catch(e){}return '';}
+function homeItems(){const out=[],seen=new Set();
+  document.querySelectorAll('.tabs button').forEach(b=>{const m=b.dataset.m;if(!m||m==='home'||b.id==='moreBtn'||b.style.display==='none'||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),open:()=>b.click()});});
+  document.querySelectorAll('#moreMenu [data-mm]').forEach(b=>{const m=b.dataset.mm;if(!m||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),more:true,open:()=>b.click()});});
+  return out;}
+function renderHome(){const box=document.getElementById('homebox');if(!box)return;const t=typeof teamGet==='function'?teamGet():null,items=homeItems();
+  box.innerHTML=`<div class="lbl">Your dashboard</div><div style="font-size:12.5px;color:#ff5a52;margin:2px 0 10px">${t&&t.code?'Team '+hesc(t.code)+' · ':''}Tap a card to open it. Home on the bar brings you back here.</div>`
+   +`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">`
+   +items.map((it,i)=>{const now=homeNow(it.m);return `<button type="button" class="iqrow" data-home="${i}" style="display:block;width:100%;text-align:left;cursor:pointer;min-height:92px;border-color:#3a3f40;background:#161818;color:#efedeb;padding:14px">`
+     +`<div style="font-size:17px;font-weight:900">${hesc(it.name)}${it.more?' <span style="font-size:11px;color:#ff5a52;font-weight:700">· More</span>':''}</div>`
+     +`<div style="font-size:12.5px;color:#ff5a52;margin-top:4px">${hesc(HOME_SAYS[it.m]||'')}</div>`
+     +(now?`<div style="font-size:12px;color:#efedeb;margin-top:6px;font-weight:700">${hesc(now)}</div>`:'')+`</button>`;}).join('')+`</div>`;
+  box.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{const it=items[+b.dataset.home];if(it)it.open();});}
+/* The Rules row joins the More menu after this script, so the first draw is
+   redone once the page has loaded. */
+window.addEventListener('load',()=>{if(typeof MODE!=='undefined'&&MODE==='home')renderHome();});
+/* playerhome:end */
 function tallyClick(e){try{
   // 1) Did the finger land ON a bunker shape? The browser already knows which physical one — trust it.
   let id=bidFromTarget(e.target);
@@ -4953,7 +4996,7 @@ function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='w
   {const at=document.querySelector('.tabs button.on');if(at&&at.scrollIntoView)try{at.scrollIntoView({inline:'center',block:'nearest',behavior:'instant'});}catch(e){}}
   show('topPlay',m==='play');show('topRef',m==='ref');show('topScout',m==='scout');show('topLog',m==='log');
   show('rolesRow',m==='scout');show('boardBox',m==='scout');
-  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='practice');
+  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='practice'||m==='home');
   document.querySelector('.fieldbox').classList.toggle('hidden',noField);
   document.getElementById('legend').classList.toggle('hidden',noField);
   document.getElementById('panel').classList.toggle('hidden',noField);
@@ -4971,7 +5014,7 @@ function setMode(m){{const ws=document.getElementById('walkStick');if(ws&&m!=='w
   show('codesbox',m==='codes');
   show('msgbox',m==='msg');
   show('teambox',m==='team');
-  show('practicebox',m==='practice');
+  show('practicebox',m==='practice');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();
   show('lineviewbox',m==='myline');
   if(m!=='scout')document.getElementById('howBox').classList.add('hidden');
   document.getElementById('transport').classList.add('hidden');
@@ -4996,7 +5039,7 @@ refreshLayoutPicker();
    else if(EDITION==='crm')_bs.textContent='FIELD CRM · powered by UPRA';}})();
 /* TAB ORDER: per-edition lead tabs. Listed tabs move to the front in this order; the rest keep their order. */
 (function(){
-  const ORDER=EDITION==='player'?['tally','scout','sight','walk']:[];
+  const ORDER=EDITION==='player'?['home','tally','scout','sight','walk']:[];
   const bar=document.querySelector('.tabs');if(!bar||!ORDER.length)return;
   ORDER.slice().reverse().forEach(m=>{const b=bar.querySelector('button[data-m="'+m+'"]');if(b)bar.insertBefore(b,bar.firstChild);});
   {const mb=document.getElementById('moreBtn');if(mb)bar.appendChild(mb);}
@@ -5033,7 +5076,7 @@ refreshLayoutPicker();
     upsellPop(b.dataset.lbl+' \u2014 not available','This is a coach tool. It is in the coach app, not in this preview.','scout');});
   document.addEventListener('click',close);window.addEventListener('resize',close);
 })();
-renderBoard();setMode(EDITION==='ref'?'iq':EDITION==='league'?'evops':EDITION==='crm'?'crm':EDITION==='player'?'tally':'play');
+renderBoard();setMode(EDITION==='ref'?'iq':EDITION==='league'?'evops':EDITION==='crm'?'crm':EDITION==='player'?'home':'play');
 try{ticBadge();}catch(e){}/* previews send nothing */
 /* PLAYER ACTIVATION GATE: player edition is locked until a team code is entered. */
 if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){
