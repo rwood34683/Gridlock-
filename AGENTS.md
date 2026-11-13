@@ -45,6 +45,8 @@ the same page:
 
 - **Cloud save replies preserve typing.** Success, offline and conflict replies update the sync message without replacing unfinished code/form edits.
   Stale tabs report recovery-only edits; see CLAUDE.md item 92 and `test/automatic-season.cjs`.
+- **Saved code edits release the draft guard.** After a successful local save, Codes can receive later account updates without leaving the screen.
+  Other drafts and failed saves remain protected; see CLAUDE.md item 93.
 
 - **Account sync receives while signed in.** Previously acknowledged devices
   check on return/reconnect and every 30 seconds while visible and idle. Codes,

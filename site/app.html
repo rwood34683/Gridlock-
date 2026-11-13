@@ -10032,7 +10032,7 @@ window.addCode = () => {
   S.codes = [...(S.codes || []), {word, means}];
   save(S); render();
 };
-window.editCode = (i, field, value) => {
+window.editCode = (i, field, value, input) => {
   const list = S.codes || [];
   if(!list[i]) return;
   const v = clean(String(value).trim()).slice(0, field === "word" ? 32 : 600);
@@ -10040,6 +10040,12 @@ window.editCode = (i, field, value) => {
   // Retyping a word onto another code's is the same trap addCode already shuts: two rows, one word.
   if(field === "word" && list.some((c, k) => k !== i && foldName(c.word) === foldName(v))){ flash(`${v} is already a code word — kept the old one.`); render(); return; }
   list[i][field] = v; save(S);           // no redraw: see editPlayer
+  // A committed field is no longer a draft. Without updating its baseline,
+  // receiving waits forever on Codes even after this value reached the account.
+  // A refused local save, a stale tab or another unfinished box stays guarded.
+  if(!_stale && !_storeFail && input?.isConnected && input.value === value){
+    input.value = v; input.defaultValue = v;
+  }
 };
 window.delCode = i => {
   const list = [...(S.codes || [])], was = list[i];
@@ -21475,8 +21481,8 @@ function moreBody(k){
     return sec("Codes", `<p class="lede">Save your words here. Open Team codes on Tally or Scout to read them during a game.</p>
       ${codes.length?`<div class="assigns">${codes.map((c,i)=>`<div class="assign">
           <span class="assign__body">
-            <input value="${esc(c.word)}" onchange="editCode(${i},'word',this.value)" style="font-weight:700"/>
-            <input value="${esc(c.means)}" placeholder="what it means" onchange="editCode(${i},'means',this.value)"/>
+            <input value="${esc(c.word)}" onchange="editCode(${i},'word',this.value,this)" style="font-weight:700"/>
+            <input value="${esc(c.means)}" placeholder="what it means" onchange="editCode(${i},'means',this.value,this)"/>
           </span>
           <button class="btn btn--danger" onclick="delCode(${i})">Remove</button></div>`).join("")}</div>`
         :`<div class="empty">No code words yet.</div>`}

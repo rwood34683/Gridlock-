@@ -74,3 +74,16 @@ Cloud save messages cover completed edits. A save finishing while you type keeps
 your text in place and asks you to finish editing before switching devices. Leave
 the field to save its change, then use Sync now. An older local tab keeps its edits
 in a recovery copy and cannot claim they were sent to the account.
+
+After a code word or meaning saves when its field is left, that field no longer
+counts as unfinished typing. Codes can stay open and receive a later change from
+another device. Other unsubmitted fields still delay receiving, and failed local
+saves are not marked complete. The automatic-season suite checks a round trip
+through separate phone, tablet and laptop browser stores without leaving Codes.
+
+For a physical-device check, confirm the same account email on all three devices.
+Edit a labelled test code, leave its field, and wait for **Saved to your account**
+after **Sync now**. On the other devices leave sync on, finish any open edits and
+wait up to 30 seconds with the app visible. Confirm the exact saved meaning, then
+repeat from another device. A passing simulated-server test alone does not prove
+this live check; record the account and each device's observed value separately.
