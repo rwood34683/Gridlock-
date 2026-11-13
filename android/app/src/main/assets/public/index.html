@@ -1165,6 +1165,9 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__name img.brand-logo{display:block;width:112px;max-width:100%;height:auto}
 .brand img.brand-logo{display:block;height:36px;width:auto;margin:0}
 .brand img.brand-logo + small{display:none}
+.brand img.brand-logo--wide{height:32px;width:auto;max-width:none}
+/* On a phone the wordmark shares the line with the score, ? and Account. */
+@media(max-width:480px){.hdr .brand img.brand-logo--wide{height:22px}}
 .promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
 .promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:19ch}
 .promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
@@ -12231,6 +12234,13 @@ function tourPanel(){
 function logoMark(){
   return `<img data-logo class="brand-logo" src="logo-gridlock.png" alt="Gridlock" width="512" height="512" decoding="async"/>`;
 }
+// The header carries the owner's full wordmark (owner, 13 Nov 2026), cut from
+// his artwork onto the header's black. Like the ball it has the name painted
+// in, so it is marked as the logo: a variant build prints its own name and
+// never ships the file.
+function headerMark(){
+  return `<img data-logo class="brand-logo brand-logo--wide" src="logo-wordmark.png" alt="Gridlock" width="398" height="96" decoding="async"/>`;
+}
 function promo(){
   const has = hasAccount();
   return `<div class="promo">
@@ -20743,7 +20753,7 @@ function shell(){
   return `<div class="app">
     <header class="hdr${S.clockEnd ? " hdr--clock" : ""}">
       <div class="hdr__top">
-        <div class="brand" onclick="podTap()">${logoMark()}<small>SYSTEM · COACH</small></div>
+        <div class="brand" onclick="podTap()">${headerMark()}<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
         ${/* The format screen is one job and stands until Done, so the header's
               doors — the score, help, the event and the call — would be taps

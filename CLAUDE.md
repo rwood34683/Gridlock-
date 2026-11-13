@@ -48,7 +48,12 @@ no word swap can rebrand it: every place that shows it is an
 site's header — and a variant build turns each into that build's name as text,
 leaves the `logo-*` files out (`ships()` in `scripts/brand.js`) and refuses
 itself if a `data-logo` survives. The ball has a transparent edge; do not use
-screen blending, stretch it, or put the surrounding wordmark back in the app.
+screen blending, stretch it, or put the surrounding wordmark back in the app
+anywhere but the header. The header alone carries the owner's full wordmark
+(owner, 13 Nov 2026): `web/logo-wordmark.png`, cut from his artwork onto the
+header's black by `headerMark()`, 32 px tall, 22 px on a phone so the score,
+? and Account stay on screen. It is marked as the logo like the ball, so a
+variant prints its own name there and never ships the file.
 `npm run icons` generates its web, store and native icons from
 `brand/logo-gridlock.png`. Variant builds use the neutral shared icons;
 `brand native` switches native launch assets too; returning to Gridlock copies
