@@ -8340,11 +8340,11 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("renaming a man carries his season with him: outs, breakouts, grades, rotations, penalties, lineups and bunker words all read the new name", renamed === true, renamed);
-  check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
+  check("the Scout strip offers no Next point or No point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
     const btns = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
-    return matchOver() === "us" && !btns.includes("Next point") && btns.includes("New match");
+    return matchOver() === "us" && !btns.includes("Next point") && !btns.includes("No point") && btns.includes("New match");
   }));
 
   /* --------------------------------------------------------------- matches */

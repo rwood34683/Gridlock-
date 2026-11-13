@@ -199,6 +199,25 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 13 Nov 2026: No point on the Player app's Tally and Scout moves the
+ // point on with no result written.
+ await check("player: No point on Tally and Scout moves the point on and writes no result",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').click();
+   const pick=p.locator('.pickSel').last(),value=await pick.locator('option').evaluateAll(es=>es.filter(e=>e.value).pop().value);await pick.selectOption(value);
+   await p.locator('.tabs button[data-m="tally"]').click();
+   const pt=await p.evaluate(()=>SH.point),res=await p.evaluate(()=>JSON.stringify(SH.results));
+   await p.getByRole("button",{name:/^No point/}).first().click();
+   assert.equal(await p.evaluate(()=>SH.point),pt+1);assert.equal(await p.evaluate(()=>JSON.stringify(SH.results)),res);
+   await p.locator('.tabs button[data-m="scout"]').click();
+   await p.getByRole("button",{name:/^No point/}).first().click();
+   assert.equal(await p.evaluate(()=>SH.point),pt+2);assert.equal(await p.evaluate(()=>JSON.stringify(SH.results)),res);
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  // Owner, 12 Nov 2026: after joining, the Player app opens on a dashboard of
  // its tabs rather than on Tally; every tab and More row stays where it was.
  for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": opens on a dashboard of every tab, each card opens its screen",async()=>{

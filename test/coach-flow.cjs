@@ -102,6 +102,23 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    await p.evaluate(()=>{openSheet({vs:"Fresh"});set({tab:"tally"});afterSignIn();});
    assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["home",null]);
   });
+  // Owner, 13 Nov 2026: a point nobody won is No point, beside the two results on
+  // Tally and in Scout's match strip: the point moves on, the score and the ends stay.
+  await check("No point on Tally and Scout moves the point on and leaves the score and the ends",async p=>{
+   await p.evaluate(()=>set({tab:"tally"}));
+   const before=await p.evaluate(()=>({pt:S.point,res:JSON.stringify(S.results),end:ourEnd(S.point+1)}));
+   const np=p.locator(".resultbar").getByRole("button",{name:/^No point/});assert.equal(await np.count(),1,"No point sits with the two results");
+   await np.click();
+   const after=await p.evaluate(()=>({pt:S.point,res:JSON.stringify(S.results),end:ourEnd(S.point)}));
+   assert.equal(after.pt,before.pt+1);assert.equal(after.res,before.res,"no result written");assert.equal(after.end,before.end,"the ends do not move");
+   await p.evaluate(()=>set({tab:"scout"}));
+   await p.evaluate(()=>{_lastNext=null;});/* this file freezes Date.now, so the double-tap guard never lapses by itself */
+   await p.getByRole("button",{name:/^No point/}).first().click();
+   assert.equal(await p.evaluate(()=>S.point),before.pt+2);assert.equal(await p.evaluate(()=>JSON.stringify(S.results)),before.res);
+   for(const width of [320,390,1024]){await p.setViewportSize({width,height:width>900?768:740});await p.evaluate(()=>set({tab:"tally"}));
+    const over=await p.locator(".resultbar button").evaluateAll(es=>es.filter(e=>e.scrollWidth>e.clientWidth+1||e.getBoundingClientRect().height<44).map(e=>e.textContent));
+    assert.deepEqual(over,[],"every result button fits its label at "+width);}
+  });
   await check("event dropdowns and the team plan fit phones and tablets",async p=>{
    for(const size of [{width:375,height:667},{width:820,height:1180},{width:1180,height:820}]){
     await p.setViewportSize(size);await p.evaluate(()=>{set({tab:"more",more:"schedule",myTeam:"Houston Heat",evPick:false});openEventPicker();});

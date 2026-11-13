@@ -690,6 +690,12 @@ svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-s
 .resultbar .rb__lbl{min-width:0;max-width:100%;overflow:hidden}
 .resultbar .rb__name{display:inline-block;max-width:calc(100% - 4.2em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .resultbar .resultbar__back{flex:none;padding:6px 10px;min-width:56px}
+.resultbar .resultbar__none{flex:none;padding:6px 8px;white-space:normal;line-height:1.1;max-width:84px}
+/* On a phone it stays in the one row, two short lines in the width of the back
+   button, so the bar is no taller and the field still fits above it. Only the
+   narrowest column, where the bar already sits under the sheet, gives it a row. */
+@container main (max-width:460px){.resultbar .resultbar__none{width:60px;padding:4px 6px;text-align:center}}
+@container main (max-width:330px){.resultbar{flex-wrap:wrap}.resultbar .resultbar__none{order:3;flex:1 1 100%;width:auto;max-width:none;min-height:44px}}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
@@ -15248,6 +15254,8 @@ function resultBar(){
           appeared under it and took the point away. */""}${back ? `<button class="btn btn--quiet resultbar__back" onclick="tapBack()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : `<span class="resultbar__back" aria-hidden="true"></span>`}
     <button class="btn grow" onclick="tapResult('us')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("us"))}</span> won it</span>` : "We won it"}</button>
     <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("them"))}</span> won it</span>` : "They won it"}</button>
+    ${/* A point nobody won (owner, 13 Nov 2026): the same as Next point, no
+          result — the point moves on, the score and the ends stay. */""}<button class="btn btn--quiet resultbar__none" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point</button>
   </div>`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
@@ -16373,7 +16381,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()">Next point</button>`}
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point</button>`}
     <button class="btn" onclick="freshMatch()">New match</button>
   </div>${/* A game watched off the fence is charted on Scout, and its points were
         scored only on Tally: a tab and back every point. The two named
@@ -18701,7 +18709,7 @@ const HELP = {
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or no pressure, which way he was shooting — and Save goes to the next.",
          "Tap a player or his row under the field. Alive and Dead record his current status; Shooting and Diving are separate observations. Each tap saves. Next player moves through the point. More details holds the full chart. Quick log still takes one tap to mark a player out.",
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
-         "When the point ends tap We won it or They won it. That is the score.",
+         "When the point ends tap We won it or They won it. That is the score. A point nobody won is No point: on to the next point, the score and the ends stay.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
          "Your format — division, how many a side, race, game clock, mercy and the clock between points — is asked after you sign in and kept under More › Format. Pick your division and its numbers fill in. The sheet calls match point and match over for you.",
          "Who's on, above your five, is where you rotate: tap a man off, tap a man on. The five stands until you change it, point after point.",
@@ -20838,7 +20846,7 @@ function quickLog(){
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
       ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log the call</button>`}
-      <button class="btn btn--quiet grow" onclick="tapNext()">Next point ›</button>
+      <button class="btn btn--quiet grow" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point ›</button>
     </div>
     <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
   </div>`;

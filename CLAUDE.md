@@ -1484,6 +1484,11 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     (owner, 13 Nov 2026): `tmDropPlayer` asks first, then takes him off the
     roster, the shared roster and every line; players added before a team is
     created show on the Team tab with remove too.
+    **No point** (owner, 13 Nov 2026) sits with We won it / They won it on
+    Tally's result bar, in the Quick log and in Scout's match strip, in the
+    coach app and the Player preview: `tapNext()` / `cpNext()`, the point moves
+    on, no result is written, the score and the ends stay. On a phone's column
+    it takes its own row under the two results.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
