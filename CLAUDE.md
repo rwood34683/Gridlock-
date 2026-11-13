@@ -1627,6 +1627,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     The automatic-season suite tests actual code-field edits through the UI,
     delayed replies while typing, manual sync with a draft and stale tabs.
 
+93. **A saved code is no longer an unfinished field.** Code word and meaning
+    edits save on change without a redraw. After a successful local save,
+    update only that input's value and default to the accepted value, so
+    automatic receiving can resume while Codes stays open. Never acknowledge
+    a refused save, a stale tab or another unfinished box. Keep the draft,
+    account and revision guards; the automatic-season suite follows edits
+    phone → tablet → laptop and back while all three remain on Codes.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`

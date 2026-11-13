@@ -64,6 +64,61 @@ const adapter=fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js")
   }
   async function check(name,fn){try{await fn();passed++;console.log("PASS "+name);}catch(e){failed++;console.error("FAIL "+name+"\n"+e.stack);throw e;}}
   try{
+    await check("a saved code field can receive later phone, tablet and laptop changes without leaving Codes",async()=>{
+      const {a,b}=await fixture();
+      await b.evaluate(()=>set({tab:"more",more:"codes"}));
+      await b.locator(".assign__body input").nth(1).fill("  Phone confirmed  ");
+      await b.getByRole("heading",{name:/^Codes$/i}).click();
+      assert.equal(await b.evaluate(()=>S.codes[0].means),"Phone confirmed");
+      assert.equal(await b.evaluate(()=>seasonFormDraft()),false,"a committed code is not an unfinished form");
+      assert.equal(await b.locator(".assign__body input").nth(1).inputValue(),"Phone confirmed","the committed, trimmed value stays visible");
+      await b.evaluate(()=>sendSeason(false));await settled(b);
+      assert.equal(row.payload.data.codes[0].means,"Phone confirmed");
+      assert.equal(await b.evaluate(()=>S.syncSaid),"Saved to your account.");
+      await receive(a);assert.equal(await a.evaluate(()=>S.codes[0].means),"Phone confirmed");
+      const tablet=await device(768,1024);await signIn(tablet);
+      await tablet.getByRole("button",{name:"Use my saved season",exact:true}).click();await settled(tablet);
+      await tablet.evaluate(()=>set({tab:"more",more:"codes"}));
+      assert.equal(await tablet.locator(".assign__body input").nth(1).inputValue(),"Phone confirmed");
+      await tablet.locator(".assign__body input").nth(1).fill("Tablet confirmed");
+      await tablet.getByRole("heading",{name:/^Codes$/i}).click();
+      await tablet.evaluate(()=>sendSeason(false));await settled(tablet);
+      await receive(b);assert.equal(await b.locator(".assign__body input").nth(1).inputValue(),"Tablet confirmed");
+      await receive(a);await a.evaluate(()=>set({tab:"more",more:"codes"}));
+      await a.locator(".assign__body input").nth(0).fill("CHECKED");
+      await a.getByRole("heading",{name:/^Codes$/i}).click();
+      await a.evaluate(()=>sendSeason(false));await settled(a);
+      await receive(b);await receive(tablet);
+      for(const p of [a,b,tablet]){
+        assert.equal(await p.evaluate(()=>S.more),"codes");
+        assert.equal(await p.locator(".assign__body input").nth(0).inputValue(),"CHECKED");
+        assert.equal(await p.locator(".assign__body input").nth(1).inputValue(),"Tablet confirmed");
+        assert.doesNotMatch(await p.evaluate(()=>S.syncSaid),/Finish editing/);
+      }
+      if(process.env.GRIDLOCK_TEST_SHOTS){
+        fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});
+        for(const [name,p] of [["laptop",a],["phone",b],["tablet",tablet]])await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,name+"-codes-round-trip.png")});
+      }
+    });
+    await check("saving one code does not clear another unfinished code or a refused save",async()=>{
+      const {a,b}=await fixture();await b.evaluate(()=>set({tab:"more",more:"codes"}));
+      await b.locator("#cdWord").fill("Unfinished new code");
+      await b.locator(".assign__body input").nth(1).fill("Committed meaning");
+      await b.getByRole("heading",{name:/^Codes$/i}).click();
+      assert.equal(await b.evaluate(()=>S.codes[0].means),"Committed meaning");
+      assert.equal(await b.evaluate(()=>seasonFormDraft()),true,"the unrelated draft still prevents replacement");
+      await b.evaluate(()=>sendSeason(false));await settled(b);
+      assert.equal(row.payload.data.codes.length,1);assert.equal(row.payload.data.codes[0].means,"Committed meaning");
+      assert.equal(await b.locator("#cdWord").inputValue(),"Unfinished new code");
+      assert.match(await b.evaluate(()=>S.syncSaid),/Finish editing/);
+      await b.locator("#cdWord").fill("");
+      await b.evaluate(()=>{window.__saveItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===STORE_KEY)throw new DOMException("Full","QuotaExceededError");return __saveItem.call(this,k,v);};});
+      await b.locator(".assign__body input").nth(1).fill("Not saved locally");
+      await b.getByRole("heading",{name:/^Codes$/i}).click();
+      assert.equal(await b.evaluate(()=>!!_storeFail),true);
+      assert.equal(await b.evaluate(()=>seasonFormDraft()),true,"a refused save is not marked committed");
+      await b.evaluate(()=>{Storage.prototype.setItem=__saveItem;});
+    });
     await check("a phone code edit reaches the laptop through the visible save controls",async()=>{
       const {a,b}=await fixture();
       await b.evaluate(()=>set({tab:"more",more:"codes"}));
