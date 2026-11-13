@@ -258,6 +258,30 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 13 Nov 2026: a player can be removed from the Team tab and from
+ // Lineups, asked first, and comes off every line with him.
+ await check("team: remove a player from Lineups or the Team tab, asked first, off every line",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/team/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator('.tabs button[data-m="lineup"]').click();
+   await p.fill("#lnNew","D-line");await p.click("#lnAdd");
+   for(const n of ["Sam","Lee","Dill"]){await p.fill("#lnNewP",n);await p.click("#lnAddP");}
+   await p.evaluate(()=>{const all=linesAll();all[0].spots=[{player:"Lee",bunker:"x"},{player:"Sam",bunker:"y"}];linesSave(all);renderLineups();});
+   await p.locator("summary",{hasText:"Remove a player"}).click();
+   await p.locator('[data-lnrmr="Lee"]').click();await p.locator('[data-gc]',{hasText:"Cancel"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Sam","Lee","Dill"],"Cancel keeps him");
+   await p.locator('[data-lnrmr="Lee"]').click();await p.locator('[data-gc]',{hasText:"Remove"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Sam","Dill"]);
+   assert.deepEqual(await p.evaluate(()=>linesAll()[0].spots.map(s=>s.player)),["Sam"],"off every line");
+   await p.locator('.tabs button[data-m="team"]').click();
+   assert.equal(await p.locator("[data-tmrm]").count(),2,"players added before a team exists show with remove");
+   await p.locator("[data-tmrm]").first().click();await p.locator('[data-gc]',{hasText:"Remove"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Dill"]);
+   assert.deepEqual(await p.evaluate(()=>linesAll()[0].spots),[],"Team tab remove takes him off the line too");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });

@@ -1941,6 +1941,7 @@ function renderLineups(){
     if(roster.length){h+='<div class="row" style="flex-wrap:wrap;gap:3px;margin-top:5px">'+
        roster.map(nm=>{const placed=(L.spots||[]).find(sp=>sp.player===nm);
          return `<button class="ld ${lnPlayer===nm?'on':''}" data-lnpl="${nm.replace(/"/g,'&quot;')}">${nm}${placed?` \u2192 ${bname(placed.bunker)}`:''}</button>`;}).join('')+'</div>';}
+    if(roster.length)h+='<details style="margin-top:6px"><summary style="font-size:12px;color:#ff5a52;cursor:pointer;min-height:44px;display:flex;align-items:center">Remove a player</summary>'+roster.map(nm=>`<div class="row" style="justify-content:space-between;border-top:1px solid #26292a;padding:4px 0"><span style="font-size:13px">${hesc(nm)}</span><button class="ld" data-lnrmr="${hesc(nm)}">Remove</button></div>`).join('')+'</details>';
     if(lnPlayer)h+=`<div style="font-size:11px;color:#ffd24d;margin-top:5px">Placing <b>${lnPlayer}</b> \u2014 tap a bunker on the field or pick below.</div>`;
     if(lnPlayer)h+='<div class="row" style="flex-wrap:wrap;gap:3px;margin-top:4px">'+
        BUN.filter((b,i,a)=>a.findIndex(z=>z.n===b.n)===i).map(b=>`<button class="ld" data-lnb="${b.n}">${bname(b.n)}</button>`).join('')+'</div>';
@@ -1984,6 +1985,7 @@ function renderLineups(){
   document.querySelectorAll('[data-lnpl]').forEach(b=>b.onclick=()=>{lnPlayer=lnPlayer===b.dataset.lnpl?null:b.dataset.lnpl;renderLineups();});
   document.querySelectorAll('[data-lnb]').forEach(b=>b.onclick=()=>lnPlace(b.dataset.lnb));
   document.querySelectorAll('[data-lnrm]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){l.spots=(l.spots||[]).filter(sp=>sp.player!==b.dataset.lnrm);linesSave(all);}if(lnAimPlayer===b.dataset.lnrm)lnAimPlayer=null;renderLineups();});
+  document.querySelectorAll('[data-lnrmr]').forEach(b=>b.onclick=()=>tmDropPlayer(b.dataset.lnrmr,renderLineups));
   document.querySelectorAll('[data-lnaim]').forEach(b=>b.onclick=()=>{lnAimPlayer=lnAimPlayer===b.dataset.lnaim?null:b.dataset.lnaim;renderLineups();});
   document.querySelectorAll('[data-lnlook]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){const sp=(l.spots||[]).find(s=>s.player===lnAimPlayer);if(sp){if(b.dataset.lnlook==='none')delete sp.look;else sp.look=+b.dataset.lnlook;linesSave(all);}}renderLineups();});
   document.querySelectorAll('[data-lnshoot]').forEach(b=>b.onclick=()=>{const all=linesAll();const l=all.find(x=>x.id===lnSel);if(l){const sp=(l.spots||[]).find(s=>s.player===lnAimPlayer);if(sp){if(b.dataset.lnshoot==='none')delete sp.shoot;else sp.shoot=+b.dataset.lnshoot;linesSave(all);}}renderLineups();});
@@ -2065,6 +2067,8 @@ function tRoster(){const r=tScopeRead('gridlock_troster',v=>Array.isArray(v),()=
 function tRosterSave(a){try{localStorage.setItem(tScopeKey('gridlock_troster'),JSON.stringify(a.slice(0,200)));}catch(e){}}
 function tRosterAdd(n){const a=tRoster();if(n&&!a.map(tpSlug).includes(tpSlug(n))){a.push(n);tRosterSave(a);}}
 function tRosterRemove(n){tRosterSave(tRoster().filter(x=>tpSlug(x)!==tpSlug(n)));}
+/* One way to take a player off (owner, 13 Nov 2026): asked first, off the roster and off every line. */
+function tmDropPlayer(name,after){if(!name)return;gChoose('Remove '+name+'?',name+' comes off the roster and off every line. Nothing else is deleted.',[{label:'Remove',primary:true,run:()=>{const k=tpSlug(name);const t=teamGet()||{};t.roster=(t.roster||[]).filter(x=>tpSlug(x)!==k);teamSet(t);tRosterRemove(name);const all=linesAll();all.forEach(l=>{l.spots=(l.spots||[]).filter(sp=>tpSlug(sp.player)!==k);});linesSave(all);if(lnPlayer&&tpSlug(lnPlayer)===k)lnPlayer=null;if(lnAimPlayer&&tpSlug(lnAimPlayer)===k)lnAimPlayer=null;if(after)after();}},{label:'Cancel'}]);}
 function renderTeam(){
   const box=document.getElementById('teambox');const t=teamGet()||{};
   if(t.code&&!t.player){const shared=tRoster();t.roster=t.roster||[];let ch=false;shared.forEach(n=>{if(!t.roster.map(tpSlug).includes(tpSlug(n))){t.roster.push(n);ch=true;}});if(ch)teamSet(t);tRosterSave(t.roster);}
@@ -2073,6 +2077,7 @@ function renderTeam(){
     h+='<div style="font-size:12px;color:#ff5a52;margin-bottom:8px">Create your team and share its code with your players. In this preview, everything stays on this phone.</div>';
     h+='<div class="row" style="gap:5px"><input id="tmName" placeholder="team name (e.g. Impact)" style="flex:1 1 160px"><button class="ld on" id="tmCreate">Create team</button></div>';
     if(EDITION==='team'){h+='<div class="lbl" style="margin-top:12px">Joining a team?</div><div class="row" style="gap:5px"><input id="tmMe" placeholder="your name" style="flex:1 1 130px"><input id="tmJoin" placeholder="TEAM-XXXX" style="flex:1 1 160px;text-transform:uppercase;letter-spacing:1px"><button class="ld on" id="tmJoinGo">Join</button></div><div id="tmJoinErr" style="font-size:11px;color:#ff9a8a;min-height:13px;margin-top:3px"></div>';}
+    if((t.roster||[]).length)h+='<div class="lbl" style="margin-top:12px">Players added so far</div>'+t.roster.map((p,i)=>`<div class="row" style="justify-content:space-between;border-top:1px solid #26292a;padding:5px 0"><span style="font-size:13px">${hesc(p)}</span><button class="ld" data-tmrm="${i}" style="font-size:10px;padding:3px 7px">remove</button></div>`).join('');
   } else if(EDITION==='team'&&t.player){
     h+=`<div class="iqrow" style="border-color:#2ec76b"><div style="font-size:14px;font-weight:800">You\u2019re on the team${t.me?' \u00b7 '+String(t.me).replace(/</g,'&lt;'):''}${tIsAdmin()?' <b style="font-size:10px;color:#ffd24d">TEAM ADMIN</b>':''}</div><div style="font-size:12px;color:#efedeb">Team code: <b style="color:#ff5a52;letter-spacing:1px">${String(t.code).replace(/</g,'&lt;')}</b></div><div style="font-size:10.5px;color:#ff5a52;margin-top:3px">Messages with your coach are open in the Messages tab.</div></div><div class="row" style="gap:5px;margin-top:6px;flex-wrap:wrap"><button class="ld" id="tmToMsg">Open Messages</button><button class="ld" id="tmRename">Change my name</button></div><div id="tmRenameBox"></div>`;
     {const me=tpSlug(t.me||'');let rs=tRoster();if(t.me&&!rs.map(tpSlug).includes(me)){tRosterAdd(t.me);rs=tRoster();}const adm=tAdmins().map(tpSlug);
@@ -2121,7 +2126,7 @@ function renderTeam(){
     teamSet(nt);const all=teamsAll();all.push({name:nt.name,code:nt.code});teamsSave(all);renderTeam();};}
   {const cp=document.getElementById('tmCopy');if(cp)cp.onclick=()=>{const t=teamGet();if(!t)return;const show=()=>gAlert('Your team code is '+t.code+'. Copy it from here.');if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.code).then(()=>{cp.textContent='Copied!';setTimeout(()=>{cp.textContent='Copy code';},1200);}).catch(show);else show();};}
   {const a=document.getElementById('tmAdd');if(a)a.onclick=()=>{const v=sanitizeText(document.getElementById('tmPlayer').value.trim()).slice(0,40);if(!v){gAlert('Type the player\u2019s name first.');return;}const t=teamGet();t.roster=t.roster||[];if(!t.roster.map(tpSlug).includes(tpSlug(v)))t.roster.push(v);teamSet(t);tRosterAdd(v);renderTeam();};}
-  document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet();const gone=t.roster.splice(+b.dataset.tmrm,1)[0];teamSet(t);if(gone)tRosterRemove(gone);renderTeam();});
+  document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet()||{};tmDropPlayer((t.roster||[])[+b.dataset.tmrm],renderTeam);});
   document.querySelectorAll('[data-tmadm]').forEach(b=>b.onclick=()=>{const t=teamGet();const n=t.roster[+b.dataset.tmadm];if(!n)return;const k=tpSlug(n);let a=tAdmins();a=a.map(tpSlug).includes(k)?a.filter(x=>tpSlug(x)!==k):a.concat([n]);tAdminsSet(a);renderTeam();});
   {const w=document.getElementById('tmShareLog');if(w)w.onclick=()=>gAlert('The Player app is locked until a player enters a team code. This keeps your roster together, ties every player\u2019s data to your team, and stops the app from being shared outside the team.');}
   document.querySelectorAll('[data-tmsw]').forEach(b=>b.onclick=()=>{const all=teamsAll();const pick=all.find(x=>x.code===b.dataset.tmsw);if(pick){const full=teamGet();teamSet({name:pick.name,code:pick.code,roster:(full&&full.code===pick.code?full.roster:[])||[],coach:true});renderTeam();}});

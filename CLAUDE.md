@@ -1480,6 +1480,10 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach app's new wordmark in its header (`teasers/team/wordmark.jpg`, cut
     from `web/logo-wordmark.png` with its black lifted to #0b0c0d, written by
     `tools/teaser_fields.js`). The `playerhome` block serves both previews.
+    A player comes off from the Team tab or Lineups' **Remove a player**
+    (owner, 13 Nov 2026): `tmDropPlayer` asks first, then takes him off the
+    roster, the shared roster and every line; players added before a team is
+    created show on the Team tab with remove too.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
