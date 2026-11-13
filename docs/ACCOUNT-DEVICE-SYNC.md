@@ -69,3 +69,8 @@ live test with a dedicated test account on physical devices.
 This branch is separate from the Stripe day-pass work. Re-run both sets of
 checks together before merging them: expired paid access must retain backups
 and account reads while continuing to enforce the paid upload gate.
+
+Cloud save messages cover completed edits. A save finishing while you type keeps
+your text in place and asks you to finish editing before switching devices. Leave
+the field to save its change, then use Sync now. An older local tab keeps its edits
+in a recovery copy and cannot claim they were sent to the account.

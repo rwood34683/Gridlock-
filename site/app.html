@@ -14066,7 +14066,9 @@ let _seasonReceiving = null, _seasonInputAt = 0, _seasonReceiveTimer = null;
 function clearSyncRetry(){clearTimeout(_syncTimer);_syncTimer=null;_syncDirty=false;}
 function syncStatus(data, paint = true){
   Object.assign(S,data);_syncStatusWrite=true;
-  try{save(S);}finally{_syncStatusWrite=false;}if(paint) render();
+  try{save(S);}finally{_syncStatusWrite=false;}
+  if(paint) render();
+  else if(typeof document !== "undefined") document.querySelectorAll("[data-sync-status]").forEach(el=>{el.textContent=S.syncSaid || "";});
 }
 // A stale tab never sends: its season is older than the one another tab saved.
 const syncAllowed = () => S.entered && S.role === "staff" && S.syncOn && canSync() && !_syncDeleting && !_stale;
@@ -14130,12 +14132,15 @@ function scheduleSync(delay){
     delay == null ? Math.max(0,90000-(Date.now()-_lastAutoSync)) : delay);
 }
 async function sendSeason(manual){
-  if(!syncAllowed() || _syncSending) return;
+  if(!syncAllowed() || _syncSending){
+    if(manual && _stale) syncStatus({syncSaid:"This tab has an older season. Your edits stay in its recovery copy. Open the current tab before syncing."},syncCanPaint());
+    return;
+  }
   if(_seasonReceiving){ if(manual) _syncDirty=true; return; }
   const t = syncTicket(), capturedAt = Date.now();
   clearTimeout(_syncTimer);_syncTimer=null;_syncSending=true;_syncDirty=false;
   _lastAutoSync = Date.now();
-  if(manual) syncStatus({syncSaid:"Sending your season to your account server…"});
+  if(manual) syncStatus({syncSaid:"Sending your season to your account server…"},syncCanPaint());
   let r = null;
   try{ r = await queueSeasonPush(t); }catch(e){ r = {ok:false, offline:true}; }
   _syncSending=false;
@@ -14147,33 +14152,40 @@ async function sendSeason(manual){
   if(r && r.ok === true){
     syncYes(true);
     // A slow send covers the snapshot it took, not edits made while it waited.
-    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":"Saved to your account."});
+    syncStatus({syncAt:capturedAt,syncSaid:_syncDirty?"Your latest changes are waiting to send.":seasonFormDraft()?"Saved earlier changes. Finish editing before switching devices.":"Saved to your account."},syncCanPaint());
     scheduleSync();return;
   }
   if(r && r.conflict){
-    syncYes(false);clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said});return;
+    syncYes(false);clearSyncRetry();syncStatus({syncOn:false,syncSaid:r.said},syncCanPaint());return;
   }
   _syncDirty=true;
-  syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."});
+  syncStatus({syncSaid:(r&&r.offline)?"No signal — your latest changes stay on this phone and will retry when you have signal.":(r&&r.said)||"Not sent yet. Your season stays on this phone; sending will retry."},syncCanPaint());
   scheduleSync(90000);
 }
 window.syncNow = () => sendSeason(true);
 // A previously acknowledged device can receive while signed in. This is a
 // whole-season handoff, never a last-writer-wins merge of simultaneous edits.
 // Check again after every await: account switches, local edits and typing win.
-function seasonReceiveIdle(){
-  if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
-  if(document.activeElement?.matches("input,textarea,select,[contenteditable]:not([contenteditable=false])")) return false;
-  if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
-  // A blurred box may still hold an unsaved draft. Never discard it on a timer.
-  if([...document.querySelectorAll("input,textarea,select")].some(el => {
+// A completed upload must not repaint a field whose change has not committed.
+// The account status can update on its own without replacing the coach's input.
+function seasonFormDraft(){
+  if(typeof document === "undefined") return false;
+  return [...document.querySelectorAll("input,textarea,select")].some(el => {
     if(el.disabled || el.type === "hidden" || el.type === "button" || el.type === "submit") return false;
     if(el.tagName === "SELECT"){
       const options=[...el.options], defaults=options.filter(o => o.defaultSelected);
       return defaults.length ? options.some(o => o.selected !== o.defaultSelected) : el.selectedIndex !== 0;
     }
     return ["checkbox","radio"].includes(el.type) ? el.checked !== el.defaultChecked : el.value !== el.defaultValue;
-  })) return false;
+  });
+}
+function syncCanPaint(){
+  return typeof document === "undefined" || (!document.activeElement?.matches("input,textarea,select,[contenteditable]:not([contenteditable=false])") && !seasonFormDraft());
+}
+function seasonReceiveIdle(){
+  if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
+  if(!syncCanPaint()) return false;
+  if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
   if(S.tallyDraft || S.tallySel || S.tallyEdit || S.tallyPlace || S.tallyPickFor || S.theirPick?.length || S.theirFix || S.pad || S.building || S.fieldEdit || S.editPath || S.quick || S.quickPick || S.penOpen || S.gameNew || S.gamePaste || S.calNew || S.calCustom || S.paste || S.codePick || S.codeName || S.bcName || S.asWho || S.showTutorial || S.clockEnd || S.rep?.running || copyDraft) return false;
   if(S.arrival?.sightingBunker || S.arrival?.shotAt || S.arrival?.destination || S.arrival?.startBunker) return false;
   if(typeof _voiceUI !== "undefined" && (_voiceUI.session || _voiceUI.draft || _voiceUI.edit)) return false;
@@ -21597,7 +21609,7 @@ function moreBody(k){
         <button class="btn btn--quiet" onclick="syncNow()">Sync now</button>
       </div>
       <p class="note">${S.syncAt ? "Last synced " + esc(new Date(S.syncAt).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})) + ". " : ""}New changes send automatically while the app is open and online, within 90 seconds. Tap Sync now before switching devices.</p>` : ""}
-    ${S.syncSaid ? `<p class="note" role="status" style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}
+    ${S.syncSaid ? `<p class="note" role="status" data-sync-status style="color:var(--accent-lit)">${esc(S.syncSaid)}</p>` : ""}
     ${canFollowSeason() ? `<p class="note">With sync on, this device checks for saved changes when you return and every 30 seconds while the app is visible. Updates wait while you type or record. If both devices have changes, sync pauses and you choose which season to use. Get saved season checks now.</p>
       <button class="btn" onclick="continueDeviceSeason()">Get saved season</button>
       <details class="coach-terms"><summary>More backup options</summary><div class="sec__body">` : ""}

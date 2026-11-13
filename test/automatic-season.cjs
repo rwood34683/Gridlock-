@@ -64,6 +64,68 @@ const adapter=fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js")
   }
   async function check(name,fn){try{await fn();passed++;console.log("PASS "+name);}catch(e){failed++;console.error("FAIL "+name+"\n"+e.stack);throw e;}}
   try{
+    await check("a phone code edit reaches the laptop through the visible save controls",async()=>{
+      const {a,b}=await fixture();
+      await b.evaluate(()=>set({tab:"more",more:"codes"}));
+      await b.locator(".assign__body input").nth(1).fill("Phone confirmed");
+      await b.getByRole("button",{name:/Staff — signed in/}).click();
+      await b.getByRole("button",{name:"Sync now",exact:true}).click();await settled(b);
+      assert.equal(row.payload.data.codes[0].means,"Phone confirmed","the actual server payload contains the phone edit");
+      await a.evaluate(()=>set({tab:"more",more:"nexus"}));
+      await a.getByRole("button",{name:"Get saved season",exact:true}).click();await settled(a);
+      await a.getByRole("button",{name:"‹ More",exact:true}).click();
+      await a.getByRole("button",{name:"Codes Your code words, every event",exact:true}).click();
+      assert.equal(await a.locator(".assign__body input").nth(1).inputValue(),"Phone confirmed");
+      if(process.env.GRIDLOCK_TEST_SHOTS){fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});await a.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"laptop-received-code.png")});}
+    });
+    await check("a background save cannot erase a code meaning still being typed",async()=>{
+      const {a,b}=await fixture();
+      await b.evaluate(()=>set({tab:"more",more:"codes"}));
+      await b.evaluate(()=>{window.__push=gridlockCloud.pushSeason;gridlockCloud.pushSeason=async(...args)=>{const r=await __push(...args);return new Promise(resolve=>window.__finishPush=()=>resolve(r));};set({messages:["Before editing"]});sendSeason(false);});
+      await b.waitForFunction(()=>typeof __finishPush==="function");
+      await b.locator(".assign__body input").nth(1).fill("Phone confirmed");
+      await b.evaluate(()=>__finishPush());await settled(b);
+      assert.equal(await b.locator(".assign__body input").nth(1).inputValue(),"Phone confirmed","background completion preserves the typed text");
+      assert.match(await b.evaluate(()=>S.syncSaid),/Finish editing/);
+      if(process.env.GRIDLOCK_TEST_SHOTS){fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});await b.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"phone-code-draft-preserved.png")});}
+      await b.evaluate(()=>{gridlockCloud.pushSeason=__push;});
+      await b.getByRole("button",{name:/Staff — signed in/}).click();
+      await b.getByRole("button",{name:"Sync now",exact:true}).click();await settled(b);
+      assert.equal(row.payload.data.codes[0].means,"Phone confirmed");
+    });
+    for(const outcome of ["offline","conflict"]){
+      await check("a delayed "+outcome+" response preserves the code draft and reports no save",async()=>{
+        const {a,b}=await fixture();
+        await b.evaluate(()=>set({tab:"more",more:"codes"}));
+        await b.evaluate(outcome=>{gridlockCloud.pushSeason=()=>new Promise(resolve=>window.__finishPush=()=>resolve(outcome==="offline"?{ok:false,offline:true}:{ok:false,conflict:true,said:"Other device changed the season."}));set({messages:["Needs sending"]});sendSeason(false);},outcome);
+        await b.waitForFunction(()=>typeof __finishPush==="function");
+        await b.locator(".assign__body input").nth(1).fill("Phone confirmed");
+        await b.evaluate(()=>__finishPush());await settled(b);
+        assert.equal(await b.locator(".assign__body input").nth(1).inputValue(),"Phone confirmed");
+        assert.equal(row.payload.data.codes[0].means,"Hold","no failed upload reaches the server");
+        assert.doesNotMatch(await b.evaluate(()=>S.syncSaid),/^Saved to your account/);
+        assert.equal(await b.evaluate(()=>S.syncOn),outcome!=="conflict");
+      });
+    }
+    await check("manual sync preserves an unfinished form and updates its status without redrawing",async()=>{
+      const {a,b}=await fixture();await b.evaluate(()=>set({tab:"more",more:"nexus"}));
+      await b.getByText("More backup options",{exact:true}).click();
+      await b.locator("#syncLabel").fill("Unfinished name");
+      // A mobile submit/keyboard action may run without blurring its input.
+      await b.evaluate(()=>syncNow());await settled(b);
+      assert.equal(await b.locator("#syncLabel").inputValue(),"Unfinished name");
+      assert.match(await b.locator("[data-sync-status]").innerText(),/Finish editing/);
+      assert.equal(row.label,"TEST");
+      assert.equal(await b.evaluate(()=>document.activeElement.id),"syncLabel");
+    });
+    await check("an older local tab never reports its recovery-only edits as cloud saved",async()=>{
+      const {a,b}=await fixture();await b.evaluate(()=>set({tab:"more",more:"nexus"}));
+      const before=clone(row),count=writes();
+      await b.evaluate(()=>{markStale();S.codes[0].means="Recovery only";save(S);return syncNow();});await settled(b);
+      assert.equal(writes(),count);assert.deepEqual(row,before);
+      assert.match(await b.getByRole("status").last().innerText(),/older season[\s\S]*recovery copy/);
+      assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem(TAB_COPY+TAB_ID)).data.codes[0].means),"Recovery only");
+    });
     await check("already signed-in phone receives the same codes, names, roster and schedule without an upload",async()=>{
       const {a,b}=await fixture();await change(a);const count=writes();await receive(b);
       const keys=["codes","bunkerCalls","breakCalls","playerCalls","roster","games","messages","teamCode","myTeam"];

@@ -1617,6 +1617,16 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     restores the full list; unknown divisions stay unassigned. The public team
     directory groups by division and keeps same-club entry IDs separate.
 
+92. **Cloud replies never erase typing.** Upload success, failure and conflict
+    messages leave focused or changed form controls intact. Update the sync
+    status in place while a draft is on screen; only completed edits belong
+    to the uploaded snapshot. Do not report an unfinished field as saved to
+    the account. A stale local tab's Sync now explains that its edits remain
+    in recovery, never repeats an older success. Keep synchronous local saves,
+    account ownership, revision checks, opt-in and recovery copies unchanged.
+    The automatic-season suite tests actual code-field edits through the UI,
+    delayed replies while typing, manual sync with a draft and stale tabs.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
