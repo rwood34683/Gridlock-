@@ -31,7 +31,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
   header{padding:12px 16px 0;border-bottom:1px solid #26292a;background:#0b0c0d;position:sticky;top:0;z-index:6}
   .tabwrap{position:relative}
   @media(max-width:640px){.tabwrap::after{content:'';position:absolute;right:0;top:9px;bottom:2px;width:24px;background:linear-gradient(90deg,transparent,#0b0c0d);pointer-events:none}}
-  .brand{display:flex;align-items:center;gap:9px}.logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(180deg,#e5252a,#ad1515)}
+  .brand{display:flex;align-items:center;gap:9px}.wordmark{margin:0;line-height:0;flex:none}.wordmark img{display:block;height:28px;width:auto}.logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(180deg,#e5252a,#ad1515)}
   h1{font-size:16px;margin:0}.src{color:#ff5a52;font-size:11px;margin:3px 0 0}
   .tabs{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
   @media(max-width:640px){.tabs{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
@@ -151,7 +151,7 @@ body.cb [style*="#7fe0a8"]{color:#6cc4ff !important}
 <body>
 <div id="teaserRibbon" role="note" style="position:relative;z-index:9999;background:#ad1515;color:#efedeb;font:800 12px/1.35 system-ui,sans-serif;text-align:center;padding:7px 12px;letter-spacing:.3px">PREVIEW · COMING SOON — the Gridlock Team app is on the way. Nothing here is final.</div>
 <header>
-  <div class="brand"><div class="logo"></div><h1>GRIDLOCK</h1><span style="font-size:10px;color:#f04a44;font-weight:800;letter-spacing:.6px">powered by UPRA</span><span id="buildStamp" hidden style="font-size:9px;color:#f04a44;font-weight:700;margin-left:6px"></span><select id="layoutSel" style="background:#1e2121;color:#efedeb;border:1px solid #3a3f40;border-radius:7px;font-size:11px;font-weight:800;padding:3px 6px"><option value="nwc">NXL World Cup · Kissimmee</option></select><span id="evsub" style="font-size:11px;color:#ff5a52">NXL World Cup · Kissimmee · 11–15 Nov 2026</span></div>
+  <div class="brand"><h1 class="wordmark"><img src="data:image/jpeg;base64,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" alt="Gridlock" width="116" height="28"></h1><span style="font-size:10px;color:#f04a44;font-weight:800;letter-spacing:.6px">powered by UPRA</span><span id="buildStamp" hidden style="font-size:9px;color:#f04a44;font-weight:700;margin-left:6px"></span><select id="layoutSel" style="background:#1e2121;color:#efedeb;border:1px solid #3a3f40;border-radius:7px;font-size:11px;font-weight:800;padding:3px 6px"><option value="nwc">NXL World Cup · Kissimmee</option></select><span id="evsub" style="font-size:11px;color:#ff5a52">NXL World Cup · Kissimmee · 11–15 Nov 2026</span></div>
   <div class="src" id="src"></div>
   <div class="tabwrap"><div class="tabs">
     <button data-m="team">Team</button>
@@ -428,7 +428,8 @@ function autoCalibrate(imgEl){
   }catch(e){return null;}
 }
 const EDITTYPES=[['BD','dorito'],['SD','dorito'],['T','temple'],['A','temple'],['MB','can'],['CK','cake'],['C','can'],['P','ballR'],['WM','mw'],['SB','beam'],['GB','towerbig'],['GW','tower'],['SW','wing'],['GP','plus']];
-function refreshLayoutPicker(){const s=document.getElementById('layoutSel');if(!s)return;s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value="${k}"${k===layoutKey?' selected':''}>${LAYOUTS[k].name}${LAYOUTS[k].full&&!LAYOUTS[k].measured?' ✎':''}</option>`).join('');}
+let layoutPicked=false;
+function refreshLayoutPicker(){const s=document.getElementById('layoutSel');if(!s)return;s.innerHTML=`<option value="" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value="${k}"${layoutPicked&&k===layoutKey?' selected':''}>${LAYOUTS[k].name}${LAYOUTS[k].full&&!LAYOUTS[k].measured?' ✎':''}</option>`).join('');}
 function setLayout(k){if(!LAYOUTS[k])return;
   if(typeof EDITION!=='undefined'&&(EDITION==='scout'||EDITION==='coach')&&k!==FREE_LAYOUT&&!LICF('layouts')){upsellPop('Layout packs \u2014 every event field, \u00b11 ft','The current event layout is free. Season license unlocks every event pack as it drops (within 24h of the official map) plus the map-trace editor for your own fields.','scout');refreshLayoutPicker();return;}layoutKey=k;BUN=bunOf(k);editMode=false;editRaw=[];editSel=-1;sightSel=-1;sightRef=null;const s=document.getElementById('evsub');if(s)s.textContent=LAYOUTS[k].name+(LAYOUTS[k].sub?' · '+LAYOUTS[k].sub:'');refreshLayoutPicker();draw();}
 
@@ -2641,6 +2642,50 @@ function fieldPointFromEvent(e){
 }
 function bidFromTarget(t){/* walk up from the tapped element to its bunker group's unique id */
   while(t&&t!==svg){if(t.getAttribute){const id=t.getAttribute('data-bid');if(id!=null)return id;}t=t.parentNode;}return null;}
+/* playerhome:begin — generated from tools/teaser_home.js, never hand-edit */
+/* playerhome — the Player preview's dashboard (owner, 12 Nov 2026: "after
+   signing in, a dashboard with the tabs instead of opening into Tally").
+   Inserted by tools/teaser_rules.js between the playerhome markers, Player
+   only; edit it here. One card a screen the Player app opens — the tabs on
+   the bar and the rows of the More menu, as they stand — with a line on what
+   it is for and, where there is one, where you are now. A tap goes there
+   through that tab's own button, so nothing opens any other way. Nothing is
+   taken out: every tab and More row is still where it was, and Home is one
+   more tab at the front of the bar. Reading the dashboard changes nothing. */
+var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, and who won the point.',
+  scout:'Their five, their call and their record, team by team.',
+  sight:'Tap a bunker and see every clear lane from it.',
+  walk:'Notes on each bunker, stuck to the field.',
+  practice:'Your drills and practice results.',
+  rules:'The three official 2026 rulebooks. Needs a connection.',
+  nexus:'Backups and what is kept on this phone.',
+  team:'Your team and its code.',myline:'Your line and your spot in it.',msg:'Team messages, kept on this phone.',
+  lineup:'Who is on each point.',tsched:'Your games and when you play.',tprep:'Get the team ready for the next event.'};
+(function homeTab(){const bar=document.querySelector('.tabs');if(!bar||bar.querySelector('button[data-m="home"]'))return;
+  const b=document.createElement('button');b.dataset.m='home';b.textContent='Home';bar.insertBefore(b,bar.firstChild);
+  if(!document.getElementById('homebox')){const box=document.createElement('div');box.id='homebox';box.className='hidden';box.style.marginTop='2px';
+    const anchor=document.getElementById('practicebox')||document.getElementById('teambox');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);}})();
+function homeNow(m){try{
+  if(m==='tally'&&typeof SH!=='undefined'){const mt=SH.matches.find(x=>x.id===SH.matchId);if(mt&&mt.vs){const s=cpScore(mt.id);return 'vs '+mt.vs+' · point '+SH.point+' · '+s.us+'–'+s.them;}return 'No match yet. Pick who you play.';}
+  if(m==='scout'){const t=typeof cpPit==='function'?cpPit():'';return t?'Who you play: '+t:'Pick who you play in the right pit.';}
+  if(m==='sight'||m==='walk'){const l=typeof LAYOUTS!=='undefined'&&typeof layoutKey!=='undefined'?LAYOUTS[layoutKey]:null;return l?l.name:'';}
+  }catch(e){}return '';}
+function homeItems(){const out=[],seen=new Set();
+  document.querySelectorAll('.tabs button').forEach(b=>{const m=b.dataset.m;if(!m||m==='home'||b.id==='moreBtn'||b.style.display==='none'||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),open:()=>b.click()});});
+  document.querySelectorAll('#moreMenu [data-mm]').forEach(b=>{const m=b.dataset.mm;if(!m||seen.has(m))return;seen.add(m);out.push({m,name:b.textContent.trim(),more:true,open:()=>b.click()});});
+  return out;}
+function renderHome(){const box=document.getElementById('homebox');if(!box)return;const t=typeof teamGet==='function'?teamGet():null,items=homeItems();
+  box.innerHTML=`<div class="lbl">Your dashboard</div><div style="font-size:12.5px;color:#ff5a52;margin:2px 0 10px">${t&&t.code?'Team '+hesc(t.code)+' · ':''}Tap a card to open it. Home on the bar brings you back here.</div>`
+   +`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">`
+   +items.map((it,i)=>{const now=homeNow(it.m);return `<button type="button" class="iqrow" data-home="${i}" style="display:block;width:100%;text-align:left;cursor:pointer;min-height:92px;border-color:#3a3f40;background:#161818;color:#efedeb;padding:14px">`
+     +`<div style="font-size:17px;font-weight:900">${hesc(it.name)}${it.more?' <span style="font-size:11px;color:#ff5a52;font-weight:700">· More</span>':''}</div>`
+     +`<div style="font-size:12.5px;color:#ff5a52;margin-top:4px">${hesc(HOME_SAYS[it.m]||'')}</div>`
+     +(now?`<div style="font-size:12px;color:#efedeb;margin-top:6px;font-weight:700">${hesc(now)}</div>`:'')+`</button>`;}).join('')+`</div>`;
+  box.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{const it=items[+b.dataset.home];if(it)it.open();});}
+/* The Rules row joins the More menu after this script, so the first draw is
+   redone once the page has loaded. */
+window.addEventListener('load',()=>{if(typeof MODE!=='undefined'&&MODE==='home')renderHome();});
+/* playerhome:end */
 function tallyClick(e){try{
   // 1) Did the finger land ON a bunker shape? The browser already knows which physical one — trust it.
   let id=bidFromTarget(e.target);
@@ -4273,14 +4318,14 @@ function modeVisible(m){const b=document.querySelector('.tabs button[data-m="'+m
 function backBarSync(){if(typeof EDITION==='undefined'||EDITION!=='team')return;let b=document.getElementById('teamBackBar');
  if(!b){b=document.createElement('div');b.id='teamBackBar';b.style.cssText='margin:2px 0 6px';b.innerHTML='<button class="ld" id="teamBackBtn" style="padding:7px 13px;font-weight:800;font-size:13px">\u2039 Back</button>';
   const w=document.querySelector('.wrap');if(w)w.insertBefore(b,w.firstChild);document.getElementById('teamBackBtn').onclick=goBack;}
- b.style.display=(MODE==='team')?'none':'';}
+ b.style.display=(MODE==='team'||MODE==='home')?'none':'';}
 function setMode(m,_back){if(typeof MODE!=='undefined'&&MODE&&MODE!==m&&!_back&&modeVisible(MODE)){MODE_HIST.push(MODE);if(MODE_HIST.length>20)MODE_HIST.shift();}MODE=m;try{backBarSync();}catch(e){}if(typeof TSCOPE!=='undefined')TSCOPE=null;{var _sh=document.getElementById('tallySheet');if(_sh)_sh.style.display='none';}if(typeof lnPbStop==='function')lnPbStop();
   if(typeof svg!=='undefined'&&svg&&!editMode&&m!=='sight')svg.onclick=null;
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
   {const at=document.querySelector('.tabs button.on');if(at&&at.scrollIntoView)try{at.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});}catch(e){}}
   show('topPlay',m==='play');show('topRef',m==='ref');show('topScout',m==='scout');show('topLog',m==='log');
   show('rolesRow',m==='scout');show('boardBox',m==='scout');
-  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='tsched'||m==='tprep'||m==='tpmine');
+  const noField=(m==='iq'||m==='crew'||m==='lang'||m==='ready'||m==='nexus'||m==='ops'||m==='evops'||m==='crm'||m==='gov'||m==='assess'||m==='msg'||m==='team'||m==='codes'||m==='tsched'||m==='tprep'||m==='tpmine'||m==='home');
   document.querySelector('.fieldbox').classList.toggle('hidden',noField);
   document.getElementById('legend').classList.toggle('hidden',noField);
   document.getElementById('panel').classList.toggle('hidden',noField);
@@ -4298,8 +4343,8 @@ function setMode(m,_back){if(typeof MODE!=='undefined'&&MODE&&MODE!==m&&!_back&&
   show('codesbox',m==='codes');
   show('msgbox',m==='msg');
   show('tschedbox',m==='tsched');
-  show('tprepbox',m==='tprep'||m==='tpmine');
-  show('teambox',m==='team');
+  show('tprepbox',m==='tprep'||m==='tpmine'||m==='home');
+  show('teambox',m==='team');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();
   show('lineviewbox',m==='myline');
   if(m!=='scout')document.getElementById('howBox').classList.add('hidden');
   document.getElementById('transport').classList.add('hidden');
@@ -4307,7 +4352,7 @@ function setMode(m,_back){if(typeof MODE!=='undefined'&&MODE&&MODE!==m&&!_back&&
   draw();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{editMode=false;setMode(b.dataset.m);});
-{const ls=document.getElementById('layoutSel');if(ls)ls.onchange=()=>setLayout(ls.value);}
+{const ls=document.getElementById('layoutSel');if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};}
 refreshLayoutPicker();
 {const zb=document.getElementById('zoneBtn');if(zb)zb.onclick=()=>{zcMode=!zcMode;zcCorner=null;zcSel=null;if(zcMode)editMode=false;zb.classList.toggle('on',zcMode);zb.textContent='\u25a6 Zones: '+(zcMode?'on':'off');if(!zcMode&&svg)svg.onclick=null;if(MODE!=='play')setMode('play');else draw();};}
 {const eb=document.getElementById('editBtn');if(eb)eb.onclick=()=>{if(typeof EDITION!=='undefined'&&EDITION==='scout'&&!LICF('layouts')){upsellPop('Map-trace layout editor','Trace any official schematic into a coordinate-exact layout. Part of the Scout season license.','scout');return;}editMode=!editMode;if(editMode){if(!editRaw.length)editRaw=bunOf(layoutKey);editSaveName=LAYOUTS[layoutKey]?LAYOUTS[layoutKey].name:'';setMode('play');}else{if(svg)svg.onclick=null;}draw();};}
@@ -4323,7 +4368,7 @@ refreshLayoutPicker();
    else if(EDITION==='ref')_bs.textContent='OFFICIATING · powered by UPRA';
    else if(EDITION==='league')_bs.textContent='OPERATIONS · powered by UPRA';
    else if(EDITION==='crm')_bs.textContent='FIELD CRM · powered by UPRA';}})();
-renderBoard();setMode(EDITION==='ref'?'iq':EDITION==='league'?'evops':EDITION==='crm'?'crm':EDITION==='team'?'team':'play');
+renderBoard();setMode(EDITION==='ref'?'iq':EDITION==='league'?'evops':EDITION==='crm'?'crm':EDITION==='team'?'home':'play');
 try{ticBadge();}catch(e){}/* previews send nothing */
 /* PLAYER ACTIVATION GATE: player edition is locked until a team code is entered. */
 if(typeof EDITION!=='undefined'&&EDITION==='player'&&!playerActivated()){

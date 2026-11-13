@@ -14,11 +14,12 @@ var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, 
   practice:'Your drills and practice results.',
   rules:'The three official 2026 rulebooks. Needs a connection.',
   nexus:'Backups and what is kept on this phone.',
-  team:'Your team and its code.',myline:'Your line and your spot in it.',msg:'Messages from your team.'};
+  team:'Your team and its code.',myline:'Your line and your spot in it.',msg:'Team messages, kept on this phone.',
+  lineup:'Who is on each point.',tsched:'Your games and when you play.',tprep:'Get the team ready for the next event.'};
 (function homeTab(){const bar=document.querySelector('.tabs');if(!bar||bar.querySelector('button[data-m="home"]'))return;
   const b=document.createElement('button');b.dataset.m='home';b.textContent='Home';bar.insertBefore(b,bar.firstChild);
   if(!document.getElementById('homebox')){const box=document.createElement('div');box.id='homebox';box.className='hidden';box.style.marginTop='2px';
-    const anchor=document.getElementById('practicebox');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);}})();
+    const anchor=document.getElementById('practicebox')||document.getElementById('teambox');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);}})();
 function homeNow(m){try{
   if(m==='tally'&&typeof SH!=='undefined'){const mt=SH.matches.find(x=>x.id===SH.matchId);if(mt&&mt.vs){const s=cpScore(mt.id);return 'vs '+mt.vs+' · point '+SH.point+' · '+s.us+'–'+s.them;}return 'No match yet. Pick who you play.';}
   if(m==='scout'){const t=typeof cpPit==='function'?cpPit():'';return t?'Who you play: '+t:'Pick who you play in the right pit.';}

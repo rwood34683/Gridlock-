@@ -57,7 +57,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     await p.goto(base+"/teasers/"+kind+"/");await scan("start");assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(11, 12, 13)");
     if(kind==="player"){await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();await scan("joined");}
     const tabs=await p.locator(".tabs button:visible").evaluateAll(es=>es.map(e=>e.dataset.m));
-    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","rules","nexus"]);
+    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["home","team","lineup","tsched","tprep","msg","rules","nexus"]);
     for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();
      // Rules opens the rulebook window over the screen; it is closed before the screen is read.
      if(tab==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}
@@ -232,6 +232,29 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    const other=keys.find(k=>k!==(keys.includes("nwc")?"nwc":keys[0]));await sel.selectOption(other);
    assert.equal(await p.evaluate(()=>layoutKey),other,"picking an event moves the field");
    assert.equal(await sel.inputValue(),other,"the picked event shows");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 13 Nov 2026: the Team preview gets the same three — "Pick your
+ // event…" first in the field list, a Home dashboard of its tabs, and the
+ // new wordmark in its header.
+ for(const [width,height] of [[390,844],[1024,768]])await check("team at "+width+"x"+height+": opens on Home, Pick your event…, the new wordmark",async()=>{
+  const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/team/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   assert.equal(await p.evaluate(()=>MODE),"home","opens on the dashboard");
+   assert.equal(await p.locator("#teamBackBar").evaluate(e=>getComputedStyle(e).display).catch(()=>"none"),"none","no Back on the first screen");
+   const cards=await p.locator("#homebox [data-home]").evaluateAll(es=>es.map(e=>e.innerText.split("\n")[0]));
+   assert.deepEqual(cards,["Team","Lineups","Schedule","Tournament Prep","Messages","Rules","Nexus"],"one card a tab");
+   for(const [name,mode] of [["Team","team"],["Lineups","lineup"],["Schedule","tsched"],["Tournament Prep","tprep"],["Messages","msg"],["Nexus","nexus"]]){
+    await p.locator('.tabs button[data-m="home"]').click();
+    await p.locator("#homebox [data-home]",{hasText:name}).first().click();assert.equal(await p.evaluate(()=>MODE),mode,name+" card opens "+mode);}
+   const sel=p.locator("#layoutSel"),first=sel.locator("option").first();
+   assert.equal(await first.textContent(),"Pick your event\u2026");assert.equal(await first.isDisabled(),true);
+   assert.equal(await sel.evaluate(s=>s.selectedOptions[0].textContent),"Pick your event\u2026");
+   const img=p.locator("header .wordmark img");assert.equal(await img.count(),1,"the wordmark is in the header");
+   assert.ok(await img.evaluate(i=>i.complete&&i.naturalWidth>0&&i.getBoundingClientRect().height===28),"the wordmark draws at 28 px");
+   assert.equal(await p.locator("header .logo").count(),0,"the old square mark is gone");
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });

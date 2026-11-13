@@ -249,9 +249,15 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   // The field list opens on "Pick your event…" (owner, 12 Nov 2026): a first
   // choice that is not a field, shown until the player picks one. The field
   // on screen stays drawn meanwhile; picking the default moves nothing.
-  ["pick your event", "function refreshLayoutPicker(){", "let layoutPicked=false;\nfunction refreshLayoutPicker(){", ["player"]],
-  ["pick your event", "s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${k===layoutKey?' selected':''}>", "s.innerHTML=`<option value=\"\" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${layoutPicked&&k===layoutKey?' selected':''}>", ["player"]],
-  ["pick your event", "if(ls)ls.onchange=()=>setLayout(ls.value);", "if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};", ["player"]],
+  // The Team preview opens on the same kind of dashboard (owner, 13 Nov 2026):
+  // a card a tab, Home first on the bar, every tab still there.
+  ["team home", "m==='tpmine');", "m==='tpmine'||m==='home');", ["team"]],
+  ["team home", "  show('teambox',m==='team');", "  show('teambox',m==='team');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["team"]],
+  ["team home", "EDITION==='team'?'team':'play');", "EDITION==='team'?'home':'play');", ["team"]],
+  ["team home", " b.style.display=(MODE==='team')?'none':'';}", " b.style.display=(MODE==='team'||MODE==='home')?'none':'';}", ["team"]],
+  ["pick your event", "function refreshLayoutPicker(){", "let layoutPicked=false;\nfunction refreshLayoutPicker(){", ["player", "team"]],
+  ["pick your event", "s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${k===layoutKey?' selected':''}>", "s.innerHTML=`<option value=\"\" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${layoutPicked&&k===layoutKey?' selected':''}>", ["player", "team"]],
+  ["pick your event", "if(ls)ls.onchange=()=>setLayout(ls.value);", "if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};", ["player", "team"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -306,15 +312,17 @@ function placeBlock(src, kind) {
   return at < 0 ? src : src.slice(0, at) + block + src.slice(at);
 }
 
-// The Player dashboard (Player only), between markers, after the coach Tally.
+// The dashboard (Player and Team), between markers: after the coach Tally in
+// Player, before tallyClick in Team.
 const HOME = fs.readFileSync(path.join(__dirname, "teaser_home.js"), "utf8").trimEnd();
 const H0 = "/* playerhome:begin \u2014 generated from tools/teaser_home.js, never hand-edit */", H1 = "/* playerhome:end */";
 function homeBlock(src, kind) {
-  if (kind !== "player") return src;
   const a = src.indexOf(H0), b = src.indexOf(H1), block = H0 + "\n" + HOME + "\n" + H1 + "\n";
   if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + H1.length + 1);
   const at = src.indexOf(P1);
-  return at < 0 ? src : src.slice(0, at + P1.length + 1) + block + src.slice(at + P1.length + 1);
+  if (at >= 0) return src.slice(0, at + P1.length + 1) + block + src.slice(at + P1.length + 1);
+  const tc = src.indexOf("function tallyClick(e){try{");
+  return tc < 0 ? src : src.slice(0, tc) + block + src.slice(tc);
 }
 
 function apply(src, kind) {

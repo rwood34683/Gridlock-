@@ -1474,6 +1474,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     now, opened through that tab's own button. Home leads the bar; every tab
     and More row stays. The cards are `tools/teaser_home.js`, inserted between
     the `playerhome` markers by `tools/teaser_rules.js` (Player only).
+    The Team preview has the same three (owner, 13 Nov 2026): "Pick your
+    event…" first in its field list, a Home dashboard of its tabs that it
+    opens on (Home first on the bar, no Back on it, every tab kept), and the
+    coach app's new wordmark in its header (`teasers/team/wordmark.jpg`, cut
+    from `web/logo-wordmark.png` with its black lifted to #0b0c0d, written by
+    `tools/teaser_fields.js`). The `playerhome` block serves both previews.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
