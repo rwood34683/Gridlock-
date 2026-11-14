@@ -1096,6 +1096,9 @@ svg.field [data-pick]{cursor:crosshair}
 /* Shown only on a phone turned sideways; everywhere else the quick log is
    offered where it was, at the foot of the point sheet. */
 .read-line{margin:var(--s2) 0 0;max-width:70ch}
+/* Keep the long no-upcoming-game read within the text measure even when
+   the tablet column gives its direct children the full field width. */
+.main > .read-line{max-width:56ch;align-self:flex-start;margin-left:max(0px, calc((100% - 860px) / 2))}
 .read-line--warn{color:var(--warn);margin-top:4px} .read-line--warn b{color:var(--warn)}
 .read-line b{color:var(--ink)}
 /* A button inside a note is still a button a gloved thumb has to hit: 44 px,

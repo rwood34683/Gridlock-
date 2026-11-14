@@ -21,6 +21,24 @@ const SEED = require("../scripts/seed");
     finally { await context.close(); }
   }
   try {
+    await check("Playbook's empty scouting read stays readable on tablets and sideways phones", async p => {
+      await p.evaluate(()=>{S.games=[];S.gamesOff=allGames().map(g=>g.id);set({tab:"playbook",pbView:null});});
+      for(const [width,height] of [[390,844],[820,1180],[1024,768],[932,430]]){
+        await p.setViewportSize({width,height});
+        const got=await p.evaluate(()=>{
+          const el=[...document.querySelectorAll(".main > .read-line")].find(e=>e.textContent.includes("wherever they play"));
+          if(!el)return {missing:true};
+          const r=document.createRange();r.selectNodeContents(el);
+          const lines=new Set([...r.getClientRects()].map(x=>Math.round(x.top))).size;
+          return {ch:Math.round(el.textContent.trim().length/lines),over:document.documentElement.scrollWidth-innerWidth};
+        });
+        assert.equal(got.missing,undefined);assert.ok(got.ch<=80,JSON.stringify({width,...got}));assert.ok(got.over<=1);
+      }
+      if(process.env.RENDER_SHOTS){
+        require("node:fs").mkdirSync(process.env.RENDER_SHOTS,{recursive:true});
+        await p.screenshot({path:require("node:path").join(process.env.RENDER_SHOTS,"playbook-after.png")});
+      }
+    });
     await check("current-point status ignores historic rows while match summaries retain them", async p => {
       const got=await p.evaluate(()=>{
         S.matches=[{id:"perf",vs:"Other",layout:S.layoutKey,size:5}];S.matchId="perf";S.point=401;
