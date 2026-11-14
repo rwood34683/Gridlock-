@@ -6,6 +6,7 @@ const { spawn } = require("node:child_process");
 const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
+  "coach-print": "test/coach-print.cjs",
   "worldcup-handoff": "test/worldcup-handoff.cjs",
   "code-rollover": "test/code-rollover.cjs",
   "tally-reset": "test/tally-reset.cjs",

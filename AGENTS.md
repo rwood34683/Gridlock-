@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Print / Save PDF** keeps Schedule's team/division and Reports/daily-table filters; the browser chooses the printer. No season changes or automatic sends.
+  Current-point status reads only that point; match summaries still read the whole match. See CLAUDE.md item 94.
+
 - **World Cup handoff:** optional season import, 722 unique fixtures and source-labelled Lone Star film suggestions; never create Tally outs from reference elims.
   Schedule division separates same-club entries in team choice, games and scouting plans; the public directory groups by division. See `docs/WORLD-CUP-HANDOFF.md`.
 
