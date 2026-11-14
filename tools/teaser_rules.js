@@ -240,6 +240,30 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["coach scout", 'data-scview="layers">Historical layers<', 'data-scview="layers">Layers<', ["player"]],
   ["coach scout", 'data-scview="games">Games &amp; replay<', 'data-scview="games">Games<', ["player"]],
   ["coach scout", "Games &amp; replay and Historical layers are open too.", "Breakouts, Layers and Games read the sheets you keep on Tally.", ["player"]],
+  // Player (owner, 12 Nov 2026): after joining, a dashboard of the tabs opens
+  // instead of Tally; Home leads the bar. The cards are tools/teaser_home.js.
+  ["player home", "m==='codes'||m==='practice');", "m==='codes'||m==='practice'||m==='home');", ["player"]],
+  ["player home", "  show('practicebox',m==='practice');", "  show('practicebox',m==='practice');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["player"]],
+  ["player home", "EDITION==='player'?'tally':'play');", "EDITION==='player'?'home':'play');", ["player"]],
+  ["player home", "const ORDER=EDITION==='player'?['tally','scout','sight','walk']:[];", "const ORDER=EDITION==='player'?['home','tally','scout','sight','walk']:[];", ["player"]],
+  // The field list opens on "Pick your event…" (owner, 12 Nov 2026): a first
+  // choice that is not a field, shown until the player picks one. The field
+  // on screen stays drawn meanwhile; picking the default moves nothing.
+  // The Team preview opens on the same kind of dashboard (owner, 13 Nov 2026):
+  // a card a tab, Home first on the bar, every tab still there.
+  ["team home", "m==='tpmine');", "m==='tpmine'||m==='home');", ["team"]],
+  ["team home", "  show('teambox',m==='team');", "  show('teambox',m==='team');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["team"]],
+  ["team home", "EDITION==='team'?'team':'play');", "EDITION==='team'?'home':'play');", ["team"]],
+  ["team home", " b.style.display=(MODE==='team')?'none':'';}", " b.style.display=(MODE==='team'||MODE==='home')?'none':'';}", ["team"]],
+  // Remove a player from the Team tab or Lineups (owner, 13 Nov 2026).
+  ["remove player", "function renderTeam(){", "/* One way to take a player off (owner, 13 Nov 2026): asked first, off the roster and off every line. */\nfunction tmDropPlayer(name,after){if(!name)return;gChoose('Remove '+name+'?',name+' comes off the roster and off every line. Nothing else is deleted.',[{label:'Remove',primary:true,run:()=>{const k=tpSlug(name);const t=teamGet()||{};t.roster=(t.roster||[]).filter(x=>tpSlug(x)!==k);teamSet(t);tRosterRemove(name);const all=linesAll();all.forEach(l=>{l.spots=(l.spots||[]).filter(sp=>tpSlug(sp.player)!==k);});linesSave(all);if(lnPlayer&&tpSlug(lnPlayer)===k)lnPlayer=null;if(lnAimPlayer&&tpSlug(lnAimPlayer)===k)lnAimPlayer=null;if(after)after();}},{label:'Cancel'}]);}\nfunction renderTeam(){", ["team"]],
+  ["remove player", "document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet();const gone=t.roster.splice(+b.dataset.tmrm,1)[0];teamSet(t);if(gone)tRosterRemove(gone);renderTeam();});", "document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet()||{};tmDropPlayer((t.roster||[])[+b.dataset.tmrm],renderTeam);});", ["team"]],
+  ["remove player", "  } else if(EDITION==='team'&&t.player){", "    if((t.roster||[]).length)h+='<div class=\"lbl\" style=\"margin-top:12px\">Players added so far</div>'+t.roster.map((p,i)=>`<div class=\"row\" style=\"justify-content:space-between;border-top:1px solid #26292a;padding:5px 0\"><span style=\"font-size:13px\">${hesc(p)}</span><button class=\"ld\" data-tmrm=\"${i}\" style=\"font-size:10px;padding:3px 7px\">remove</button></div>`).join('');\n  } else if(EDITION==='team'&&t.player){", ["team"]],
+  ["remove player", "    if(lnPlayer)h+=`<div style=\"font-size:11px;color:#ffd24d;margin-top:5px\">Placing <b>", "    if(roster.length)h+='<details style=\"margin-top:6px\"><summary style=\"font-size:12px;color:#ff5a52;cursor:pointer;min-height:44px;display:flex;align-items:center\">Remove a player</summary>'+roster.map(nm=>`<div class=\"row\" style=\"justify-content:space-between;border-top:1px solid #26292a;padding:4px 0\"><span style=\"font-size:13px\">${hesc(nm)}</span><button class=\"ld\" data-lnrmr=\"${hesc(nm)}\">Remove</button></div>`).join('')+'</details>';\n    if(lnPlayer)h+=`<div style=\"font-size:11px;color:#ffd24d;margin-top:5px\">Placing <b>", ["team"]],
+  ["remove player", "  document.querySelectorAll('[data-lnaim]')", "  document.querySelectorAll('[data-lnrmr]').forEach(b=>b.onclick=()=>tmDropPlayer(b.dataset.lnrmr,renderLineups));\n  document.querySelectorAll('[data-lnaim]')", ["team"]],
+  ["pick your event", "function refreshLayoutPicker(){", "let layoutPicked=false;\nfunction refreshLayoutPicker(){", ["player", "team"]],
+  ["pick your event", "s.innerHTML=Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${k===layoutKey?' selected':''}>", "s.innerHTML=`<option value=\"\" disabled${layoutPicked?'':' selected'}>Pick your event…</option>`+Object.keys(LAYOUTS).map(k=>`<option value=\"${k}\"${layoutPicked&&k===layoutKey?' selected':''}>", ["player", "team"]],
+  ["pick your event", "if(ls)ls.onchange=()=>setLayout(ls.value);", "if(ls)ls.onchange=()=>{if(!LAYOUTS[ls.value])return;layoutPicked=true;setLayout(ls.value);};", ["player", "team"]],
 ];
 
 // Regex steps: [rule, pattern, replacement].
@@ -294,9 +318,23 @@ function placeBlock(src, kind) {
   return at < 0 ? src : src.slice(0, at) + block + src.slice(at);
 }
 
+// The dashboard (Player and Team), between markers: after the coach Tally in
+// Player, before tallyClick in Team.
+const HOME = fs.readFileSync(path.join(__dirname, "teaser_home.js"), "utf8").trimEnd();
+const H0 = "/* playerhome:begin \u2014 generated from tools/teaser_home.js, never hand-edit */", H1 = "/* playerhome:end */";
+function homeBlock(src, kind) {
+  const a = src.indexOf(H0), b = src.indexOf(H1), block = H0 + "\n" + HOME + "\n" + H1 + "\n";
+  if (a >= 0 && b > a) return src.slice(0, a) + block + src.slice(b + H1.length + 1);
+  const at = src.indexOf(P1);
+  if (at >= 0) return src.slice(0, at + P1.length + 1) + block + src.slice(at + P1.length + 1);
+  const tc = src.indexOf("function tallyClick(e){try{");
+  return tc < 0 ? src : src.slice(0, tc) + block + src.slice(tc);
+}
+
 function apply(src, kind) {
   src = walkBlock(src);
   src = placeBlock(src, kind);
+  src = homeBlock(src, kind);
   for (const [, rx, to] of REGEX) src = src.replace(rx, to);
   // A step applies wherever what it looks for is still in the file. A step whose
   // result contains what it looks for is skipped once that result is there, or

@@ -57,7 +57,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     await p.goto(base+"/teasers/"+kind+"/");await scan("start");assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(11, 12, 13)");
     if(kind==="player"){await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();await scan("joined");}
     const tabs=await p.locator(".tabs button:visible").evaluateAll(es=>es.map(e=>e.dataset.m));
-    assert.deepEqual(tabs,kind==="player"?["tally","scout","sight","walk","more"]:["team","lineup","tsched","tprep","msg","rules","nexus"]);
+    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["home","team","lineup","tsched","tprep","msg","rules","nexus"]);
     for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();
      // Rules opens the rulebook window over the screen; it is closed before the screen is read.
      if(tab==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}
@@ -166,6 +166,8 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.locator("#sideR .pickSel").selectOption({index:1});
    await tap(ids[0]);assert.deepEqual(await p.evaluate(()=>[scView,cpTheirPick.slice()]),["log",[ids[0]]],"a tap on Matchup starts their five on Breakouts");
    await tap(ids[1]);await tap(ids[1]);assert.equal(await p.evaluate(()=>cpTheirPick.length),3);
+   const marks=await p.evaluate(()=>[...document.querySelectorAll('#field text, svg text')].filter(t=>t.getAttribute("font-size")==="3.5"&&t.previousElementSibling&&t.previousElementSibling.getAttribute("fill")==="#3d8bff").map(t=>t.textContent));
+   assert.deepEqual(marks,["1","2","3"],"their men are the coach app's numbered blue squares, one number a man");
    await p.locator('[data-tb5="log"]').tap();
    assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),ids[0],"logging the five opens the first man's details on Scout");
    assert.equal(await p.locator("#cpSheet").count(),1);
@@ -177,10 +179,135 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.deepEqual(errors,[]);
   }finally{await c.close();}
  });
+ // Owner, 12 Nov 2026: doubling up on a bunker must work everywhere a man is
+ // placed — Tally's step 2 (where it opens) as well as step 1, and Scout while
+ // a man's details are open.
+ await check("player: a second tap on a bunker is a second man on it, on Tally step 2 and on Scout",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').tap();await p.locator("#sideR .pickSel").selectOption({index:1});
+   const tap=async id=>{const at=await p.evaluate(id=>{const g=document.querySelector('[data-bid="'+id+'"]');g.scrollIntoView({block:"center"});const r=g.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};},id);await p.touchscreen.tap(at.x,at.y);};
+   const [R,R2]=await p.evaluate(()=>BUN.filter(b=>b.x>90).slice(2,4).map(b=>b.id)),L=await p.evaluate(()=>BUN.filter(b=>b.x<60)[2].id);
+   await tap(R);await tap(R);assert.deepEqual(await p.evaluate(()=>cpTheirPick.slice()),[R,R],"Scout: two taps, two men");
+   await tap(R2);await p.locator('[data-tb5="log"]').tap();assert.equal(await p.evaluate(()=>cpDraft&&cpDraft.bid),R);
+   await tap(R);assert.deepEqual(await p.evaluate(()=>cpTheirPick.slice()),[R],"Scout with a man's details open: a tap on his bunker starts one more man there");
+   await p.locator('.tabs button[data-m="tally"]').tap();assert.equal(await p.evaluate(()=>cpStep),"tell");
+   await tap(L);await tap(L);
+   assert.equal(await p.evaluate(id=>SH.rows.filter(r=>r.bid===id).length,L),2,"Tally step 2: two taps, two men on the bunker");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 13 Nov 2026: No point on the Player app's Tally and Scout moves the
+ // point on with no result written.
+ await check("player: No point on Tally and Scout moves the point on and writes no result",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   await p.locator('.tabs button[data-m="scout"]').click();
+   const pick=p.locator('.pickSel').last(),value=await pick.locator('option').evaluateAll(es=>es.filter(e=>e.value).pop().value);await pick.selectOption(value);
+   await p.locator('.tabs button[data-m="tally"]').click();
+   const pt=await p.evaluate(()=>SH.point),res=await p.evaluate(()=>JSON.stringify(SH.results));
+   await p.getByRole("button",{name:/^No point/}).first().click();
+   assert.equal(await p.evaluate(()=>SH.point),pt+1);assert.equal(await p.evaluate(()=>JSON.stringify(SH.results)),res);
+   await p.locator('.tabs button[data-m="scout"]').click();
+   // This is the next deliberate point, outside the shared duplicate-tap window.
+   await p.waitForTimeout(1600);
+   await p.getByRole("button",{name:/^No point/}).first().click();
+   assert.equal(await p.evaluate(()=>SH.point),pt+2);assert.equal(await p.evaluate(()=>JSON.stringify(SH.results)),res);
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 12 Nov 2026: after joining, the Player app opens on a dashboard of
+ // its tabs rather than on Tally; every tab and More row stays where it was.
+ for(const [width,height] of [[390,844],[1024,768]])await check("player at "+width+"x"+height+": opens on a dashboard of every tab, each card opens its screen",async()=>{
+  const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   assert.equal(await p.evaluate(()=>MODE),"home","opens on the dashboard, not Tally");
+   const cards=await p.locator("#homebox [data-home]").evaluateAll(es=>es.map(e=>e.innerText.split("\n")[0].replace(/ · More$/,"")));
+   assert.deepEqual(cards,["Tally","Scout","Sightlines","Walk","Practice","Rules","Nexus"],"one card a tab and a More row");
+   for(const [name,mode] of [["Tally","tally"],["Scout","scout"],["Sightlines","sight"],["Walk","walk"],["Practice","practice"],["Nexus","nexus"]]){
+    await p.locator('.tabs button[data-m="home"]').click();assert.equal(await p.evaluate(()=>MODE),"home","Home on the bar goes back");
+    await p.locator("#homebox [data-home]",{hasText:name}).first().click();assert.equal(await p.evaluate(()=>MODE),mode,name+" card opens "+mode);}
+   await p.locator('.tabs button[data-m="home"]').click();await p.locator("#homebox [data-home]",{hasText:"Rules"}).first().click();
+   assert.equal(await p.evaluate(()=>document.getElementById("rulebooksDialog").open),true,"Rules card opens the rulebooks");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 12 Nov 2026: the field list opens on "Pick your event…", a choice
+ // that is not a field; the field stays drawn and every event stays listed.
+ await check("player: the field list opens on Pick your event…, and picking one moves the field",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/player/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();
+   const sel=p.locator("#layoutSel"),first=await sel.locator("option").first();
+   assert.equal(await first.textContent(),"Pick your event\u2026");assert.equal(await first.isDisabled(),true,"the default is not a field");
+   assert.equal(await sel.evaluate(s=>s.selectedOptions[0].textContent),"Pick your event\u2026","shown until one is picked");
+   const keys=await p.evaluate(()=>Object.keys(LAYOUTS));assert.equal(await sel.locator("option").count(),keys.length+1,"every event stays listed");
+   assert.ok(await p.evaluate(()=>!!LAYOUTS[layoutKey]),"a field is still drawn");
+   const other=keys.find(k=>k!==(keys.includes("nwc")?"nwc":keys[0]));await sel.selectOption(other);
+   assert.equal(await p.evaluate(()=>layoutKey),other,"picking an event moves the field");
+   assert.equal(await sel.inputValue(),other,"the picked event shows");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 13 Nov 2026: the Team preview gets the same three — "Pick your
+ // event…" first in the field list, a Home dashboard of its tabs, and the
+ // new wordmark in its header.
+ for(const [width,height] of [[390,844],[1024,768]])await check("team at "+width+"x"+height+": opens on Home, Pick your event…, the new wordmark",async()=>{
+  const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/team/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   assert.equal(await p.evaluate(()=>MODE),"home","opens on the dashboard");
+   assert.equal(await p.locator("#teamBackBar").evaluate(e=>getComputedStyle(e).display).catch(()=>"none"),"none","no Back on the first screen");
+   const cards=await p.locator("#homebox [data-home]").evaluateAll(es=>es.map(e=>e.innerText.split("\n")[0]));
+   assert.deepEqual(cards,["Team","Lineups","Schedule","Tournament Prep","Messages","Rules","Nexus"],"one card a tab");
+   for(const [name,mode] of [["Team","team"],["Lineups","lineup"],["Schedule","tsched"],["Tournament Prep","tprep"],["Messages","msg"],["Nexus","nexus"]]){
+    await p.locator('.tabs button[data-m="home"]').click();
+    await p.locator("#homebox [data-home]",{hasText:name}).first().click();assert.equal(await p.evaluate(()=>MODE),mode,name+" card opens "+mode);}
+   const sel=p.locator("#layoutSel"),first=sel.locator("option").first();
+   assert.equal(await first.textContent(),"Pick your event\u2026");assert.equal(await first.isDisabled(),true);
+   assert.equal(await sel.evaluate(s=>s.selectedOptions[0].textContent),"Pick your event\u2026");
+   const img=p.locator("header .wordmark img");assert.equal(await img.count(),1,"the wordmark is in the header");
+   assert.ok(await img.evaluate(i=>i.complete&&i.naturalWidth>0&&i.getBoundingClientRect().height===28),"the wordmark draws at 28 px");
+   assert.equal(await p.locator("header .logo").count(),0,"the old square mark is gone");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
+ // Owner, 13 Nov 2026: a player can be removed from the Team tab and from
+ // Lineups, asked first, and comes off every line with him.
+ await check("team: remove a player from Lineups or the Team tab, asked first, off every line",async()=>{
+  const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+  try{
+   await p.goto(base+"/teasers/team/");await p.evaluate(()=>localStorage.clear());await p.reload();
+   await p.locator('.tabs button[data-m="lineup"]').click();
+   await p.fill("#lnNew","D-line");await p.click("#lnAdd");
+   for(const n of ["Sam","Lee","Dill"]){await p.fill("#lnNewP",n);await p.click("#lnAddP");}
+   await p.evaluate(()=>{const all=linesAll();all[0].spots=[{player:"Lee",bunker:"x"},{player:"Sam",bunker:"y"}];linesSave(all);renderLineups();});
+   await p.locator("summary",{hasText:"Remove a player"}).click();
+   await p.locator('[data-lnrmr="Lee"]').click();await p.locator('[data-gc]',{hasText:"Cancel"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Sam","Lee","Dill"],"Cancel keeps him");
+   await p.locator('[data-lnrmr="Lee"]').click();await p.locator('[data-gc]',{hasText:"Remove"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Sam","Dill"]);
+   assert.deepEqual(await p.evaluate(()=>linesAll()[0].spots.map(s=>s.player)),["Sam"],"off every line");
+   await p.locator('.tabs button[data-m="team"]').click();
+   assert.equal(await p.locator("[data-tmrm]").count(),2,"players added before a team exists show with remove");
+   await p.locator("[data-tmrm]").first().click();await p.locator('[data-gc]',{hasText:"Remove"}).click();
+   assert.deepEqual(await p.evaluate(()=>teamGet().roster),["Dill"]);
+   assert.deepEqual(await p.evaluate(()=>linesAll()[0].spots),[],"Team tab remove takes him off the line too");
+   assert.deepEqual(errors,[]);
+  }finally{await c.close();}
+ });
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });
   await require('./player-clear-team.cjs')({check,browser,base,out});
+  await require('./player-point-actions.cjs')({check,browser,base,out});
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
 })().catch(e=>{console.error(e.stack);process.exitCode=1;});

@@ -5375,7 +5375,8 @@ const ROSTER = [
     const stayed = S.layoutKey === was && S.evPick;
     const opts = [...document.querySelectorAll("#root .evpick select")];
     const listed = layoutChoices().length === keys.length && opts.length === 3
-      && document.getElementById("event-layout").value === was
+      && document.getElementById("event-name").value === "" && document.getElementById("event-layout").value === ""
+      && document.querySelector("#event-name option").textContent === "Pick your event\u2026"
       && opts.every(b => b.getBoundingClientRect().height >= 44);
     const other = keys.find(k => k !== was);
     const choice = layoutChoices().find(r => r.key === other);
@@ -8339,11 +8340,11 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("renaming a man carries his season with him: outs, breakouts, grades, rotations, penalties, lineups and bunker words all read the new name", renamed === true, renamed);
-  check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
+  check("the Scout strip offers no Next point or No point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
     const btns = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
-    return matchOver() === "us" && !btns.includes("Next point") && btns.includes("New match");
+    return matchOver() === "us" && !btns.includes("Next point") && !btns.includes("No point") && btns.includes("New match");
   }));
 
   /* --------------------------------------------------------------- matches */
@@ -8940,16 +8941,25 @@ const ROSTER = [
   check("Scout shows the match and lets you start a new one", await ev(() => {
     window.set({ tab:"scout", scoutTab:"matchup", right:{name:"Aftershock"} });
     const t = document.getElementById("root").textContent;
-    return /New match/.test(t) && /Next point/.test(t) && /point \d+/.test(t);
+    const button = document.querySelector('#root button[onclick="tapNext()"]');
+    return /New match/.test(t) && /No point/.test(t) && /point \d+/.test(t)
+      && !!button && /^No point\./.test(button.getAttribute("aria-label"));
   }));
   check("Next point on Scout moves the same point Tally is on", await ev(() => {
     const was = S.point || 1; window.nextPoint(); const now = S.point;
     window.backPoint(); return now === was + 1 && S.point === was;
   }));
   // "We need a spot for next point in a game in the scout tab. Also how do we switch games."
-  check("Next point is on every Scout view, Arrival and Voice included", await ev(() => {
+  check("No point works on every Scout view, Arrival and Voice included", await ev(() => {
     return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
-      return /Next point/.test(document.getElementById("root").textContent); });
+      const button = document.querySelector('#root button[onclick="tapNext()"]');
+      if(!button || button.textContent.trim() !== "No point" || !/^No point\./.test(button.getAttribute("aria-label"))) return false;
+      const pt = S.point || 1, results = JSON.stringify(S.results), end = ourEnd(pt + 1);
+      button.click();
+      const ok = S.point === pt + 1 && JSON.stringify(S.results) === results && ourEnd(S.point) === end;
+      window.backPoint();
+      return ok && S.point === pt;
+    });
   }));
   check("the strip switches games and lands on that game's last point", await ev(() => {
     const here = S.matchId, hereRow = {...curMatch()};
