@@ -16,6 +16,7 @@ The proposed scout/tally table under `optional/` is a reference only. It is not 
 | `tools/gridlock_adapter.py` | Loader/exporter. `FIELD_MAP` uses Gridlock's names; run it to rebuild both the as-is dump and the matched export. |
 | `export/` | As-is: `gridlock-import.json` + `csv/`. Matched: `gridlock-matched.json`, `gridlock-csv/`, and `gridlock/season-copy-games.json`. `export/gridlock/event-data.json` ships in this zip only. It is loaded on the phone from the zip (More > Account & backups > Event data), not from the repo. |
 | `optional/` | Our optional proposed tally schema. Use only if it helps after you inspect Gridlock’s models. |
+| `live-schedule/` | Saturday, Nov 14, 2026, 6:34 AM ET PBLeagues pull: 1,379 games, standings, and brackets. See [Live schedule](#live-schedule-sat-nov-14-2026). |
 | `GRIDLOCK-AI-HANDOFF.md` | Copy-paste prompt for Claude web or Codex desktop. |
 
 ## Counts (this pack)
@@ -78,6 +79,10 @@ Lone Star Open 2026, exported from the published Pages on Thursday, Nov 12, 2026
 - **LSO Fri Sets 1–5** (Fri dual-feed + Fri Set 5) ship as VERIFY by rule, even when a final score is on the Page.
 - **LSO movement is mostly VERIFY.**
 - Practice event 9510 is not in the World Cup schedule workbook.
+
+## Live schedule (Sat Nov 14, 2026)
+
+`live-schedule/` is the Saturday field/time grid and team lookup from the PBLeagues pull at 2026-11-14 06:34 ET (`games.json`, 1,379 games). Brackets (`brackets.json`) keep placeholder slots pending until PBLeagues fills them. Standings (`standings.json`) are computed from posted prelim Finals only: 2 points for a win, 1 for a tie, and they are unofficial. The scoresheet export uses the Gridlock Tally out shape `{pt, side, name, at, m, script, layout:'nwc', vs, how?, by?}`. Keep PBLeagues game IDs, because Saturday 5v5 was reticketed. Never invent jersey numbers or hometowns.
 
 ## How to join the IDs
 

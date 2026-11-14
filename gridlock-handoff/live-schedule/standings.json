@@ -1,0 +1,5697 @@
+{
+  "schema_version": "1.0",
+  "event_id": "9322",
+  "source_url": "https://pbleagues.com/event/9322/schedule",
+  "retrieved_at": "2026-11-14T06:34:59.900942-05:00",
+  "timezone": "America/New_York",
+  "note": "Computed from posted prelim scores (Final and Final forfeit). Unofficial results are listed separately and are not in the official table. PBLeagues seeding rules may differ.",
+  "points": "2 per win, 1 per tie, from posted scores",
+  "divisions": [
+    {
+      "division": "Amateur 10v10",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "302 DESTROYERS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Alabama Paintball",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Bear Ridge 10",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Chicago Aftershock",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "JUSTICE",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Mayhem Tigers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Pathways Recovery Center powered by WAVY PINE MANAGEMENT",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Pro Edge Goon Squad",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Geo",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "WARBIRDS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Amateur 3v3 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Team Crowley",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 9,
+              "pa": 1,
+              "diff": 8,
+              "pts": 6
+            },
+            {
+              "team": "Rain City Rejects",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 4,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "WAR",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 8,
+              "pa": 3,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "CBM",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 6,
+              "diff": 4,
+              "pts": 6
+            },
+            {
+              "team": "Veteran Militia Hotel",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 6,
+              "diff": 4,
+              "pts": 4
+            },
+            {
+              "team": "El Clan",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 8,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Gunshine X",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 7,
+              "pa": 6,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "Beerkats",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 10,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "Brimstone Smoke",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 7,
+              "pa": 9,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Life Alert",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 6,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Havok",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 8,
+              "diff": -4,
+              "pts": 2
+            },
+            {
+              "team": "Veteran Militia Romeo",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 3,
+              "pa": 9,
+              "diff": -6,
+              "pts": 0
+            },
+            {
+              "team": "Blackhawks D5",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 3,
+              "pa": 10,
+              "diff": -7,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Whiskey",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 1,
+              "pa": 9,
+              "diff": -8,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Champions - Division 2 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Corrupt",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 12,
+              "pa": 10,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Gulf Coast Ragtag Army",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 13,
+              "pa": 13,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Control",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 8,
+              "diff": 3,
+              "pts": 2
+            },
+            {
+              "team": "AG Knights",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 14,
+              "diff": -5,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Champions - Division 3 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Legacy Gorillas",
+              "gp": 3,
+              "w": 2,
+              "l": 0,
+              "t": 1,
+              "pf": 10,
+              "pa": 4,
+              "diff": 6,
+              "pts": 5
+            },
+            {
+              "team": "Smoke",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 6,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "Raiders X Apex",
+              "gp": 3,
+              "w": 1,
+              "l": 1,
+              "t": 1,
+              "pf": 7,
+              "pa": 10,
+              "diff": -3,
+              "pts": 3
+            },
+            {
+              "team": "BR FACTORY",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 6,
+              "pa": 10,
+              "diff": -4,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Champions - Division 4 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Defy Kidz",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 13,
+              "pa": 3,
+              "diff": 10,
+              "pts": 6
+            },
+            {
+              "team": "Hydra Kidz",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 8,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "LORDS",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 5,
+              "pa": 9,
+              "diff": -4,
+              "pts": 2
+            },
+            {
+              "team": "OG Carolina Threat",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 11,
+              "diff": -7,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Champions - Division 5 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Team Blank",
+              "gp": 3,
+              "w": 2,
+              "l": 0,
+              "t": 1,
+              "pf": 8,
+              "pa": 6,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "Shut Up They're Trying",
+              "gp": 3,
+              "w": 1,
+              "l": 1,
+              "t": 1,
+              "pf": 5,
+              "pa": 5,
+              "diff": 0,
+              "pts": 3
+            },
+            {
+              "team": "New Jersey Filthy 5",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 6,
+              "pa": 5,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "Bear Ridge 5",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 7,
+              "diff": -3,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Champions - Semi-Pro X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Blast Camp",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 7,
+              "pa": 5,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Rejects",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 8,
+              "pa": 4,
+              "diff": 4,
+              "pts": 2
+            },
+            {
+              "team": "Preferred mob",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 5,
+              "diff": 2,
+              "pts": 2
+            },
+            {
+              "team": "Noobies",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 2,
+              "pa": 10,
+              "diff": -8,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Classic Mounds 10v10",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "All-Americans 2",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Brimstone Smoke",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Butchers Northwest",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Doc's Raiders",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Image",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PHILIPPINES",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Scattershot",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "SIERRA",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "THE FARM",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers Mech",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Union",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Wolverines",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Classic Mounds 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Aftershock",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Avalanche PB Mech",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Denver Purge",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Desert Edge",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Doc's Raiders",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Image",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "S.D.G. Livewire",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "SMOKE",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers Mech",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "All-Americans 2",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Brimstone Smoke",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "BTA",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Killa Bees",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Mayhem Tigers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PHILIPPINES",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Pusher Boyz North",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Wolverines",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Oscar",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 2 X-Ball",
+      "groups": [
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Panda Express Elite",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 21,
+              "pa": 3,
+              "diff": 18,
+              "pts": 8
+            },
+            {
+              "team": "Saints",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 15,
+              "pa": 14,
+              "diff": 1,
+              "pts": 6
+            },
+            {
+              "team": "NARCOS",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 12,
+              "pa": 16,
+              "diff": -4,
+              "pts": 3
+            },
+            {
+              "team": "STL Threat",
+              "gp": 4,
+              "w": 0,
+              "l": 2,
+              "t": 2,
+              "pf": 12,
+              "pa": 16,
+              "diff": -4,
+              "pts": 2
+            },
+            {
+              "team": "Omaha Jamz",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 9,
+              "pa": 20,
+              "diff": -11,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "NR FACTORY",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 22,
+              "pa": 11,
+              "diff": 11,
+              "pts": 8
+            },
+            {
+              "team": "TAKEOVER",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 15,
+              "pa": 13,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "DILLIGAF",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 15,
+              "pa": 14,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "LVL",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 18,
+              "pa": 19,
+              "diff": -1,
+              "pts": 4
+            },
+            {
+              "team": "Noobies",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 12,
+              "pa": 25,
+              "diff": -13,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "Brawl",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 19,
+              "pa": 9,
+              "diff": 10,
+              "pts": 6
+            },
+            {
+              "team": "PTN",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 15,
+              "pa": 12,
+              "diff": 3,
+              "pts": 6
+            },
+            {
+              "team": "Cleveland Chaos",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 18,
+              "pa": 15,
+              "diff": 3,
+              "pts": 5
+            },
+            {
+              "team": "Full Paintball Colombia",
+              "gp": 4,
+              "w": 0,
+              "l": 2,
+              "t": 2,
+              "pf": 12,
+              "pa": 19,
+              "diff": -7,
+              "pts": 2
+            },
+            {
+              "team": "INCURSION",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 11,
+              "pa": 20,
+              "diff": -9,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "BC Riot",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 21,
+              "pa": 11,
+              "diff": 10,
+              "pts": 8
+            },
+            {
+              "team": "NME",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 24,
+              "pa": 18,
+              "diff": 6,
+              "pts": 4
+            },
+            {
+              "team": "CWE POWER",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 17,
+              "pa": 18,
+              "diff": -1,
+              "pts": 4
+            },
+            {
+              "team": "Raze",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 13,
+              "pa": 17,
+              "diff": -4,
+              "pts": 3
+            },
+            {
+              "team": "PA Hawks D2",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 13,
+              "pa": 24,
+              "diff": -11,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 3 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Autistic Trash Pandas",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "DeaD RaBBiTs",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Free Smoke.",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Hydra",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Medellin criminals",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Miami Kings",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NMI",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "OCTANE Elite",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Outlaw AP Warriors",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Papeletto",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Papeletto Dark",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Papeletto Legends",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Raiders",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "STL Threat D3",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "TAKEOVER",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Zulu",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 3 X-Ball",
+      "groups": [
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "NFO FACTORY",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 17,
+              "pa": 5,
+              "diff": 12,
+              "pts": 7
+            },
+            {
+              "team": "Night Fury black",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 11,
+              "pa": 12,
+              "diff": -1,
+              "pts": 6
+            },
+            {
+              "team": "WAR",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 18,
+              "pa": 13,
+              "diff": 5,
+              "pts": 5
+            },
+            {
+              "team": "Veteran Militia Kilo",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 11,
+              "pa": 16,
+              "diff": -5,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 6,
+              "pa": 17,
+              "diff": -11,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "BREAKOUT",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 14,
+              "pa": 8,
+              "diff": 6,
+              "pts": 5
+            },
+            {
+              "team": "Ottawa Luxury",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 15,
+              "pa": 12,
+              "diff": 3,
+              "pts": 5
+            },
+            {
+              "team": "Rejects.",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 8,
+              "diff": 3,
+              "pts": 4
+            },
+            {
+              "team": "Ontario Landsharks",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 13,
+              "diff": -4,
+              "pts": 4
+            },
+            {
+              "team": "Kings and Queens",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 9,
+              "pa": 17,
+              "diff": -8,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "Outlaw AP Prime",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 19,
+              "pa": 6,
+              "diff": 13,
+              "pts": 8
+            },
+            {
+              "team": "PHILIPPINES",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 14,
+              "pa": 6,
+              "diff": 8,
+              "pts": 6
+            },
+            {
+              "team": "Noobies",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 13,
+              "diff": -2,
+              "pts": 4
+            },
+            {
+              "team": "RUFIANES",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 7,
+              "pa": 15,
+              "diff": -8,
+              "pts": 1
+            },
+            {
+              "team": "Hustle",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 7,
+              "pa": 18,
+              "diff": -11,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "New England Storm",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 14,
+              "pa": 6,
+              "diff": 8,
+              "pts": 8
+            },
+            {
+              "team": "Rat Kings",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 16,
+              "pa": 9,
+              "diff": 7,
+              "pts": 5
+            },
+            {
+              "team": "CARIBBEAN ALLSTARZ",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 8,
+              "pa": 10,
+              "diff": -2,
+              "pts": 3
+            },
+            {
+              "team": "KNOXVILLE KNIGHTS",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 12,
+              "diff": -5,
+              "pts": 2
+            },
+            {
+              "team": "JakkBoyz",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 9,
+              "pa": 17,
+              "diff": -8,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "Eastside",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 21,
+              "pa": 6,
+              "diff": 15,
+              "pts": 8
+            },
+            {
+              "team": "Nasty Mob",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 17,
+              "pa": 12,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "Elite IO",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 14,
+              "pa": 15,
+              "diff": -1,
+              "pts": 3
+            },
+            {
+              "team": "JACKALS",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 9,
+              "pa": 13,
+              "diff": -4,
+              "pts": 3
+            },
+            {
+              "team": "South Shore Reapers",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 5,
+              "pa": 20,
+              "diff": -15,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "G",
+          "official": [
+            {
+              "team": "AG Knights",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 18,
+              "pa": 12,
+              "diff": 6,
+              "pts": 7
+            },
+            {
+              "team": "Washed Up Boyz",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 13,
+              "pa": 13,
+              "diff": 0,
+              "pts": 5
+            },
+            {
+              "team": "Punishers Paintball",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 18,
+              "pa": 14,
+              "diff": 4,
+              "pts": 4
+            },
+            {
+              "team": "Toronto Chargers",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 16,
+              "pa": 16,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Sykaryos 3",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 10,
+              "pa": 20,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "H",
+          "official": [
+            {
+              "team": "Aruba Madness",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 9,
+              "pa": 6,
+              "diff": 3,
+              "pts": 5
+            },
+            {
+              "team": "Free Smoke",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 13,
+              "pa": 10,
+              "diff": 3,
+              "pts": 4
+            },
+            {
+              "team": "Clutch City Oilers",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 11,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Beerkats",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 11,
+              "diff": -2,
+              "pts": 4
+            },
+            {
+              "team": "Trance",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 10,
+              "pa": 14,
+              "diff": -4,
+              "pts": 3
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "J",
+          "official": [
+            {
+              "team": "Raleigh Razorbacks",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 15,
+              "pa": 2,
+              "diff": 13,
+              "pts": 8
+            },
+            {
+              "team": "New Jersey Filthy 3",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 16,
+              "pa": 6,
+              "diff": 10,
+              "pts": 6
+            },
+            {
+              "team": "Ikonik Black",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 11,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Smoke Patrol 507",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 5,
+              "pa": 16,
+              "diff": -11,
+              "pts": 1
+            },
+            {
+              "team": "Virginia Irregulars",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 3,
+              "pa": 15,
+              "diff": -12,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 4 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Bethel Jesters",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Cunning Stunts",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "INTENT",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PMDR Paintball Monkeys",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "POSTAL",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Steel City Bombers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Texas Sannin",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Bravo",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "WOLF PACK",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Menteanah",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Pionniers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Queen City Royals - Purple",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Rapinas",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Reckoning",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "TexeCutioners by PBGateway",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers V",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "TIFUZI",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "West Coast Sharks 4",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "Beach Bandits Humidity",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "ColdBlooded Warriors",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Dauntless Black",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Nola-Savage",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "ODIN VIDUR",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Orlando Invaders",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Rain City Rejects",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Tampa Bay Exile",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Fox",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Wreckers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "Bio-Hazard Purple",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Killa Bees",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Moisture Missiles",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NEW YORK BANDITS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "No Ceilings",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "ODIN JALK",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PILIPINAS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "S.D.G. Hammer Cats",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "S.D.G.Hammer Cats Bravo",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Vice City Mafia",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Elite Dynasty",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Embry-Riddle Eagles",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Enemy",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Magic City Steel",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NMI",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Spider team",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Unhinged",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Delta",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Xclusive X",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Youngstown Dimension",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "Avalanche PB",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Heathens",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Magic City Vulcans",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NFO NEW YORK",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PHILIPPINES D4",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Plaguebearers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Surreal",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Tampa Bay Raptors",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Tampa Bay Vengeance",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "THOSE GUYS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "G",
+          "official": [
+            {
+              "team": "Carolina Warriors",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "CBM Cubs Blue",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Coldblooded Quack Pack",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Contra",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Hydra",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Puffy Bunker Bois",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers IV.5",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "THE NOBODYS",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "TPP Most Wanted",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "University of Central Florida Knights",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 4 X-Ball",
+      "groups": [
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Coup Athletics",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 14,
+              "pa": 4,
+              "diff": 10,
+              "pts": 7
+            },
+            {
+              "team": "Revolution",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 13,
+              "pa": 8,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "IKONIK Gold",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 9,
+              "pa": 7,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "IRONCLAD",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 8,
+              "pa": 11,
+              "diff": -3,
+              "pts": 2
+            },
+            {
+              "team": "Veteran Militia Charlie",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 2,
+              "pa": 16,
+              "diff": -14,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "Care Bear Militia",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 16,
+              "pa": 7,
+              "diff": 9,
+              "pts": 8
+            },
+            {
+              "team": "DEFY Factory",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 10,
+              "pa": 8,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Ducks",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 7,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Kahnawake warriors",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 12,
+              "diff": -5,
+              "pts": 2
+            },
+            {
+              "team": "ODIN",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 6,
+              "pa": 14,
+              "diff": -8,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "New York Khaos",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 14,
+              "pa": 2,
+              "diff": 12,
+              "pts": 7
+            },
+            {
+              "team": "New Jersey Filthy 4",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 14,
+              "pa": 5,
+              "diff": 9,
+              "pts": 7
+            },
+            {
+              "team": "Wasted",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 11,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Konvicts Lockdown",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 8,
+              "pa": 17,
+              "diff": -9,
+              "pts": 1
+            },
+            {
+              "team": "Chaos Crew",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 6,
+              "pa": 18,
+              "diff": -12,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Upstate Avalanche",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 8,
+              "pa": 4,
+              "diff": 4,
+              "pts": 6
+            },
+            {
+              "team": "Carolina Threat",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 5,
+              "diff": 4,
+              "pts": 4
+            },
+            {
+              "team": "Team Hyperion",
+              "gp": 3,
+              "w": 0,
+              "l": 2,
+              "t": 1,
+              "pf": 8,
+              "pa": 10,
+              "diff": -2,
+              "pts": 1
+            },
+            {
+              "team": "CARIBBEAN LEGENDS",
+              "gp": 3,
+              "w": 0,
+              "l": 2,
+              "t": 1,
+              "pf": 6,
+              "pa": 12,
+              "diff": -6,
+              "pts": 1
+            },
+            {
+              "team": "LAX MACHINE",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "Tri-City Storm",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 18,
+              "pa": 7,
+              "diff": 11,
+              "pts": 8
+            },
+            {
+              "team": "Afterlife D4",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 10,
+              "pa": 8,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "Nashville Coyotes",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 12,
+              "pa": 12,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "302 DESTROYERS",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 10,
+              "pa": 12,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Lot Lizard Wranglers",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 5,
+              "pa": 16,
+              "diff": -11,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "G",
+          "official": [
+            {
+              "team": "LOUISVILLE FUSION",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 17,
+              "pa": 8,
+              "diff": 9,
+              "pts": 7
+            },
+            {
+              "team": "HAVOC",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 19,
+              "pa": 13,
+              "diff": 6,
+              "pts": 7
+            },
+            {
+              "team": "The Leftovers II",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 15,
+              "pa": 18,
+              "diff": -3,
+              "pts": 4
+            },
+            {
+              "team": "The Other Guys",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 13,
+              "pa": 17,
+              "diff": -4,
+              "pts": 1
+            },
+            {
+              "team": "Red Legion D4x",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 13,
+              "pa": 21,
+              "diff": -8,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "H",
+          "official": [
+            {
+              "team": "TCP Micro Machine",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 17,
+              "pa": 8,
+              "diff": 9,
+              "pts": 8
+            },
+            {
+              "team": "ZuriCaos",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 18,
+              "pa": 14,
+              "diff": 4,
+              "pts": 5
+            },
+            {
+              "team": "TEMPLARIOS",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 11,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Matrix",
+              "gp": 4,
+              "w": 0,
+              "l": 2,
+              "t": 2,
+              "pf": 11,
+              "pa": 17,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "Malicious",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 9,
+              "pa": 16,
+              "diff": -7,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "J",
+          "official": [
+            {
+              "team": "ICT Weekend Warriors",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 17,
+              "pa": 8,
+              "diff": 9,
+              "pts": 7
+            },
+            {
+              "team": "S.N.A.F.U.",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 16,
+              "pa": 9,
+              "diff": 7,
+              "pts": 6
+            },
+            {
+              "team": "SMSC",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 8,
+              "pa": 10,
+              "diff": -2,
+              "pts": 3
+            },
+            {
+              "team": "Splat Houston",
+              "gp": 4,
+              "w": 0,
+              "l": 1,
+              "t": 3,
+              "pf": 7,
+              "pa": 11,
+              "diff": -4,
+              "pts": 3
+            },
+            {
+              "team": "NQ Sports Paintball",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 8,
+              "pa": 18,
+              "diff": -10,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "K",
+          "official": [
+            {
+              "team": "APEX.",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 15,
+              "pa": 6,
+              "diff": 9,
+              "pts": 7
+            },
+            {
+              "team": "WRECKAGE",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 15,
+              "pa": 10,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "Sunday Sleepers",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 9,
+              "pa": 13,
+              "diff": -4,
+              "pts": 3
+            },
+            {
+              "team": "OCTANE Gold",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 13,
+              "pa": 16,
+              "diff": -3,
+              "pts": 2
+            },
+            {
+              "team": "New York Tyrants",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 8,
+              "pa": 15,
+              "diff": -7,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "L",
+          "official": [
+            {
+              "team": "Raze D4",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 16,
+              "pa": 5,
+              "diff": 11,
+              "pts": 6
+            },
+            {
+              "team": "NYPD Finest Paintball",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 14,
+              "pa": 8,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "Warped Army",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 14,
+              "pa": 10,
+              "diff": 4,
+              "pts": 6
+            },
+            {
+              "team": "Reckless",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 14,
+              "pa": 9,
+              "diff": 5,
+              "pts": 5
+            },
+            {
+              "team": "Veteran Militia Echo",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 5,
+              "pa": 17,
+              "diff": -12,
+              "pts": 1
+            },
+            {
+              "team": "OG Killerz",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 5,
+              "pa": 19,
+              "diff": -14,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "M",
+          "official": [
+            {
+              "team": "TPP Factory",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 20,
+              "pa": 6,
+              "diff": 14,
+              "pts": 8
+            },
+            {
+              "team": "PR Jesters",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 12,
+              "pa": 6,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "Relentless",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 13,
+              "pa": 12,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "TROPA",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 10,
+              "pa": 9,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "The Leftovers II.5",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 16,
+              "diff": -9,
+              "pts": 2
+            },
+            {
+              "team": "Beach Bandits",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 2,
+              "pa": 15,
+              "diff": -13,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "N",
+          "official": [
+            {
+              "team": "Ripper Crew",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 15,
+              "pa": 6,
+              "diff": 9,
+              "pts": 7
+            },
+            {
+              "team": "Atlanta OutKast",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 13,
+              "pa": 5,
+              "diff": 8,
+              "pts": 7
+            },
+            {
+              "team": "316 Threat",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 8,
+              "pa": 6,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "New York Aces",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 14,
+              "pa": 13,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "Life Alert",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 7,
+              "pa": 13,
+              "diff": -6,
+              "pts": 1
+            },
+            {
+              "team": "NJ Jesters",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 4,
+              "pa": 18,
+              "diff": -14,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "O",
+          "official": [
+            {
+              "team": "The Jokers",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 14,
+              "pa": 8,
+              "diff": 6,
+              "pts": 7
+            },
+            {
+              "team": "Complex White",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 18,
+              "pa": 8,
+              "diff": 10,
+              "pts": 6
+            },
+            {
+              "team": "Go-Getters",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 15,
+              "pa": 13,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "The Goodfellaz",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 15,
+              "pa": 17,
+              "diff": -2,
+              "pts": 4
+            },
+            {
+              "team": "SHARKS",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 8,
+              "pa": 14,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "Devious Dawgs",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 7,
+              "pa": 17,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 5 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "CBM Cubs",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "DECEPTION D5",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Donk's Disciples",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Nola Savages",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "PHANTOM",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Pusher Boyz North",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Rejected Co",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers VI",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "UCF Knights-Black",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Cowboy Killers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Dyehard",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "HYPER",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Ragtags",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Savage Factory",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Shock Kidz MW",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Storm Riders",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "University of Maryland Terrapins",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Veteran Militia Golf",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "ZuriCaos M.W.K.",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "5th Element",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Alliance",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Bethill Ballers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Cleantake Paintball",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "El Clan",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Golden Isles Ghost",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Hot Garbage",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NYK Black",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "South Florida Syndicate",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Other Guys 2",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Division 5 X-Ball",
+      "groups": [
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "OG Boys Australia",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 12,
+              "pa": 7,
+              "diff": 5,
+              "pts": 7
+            },
+            {
+              "team": "S.N.A.F.U. 2",
+              "gp": 4,
+              "w": 2,
+              "l": 0,
+              "t": 2,
+              "pf": 11,
+              "pa": 5,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "Nashville Coyotes Ravenous",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 8,
+              "pa": 5,
+              "diff": 3,
+              "pts": 5
+            },
+            {
+              "team": "Destiny Germany",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 6,
+              "pa": 8,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers III.5",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 1,
+              "pa": 13,
+              "diff": -12,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "Reckless techs",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 4,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "GRD",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 11,
+              "pa": 7,
+              "diff": 4,
+              "pts": 5
+            },
+            {
+              "team": "Hostile goats featuring Colfax Creatures",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 6,
+              "pa": 5,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "Eastsidee",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 6,
+              "pa": 8,
+              "diff": -2,
+              "pts": 4
+            },
+            {
+              "team": "AAA JACKALS 2",
+              "gp": 4,
+              "w": 0,
+              "l": 3,
+              "t": 1,
+              "pf": 3,
+              "pa": 11,
+              "diff": -8,
+              "pts": 1
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "West Coast Sharks 5",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 14,
+              "pa": 7,
+              "diff": 7,
+              "pts": 7
+            },
+            {
+              "team": "Coup",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 9,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "TROPA D5",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 8,
+              "pa": 10,
+              "diff": -2,
+              "pts": 4
+            },
+            {
+              "team": "Gulf Coast Ragtag Army Red",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 12,
+              "pa": 12,
+              "diff": 0,
+              "pts": 3
+            },
+            {
+              "team": "Sacramento Legacy",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 12,
+              "diff": -5,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Da Homies Rejects",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 14,
+              "pa": 4,
+              "diff": 10,
+              "pts": 8
+            },
+            {
+              "team": "Reapers.",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 13,
+              "pa": 8,
+              "diff": 5,
+              "pts": 5
+            },
+            {
+              "team": "ANONYMOUS",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 11,
+              "pa": 6,
+              "diff": 5,
+              "pts": 5
+            },
+            {
+              "team": "San Diego Odyssey D-5",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 10,
+              "pa": 10,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "TCP Battle Machine",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 15,
+              "diff": -8,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers IV",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 2,
+              "pa": 14,
+              "diff": -12,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "TPP Black swans",
+              "gp": 4,
+              "w": 3,
+              "l": 0,
+              "t": 1,
+              "pf": 13,
+              "pa": 5,
+              "diff": 8,
+              "pts": 7
+            },
+            {
+              "team": "Spread Eagle Tavern",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 7,
+              "diff": 3,
+              "pts": 6
+            },
+            {
+              "team": "SHOCK",
+              "gp": 4,
+              "w": 2,
+              "l": 1,
+              "t": 1,
+              "pf": 12,
+              "pa": 10,
+              "diff": 2,
+              "pts": 5
+            },
+            {
+              "team": "APF FAMILY",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 7,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "BANDIDOS ELITE",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 10,
+              "diff": -3,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers III",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 1,
+              "pa": 13,
+              "diff": -12,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Masters X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "OGB",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 13,
+              "pa": 1,
+              "diff": 12,
+              "pts": 8
+            },
+            {
+              "team": "Philippine Titos",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 13,
+              "pa": 2,
+              "diff": 11,
+              "pts": 8
+            },
+            {
+              "team": "MB55 Purple",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 4,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "Papeletto Team",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 4,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "New England Old",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 10,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "Aftershock",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 9,
+              "pa": 9,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "TCP Vintage Machine",
+              "gp": 4,
+              "w": 1,
+              "l": 1,
+              "t": 2,
+              "pf": 9,
+              "pa": 9,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Aggression",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 7,
+              "pa": 10,
+              "diff": -3,
+              "pts": 3
+            },
+            {
+              "team": "Suricatos",
+              "gp": 4,
+              "w": 1,
+              "l": 2,
+              "t": 1,
+              "pf": 7,
+              "pa": 12,
+              "diff": -5,
+              "pts": 3
+            },
+            {
+              "team": "Veteran Militia Mike",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 13,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers OG II",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 4,
+              "pa": 10,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers OG III",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 4,
+              "pa": 10,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "The Leftovers OG",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 5,
+              "pa": 15,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Pro 3v3 X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Orlando Red Legion",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 12,
+              "pa": 5,
+              "diff": 7,
+              "pts": 4
+            },
+            {
+              "team": "Royal City Seadogs",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 7,
+              "diff": 0,
+              "pts": 2
+            },
+            {
+              "team": "Tampa Bay Damage",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 11,
+              "diff": -7,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Puerto Rico tppcrew",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 6,
+              "diff": 4,
+              "pts": 4
+            },
+            {
+              "team": "Chicago Aftershock",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 8,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "Brooklyn Wolfpack",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 6,
+              "pa": 9,
+              "diff": -3,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "New York Wrecking Crew",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 12,
+              "pa": 3,
+              "diff": 9,
+              "pts": 4
+            },
+            {
+              "team": "Shock",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 8,
+              "pa": 11,
+              "diff": -3,
+              "pts": 2
+            },
+            {
+              "team": "Dallas SUWT",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 10,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "Texas Hurricanes",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 4,
+              "diff": 6,
+              "pts": 4
+            },
+            {
+              "team": "Houston Heat",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 8,
+              "pa": 4,
+              "diff": 4,
+              "pts": 2
+            },
+            {
+              "team": "LTF",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 1,
+              "pa": 11,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Rejects",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 9,
+              "pa": 3,
+              "diff": 6,
+              "pts": 4
+            },
+            {
+              "team": "New Jersey Jesters",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 3,
+              "diff": 4,
+              "pts": 2
+            },
+            {
+              "team": "ZuriCaos",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 1,
+              "pa": 11,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "Detroit Infamous",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 11,
+              "pa": 9,
+              "diff": 2,
+              "pts": 2
+            },
+            {
+              "team": "Edmonton Impact",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 9,
+              "diff": 0,
+              "pts": 2
+            },
+            {
+              "team": "San Antonio X-Factor",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 9,
+              "diff": -2,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "G",
+          "official": [
+            {
+              "team": "San Diego Dynasty",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 11,
+              "pa": 2,
+              "diff": 9,
+              "pts": 4
+            },
+            {
+              "team": "Oregon IKONIK",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 5,
+              "pa": 8,
+              "diff": -3,
+              "pts": 2
+            },
+            {
+              "team": "Las Vegas Shock",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 3,
+              "pa": 9,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "H",
+          "official": [
+            {
+              "team": "Seattle Uprising",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 11,
+              "pa": 1,
+              "diff": 10,
+              "pts": 4
+            },
+            {
+              "team": "Ranger Warsaw",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 5,
+              "pa": 7,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Los Angeles Collision",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 1,
+              "pa": 9,
+              "diff": -8,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "J",
+          "official": [
+            {
+              "team": "Perris ASG Aftermath",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 9,
+              "pa": 3,
+              "diff": 6,
+              "pts": 4
+            },
+            {
+              "team": "Los Angeles Ironmen",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 7,
+              "diff": 0,
+              "pts": 2
+            },
+            {
+              "team": "ALA Warsaw",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 3,
+              "pa": 9,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "K",
+          "official": [
+            {
+              "team": "Texas FIT",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 5,
+              "diff": 5,
+              "pts": 4
+            },
+            {
+              "team": "Chicago Distortion",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 6,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "Aruba Madness",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 5,
+              "pa": 11,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Pro X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "Edmonton Impact",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 4,
+              "diff": 5,
+              "pts": 2
+            },
+            {
+              "team": "Red Legion",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 8,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "Tampa Bay Damage",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 6,
+              "pa": 7,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "Ranger Warsaw",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 6,
+              "pa": 11,
+              "diff": -5,
+              "pts": 2
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Houston Heat",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 13,
+              "pa": 8,
+              "diff": 5,
+              "pts": 6
+            },
+            {
+              "team": "Perris ASG Aftermath",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 10,
+              "pa": 5,
+              "diff": 5,
+              "pts": 4
+            },
+            {
+              "team": "Detroit Infamous",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 12,
+              "pa": 13,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "LTF",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 12,
+              "pa": 17,
+              "diff": -5,
+              "pts": 2
+            },
+            {
+              "team": "PaintballFIT",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 11,
+              "diff": -4,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "San Antonio X-Factor",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 21,
+              "pa": 9,
+              "diff": 12,
+              "pts": 6
+            },
+            {
+              "team": "Atlanta Jungle Cats",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 12,
+              "pa": 15,
+              "diff": -3,
+              "pts": 4
+            },
+            {
+              "team": "Puerto Rico tppcrew",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 17,
+              "pa": 18,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "TonTon Arsenal",
+              "gp": 3,
+              "w": 1,
+              "l": 2,
+              "t": 0,
+              "pf": 14,
+              "pa": 16,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Chicago Aftershock",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 17,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "ALA Warsaw",
+              "gp": 3,
+              "w": 3,
+              "l": 0,
+              "t": 0,
+              "pf": 15,
+              "pa": 8,
+              "diff": 7,
+              "pts": 6
+            },
+            {
+              "team": "San Diego Dynasty",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 17,
+              "pa": 10,
+              "diff": 7,
+              "pts": 4
+            },
+            {
+              "team": "Los Angeles Ironmen",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 11,
+              "pa": 10,
+              "diff": 1,
+              "pts": 4
+            },
+            {
+              "team": "Los Angeles Collision",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 6,
+              "pa": 11,
+              "diff": -5,
+              "pts": 0
+            },
+            {
+              "team": "Chicago Distortion",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 7,
+              "pa": 17,
+              "diff": -10,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Seattle Uprising",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 17,
+              "pa": 8,
+              "diff": 9,
+              "pts": 4
+            },
+            {
+              "team": "CK Hurricanes",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 17,
+              "pa": 14,
+              "diff": 3,
+              "pts": 4
+            },
+            {
+              "team": "New Jersey Leverage",
+              "gp": 3,
+              "w": 2,
+              "l": 1,
+              "t": 0,
+              "pf": 13,
+              "pa": 13,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Royal City Seadogs",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 10,
+              "pa": 10,
+              "diff": 0,
+              "pts": 2
+            },
+            {
+              "team": "New York Xtreme",
+              "gp": 3,
+              "w": 0,
+              "l": 3,
+              "t": 0,
+              "pf": 9,
+              "pa": 21,
+              "diff": -12,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Semi-Pro X-Ball",
+      "groups": [
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "New York Wrecking Crew",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 22,
+              "pa": 2,
+              "diff": 20,
+              "pts": 8
+            },
+            {
+              "team": "Clutch City Oilers",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 18,
+              "pa": 9,
+              "diff": 9,
+              "pts": 6
+            },
+            {
+              "team": "Malicious",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 14,
+              "pa": 14,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Project x",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 2,
+              "pa": 16,
+              "diff": -14,
+              "pts": 2
+            },
+            {
+              "team": "ARMADA",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 3,
+              "pa": 18,
+              "diff": -15,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "C",
+          "official": [
+            {
+              "team": "BEEFY BOYS",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 22,
+              "pa": 10,
+              "diff": 12,
+              "pts": 8
+            },
+            {
+              "team": "Trash Pandas",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 20,
+              "pa": 6,
+              "diff": 14,
+              "pts": 6
+            },
+            {
+              "team": "Las Vegas Shock",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 20,
+              "pa": 14,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "WILD DOGS LATINOAMERICA",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 17,
+              "pa": 23,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "Shut up we're trying",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 13,
+              "pa": 19,
+              "diff": -6,
+              "pts": 2
+            },
+            {
+              "team": "Pennsylvania Hawks",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 4,
+              "pa": 24,
+              "diff": -20,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "D",
+          "official": [
+            {
+              "team": "New Jersey Jesters",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 20,
+              "pa": 14,
+              "diff": 6,
+              "pts": 6
+            },
+            {
+              "team": "Thunder Valley Blackout",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 18,
+              "pa": 16,
+              "diff": 2,
+              "pts": 6
+            },
+            {
+              "team": "Denver Altitude",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 19,
+              "pa": 14,
+              "diff": 5,
+              "pts": 4
+            },
+            {
+              "team": "Brooklyn Wolfpack",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 17,
+              "pa": 14,
+              "diff": 3,
+              "pts": 4
+            },
+            {
+              "team": "Toulouse Purple",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 15,
+              "pa": 12,
+              "diff": 3,
+              "pts": 4
+            },
+            {
+              "team": "Sykaryos",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 9,
+              "pa": 28,
+              "diff": -19,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "E",
+          "official": [
+            {
+              "team": "Oregon IKONIK",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 17,
+              "pa": 9,
+              "diff": 8,
+              "pts": 8
+            },
+            {
+              "team": "KC Missouri Allstars",
+              "gp": 4,
+              "w": 3,
+              "l": 1,
+              "t": 0,
+              "pf": 17,
+              "pa": 6,
+              "diff": 11,
+              "pts": 6
+            },
+            {
+              "team": "Pittsburgh Mastodon",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 15,
+              "pa": 10,
+              "diff": 5,
+              "pts": 4
+            },
+            {
+              "team": "PA Hawks 2",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 11,
+              "pa": 19,
+              "diff": -8,
+              "pts": 4
+            },
+            {
+              "team": "Nasty",
+              "gp": 4,
+              "w": 1,
+              "l": 3,
+              "t": 0,
+              "pf": 12,
+              "pa": 20,
+              "diff": -8,
+              "pts": 2
+            },
+            {
+              "team": "FUSION TEAM",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 12,
+              "pa": 20,
+              "diff": -8,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "F",
+          "official": [
+            {
+              "team": "Legacy Factory",
+              "gp": 4,
+              "w": 4,
+              "l": 0,
+              "t": 0,
+              "pf": 22,
+              "pa": 11,
+              "diff": 11,
+              "pts": 8
+            },
+            {
+              "team": "Texas Demolition",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 20,
+              "pa": 16,
+              "diff": 4,
+              "pts": 4
+            },
+            {
+              "team": "CEP",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 20,
+              "pa": 18,
+              "diff": 2,
+              "pts": 4
+            },
+            {
+              "team": "Miami Effect",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 21,
+              "pa": 21,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "Collision II",
+              "gp": 4,
+              "w": 2,
+              "l": 2,
+              "t": 0,
+              "pf": 19,
+              "pa": 19,
+              "diff": 0,
+              "pts": 4
+            },
+            {
+              "team": "EAVL",
+              "gp": 4,
+              "w": 0,
+              "l": 4,
+              "t": 0,
+              "pf": 5,
+              "pa": 22,
+              "diff": -17,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "WNXL Amateur 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "BANDIDAS PK",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Bear Ridge Saints",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Chicago Cherubs",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NJ High Rollers",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "OKC Vengeance",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "SMSC Ladyz",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Sparrows",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "TCP Diamond Machine",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "WNXL Pro X-Ball",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "The Heroines",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 9,
+              "pa": 2,
+              "diff": 7,
+              "pts": 4
+            },
+            {
+              "team": "Drakaina",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 11,
+              "pa": 5,
+              "diff": 6,
+              "pts": 4
+            },
+            {
+              "team": "Thunder Valley Voltage",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 4,
+              "diff": 3,
+              "pts": 2
+            },
+            {
+              "team": "New Jersey High Rollers",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 8,
+              "pa": 10,
+              "diff": -2,
+              "pts": 2
+            },
+            {
+              "team": "Northern Lights",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 4,
+              "pa": 10,
+              "diff": -6,
+              "pts": 0
+            },
+            {
+              "team": "Bear Ridge Saints",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 2,
+              "pa": 10,
+              "diff": -8,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        },
+        {
+          "group": "B",
+          "official": [
+            {
+              "team": "Dallas Vibe",
+              "gp": 2,
+              "w": 2,
+              "l": 0,
+              "t": 0,
+              "pf": 8,
+              "pa": 3,
+              "diff": 5,
+              "pts": 4
+            },
+            {
+              "team": "Femmes Fatale",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 9,
+              "pa": 7,
+              "diff": 2,
+              "pts": 2
+            },
+            {
+              "team": "The Royals",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 6,
+              "pa": 5,
+              "diff": 1,
+              "pts": 2
+            },
+            {
+              "team": "Baltimore Nevermores",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 7,
+              "pa": 8,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "San Francisco Sirens",
+              "gp": 2,
+              "w": 1,
+              "l": 1,
+              "t": 0,
+              "pf": 6,
+              "pa": 7,
+              "diff": -1,
+              "pts": 2
+            },
+            {
+              "team": "The Immortal Angels",
+              "gp": 2,
+              "w": 0,
+              "l": 2,
+              "t": 0,
+              "pf": 3,
+              "pa": 9,
+              "diff": -6,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    },
+    {
+      "division": "Youth Advanced 5v5",
+      "groups": [
+        {
+          "group": "A",
+          "official": [
+            {
+              "team": "AG Kids",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Bear Ridge Kidz",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "NOLA Savages",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "Savage Patch Kids",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            },
+            {
+              "team": "The Leftovers Kidz",
+              "gp": 0,
+              "w": 0,
+              "l": 0,
+              "t": 0,
+              "pf": 0,
+              "pa": 0,
+              "diff": 0,
+              "pts": 0
+            }
+          ],
+          "unofficial": []
+        }
+      ]
+    }
+  ]
+}

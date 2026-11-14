@@ -16,6 +16,7 @@ The folder is a Gridlock handoff dated Thursday, Nov 12, 2026 (America/New_York)
 - `shared/` — `rosters-numbers.md` (jersey numbers with a hard caveat), public Pro contacts, coaches names.
 - `tools/gridlock_adapter.py` — dependency-free Python that loads the pack into one structure and can export `export/gridlock-import.json` plus per-entity CSVs. It has a clearly marked `FIELD_MAP` you can edit.
 - `optional/` — an optional proposed scout/tally table and template. Reference only. Ignore it if Gridlock already has models that cover this.
+- `live-schedule/` — Saturday, Nov 14, 2026 live schedule from the PBLeagues pull at 2026-11-14 06:34 ET (1,379 games in `games.json`). Use it for the Saturday field/time grid and team lookup. Brackets (`brackets.json`) keep placeholder slots pending until PBLeagues fills them; do not invent matchups. Standings (`standings.json`) are computed from posted prelim Finals only (2 points for a win, 1 for a tie) and are unofficial. The scoresheet export uses the Gridlock Tally out shape `{pt, side, name, at, m, script, layout:'nwc', vs, how?, by?}`. Keep PBLeagues game IDs, because Saturday 5v5 was reticketed. Never invent jersey numbers or hometowns.
 
 ## ID keys and join paths
 
