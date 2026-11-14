@@ -39,6 +39,40 @@ const SEED = require("../scripts/seed");
         await p.screenshot({path:require("node:path").join(process.env.RENDER_SHOTS,"playbook-after.png")});
       }
     });
+    await check("Tally out-detail lists fill on keyboard or touch, keep labels and save only the chosen row", async p => {
+      await p.evaluate(()=>{S.tally=[{m:S.matchId,pt:S.point,side:"them",name:"Opp 1",how:"Laned",by:S.roster[0].name},
+        {m:S.matchId,pt:S.point,side:"us",name:S.roster[1].name}];set({tab:"tally"});});
+      const choices=p.locator('select[data-fill="choices"]');
+      assert.equal(await choices.count(),4);
+      assert(await choices.evaluateAll(xs=>xs.every(x=>x.options.length<=2)));
+      const how=p.locator('select[onchange*="setOutBunker(0,"]').nth(2);assert.equal(await how.inputValue(),"Laned");
+      await how.focus();assert.equal(await how.locator("option").count(),7);
+      await how.selectOption("Traded");
+      assert.deepEqual(await p.evaluate(()=>S.tally.map(x=>x.how||"")),["Traded",""]);
+      const by=p.locator('select[onchange*="setOutBunker(0,"]').nth(3);
+      await by.dispatchEvent("touchstart");
+      assert.equal(await by.locator("option").count(),await p.evaluate(()=>S.roster.length+1));
+      const target=await p.evaluate(()=>S.roster[2].name);
+      await by.selectOption(target);
+      assert.equal(await p.evaluate(()=>S.tally[0].by),target);
+      assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem("gridlock.coach.v2")).tally[0].by),target);
+      assert.equal(await p.locator('select[data-fill="choices"]').nth(1).inputValue(),target);
+    });
+    await check("repeated names keep exact matching, bounded memory and no cache after sign-out", async p => {
+      const got=await p.evaluate(()=>{
+        _foldNames.clear();
+        const values=["  REYES  ","Blast\tCamp","BLAST  CAMP","JOSÉ",null,0,17];
+        const first=values.map(foldName),again=values.map(foldName);
+        for(let i=0;i<700;i++)foldName("Name "+i);
+        const size=_foldNames.size,previous=foldName("  REYES  ");
+        foldName("X".repeat(10000));const bounded=_foldNames.size;
+        S.entered=false;render();
+        return {first,again,size,previous,bounded,signedOut:_foldNames.size};
+      });
+      assert.deepEqual(got.first,["reyes","blast camp","blast camp","josé","","","17"]);
+      assert.deepEqual(got.again,got.first);assert.equal(got.previous,"reyes");
+      assert.ok(got.size<=512);assert.ok(got.bounded<=512);assert.equal(got.signedOut,0);
+    });
     await check("current-point status ignores historic rows while match summaries retain them", async p => {
       const got=await p.evaluate(()=>{
         S.matches=[{id:"perf",vs:"Other",layout:S.layoutKey,size:5}];S.matchId="perf";S.point=401;

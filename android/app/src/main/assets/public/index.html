@@ -3337,7 +3337,19 @@ function teamsHere(){ return divisionTeams(divisionOf().id); }
 // one already on the list keeps its spelling: a typed name that differed by
 // case made a second team, and everything keyed on the name — the scouting,
 // the calls logged against them, the record — split between the two.
-const foldName = n => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
+// The same team and player names are matched throughout a draw. Retain only
+// this pure text conversion, with a fixed memory cap and no stored data.
+const _foldNames = new Map();
+const foldName = n => {
+  const text=String(n || "");
+  if(_foldNames.has(text)) return _foldNames.get(text);
+  const folded=text.toLowerCase().replace(/\s+/g, " ").trim();
+  if(text.length<=160){
+    if(_foldNames.size>=512) _foldNames.delete(_foldNames.keys().next().value);
+    _foldNames.set(text,folded);
+  }
+  return folded;
+};
 function anyTeam(name){
   const want = foldName(name); if(!want) return null;
   return drawOnce("team|" + want, () => anyTeamFresh(want));
@@ -4202,7 +4214,7 @@ window.addEventListener("beforeunload", e => {
 // A running animation/drill cannot resume from its saved timers after a reload.
 // Keep the coach's real call, and reopen with every player at the set.
 function resetLiveState(){
-  clearCoachPrint();
+  clearCoachPrint(); _foldNames.clear();
   if(S.rep && S.rep.running){
     if(S.rep.was) S.script = S.rep.was;
     S.rep = {...S.rep, running:false, ask:null};
@@ -15355,13 +15367,15 @@ function resultBar(){
 // player, and your own roster when it is theirs.
 const OUT_CAUSES = ["Laned", "Traded", "Run-through", "Snake crawl", "Bounce", "Unknown"];
 function causePick(label, idx, field, value, options){
+  const current=options.find(o=>o.v===value);
   return `<label style="display:flex;flex-direction:column;gap:4px">
     <span class="note">${label}</span>
-    <select onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
-      <option value="">—</option>
-      ${options.map(o=>`<option value="${esc(o.v)}" ${value===o.v?"selected":""}>${esc(o.t)}</option>`).join("")}
+    <select data-fill="choices" data-choices="${esc(JSON.stringify(options))}" onchange="setOutBunker(${idx},'${field}',this.value)" style="font-size:var(--t-sm)">
+      <option value="">—</option>${current ? choiceOption(current,value) : ""}
     </select></label>`;
 }
+const choiceOption=(o,value)=>`<option value="${esc(o.v)}"${value===o.v ? " selected" : ""}>${esc(o.t)}</option>`;
+
 function whoPick(idx, side, value){
   // Your player went out — who got him? Theirs went out — which of yours?
   const list = side === "us"
@@ -15388,12 +15402,18 @@ function bunkerPick(label, idx, field, value){
     </select></label>`;
 }
 function fillPick(sel){
-  if(!sel || sel.dataset.fill !== "bunkers") return;
+  if(!sel || !["bunkers","choices"].includes(sel.dataset.fill)) return;
   const v = sel.value;
-  sel.innerHTML = `<option value="">—</option>` + curLayout().bunkers.map(b => bunkerOption(b, v)).join("");
+  // A closed How/By box needs only its chosen label, just like a bunker box.
+  // Fill before native pointer or keyboard handling opens the real picker.
+  const options=sel.dataset.fill === "bunkers"
+    ? curLayout().bunkers.map(b => bunkerOption(b, v)).join("")
+    : JSON.parse(sel.dataset.choices).map(o=>choiceOption(o,v)).join("");
+  sel.innerHTML = `<option value="">—</option>` + options;
   sel.value = v;
-  delete sel.dataset.fill;
+  delete sel.dataset.fill;delete sel.dataset.choices;
 }
+
 ["pointerdown", "mousedown", "touchstart", "focusin", "keydown"].forEach(type =>
   document.addEventListener(type, ev => {
     const sel = ev.target && ev.target.closest && ev.target.closest("select[data-fill]");
@@ -21375,7 +21395,7 @@ function controlValues(root){
 function render(){
   fixScreen();
   if(!S.entered || S.tab !== "more") _moreQuery = "";
-  if(!S.entered){ clearCoachPrint(); _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
+  if(!S.entered){ clearCoachPrint(); _foldNames.clear(); _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
   // The call key is guarded at the same door: a key this build does not have
   // was only repaired at launch and in a loaded copy, so set live — a merge, a
   // turned-off play, anything a later build wires — the header printed the raw

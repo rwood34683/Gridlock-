@@ -1647,6 +1647,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Sideline player status and point percentages build observations for the
     selected point only; match summaries still read every point. Do not weaken
     the load-test limits or change synchronous save/recovery safeguards.
+    Tally’s closed How/By lists hold only the selected label and fill before
+    touch or keyboard handling; every choice remains available and saves
+    synchronously to the same out row. Do not relax the performance limits.
+    Repeated name matching may cache only the pure text conversion, with a
+    fixed bound and a clear at reset/sign-out; never cache player records
+    across draws or skip edits because an array has the same identity.
     `test/coach-print.cjs` and `test/render-performance.cjs` cover both.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
