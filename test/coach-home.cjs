@@ -40,6 +40,20 @@ const { createServer } = require("../scripts/serve"), SEED = require("../scripts
       assert.equal(await p.evaluate(()=>S.tab),"tally");assert.equal(await records(p),before);
       await p.evaluate(()=>afterSignIn());assert.equal(await p.evaluate(()=>S.tab),"tally");
     });
+    await check("Home is a dashboard: one card a More tool, grouped as the menu, each opening its screen without touching the sheet",async p=>{
+      const before=await records(p),rows=await p.evaluate(()=>MORE_GROUPS.map(([t,r])=>[t,r.filter(x=>x[0]!=="home").map(x=>[x[0],x[1]])]));
+      await p.getByRole("button",{name:"Home",exact:true}).click();
+      assert.deepEqual(await p.locator(".home-group h2").allTextContents(),rows.filter(r=>r[1].length).map(r=>r[0]));
+      for(const [,list] of rows) for(const [k,n] of list){
+        await p.getByRole("button",{name:"Home",exact:true}).click();
+        await p.locator(".home-group .home-tool").filter({has:p.locator("b",{hasText:new RegExp("^"+n.replace(/[.*+?^${}()|[\]\\&]/g,"\\$&")+"$")})}).click();
+        assert.deepEqual(await p.evaluate(()=>[S.tab,S.more]),["more",k],n+" card opens its screen");
+        assert.equal(await records(p),before,n+" card changes nothing logged");
+      }
+      await p.getByRole("button",{name:"Home",exact:true}).click();
+      assert.equal(await p.locator(".home-group .home-tool").count(),rows.reduce((a,[,l])=>a+l.length,0),"one card a tool, no more");
+      assert.doesNotMatch(await p.locator(".main").innerText(),/\bClasses\b|\bLeague\b|Before you play them/,"rows hidden from the menu stay off Home");
+    });
     await check("continue match keeps score point and observations",async p=>{
       const before=await records(p);await p.getByRole("button",{name:"Home",exact:true}).click();
       assert.match(await p.locator(".home-match").innerText(),/vs Rejects[\s\S]*2–1 · Point 4/);

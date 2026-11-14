@@ -48,7 +48,12 @@ no word swap can rebrand it: every place that shows it is an
 site's header — and a variant build turns each into that build's name as text,
 leaves the `logo-*` files out (`ships()` in `scripts/brand.js`) and refuses
 itself if a `data-logo` survives. The ball has a transparent edge; do not use
-screen blending, stretch it, or put the surrounding wordmark back in the app.
+screen blending, stretch it, or put the surrounding wordmark back in the app
+anywhere but the header. The header alone carries the owner's full wordmark
+(owner, 13 Nov 2026): `web/logo-wordmark.png`, cut from his artwork onto the
+header's black by `headerMark()`, 32 px tall, 22 px on a phone so the score,
+? and Account stay on screen. It is marked as the logo like the ball, so a
+variant prints its own name there and never ships the file.
 `npm run icons` generates its web, store and native icons from
 `brand/logo-gridlock.png`. Variant builds use the neutral shared icons;
 `brand native` switches native launch assets too; returning to Gridlock copies
@@ -135,7 +140,10 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 - Changing the event changes the layout on every tab.
 - The event picker is Season → Event → Layout. It lists saved layouts,
   including older events; years come from recorded metadata, never the clock.
-  Browsing a selection does not change the field until Use layout. Played
+  Browsing a selection does not change the field until Use layout. The Event
+  list opens on "Pick your event…" (owner, 12 Nov 2026), never a preselected
+  event; the Player preview's header field list leads with the same choice,
+  shown until one is picked, while the field stays drawn. Played
   sheets keep their field. Custom fields with no season say Your fields.
 - After a coach signs in, the backup and format questions still come first,
   then Home opens when the current sheet is empty; an active match resumes.
@@ -1448,6 +1456,39 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     right pit it says so and moves to the pit's picker; with a team, a tap on
     Matchup, Layers or Games starts their five on Breakouts, and Log their
     five opens each man's details there, the next after each Log.
+    Their five on Scout's field draw as the coach app's `fiveSquares` does
+    (`cpFive`): a blue rounded square, white edge, the man's number in white,
+    two on one bunker side by side (owner, 12 Nov 2026).
+    Tally and Scout draw on the coach app's field ground (`cpGround`): ten
+    dark stripes instead of the grid, a fine frame, the faint dashed fifty,
+    the red bar down your end; the bunker labels stay.
+    Tally's men are the same numbered squares, yours red and theirs blue,
+    numbered within each side, ✕ for a man shot on the break.
+    Two or three men on one bunker work everywhere a man is placed: Tally's
+    step 1 and step 2, and Scout's Breakouts. A tap on the bunker of the man
+    whose details are open always adds one more there. Nothing is taken out
+    of the Player preview unless the owner asks (owner, 12 Nov 2026).
+    After joining with a team code the Player preview opens on **Home**, a
+    dashboard of its tabs (owner, 12 Nov 2026): one card a tab on the bar and a
+    row of the More menu, each with a line on what it is for and where you are
+    now, opened through that tab's own button. Home leads the bar; every tab
+    and More row stays. The cards are `tools/teaser_home.js`, inserted between
+    the `playerhome` markers by `tools/teaser_rules.js` (Player only).
+    The Team preview has the same three (owner, 13 Nov 2026): "Pick your
+    event…" first in its field list, a Home dashboard of its tabs that it
+    opens on (Home first on the bar, no Back on it, every tab kept), and the
+    coach app's new wordmark in its header (`teasers/team/wordmark.jpg`, cut
+    from `web/logo-wordmark.png` with its black lifted to #0b0c0d, written by
+    `tools/teaser_fields.js`). The `playerhome` block serves both previews.
+    A player comes off from the Team tab or Lineups' **Remove a player**
+    (owner, 13 Nov 2026): `tmDropPlayer` asks first, then takes him off the
+    roster, the shared roster and every line; players added before a team is
+    created show on the Team tab with remove too.
+    **No point** (owner, 13 Nov 2026) sits with We won it / They won it on
+    Tally's result bar, in the Quick log and in Scout's match strip, in the
+    coach app and the Player preview: `tapNext()` / `cpNext()`, the point moves
+    on, no result is written, the score and the ends stay. On a phone's column
+    it takes its own row under the two results.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
@@ -1655,6 +1696,17 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     across draws or skip edits because an array has the same identity.
     `test/coach-print.cjs` and `test/render-performance.cjs` cover both.
 
+95. **One Player point per gesture.** Player's generated Tally and Scout share
+    a short duplicate-action guard for results and No point. It belongs to the
+    current sheet and resulting point, uses a monotonic clock, and is cleared
+    by an intentional Back a point or New match. A later deliberate action
+    still works; the guard is transient, never part of a season or backup.
+    Keep just one No point action in Tally. Edit tools/teaser_coachplay.js and
+    regenerate with teaser_rules.js; never edit the generated preview block.
+    test/player-point-actions.cjs checks mouse, touch, keyboard, mixed actions,
+    undo/correction, new matches and reloads. Coach's No point checks exercise
+    the real control on every Scout view and preserve score/end assertions.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
@@ -1701,7 +1753,9 @@ when something is undated. `test/interaction-audit.cjs`,
 
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
-in one short line each. Keep the five direct tabs and a 44 px Home control
+in one short line each, then (owner, 12 Nov 2026) a card for every More tool in
+the menu's groups, Home itself and the hidden rows left off; each card opens
+its screen as the menu row does. Keep the five direct tabs and a 44 px Home control
 beside the event name. Home reads the current sheet and loaded schedule;
 never invent a game, score, lineup, performance number or sync state. Reading
 it changes no match data. Backup/format questions still lead on first sign-in,

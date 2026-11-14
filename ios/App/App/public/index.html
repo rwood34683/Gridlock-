@@ -85,6 +85,9 @@ h1,h2,h3,p{margin:0}
 .home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s3)}
 .home-tool{display:flex;flex-direction:column;gap:var(--s2);min-width:0;min-height:116px;padding:var(--s4);border:1px solid var(--line-lit);border-radius:var(--r-md);background:var(--panel);overflow-wrap:anywhere}
 .home-tool:hover,.home-tool:focus-visible{background:var(--panel-2)}
+.home-tool--sm{min-height:88px}
+.home-group{display:flex;flex-direction:column;gap:var(--s2)}
+.home-group>.sec__eyebrow,.home-intro~.sec__eyebrow{margin:var(--s2) 0 0}
 .home-tool b{font-size:var(--t-lg)}
 .home-tool span{font-size:var(--t-sm);color:var(--mute)}
 .home-intro{display:flex;flex-direction:column;gap:var(--s2)}
@@ -687,6 +690,12 @@ svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-s
 .resultbar .rb__lbl{min-width:0;max-width:100%;overflow:hidden}
 .resultbar .rb__name{display:inline-block;max-width:calc(100% - 4.2em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .resultbar .resultbar__back{flex:none;padding:6px 10px;min-width:56px}
+.resultbar .resultbar__none{flex:none;padding:6px 8px;white-space:normal;line-height:1.1;max-width:84px}
+/* On a phone it stays in the one row, two short lines in the width of the back
+   button, so the bar is no taller and the field still fits above it. Only the
+   narrowest column, where the bar already sits under the sheet, gives it a row. */
+@container main (max-width:460px){.resultbar .resultbar__none{width:60px;padding:4px 6px;text-align:center}}
+@container main (max-width:330px){.resultbar{flex-wrap:wrap}.resultbar .resultbar__none{order:3;flex:1 1 100%;width:auto;max-width:none;min-height:44px}}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
@@ -1168,6 +1177,9 @@ svg.field [data-pick]{cursor:crosshair}
 .promo__name img.brand-logo{display:block;width:112px;max-width:100%;height:auto}
 .brand img.brand-logo{display:block;height:36px;width:auto;margin:0}
 .brand img.brand-logo + small{display:none}
+.brand img.brand-logo--wide{height:32px;width:auto;max-width:none}
+/* On a phone the wordmark shares the line with the score, ? and Account. */
+@media(max-width:480px){.hdr .brand img.brand-logo--wide{height:22px}}
 .promo__sys{font-size:var(--t-xs);font-weight:700;letter-spacing:.42em;color:var(--accent-lit)}
 .promo__tag{font-size:var(--t-xl);font-weight:600;line-height:1.25;max-width:19ch}
 .promo__sub{color:var(--mute);font-size:var(--t-sm);max-width:38ch}
@@ -2037,8 +2049,11 @@ function layoutChoices(){
   });
 }
 function eventChoice(){
+  // The picker opens on "Pick your event…" in the current season: the event is
+  // the coach's choice, never preselected, and nothing moves until Use layout.
   const rows = layoutChoices(), current = rows.find(r => r.key === S.layoutKey) || rows[0];
-  return _eventChoice && rows.some(r => r.season === _eventChoice.season) ? _eventChoice : current;
+  if(_eventChoice && rows.some(r => r.season === _eventChoice.season)) return _eventChoice;
+  return current ? {season:current.season, event:"", key:""} : null;
 }
 window.openEventPicker = () => { _eventChoice = null; set({evPick:!S.evPick}); };
 window.pickEventSeason = value => {
@@ -2067,7 +2082,7 @@ function eventPicker(){
   const layouts = rows.filter(r => r.season === chosen.season && r.event === chosen.event);
   return `<div class="evpick" role="group" aria-label="Pick the event">
     <div class="fld"><label for="event-season">Season</label><select id="event-season" onchange="pickEventSeason(this.value)">${seasons.map(v => `<option value="${esc(v)}"${v === chosen.season ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
-    <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Choose event</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
   </div>`;
@@ -12338,6 +12353,13 @@ function tourPanel(){
 function logoMark(){
   return `<img data-logo class="brand-logo" src="logo-gridlock.png" alt="Gridlock" width="512" height="512" decoding="async"/>`;
 }
+// The header carries the owner's full wordmark (owner, 13 Nov 2026), cut from
+// his artwork onto the header's black. Like the ball it has the name painted
+// in, so it is marked as the logo: a variant build prints its own name and
+// never ships the file.
+function headerMark(){
+  return `<img data-logo class="brand-logo brand-logo--wide" src="logo-wordmark.png" alt="Gridlock" width="398" height="96" decoding="async"/>`;
+}
 function promo(){
   const has = hasAccount();
   return `<div class="promo">
@@ -15357,6 +15379,8 @@ function resultBar(){
           appeared under it and took the point away. */""}${back ? `<button class="btn btn--quiet resultbar__back" onclick="tapBack()" aria-label="Back a point, to point ${(S.point||1)-1}">‹ ${(S.point||1)-1}</button>` : `<span class="resultbar__back" aria-hidden="true"></span>`}
     <button class="btn grow" onclick="tapResult('us')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("us"))}</span> won it</span>` : "We won it"}</button>
     <button class="btn grow" style="background:var(--blue)" onclick="tapResult('them')">${w ? `<span class="rb__lbl"><span class="rb__name">${esc(sideWord("them"))}</span> won it</span>` : "They won it"}</button>
+    ${/* A point nobody won (owner, 13 Nov 2026): the same as Next point, no
+          result — the point moves on, the score and the ends stay. */""}<button class="btn btn--quiet resultbar__none" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point</button>
   </div>`;
 }
 // Optional detail on an out: which bunker he was shot at, which he had moved
@@ -16495,7 +16519,7 @@ function matchStrip(){
     ${pick}
     <span class="note" style="margin:0;white-space:nowrap">${matchOver() ? `<b style="color:var(--warn)">match over</b>` : `point ${pt}${inOvertime() ? " · overtime" : raceTo() ? ` · to ${raceTo()}` : ""}`}</span>
     ${(S.point||1) > 1 ? `<button class="btn btn--quiet" onclick="backPoint()">‹ Point ${(S.point||1)-1}</button>` : ""}
-    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()">Next point</button>`}
+    ${matchOver() || sheetField() ? "" : `<button class="btn btn--quiet" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point</button>`}
     <button class="btn" onclick="freshMatch()">New match</button>
   </div>${/* A game watched off the fence is charted on Scout, and its points were
         scored only on Tally: a tab and back every point. The two named
@@ -18825,7 +18849,7 @@ const HELP = {
          "What happened: each man you placed opens in turn. Say what you saw — made it or shot on the break, battling in or no pressure, which way he was shooting — and Save goes to the next.",
          "Tap a player or his row under the field. Alive and Dead record his current status; Shooting and Diving are separate observations. Each tap saves. Next player moves through the point. More details holds the full chart. Quick log still takes one tap to mark a player out.",
          "Mis-tapped? On the open sheet ↶ Undo takes back the last tap and Clear all starts that man over; ✕ clears one answer. A man already logged has Fix it under the field and Fix in Breakouts.",
-         "When the point ends tap We won it or They won it. That is the score.",
+         "When the point ends tap We won it or They won it. That is the score. A point nobody won is No point: on to the next point, the score and the ends stay.",
          "Penalty records what the official took — which side, how many men. The app never calls one.",
          "Your format — division, how many a side, race, game clock, mercy and the clock between points — is asked after you sign in and kept under More › Format. Pick your division and its numbers fill in. The sheet calls match point and match over for you.",
          "Who's on, above your five, is where you rotate: tap a man off, tap a man on. The five stands until you change it, point after point.",
@@ -20031,14 +20055,25 @@ function coachHome(){
       <p>${sc.us}–${sc.them} · ${over ? "Final" : `Point ${sheetPoint()}`}${off ? ` · ${esc(LAYOUTS[off].name)}` : ""}</p>
       <div class="btnrow"><button class="btn" onclick="resumeCoachSheet()">${over ? "Review match" : off ? "Open match field" : m.watch ? "Continue scouting" : "Continue match"}</button></div>
     </section>` : ""}
+    <h2 class="sec__eyebrow">Main screens</h2>
     <div class="home-grid" aria-label="Coaching tools">${tools.map(([k,n,d])=>`<button class="home-tool" onclick="set({tab:'${k}',more:null,evPick:false})"><b>${n}</b><span>${d}</span>${gateFor(k) ? '<span>Team plan</span>' : ""}</button>`).join("")}</div>
     <section class="panel" aria-label="Your team's day"><h2 class="panel__title">Your team's day</h2>
       <p class="note">${!team ? "Choose your team to see opponents and scouting times." : next ? `Next scheduled: v ${esc(across(next,team))} · ${esc(dayName(next.d))} ${esc(gameClock(next))}${next.f ? ` · ${esc(next.f)}` : ""}` : games.length ? "No upcoming game on the loaded schedule. Open Schedule to review or add games." : `No schedule loaded for ${esc(team)}. Add or paste your games.`}</p>
       <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'schedule'})">${team ? "Open schedule" : "Choose your team"}</button>
       <button class="btn btn--quiet" onclick="set({tab:'more',more:'lineups'})">Set your lineup</button></div>
     </section>
-    <div class="home-grid"><button class="home-tool" onclick="set({tab:'more',more:'reports'})"><b>Reports</b><span>Review results and export what you recorded.</span></button>
-      <button class="home-tool" onclick="openAccount()"><b>Account &amp; backups</b><span>Save a copy, manage sync or sign out.</span></button></div>`;
+    ${homeMoreCards()}`;
+}
+// The rest of the dashboard: one card a tool on the More menu, in its groups,
+// opened through the same screen key the menu row uses (owner, 12 Nov 2026).
+// Home itself and the rows hidden from the menu stay off it.
+function homeMoreCards(){
+  return MORE_GROUPS.map(([title, rows]) => {
+    const cards = rows.filter(([k]) => k !== "home");
+    if(!cards.length) return "";
+    return `<section class="home-group" aria-label="${esc(title)}"><h2 class="sec__eyebrow">${esc(title)}</h2>
+      <div class="home-grid">${cards.map(([k, n, d]) => `<button class="home-tool home-tool--sm" onclick="${k === "nexus" ? "openAccount()" : `set({tab:'more',more:'${k}',evPick:false})`}"><b>${esc(n)}</b><span>${esc(d)}</span>${gateFor("more/" + k) ? "<span>Team plan</span>" : ""}</button>`).join("")}</div></section>`;
+  }).join("");
 }
 
 /* rulebook-links:begin — generated by tools/rulebook-links.js */
@@ -20937,7 +20972,7 @@ function shell(){
   return `<div class="app">
     <header class="hdr${S.clockEnd ? " hdr--clock" : ""}">
       <div class="hdr__top">
-        <div class="brand" onclick="podTap()">${logoMark()}<small>SYSTEM · COACH</small></div>
+        <div class="brand" onclick="podTap()">${headerMark()}<small>SYSTEM · COACH</small></div>
         <span class="grow"></span>
         ${/* The format screen is one job and stands until Done, so the header's
               doors — the score, help, the event and the call — would be taps
@@ -21022,7 +21057,7 @@ function quickLog(){
     <div class="qlog__row">
       ${pt>1?`<button class="btn btn--quiet" onclick="backPoint()">‹ ${pt-1}</button>`:""}
       ${(curMatch()||{}).watch ? "" : `<button class="btn btn--quiet grow" onclick="logCall()">✓ Log the call</button>`}
-      <button class="btn btn--quiet grow" onclick="tapNext()">Next point ›</button>
+      <button class="btn btn--quiet grow" onclick="tapNext()" aria-label="No point. Nobody won it, on to the next point">No point ›</button>
     </div>
     <p class="qlog__hint">Turn the phone sideways for the widest view — score with the two big buttons, and the call follows every other screen.</p>`}
   </div>`;

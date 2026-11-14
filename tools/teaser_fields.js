@@ -193,6 +193,17 @@ function patchCode(src) {
     if (!src.includes(".wordmark{"))
       src = src.replace(".brand{display:flex;align-items:center;gap:9px}", ".brand{display:flex;align-items:center;gap:9px}.wordmark{margin:0;line-height:0;flex:none}.wordmark img{display:block;height:28px;width:auto}");
   }
+  // The Team preview leads with the owner's new wordmark (13 Nov 2026), the
+  // one the coach app's header carries: teasers/team/wordmark.jpg is cut from
+  // web/logo-wordmark.png with its black lifted to the header's #0b0c0d.
+  // "TEAM EDITION" stays beside it.
+  if (/const EDITION='team'/.test(src)) {
+    const mark = "data:image/jpeg;base64," + fs.readFileSync(path.join(ROOT, "teasers/team/wordmark.jpg")).toString("base64");
+    const img = `<h1 class="wordmark"><img src="${mark}" alt="Gridlock" width="116" height="28"></h1>`;
+    src = src.replace(/<div class="logo"><\/div><h1>GRIDLOCK<\/h1>|<h1 class="wordmark"><img src="data:image\/jpeg;base64,[A-Za-z0-9+/=]+" alt="Gridlock" width="116" height="28"><\/h1>/, img);
+    if (!src.includes(".wordmark{"))
+      src = src.replace(".brand{display:flex;align-items:center;gap:9px}", ".brand{display:flex;align-items:center;gap:9px}.wordmark{margin:0;line-height:0;flex:none}.wordmark img{display:block;height:28px;width:auto}");
+  }
   // Three apps, three names on a home screen: all of them installed as "Gridlock".
   src = src.replace(/<meta name="apple-mobile-web-app-title" content="[^"]*"\/>/, `<meta name="apple-mobile-web-app-title" content="GL ${/const EDITION='team'/.test(src) ? "Team" : "Player"}"/>`);
   return src;

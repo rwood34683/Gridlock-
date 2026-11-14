@@ -95,6 +95,9 @@ const OTHER = /\bGridlock\b(?!VoiceParser)/;
     check("a variant shows its own name where the logo was, and leaves the picture out",
       !staged.web.has("logo-gridlock.png") && !staged.web.has("logo-gridlock.jpg") && !staged.site.has("img/logo-gridlock.jpg") && !/data-logo/.test(idx("index.html"))
       && idx("index.html").includes('<span class="brand-logo brand-logo--word">Grind X</span>') && staged.site.get("index.html").toString("utf8").includes('brand-logo--word">Grind X</span>'));
+    check("the default header carries the full wordmark, and a variant neither ships nor shows it",
+      identity.web.has("logo-wordmark.png") && /<img data-logo[^>]*src="logo-wordmark\.png"/.test(identity.web.get("index.html").toString("utf8"))
+      && !staged.web.has("logo-wordmark.png") && !idx("index.html").includes("logo-wordmark.png"));
     const broken = { ...staged, web: new Map(staged.web) };
     broken.web.set("index.html", Buffer.from(idx("index.html") + '<img data-logo src="logo-gridlock.jpg" alt="Grind X">'));
     check("a logo left in a variant is refused", brand.selfCheck(broken).some(p => /still shows Gridlock's logo/.test(p)));

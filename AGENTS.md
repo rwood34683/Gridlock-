@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Player point actions** share one duplicate-tap guard across Tally/Scout; Back a point and New match allow deliberate correction.
+  Keep one No point button, regenerate from tools/teaser_coachplay.js, and run test/player-point-actions.cjs through teaser-browser.
+
 - **Print / Save PDF** keeps Schedule's team/division and Reports/daily-table filters; the browser chooses the printer. No season changes or automatic sends.
   Current-point status reads only that point; match summaries still read the whole match. See CLAUDE.md item 94.
 
