@@ -1635,6 +1635,20 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     account and revision guards; the automatic-season suite follows edits
     phone → tablet → laptop and back while all three remain on Codes.
 
+94. **Print the schedule and recorded reports.** Schedule, Reports and the
+    daily bunker table offer Print / Save PDF. Keep the selected team/division,
+    event, player, day and side; show the counts and percentages already
+    recorded, never another filter's total. Print only a temporary local copy,
+    escape names, remove controls and account information, and clear the copy
+    after printing or sign-out. The browser chooses a printer or PDF; never say
+    it was sent or printed, since cancellation is not reported. No network,
+    season write, hidden paid report or new stored print state. Native print
+    support and a real wireless printer require device testing.
+    Sideline player status and point percentages build observations for the
+    selected point only; match summaries still read every point. Do not weaken
+    the load-test limits or change synchronous save/recovery safeguards.
+    `test/coach-print.cjs` and `test/render-performance.cjs` cover both.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`

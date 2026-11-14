@@ -1204,6 +1204,25 @@ svg.field [data-pick]{cursor:crosshair}
 @media(max-width:420px){.voice-grid{grid-template-columns:1fr}}
 .coach-start{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s3) 0}.coach-start .btn{min-height:56px;white-space:normal;text-align:left;justify-content:flex-start}.coach-terms{margin-top:var(--s3);border-top:1px solid var(--line)}.coach-terms summary{display:flex;align-items:center;min-height:48px;cursor:pointer;color:var(--mute);font-weight:700}.coach-terms .kv{margin-top:var(--s2)}@media(max-width:480px){.coach-start{grid-template-columns:1fr}}
 </style>
+<style>
+#coach-print{display:none}
+@media print{
+  body.coach-printing{display:block!important;height:auto!important;overflow:visible!important;background:white!important}
+  body.coach-printing> :not(#coach-print){display:none!important}
+  body.coach-printing #coach-print{display:block;color:#111;background:white;font:11pt/1.4 Arial,sans-serif;width:auto;max-width:none;padding:0}
+  #coach-print *{color:#111!important;text-shadow:none!important;box-shadow:none!important;max-height:none!important;overflow:visible!important;overflow-wrap:anywhere}
+  #coach-print .sec,#coach-print .card,#coach-print .empty,#coach-print .fact{background:transparent!important;border-color:#bbb!important;break-inside:auto}
+  #coach-print .rkey--none,#coach-print .rbar__seg--none{border:1px solid #666}
+  #coach-print table{width:100%;min-width:0!important;border-collapse:collapse;table-layout:fixed}
+  #coach-print th,#coach-print td{padding:6pt;border-bottom:1px solid #bbb;white-space:normal!important}
+  #coach-print thead{display:table-header-group} #coach-print tr{break-inside:avoid}
+  #coach-print svg{max-width:100%;height:auto} #coach-print pre{white-space:pre-wrap;font:inherit}
+  #coach-print h1{font-size:20pt} #coach-print h2{font-size:14pt} #coach-print p{margin:8pt 0}
+  #coach-print details>:not(summary){display:block!important}
+  #coach-print .rbar__track,#coach-print .rbar__seg{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  @page{margin:12mm}
+}
+</style>
 </head>
 <body>
 <div id="root"></div>
@@ -3515,7 +3534,8 @@ function yourDaySec(games){
     <select id="my-team" onchange="setMyTeam(this.value)"><option value="">Pick your team</option>${
       teams.map(t => `<option value="${esc(t)}"${t === team ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></div>
     <details class="coach-terms"><summary>Team not listed?</summary><div class="fld"><label for="my-team-name">Team name</label>
-    <div class="btnrow"><input id="my-team-name" maxlength="60" placeholder="Your team" ${onEnter("useTypedTeam()")}> <button class="btn btn--quiet" onclick="useTypedTeam()">Use this team</button></div></div></details>`;
+    <div class="btnrow"><input id="my-team-name" maxlength="60" placeholder="Your team" ${onEnter("useTypedTeam()")}> <button class="btn btn--quiet" onclick="useTypedTeam()">Use this team</button></div></div></details>
+    <div class="btnrow">${coachPrintButton("schedule")}</div><p class="note">Prints ${team ? "your team's games" : "all teams"} in ${chosen ? "this division" : "all loaded divisions"}.</p>`;
   if(!team) return sec("Your team's day", `<p class="lede">Choose your team to see who you play and when to scout them.</p>${pick}`);
   const now = Date.now(), day = teamDay(team);
   const watch = id => `<button class="btn btn--quiet" onclick="watchGame(${jsq(id)})">Watch</button>`;
@@ -5131,6 +5151,7 @@ window.addEventListener("beforeunload", e => {
 // A running animation/drill cannot resume from its saved timers after a reload.
 // Keep the coach's real call, and reopen with every player at the set.
 function resetLiveState(){
+  clearCoachPrint();
   if(S.rep && S.rep.running){
     if(S.rep.was) S.script = S.rep.was;
     S.rep = {...S.rep, running:false, ask:null};
@@ -10657,7 +10678,7 @@ function dailyBunkerTable(t){
     <tbody>${d.rows.map(r => `<tr data-bunker="${esc(r.id)}"><td><button class="tbl__pick" aria-pressed="${r.id === S.statPick}" onclick="statPick(${jsq(r.id)})">${esc(callOf(r.b))}${callOf(r.b) === r.id ? "" : `<span class="tbl__sub">${esc(r.id)}</span>`}</button></td><td class="num">${r.n}</td><td class="num">${r.share}%</td></tr>`).join("")}</tbody>
     <tfoot><tr><td>Total recorded</td><td class="num">${d.total}</td><td class="num">100.0%</td></tr></tfoot></table></div>
     <p class="note">Share means a bunker's count out of the ${d.total} recorded ${d.metric === "outs" ? "outs with a location" : "visits"} in this pick. Percentages are rounded. Fewer than ${STAT_THIN} logged at a bunker is too few to read yet.</p>
-    <div class="btnrow"><button class="btn btn--quiet grow" onclick="shareDailyBunkers()">Share daily table</button><button class="btn btn--quiet grow" onclick="exportReport('daily-bunkers')">Spreadsheet (CSV)</button></div>`;
+    <div class="btnrow"><button class="btn btn--quiet grow" onclick="shareDailyBunkers()">Share daily table</button><button class="btn btn--quiet grow" onclick="exportReport('daily-bunkers')">Spreadsheet (CSV)</button>${coachPrintButton("stats")}</div>`;
 }
 function statsPage(){
   const teams = statTeams();
@@ -12156,12 +12177,14 @@ let _playerTap = null, _playerSaid = "";
 let _playerReturnFocus = null, _playerRootHidden = null;
 // Derived counts only: one player per point, with missing observations intact.
 const playerObservationKey=(pt,name,id)=>JSON.stringify([pt,foldName(name) ? "n:"+foldName(name) : "b:"+id]);
-function playerObservationRows(mid, side, layout){
-  return drawOnce("player-observations|"+JSON.stringify([mid,side,layout]),()=>playerObservationRowsFresh(mid,side,layout));
+function playerObservationRows(mid, side, layout, point = null){
+  return drawOnce("player-observations|"+JSON.stringify([mid,side,layout,point]),()=>playerObservationRowsFresh(mid,side,layout,point));
 }
-function playerObservationRowsFresh(mid, side, layout){
+function playerObservationRowsFresh(mid, side, layout, point = null){
   const m=matchById(mid); if(!m || !["us","them"].includes(side)) return [];
-  const on=r=>r && r.m===mid && r.side===side && Number.isInteger(r.pt) && r.pt>0 && (r.layout || m.layout)===layout;
+  // Sideline status needs this point only. Do not normalize and build every
+  // earlier player's row just to discard it; match summaries still read all.
+  const on=r=>r && r.m===mid && r.side===side && Number.isInteger(r.pt) && r.pt>0 && (point === null || r.pt===point) && (r.layout || m.layout)===layout;
   const rows=new Map(), ids=new Map();
   const get=(pt,name,id)=>{
     const k=playerObservationKey(pt,name,id);
@@ -12186,8 +12209,8 @@ function playerObservationRowsFresh(mid, side, layout){
     shooting:r.check?.shooting===true,diving:r.check?.diving===true}));
 }
 function playerStatusText(side,player="",id=""){
-  const rows=drawOnce("player-status|"+JSON.stringify([S.matchId,side,S.layoutKey]),()=>
-    new Map(playerObservationRows(S.matchId,side,S.layoutKey).map(r=>[r.key,r])));
+  const rows=drawOnce("player-status|"+JSON.stringify([S.matchId,side,S.layoutKey,sheetPoint()]),()=>
+    new Map(playerObservationRows(S.matchId,side,S.layoutKey,sheetPoint()).map(r=>[r.key,r])));
   const r=rows.get(playerObservationKey(sheetPoint(),player,id));
   return [r?.alive===false ? "Dead" : r?.alive===true ? "Alive" : "Not recorded",
     r?.shooting ? "Shooting" : "",r?.diving ? "Diving" : ""].filter(Boolean).join(" · ");
@@ -12211,7 +12234,7 @@ function pointPercentages(side, label=""){
   const context=playerDetailContext();
   const shown=document.querySelector(`[data-point-shares="${side}"]`);
   const open=shown?.dataset.shareContext===context && shown.open;
-  const rows=playerObservationRows(m.id,side,S.layoutKey).filter(r=>r.pt===pt), total=startUp(side,m.id,pt);
+  const rows=playerObservationRows(m.id,side,S.layoutKey,pt), total=startUp(side,m.id,pt);
   const body=!rows.length ? `<p class="note">No player observations on this point yet.</p>`
     : rows.length>total ? `<p class="note">${rows.length} players recorded for ${total} places. Check the names before using percentages.</p>`
     : `<p class="note">Point ${pt} · Share of ${total} players, after penalties.</p>${playerShareTable(playerShares(rows,total))}
@@ -12417,7 +12440,7 @@ function scoutPlayerDetails(side){
   if(!pitOnSheet(side)) return "";
   const sd = side === "left" ? "us" : "them", pt = sheetPoint();
   const rows = pointRows().filter(r => r.side === sd);
-  if(!rows.length && !playerObservationRows(S.matchId,sd,S.layoutKey).some(r=>r.pt===pt)) return "";
+  if(!rows.length && !playerObservationRows(S.matchId,sd,S.layoutKey,pt).length) return "";
   return sec("Players this point",`<p class="note">Tap a player to update what you saw.</p><div class="assigns">${rows.map((r,i) => `<button class="assign" onclick="showPlayerDetails(${jsq(r.id)})"><span class="assign__n">${i+1}</span><span class="assign__body"><span class="assign__job">${esc(r.player || "Player "+(i+1))}</span><span class="assign__who">${esc(bunkerLabel(r.bunker))}</span><span class="assign__who" data-player-status="${esc(r.id)}">${playerStatusText(sd,r.player,r.id)}</span></span></button>`).join("")}</div>${pointPercentages(sd)}`,`${pitOf(side).name} · Point ${pt}`);
 }
 // Editing is an explicit move; reading the popup above never switches sheets.
@@ -19932,6 +19955,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Can I print the schedule or reports?", "Yes. Open Schedule, Reports or the daily bunker table and tap Print / Save PDF. Schedule prints your selected team's games in the selected division, or all games in that division if no team is chosen. Reports and the daily table keep your filters. Choose an available printer or Save as PDF in your browser. A wireless printer must be available to your device; printing does not change your season."],
   ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],
   ["Why does a player have no history?", "The World Cup package has not read every player's history yet. Not retrieved means unknown, not none. What is there is published classification and scored-event rows, not a whole career, and a classification score is not a match score. Jerseys and most hometowns are not published, so they stay blank."],
   ["Where do I find a tool?", "Open More and use Find a tool. Try players, score, export, League sync or sign out. Search includes Playbook, Tally, Scout and Sightlines too. Tools are also grouped by before, during and after the game. Clear shows the full list again. Back to More returns to the tool you opened."],
@@ -20594,6 +20618,71 @@ function repCsvBtn(key, label){
 
 /* ---------- the screen ---------- */
 
+function coachPrintButton(kind){
+  return `<button class="btn btn--quiet grow" onclick="printCoachPage('${kind}')">Print / Save PDF</button>`;
+}
+function clearCoachPrint(){
+  document.getElementById("coach-print")?.remove();
+  document.body.classList.remove("coach-printing");
+}
+window.addEventListener("afterprint",clearCoachPrint);
+function printScheduleHtml(){
+  const games=scheduleGames().filter(g=>!S.myTeam || [g.h,g.a].some(n=>foldName(n)===foldName(S.myTeam)))
+    .slice().sort((a,b)=>a.d.localeCompare(b.d) || gameAt(a)-gameAt(b) || a.id.localeCompare(b.id));
+  const division=scheduleDivisions().find(d=>d.id===S.scheduleDivision)?.name || (S.scheduleDivision ? "Selected division" : "All loaded divisions");
+  const plan=S.myTeam ? dayPlanText(S.myTeam) : "";
+  return `<h2>${esc(S.myTeam || "All teams")} · ${esc(division)}</h2>
+    <p>${games.length} games. Loaded schedule, not live updates. Check times with the event. Times include any pit delay you set.</p>
+    ${games.length ? `<table><thead><tr><th>Date / time</th><th>Teams</th><th>Field / division</th></tr></thead><tbody>${games.map(g=>`<tr><td>${esc(dayName(g.d))}<br>${esc(gameClock(g))}</td><td>${esc(g.h)} v ${esc(g.a)}</td><td>${esc(g.f || "Field not recorded")}<br>${esc(gameDivisionName(g) || "Division not recorded")}</td></tr>`).join("")}</tbody></table>` : `<p>No games for this team and division.</p>`}
+    ${plan ? `<h2>Your next day's plan</h2><pre>${esc(plan)}</pre>` : ""}`;
+}
+// Print only the visible report, never the app shell, account or hidden forms.
+// Cloning keeps the screen's filters and charts without saving or redrawing it.
+function printReportCopy(){
+  const copy=document.querySelector("main.main").cloneNode(true);
+  copy.removeAttribute("class");copy.removeAttribute("style");copy.removeAttribute("id");
+  for(const el of copy.querySelectorAll("select")){
+    const source=document.getElementById(el.id);
+    const text=document.createElement("p"); text.textContent=(source || el).selectedOptions[0]?.textContent || "None selected";
+    el.replaceWith(text);
+  }
+  for(const el of copy.querySelectorAll(".seg")){
+    const text=document.createElement("p");
+    text.textContent=[...el.querySelectorAll('button.on,[aria-selected="true"],[aria-pressed="true"]')].map(b=>b.textContent).join(" · ");
+    el.replaceWith(text);
+  }
+  for(const el of copy.querySelectorAll("button.tbl__pick")){
+    const text=document.createElement("span"); text.textContent=el.textContent; el.replaceWith(text);
+  }
+  for(const el of copy.querySelectorAll("button,input,textarea,script,style,iframe,[hidden],.btnrow,.more-back")) el.remove();
+  for(const el of copy.querySelectorAll("details")) el.open=true;
+  for(const el of copy.querySelectorAll("*")){
+    el.removeAttribute("id"); el.removeAttribute("tabindex");
+    for(const a of [...el.attributes]) if(a.name.startsWith("on")) el.removeAttribute(a.name);
+  }
+  return copy;
+}
+window.printCoachPage = kind => {
+  if(!S.entered || S.tab!=="more" || S.more!==kind || !["schedule","reports","stats"].includes(kind) || gateKey() || S.quick || document.getElementById("player-details")?.open) return;
+  if(typeof window.print!=="function") return flash("Printing is not available here. Open this page in your browser, or use Spreadsheet (CSV).");
+  clearCoachPrint();
+  const page=document.createElement("article"); page.id="coach-print";
+  const title={schedule:"Schedule",reports:"Reports",stats:"Daily bunker table"}[kind];
+  page.innerHTML=`<h1>Gridlock · ${title}</h1>`;
+  if(kind==="schedule") page.insertAdjacentHTML("beforeend",printScheduleHtml());
+  else if(kind==="stats"){
+    const table=document.querySelector(".tbl--daily"); if(!table) return;
+    const context=dailyBunkerText().split("\n");
+    page.insertAdjacentHTML("beforeend",`<p>${context.slice(0,5).map(esc).join("<br>")}</p>`);
+    const copy=table.cloneNode(true);
+    for(const b of copy.querySelectorAll("button")){const t=document.createElement("span");t.textContent=b.textContent;b.replaceWith(t);}
+    page.appendChild(copy);
+    const note=document.createElement("p");note.textContent=context[context.length-1];page.appendChild(note);
+  }else page.appendChild(printReportCopy());
+  const foot=document.createElement("p");foot.textContent="Data on this device · "+new Date().toLocaleString();page.appendChild(foot);
+  document.body.appendChild(page);document.body.classList.add("coach-printing");
+  try{window.print();}catch(_){clearCoachPrint();flash("Printing could not open. Use your browser's Print option or Spreadsheet (CSV).");}
+};
 function reportsPage(){
   const tab = repTab(), sheets = repSheets();
   const head = `<div class="seg seg--wrap" role="tablist" aria-label="Reports">${REPORT_TABS.map(([k, w]) =>
@@ -20605,7 +20694,7 @@ function reportsPage(){
   const body = tab === "opp" ? repOppPage() : tab === "player" ? repPlayerPage() : tab === "season" ? repSeasonPage(sheets) : repTeamPage(sheets);
   return sec("Reports", `<p class="lede">The season you logged, as graphs and as spreadsheets. Every bar is a count, with the count beside it. Your own sheets only — a game you watched is read under Opponent.</p>${head}<div class="btnrow" style="margin-top:var(--s3)"><button class="btn btn--quiet grow" onclick="openDailyBunkers()">Daily bunker table</button><button class="btn btn--quiet grow" onclick="openMatchHeat()">Open match heat map</button></div>`,
       `${sheets.length} sheet${sheets.length === 1 ? "" : "s"} · ${S.repAll ? "every event" : curLayout().name}`)
-    + body;
+    + `<div class="btnrow">${coachPrintButton("reports")}</div>` + body;
 }
 function repEmpty(what){
   return `<div class="empty">${esc(what)}
@@ -22235,7 +22324,7 @@ function controlValues(root){
 function render(){
   fixScreen();
   if(!S.entered || S.tab !== "more") _moreQuery = "";
-  if(!S.entered){ _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
+  if(!S.entered){ clearCoachPrint(); _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
   // The call key is guarded at the same door: a key this build does not have
   // was only repaired at launch and in a loaded copy, so set live — a merge, a
   // turned-off play, anything a later build wires — the header printed the raw

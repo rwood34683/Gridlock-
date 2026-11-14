@@ -21,6 +21,28 @@ const SEED = require("../scripts/seed");
     finally { await context.close(); }
   }
   try {
+    await check("current-point status ignores historic rows while match summaries retain them", async p => {
+      const got=await p.evaluate(()=>{
+        S.matches=[{id:"perf",vs:"Other",layout:S.layoutKey,size:5}];S.matchId="perf";S.point=401;
+        const bunker=curLayout().bunkers[0].id;
+        S.breakouts=Array.from({length:401},(_,i)=>({id:"b"+i,m:"perf",pt:i+1,side:"us",layout:S.layoutKey,bunker,player:"Reyes",alive:true,at:i+1}));
+        S.playerChecks=S.breakouts.map(b=>({...b,id:"c"+b.id,breakoutId:b.id,alive:b.pt===401,shooting:b.pt===401}));S.tally=[];
+        const original=playerObservationRowsFresh,points=[];
+        playerObservationRowsFresh=(...args)=>{points.push(args[3]);return original(...args);};
+        try{
+          _lastPointMemo=new Map();
+          const status=playerStatusText("us","Reyes","b400"), shares=pointPercentages("us");
+          const scoped=points.slice();
+          const history=playerMatchPercentages({m:"perf",side:"us",player:"Reyes"});
+          S.point=400;_lastPointMemo=new Map();
+          const previous=playerStatusText("us","Reyes","b399");
+          return {status,shares,scoped,history,previous};
+        }finally{playerObservationRowsFresh=original;_lastPointMemo=null;}
+      });
+      assert.equal(got.status,"Alive · Shooting");assert.match(got.shares,/1 of 5 · 20%/);
+      assert.deepEqual(got.scoped,[401]);assert.match(got.history,/401 logged points/);
+      assert.match(got.history,/400 of 401/);assert.equal(got.previous,"Dead");
+    });
     await check("a repeated expired notice and a partially painted field are restored", async p => {
       await p.clock.install();
       await p.evaluate(() => flash("Same notice"));
