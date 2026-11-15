@@ -103,8 +103,9 @@ const SEED = require("../scripts/seed.js");
       assert.ok(rec.y - (map.y + map.height) < 40, "Record is right under the field");
     });
     await check("the schedule jumps to the next game in one tap", async p => {
-      // The fixed event must still be upcoming, regardless of the CI date/timezone.
-      await p.evaluate(() => { const now = Date.parse("2026-11-10T12:00:00"); Date.now = () => now; set({ tab: "more", more: "schedule" }); });
+      // The phone's clock, set to the morning of the event: the real date
+      // passes the schedule, and then there is rightly no next game to jump to.
+      await p.evaluate(() => { const first = Math.min(...allGames().map(gameAt)); Date.now = () => first - 3600000; set({ tab: "more", more: "schedule" }); });
       const jump = p.locator("button", { hasText: /^Next game on the full schedule ·/ });
       assert.equal(await jump.count(), 1);
       await jump.click();
