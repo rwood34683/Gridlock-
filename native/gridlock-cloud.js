@@ -516,6 +516,7 @@
       if(!auth.ok || auth.body?.user?.id!==s.user.id || !auth.body.access_token) return said("Your password was not confirmed. Nothing was deleted.");
       var access=auth.body.access_token;
       var factor=(auth.body.user.factors||[]).find(function(f){return f.factor_type==="totp"&&f.status==="verified";});
+      if(securityRequired()&&!factor)return said('Your authenticator could not be confirmed. Nothing was deleted. Sign in again and retry.');
       if(factor){
         if(!/^\d{6}$/.test(code||"")) return said("Enter the six-digit code from your authenticator. Nothing was deleted.");
         var path="/auth/v1/factors/"+encodeURIComponent(factor.id);
@@ -530,7 +531,7 @@
       if(securityRequired()){
         var claimed=await call('/rest/v1/rpc/gridlock_security_action',{method:'POST',body:JSON.stringify({action:'claim',input:{label:'This device',replace:jwtSession(s.access_token)}})},access);
         if(g!==generation||readSession()!==s)return cancelled();
-        if(!claimed.ok||claimed.body?.ok!==true)return said('The new sign-in could not be approved. Nothing was deleted.');
+        if(!claimed.ok||claimed.body?.ok!==true||claimed.body.user_id!==s.user.id||claimed.body.session_id!==jwtSession(access))return said('The new sign-in could not be approved. Nothing was deleted.');
         var next=sessionFrom({...verified.body,user:s.user});next.security_approved=securityIdentity(next);
         if(!writeSession(next))return said('The sign-in could not be saved. Nothing was deleted.');
         s=next;

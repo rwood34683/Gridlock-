@@ -5,7 +5,7 @@ const source=fs.readFileSync(path.join(__dirname,'../native/gridlock-cloud.js'),
 const A=randomUUID(),B=randomUUID(),SID=randomUUID(),FACTOR=randomUUID(),KEY='grindx.cloud.session';let passed=0;
 const jwt=(uid,aal,sid=SID)=>'test.'+Buffer.from(JSON.stringify({sub:uid,aal,session_id:sid})).toString('base64url')+'.fixture';
 const response=(body,status=200)=>({ok:status<300,status,json:async()=>body});
-const credentials=(id=A,aal='aal1')=>({access_token:jwt(id,aal),refresh_token:'fixture-refresh',expires_in:3600,user:{id,email:id+'@example.test'}});
+const credentials=(id=A,aal='aal1',sid=SID)=>({access_token:jwt(id,aal,sid),refresh_token:'fixture-refresh',expires_in:3600,user:{id,email:id+'@example.test'}});
 function setup(extra={}){
   const store=new Map(),state={requests:[],aal:'aal1',approved:false,user:A,...extra};let prompt;
   const window={dispatchEvent:()=>state.notifications=(state.notifications||0)+1,GRIDLOCK_CLOUD:{url:'https://fixture.example.test',anonKey:'fixture-public',accountSecurity:true},
@@ -25,7 +25,7 @@ function setup(extra={}){
         if(state.revoked)return response({ok:false,required:true,code:'device_revoked'});
         if(body.action==='claim')state.approved=true;
         if(body.action==='revoke')state.approved=false;
-        return response({ok:state.approved,required:true,code:state.approved?'approved':'device_required',user_id:state.replyUser||state.user,session_id:SID,devices:[]});
+        return response({ok:state.approved,required:true,code:state.approved?'approved':'device_required',user_id:state.replyUser||state.user,session_id:state.sid||SID,devices:[]});
       }
       if(url.includes('/seasons?'))return response([]);
       if(url.includes('/entitlements?'))return response([]);
@@ -49,5 +49,16 @@ const complete=async b=>{assert.equal((await b.status()).code,'mfa_required');as
   await check('offline after verified sign-in preserves local approval but never pretends cloud sync succeeded',async()=>{const h=setup({prompt:complete});await h.api.signIn('x','p');h.state.offline=true;assert.equal(h.api.securityReady(),true);assert.equal((await h.api.getSeason()).ok,false);assert.equal(h.api.securityReady(),true);});
   await check('local signout leaves the other two device sessions alone',async()=>{const h=setup({prompt:complete});await h.api.signIn('x','p');h.api.signOut();assert.equal(h.api.session(),null);assert(h.state.requests.some(x=>x.url.endsWith('/logout?scope=local')));assert(!h.state.requests.some(x=>/logout$/.test(x.url)));});
   await check('unchanged security checks never redraw unfinished code/form edits',async()=>{const h=setup({prompt:complete});await h.api.signIn('x','p');const before=h.state.notifications;await h.api.getSeason();await h.api.getEntitlement();assert.equal(h.state.notifications,before);h.state.revoked=true;await h.api.getSeason();assert.equal(h.state.notifications,before+1);});
+  await check('account deletion reauthenticates, verifies MFA and replaces only this browser session',async()=>{
+    const h=setup({prompt:complete});await h.api.signIn('x','p');const next=randomUUID();let deleted=false;
+    h.state.route=async(url,opts)=>{
+      if(url.includes('grant_type=password')){h.state.sid=next;h.state.aal='aal1';h.state.approved=false;return response({...credentials(A,'aal1',next),user:{id:A,email:A+'@example.test',factors:[{id:FACTOR,factor_type:'totp',status:'verified'}]}});}
+      if(url.endsWith('/verify')){h.state.aal='aal2';return response(credentials(A,'aal2',next));}
+      if(url.includes('gridlock_security_action')&&JSON.parse(opts.body).action==='claim')assert.equal(JSON.parse(opts.body).input.replace,SID);
+      if(url.includes('/functions/v1/gridlock-account')){assert.equal(opts.headers.Authorization,'Bearer '+jwt(A,'aal2',next));assert(h.state.approved);deleted=true;return response({ok:true});}
+    };
+    assert.equal((await h.api.deleteAccount('fixture-password','DELETE MY ACCOUNT','123456')).ok,true);assert(deleted);assert.equal(h.api.session(),null);
+  });
+  await check('missing authenticator on reauthentication fails without deleting anything',async()=>{const h=setup({prompt:complete});await h.api.signIn('x','p');assert.equal((await h.api.deleteAccount('p','DELETE MY ACCOUNT','123456')).ok,false);assert(!h.state.requests.some(x=>x.url.includes('/functions/v1/gridlock-account')));});
   console.log(`${passed}/${passed} security adapter checks passed.`);
 })().catch(e=>{console.error(e);process.exitCode=1;});
