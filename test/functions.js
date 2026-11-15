@@ -8941,7 +8941,10 @@ const ROSTER = [
   check("Scout shows the match and lets you start a new one", await ev(() => {
     window.set({ tab:"scout", scoutTab:"matchup", right:{name:"Aftershock"} });
     const t = document.getElementById("root").textContent;
-    return /New match/.test(t) && /Next point/.test(t) && /point \d+/.test(t);
+    // "Next point" on the strip is "No point" since 15 Nov 2026 (owner): the
+    // same control, moving the point on with no result.
+    const np = [...document.querySelectorAll("#root button")].some(x => /^No point$/.test(x.textContent.trim()) && /tapNext|nextPoint/.test(x.getAttribute("onclick") || ""));
+    return /New match/.test(t) && np && /point \d+/.test(t);
   }));
   check("Next point on Scout moves the same point Tally is on", await ev(() => {
     const was = S.point || 1; window.nextPoint(); const now = S.point;
@@ -8950,7 +8953,7 @@ const ROSTER = [
   // "We need a spot for next point in a game in the scout tab. Also how do we switch games."
   check("Next point is on every Scout view, Arrival and Voice included", await ev(() => {
     return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
-      return /Next point/.test(document.getElementById("root").textContent); });
+      return [...document.querySelectorAll("#root button")].some(x => /^No point$/.test(x.textContent.trim()) && /tapNext|nextPoint/.test(x.getAttribute("onclick") || "")); });
   }));
   check("the strip switches games and lands on that game's last point", await ev(() => {
     const here = S.matchId, hereRow = {...curMatch()};

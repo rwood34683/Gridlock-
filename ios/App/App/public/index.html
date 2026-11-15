@@ -1102,6 +1102,10 @@ svg.field [data-pick]{cursor:crosshair}
 /* Shown only on a phone turned sideways; everywhere else the quick log is
    offered where it was, at the foot of the point sheet. */
 .read-line{margin:var(--s2) 0 0;max-width:70ch}
+/* The broad `.main > .note` width must not undo this: in small type a 586 px
+   column held 102 characters a line once the read fell back to its long
+   "watch their games" sentence. */
+.main .read-line{max-width:70ch}
 .read-line--warn{color:var(--warn);margin-top:4px} .read-line--warn b{color:var(--warn)}
 .read-line b{color:var(--ink)}
 /* A button inside a note is still a button a gloved thumb has to hit: 44 px,
@@ -3155,14 +3159,41 @@ window.calDrop = id => {
   S.calEvents = S.calEvents.filter(x => x.id !== id); markGone("calEvents", id); S.calOpen = null;
   flash(`${e.title} is off the calendar.`); save(S); render();
 };
+/* The sheets he already has on a schedule game: a sheet opened from the row
+ * carries its game; an older one is matched by the teams, on the game's
+ * field, on the game's day — by name alone, one game of Houston's on Lone
+ * Star claimed every row Houston was in. Read by the game list and the
+ * calendar, so a played game always opens back to what was logged on it. */
+function gameSheets(g){
+  const same = (a, b) => foldName(a) === foldName(b);
+  const named = m => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a));
+  const schedOf = m => m.sched || (m.game && !fmtGame(m.game) ? m.game : null);
+  return (S.matches || []).filter(m => m && (schedOf(m) ? schedOf(m) === g.id
+      : named(m) && (m.layout || "lso") === gameField(g) && isoDay(m.at) === g.d))
+    .filter(m => !sheetEmpty(m))
+    .sort((a, b) => a.at - b.at);
+}
+// Open and Review for each sheet, so a day or an event can be gone back over
+// from the schedule as well as from Matches.
+function sheetButtons(list){
+  return list.map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` ${sc.us}–${sc.them}` : "";
+    const what = m.watch ? `${m.home || "Home"} v ${m.away || "Away"}` : `vs ${m.vs || "no opponent"}`;
+    return `<span class="assign__ctl sheet-open" style="flex-basis:100%">
+      <button class="btn grow" onclick="openMatch(${jsq(m.id)})" aria-label="Open this sheet, ${esc(what + score)}">Open this sheet${list.length > 1 ? ` · ${esc(gameNth(m))}${esc(score)}` : ""}</button>
+      <button class="btn btn--quiet grow" onclick="openReview(${jsq(m.id)})" aria-label="Review ${esc(what + score)}">Review</button></span>`; }).join("");
+}
 function calItemRow(i){
   const open = S.calOpen === i.id, ctl = [];
   if(open && i.game){
-    ctl.push(`<button class="btn grow" onclick="watchGame(${jsq(i.game.id)})">Watch this game</button>`,
+    gameSheets(i.game).forEach(m => ctl.push(`<button class="btn grow" onclick="openMatch(${jsq(m.id)})">Open this sheet${(sc => sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "")(scoreOf(m.id))}</button>`,
+      `<button class="btn btn--quiet grow" onclick="openReview(${jsq(m.id)})">Review</button>`,
+      `<span aria-hidden="true" style="flex-basis:100%;height:0"></span>`));
+    ctl.push(`<button class="btn ${gameSheets(i.game).length ? "btn--quiet " : ""}grow" onclick="watchGame(${jsq(i.game.id)})">Watch this game</button>`,
       `<button class="btn btn--quiet grow" onclick="playGame(${jsq(i.game.id)},'home')">We play ${esc(i.game.h)}</button>`,
       `<button class="btn btn--quiet grow" onclick="playGame(${jsq(i.game.id)},'away')">We play ${esc(i.game.a)}</button>`);
   }
-  if(open && i.match) ctl.push(`<button class="btn grow" onclick="openMatch(${jsq(i.match.id)})">Open this sheet</button>`);
+  if(open && i.match) ctl.push(`<button class="btn grow" onclick="openMatch(${jsq(i.match.id)})">Open this sheet</button>`,
+    `<button class="btn btn--quiet grow" onclick="openReview(${jsq(i.match.id)})">Review</button>`);
   if(open && i.lk) ctl.push(i.lk === S.layoutKey ? `<span class="note" style="margin:0">You are on this field.</span>`
     : `<button class="btn grow" onclick="pickEvent(${jsq(i.lk)})">Go to this field</button>`);
   if(open && i.ev){
@@ -18842,6 +18873,7 @@ const HELP = {
          "Play and scout, by the clock, lists your games and every game of a team you still have to play, each with a light: red Up to play is your next game, on now or inside the hour; green You play is a game of yours further off; yellow Scout is a team you still play — with the time, the field and pit the schedule prints, which of your games it is for, and Watch or Start sheet. A game between two teams you play later scouts both. Open Game by game for every opponent and each of their earlier games, marked free to watch or clashing with your own. A pit running late? Set how far behind it is and every time moves with it.",
          "The calendar at the top is the season by month, week, day or as a list. + Create adds a game, a practice, a field walk, a meeting or travel — and ✎ Customize this list hides the ones you never use and adds your own; a Last day, or 1 · 2 · 3 days, runs one event over several days in a row; Calendars picks what shows — the league's games, the ones you added, your sheets, the event days and your own. Tap a day to see what is on it and open it.",
          "A row says what you already have on that game: watched with the score, or you played either team with the score and how it ended — one sheet a line, numbered when you met them more than once that day.",
+         "Open a game you played or watched, here or on the calendar, and Open this sheet takes you back to everything logged on it; Review reads it without leaving the sheet you are on — for recapping the day or the event.",
          "Every game at this event, by day, read off the league's page.",
          "Watch this game puts both teams in the pits — what you log counts against them, never you.",
          "We play starts your own match against whichever of the two you face.",
@@ -20077,18 +20109,7 @@ function moreBody(k){
     // What he already has on this game: a watched sheet with these two teams,
     // or his own sheet against either of them. A schedule he has half worked
     // through should say so on the row, not make him open each one to find out.
-    const same = (a, b) => foldName(a) === foldName(b);
-    // A sheet opened from a row carries its game; an older one is matched by
-    // the teams, on the game's field, on the game's day — by name alone, one
-    // game of Houston's on Lone Star claimed every row Houston was in.
-    const dayOf = at => { const t = new Date(at); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
-    const named = (m, g) => m.watch ? (same(m.home, g.h) && same(m.away, g.a)) : (same(m.vs, g.h) || same(m.vs, g.a));
-    // The game a sheet was opened from; an older sheet kept it in `game`.
-    const schedOf = m => m.sched || (m.game && !fmtGame(m.game) ? m.game : null);
-    const had = g => (S.matches || []).filter(m => schedOf(m) ? schedOf(m) === g.id
-        : named(m, g) && (m.layout || "lso") === gameField(g) && dayOf(m.at) === g.d)
-      .filter(m => !sheetEmpty(m))
-      .sort((a, b) => a.at - b.at)
+    const had = g => gameSheets(g)
       .map(m => { const sc = scoreOf(m.id), score = sc.us + sc.them ? ` · ${sc.us}–${sc.them}` : "";
         return { lead: m.watch ? "watched" : `you played ${esc(m.vs)}`,
                  rest: `${esc(gameNth(m))}${score}${!m.watch && matchOver(m.id) ? ` · ${overWord(m.id)}` : ""}` }; })
@@ -20111,7 +20132,7 @@ function moreBody(k){
             gameSub(g) && mine.has(g.id) ? " · " : ""}${mine.has(g.id) ? "yours" : ""}${have.length ? `<br><span style="color:var(--ink)">${have.join("<br>")}</span>` : ""}</span></span>
         <button class="btn btn--quiet" onclick="set({gameOpen:${isOpen ? "null" : jsq(g.id)}})">${
           isOpen ? "Close" : "Open"}</button>
-        ${isOpen ? `<span class="assign__ctl" style="flex-basis:100%">
+        ${isOpen ? `${sheetButtons(gameSheets(g))}<span class="assign__ctl" style="flex-basis:100%">
           <button class="btn grow" onclick="watchGame(${jsq(g.id)})">Watch this game</button>
         </span>
         <span class="assign__ctl" style="flex-basis:100%">
