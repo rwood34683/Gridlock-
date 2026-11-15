@@ -175,7 +175,7 @@ function configuredOptions(env = process.env) {
   return { url: env.GRINDX_SUPABASE_URL || cloud.url, anonKey: env.GRINDX_SUPABASE_ANON_KEY || cloud.anonKey,
     redirectTo: env.GRINDX_AUTH_REDIRECT_URL || cloud.redirectTo, ...(beta ? { beta } : {}) };
 }
-module.exports = { build, pageUrls, configuredOptions, betaOption };
+module.exports = { build, pageUrls, configuredOptions, betaOption, publicKey, authRedirect };
 
 if (require.main === module) {
   try {

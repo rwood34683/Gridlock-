@@ -122,7 +122,8 @@ begin
   if action='list' then
     select coalesce(jsonb_agg(gridlock_team_private.snapshot(m.team_id,actor) order by m.joined_at,m.team_id),'[]'::jsonb)
       into result from public.gridlock_team_members m where m.user_id=actor;
-    return jsonb_build_object('ok',true,'teams',result);
+    return jsonb_build_object('ok',true,'teams',result,'can_create',
+      exists(select 1 from public.gridlock_team_pilot where user_id=actor and can_create));
   end if;
   if action in ('create','join') then
     display := btrim(input->>'display_name');
