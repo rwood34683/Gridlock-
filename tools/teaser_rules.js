@@ -255,6 +255,9 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["team home", "  show('teambox',m==='team');", "  show('teambox',m==='team');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["team"]],
   ["team home", "EDITION==='team'?'team':'play');", "EDITION==='team'?'home':'play');", ["team"]],
   ["team home", " b.style.display=(MODE==='team')?'none':'';}", " b.style.display=(MODE==='team'||MODE==='home')?'none':'';}", ["team"]],
+  // The Zones button's symbol was written as a JavaScript escape inside HTML,
+  // so it printed "\\u25a6"; HTML needs the character itself.
+  ["zones glyph", '<button class="ld" id="zoneBtn">\\u25a6 Zones: off</button>', '<button class="ld" id="zoneBtn">\u25a6 Zones: off</button>'],
   // Team admin (owner, 15 Nov 2026): roles, two-person money and the log.
   // The tab and its screen are tools/teaser_teamadmin.js.
   ["team admin", "m==='tpmine'||m==='home');", "m==='tpmine'||m==='home'||m==='tadmin');", ["team"]],

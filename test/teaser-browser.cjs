@@ -375,6 +375,25 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     assert.deepEqual(errors,[]);
    }finally{await c.close();}
   });
+  // Owner, 15 Nov 2026: a dev build of the Team app with full admin — every
+  // tab shown, every feature open, its own ribbon. The preview stays as it is.
+  await check("team-dev: every tab opens, nothing is locked, the preview keeps its locks",async()=>{
+   require("node:child_process").execFileSync(process.execPath,[path.join(__dirname,"..","tools","teaser_artifact.js"),"team-dev"],{stdio:"ignore"});
+   const c=await browser.newContext({viewport:{width:1024,height:768}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+   try{
+    await p.goto(base+"/dist/teaser-artifact/gridlock-team-dev.html");await p.evaluate(()=>localStorage.clear());await p.reload();
+    assert.match(await p.locator("#teaserRibbon").innerText(),/DEV BUILD/);
+    const tabs=await p.locator(".tabs button[data-m]").evaluateAll(es=>es.filter(e=>e.style.display!=="none").map(e=>e.dataset.m));
+    for(const m of ["play","tally","scout","sight","walk","assess","move","codes","iq","crew","ready","ops","evops","crm","gov","tadmin","rules","nexus"])assert.ok(tabs.includes(m),m+" is shown: "+tabs.join(","));
+    assert.equal(await p.evaluate(()=>LICF("layouts")&&LICF("scoutfull")),true,"licensed features open");
+    for(const m of tabs){if(m==="rules")continue;await p.evaluate(m=>{const b=document.querySelector('.tabs button[data-m="'+m+'"]');b.click();},m);
+     assert.equal(await p.evaluate(()=>MODE),m);assert.doesNotMatch(await p.evaluate(()=>document.querySelector(".wrap").innerText),/NOT IN THIS PREVIEW/,m+" shows no lock");}
+    assert.deepEqual(errors,[]);
+    const q=await c.newPage();await q.goto(base+"/teasers/team/");
+    assert.equal(await q.evaluate(()=>LICF("layouts")),false,"the preview keeps its locks");
+    assert.equal(await q.locator('.tabs button[data-m="tally"]').evaluate(e=>e.style.display),"none","the preview keeps its tabs");
+   }finally{await c.close();}
+  });
   await require('./player-clear-team.cjs')({check,browser,base,out});
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;

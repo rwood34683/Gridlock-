@@ -1504,6 +1504,12 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Team admin buttons it can press; buttons inside the other tabs are not
     locked yet, and the screen says roles live on this phone only. Backups
     merge it by id (`taMerge`).
+    **Team dev build** (owner, 15 Nov 2026): `node tools/teaser_artifact.js
+    team-dev` writes `dist/teaser-artifact/gridlock-team-dev.html` from the
+    Team preview with every tab shown, every licensed feature open (`LICF`)
+    and a DEV BUILD ribbon, for working on the Team app with full admin. Each
+    change must find its text or the build stops. It is never the preview
+    players see; `teasers/team/index.html` keeps its tabs and locks.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
