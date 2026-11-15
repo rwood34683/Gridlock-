@@ -26,6 +26,7 @@
  *     signOut()                  -> void
  *     session()                  -> {user} | null
  *     getEntitlement()           -> {ok, user, entitlement, said, offline}
+ *     teamAccess(action, input)  -> {ok, user, result, said} // prepared; server-gated
  *     pushSeason(label, payload) -> {ok, said, offline}   // opt-in League sync
  *     deleteSeason()             -> {ok, said, offline}
  *
@@ -321,6 +322,47 @@
     session() {
       var s = readSession();
       return s && s.user ? { user: s.user } : null;
+    },
+    // Membership only. Never changes a Coach season, plan, or local preview.
+    // No automatic calls, cached permissions, or offline membership grants.
+    async teamAccess(action, input) {
+      var actions = ["list","create","join","get","invites","invite","revoke","role","remove","leave","transfer"];
+      if (!actions.includes(action) || (input !== undefined && (!input || typeof input !== "object" || Array.isArray(input))))
+        return said("Choose a team action and try again.");
+      var body;
+      try { body = JSON.stringify({action:action,input:input || {}}); }
+      catch (e) { return said("The team request could not be read."); }
+      if (body.length > 8192) return said("The team request is too long.");
+      readSession();
+      var g = generation, t = await token(), s = readSession();
+      if (g !== generation) return said("Your sign-in changed. Open your team again.");
+      if (!t || !s || recoverySession) return said("Sign in online to open your team.");
+      var id = s.user.id;
+      var r = await call("/rest/v1/rpc/gridlock_team_action", {method:"POST",body:body}, t);
+      var current = readSession();
+      if (g !== generation || !current || current.user.id !== id)
+        return said("Your sign-in changed. Open your team again.");
+      if (!r.net) return said("The team request was not confirmed. Reconnect and check your team before trying again.");
+      if (!r.ok || !r.body || typeof r.body.ok !== "boolean") return said("Your team could not be checked. Try again with a signal.");
+      if (!r.body.ok) {
+        var messages = {
+          sign_in_required:"Sign in with a confirmed account to open your team.",
+          not_available:"Team accounts are not available for this account yet.",
+          owner_required:"Ask the team owner to make that change.",
+          invalid_request:"Check the team details and try again.",
+          invalid_code:"That team code cannot be used. Ask the owner for a new one.",
+          already_member:"You already belong to this team. Ask the owner to change your role.",
+          try_later:"Too many code attempts. Wait a minute and try again.",
+          limit_reached:"The team limit was reached. Contact support for help.",
+          not_found:"That team or member is not available to this account.",
+          changed:"The team changed. Open it again before making this change.",
+          transfer_first:"Choose another team owner before leaving or removing the owner."
+        };
+        return {ok:false,code:r.body.code,said:Object.prototype.hasOwnProperty.call(messages,r.body.code) ? messages[r.body.code] : "The team request was refused."};
+      }
+      // Keep display text untrusted; the consuming UI must render it as text.
+      // A result is bound to this account, never written to localStorage.
+      return {ok:true,user:s.user,result:r.body};
     },
     // An account grant is read only with that account's verified bearer token.
     // RLS limits the row too; the explicit owner filter never requests peers.

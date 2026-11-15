@@ -1707,6 +1707,21 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     undo/correction, new matches and reloads. Coach's No point checks exercise
     the real control on every Scout view and preserve score/end assertions.
 
+96. **Team membership is account-bound, separate and closed by default.**
+    The prepared team RPC uses the confirmed account UUID and checks owner,
+    coach and player permissions on every call. No local selection, preview
+    code, cached role or paid plan grants team access. Invitations are random,
+    one-use, hashed, seven-day and revocable; removals invalidate access, and
+    ownership transfer revokes unused codes. Keep revision checks and team-
+    before-invitation lock ordering. No direct browser table access or secret
+    key. The cloud adapter discards stale account responses and caches no
+    membership grant. Coach seasons, beta/admin grants, billing and the offline
+    Team/Player previews remain separate. This is a prepared foundation, not
+    a live cloud UI: never enable the migration/pilot or add team data sharing
+    as part of preview regeneration. `docs/TEAM-ACCOUNTS.md` records the contract
+    and rollout gates; `team-membership` and `team-access` test the SQL and
+    account-switch failures without changing any live service.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
