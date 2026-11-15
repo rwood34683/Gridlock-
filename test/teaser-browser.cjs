@@ -57,7 +57,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
     await p.goto(base+"/teasers/"+kind+"/");await scan("start");assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(11, 12, 13)");
     if(kind==="player"){await p.locator("#joinCode").fill("IMPACT-7QX2");await p.locator("#joinGo").click();await scan("joined");}
     const tabs=await p.locator(".tabs button:visible").evaluateAll(es=>es.map(e=>e.dataset.m));
-    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["home","team","lineup","tsched","tprep","msg","rules","nexus"]);
+    assert.deepEqual(tabs,kind==="player"?["home","tally","scout","sight","walk","more"]:["home","team","lineup","tsched","tprep","msg","rules","tadmin","nexus"]);
     for(const tab of tabs){await p.locator('.tabs button[data-m="'+tab+'"]').click();
      // Rules opens the rulebook window over the screen; it is closed before the screen is read.
      if(tab==="rules"){assert.equal(await p.locator("#rulebooksDialog").isVisible(),true);await p.keyboard.press("Escape");assert.equal(await p.locator("#rulebooksDialog").isVisible(),false);}
@@ -264,7 +264,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.evaluate(()=>MODE),"home","opens on the dashboard");
    assert.equal(await p.locator("#teamBackBar").evaluate(e=>getComputedStyle(e).display).catch(()=>"none"),"none","no Back on the first screen");
    const cards=await p.locator("#homebox [data-home]").evaluateAll(es=>es.map(e=>e.innerText.split("\n")[0]));
-   assert.deepEqual(cards,["Team","Lineups","Schedule","Tournament Prep","Messages","Rules","Nexus"],"one card a tab");
+   assert.deepEqual(cards,["Team","Lineups","Schedule","Tournament Prep","Messages","Rules","Team admin","Nexus"],"one card a tab");
    for(const [name,mode] of [["Team","team"],["Lineups","lineup"],["Schedule","tsched"],["Tournament Prep","tprep"],["Messages","msg"],["Nexus","nexus"]]){
     await p.locator('.tabs button[data-m="home"]').click();
     await p.locator("#homebox [data-home]",{hasText:name}).first().click();assert.equal(await p.evaluate(()=>MODE),mode,name+" card opens "+mode);}
@@ -304,6 +304,77 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
  await check("the Team preview keeps its own tally",async()=>{
   const src=fs.readFileSync(path.resolve(__dirname,"../teasers/team/index.html"),"utf8");assert.ok(!src.includes("coachplay")&&!src.includes("cpTally()"));
  });
+  // Owner, 15 Nov 2026: a Team admin tab after Rules and before Nexus. Eight
+  // roles, one a person; only the Owner or a Site admin gives roles, a Site
+  // admin never makes a Site admin; money needs a second person; the log has
+  // no edit; View as shows the tabs each role uses. A preview: this phone only.
+  for(const [width,height] of [[390,844],[1024,768]])await check("team at "+width+"x"+height+": Team admin — roles, two-person money, View as, the log",async()=>{
+   const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage(),errors=[];p.on("pageerror",e=>errors.push(e.message));
+   try{
+    await p.goto(base+"/teasers/team/");await p.evaluate(()=>localStorage.clear());await p.reload();
+    const tabs=await p.locator(".tabs button[data-m]").evaluateAll(es=>es.filter(e=>e.style.display!=="none").map(e=>e.dataset.m));
+    assert.deepEqual(tabs.slice(-3),["rules","tadmin","nexus"],"Rules, Team admin, Nexus: "+tabs.join(","));
+    await p.locator('.tabs button[data-m="tadmin"]').click();assert.equal(await p.evaluate(()=>MODE),"tadmin");
+    assert.equal(await p.locator(".fieldbox").evaluate(e=>e.classList.contains("hidden")),true,"no field on Team admin");
+    assert.match(await p.locator("#tadminbox").innerText(),/Create your team first/);
+    await p.locator("#taToTeam").click();await p.fill("#tmName","Impact");await p.click("#tmCreate");
+    await p.evaluate(()=>{const t=teamGet();t.roster=["Sam","Lee"];teamSet(t);});
+    await p.locator('.tabs button[data-m="tadmin"]').click();
+    await p.locator("#taStart").click();assert.match(await p.locator("#gToastBox").innerText(),/Type your name first/i,"an empty name says so");
+    await p.fill("#taOwnerName","Rob");await p.click("#taStart");
+    const add=async(n,r)=>{await p.fill("#taNewName",n);await p.selectOption("#taNewRole",r);await p.click("#taAdd");};
+    await add("Tess","treasurer");await add("Ana","siteadmin");await add("Lou","logistics");
+    await p.click("#taRoster");
+    const roles=()=>p.evaluate(()=>Object.fromEntries(taGet().members.map(m=>[m.name,m.role])));
+    assert.deepEqual(await roles(),{Rob:"owner",Tess:"treasurer",Ana:"siteadmin",Lou:"logistics",Sam:"player",Lee:"player"});
+    await add("Tess","player");assert.equal((await p.evaluate(()=>taGet().members.length)),6,"one person, one role");
+    // a Site admin gives roles but never a Site admin, and cannot touch the Owner or another Site admin
+    const id=n=>p.evaluate(n=>taGet().members.find(m=>m.name===n).id,n);
+    await p.selectOption("#taAs",await id("Ana"));
+    assert.equal(await p.locator('#taNewRole option[value="siteadmin"]').count(),0,"a Site admin cannot make a Site admin");
+    assert.equal(await p.locator(`[data-tarole="${await id("Rob")}"]`).count(),0,"nor touch the Owner");
+    assert.equal(await p.locator(`[data-tarole="${await id("Ana")}"]`).count(),0,"nor change their own role");
+    await p.selectOption(`[data-tarole="${await id("Sam")}"]`,"captain");assert.equal((await roles()).Sam,"captain");
+    assert.equal(await p.locator("#taRec").count(),0,"a Site admin has no money");
+    // money: Logistics records, cannot approve; the Treasurer cannot approve her own
+    await p.selectOption("#taAs",await id("Lou"));
+    await p.selectOption("#taKind","expense");await p.fill("#taAmt","abc");await p.click("#taRec");
+    assert.equal(await p.evaluate(()=>taGet().money.length),0,"a bad amount is refused");
+    await p.fill("#taAmt","120.50");await p.fill("#taNote","Hotel deposit");await p.click("#taRec");
+    assert.equal(await p.locator("[data-taok]").count(),0,"Logistics cannot approve");
+    await p.selectOption("#taAs",await id("Tess"));
+    await p.selectOption("#taKind","dues");await p.selectOption("#taWho","Lee");await p.fill("#taAmt","50");await p.click("#taRec");
+    const own=await p.evaluate(()=>taGet().money.find(x=>x.kind==="dues").id);
+    await p.locator(`[data-taok="${own}"]`).click();
+    assert.equal(await p.evaluate(id=>taGet().money.find(x=>x.id===id).status,own),"pending","the recorder cannot approve her own entry");
+    const hotel=await p.evaluate(()=>taGet().money.find(x=>x.kind==="expense").id);
+    await p.locator(`[data-taok="${hotel}"]`).click();
+    assert.equal(await p.evaluate(id=>taGet().money.find(x=>x.id===id).status,hotel),"approved","the Treasurer approves Logistics' entry");
+    await p.selectOption("#taAs",await id("Rob"));await p.locator(`[data-taok="${own}"]`).click();
+    assert.equal(await p.evaluate(id=>taGet().money.find(x=>x.id===id).approvedBy,own),"Rob (Owner)");
+    // View as a player: his own dues, no Tournament prep, no Lineups for Logistics
+    await p.selectOption("#taAs",await id("Lee"));
+    const vis=()=>p.locator(".tabs button[data-m]").evaluateAll(es=>es.filter(e=>e.style.display!=="none").map(e=>e.dataset.m));
+    assert.ok(!(await vis()).includes("tprep"),"a Player has no Tournament prep");
+    assert.match(await p.locator("#tadminbox").innerText(),/You owe \$50\.00/);
+    assert.equal(await p.locator("[data-taok],[data-tano],#taRec,#taAdd").count(),0,"a Player records and approves nothing");
+    await p.selectOption("#taAs",await id("Lou"));assert.ok(!(await vis()).includes("lineup"),"Logistics has no Lineups");assert.ok((await vis()).includes("tprep"));
+    await p.click("#taBack");assert.ok((await vis()).includes("lineup")&&(await vis()).includes("tprep"),"Back to the Owner shows every tab again");
+    // the log: every change, newest first, nothing to edit; ownership hands on
+    const log=await p.evaluate(()=>taGet().log.map(x=>x.what));
+    assert.ok(log.some(x=>/Sam: Player → Captain/.test(x))&&log.some(x=>/Approved expense \$120\.50/.test(x))&&log.length>=8,log.join(" | "));
+    await p.selectOption("#taHand",await id("Tess"));await p.click("#taHandGo");await p.locator('[data-gc]',{hasText:"Hand over"}).click();
+    assert.deepEqual([(await roles()).Tess,(await roles()).Rob],["owner","siteadmin"],"exactly one Owner after the hand-over");
+    await p.reload();assert.equal(await p.evaluate(()=>taGet().log.length),log.length+1,"kept across a relaunch");
+    for(const b of await p.locator('.tabs button[data-m="tadmin"]').all()){const r=await b.boundingBox();assert.ok(r.height>=44,"the tab is a 44 px target");}
+    await p.locator('.tabs button[data-m="tadmin"]').click();
+    for(const el of await p.locator("#tadminbox button:visible, #tadminbox select:visible, #tadminbox input:visible").all()){const r=await el.boundingBox();
+     assert.ok(r&&r.height>=44,"44 px: "+(await el.evaluate(e=>e.id||e.textContent||e.outerHTML.slice(0,60))));}
+    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"no sideways page");
+    await p.screenshot({path:path.join(out,"team-admin-"+width+".png"),fullPage:true});
+    assert.deepEqual(errors,[]);
+   }finally{await c.close();}
+  });
   await require('./player-clear-team.cjs')({check,browser,base,out});
  }finally{fs.writeFileSync(path.join(out,"evidence.json"),JSON.stringify(evidence,null,2));await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}
  console.log(`${passed}/${passed+failed} preview browser checks passed.`);if(failed)process.exitCode=1;
