@@ -35,7 +35,7 @@ function harness(overrides={}) {
       auth:{getClaims:async()=>({data:{claims:{sub:state.user?.id,aal:state.aal||'aal2'}},error:state.claimsError||null}),getUser:async token=>{state.calls.push(['getUser',token]);if(state.authThrow)throw Error('internal secret');return {data:{user:state.user},error:state.authError||null};},
         admin:{listUsers:async args=>{state.calls.push(['listUsers',args]);return {data:{users:state.users,total:state.total,nextPage:state.nextPage},error:state.listError||null};},
           getUserById:async id=>{state.calls.push(['getUserById',id]);return {data:{user:state.missingTarget?null:{id}},error:null};}}},
-      rpc:async(name,args)=>{state.calls.push(['rpc',name,args]);state.saved={user_id:args.target,plan:args.new_plan,expires_at:args.new_expiry,source:'admin:'+args.actor,updated_at:new Date(NOW).toISOString()};return {data:state.saved,error:state.saveError||null};},
+      rpc:async(name,args)=>{if(name==='gridlock_service_session_allowed'){state.securityArgs=args;return {data:state.securityAllowed!==false,error:state.securityError||null};}state.calls.push(['rpc',name,args]);state.saved={user_id:args.target,plan:args.new_plan,expires_at:args.new_expiry,source:'admin:'+args.actor,updated_at:new Date(NOW).toISOString()};return {data:state.saved,error:state.saveError||null};},
       from:table=>{
         state.calls.push(['from',table]);
         const chain={is(column,value){state.calls.push(['is',column,value]);return chain;},select(columns){state.calls.push(['select',columns]);return chain;},
@@ -132,6 +132,12 @@ test('usage needs a verified administrator with MFA like every other action',asy
 });
 test('usage fails closed when a count cannot be read',async()=>{
   const h=harness({dbError:{message:'private'}});const r=await h.request('?action=usage');assert.equal(r.status,502);assert.ok(!JSON.stringify(r.body).includes('private'));
+});
+test('revoked and uncheckable admin sessions cannot read data or change plans',async()=>{
+  for(const extra of [{securityAllowed:false},{securityError:{message:'missing policy'}}]){
+    const h=harness(extra);assert.equal((await h.request('?action=overview')).status,403);noDataCalls(h.state);assert.equal(h.state.securityArgs.actor,ADMIN);
+    assert.equal((await h.request('',{method:'POST',body:{action:'set_entitlement',user_id:TARGET,plan:'program',expires_at:null}})).status,403);noDataCalls(h.state);
+  }
 });
 for (const [name,run] of checks) { await run(); passed++; console.log('PASS '+name); }
 console.log(`${passed}/${checks.length} admin backend checks passed.`);

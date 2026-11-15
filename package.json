@@ -10,6 +10,7 @@
     "serve:site": "node scripts/serve.js --root site",
     "build": "node scripts/build.js",
     "build:cloud": "node scripts/cloud-build.js",
+    "player:cloud": "node scripts/player-cloud.js",
     "build:beta": "node scripts/cloud-build.js",
     "preview": "node scripts/serve.js --root dist",
     "sync": "node scripts/native.js sync",
@@ -69,6 +70,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
+    "@electric-sql/pglite": "0.5.16",
     "fflate": "0.8.3",
     "playwright-core": "^1.49.0",
     "sharp": "^0.35.5"

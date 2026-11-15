@@ -26,6 +26,7 @@
  *     signOut()                  -> void
  *     session()                  -> {user} | null
  *     getEntitlement()           -> {ok, user, entitlement, said, offline}
+ *     teamAccess(action, input)  -> {ok, user, result, said} // prepared; server-gated
  *     pushSeason(label, payload) -> {ok, said, offline}   // opt-in League sync
  *     deleteSeason()             -> {ok, said, offline}
  *
@@ -41,6 +42,93 @@
   var loaded = false, currentSession = null, sessionText = null, refreshing = null;
   var seasonTail = Promise.resolve(), deleting = false;
   var recoverySession = null, updatingPassword = false;
+  var securityApproved = null, securityPrompt = null, securityWork = null;
+  var previousDevice = null;
+  function securityRequired() { return cfg()?.accountSecurity === true; }
+  function notifySecurity() { if (window.dispatchEvent && typeof Event !== 'undefined') window.dispatchEvent(new Event('gridlock-security')); }
+  function jwtSession(access) { try { return JSON.parse(atob(access.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).session_id || ''; } catch (_) { return ''; } }
+  function securityIdentity(s) { return s && s.user.id + ':' + jwtSession(s.access_token); }
+  function securityReady() { var s=readSession();return !securityRequired() || !!(s && s.security_approved===securityIdentity(s)); }
+  function securityMessage(code) {
+    return ({mfa_required:'Verify your authenticator to continue.',device_required:'Choose a place for this device.',
+      device_revoked:'This device was removed. Sign in again and approve it.',sign_in_required:'Sign in with your confirmed account.',
+      device_changed:'That device changed. Refresh the device list.',invalid_request:'Check the device name and try again.'})[code] || 'Security could not be checked. Reconnect and try again.';
+  }
+  async function securityRpc(action,input) {
+    var s=readSession(),g=generation,t=await token();
+    if(!s || !t || recoverySession || g!==generation) return cancelled();
+    var id=s.user.id;
+    var r=await call('/rest/v1/rpc/gridlock_security_action',{method:'POST',body:JSON.stringify({action:action,input:input||{}})},t);
+    var current=readSession();
+    if(g!==generation || !current || current.user.id!==id) return cancelled();
+    if(!r.net || !r.ok || typeof r.body?.ok!=='boolean') return said('Security could not be checked. Reconnect and try again.');
+    var b=r.body;
+    // An opt-in client never silently downgrades when the server is unprepared.
+    if(securityRequired() && b.required!==true && b.ok) return said('Account protection is not enabled on this server yet.');
+    if(b.ok && b.required && (b.user_id!==id||b.session_id!==jwtSession(current.access_token))) return said('The server returned another sign-in. Sign in again.');
+    var wasReady=securityReady();
+    securityApproved=b.ok?securityIdentity(current):null;
+    current.security_approved=securityApproved;writeSession(current);
+    if(wasReady!==securityReady())notifySecurity();
+    return {...b,said:b.ok?'':securityMessage(b.code)};
+  }
+  function securityBridge() {
+    var owner=readSession()?.user?.id,entry=generation;
+    async function auth(path,body) {
+      if(entry!==generation || readSession()?.user?.id!==owner) return cancelled();
+      var t=await token();if(!t)return cancelled();
+      var r=await call('/auth/v1'+path,body===undefined?{}:{method:'POST',body:JSON.stringify(body)},t);
+      if(entry!==generation || readSession()?.user?.id!==owner) return cancelled();
+      return r.net&&r.ok?{ok:true,data:r.body}:said('Authenticator verification was refused. Check the code and try again.');
+    }
+    return {
+      status:async()=>{var r=await securityRpc('status');return {...r,reuseCurrent:previousDevice?.user===owner&&r.devices?.some(d=>d.id===previousDevice.session)};},claim:async(label,replace)=>{
+        if(!replace && previousDevice?.user===owner){
+          var state=await securityRpc('status');
+          if(state.devices?.some(d=>d.id===previousDevice.session))replace=previousDevice.session;
+        }
+        var claimed=await securityRpc('claim',{label,...(replace?{replace}:{})});if(claimed.ok)previousDevice=null;return claimed;
+      },
+      revoke:session_id=>securityRpc('revoke',{session_id}),
+      async factors(){var r=await auth('/user');return r.ok&&Array.isArray(r.data?.factors)?{ok:true,factors:r.data.factors}:said('Authenticator settings could not be loaded.');},
+      async enroll(){
+        var r=await auth('/factors',{factor_type:'totp',friendly_name:'Gridlock '+Date.now(),issuer:'Gridlock'}),d=r.data,raw=d?.totp?.qr_code;
+        if(!r.ok)return r;
+        if(typeof d.id!=='string'||typeof raw!=='string'||raw.length>65536||typeof d.totp?.secret!=='string')return said('Authenticator setup was not readable.');
+        var qr=raw.trim().startsWith('<svg')?'data:image/svg+xml,'+encodeURIComponent(raw):/^data:image\/svg\+xml[;,]/.test(raw)?raw:'';
+        return qr?{ok:true,id:d.id,qr,secret:d.totp.secret}:said('Authenticator image was not readable.');
+      },
+      async verify(factor,code){
+        if(!/^[a-f0-9-]{36}$/i.test(factor)||!/^\d{6}$/.test(code))return said('Enter the six-digit authenticator code.');
+        var path='/factors/'+encodeURIComponent(factor),c=await auth(path+'/challenge',{});
+        if(!c.ok||!c.data?.id)return said('The authenticator challenge was refused.');
+        var v=await auth(path+'/verify',{challenge_id:c.data.id,code});
+        if(!v.ok)return v;
+        if(!v.data?.access_token||v.data.user?.id!==owner||!writeSession(sessionFrom(v.data)))return said('Verification could not be saved. Sign in again.');
+        return {ok:true};
+      }
+    };
+  }
+  async function ensureSecurity(manage=false) {
+    if(!securityRequired())return true;
+    if(securityWork)return securityWork;
+    var g=generation,id=readSession()?.user?.id;
+    if(!id)return false;
+    var work=(async()=>{
+      var r=await securityRpc('status');
+      if(g!==generation||readSession()?.user?.id!==id)return false;
+      if(r.ok&&!manage)return true;
+      if(typeof window.gridlockSecurityPrompt!=='function')return false;
+      var bridge=securityBridge();securityPrompt=bridge;
+      try{return !!(await window.gridlockSecurityPrompt(bridge,manage)) && g===generation && readSession()?.user?.id===id && securityReady();}
+      finally{if(securityPrompt===bridge)securityPrompt=null;}
+    })();
+    securityWork=work;try{return await work;}finally{if(securityWork===work)securityWork=null;}
+  }
+  async function accountToken() {
+    if(securityRequired()) {var r=await securityRpc('status');if(!r.ok)return null;}
+    return token();
+  }
   var MAX_SEASON_BYTES = 2 * 1024 * 1024;
   var seasonRevisions = Object.create(null);
   function revision(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
@@ -79,7 +167,7 @@
     ++generation;
     recoverySession = null;
     if (CFG && (CFG.url !== url || CFG.anonKey !== anonKey)) writeSession(null);
-    CFG = { url: url, anonKey: anonKey, redirectTo: redirectTo };
+    CFG = { url: url, anonKey: anonKey, redirectTo: redirectTo, ...(CFG?.accountSecurity===true?{accountSecurity:true}:{}) };
     install();
   };
   function readSession() {
@@ -214,6 +302,7 @@
       if (g !== generation || readSession() !== s) return null;
       if (r.net && r.ok && r.body && r.body.access_token) {
         var ns = sessionFrom(r.body);
+        if(s.security_approved===securityIdentity(ns))ns.security_approved=s.security_approved;
         if (!ns.user || ns.user.id !== s.user.id || !writeSession(ns)) return null;
         return ns.access_token;
       }
@@ -229,7 +318,11 @@
     try { return await work; }
     finally { if (refreshing === entry) refreshing = null; }
   }
-  function beginAuth() { ++generation; recoverySession = null; writeSession(null); return generation; }
+  function beginAuth() {
+    var old=readSession();if(old)previousDevice={user:old.user.id,session:jwtSession(old.access_token)};
+    if(securityPrompt?.cancel)securityPrompt.cancel();
+    ++generation; recoverySession = null; writeSession(null); return generation;
+  }
   function queueSeason(work) {
     var pending = seasonTail.then(work);
     seasonTail = pending.catch(function () {});
@@ -248,6 +341,7 @@
       if (!r.body.access_token) return { ok: true, pendingConfirmation: true };
       if (!writeSession(sessionFrom(r.body)))
         return said("This phone could not save your sign-in. Free some space and sign in again.");
+      if(!await ensureSecurity()) return said('Complete two-factor sign-in and approve this device to continue.');
       return { ok: true, user: { id: u.id, email: u.email } };
     },
     async signIn(email, pass) {
@@ -261,6 +355,7 @@
         return said("The server did not return a sign-in. Please try again.");
       var s = sessionFrom(r.body);
       if (!writeSession(s)) return said("This phone could not save your sign-in. Free some space and try again.");
+      if(!await ensureSecurity()) return said('Complete two-factor sign-in and approve this device to continue.');
       return { ok: true, user: s.user };
     },
     async sendReset(email) {
@@ -308,25 +403,76 @@
         if (!r.body || r.body.id !== s.user.id) return said("The server did not confirm your password change. Sign in to check it.");
         recoverySession = null;
         if (!writeSession(s)) return said("Your password was changed, but this phone could not save your sign-in. Sign in with the new password.");
+        if(!await ensureSecurity())return said('Password changed. Sign in and verify your authenticator to continue.');
         return { ok: true, user: s.user };
       } finally { updatingPassword = false; }
     },
     signOut() {
       var s = readSession();
+      securityApproved=null;if(securityPrompt?.cancel)securityPrompt.cancel();
       ++generation; ++seasonVersion;
       recoverySession = null;
       writeSession(null);                       // invalidate before any asynchronous work
-      if (s && s.access_token) call("/auth/v1/logout", { method: "POST" }, s.access_token).catch(function () {});
+      if (s && s.access_token) call("/auth/v1/logout?scope=local", { method: "POST" }, s.access_token).catch(function () {});
+      notifySecurity();
     },
     session() {
       var s = readSession();
-      return s && s.user ? { user: s.user } : null;
+      return s && s.user && securityReady() ? { user: s.user } : null;
+    },
+    securityRequired, securityReady, securityBridge,
+    verifySecurity:()=>ensureSecurity(),
+    manageDevices:()=>ensureSecurity(true),
+    async adminSession(){
+      var access=await accountToken(),s=readSession();
+      return access && s && securityReady() ? {access_token:access,expires_at:s.expires_at,user:s.user} : null;
+    },
+    // Membership only. Never changes a Coach season, plan, or local preview.
+    // No automatic calls, cached permissions, or offline membership grants.
+    async teamAccess(action, input) {
+      var actions = ["list","create","join","get","invites","invite","revoke","role","remove","leave","transfer"];
+      if (!actions.includes(action) || (input !== undefined && (!input || typeof input !== "object" || Array.isArray(input))))
+        return said("Choose a team action and try again.");
+      var body;
+      try { body = JSON.stringify({action:action,input:input || {}}); }
+      catch (e) { return said("The team request could not be read."); }
+      if (body.length > 8192) return said("The team request is too long.");
+      readSession();
+      var g = generation, t = await accountToken(), s = readSession();
+      if (g !== generation) return said("Your sign-in changed. Open your team again.");
+      if (!t || !s || recoverySession) return said("Sign in online to open your team.");
+      var id = s.user.id;
+      var r = await call("/rest/v1/rpc/gridlock_team_action", {method:"POST",body:body}, t);
+      var current = readSession();
+      if (g !== generation || !current || current.user.id !== id)
+        return said("Your sign-in changed. Open your team again.");
+      if (!r.net) return said("The team request was not confirmed. Reconnect and check your team before trying again.");
+      if (!r.ok || !r.body || typeof r.body.ok !== "boolean") return said("Your team could not be checked. Try again with a signal.");
+      if (!r.body.ok) {
+        var messages = {
+          sign_in_required:"Sign in with a confirmed account to open your team.",
+          not_available:"Team accounts are not available for this account yet.",
+          owner_required:"Ask the team owner to make that change.",
+          invalid_request:"Check the team details and try again.",
+          invalid_code:"That team code cannot be used. Ask the owner for a new one.",
+          already_member:"You already belong to this team. Ask the owner to change your role.",
+          try_later:"Too many code attempts. Wait a minute and try again.",
+          limit_reached:"The team limit was reached. Contact support for help.",
+          not_found:"That team or member is not available to this account.",
+          changed:"The team changed. Open it again before making this change.",
+          transfer_first:"Choose another team owner before leaving or removing the owner."
+        };
+        return {ok:false,code:r.body.code,said:Object.prototype.hasOwnProperty.call(messages,r.body.code) ? messages[r.body.code] : "The team request was refused."};
+      }
+      // Keep display text untrusted; the consuming UI must render it as text.
+      // A result is bound to this account, never written to localStorage.
+      return {ok:true,user:s.user,result:r.body};
     },
     // An account grant is read only with that account's verified bearer token.
     // RLS limits the row too; the explicit owner filter never requests peers.
     async getEntitlement() {
       readSession();
-      var g = generation, t = await token(), s = readSession();
+      var g = generation, t = await accountToken(), s = readSession();
       if (g !== generation) return cancelled();
       if (!t || !(s && s.user && s.user.id)) return said("Sign in to check your account access.");
       var id = s.user.id;
@@ -346,7 +492,7 @@
       return { ok: true, user: s.user, entitlement: grant };
     },
     async getSeason() {
-      var g=generation, t=await token(), s=readSession();
+      var g=generation, t=await accountToken(), s=readSession();
       if(g!==generation) return cancelled();
       if(!t || !s) return said("Sign in to review your cloud copy.");
       var id=s.user.id;
@@ -362,6 +508,7 @@
     async deleteAccount(password, confirmation, code) {
       var g=generation, s=readSession();
       if(!s) return said("Sign in online before deleting your account.");
+      if(securityRequired() && !(await securityRpc('status')).ok)return said('Verify two-factor sign-in and this device first. Nothing was deleted.');
       if(confirmation!=="DELETE MY ACCOUNT") return said("Type DELETE MY ACCOUNT to confirm.");
       var auth=await call("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email:s.user.email,password:password})});
       if(g!==generation || readSession()!==s) return cancelled();
@@ -369,6 +516,7 @@
       if(!auth.ok || auth.body?.user?.id!==s.user.id || !auth.body.access_token) return said("Your password was not confirmed. Nothing was deleted.");
       var access=auth.body.access_token;
       var factor=(auth.body.user.factors||[]).find(function(f){return f.factor_type==="totp"&&f.status==="verified";});
+      if(securityRequired()&&!factor)return said('Your authenticator could not be confirmed. Nothing was deleted. Sign in again and retry.');
       if(factor){
         if(!/^\d{6}$/.test(code||"")) return said("Enter the six-digit code from your authenticator. Nothing was deleted.");
         var path="/auth/v1/factors/"+encodeURIComponent(factor.id);
@@ -379,6 +527,14 @@
         if(g!==generation || readSession()!==s) return cancelled();
         if(!verified.ok || !verified.body?.access_token) return said("The authenticator code was refused. Nothing was deleted.");
         access=verified.body.access_token;
+      }
+      if(securityRequired()){
+        var claimed=await call('/rest/v1/rpc/gridlock_security_action',{method:'POST',body:JSON.stringify({action:'claim',input:{label:'This device',replace:jwtSession(s.access_token)}})},access);
+        if(g!==generation||readSession()!==s)return cancelled();
+        if(!claimed.ok||claimed.body?.ok!==true||claimed.body.user_id!==s.user.id||claimed.body.session_id!==jwtSession(access))return said('The new sign-in could not be approved. Nothing was deleted.');
+        var next=sessionFrom({...verified.body,user:s.user});next.security_approved=securityIdentity(next);
+        if(!writeSession(next))return said('The sign-in could not be saved. Nothing was deleted.');
+        s=next;
       }
       var removed=await call("/functions/v1/gridlock-account",{method:"POST",body:JSON.stringify({confirmation:confirmation})},access);
       if(g!==generation || readSession()!==s) return cancelled();
@@ -424,7 +580,7 @@
       var g = generation, v = seasonVersion;
       return queueSeason(async function () {
         if (g !== generation || v !== seasonVersion) return cancelled();
-        var t = await token(), s = readSession();
+        var t = await accountToken(), s = readSession();
         if (g !== generation || v !== seasonVersion) return cancelled();
         if (!t || !(s && s.user && s.user.id)) return said("Sign in before turning on League sync.");
         var data;
@@ -455,7 +611,7 @@
       try {
         return await queueSeason(async function () {
           if (g !== generation) return cancelled();
-          var t = await token(), s = readSession();
+          var t = await accountToken(), s = readSession();
           if (g !== generation) return cancelled();
           if (!t || !(s && s.user && s.user.id)) return said("Sign in before removing what you sent.");
           var expected=seasonRevision(s.user.id);
@@ -479,5 +635,16 @@
   };
   function install() { if (cfg() && cfg().url && cfg().anonKey) {window.gridlockCloud = api;var s=readSession();if(s)seasonRevision(s.user.id);} }
   install();
+  // Recheck on return/reconnect and while visible. An offline season remains
+  // usable after this browser completed MFA; remote revocation applies online.
+  if(securityRequired() && window.addEventListener && typeof document!=='undefined'){
+    var securityPolling=false;
+    var poll=async function(){
+      if(securityPolling||securityWork||!readSession()||document.visibilityState==='hidden'||navigator.onLine===false)return;
+      securityPolling=true;try{await securityRpc('status');}finally{securityPolling=false;}
+    };
+    window.addEventListener('focus',poll);window.addEventListener('online',poll);
+    document.addEventListener('visibilitychange',poll);setInterval(poll,30000);
+  }
   if (typeof module !== "undefined" && module.exports) module.exports = { api: api, configure: window.gridlockCloudConfigure };
 })();

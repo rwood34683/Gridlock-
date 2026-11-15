@@ -21,6 +21,8 @@ export function createAccountHandler(settings:Settings,createClient:ClientFactor
       const user=who.data?.user, claims=verified.data?.claims;
       if(who.error||verified.error||!user?.id||claims?.sub!==user.id)return reply({error:"Sign in again."},401);
       if(!user.email_confirmed_at)return reply({error:"Confirm your email first."},403);
+      const security=await db.rpc('gridlock_service_session_allowed',{actor:user.id,sid:claims.session_id||null,assurance:claims.aal||null});
+      if(security.error||security.data!==true)return reply({error:"Verify your sign-in and approve this device."},403);
       const recent=Array.isArray(claims.amr)&&claims.amr.some((m:any)=>m.method==="password"&&Number.isFinite(m.timestamp)&&m.timestamp*1000<=now()+30000&&m.timestamp*1000>=now()-300000);
       if(!recent)return reply({error:"Enter your password again before deleting your account."},403);
       if((user.factors||[]).some((f:any)=>f.status==="verified")&&claims.aal!=="aal2")return reply({error:"Verify your authenticator first."},403);

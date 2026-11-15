@@ -40,6 +40,12 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Required MFA and three sessions are prepared, not live.** All roles use the
+  same server gate; see `docs/ACCOUNT-SECURITY.md`. Hosted staging is a release gate.
+
+- **Team account foundation is prepared, not live.** Account-bound membership and owner/coach/player permissions are disabled by default; see `docs/TEAM-ACCOUNTS.md`.
+  Keep Coach seasons/plans and offline previews separate. Do not activate the migration, pilot accounts or shared team data as part of a UI/preview update.
+
 - **Player point actions** share one duplicate-tap guard across Tally/Scout; Back a point and New match allow deliberate correction.
   Keep one No point button, regenerate from tools/teaser_coachplay.js, and run test/player-point-actions.cjs through teaser-browser.
 

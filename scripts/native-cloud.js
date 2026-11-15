@@ -145,10 +145,10 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${path.basename(command)} ${args.join(" ")} failed.`);
 }
 
-function buildFor(platform, { url, anonKey } = {}) {
+function buildFor(platform, { url, anonKey, accountSecurity = process.env.GRINDX_ACCOUNT_SECURITY === 'required' } = {}) {
   const p = PLATFORMS[platform];
   if (!p) throw new Error("Platform must be ios or android.");
-  return require("./cloud-build").build({ url, anonKey, redirectTo: CALLBACK, outDir: p.out, associations: false });
+  return require("./cloud-build").build({ url, anonKey, redirectTo: CALLBACK, outDir: p.out, associations: false, accountSecurity });
 }
 
 // Build the cloud app and put it in one shell. Throws one sentence naming what
