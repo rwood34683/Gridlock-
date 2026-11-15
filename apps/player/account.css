@@ -6,7 +6,7 @@ label{display:block;font-weight:650;margin:12px 0 4px}input,select,button,a{font
 button,.button{min-width:44px;min-height:48px;padding:11px 16px;border:1px solid #777d84;border-radius:8px;background:#25282b;color:#fff;cursor:pointer;text-align:center;text-decoration:none;display:inline-block}
 button.primary{background:#ba2523;border-color:#ef615c;font-weight:700}button:disabled{opacity:.55;cursor:wait}:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.row>*{max-width:100%}.row>input,.row>select{flex:1 1 180px}.row>button{flex:1 1 auto}
-.muted,footer{color:#bec2c7}.warning{border-left:4px solid #ff6159;padding-left:12px}#message:empty{display:none}#message{padding-top:0;color:#ffd5d1}#message:focus{outline:none}
+.muted,footer{color:#ff6159}.warning{border-left:4px solid #ff6159;padding-left:12px}#message:empty{display:none}#message{padding-top:0;color:#ffd5d1}#message:focus{outline:none}
 ul{list-style:none;padding:0}li{padding:14px 0;border-bottom:1px solid #363a3e}code{display:block;font-size:1.1rem;letter-spacing:.03em;background:#050607;padding:14px;margin:10px 0;user-select:all}
 footer{border-top:1px solid #35383b}footer nav{display:flex;gap:12px;flex-wrap:wrap}footer a{color:#f4f4f4;min-height:44px;padding:10px 0;display:inline-block}
 @media(max-width:420px){header,main,footer,#message{padding:16px}form,.card{padding:14px}h1{font-size:1.55rem}.row>button{flex-basis:100%}}

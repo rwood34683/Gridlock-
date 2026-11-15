@@ -1722,6 +1722,14 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     and rollout gates; `team-membership` and `team-access` test the SQL and
     account-switch failures without changing any live service.
 
+97. **All cloud roles require MFA and three approved sessions once enabled.**
+    See `docs/ACCOUNT-SECURITY.md`. Preparation is disabled by default; complete
+    hosted staging before activation. UI checks never replace the server's
+    live session, verified factor, restrictive RLS and privileged-handler gate.
+    Keep offline seasons and export; never revoke another device on an ordinary
+    sign-out. A fourth browser requires an explicit replacement. Never log or
+    persist authenticator setup secrets/codes. Keep offline previews separate.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`

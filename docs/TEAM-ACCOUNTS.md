@@ -10,6 +10,13 @@ The same account UUID has the same memberships on another signed-in device.
 A display name, email, local team selection or preview code is never proof of
 membership. `IMPACT-7QX2` and other preview/demo codes grant no server access.
 
+The draft now includes a separate `apps/player/` account entry and
+`npm run player:cloud` build for sign-in, email confirmation, password reset,
+membership and owner controls. It requires the shared MFA/device gate in
+`docs/ACCOUNT-SECURITY.md`; Coach/admin use the same gate after rollout.
+Player tools and shared team content remain explicitly coming soon. The
+offline demos are never turned into authenticated apps by this build.
+
 ## What each role can do
 
 | Action | Owner | Coach | Player |

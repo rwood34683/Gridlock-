@@ -170,7 +170,7 @@
       })));
     }
   }
-  function render(){root.replaceChildren();if(view==='teams'&&user)membership();else auth();setBusy(busy);}
+  function render(){root.replaceChildren();if(view==='teams'&&user){membership();root.append(button('Your devices',()=>api.manageDevices()));}else auth();setBusy(busy);}
   async function boot(){
     for(const [label,key]of [['Privacy','privacyUrl'],['Support','supportUrl']]){
       try{const u=new URL(window.GRIDLOCK_CLOUD?.[key]);if(u.protocol==='https:'&&!u.username&&!u.password)document.getElementById('help').append(el('a',{href:u.href,target:'_blank',rel:'noopener noreferrer'},label));}catch{}
@@ -187,6 +187,7 @@
   window.addEventListener('storage',()=>{
     if(api&&currentId()!==(user?.id||null)){signedOut();if(api.session())refresh(true);}
   });
+  window.addEventListener('gridlock-security',()=>{if(user&&!api.securityReady())signedOut();});
   window.addEventListener('focus',()=>{if(user)refresh();});
   document.addEventListener('visibilitychange',()=>{if(user&&document.visibilityState==='visible')refresh();});
   setInterval(()=>{if(user&&document.visibilityState==='visible')refresh();},30000);

@@ -134,6 +134,8 @@ export function createAdminHandler(settings: Settings, createClient: ClientFacto
       const mfaRequired=claims.aal!=="aal2";
       if(req.method==="GET" && new URL(req.url).searchParams.get("action")==="identity") return reply({caller,mfa_required:mfaRequired});
       if(mfaRequired) return reply({error:"Verify your authenticator to use administration.",code:"mfa_required"},403);
+      const security=await db.rpc('gridlock_service_session_allowed',{actor:user.id,sid:claims.session_id||null,assurance:claims.aal||null});
+      if(security.error||security.data!==true)return reply({error:"Verify your sign-in and approve this device.",code:"security_required"},403);
       if (req.method === "GET") {
         const url = new URL(req.url), paging = pageArgs(url);
         if (!paging) return reply({ error: "Use a positive page and per_page between 1 and 100." }, 400);

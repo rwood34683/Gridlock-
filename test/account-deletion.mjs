@@ -8,7 +8,7 @@ let count=0;async function test(name,fn){await fn();count++;console.log('PASS '+
 function harness(extra={}){
   const state={deleted:[],user:{id:ID,email_confirmed_at:'today',factors:[]},claims:{sub:ID,aal:'aal1',amr:[{method:'password',timestamp:NOW/1000}]},...extra};
   const settings={SUPABASE_URL:'https://fixture.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fixture-server',ADMIN_ALLOWED_ORIGINS:ORIGIN};
-  const handler=createAccountHandler({get:k=>settings[k]},()=>({auth:{getUser:async()=>({data:{user:state.user},error:state.authError}),getClaims:async()=>({data:{claims:state.claims},error:state.claimsError}),admin:{deleteUser:async(id,soft)=>{state.deleted.push([id,soft]);return{error:state.deleteError};}}}}),()=>NOW);
+  const handler=createAccountHandler({get:k=>settings[k]},()=>({rpc:async(name,args)=>{assert.equal(name,'gridlock_service_session_allowed');state.securityArgs=args;return {data:state.securityAllowed!==false,error:state.securityError||null};},auth:{getUser:async()=>({data:{user:state.user},error:state.authError}),getClaims:async()=>({data:{claims:state.claims},error:state.claimsError}),admin:{deleteUser:async(id,soft)=>{state.deleted.push([id,soft]);return{error:state.deleteError};}}}}),()=>NOW);
   const send=async(body={confirmation:'DELETE MY ACCOUNT'},headers={},method='POST')=>{
     const req=new Request('https://fixture.supabase.co/functions/v1/gridlock-account',{method,headers:{origin:ORIGIN,authorization:'Bearer fixture','content-type':'application/json',...headers},...(method==='POST'?{body:typeof body==='string'?body:JSON.stringify(body)}:{})});
     return handler(req);
@@ -47,5 +47,8 @@ await test('invalid JSON, large bodies and form submissions are rejected',async(
 });
 await test('provider refusal never claims deletion succeeded or exposes its details',async()=>{
   const h=harness({deleteError:{message:'private-internal'}}),res=await h.send();assert.equal(res.status,502);assert(!(await res.text()).includes('private-internal'));
+});
+await test('unapproved or uncheckable devices never reach account deletion',async()=>{
+  for(const extra of [{securityAllowed:false},{securityError:{message:'unavailable'}}]){const h=harness(extra);assert.equal((await h.send()).status,403);assert.equal(h.state.deleted.length,0);assert.equal(h.state.securityArgs.actor,ID);}
 });
 console.log(`${count} account-deletion safety checks passed. No live accounts were used.`);

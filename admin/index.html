@@ -416,6 +416,12 @@ async function request(path,options={}){
   finally{clearTimeout(timer);pending.delete(c);}
 }
 async function api(action,body=null,page=1){
+  if(window.gridlockCloud?.securityRequired?.()){
+    const session=await window.gridlockCloud.adminSession();
+    if(!session){clearCloud('Verify your sign-in and approve this device in the Coach account screen.');throw new Error('Cancelled.');}
+    if(caller && caller.id!==session.user.id){clearCloud('Your account changed. Sign in again.');throw new Error('Cancelled.');}
+    token=session.access_token;expiresAt=session.expires_at;
+  }
   if(!token||sessionExpired())throw new Error("Sign in again to continue.");
   const current=epoch;
   const res=await request("/functions/v1/"+CLOUD.fn+(body?"":"?action="+encodeURIComponent(action)+"&page="+page+"&per_page="+(action==="seasons"?5:50)),{
@@ -433,6 +439,19 @@ async function signIn(){
   if(!email||!password)return say("Enter your Gridlock email and password.",true);
   const current=++epoch;busy=true;status="Signing in…";statusError=false;render();
   try{
+    if(window.gridlockCloud?.securityRequired?.()){
+      const cloud=window.gridlockCloud,existing=cloud.session();
+      if(existing?.user?.email?.toLowerCase()===email.toLowerCase()){
+        password='';if(!await cloud.verifySecurity())throw new Error('Verify your authenticator and approve this device.');
+      }else{
+        const signed=await cloud.signIn(email,password);password='';if(!signed.ok)throw new Error(signed.said||'Sign-in was refused.');
+      }
+      if(current!==epoch)return;
+      const shared=await cloud.adminSession();if(current!==epoch)return;
+      if(!shared)throw new Error('Your device could not be verified.');
+      token=shared.access_token;expiresAt=shared.expires_at;
+      await finishAdminLogin(current);return;
+    }
     const auth=await request("/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:CLOUD.anon,"Content-Type":"application/json"},body:JSON.stringify({email,password})});
     password="";if(current!==epoch)return;
     if(!auth.ok)throw new Error("Sign-in was refused. Check your email, password, and email confirmation.");

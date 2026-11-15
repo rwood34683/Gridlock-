@@ -20791,6 +20791,7 @@ function moreBody(k){
         <div class="kv__row"><span class="kv__k">Signed in as</span><span class="kv__v">${esc(S.email||"guest")} · ${esc(S.role)}</span></div>
       </div>
       ${staffed() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="askSignOut()">Sign out</button>` : ""}
+      ${window.gridlockCloud?.securityRequired?.() ? `<button class="btn btn--quiet btn--block" onclick="window.gridlockCloud.manageDevices()">Your devices</button><p class="note">Two-factor sign-in is required. Keep up to three browsers for your phone, tablet and laptop. League sync still needs to be on.</p>` : ""}
       <div class="kv">
         <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
@@ -21462,7 +21463,7 @@ function render(){
   const dirty = _screenDirty || screenChanged(_screenObserver.takeRecords());
   let html;
   _lastPointMemo = new Map();
-  try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
+  try { html = betaMark() + (betaOver() ? betaEndedPage() : S.entered && window.gridlockCloud?.securityRequired?.() && !window.gridlockCloud.securityReady() ? `<main class="main"><h1>Verify your sign-in</h1><p class="note">Your saved season is still on this device. Verify your authenticator and approve this device before continuing.</p><button class="btn" onclick="window.gridlockCloud.verifySecurity()">Verify sign-in</button><button class="btn btn--quiet" onclick="saveCopy('all')">Save a season copy</button><button class="btn btn--quiet" onclick="askSignOut()">Sign out</button></main>` : S.entered ? shell() : S.joinOnly ? joinSheet() : promo()); }
   finally { _lastPointMemo = null; }
   const newScreen = screen !== _where;
   const moveFocus = newScreen && root.contains(document.activeElement);
@@ -21498,6 +21499,7 @@ function render(){
   _screenObserver.takeRecords(); _screenDirty = false;
   renderPlayerDetails();
 }
+window.addEventListener('gridlock-security',()=>render());
 render();
 if(S.mode === "recovery"){ S.mode = "login"; render(); }
 if(window.gridlockCloud && window.gridlockCloud.isAuthUrl && window.gridlockCloud.isAuthUrl(location.href))

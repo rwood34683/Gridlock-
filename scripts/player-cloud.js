@@ -11,11 +11,12 @@ function build({url,anonKey,redirectTo}={}){
   const callback=authRedirect(redirectTo);
   if(!callback||!/^https?:/.test(callback)||!new URL(callback).pathname.endsWith('/'))throw Error('Set the exact Player HTTPS address, ending in / (localhost is allowed for tests).');
   const contact=JSON.parse(fs.readFileSync(path.join(ROOT,'site/contact.json'),'utf8'));
-  const config={url:project.origin,anonKey,redirectTo:callback,...pageUrls(contact.domain)};
+  const config={url:project.origin,anonKey,redirectTo:callback,...pageUrls(contact.domain),accountSecurity:true};
   const files=new Map();
   for(const name of ['index.html','account.js','account.css'])files.set(name,fs.readFileSync(path.join(ROOT,'apps/player',name)));
   files.set('logo-gridlock.png',fs.readFileSync(path.join(ROOT,'web/logo-gridlock.png')));
   files.set('gridlock-cloud.js',fs.readFileSync(path.join(ROOT,'native/gridlock-cloud.js')));
+  files.set('gridlock-security.js',fs.readFileSync(path.join(ROOT,'native/gridlock-security.js')));
   files.set('gridlock-config.js',Buffer.from('window.GRIDLOCK_CLOUD = '+JSON.stringify(config).replace(/</g,'\\u003c')+';\n'));
   // Fail before touching output; dist/player-cloud is the only owned target.
   for(let item=OUT;item!==ROOT;item=path.dirname(item))if(fs.existsSync(item)&&fs.lstatSync(item).isSymbolicLink())throw Error('Player output cannot be a symbolic link.');
