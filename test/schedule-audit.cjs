@@ -106,6 +106,33 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.deepEqual(await days(p,"Thu 06:30 Rejects vs Blast Camp"),["2026-11-12 06:30 Rejects v Blast Camp"],"a leading zero is the 24-hour clock");
    assert.deepEqual(await days(p,"Thu 6:30 Rejects vs Blast Camp"),["2026-11-12 18:30 Rejects v Blast Camp"]);
   });
+  await check("a past game's sheet opens again from the game list and the calendar, played or watched, to recap the day",async p=>{
+   const ids=await p.evaluate(()=>{S.fmtAsk=false;S.fmtDone=true;const gs=allGames().filter(g=>g.d===allGames()[0].d);
+    const a=gs[0],b=gs[1];Date.now=()=>gameAt(a)-60000;
+    playGame(a.id,"home");endPoint("us");_lastNext=null;endPoint("them");const played=S.matchId;
+    watchGame(b.id);endPoint("us");const watched=S.matchId;
+    // The end of the event: he has moved on to a blank sheet on Sunday.
+    Date.now=()=>Date.parse("2026-11-15T18:00:00");freshMatch();
+    set({tab:"more",more:"schedule",gameOpen:a.id});return {a:a.id,b:b.id,d:a.d,played,watched};});
+   assert.ok(ids&&ids.a,JSON.stringify(ids));assert.notEqual(await p.evaluate(()=>S.matchId),ids.played,"he is on another sheet now");
+   const row=p.locator(`#root [data-game="${ids.a}"]`).first();
+   await row.locator("button",{hasText:"Open this sheet"}).click();
+   let r=await p.evaluate(()=>({id:S.matchId,tab:S.tab}));
+   assert.equal(r.id,ids.played,"the played sheet opens from its game row");
+   await p.evaluate(b=>set({tab:"more",more:"schedule",gameOpen:b}),ids.b);
+   await p.locator(`#root [data-game="${ids.b}"]`).first().locator("button",{hasText:"Review"}).click();
+   r=await p.evaluate(()=>({more:S.more,review:S.reviewId,id:S.matchId}));
+   assert.equal(r.more,"matches");assert.equal(r.review,ids.watched,"Review reads the watched sheet without opening it");
+   assert.equal(r.id,ids.played,"reviewing moves nothing");
+   // The calendar: the day it was played, the league game's row.
+   await p.evaluate(x=>set({tab:"more",more:"schedule",calView:"month",calAt:x.d,calDay:x.d,calOpen:"g|"+x.b}),ids);
+   const ctl=p.locator("#root .cal-item.is-open .cal-item__ctl");
+   assert.match(await ctl.innerText(),/Open this sheet · 1–0/);assert.match(await ctl.innerText(),/Review/);
+   await ctl.locator("button",{hasText:"Open this sheet"}).click();
+   assert.equal(await p.evaluate(()=>S.matchId),ids.watched,"the watched sheet opens from the calendar");
+   await p.evaluate(x=>set({tab:"more",more:"schedule",calAt:x.d,calDay:x.d,calOpen:"m|"+x.played}),ids);
+   assert.equal(await p.locator("#root .cal-item.is-open .cal-item__ctl button",{hasText:"Review"}).count(),1,"a sheet's own row has Review too");
+  });
   await check("once his last game against a team is over, none of their later games is offered",async p=>{
    const r=await p.evaluate(()=>{S.myTeam="Houston Heat";const mine=teamGames("Houston Heat"),out=[];
     for(const opp of [...new Set(mine.map(g=>across(g,"Houston Heat")))]){const last=Math.max(...mine.filter(x=>foldName(across(x,"Houston Heat"))===foldName(opp)).map(gameAt));

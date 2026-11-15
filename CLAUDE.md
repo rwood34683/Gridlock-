@@ -1751,6 +1751,14 @@ below 1, or the section falls off). Bunker stats offers Date not recorded only
 when something is undated. `test/interaction-audit.cjs`,
 `test/data-audit.cjs`.
 
+Past sheets from Schedule (owner, 15 Nov 2026): a schedule game he played or
+watched opens back to its sheet. `gameSheets(g)` is the one match of sheets to
+a game (the sheet's `sched`, else teams, field and day), read by the game
+list's row and the calendar's game row; each sheet gets **Open this sheet**
+(`openMatch`) and **Review** (`openReview`), and a sheet's own calendar row has
+Review too. Same plan gate as Matches; nothing is opened or changed by
+reading the row. `test/schedule-audit.cjs`.
+
 Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
 not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
 in one short line each, then (owner, 12 Nov 2026) a card for every More tool in
