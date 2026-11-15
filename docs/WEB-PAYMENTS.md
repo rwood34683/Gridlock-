@@ -10,6 +10,10 @@ external evidence below is complete.**
   **America/New_York** on the payment date. A purchase at 11:55 PM has five
   minutes left. This is not a 24-hour pass.
 - One-time payment; no subscription or automatic renewal.
+- Coach is behind the payment wall: signing up, confirming email, joining a
+  team or having a free Player account does not unlock any Coach tool. The
+  account can still sign in, recover its password and keep/export its season.
+  Player accounts are free; this does not publish the separate Player app.
 - Existing invited beta access and active Team/Program grants stay intact.
   Do not change administrator privileges or the admin allowlist.
 - Expiration leaves saved seasons, Account & backups, Save everything,
@@ -20,6 +24,12 @@ external evidence below is complete.**
   Other requests go to **support@gridlockpb.com**. Verified duplicate and
   undeliverable events trigger an automatic full refund; support reviews other
   delivery failures. Partial refunds leave the pass active.
+
+The required MFA and three-session foundation is tracked separately in draft
+PR #352. Payment access and account security are independent requirements;
+neither a purchase nor a team role bypasses MFA. Before either draft goes live,
+test the combined migration/function/build path in the separate test project.
+This payment draft alone does not activate MFA or the Player launch.
 
 The website sends customers to https://app.gridlockpb.com/ to create and
 confirm an account, sign in and purchase for that account. No public payment

@@ -155,6 +155,48 @@ try{
   response='denied';await page.evaluate(()=>window.refreshAccountAccess());assert.equal(await page.evaluate(()=>planOf()),'free');
   assert.deepEqual(errors,[]);
  });
+ await check('all current Coach screens require paid access; a Player label or local plan grants nothing',async()=>{
+  response=await receipt({plan:'free',source:'none',expires:null});await fresh();
+  await page.evaluate(()=>{
+   S.billing={plan:'program',exp:0};S.preview=false;
+   const s=JSON.parse(localStorage.getItem('grindx.cloud.session'));
+   s.user.user_metadata={role:'player',plan:'program'};
+   localStorage.setItem('grindx.cloud.session',JSON.stringify(s));render();
+  });
+  for(const [tab,more] of [['home',''],['playbook',''],['tally',''],['scout',''],['sightlines',''],
+    ['more','schedule'],['more','reports'],['more','codes'],['more','whiteboard'],['more','team']]){
+   await page.evaluate(([tab,more])=>set({tab,more,fmtAsk:false,syncAsk:false}),[tab,more]);
+   assert.equal(await page.evaluate(()=>planOf()),'free',tab+'/'+more);
+   assert.ok(await page.locator('[data-pass-locked]').isVisible(),tab+'/'+more);
+   assert.equal(await page.locator('#root svg.field, #root .resultbar').count(),0);
+  }
+  assert.deepEqual(errors,[]);
+ });
+ await check('expiration closes an open player popup before another observation can be logged',async()=>{
+  response=await receipt();await fresh();await page.waitForFunction(()=>planOf()==='program');
+  await page.evaluate(()=>{
+   curMatch().vs='Test opponents';S.right={name:'Test opponents'};
+   set({tab:'tally',fmtAsk:false,syncAsk:false});showNamedPlayer('us','Test Player');
+  });
+  assert.ok(await page.locator('#player-details').isVisible());
+  const before=await page.evaluate(()=>JSON.stringify([S.results,S.tally,S.playerChecks]));
+  response=await receipt({plan:'free',source:'none',expires:null});
+  await page.evaluate(()=>window.refreshAccountAccess());
+  assert.equal(await page.locator('#player-details').isVisible(),false);
+  await page.evaluate(()=>playerQuick('shooting',true));
+  assert.equal(await page.evaluate(()=>JSON.stringify([S.results,S.tally,S.playerChecks])),before);
+  assert.deepEqual(errors,[]);
+ });
+ await check('an unchanged background access check preserves an unfinished code edit',async()=>{
+  response=await receipt();await fresh();await page.waitForFunction(()=>planOf()==='program');
+  await page.evaluate(()=>set({tab:'more',more:'codes',codes:[{word:'Blue',means:'Hold'}],fmtAsk:false,syncAsk:false}));
+  const meaning=page.locator('.assign__body input').nth(1);
+  await meaning.fill('Still typing the call');
+  await page.evaluate(()=>window.gridlockWebPayments.refresh(readAccount().uid));
+  assert.equal(await meaning.inputValue(),'Still typing the call');
+  assert.equal(await page.evaluate(()=>S.codes[0].means),'Hold');
+  assert.deepEqual(errors,[]);
+ });
  console.log('Web payment browser checks: '+passed+'/'+passed);
 }catch(error){console.error('Browser errors:',errors);console.error(await page?.locator('body').innerText());throw error;}
 finally{await context?.close();await browser.close();server.closeAllConnections();await new Promise(r=>server.close(r));}

@@ -101,7 +101,7 @@ const {createServer}=require('../scripts/serve');
    assert.match(await p.evaluate(()=>document.querySelector('.fmt-card').innerText),/gives 5v5 one set of numbers for every division[\s\S]*best 2 of 3/);
    await p.evaluate(()=>setFmtForm('xball'));
    assert.deepEqual(await p.evaluate(()=>[S.fmt.div,S.fmt.time,S.fmt.mercy,S.fmt.clock,sideSize()]),['Division 4',12,4,120,5],'D4 X-Ball is the rulebook division');
-   assert.deepEqual(await card(),[['Race to','No race — a game clock and a mercy leadRulebook'],['Game clock','12-minute gameRulebook'],['Mercy rule','Ends the match at a 4-point leadRulebook'],['Clock between points','At least 2:00; 1:00 on a split deckRulebook']]);
+   assert.deepEqual(await card(),[['Race to','No race — a game clock and a mercy leadRulebook'],['Game clock','12-minute gameRulebook'],['Mercy rule','Ends the match at a 4-point leadRulebook'],['Clock between points','At least 2:00 between our points; 1:00 split-deck changeoverRulebook']]);
    await p.evaluate(()=>setFmtLevel('Amateur'));
    assert.equal(await p.evaluate(()=>S.fmt.div),'Amateur X-Ball','the format stays when the division changes');
    assert.deepEqual(await p.evaluate(()=>[S.fmt.time]),[0],'a pair nobody publishes clears the old game clock');
@@ -180,7 +180,7 @@ const {createServer}=require('../scripts/serve');
   await check('Adjust settings stays open across changes and keeps custom values after reload',async p=>{
    await p.getByLabel('Choose your division',{exact:true}).selectOption('Division 3');await p.getByLabel('Format played',{exact:true}).selectOption('xball');
    await p.getByText('Adjust settings',{exact:true}).click();
-   await p.getByRole('button',{name:'1:00 · split deck',exact:true}).click();
+   await p.getByRole('button',{name:'1:00',exact:true}).click();
    assert.equal(await p.getByRole('button',{name:'7 min',exact:true}).isVisible(),true);
    await p.getByRole('button',{name:'7 min',exact:true}).click();
    assert.deepEqual(await p.locator('.fmt-values dd').allTextContents(),['5 a side','7 min','4-point lead','1:00']);

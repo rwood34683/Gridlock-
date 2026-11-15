@@ -103,7 +103,9 @@ const SEED = require("../scripts/seed.js");
       assert.ok(rec.y - (map.y + map.height) < 40, "Record is right under the field");
     });
     await check("the schedule jumps to the next game in one tap", async p => {
-      await p.evaluate(() => set({ tab: "more", more: "schedule" }));
+      // The phone's clock, set to the morning of the event: the real date
+      // passes the schedule, and then there is rightly no next game to jump to.
+      await p.evaluate(() => { const first = Math.min(...allGames().map(gameAt)); Date.now = () => first - 3600000; set({ tab: "more", more: "schedule" }); });
       const jump = p.locator("button", { hasText: /^Next game on the full schedule ·/ });
       assert.equal(await jump.count(), 1);
       await jump.click();
@@ -111,6 +113,11 @@ const SEED = require("../scripts/seed.js");
       assert.ok(open, "the game opens");
       const row = await p.locator(`[data-game="${open}"]`).boundingBox();
       assert.ok(row.y >= 0 && row.y < 844 / 2, "its row is on screen");
+    });
+    await check("the schedule never offers a past game as the next game", async p => {
+      await p.evaluate(() => { const now = Date.parse("2026-11-16T12:00:00"); Date.now = () => now; set({ tab: "more", more: "schedule" }); });
+      assert.equal(await p.locator("button", { hasText: /^Next game on the full schedule ·/ }).count(), 0);
+      assert.ok(await p.locator("[data-game]").count() > 0, "past games remain available to review");
     });
     await check("the squad goes in by paste, and the add row keeps the keyboard up", async p => {
       await p.evaluate(() => { S.roster = []; save(S); set({ tab: "more", more: "team" }); });

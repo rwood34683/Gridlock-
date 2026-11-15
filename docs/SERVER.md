@@ -35,6 +35,18 @@ consistent whenever this data flow changes.
 
 ## Offline-first is not negotiable
 
+On a cloud build, [account device handoff](ACCOUNT-DEVICE-SYNC.md) checks the
+account's saved season before uploading. A new device offers the saved season;
+an opted-in returning device adopts a newer copy at sign-in or while idle only
+when its own season has not changed since its acknowledged save. While visible,
+it checks on return/reconnect and every 30 seconds; drafts and recording delay
+replacement. Sending still runs within 90 seconds while open and online.
+Conflicting edits require
+a choice. The selected team and format travel with a full season, without
+granting team or account permissions. This uses the existing authenticated
+revision RPC and owner-only RLS; it does not enable automatic sharing for
+coaches who have declined or paused sync.
+
 A field in Garland has no bars.
 
 1. The local account stays the **working credential**. A successful cloud

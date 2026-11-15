@@ -388,14 +388,14 @@ const ROSTER = [
   });
   check("with the adapter, Nexus offers League sync and says it is off until you turn it on", await ev(() => {
     const t = document.getElementById("root").innerText;
-    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Send my season to my account/.test(t);
+    return /League sync/.test(t) && /off until you turn it on/i.test(t) && /Turn on sync/.test(t);
   }));
   check("turning it on pushes the whole season through the adapter", await ev(async () => {
     window.toggleSync();
     await new Promise(r => setTimeout(r, 20));
     if(window.__pushes.length !== 1) return false;
     const p = JSON.parse(window.__pushes[0].payload);
-    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Kept with your account on our account server/.test(S.syncSaid);
+    return S.syncOn === true && p.format === "gridlock.coach.copy" && p.data && S.syncAt && /Saved to your account/.test(S.syncSaid);
   }));
   check("now the data-lives line says the season is going up", await ev(() =>
     /one current copy is kept with your account on our account server/i.test(document.getElementById("root").innerText)));
@@ -581,10 +581,10 @@ const ROSTER = [
     const openDetails = () => { document.querySelector("#fmt-rules > summary").click(); document.querySelector("#fmt-settings > summary").click(); };
     openDetails();
     const page3 = document.getElementById("root").innerText;
-    const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 · split deck/.test(page3)
+    const shown = /12-minute game/.test(page3) && /4-point lead/.test(page3) && /1:00 split-deck changeover/.test(page3)
       && /Race to — your format/.test(page3) && /Game clock — the official's starting clock/.test(page3) && /12 min · rulebook/.test(page3);
     window.setFmt("div", "Semi-Pro"); openDetails();
-    const semi = /0:45 · split deck/.test(document.getElementById("root").innerText);
+    const semi = /0:45 split-deck changeover/.test(document.getElementById("root").innerText);
     window.setFmt("div", "Other");
     const other = S.fmt.time === 0 && /Race to — your format/.test(document.getElementById("root").innerText);
     S.fmt = {}; S.matches = S.matches.map(x => ({...x, size: null, game: null, div: null, raceTo: null, mercy: null, breakClock: null}));
@@ -2093,11 +2093,11 @@ const ROSTER = [
   await page.fill("#em", "coach@team.com"); await page.fill("#pw", "sideline1");
   await page.evaluate(async () => { await window.doAuth(); });
   await page.waitForTimeout(350);
-  // A new phone answers the format first, then starts at the team's day.
-  check("first run: the format comes first, and Done opens the team's day", await ev(() => {
+  // A new phone answers the format first, then chooses a tool on Home.
+  check("first run: the format comes first, and Done opens Home", await ev(() => {
     const asked = S.fmtAsk === true && /Your format/.test(document.getElementById("root").textContent);
     window.fmtDone();
-    return asked && !S.fmtAsk && S.fmtDone === true && S.tab === "more" && S.more === "schedule"
+    return asked && !S.fmtAsk && S.fmtDone === true && S.tab === "home" && S.more === null
       && /Your team's day/i.test(document.getElementById("root").innerText);
   }));
   await page.getByRole("button", { name: "Playbook", exact: true }).click();
@@ -5375,7 +5375,8 @@ const ROSTER = [
     const stayed = S.layoutKey === was && S.evPick;
     const opts = [...document.querySelectorAll("#root .evpick select")];
     const listed = layoutChoices().length === keys.length && opts.length === 3
-      && document.getElementById("event-layout").value === was
+      && document.getElementById("event-name").value === "" && document.getElementById("event-layout").value === ""
+      && document.querySelector("#event-name option").textContent === "Pick your event\u2026"
       && opts.every(b => b.getBoundingClientRect().height >= 44);
     const other = keys.find(k => k !== was);
     const choice = layoutChoices().find(r => r.key === other);
@@ -8339,11 +8340,11 @@ const ROSTER = [
     return Object.values(flags).every(Boolean) || "failed: " + Object.keys(flags).filter(k => !flags[k]).join(", ");
   });
   check("renaming a man carries his season with him: outs, breakouts, grades, rotations, penalties, lineups and bunker words all read the new name", renamed === true, renamed);
-  check("the Scout strip offers no Next point on a finished sheet", await ev(() => {
+  check("the Scout strip offers no Next point or No point on a finished sheet", await ev(() => {
     window.set({ tab: "tally" }); window.newMatch(); window.setRaceTo(1); window.endPoint("us");
     window.set({ tab: "scout" });
     const btns = [...document.querySelectorAll("#root .btn")].map(b => b.textContent.trim());
-    return matchOver() === "us" && !btns.includes("Next point") && btns.includes("New match");
+    return matchOver() === "us" && !btns.includes("Next point") && !btns.includes("No point") && btns.includes("New match");
   }));
 
   /* --------------------------------------------------------------- matches */
@@ -8940,16 +8941,25 @@ const ROSTER = [
   check("Scout shows the match and lets you start a new one", await ev(() => {
     window.set({ tab:"scout", scoutTab:"matchup", right:{name:"Aftershock"} });
     const t = document.getElementById("root").textContent;
-    return /New match/.test(t) && /Next point/.test(t) && /point \d+/.test(t);
+    const button = document.querySelector('#root button[onclick="tapNext()"]');
+    return /New match/.test(t) && /No point/.test(t) && /point \d+/.test(t)
+      && !!button && /^No point\./.test(button.getAttribute("aria-label"));
   }));
   check("Next point on Scout moves the same point Tally is on", await ev(() => {
     const was = S.point || 1; window.nextPoint(); const now = S.point;
     window.backPoint(); return now === was + 1 && S.point === was;
   }));
   // "We need a spot for next point in a game in the scout tab. Also how do we switch games."
-  check("Next point is on every Scout view, Arrival and Voice included", await ev(() => {
+  check("No point works on every Scout view, Arrival and Voice included", await ev(() => {
     return SCOUT_TABS.every(([k]) => { window.set({ tab:"scout", scoutTab:k });
-      return /Next point/.test(document.getElementById("root").textContent); });
+      const button = document.querySelector('#root button[onclick="tapNext()"]');
+      if(!button || button.textContent.trim() !== "No point" || !/^No point\./.test(button.getAttribute("aria-label"))) return false;
+      const pt = S.point || 1, results = JSON.stringify(S.results), end = ourEnd(pt + 1);
+      button.click();
+      const ok = S.point === pt + 1 && JSON.stringify(S.results) === results && ourEnd(S.point) === end;
+      window.backPoint();
+      return ok && S.point === pt;
+    });
   }));
   check("the strip switches games and lands on that game's last point", await ev(() => {
     const here = S.matchId, hereRow = {...curMatch()};
@@ -10888,7 +10898,7 @@ const ROSTER = [
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
     return ok || JSON.stringify({ pick: S.theirPick, flash: S.flash });
   }));
-  check("each man of their five logged on Scout is listed under Where they plant, and opens his details on Tally", await ev(() => {
+  check("each man of their five on Scout opens a read-only popup, then explicitly edits his details on Tally", await ev(() => {
     const snap = JSON.stringify(S);
     window.confirm = () => true;
     window.setPitTeam("right", teamsHere()[0].name); window.newMatch();
@@ -10899,7 +10909,14 @@ const ROSTER = [
     window.set({});
     const btns = [...document.querySelectorAll("#root button")].filter(b => /add his details/.test(b.textContent));
     const listed = btns.length === 5;
+    const before = JSON.stringify([S.matchId,S.point,S.results,S.breakouts,S.tally]);
     if(btns[0]) btns[0].click();
+    const popup = document.getElementById("player-details");
+    const read = popup.hasAttribute("open") && S.tab === "scout" && /Status not recorded/.test(popup.textContent)
+      && before === JSON.stringify([S.matchId,S.point,S.results,S.breakouts,S.tally]);
+    popup.querySelector("#player-extra > summary").click();
+    const edit = [...popup.querySelectorAll("button")].find(b => b.textContent === "Edit break details on Tally");
+    if(edit) edit.click();
     const opened = S.tab === "tally" && !!S.tallyEdit && rows.some(r => r.id === S.tallyEdit);
     window.setDraft({ alive: true, shootAt: curLayout().bunkers[2].id }); window.logBreakout();
     window.set({ tab: "scout", scoutTab: "breakouts" });
@@ -10908,7 +10925,7 @@ const ROSTER = [
     window.unlogTheirBreak("right", 0);
     const left = (S.breakouts || []).filter(r => r.m === S.matchId && r.side === "them").length;
     (Object.keys(S).forEach(k => delete S[k]), Object.assign(S, JSON.parse(snap)), window.set({}));
-    return (five5 && listed && opened && told && left === 1) || JSON.stringify({ five5, listed, opened, told, left });
+    return (five5 && listed && read && opened && told && left === 1) || JSON.stringify({ five5, listed, read, opened, told, left });
   }));
   check("one kept note reads as one note", await ev(() => {
     const snap = JSON.stringify(S);

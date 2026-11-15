@@ -195,6 +195,8 @@ const { createServer } = require("../scripts/serve.js");
             body={id:"coach-id",email:"coach@example.test"};
           }else if(endpoint.origin==="https://demo.supabase.co"&&endpoint.pathname==="/rest/v1/entitlements"&&request.method==="GET"){
             body=[];
+          }else if(endpoint.origin==="https://demo.supabase.co"&&endpoint.pathname==="/rest/v1/seasons"&&request.method==="GET"){
+            body=[];
           }else{
             request.unexpected=true;
             throw Error("Unexpected mocked recovery request");
@@ -233,6 +235,15 @@ const { createServer } = require("../scripts/serve.js");
         user_id:"eq.coach-id",select:"user_id,plan,expires_at",limit:"1"
       });
       assert.ok(requests.indexOf(reads[0])>requests.indexOf(updates[0]),"access refresh follows the password write");
+      const seasons=requests.filter(r=>new URL(r.url).pathname==="/rest/v1/seasons");
+      assert.equal(seasons.length,1,"recovery checks the verified account's saved season once");
+      assert.equal(seasons[0].method,"GET","recovering a password does not upload a season");
+      assert.equal(seasons[0].authorization,"Bearer test-access");
+      assert.equal(seasons[0].apikey,"public-test-fixture");
+      assert.deepEqual(Object.fromEntries(new URL(seasons[0].url).searchParams),{
+        owner:"eq.coach-id",select:"label,payload,revision,deleted_at,updated_at",limit:"1"
+      });
+      assert.ok(requests.indexOf(seasons[0])>requests.indexOf(updates[0]),"season lookup follows the verified password write");
       assert.equal(await page.evaluate(() => accountGrantPlan()),"free");
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STAFF_KEY)));
       assert.equal(saved.email,"coach@example.test"); assert.ok(saved.hash);
@@ -257,6 +268,11 @@ const { createServer } = require("../scripts/serve.js");
           if(method==="PUT")serverPassword=body.password;
           response=user;
         }else if(endpoint.pathname==="/rest/v1/entitlements")response=[];
+        else if(endpoint.pathname==="/rest/v1/seasons"&&method==="GET"){
+          assert.ok(["Bearer fixture-access","Bearer fixture-recovery"].includes(request.headers().authorization));
+          assert.equal(endpoint.searchParams.get("owner"),"eq."+user.id);
+          response=[];
+        }
         else if(endpoint.pathname==="/auth/v1/logout")response={};
         else throw Error("Unexpected cross-device fixture request: "+endpoint.pathname);
         await route.fulfill({status,headers,contentType:"application/json",body:JSON.stringify(response)});

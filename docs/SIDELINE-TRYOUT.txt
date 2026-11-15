@@ -69,3 +69,50 @@ Resolve lost work, accidental scores, blocked sign-in and misleading backup
 status before release. Prioritize repeated hesitation and unreadable text next.
 Keep performance tests and phone/tablet layout checks intact. A pleasant
 experience needs this observed feedback as well as passing automated tests.
+
+GOLD COPY DEVICE PASS (added 12 Nov 2026)
+
+Automated checks cover browsers on a build machine. Nobody has yet run the
+gold copy on a real phone. Do this once on an iPhone (Safari and the installed
+app) and once on an Android phone (Chrome and the installed app), outdoors if
+possible. Use a TEST account. Write down the device, the app version and what
+happened at each step. A step passes only if you saw it happen.
+
+A. FIRST USE
+   1. Sign in on a phone that has never run the app. Tally should ask who you
+      are playing, and both Scout pits should read "Pick a team".
+   2. Pick an opponent and play two points. Close the app completely, wait a
+      minute, open it again. The same match, point and score should be there.
+
+B. NEW MATCH
+   3. Finish the match. Scroll down Tally and tap New match. The screen should
+      move to "Who are you playing?" with both pits empty.
+   4. Open More, Matches. The finished match should be listed with its score.
+
+C. HOW MUCH TO RECORD
+   5. At the foot of Tally choose Score only. The field and the player lists
+      should be put away; We won it and They won it should still work.
+   6. Tap Show the full chart. Everything you logged should still be there.
+   7. Open a player's breakout sheet and tap "Ask only who and whether he made
+      it". The next player's sheet should be short, with More about him on it.
+
+D. SCHEDULE AND SCOUTING
+   8. More, Schedule: pick your team. Check the next game and the next team to
+      scout against the printed schedule.
+   9. Type a name into "Who is watching?" on a scouting row, then tap Send the
+      day plan to the team. The message should name that person.
+  10. Paste one line, for example "Sun 9:00 AM Dynasty vs Impact Field 2", and
+      tap Read it. It should land on the event's Sunday, on Field 2.
+
+E. SHARING
+  11. Scout: tap Share this field as a picture. On a phone the share sheet
+      should open with an image; if it does not, the picture should show on
+      screen to press and hold. Note which happened.
+  12. Account & backups: Save a copy. Confirm a file was actually saved or
+      shared, and that Load a copy on a second phone merges it.
+
+F. IN THE SUN
+  13. Read Tally, Scout and Schedule outdoors at arm's length. Note anything
+      you cannot read or cannot hit with a thumb.
+
+Report anything that failed with the step number, the device and a screenshot.

@@ -29,7 +29,7 @@ VERSION = 1
 
 
 def load(pkg, name):
-    return json.loads((pkg / name).read_text())
+    return json.loads((pkg / name).read_text(encoding="utf-8"))
 
 
 class Strings:
@@ -179,7 +179,7 @@ def main():
     data = pack(Path(args[0]))
     out = Path(args[1])
     text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    out.write_text(text)
+    out.write_text(text, encoding="utf-8")
     roles = {}
     for m in data["members"]:
         r = data["str"][m[3]]

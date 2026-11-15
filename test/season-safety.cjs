@@ -18,7 +18,7 @@ function server(){let row=null;return{get row(){return row;},async route(url,opt
   }return response(row?[row]:[]);
 }};}
 function device(route,store=new Map()){
-  const requests=[],window={GRIDLOCK_CLOUD:{url:'https://fixture.supabase.co',anonKey:'public-fixture'}};
+  const requests=[],window={crypto:webcrypto,GRIDLOCK_CLOUD:{url:'https://fixture.supabase.co',anonKey:'public-fixture'}};
   const credentials={access_token:'fixture',refresh_token:'fixture-refresh',expires_in:3600,user:{id:'owner',email:'owner@example.test'}};
   vm.runInNewContext(adapter,{window,TextEncoder,URL,URLSearchParams,Date,JSON,Promise,
     localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
@@ -32,7 +32,7 @@ function syncHarness(){
   const context=vm.createContext({window:{gridlockCloud:cloud,addEventListener:(name,fn)=>events.set(name,fn),loadCopy:(_mode,raw)=>{restores.push(raw);return true;}},S:state,
     Date:{now:()=>clock},Promise,readAccount:()=>({}),clearAccountGrant(){},_authAttempt:0,_stale:false,_recoveryUser:null,_recoveryBusy:false,
     STORE_KEY:'fixture.season',localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
-    confirm:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
+    confirm:message=>{prompts.push(message);return true;},askFirst:message=>{prompts.push(message);return true;},readCopy:raw=>({payload:JSON.parse(raw)}),
     copyPayload:()=>JSON.stringify(copy(uploads.length+1)),pitName:()=>'',render(){},curMatch:()=>({id:'m1'}),sheetEmpty:()=>true,
     setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{at:clock+ms,fn});return id;},clearTimeout:id=>timers.delete(id)});
   const start=app.indexOf('const canSync ='),end=app.indexOf('window.deleteCloudAccount =',start);
@@ -138,7 +138,8 @@ function syncHarness(){
     let clock=1000000;const gate=deferred(),state={copiedAt:0,results:[]};
     const context=vm.createContext({window:{gridlockExportFile:()=>gate.promise},S:state,
       Date:class extends Date{constructor(){super(clock);}static now(){return clock;}},
-      copyPayload:()=>JSON.stringify({data:{results:state.results}}),copySummary:()=>'',save(){},render(){}});
+      copyPayload:()=>JSON.stringify({data:{results:state.results}}),copySummary:()=>'',save(){},render(){},
+      localDay:d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`});
     const start=app.indexOf('let copyExporting = false;'),end=app.indexOf('/* Two phones on one match',start);
     vm.runInContext(app.slice(start,end),context);
     const saving=vm.runInContext('window.saveCopy("all")',context);clock+=5000;state.results.push({at:clock});
@@ -161,6 +162,73 @@ function syncHarness(){
     }
   });
   const start=app.indexOf('async function hashPass('),end=app.indexOf('\nfunction newSalt()',start);
+  await test('offline sign-in retains prior consent but reconnect still checks before sending',async()=>{
+    const h=syncHarness();let online=false,reads=0;
+    h.cloud.deviceSeason=async()=>{reads++;return online?{ok:true,known:true,base:1,revision:1,user:{id:'owner@example.test'}}:{ok:false,offline:true};};
+    h.cloud.rememberSeason=async()=>true;
+    h.cloud.pushSeason=async()=>{h.uploads.push('checked send');return{ok:true,user:{id:'owner@example.test'},revision:2};};
+    h.run('syncYes(true)');await h.run('checkAccountSeason(false)');
+    assert.equal(h.state.syncOn,true);assert.equal(h.uploads.length,0);assert.equal(h.timers.size,1);
+    online=true;h.events.get('online')();await h.advance(0);
+    assert.equal(reads,2);assert.equal(h.uploads.length,1);
+  });
+  await test('adoption acknowledges the captured season, not edits made during checkpoint storage',async()=>{
+    const h=syncHarness(),gate=deferred();h.cloud.rememberSeason=()=>gate.promise;
+    h.run('const ACCOUNT_RESTORE=Symbol(); let _storeFail=""; copyPayload=()=>JSON.stringify({format:"gridlock.coach.copy",scope:"all",seasonId:"a",data:{results:S.results||[]}})');
+    const captured=h.run('Date.now()');
+    const opening=h.run('applyDeviceSeason({t:syncTicket(),r:{payload:JSON.parse(copyPayload()),user:{id:syncAskId()},revision:1},snapshot:deviceSeasonText()})');
+    await tick();await h.advance(1000);h.state.results=[{at:h.run('Date.now()')}];
+    gate.resolve(true);assert.equal(await opening,true);
+    assert.equal(h.state.syncAt,captured);assert(h.state.syncAt<h.state.results[0].at);
+    assert.equal(h.timers.size,1,'edits made while opening still need to send');
+  });
+  await test('a failed handoff checkpoint reports the opened season honestly and keeps sync off',async()=>{
+    const h=syncHarness();h.cloud.rememberSeason=async()=>false;
+    h.run('const ACCOUNT_RESTORE=Symbol(); let _storeFail=""; copyPayload=()=>JSON.stringify({format:"gridlock.coach.copy",scope:"all",seasonId:"a",data:{}})');
+    h.cloud.deviceSeason=async()=>({ok:true,known:true,unchanged:true,base:1,revision:2,user:{id:'owner@example.test'},payload:{format:'gridlock.coach.copy',scope:'all',data:{}}});
+    await h.run('checkAccountSeason(true)');assert.equal(h.restores.length,1);
+    assert.equal(h.state.syncOn,false);assert.match(h.state.syncSaid,/Season opened/);
+    assert.doesNotMatch(h.state.syncSaid,/Nothing has been replaced/);assert.equal(h.uploads.length,0);
+  });
+  const completeCopy=()=>({format:'gridlock.coach.copy',v:1,scope:'all',seasonId:'a'.repeat(32),at:'2026-11-11T10:00:00Z',data:{messages:['Field walk'],roster:[]}});
+  await test('checkpoint follows only the acknowledged snapshot and ignores export timestamps',async()=>{
+    const db=server(),a=device(db.route);await a.login();const snapshot=completeCopy();
+    const sent=await a.api.pushSeason('season',snapshot);
+    assert.equal(await a.api.rememberSeason(snapshot,'owner',sent.revision),true);
+    const same={...snapshot,at:'2026-11-12T10:00:00Z',data:{roster:[],messages:['Field walk']}};
+    assert.equal((await a.api.deviceSeason(same)).unchanged,true);
+    same.data.messages.push('Edited later');assert.equal((await a.api.deviceSeason(same)).unchanged,false);
+  });
+  await test('another device has no checkpoint until it explicitly adopts the saved season',async()=>{
+    const db=server(),a=device(db.route),b=device(db.route);await a.login();await b.login();
+    const p=completeCopy(),sent=await a.api.pushSeason('season',p);await a.api.rememberSeason(p,'owner',sent.revision);
+    const read=await b.api.deviceSeason(p);assert.equal(read.known,false);
+    assert.equal(await b.api.rememberSeason(p,'owner',read.revision),false,'reading alone never accepts a revision');
+    assert.equal((await b.api.pushSeason('stale',p)).conflict,true);
+    assert.equal(b.api.acceptSeason('owner',read.revision),true);
+    assert.equal(await b.api.rememberSeason(p,'owner',read.revision),true);
+    assert.equal((await b.api.deviceSeason(p)).unchanged,true);
+  });
+  await test('a checkpoint for a different local account cannot authorize sending this season',async()=>{
+    const db=server(),a=device(db.route);await a.login();const p=completeCopy(),sent=await a.api.pushSeason('season',p);
+    await a.api.rememberSeason(p,'owner',sent.revision);
+    a.store.set('grindx.cloud.season.owner:https://fixture.supabase.co','different-account');
+    assert.equal((await a.api.deviceSeason(p)).known,false);
+    assert.equal(await a.api.rememberSeason(p,'different-account',sent.revision),false);
+  });
+  await test('an unavailable checkpoint store cannot pretend a device is safe to overwrite',async()=>{
+    const db=server(),store=new Map(),a=device(db.route,store);await a.login();const p=completeCopy(),sent=await a.api.pushSeason('season',p);
+    const old=store.set.bind(store);store.set=(k,v)=>k.endsWith(':device')?store:old(k,v);
+    assert.equal(await a.api.rememberSeason(p,'owner',sent.revision),false);
+    assert.equal((await a.api.deviceSeason(p)).known,false);
+  });
+  await test('a checkpoint keeps its old revision when another device writes or deletes',async()=>{
+    const db=server(),a=device(db.route),b=device(db.route);await a.login();await b.login();const p=completeCopy(),sent=await a.api.pushSeason('season',p);
+    await a.api.rememberSeason(p,'owner',sent.revision);const r=await b.api.getSeason();b.api.acceptSeason('owner',r.revision);
+    await b.api.deleteSeason();const read=await a.api.deviceSeason(p);
+    assert.equal(read.known,true);assert.equal(read.unchanged,true);assert.equal(read.base,1);assert.equal(read.revision,2);assert.equal(read.removed,true);
+    assert.equal((await a.api.pushSeason('stale',p)).conflict,true);
+  });
   const ctx=vm.createContext({crypto:webcrypto,TextEncoder,Uint8Array,parseInt});vm.runInContext(app.slice(start,end),ctx);
   const salt='00112233445566778899aabbccddeeff';let verifier;
   await test('new offline verifier uses PBKDF2 at 600000 iterations',async()=>{

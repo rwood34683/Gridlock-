@@ -48,7 +48,12 @@ no word swap can rebrand it: every place that shows it is an
 site's header — and a variant build turns each into that build's name as text,
 leaves the `logo-*` files out (`ships()` in `scripts/brand.js`) and refuses
 itself if a `data-logo` survives. The ball has a transparent edge; do not use
-screen blending, stretch it, or put the surrounding wordmark back in the app.
+screen blending, stretch it, or put the surrounding wordmark back in the app
+anywhere but the header. The header alone carries the owner's full wordmark
+(owner, 13 Nov 2026): `web/logo-wordmark.png`, cut from his artwork onto the
+header's black by `headerMark()`, 32 px tall, 22 px on a phone so the score,
+? and Account stay on screen. It is marked as the logo like the ball, so a
+variant prints its own name there and never ships the file.
 `npm run icons` generates its web, store and native icons from
 `brand/logo-gridlock.png`. Variant builds use the neutral shared icons;
 `brand native` switches native launch assets too; returning to Gridlock copies
@@ -70,6 +75,37 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   Keep checkout disabled until the sandbox flow and live configuration checks
   pass and the owner approves launch. Public verification keys may ship;
   private/payment keys may not. Simulate payments only in Stripe's sandbox.
+  Free Player accounts and team roles never grant Coach access. Expiration
+  closes player-detail editing as well as the main tools. Background checks
+  with unchanged access must not redraw an unfinished form.
+
+- Keep the field visible when Tally or Scout opens, including an empty sheet.
+  Coach still requires an opponent before recording. Put Scout's long team
+  cards below the field; Score only and Score and outs keep a reference field
+  without reopening detailed recording controls. Player fits the measured
+  field on phone/tablet screens and returns to the top on Tally/Scout tab
+  changes without clearing selections or records. App-initiated page jumps
+  in Player are instant so a second field tap cannot chase a scrolling bunker.
+  Its generated wrapper lives
+  in `tools/teaser_field_view.js`, applied by `tools/teaser_rules.js`.
+  `test/field-visible.cjs` checks blank/active views, retained teams and records,
+  field taps, compact modes and the typed-opponent path at phone/tablet sizes.
+
+- A preview's second-tap confirmation belongs to the selected item and its
+  contents, not just the question's words. Pass an item identity to `askFirst`
+  when two controls can ask the same question; changed copies, notes, accounts,
+  sheets, points or fields need a fresh first tap. Real browsers keep their
+  system confirmation.
+
+- Rules opens the three official 2026 rulebook source pages, only after a tap.
+  Keep the shared catalog in `docs/rulebooks.json`; run `node tools/rulebook-links.js`
+  after changes. This is the sole external-link exception in the Team/Player
+  previews. No embedded PDF, copied league text, logo, iframe, prefetch or automatic
+  request. The Rules screen says a connection is needed and to save the PDF before
+  the event. Never hand-edit the generated rulebook-links blocks.
+  In the Player preview, Rules is in the More menu just above Nexus; in the
+  Team preview, which has no More menu, it is the tab just before Nexus
+  (owner, 12 Nov 2026). Never a loose header button.
 
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,
@@ -115,11 +151,16 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 - Changing the event changes the layout on every tab.
 - The event picker is Season → Event → Layout. It lists saved layouts,
   including older events; years come from recorded metadata, never the clock.
-  Browsing a selection does not change the field until Use layout. Played
+  Browsing a selection does not change the field until Use layout. The Event
+  list opens on "Pick your event…" (owner, 12 Nov 2026), never a preselected
+  event; the Player preview's header field list leads with the same choice,
+  shown until one is picked, while the field stays drawn. Played
   sheets keep their field. Custom fields with no season say Your fields.
 - After a coach signs in, the backup and format questions still come first,
-  then Schedule opens on Your team's day. The team choice stays on the device;
-  it does not grant account or team permissions. A team without loaded games
+  then Home opens when the current sheet is empty; an active match resumes.
+  Home explains each tool and links to Your team's day on Schedule. The team
+  choice travels in a full season copy and opt-in account sync; it does not
+  grant account or team permissions. A team without loaded games
   stays selected and asks for a schedule; never invent opponents or times.
 - A point scored in Whiteboard's Quick log closes the layer back to the board,
   retaining its marks. Scoring from Tally keeps Tally's Quick log open. Failed
@@ -384,6 +425,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     made on the turned field go back through `ownFeet()` so plants, edits and
     directions all stay in the frame they were set in. The field marks your
     end with a bar in your colour.
+
+    Scout keeps **Switch ends** and **Swap every point** beside its match
+    controls on every sub-tab, naming both teams' ends from the current sheet.
+    Reuse `endsChip(true)` and the existing `switchEnds` history; never swap
+    team identities, scores or earlier points to turn the field. A watched
+    game's labels are its home and away teams, not an unrelated pit selection.
+    `test/scout-ends.cjs` holds the controls, history and phone/tablet fit.
 
 30. ~~The clock between points.~~ Done — X-Ball gives a coach a set time from
     the hang to the next buzzer to call the break and set his five, and it is
@@ -1370,6 +1418,90 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     available yet. They keep their own `gridlock_*` storage keys and never a
     coach's. Before either ships, it gets the coach app's passes.
     `teasers/README.md`, `test/teasers.cjs`.
+    Player's **Clear team** in Tally and Scout clears the selected opponent,
+    never the team joined with a code. Confirm against the current selection
+    and sheet; retain all scored points, scouting notes and player history.
+    Clearing the right pit starts a blank sheet when match sheets are present,
+    only after that transition is saved. A refused save keeps the selection.
+    Edit `tools/teaser_selection.js` and run `node tools/teaser_rules.js`.
+    On 11 Nov 2026 the owner asked for the Player preview in the coach
+    app's look. `tools/teaser_theme.py` recolours it in place: black ground,
+    red secondary type, the coach field's dark ground and its bunker ramps
+    (purple was never a paint, so it reads neutral), white clear lanes and
+    grey blocked ones. Sunlight and colour-blind modes are left alone. Run
+    it with `--check` to see whether anything is left to change.
+    The same day both previews came off July's events and the UPRA badge:
+    `tools/teaser_fields.js` writes the coach app's seven measured fields,
+    their twelve breaks (`BREAK_PLANTS`) and its team board (names and
+    registration, no points, no seeded threat) between the `coachfields`
+    markers, draws each bunker to its footprint in its map's paint
+    (`tools/teaser_draw.js`, ported from `bunkerShape`), and gives both the
+    coach app's icons. Never hand-edit the block; `test/teasers.cjs` runs
+    `--check`, so a field or plant changed in the coach app fails until the
+    previews are regenerated.
+    The independent preview review also checks actual rendered controls on
+    phone and tablet: at least 44 px in both dimensions, with accessible
+    names, and every tab and More item opens without page errors or sends.
+    Disabled fetch code and referee rule text must not remain bundled.
+    Reset tendencies uses the existing two-tap confirmation, never a browser
+    dialog. Change the generator sources, then regenerate; the `coachwalk`
+    block belongs to `tools/teaser_walk.js` through `teaser_rules.js`.
+    The Player preview's header leads with the owner's wordmark (12 Nov
+    2026): `teasers/player/wordmark.jpg`, cut from `site/img/logo-gridlock.jpg`
+    to 72 px with its black lifted to the header's #0b0c0d, written into the
+    header by `tools/teaser_fields.js`. No blend mode; Team keeps its mark.
+    The Player preview's Tally and Scout work as the coach app's (owner,
+    12 Nov 2026), with no screen added: Tally is the break chart (who you
+    play from the right pit, the point counted inside one match, We won it /
+    They won it, Back a point, Next point, right or wrong read, 1 · Where
+    they went and 2 · What happened — opening on step 2 — the man's sheet as
+    the coach's, the route drawn round the bunkers, Where the points come
+    from, the point's log); Scout keeps Matchup, Breakouts, Layers and Games,
+    named as the coach names them, each reading the same sheets (their five
+    and their call, outs and rotations, every sheet point by point). Counts
+    only, no win% model. Stored under the Player app's own `gridlock_sheets`.
+    The code is `tools/teaser_coachplay.js`, inserted between the `coachplay`
+    markers by `tools/teaser_rules.js` (Player only); the Team preview keeps
+    its own tally.
+    Every Scout field takes a tap (owner, 12 Nov 2026): with nobody in the
+    right pit it says so and moves to the pit's picker; with a team, a tap on
+    Matchup, Layers or Games starts their five on Breakouts, and Log their
+    five opens each man's details there, the next after each Log.
+    Their five on Scout's field draw as the coach app's `fiveSquares` does
+    (`cpFive`): a blue rounded square, white edge, the man's number in white,
+    two on one bunker side by side (owner, 12 Nov 2026).
+    Tally and Scout draw on the coach app's field ground (`cpGround`): ten
+    dark stripes instead of the grid, a fine frame, the faint dashed fifty,
+    the red bar down your end; the bunker labels stay.
+    Tally's men are the same numbered squares, yours red and theirs blue,
+    numbered within each side, ✕ for a man shot on the break.
+    Two or three men on one bunker work everywhere a man is placed: Tally's
+    step 1 and step 2, and Scout's Breakouts. A tap on the bunker of the man
+    whose details are open always adds one more there. Nothing is taken out
+    of the Player preview unless the owner asks (owner, 12 Nov 2026).
+    After joining with a team code the Player preview opens on **Home**, a
+    dashboard of its tabs (owner, 12 Nov 2026): one card a tab on the bar and a
+    row of the More menu, each with a line on what it is for and where you are
+    now, opened through that tab's own button. Home leads the bar; every tab
+    and More row stays. The cards are `tools/teaser_home.js`, inserted between
+    the `playerhome` markers by `tools/teaser_rules.js` (Player only).
+    The Team preview has the same three (owner, 13 Nov 2026): "Pick your
+    event…" first in its field list, a Home dashboard of its tabs that it
+    opens on (Home first on the bar, no Back on it, every tab kept), and the
+    coach app's new wordmark in its header (`teasers/team/wordmark.jpg`, cut
+    from `web/logo-wordmark.png` with its black lifted to #0b0c0d, written by
+    `tools/teaser_fields.js`). The `playerhome` block serves both previews.
+    A player comes off from the Team tab or Lineups' **Remove a player**
+    (owner, 13 Nov 2026): `tmDropPlayer` asks first, then takes him off the
+    roster, the shared roster and every line; players added before a team is
+    created show on the Team tab with remove too.
+    **No point** (owner, 13 Nov 2026) sits with We won it / They won it on
+    Tally's result bar, in the Quick log and in Scout's match strip, in the
+    coach app and the Player preview: `tapNext()` / `cpNext()`, the point moves
+    on, no result is written, the score and the ends stay. On a phone's column
+    it takes its own row under the two results.
+    `test/teaser-browser.cjs` exercises both previews and compares every
+    measured bunker and break plant with the coach source.
 
 84. ~~The coach's day, then three fixes.~~ Done. PR #315 (Codex) asks the
     format as two dropdowns and folds the rest away. PR #316 (Codex) adds:
@@ -1402,7 +1534,338 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     Help answers "How do I install the app on my phone?".
     `test/install-button.cjs`.
 
+86. ~~Blank on first use and on New match.~~ Done. The owner saw a team already
+    in Tally and Scout and asked for both to start on choosing the team. His
+    rule (11 Nov 2026):
+    - First use: both pits empty, Tally asks who he plays.
+    - An unfinished match always resumes as it was, however old. Never infer
+      that it was abandoned, at launch, at sign-in or anywhere else.
+    - A finished match stays on screen with New match leading.
+    - The **New match** button (`freshMatch()`) on a played sheet starts blank
+      (`newMatchBlank()`): both
+      pits cleared, an unnamed sheet, Tally on "Who are you playing?". If he
+      has already put a different, next team in the right pit, it starts
+      against them as before. A button that names the team ("Start a match
+      vs Dynasty") is his pick and still calls `newMatch()`.
+    - The sheet he leaves is kept whole under Matches. Nothing saved is removed.
+    `test/fresh-start.cjs`.
+
+87. ~~The gold-copy audit.~~ Done. On 12 Nov 2026 four reviewers each
+    reproduced defects in a browser before reporting them, and a fifth
+    researched what coaches expect. Fixed, each with a test:
+    - **Schedule** (`test/schedule-audit.cjs`): a pasted weekday with no date
+      lands inside the event, never before its first day; numeric and "Day 5 -
+      Sunday Nov 15" headers are read; a team's name on its own line is not a
+      header; a pasted field or pit is kept as `f`; the day plan lists only
+      games still to come; games after his last game against a team are not
+      offered as scouting.
+    - **Recording** (`test/recording-audit.cjs`): `playerQuick()` goes through
+      the opponent gate, so nothing is written onto the blank sheet;
+      `rebindChecks()` moves an observation to the row a merge kept for the
+      same man; `openSheet()` clears the arrival and voice team when it is not
+      a team on the new sheet; on a watched game both Tally columns are the
+      two teams by number, never his roster.
+    - **New match** (`test/fresh-start.cjs`): after a watched game it starts
+      blank even with nothing logged; a message raised while the breakout
+      sheet is open stands under the header, clear of Save.
+    - **Previews** (generators only): Team and Player store under their own
+      prefixes (`previewStore`), a backup names its app and the other app
+      refuses it, they install as "GL Team" and "GL Player", and Player has no
+      referee tool, no claim that the coach sees Practice and no outbound link
+      rows.
+    From the research, all counts or his own words:
+    - Reports › Player: points played, won, lost, the difference
+      (`repManPoints`), counted where the written five names him or a row
+      carries his name. Never roster order.
+    - Match review: "Off the break: we lost A of B charted, they lost C of D"
+      (`reviewBreakLine`).
+    - A scouting row takes the name of the person watching (`S.scoutWho`,
+      `setScoutWho`), and the day plan says who it is.
+    - **How much to record** at the foot of Tally (`S.tallyDepth`,
+      `TALLY_DEPTHS`): Full chart (default), Score and outs, Score only. It
+      hides controls, never data.
+    - The short breakout sheet (`S.tallyShort`, off by default): who and
+      whether he made it, with More about him one tap away. A man with more
+      already answered shows it all.
+    - **Share this field as a picture** on Scout (`shareFieldPicture`): a PNG
+      drawn on the phone from the field on screen, held in page memory only
+      (`_fieldPic`), never saved with the season, nothing fetched.
+    And four smaller ones the reviewers raised:
+    - Tally's first-run hint sits under the chart, not over the field: above
+      it, the hint took the room the field is fitted into. The fit itself is
+      unchanged.
+    - A pasted "9am" is a clock, and one o'clock to six with no AM or PM is
+      the afternoon.
+    - A typed game can go on any day of the event (`LAYOUTS[k].days`).
+    - A scout row says "Already watched" with the score.
+    `test/tally-depth.cjs`.
+
+88. ~~Split deck for our match.~~ Done (owner, 11 Nov 2026). More › Format
+    has Standard / Split deck. Tally tracks only our match: Our point → Other
+    match playing → We're up next. Score our point normally; tap **Other point
+    ended** for the changeover, then **Our point is starting** on the official's
+    signal. Their point never scores ours or advances our point number.
+    - Own-match rest and the changeover are separate. The 2026 divisional
+      rulebook, 8.3 and 9.3.12, keeps at least 2:00 between our own points;
+      Semi-Pro changes over in 0:45, D2–D5 in 1:00. Start the preparation
+      timer for the longer of the remaining own break and the changeover.
+      Unpublished divisions ask for a changeover; do not guess Pro's rules.
+    - **Other match is over** returns this sheet to normal breaks, after
+      confirmation. The next sheet keeps the saved split-deck choice.
+    - `splitDeck`, `deckClock` and `deckEnded` are scalar sheet settings;
+      `splitDeck` and `deckClock` also belong to saved formats. An old 45/60
+      second break does not silently become split deck. Turn and timer are
+      scratch, reset on reload, restore, sheet change and undo; the coach
+      checks the field. A watched match never inherits our handoff controls.
+    - Handoff buttons resist a second tap landing on a different button
+      after redraw. The game clock remains the official's, never run here.
+    `test/split-deck.cjs` covers the flow, timing, copy import and phone/tablet
+    layouts; `docs/RULES-CHECK.md` records the verified timing distinction.
+89. **Player practice results, not session numbers.** The 11 November Pocket
+    recordings are indexed in `docs/RECORDING-NOTES-2026-11-11.md`. Practice in
+    the separate Player preview labels the drill's unit, numbers sessions for
+    the player, validates counts/times/ratings/dates and opens the recorded
+    drill's chart immediately after a confirmed local save. Hit drills keep
+    their fixed denominator: 1 of 10 is 10%, never a bare invented percentage.
+    Starting a fresh chart archives earlier entries after a second tap; history,
+    full backups and manual practice shares retain them. Restoring the chart
+    does not duplicate entries. Never claim an immutable audit or coach
+    verification from local data or a typed team code. Sharing is an explicit
+    manual snapshot, not automatic team access. No price or permissions change
+    is authorized by these recordings. `test/practice-sessions.cjs`.
+
+90. **The same account's details on an already-open device.** With League sync
+    enabled, a known device checks on return/reconnect and every 30 seconds
+    while visible. Receive only when its acknowledged season is unchanged,
+    its account/epoch still match, and it is idle both before and after the
+    read. Preserve and read back a recovery copy before replacing. Never
+    replace typing, recording selections, voice drafts, a running break clock,
+    or a drawing session. Retain device-only boards, practice logs and display
+    preferences. Conflicts, missing checkpoints and server deletions require
+    a choice; manual file replacement cancels a pending read and pauses sync.
+    No-op checks do not upload. Keep the adapter boundary and synchronous
+    save; no fetch in the app. `test/automatic-season.cjs` uses separate browser
+    stores and a mock account server, never real coaches. This is one current
+    account season, not simultaneous multi-coach editing or team-code access.
+
+91. **World Cup handoff is an optional season import.** `data/worldcup-2026-season-copy.json`
+    adds the owner's 646 schedule rows and Lone Star film suggestions through
+    Account & backups → Merge it in. The corrected 78-row seed overlaps two
+    imports, so `allGames` shows 722 unique fixtures, preserves legacy seed
+    links/hide preferences, and accepts the imported IDs too. Retain public
+    game/entry/team IDs, null slots and sources as scalar reference fields;
+    snapshot scores never become Tally results. Known playoff slots are not
+    teams in Your team's day. Film imports keep existing coach edits, use names
+    or source references rather than jersey alone, and append notes once.
+    Team tendencies stay in team notes. Unknown/conflicting numbers stay blank;
+    the source wording and VERIFY flags remain in the notes. No threat, bunker
+    location, hometown, match or out is inferred. Regenerate the import with
+    `node scripts/import-worldcup-handoff.js`; `--check` checks it and the seed
+    provenance. The private handoff folder stays ignored and out of releases.
+    `docs/WORLD-CUP-HANDOFF.md` records every mapping gap and how to load it.
+    Schedule division is keyed by published event/division IDs, not inferred
+    from the team's name or playing format. It filters the team picker, games,
+    calendar and scouting plan, and travels in the season copy. All divisions
+    restores the full list; unknown divisions stay unassigned. The public team
+    directory groups by division and keeps same-club entry IDs separate.
+
+92. **Cloud replies never erase typing.** Upload success, failure and conflict
+    messages leave focused or changed form controls intact. Update the sync
+    status in place while a draft is on screen; only completed edits belong
+    to the uploaded snapshot. Do not report an unfinished field as saved to
+    the account. A stale local tab's Sync now explains that its edits remain
+    in recovery, never repeats an older success. Keep synchronous local saves,
+    account ownership, revision checks, opt-in and recovery copies unchanged.
+    The automatic-season suite tests actual code-field edits through the UI,
+    delayed replies while typing, manual sync with a draft and stale tabs.
+
+93. **A saved code is no longer an unfinished field.** Code word and meaning
+    edits save on change without a redraw. After a successful local save,
+    update only that input's value and default to the accepted value, so
+    automatic receiving can resume while Codes stays open. Never acknowledge
+    a refused save, a stale tab or another unfinished box. Keep the draft,
+    account and revision guards; the automatic-season suite follows edits
+    phone → tablet → laptop and back while all three remain on Codes.
+
+94. **Print the schedule and recorded reports.** Schedule, Reports and the
+    daily bunker table offer Print / Save PDF. Keep the selected team/division,
+    event, player, day and side; show the counts and percentages already
+    recorded, never another filter's total. Print only a temporary local copy,
+    escape names, remove controls and account information, and clear the copy
+    after printing or sign-out. The browser chooses a printer or PDF; never say
+    it was sent or printed, since cancellation is not reported. No network,
+    season write, hidden paid report or new stored print state. Native print
+    support and a real wireless printer require device testing.
+    Sideline player status and point percentages build observations for the
+    selected point only; match summaries still read every point. Do not weaken
+    the load-test limits or change synchronous save/recovery safeguards.
+    Tally’s closed How/By lists hold only the selected label and fill before
+    touch or keyboard handling; every choice remains available and saves
+    synchronously to the same out row. Do not relax the performance limits.
+    Repeated name matching may cache only the pure text conversion, with a
+    fixed bound and a clear at reset/sign-out; never cache player records
+    across draws or skip edits because an array has the same identity.
+    `test/coach-print.cjs` and `test/render-performance.cjs` cover both.
+
+95. **One Player point per gesture.** Player's generated Tally and Scout share
+    a short duplicate-action guard for results and No point. It belongs to the
+    current sheet and resulting point, uses a monotonic clock, and is cleared
+    by an intentional Back a point or New match. A later deliberate action
+    still works; the guard is transient, never part of a season or backup.
+    Keep just one No point action in Tally. Edit tools/teaser_coachplay.js and
+    regenerate with teaser_rules.js; never edit the generated preview block.
+    test/player-point-actions.cjs checks mouse, touch, keyboard, mixed actions,
+    undo/correction, new matches and reloads. Coach's No point checks exercise
+    the real control on every Scout view and preserve score/end assertions.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
+directly in the folded Team codes reference. Saved whole-team bunker names
+show on their fields even with Names off; the full official key still follows
+the Names control. Read the same layout-scoped `bunkerCalls` as Codes, never a
+second copy. A word being typed is not saved; personal words stay on cards.
+Edits, clearing, reload and season restore must refresh both recording screens
+without changing a match, point, score, observation or another field's names.
+`test/code-rollover.cjs` checks these paths and phone/tablet layouts.
+Tally reset (owner, 12 Nov 2026): Reset match starts fresh and keeps the old
+sheet under Matches. Clear point asks first and removes only that match's
+selected point: every SHEET_LISTS row, scouting break and explicit lineup.
+Do not renumber later points or erase another match, season observations,
+rosters or bunker codes. Undo clear is one in-memory snapshot and refuses
+newer work, another account, field or point, stale tabs, reload and restore.
+Preview confirmation names the exact point and contents. A new point closes
+the earlier-point list views. Keep recording-depth and format preferences.
+`test/tally-reset.cjs` holds these data and phone/tablet checks.
+
+Confirmations and messages (12 Nov 2026): every "are you sure" goes through
+`askFirst(msg)`, never `confirm()` directly. On a phone and in a browser it is
+the system's question; in the published preview (`window.gridlockPreview`),
+which may refuse system questions silently, it is the same tap a second time
+within eight seconds, said on screen. A message the coach has read (shown more
+than a second) leaves when he changes tab, More section or Scout view; one
+raised on the way to a new screen stays. `test/ask-first.cjs`.
+
+After the five merges (12 Nov 2026): Back a point carries a voice recap and
+its sightings with the men charted on the point it leaves. On a split deck
+the turn controls are in the Quick log too, and a message stands above it.
+Checking the account's saved season never takes the screen while a match is
+on the sheet; leaving that check pauses sharing for now and keeps the coach's
+yes. A season adopted with a match under way opens on Tally (Scout for a
+watched game). A season row (no sheet) is counted where it was tapped; every
+spreadsheet date is the phone's own day. The Quick log is a modal layer:
+everything beside it is inert, Escape closes it and focus returns to its
+button. A scored point writes the whole season once, the standing call with
+it. A bunker tapped on a small phone scrolls the sheet's first questions above
+its Log bar. In the header the event shrinks at 100000 and the call at 1 (never
+below 1, or the section falls off). Bunker stats offers Date not recorded only
+when something is undated. `test/interaction-audit.cjs`,
+`test/data-audit.cjs`.
+
+Past sheets from Schedule (owner, 15 Nov 2026): a schedule game he played or
+watched opens back to its sheet. `gameSheets(g)` is the one match of sheets to
+a game (the sheet's `sched`, else teams, field and day), read by the game
+list's row and the calendar's game row; each sheet gets **Open this sheet**
+(`openMatch`) and **Review** (`openReview`), and a sheet's own calendar row has
+Review too. Same plan gate as Matches; nothing is opened or changed by
+reading the row. `test/schedule-audit.cjs`.
+
+Coach Home (owner's Pocket recording, 11 Nov 2026) is an orientation screen,
+not a tutorial or a new match. Explain Playbook, Tally, Scout and Sightlines
+in one short line each, then (owner, 12 Nov 2026) a card for every More tool in
+the menu's groups, Home itself and the hidden rows left off; each card opens
+its screen as the menu row does. Keep the five direct tabs and a 44 px Home control
+beside the event name. Home reads the current sheet and loaded schedule;
+never invent a game, score, lineup, performance number or sync state. Reading
+it changes no match data. Backup/format questions still lead on first sign-in,
+and signing in mid-match stays where the coach was. `test/coach-home.cjs`.
+
+Player details (owner, 11 Nov 2026) opens as a real modal from a Tally player
+or placed row and Scout's Players this point / Where they plant. Reading and
+closing it never changes the active match, point, score or records. Show the
+recorded break and the later out separately: made it is not proof the player
+finished alive. Missing answers stay Not recorded. Current-point out changes
+reuse the existing tally and releaseOut; explicit mark-out is idempotent.
+Lead with four large buttons: Alive, Dead, Shooting, Diving. Alive/Dead mean
+current status during the point, not the breakout result. Shooting and Diving
+are independent observations, saved on tap, with a second deliberate tap to
+clear one. Next player stays on the same point; the full record lives under
+More details. Save current observations in playerChecks, bound to match,
+point, side and a breakout ID or a named player. Include them in season/sheet
+copies, validation, merge identity, point movement and match deletion. Never
+invent a bunker, shot location, player name or breakout survival to store a
+quick observation. An unnamed player's status stays attached to their chart;
+only named-player Dead creates an out in the named tally. An Alive correction
+uses the existing undo behavior for a previously recorded break out.
+Recheck player/match/point/field/account/screen before every write. Keep this
+popup in page memory, close it when context changes, trap focus and support
+Escape. Historical points are read-only until Open this point on Tally to edit.
+Keep a modal fallback for iOS 15.0–15.3, which have no native dialog API;
+hide the background from assistive technology, contain focus and restore it.
+Quick log keeps its one-tap out path. `test/player-details.cjs` holds these rules.
+Player percentages (owner, 11 Nov 2026): Tally and Scout show current-point
+team shares, and each named player's popup shows shares of their logged
+points in that match. Show the numerator and denominator with every percent.
+Team shares use starting places after penalties; player match shares count
+only distinct logged points for that player, side, match and field. Keep
+missing observations unknown. Making the break never means currently alive;
+Alive/Dead is the last recorded status, not a final survival rate. Shooting
+and Diving can overlap; clearing either is unrecorded, not a counted No.
+Deduplicate chart, quick-check and tally rows; reject orphaned/cross-scope
+links, keep unnamed charts distinct and never connect them across points.
+No observations means no percentage; too many logged players for the format
+shows a correction notice rather than an invented denominator. Read-only
+derived counts never change scores or saved data. Keep summaries expandable
+so the four quick buttons stay in view. `test/player-percentages.cjs`.
+Tally's player and placed-player lists, and Scout's Players this point, show
+the recorded current status plus Shooting and Diving without opening the popup.
+They use the same scoped observations as percentages; no observation stays
+Not recorded. The popup uses the newest matching check, never an older
+imported row's choices. Cache these derived reads for one render only, never
+in the season or across edits. `test/player-overview.cjs`.
+
+Voice point recaps (11 Nov 2026): **Talk about point** on Tally opens the
+last scored point, or the current point when no previous result exists. A
+finished match opens its final point. Voice log's **Point to record** never
+moves Tally or changes a score. Its selection is scratch tied to the sheet,
+field, Tally point and result-list identity; reload/restore or changing those
+clears it. Switching the selected point stops speech and rejects late results
+and stale typed drafts. **Share this point's notes** includes every player's
+voice note for that exact team/match/field/point, including review flags, even
+when the screen filters one player. Saved whole-team bunker calls are the
+parser's vocabulary; duplicate/unknown locations stay unresolved. Microphone
+help never starts recording and makes no guarantee about a connected input:
+the device/browser's speech service chooses it. `test/voice-point.cjs` and the
+existing voice/parser/native-speech tests cover this flow.
+
+Match heat map (11 Nov 2026): Bunker stats can read one match or all own
+matches on the current field. Reports opens the current match's map when it
+belongs to that field. `statMatch` is scratch, cleared on reload/restore and
+field changes; a deleted or unavailable match must show no data rather than
+silently broadening to the season. The selected side, match and opponent
+filter every count, including the picked bunker's detail. Do not append
+season-wide bunker-book counts to a filtered match. Went there and Shot there
+each drive the numbers, rings and scale from that one measure, never their
+sum. Scores alone do not create locations. Watched games and other fields
+(including legacy rows whose field is known only from their match) stay out.
+Only an in-scope tally out can replace its duplicate breakout out; a legacy
+row with no side is yours, consistently in the filter and duplicate check.
+Show the count of distinct recorded points/matches and retain the thin-sample
+mark. Neither viewing nor filtering changes the active match, point, scores
+or season records. `test/match-heat.cjs` covers these rules.
+
+The daily table uses the same filtered traffic as that heat map, with separate
+Went there and Shot there views. Each row shows the team's bunker call, the
+exact count and its one-decimal share of the complete selected total (never
+just the visible rows, never a win probability). Keep every nonzero bunker,
+highest count first. Group by the parent match's recorded calendar date in
+the device's time zone, not UTC date slicing and not the entry's creation or
+edit time. Missing/unreadable dates and orphan records stay under Date not
+recorded; do not substitute today. `statDay` and `statView` are scratch. Day
+changes clear the match selection and field changes clear the day; unavailable
+selections remain empty. The table, heat map, shared text and CSV must agree
+on day, match, side, opponent, end frame and measure. `test/daily-bunkers.cjs`
+checks the photo's 5-of-14 example, midnight/DST, unknown dates and exports.
 
 Live-cloud disclosure rule (owner confirmed 3 November 2026): Supabase hosts
 the account server. Opt-in League sync uploads the full season and keeps one
@@ -2930,8 +3393,14 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   again if another tab deleted it, before the banner or `beforeunload` say
   so. A stale tab with a copy says it is alive (`TAB_LIVE`), and Delete in
   another tab refuses that copy while it does.
+  A missing or old heartbeat is not proof that its tab closed: each document
+  also holds a browser Web Lock under its existing `TAB_LIVE + TAB_ID` name.
+  Delete takes that lock only if available, keeps it through confirmation,
+  and refuses if the ownership check fails or the copy changes while waiting.
+  The browser releases the claim when the document closes. Keep the heartbeat
+  guard for older builds and browsers without Web Locks; saves stay synchronous.
   `test/storage-safety.js` holds all of it with two real tabs, and plays the
-  races in a fixed order by holding storage events.
+  races in a fixed order by holding storage events and delaying heartbeat reads.
 - Read an email's capitals as a different account. Offline sign-in compares
   through `sameEmail()`, the way the account server already does.
 - Open Sightlines on whichever bunker the digitiser listed first. The
@@ -3163,6 +3632,21 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   was captured, not when an upload or share sheet finished; edits made while it
   waited still need a backup. `test/season-safety.cjs` and `test/sync-ask.cjs`
   cover these cases.
+
+- Send a new device's season before checking the signed-in account's saved
+  copy. Account handoff uses the immutable account id, an acknowledged revision
+  and a SHA-256 checkpoint of the season (not its changing export timestamp).
+  An opted-in device may adopt a newer saved season at sign-in or while idle only if its own
+  season still matches that checkpoint. Preserve and read back its recovery
+  copy first. New devices, both-edited copies and deletions require an explicit
+  choice; every upload still uses the server's revision check. Reading a copy
+  alone never authorizes overwriting it. The manual review/restore flow still
+  stays paused. `test/device-season.cjs` uses independent laptop, tablet and
+  phone stores against the real adapter and a mock account server.
+  Keep the coach's instructions to three steps: save here, sign in there,
+  open the saved season. Show one primary saved-season action, with replacing
+  that copy and recovery tools folded away. Keep opt-in and the administrator
+  review disclosure visible; opening an options group never sends anything.
 
 - Treat a confirmation-required signup as a completed sign-in. Wait for a real
   session; confirm-email links return to sign-in. Recovery and invitation links

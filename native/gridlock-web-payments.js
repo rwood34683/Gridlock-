@@ -9,7 +9,7 @@
   const jwk = settings.verificationKey;
   if (!jwk || jwk.kty !== "EC" || jwk.crv !== "P-256" || jwk.d ||
       !/^[A-Za-z0-9_-]{43}$/.test(jwk.x) || !/^[A-Za-z0-9_-]{43}$/.test(jwk.y)) return;
-  let grant = null, attempt = 0, buying = false, expiryTimer = null;
+  let grant = null, attempt = 0, buying = false, expiryTimer = null, announced = null;
   let lastWall = Date.now(), lastTick = performance.now(), highWater = lastWall;
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const keyFor = uid => "grindx.web.pass.v1:" + cfg.url + ":" + location.origin + ":" + settings.mode + ":" + uid;
@@ -22,8 +22,16 @@
     const backwards = wall < lastWall - 60000; lastWall = Math.max(lastWall,wall);
     return backwards ? Infinity : highWater;
   }
-  function announce() { window.dispatchEvent(new CustomEvent("gridlock-payment-access")); }
-  function clear() { ++attempt; grant = null; clearTimeout(expiryTimer); expiryTimer = null; }
+  function announce() {
+    // Refreshing the same access must not redraw away an unfinished code edit.
+    // Receipt issue/refresh times change without changing the coach's access.
+    const uid=user(), valid=uid && current(uid);
+    const state=JSON.stringify([uid,valid?.plan || "free",valid?.source || "none",
+      valid?.source === "day-pass" ? valid.expires : null]);
+    if(state===announced)return;
+    announced=state;window.dispatchEvent(new CustomEvent("gridlock-payment-access"));
+  }
+  function clear() { ++attempt; grant = null; announced = null; clearTimeout(expiryTimer); expiryTimer = null; }
   function current(uid) {
     if (!grant || grant.sub !== uid || user() !== uid || clock() >= grant.exp*1000) return null;
     return {plan:grant.plan,source:grant.source,expires:grant.pass_exp ? grant.pass_exp*1000 : grant.exp*1000};

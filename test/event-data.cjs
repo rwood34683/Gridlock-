@@ -47,7 +47,7 @@ function writePackage(dir, {enriched = false} = {}) {
     // The newer file has not read person two again: what the first file read stands.
     person("2", "Test Person Two", true, enriched ? "not_retrieved" : "scored_event_history_imported", enriched ? "not_retrieved" : "not_published_in_retrieved_classification_page"),
     person("3", "Test Coach", false, "not_retrieved", "not_retrieved"),
-    person("4", "Test Staffer", false, "not_retrieved", "not_retrieved"),
+    person("4", "Test Staffer 東京", false, "not_retrieved", "not_retrieved"),
   ];
   if (enriched) people.push(person("5", "Test Person Five", true, "not_retrieved", "not_retrieved"));
   const ob = (id, pid, date) => ({observation_id: id, person_id: pid, event_date_iso: date, event_name: "Test Open", event_id: "1", event_url: "https://example.test/event/1",
@@ -77,6 +77,7 @@ function writePackage(dir, {enriched = false} = {}) {
   };
   const first = pack("first"), later = pack("later", {enriched: true});
   const packed = fs.readFileSync(first, "utf8");
+  assert(packed.includes("Test Staffer 東京"), "the isolated Python packer reads and writes UTF-8 on every OS");
   let failed = 0, passed = 0;
   const note = (ok, name, e) => { if (ok) { passed++; console.log("PASS " + name); } else { failed++; console.error("FAIL " + name + ": " + e.message); } };
   try {
