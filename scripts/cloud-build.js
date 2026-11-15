@@ -182,7 +182,7 @@ function configuredOptions(env = process.env) {
   const beta = betaOption(env.GRINDX_BETA_NAME, env.GRINDX_BETA_UNTIL);
   if(env.GRINDX_ACCOUNT_SECURITY && env.GRINDX_ACCOUNT_SECURITY!=='required')throw new Error('GRINDX_ACCOUNT_SECURITY must be required or unset.');
   return { url: env.GRINDX_SUPABASE_URL || cloud.url, anonKey: env.GRINDX_SUPABASE_ANON_KEY || cloud.anonKey,
-    redirectTo: env.GRINDX_AUTH_REDIRECT_URL || cloud.redirectTo, ...(beta ? { beta } : {}), accountSecurity:env.GRINDX_ACCOUNT_SECURITY==='required' };
+    redirectTo: env.GRINDX_AUTH_REDIRECT_URL || cloud.redirectTo, ...(beta ? { beta } : {}), ...(env.GRINDX_ACCOUNT_SECURITY==='required'?{accountSecurity:true}:{}) };
 }
 module.exports = { build, pageUrls, configuredOptions, betaOption, publicKey, authRedirect };
 
