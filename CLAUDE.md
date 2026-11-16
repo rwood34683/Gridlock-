@@ -1709,6 +1709,17 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
+Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
+field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,
+Q3/Q4 left/right snake, anchored to the drawing rather than changing team
+ends. It is off initially and on a different layout, works on custom fields,
+and never moves or resizes a bunker. Showing or focusing a zone preserves
+unfinished notes and writes no match result or season data. Explicit Add note
+uses the existing layout-scoped Walk notes, so drill instructions travel in
+season copies and opted-in sync. No new practice score or duplicate tool.
+Keep the overlay out of Tally, Scout and other field views; its labels must
+not intercept bunker taps. `test/drill-zones.cjs` covers these boundaries.
+
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
 directly in the folded Team codes reference. Saved whole-team bunker names
 show on their fields even with Names off; the full official key still follows

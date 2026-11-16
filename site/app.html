@@ -9979,6 +9979,43 @@ function sampleStroke(pts, from, to){
 // ---- the walk: what you noticed standing on the field, against a bunker ----
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
+// Drill areas belong to the displayed field, never to a team's changing ends.
+const WALK_ZONES = [
+  {id:"q1", name:"Q1 · Left dorito", x:0, y:0},
+  {id:"q2", name:"Q2 · Right dorito", x:150, y:0},
+  {id:"q3", name:"Q3 · Left snake", x:0, y:120},
+  {id:"q4", name:"Q4 · Right snake", x:150, y:120}
+];
+let _walkDrill = null; // View only: never exported, synced or counted as a point.
+function walkDrillZone(){ return _walkDrill && _walkDrill.layout === S.layoutKey ? _walkDrill.zone : "off"; }
+window.setWalkDrillZone = zone => {
+  const area = WALK_ZONES.find(z => z.id === zone);
+  if(!area && zone !== "off" && zone !== "all") return;
+  _walkDrill = {layout:S.layoutKey, zone};
+  if(area){ S.walkPick = area.name; S.walkShut = null; }
+  walkRender(false);
+};
+function walkDrillControls(){
+  const zone = walkDrillZone(), on = zone !== "off";
+  return `<button class="btn btn--quiet" aria-expanded="${on}" aria-controls="walk-drill-controls" onclick="setWalkDrillZone('${on ? "off" : "all"}')">${on ? "Hide drill zones" : "Show drill zones"}</button>
+    <div id="walk-drill-controls"${on ? "" : " hidden"}>
+      <p class="note">Four zones split at the fifty and between snake and dorito. Left and right follow this field view. Choose a zone, then add your drill in Note below.</p>
+      <div class="fld"><label for="walk-drill-area">Drill area</label><select id="walk-drill-area" onchange="setWalkDrillZone(this.value)">
+        <option value="all"${zone === "all" ? " selected" : ""}>All four zones</option>
+        ${WALK_ZONES.map(z => `<option value="${z.id}"${zone === z.id ? " selected" : ""}>${z.name}</option>`).join("")}
+      </select></div>
+    </div>`;
+}
+function walkDrillOverlay(){
+  const zone = walkDrillZone(); if(zone === "off") return "";
+  const area = WALK_ZONES.find(z => z.id === zone);
+  return `<g class="walk-drill-zones" pointer-events="none" aria-hidden="true">
+    ${area ? `<rect class="walk-drill-focus" x="${area.x + 1}" y="${area.y + 1}" width="148" height="118" fill="#efedeb" fill-opacity=".04" stroke="#efedeb" stroke-width="1.5"/>` : ""}
+    <path d="M150 0V240 M0 120H300" fill="none" stroke="#0b0c0d" stroke-width="3"/>
+    <path d="M150 0V240 M0 120H300" fill="none" stroke="#efedeb" stroke-width="1" stroke-dasharray="4 4"/>
+    ${WALK_ZONES.map(z => `<text x="${z.x + 8}" y="${z.y + 19}" fill="#efedeb" stroke="#0b0c0d" stroke-width="3" paint-order="stroke" font-size="12" font-weight="700">${z.id.toUpperCase()}</text>`).join("")}
+  </g>`;
+}
 window.addWalk = () => {
   const pb = walkPickedBunker(), where = pb ? walkWhereOf(pb) : rosterVal("wkWhere");
   // Cut before the duplicate check, the way it is kept: a long note added
@@ -10046,7 +10083,7 @@ window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false);
 })();
 function walkOverlay(){
   const noted = walkNotedIds(), bl = curLayout().bunkers;
-  let out = bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
+  let out = walkDrillOverlay() + bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
   const b = walkPickedBunker();
   if(b){
     const s2 = bunkerSize(b, 2, 2);
@@ -19921,6 +19958,7 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
+         "Show drill zones divides this layout into four labelled areas. Choose a zone and save your drill as a field note. It does not record a match result.",
          "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Tap a bunker and its notes pop up beside it on the field, like sticky notes; ✕ puts them away, and tapping the bunker again brings them back.",
          "Notes are kept per field, so they follow the event."]},
@@ -21186,6 +21224,7 @@ function moreBody(k){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
       noticed it on. Notes stay with this field.</p>
+      ${walkDrillControls()}
       <div class="field-wrap walk-map" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}${walkStickies()}</div>
       <p class="note">Tap a bunker to see its notes${notes.length?" — a dot marks one that already has a note":""}, and add one below. Or pick a wire.</p>
       ${/* Standing on a bunker, what the field already knows about it: the
@@ -21197,6 +21236,7 @@ function moreBody(k){
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
+          ${WALK_ZONES.map(z=>`<option${z.name===where?" selected":""}>${z.name}</option>`).join("")}
           ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(pickName(b))}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
