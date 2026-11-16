@@ -111,6 +111,13 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    },b);
    assert.equal(await p.evaluate(()=>S.walkPick),null);assert.equal(await p.evaluate(()=>_walkGesture),null);
   });
+  await check("an interrupted drag cannot keep turning after returning to the page",async p=>{
+   await open(p);await p.locator("#walk-map").scrollIntoViewIfNeeded();const b=await target(p);
+   await p.mouse.move(b.x,b.y);await p.mouse.down();await p.mouse.move(b.x+30,b.y,{steps:4});
+   const angle=await p.evaluate(()=>_walkView.angle);assert(angle>0);
+   await p.evaluate(()=>dispatchEvent(new Event("blur")));assert.equal(await p.evaluate(()=>_walkGesture),null);
+   await p.mouse.move(b.x+65,b.y);await p.mouse.up();assert.equal(await p.evaluate(()=>_walkView.angle),angle);assert.equal(await p.evaluate(()=>S.walkPick),null);
+  });
   for(const [width,height] of [[320,667],[390,844],[768,1024],[1024,768]])await check("Explore fits with named 44px controls at "+width+"x"+height,async p=>{
    await open(p);await action(p,"Right ↷");await action(p,"Tilt view");
    for(const b of await p.locator("#walk-explore-controls button").all()){

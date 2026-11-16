@@ -10080,10 +10080,11 @@ function guardWalkView(){
   }
   walkView();
 }
-addEventListener("blur",stopWalkTour);
-addEventListener("pagehide",stopWalkTour);
-document.addEventListener("visibilitychange",()=>{if(document.hidden) stopWalkTour();});
-walkMotion.addEventListener("change",()=>{stopWalkTour();if(S.tab==="more"&&S.more==="walk")walkRender(false);});
+function pauseWalkView(){stopWalkTour();_walkGesture=null;}
+addEventListener("blur",pauseWalkView);
+addEventListener("pagehide",pauseWalkView);
+document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseWalkView();});
+walkMotion.addEventListener("change",()=>{pauseWalkView();if(S.tab==="more"&&S.more==="walk")walkRender(false);});
 document.addEventListener("pointerdown",ev=>{
   if(!_walkView?.on || S.tab!=="more" || S.more!=="walk" || !ev.target.closest?.("#walk-map svg.field") || ev.button>0) return;
   stopWalkTour();
