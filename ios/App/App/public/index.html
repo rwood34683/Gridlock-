@@ -20187,7 +20187,7 @@ const TOOL_WORDS={
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
   format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
-  walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
+  walk:"field notes drill drills practice quadrant quadrants zones", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
@@ -20284,7 +20284,7 @@ function moreBody(k){
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
-          ${WALK_ZONES.map(z=>`<option${z.name===where?" selected":""}>${z.name}</option>`).join("")}
+          ${walkDrillZone() !== "off" || WALK_ZONES.some(z=>z.name===where) ? WALK_ZONES.map(z=>`<option${z.name===where?" selected":""}>${z.name}</option>`).join("") : ""}
           ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(pickName(b))}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>

@@ -18,8 +18,14 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
  const data=p=>p.evaluate(()=>JSON.parse(copyPayload("all")).data);
  const show=p=>p.getByRole("button",{name:"Show drill zones",exact:true}).click();
  try{
+  await check("Find a tool leads from drills and quadrants to Walk",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:null}));
+   for(const word of ["drills","quadrants"]){await p.locator("#tool-find").fill(word);assert.equal(await p.locator('[data-tool="walk"]:visible').count(),1);}
+   await p.locator('[data-tool="walk"]').click();assert.equal(await p.getByRole("button",{name:"Show drill zones",exact:true}).count(),1);
+  });
   await check("zones start off; showing and hiding them preserves the entire season",async p=>{
    const before=await data(p);assert.equal(await p.locator(".walk-drill-zones").count(),0);
+   assert.equal(await p.locator("#wkWhere option").count(),await p.evaluate(()=>WIRES.length+curLayout().bunkers.length),"ordinary Walk keeps its existing choices");
    await show(p);assert.deepEqual(await p.locator(".walk-drill-zones text").allTextContents(),["Q1","Q2","Q3","Q4"]);
    assert.equal(await p.getByRole("button",{name:"Hide drill zones"}).getAttribute("aria-expanded"),"true");
    assert.deepEqual(await data(p),before);await p.getByRole("button",{name:"Hide drill zones"}).click();
