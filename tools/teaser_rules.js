@@ -255,6 +255,15 @@ name();new MutationObserver(()=>{if(!q)q=requestAnimationFrame(name);}).observe(
   ["team home", "  show('teambox',m==='team');", "  show('teambox',m==='team');show('homebox',m==='home');if(m==='home'&&typeof renderHome==='function')renderHome();", ["team"]],
   ["team home", "EDITION==='team'?'team':'play');", "EDITION==='team'?'home':'play');", ["team"]],
   ["team home", " b.style.display=(MODE==='team')?'none':'';}", " b.style.display=(MODE==='team'||MODE==='home')?'none':'';}", ["team"]],
+  // The Zones button's symbol was written as a JavaScript escape inside HTML,
+  // so it printed "\\u25a6"; HTML needs the character itself.
+  ["zones glyph", '<button class="ld" id="zoneBtn">\\u25a6 Zones: off</button>', '<button class="ld" id="zoneBtn">\u25a6 Zones: off</button>'],
+  // Team admin (owner, 15 Nov 2026): roles, two-person money and the log.
+  // The tab and its screen are tools/teaser_teamadmin.js.
+  ["team admin", "m==='tpmine'||m==='home');", "m==='tpmine'||m==='home'||m==='tadmin');", ["team"]],
+  ["team admin", "  show('govbox',m==='gov');", "  show('govbox',m==='gov');{const _ta=document.getElementById('tadminbox');if(_ta)_ta.classList.toggle('hidden',m!=='tadmin');}", ["team"]],
+  ["team admin", "else if(MODE==='gov')renderGov();", "else if(MODE==='gov')renderGov();else if(MODE==='tadmin'&&typeof renderTadmin==='function')renderTadmin();", ["team"]],
+  ["team admin", "          else if(k==='gridlock_team'){", "          else if(k==='gridlock_tadmin'){if(typeof taMerge==='function')taMerge(data.keys[k]);}\n          else if(k==='gridlock_team'){", ["team"]],
   // Remove a player from the Team tab or Lineups (owner, 13 Nov 2026).
   ["remove player", "function renderTeam(){", "/* One way to take a player off (owner, 13 Nov 2026): asked first, off the roster and off every line. */\nfunction tmDropPlayer(name,after){if(!name)return;gChoose('Remove '+name+'?',name+' comes off the roster and off every line. Nothing else is deleted.',[{label:'Remove',primary:true,run:()=>{const k=tpSlug(name);const t=teamGet()||{};t.roster=(t.roster||[]).filter(x=>tpSlug(x)!==k);teamSet(t);tRosterRemove(name);const all=linesAll();all.forEach(l=>{l.spots=(l.spots||[]).filter(sp=>tpSlug(sp.player)!==k);});linesSave(all);if(lnPlayer&&tpSlug(lnPlayer)===k)lnPlayer=null;if(lnAimPlayer&&tpSlug(lnAimPlayer)===k)lnAimPlayer=null;if(after)after();}},{label:'Cancel'}]);}\nfunction renderTeam(){", ["team"]],
   ["remove player", "document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet();const gone=t.roster.splice(+b.dataset.tmrm,1)[0];teamSet(t);if(gone)tRosterRemove(gone);renderTeam();});", "document.querySelectorAll('[data-tmrm]').forEach(b=>b.onclick=()=>{const t=teamGet()||{};tmDropPlayer((t.roster||[])[+b.dataset.tmrm],renderTeam);});", ["team"]],
@@ -353,6 +362,15 @@ function apply(src, kind) {
   }
   src = require("./teaser_field_view").apply(src, kind);
   src = require("./rulebook-links").preview(src);
+  if (kind === "team") {
+    // After the Rules tab is placed, so Team admin lands between Rules and Nexus.
+    const start = "<!-- teamadmin:begin \u2014 generated from tools/teaser_teamadmin.js, never hand-edit -->", end = "<!-- teamadmin:end -->";
+    const code = fs.readFileSync(path.join(__dirname, "teaser_teamadmin.js"), "utf8").trimEnd();
+    const block = start + "\n<script>\n" + code + "\n</script>\n" + end;
+    const a = src.indexOf(start), b = src.indexOf(end);
+    src = a >= 0 && b > a ? src.slice(0, a) + block + src.slice(b + end.length)
+      : src.replace("</body>", () => block + "\n</body>");
+  }
   if (kind === "player") {
     const start = "<!-- player-selection:begin -->", end = "<!-- player-selection:end -->";
     const code = fs.readFileSync(path.join(__dirname, "teaser_selection.js"), "utf8").trimEnd();

@@ -103,8 +103,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   request. The Rules screen says a connection is needed and to save the PDF before
   the event. Never hand-edit the generated rulebook-links blocks.
   In the Player preview, Rules is in the More menu just above Nexus; in the
-  Team preview, which has no More menu, it is the tab just before Nexus
-  (owner, 12 Nov 2026). Never a loose header button.
+  Team preview, which has no More menu, it is the tab just before Team
+  admin, which is just before Nexus (owner, 12 and 15 Nov 2026). Never a
+  loose header button.
 
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,
@@ -1499,6 +1500,27 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach app and the Player preview: `tapNext()` / `cpNext()`, the point moves
     on, no result is written, the score and the ends stay. On a phone's column
     it takes its own row under the two results.
+    **Team admin** (owner, 15 Nov 2026), Team preview only, the tab after
+    Rules and before Nexus (`tools/teaser_teamadmin.js`, between the
+    `teamadmin` markers). Eight roles, one a person: Owner, Site admin, Head
+    coach, Assistant coach / Scout, Treasurer, Logistics, Captain, Player (the
+    owner chose no Parent). `TA_CAN` is the one table of who can do what; the
+    on-screen table reads it. Nobody changes their own role; only the Owner or
+    a Site admin gives roles, and a Site admin never makes or touches a Site
+    admin or the Owner; exactly one Owner, who can hand it on. Money is a
+    record only (nothing charged or sent) and always takes two people: the
+    recorder can never approve it, only the Treasurer or the Owner can. The
+    Site admin has no money. The activity log has no edit or delete. **View
+    as** (page memory only) shows the tabs a role uses (`TA_TABS`) and the
+    Team admin buttons it can press; buttons inside the other tabs are not
+    locked yet, and the screen says roles live on this phone only. Backups
+    merge it by id (`taMerge`).
+    **Team dev build** (owner, 15 Nov 2026): `node tools/teaser_artifact.js
+    team-dev` writes `dist/teaser-artifact/gridlock-team-dev.html` from the
+    Team preview with every tab shown, every licensed feature open (`LICF`)
+    and a DEV BUILD ribbon, for working on the Team app with full admin. Each
+    change must find its text or the build stops. It is never the preview
+    players see; `teasers/team/index.html` keeps its tabs and locks.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
