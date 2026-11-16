@@ -14288,6 +14288,7 @@ function syncCanPaint(){
 }
 function seasonReceiveIdle(){
   if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
+  if(S.mediaView?.draft) return false;
   if(!syncCanPaint()) return false;
   if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
   if(S.tallyDraft || S.tallySel || S.tallyEdit || S.tallyPlace || S.tallyPickFor || S.theirPick?.length || S.theirFix || S.pad || S.building || S.fieldEdit || S.editPath || S.quick || S.quickPick || S.penOpen || S.gameNew || S.gamePaste || S.calNew || S.calCustom || S.paste || S.codePick || S.codeName || S.bcName || S.asWho || S.showTutorial || S.clockEnd || S.rep?.running || copyDraft) return false;

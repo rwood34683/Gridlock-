@@ -73,7 +73,8 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   Start empty; do not invent listings, availability, ratings or bookings.
   Portfolio/social links must be HTTPS without credentials, escaped, and
   opened only by a tap. No embedded media, automatic requests or messages.
-  Edits belong to the current account and season; removal asks first and
+  Edits belong to the current account and season; incoming sync waits for
+  an unfinished contact even after leaving and returning to Media. Removal asks first and
   old merged copies cannot resurrect a contact removed on this device.
   `test/media-directory.cjs` checks storage, restore, isolation and layouts.
 

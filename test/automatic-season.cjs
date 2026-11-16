@@ -64,6 +64,16 @@ const adapter=fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js")
   }
   async function check(name,fn){try{await fn();passed++;console.log("PASS "+name);}catch(e){failed++;console.error("FAIL "+name+"\n"+e.stack);throw e;}}
   try{
+    await check("incoming season waits for an unfinished media contact even after a redraw",async()=>{
+      const {a,b}=await fixture();
+      await b.evaluate(()=>{set({tab:"more",more:"media"});editMedia();});
+      await b.getByLabel("Photographer or crew name",{exact:true}).fill("Unfinished contact");
+      await b.evaluate(()=>{render();set({tab:"home",more:null});set({tab:"more",more:"media"});});await change(a);await receive(b);
+      assert.equal(await b.getByLabel("Photographer or crew name",{exact:true}).inputValue(),"Unfinished contact");
+      assert.equal(await b.evaluate(()=>S.codes[0].word),"Blue","incoming season waits while the contact is unfinished");
+      await b.getByRole("button",{name:"Cancel",exact:true}).click();await receive(b);
+      assert.equal(await b.evaluate(()=>S.codes[0].word),"Rocket","cancel releases the draft guard");
+    });
     await check("media contacts travel with the opted-in season between laptop, phone and tablet",async()=>{
       const {a,b}=await fixture();
       await a.evaluate(()=>{set({tab:"more",more:"media"});editMedia();});
