@@ -5754,6 +5754,26 @@ function fieldBuildSVG(f){
     <text x="${W / 2}" y="${H + M - 4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
   </svg>`;
 }
+// More › Field builder: the builder from Account & backups › Events, on a row of
+// its own. His fields lead, each with Use / Edit; the builder is the same code.
+function fieldsPage(){
+  const mine = (S.fields || []);
+  return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
+      regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
+    ${mine.length ? `<div class="assigns">${mine.map(f => {
+      const ready = fieldReady(f), on = f.key === S.layoutKey;
+      return `<div class="assign" style="flex-wrap:wrap">
+        <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
+        <span class="assign__who">${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
+        ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
+        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
+      </div>`; }).join("")}</div>` : `<p class="note">No fields of your own yet.</p>`}
+    ${fieldBuilder()}
+    <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
+      placed it by eye. A field you build rides in Save a copy, and the twelve calls plant on it once it has
+      ${FIELD_MIN} bunkers. Every field, measured and yours, is also listed under Account &amp; backups › Events.</p>`,
+    mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "");
+}
 function fieldBuilder(){
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key);
   if(!f) return `<div class="fld" style="margin-top:var(--s3)"><label>Build a field — the event or the park it is at</label>
@@ -20098,6 +20118,11 @@ const HELP = {
          "Erase rubs out a stroke you drag over; Undo takes back the last mark; Wipe clears the board.",
          "Blank swaps the field for a dark board when you want to draw from scratch."],
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
+  "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
+    how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
+      "Tap a bunker to pick it, then Turn, move it or take it off. Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
+    watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
          "Explore field turns and zooms the measured field plan. Drag sideways, use the buttons, or focus the field and use arrow keys. Whole field resets the view. Bunker heights are not shown.",
@@ -20232,7 +20257,7 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
-  ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Can I use my own field?", "Yes. More › Field builder (also under Account & backups › Events): name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
   ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
@@ -20243,7 +20268,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", () => canSync() ? "More › Matches says when you last saved a file. Nexus › Save a copy keeps a backup you control. League sync keeps one current full-season copy with your account on our account server; Gridlock PB LLC's administrators can review it. It is not a history of backups. Pause, review/restore or delete it in Nexus." : "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
-  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
+  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — open More › Field builder: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format. In Standard mode it starts when you score a point, shows in the header on every tab, and a tap stops it. For split deck, choose Split deck on Format and use its controls on Tally. The game clock always belongs to the official."],
   ["We play split deck. How do I track it?", "More › Format › Split deck. On Tally, score our point as usual, then the card says Other match playing. When their point ends, tap Other point ended. The preparation timer keeps our minimum break as well as the changeover. Tap Our point is starting on the official's signal. Their point never changes our score. If their whole match ends, open Has the other match ended? and tap Other match is over. After a reload, check which match is on before continuing."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
@@ -21362,6 +21387,7 @@ const MORE_GROUPS=[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["worldcup","World Cup teams","2026 divisions and team entries"],
     ["walk","Walk","Notes from walking the field"],
+    ["fields","Field builder","Build a field the app does not carry"],
     ["codes","Codes","Your code words, every event"],
     ["media","Media","Your photographers and media crews"]]],
   ["During the game",[
@@ -21395,6 +21421,7 @@ const TOOL_WORDS={
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
   format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
+  fields:"build field custom layout park regional bunkers map own field builder make field",
   walk:"field notes drill drills practice quadrant quadrants zones explore tour rotate zoom", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
@@ -21470,6 +21497,7 @@ function moreBody(k){
   if(k==="home") return coachHome();
   if(k==="rules") return rulebooksPage();
   if(k==="media") return mediaPage();
+  if(k==="fields") return fieldsPage();
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);

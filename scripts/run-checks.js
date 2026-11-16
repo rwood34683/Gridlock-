@@ -7,6 +7,7 @@ const { createServer } = require("./serve");
 const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
   "walk-explore": "test/walk-explore.cjs",
+  "field-builder-tab": "test/field-builder-tab.cjs",
   "media-directory": "test/media-directory.cjs",
   "drill-zones": "test/drill-zones.cjs",
   "coach-print": "test/coach-print.cjs",

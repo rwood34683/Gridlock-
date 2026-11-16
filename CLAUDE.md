@@ -191,7 +191,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
+More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
@@ -1752,6 +1752,13 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     the real control on every Scout view and preserve score/end assertions.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Field builder (owner, 16 Nov 2026): More › Field builder, after Walk under
+Before the game, is the builder from Account & backups › Events on its own
+row (`fieldsPage()`): his fields first with Use this field / Edit / Keep
+building, then the same `fieldBuilder()`. Nothing moved out of Events; the
+house rules for a built field are unchanged. Free like every field screen.
+`test/field-builder-tab.cjs`.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
 field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,
