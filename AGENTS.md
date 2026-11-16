@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Walk → Explore field** turns, tilts and zooms the current measured plan, with an optional one-turn tour and existing bunker notes.
+  Camera state is temporary; no guessed heights, season writes or automatic motion on opening. See `test/walk-explore.cjs`.
+
 - **Media** keeps the coach's own photographer/crew contacts under More and Home.
   Full season backups and opt-in sync include them; squad/match shares do not. No public directory, invented availability, bookings or automatic requests.
 

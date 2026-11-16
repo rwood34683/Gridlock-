@@ -441,6 +441,13 @@ svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 /* Walk's sticky notes: paper on the field, beside the bunker they are about. */
 .walk-map{position:relative}
+.walk-explore-controls{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.walk-explore-controls[hidden]{display:none}
+.walk-explore-controls .btn{min-height:44px;min-width:44px}
+.walk-map--explore svg.field{height:auto;min-height:240px;max-height:520px;width:100%;touch-action:pan-y pinch-zoom;cursor:grab}
+.walk-map--explore svg.field:active{cursor:grabbing}
+.walk-map--explore svg.field:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.walk-camera-read{font-variant-numeric:tabular-nums;min-height:1.5em}
 /* The calendar on Schedule: a phone's calendar in the stadium colours. */
 .cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
 .cal-bar__l,.cal-bar__r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -9035,6 +9042,116 @@ function sampleStroke(pts, from, to){
 
 // ---- the walk: what you noticed standing on the field, against a bunker ----
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
+// A camera over the existing measured plan, never invented bunker heights.
+// Kept outside S: moving the view must not write a season or trigger sync.
+let _walkView = null, _walkFrame = 0, _walkGesture = null;
+const walkMotion = matchMedia("(prefers-reduced-motion: reduce)");
+function walkView(){
+  if(!_walkView || _walkView.state !== S || _walkView.email !== S.email || _walkView.layout !== S.layoutKey || _walkView.fields !== S.fields){
+    stopWalkTour();
+    _walkView = {state:S, email:S.email, layout:S.layoutKey, fields:S.fields, on:false, angle:0, zoom:1, tilt:false, focus:null, tour:null};
+    _walkGesture = null;
+  }
+  return _walkView;
+}
+function walkMatrix(){
+  const v=walkView(), r=v.angle*Math.PI/180, c=Math.cos(r), s=Math.sin(r), tilt=v.tilt?.64:1;
+  // Fit the entire rotated drawing, including wire labels, at 1x zoom.
+  const fit=Math.min(1,328/(328*Math.abs(c)+276*Math.abs(s)),276/(tilt*(328*Math.abs(s)+276*Math.abs(c))));
+  const z=fit*v.zoom, a=z*c, b=z*s*tilt, d=z*c*tilt, e=-z*s;
+  const target=v.focus&&curLayout().bunkers.find(x=>x.id===v.focus), x=target?target.x*2:150, y=target?target.y*2:120;
+  return `matrix(${[a,b,e,d,150-a*x-e*y,120-b*x-d*y].map(n=>n.toFixed(6)).join(" ")})`;
+}
+function walkViewControls(){
+  const v=walkView();
+  return `<button class="btn btn--quiet" aria-expanded="${v.on}" aria-controls="walk-explore-controls" onclick="walkCamera('toggle')">${v.on?"Close explore":"Explore field"}</button>
+    <div id="walk-explore-controls" class="walk-explore-controls"${v.on?"":" hidden"} role="group" aria-label="Field view controls">
+      <button class="btn btn--quiet" onclick="walkCamera('left')">↶ Left</button><button class="btn btn--quiet" onclick="walkCamera('right')">Right ↷</button>
+      <button class="btn btn--quiet" onclick="walkCamera('out')" aria-label="Zoom out">−</button><button class="btn btn--quiet" onclick="walkCamera('in')" aria-label="Zoom in">+</button>
+      <button class="btn btn--quiet" onclick="walkCamera('tilt')" aria-pressed="${v.tilt}">Tilt view</button>
+      <button class="btn btn--quiet" onclick="walkCamera('fit')">Whole field</button>
+      <button class="btn btn--quiet" onclick="walkCamera('focus')"${walkPickedBunker()?"":" disabled"}>Focus bunker</button>
+      <button class="btn btn--quiet" id="walk-tour" onclick="walkCamera('tour')"${walkMotion.matches?" disabled":""}>${v.tour?"Stop tour":"Start tour"}</button>
+    </div>
+    ${v.on?`<p class="note">Drag sideways to turn; tap a bunker for its name and notes. This is the field plan: bunker heights are not shown.${walkMotion.matches?" Automatic motion is off for your device's reduced-motion setting.":""}</p><p class="note walk-camera-read" id="walk-camera-read"></p>`:""}`;
+}
+function paintWalkView(){
+  const v=_walkView, scene=document.getElementById("walk-scene");
+  if(!v?.on || !scene) return;
+  scene.setAttribute("transform",walkMatrix());
+  const read=document.getElementById("walk-camera-read");
+  if(read) read.textContent=`${Math.round(((v.angle%360)+360)%360)}° · ${v.zoom.toFixed(1)}× · ${v.tilt?"Tilted":"Top view"}`;
+  const tour=document.getElementById("walk-tour");
+  if(tour) tour.textContent=v.tour?"Stop tour":"Start tour";
+  placeWalkStickies();
+}
+function stopWalkTour(){
+  if(_walkFrame) cancelAnimationFrame(_walkFrame);
+  _walkFrame=0;
+  if(_walkView) _walkView.tour=null;
+  const tour=document.getElementById("walk-tour"); if(tour) tour.textContent="Start tour";
+}
+function walkTourFrame(now){
+  _walkFrame=0;
+  const v=_walkView, tour=v?.tour;
+  if(!tour || !S.entered || S.tab!=="more" || S.more!=="walk" || document.hidden || walkMotion.matches || walkView()!==v || !document.getElementById("walk-scene")){stopWalkTour();return;}
+  if(tour.start===null) tour.start=now;
+  const elapsed=now-tour.start;
+  // One slow turn, then stop. No perpetual render loop or state writes.
+  if(now-tour.painted>=32 || elapsed>=45000){
+    tour.painted=now; v.angle=(tour.angle+360*Math.min(1,elapsed/45000))%360; paintWalkView();
+  }
+  if(elapsed>=45000) stopWalkTour();
+  else _walkFrame=requestAnimationFrame(walkTourFrame);
+}
+window.walkCamera = action => {
+  if(!S.entered || S.tab!=="more" || S.more!=="walk") return;
+  const v=walkView(), touring=!!v.tour;
+  stopWalkTour();
+  if(action==="toggle"){v.on=!v.on;_walkGesture=null;walkRender(false);return;}
+  if(!v.on) return;
+  if(action==="left" || action==="right") v.angle=(v.angle+(action==="left"?-15:15)+360)%360;
+  if(action==="in" || action==="out") v.zoom=Math.max(1,Math.min(3,v.zoom+(action==="in"?.25:-.25)));
+  if(action==="tilt") v.tilt=!v.tilt;
+  if(action==="fit"){v.angle=0;v.zoom=1;v.tilt=false;v.focus=null;}
+  if(action==="focus"){const b=walkPickedBunker();if(b){v.focus=b.id;v.zoom=2;}}
+  if(action==="tour" && !touring && !walkMotion.matches && !document.hidden){
+    v.focus=null;v.zoom=1;v.tilt=true;v.tour={start:null,painted:-Infinity,angle:v.angle};
+    _walkFrame=requestAnimationFrame(walkTourFrame);
+  }
+  // Buttons change too (tilt, selection, reduced motion); motion frames don't render.
+  walkRender(false);
+};
+function guardWalkView(){
+  if(!S.entered || S.tab!=="more" || S.more!=="walk"){
+    stopWalkTour(); _walkView=null; _walkGesture=null; return;
+  }
+  walkView();
+}
+addEventListener("blur",stopWalkTour);
+addEventListener("pagehide",stopWalkTour);
+document.addEventListener("visibilitychange",()=>{if(document.hidden) stopWalkTour();});
+walkMotion.addEventListener("change",()=>{stopWalkTour();if(S.tab==="more"&&S.more==="walk")walkRender(false);});
+document.addEventListener("pointerdown",ev=>{
+  if(!_walkView?.on || S.tab!=="more" || S.more!=="walk" || !ev.target.closest?.("#walk-map svg.field") || ev.button>0) return;
+  stopWalkTour();
+  if(_walkGesture){_walkGesture.moved=true;_walkGesture.multi=true;return;}
+  _walkGesture={id:ev.pointerId,x:ev.clientX,y:ev.clientY,angle:_walkView.angle,moved:false,multi:!ev.isPrimary};
+});
+document.addEventListener("pointermove",ev=>{
+  const g=_walkGesture; if(!g || g.id!==ev.pointerId || g.multi || !_walkView?.on) return;
+  if(Math.hypot(ev.clientX-g.x,ev.clientY-g.y)>FIELD_TAP_SLOP) g.moved=true;
+  if(g.moved && Math.abs(ev.clientX-g.x)>Math.abs(ev.clientY-g.y)){_walkView.angle=(g.angle+(ev.clientX-g.x)*.5+360)%360;paintWalkView();}
+});
+document.addEventListener("pointerup",ev=>{if(_walkGesture?.id===ev.pointerId)_walkGesture=null;});
+document.addEventListener("pointercancel",()=>{_walkGesture=null;});
+document.addEventListener("keydown",ev=>{
+  if(!_walkView?.on || S.tab!=="more" || S.more!=="walk") return;
+  if(ev.key==="Escape"){stopWalkTour();return;}
+  if(!ev.target.matches?.("#walk-map svg.field")) return;
+  const action={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"in",ArrowDown:"out",Home:"fit"}[ev.key];
+  if(action){ev.preventDefault();walkCamera(action);}
+});
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
 // Drill areas belong to the displayed field, never to a team's changing ends.
 const WALK_ZONES = [
@@ -9126,8 +9243,9 @@ function walkRender(focus){
   // it carried the bunker and its sticky notes off the top of the screen.
   if(el){ el.value = typed; if(focus) el.focus({preventScroll: true}); }
 }
-window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
-window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
+window.walkTap = at => { const b = nearestBunker(at); if(b){ stopWalkTour(); S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(!_walkView?.on); } };
+window.walkSelect = v => { stopWalkTour(); S.walkPick = v; S.walkShut = null; walkRender(false); };
+window.walkCloseNotes = id => { S.walkShut=id; walkRender(false); };
 (function walkTapping(){
   document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "walk") return;
@@ -9135,7 +9253,13 @@ window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false);
     if(!surface) return;
     const svg = surface.closest("svg.field"); if(!svg) return;
     ev.preventDefault();
-    walkTap(fieldFeet(svg, ev));
+    if(_walkGesture?.moved || _walkGesture?.multi) return;
+    const scene=svg.querySelector("#walk-scene");
+    if(scene){
+      const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+      const p=pt.matrixTransform(scene.getScreenCTM().inverse());
+      walkTap([p.x/2,p.y/2]);
+    } else walkTap(fieldFeet(svg, ev));
   });
 })();
 function walkOverlay(){
@@ -9165,7 +9289,7 @@ function walkStickies(){
     : `<div class="wnote wnote--empty" style="--tilt:-1deg"><p class="wnote__text">No notes on ${esc(callOf(b))} yet. Type one below and tap Add note.</p></div>`;
   return `<div class="wstick" id="walk-stickies" data-b="${esc(b.id)}" role="group" aria-label="${esc(`Notes on ${callOf(b)}`)}">
     <div class="wstick__head"><b>${esc(callOf(b))}</b><span>${mine.length ? mine.length + (mine.length === 1 ? " note" : " notes") : "no notes"}</span>
-      <button type="button" class="wstick__x" aria-label="Close the notes" onclick="set({walkShut:${jsq(b.id)}})">✕</button></div>
+      <button type="button" class="wstick__x" aria-label="Close the notes" onclick="walkCloseNotes(${jsq(b.id)})">✕</button></div>
     <div class="wstick__pad">${notes}</div></div>`;
 }
 // Beside the bunker, on the side with room, held inside the field.
@@ -9173,7 +9297,7 @@ function placeWalkStickies(){
   const el = document.getElementById("walk-stickies"), wrap = document.getElementById("walk-map");
   const svg = wrap && wrap.querySelector("svg.field"), b = el && curLayout().bunkers.find(x => x.id === el.dataset.b);
   if(!el || !svg || !b || !svg.getScreenCTM) return;
-  const ctm = svg.getScreenCTM(); if(!ctm) return;
+  const ctm = (svg.querySelector("#walk-scene") || svg).getScreenCTM(); if(!ctm) return;
   const pt = svg.createSVGPoint(); pt.x = b.x * 2; pt.y = b.y * 2;
   const at = pt.matrixTransform(ctm), box = wrap.getBoundingClientRect();
   const x = at.x - box.left, y = at.y - box.top, gap = 16, pad = 6;
@@ -10623,7 +10747,7 @@ function fieldSVG(opts={}, runnersOnly){
              + `<text x="${(b.x*sx).toFixed(1)}" y="${(b.y*sy-s2.v-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#e0a33a" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${esc(sh.tag)}</text></g>`; } }
   }
 
-  return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}">
+  return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}"${opts.walkExplore?' tabindex="0" role="group" aria-label="Explore the field. Left and right arrows turn; up and down zoom; Home fits the field."':""}>
     <defs>
       <!-- The official map paints every bunker red or blue; both are sampled
            from it. They sit a step darker than the wires (#e5342f / #3d8bff)
@@ -10647,6 +10771,7 @@ function fieldSVG(opts={}, runnersOnly){
       </filter>
     </defs>
 
+    ${opts.walkExplore?'<g id="walk-scene">':""}
     <rect x="${-FIELD_SIDE}" y="${-M}" width="${W+FIELD_SIDE*2}" height="${H+M*2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#0c0d0e"/>`:"").join("")}
@@ -10683,6 +10808,7 @@ function fieldSVG(opts={}, runnersOnly){
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
+    ${opts.walkExplore?"</g>":""}
   </svg>`;
 }
 
@@ -19021,6 +19147,8 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
+         "Explore field turns and zooms the measured field plan. Drag sideways, use the buttons, or focus the field and use arrow keys. Whole field resets the view. Bunker heights are not shown.",
+         "Start tour makes one slow turn. Stop tour or Escape stops it; leaving Walk stops it too. Reduced-motion settings keep the view manual. Pick a bunker, then Focus bunker for a closer look. Your saved team names and notes stay with that bunker.",
          "Show drill zones divides this layout into four labelled areas. Choose a zone and save your drill as a field note. It does not record a match result.",
          "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Tap a bunker and its notes pop up beside it on the field, like sticky notes; ✕ puts them away, and tapping the bunker again brings them back.",
@@ -20314,7 +20442,7 @@ const TOOL_WORDS={
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
   format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
-  walk:"field notes drill drills practice quadrant quadrants zones", codes:"signals code words", wb:"draw drawing white board",
+  walk:"field notes drill drills practice quadrant quadrants zones explore tour rotate zoom", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
@@ -20398,10 +20526,9 @@ function moreBody(k){
     change:(patch,paint=true)=>{ S.cupView={...(S.cupView||{}),...patch}; if(paint) render(); },top:toMainTop});
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
-    return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
-      noticed it on. Notes stay with this field.</p>
-      ${walkDrillControls()}
-      <div class="field-wrap walk-map" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}${walkStickies()}</div>
+    return sec("Walk", `<p class="lede">Explore the field. Tap a bunker for its name and notes, or add what you saw on the walk.</p>
+      <div class="btnrow">${walkDrillControls()}${walkViewControls()}</div>
+      <div class="field-wrap walk-map${walkView().on?" walk-map--explore":""}" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,walkExplore:walkView().on,overlay:walkOverlay()})}${walkStickies()}</div>
       <p class="note">Tap a bunker to see its notes${notes.length?" — a dot marks one that already has a note":""}, and add one below. Or pick a wire.</p>
       ${/* Standing on a bunker, what the field already knows about it: the
             lanes from here off the measured layout, where their five have
@@ -21624,6 +21751,7 @@ function render(){
   // key until the next relaunch.
   fixBreak();
   guardVoiceSession();
+  guardWalkView();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, deviceSeasonShown(), S.tab, S.more, S.scoutTab].join("|");
   const root = document.getElementById("root");
@@ -21657,7 +21785,7 @@ function render(){
   });
   _screenMarkup = html;
   _where = screen;
-  if(S.tab === "more" && S.more === "walk") placeWalkStickies();
+  if(S.tab === "more" && S.more === "walk"){paintWalkView();placeWalkStickies();}
   if(S.tab === "more" && !S.more) filterTools(_moreQuery);
   if(S.tab === "more" && S.more === "media") filterMedia();
   if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
