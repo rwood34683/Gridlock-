@@ -40,6 +40,12 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Media** keeps the coach's own photographer/crew contacts under More and Home.
+  Full season backups and opt-in sync include them; squad/match shares do not. No public directory, invented availability, bookings or automatic requests.
+
+- **Walk drill zones** divide the current field into four labelled areas, with optional focus and existing field notes for instructions.
+  The overlay is view-only; keep bunker geometry, match records and saved seasons unchanged when showing/hiding it. See `test/drill-zones.cjs`.
+
 - **Player point actions** share one duplicate-tap guard across Tally/Scout; Back a point and New match allow deliberate correction.
   Keep one No point button, regenerate from tools/teaser_coachplay.js, and run test/player-point-actions.cjs through teaser-browser.
 
@@ -71,7 +77,7 @@ the same page:
   a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
   points closes earlier-point list views; recorded history is never a filter.
 
-- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab before Nexus.
+- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab row as Rules, Team admin, Nexus.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 
 - **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.

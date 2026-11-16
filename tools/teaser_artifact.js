@@ -3,6 +3,12 @@
  *
  *   node tools/teaser_artifact.js player   ->  dist/teaser-artifact/gridlock-player.html
  *   node tools/teaser_artifact.js team     ->  dist/teaser-artifact/gridlock-team.html
+ *   node tools/teaser_artifact.js team-dev ->  dist/teaser-artifact/gridlock-team-dev.html
+ *
+ * team-dev (owner, 15 Nov 2026) is the Team app for working on it: built from
+ * the Team preview with every tab shown, every licensed feature open and the
+ * ribbon saying it is a dev build. It is never the preview players are shown,
+ * and teasers/team/index.html itself is not changed by it.
  *
  * The host wraps the page in its own <!doctype>, <head> and <body> and pads the
  * page clear of a phone's system bars, so this drops the preview's own wrapper
@@ -15,10 +21,27 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 
 const kind = process.argv[2] || "player";
-const NAME = { player: "Gridlock Player Preview", team: "Gridlock Team Preview" }[kind];
-if (!NAME) { console.error("Say player or team."); process.exit(1); }
+const NAME = { player: "Gridlock Player Preview", team: "Gridlock Team Preview", "team-dev": "Gridlock Team Dev" }[kind];
+if (!NAME) { console.error("Say player, team or team-dev."); process.exit(1); }
+const from = kind === "team-dev" ? "team" : kind;
 
-let src = fs.readFileSync(path.join(ROOT, `teasers/${kind}/index.html`), "utf8");
+let src = fs.readFileSync(path.join(ROOT, `teasers/${from}/index.html`), "utf8");
+if (kind === "team-dev") {
+  // Every tab the Team edition hides, shown; every licensed feature open;
+  // the ribbon says what this is. Each change must find its text or the
+  // build stops, so a preview change cannot quietly leave a lock in place.
+  const dev = [
+    [/EDITION==='team'\?\['ref','scout','sight','walk','log','tally','assess','move','iq','crew','lang','ready','ops','play','myline','codes','evops','crm','gov'\]/, "EDITION==='team'?[]"],
+    ["function LICF(f){if(EDITION==='player'||EDITION==='team')return false;", "function LICF(f){if(EDITION==='team')return true;if(EDITION==='player')return false;"],
+    [/(<div id="teaserRibbon"[^>]*>)[^<]*(<\/div>)/, "$1DEV BUILD \u00b7 full admin \u00b7 every tab and feature unlocked \u00b7 for building the Team app, not for players$2"],
+    ["_bs.textContent='TEAM EDITION'", "_bs.textContent='TEAM \u00b7 DEV'"],
+  ];
+  for (const [find, to] of dev) {
+    const hit = typeof find === "string" ? src.includes(find) : find.test(src);
+    if (!hit) { console.error(`Dev build: expected ${find} in teasers/team/index.html`); process.exit(1); }
+    src = typeof find === "string" ? src.split(find).join(to) : src.replace(find, to);
+  }
+}
 const strip = [
   [/<!DOCTYPE html>\s*/i, ""],
   [/<html[^>]*>\s*/i, ""],

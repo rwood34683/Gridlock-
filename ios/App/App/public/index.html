@@ -1223,6 +1223,10 @@ svg.field [data-pick]{cursor:crosshair}
 </style>
 <style>
 #coach-print{display:none}
+.media-directory{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--s3)}
+.media-contact{min-width:0;border:1px solid var(--line);border-radius:12px;padding:var(--s3);overflow-wrap:anywhere}
+.media-contact[hidden]{display:none}.media-contact h3{font-size:18px}.media-contact p{margin:var(--s2) 0;white-space:pre-wrap}
+#media-form{max-width:680px}#media-form .btnrow{margin-bottom:var(--s3)}
 @media print{
   body.coach-printing{display:block!important;height:auto!important;overflow:visible!important;background:white!important}
   body.coach-printing> :not(#coach-print){display:none!important}
@@ -3556,6 +3560,7 @@ const defaultState = () => ({
   blasts:[],
   roster:[],                      // yours, from Team — not two invented players
   messages:[],
+  mediaContacts:[],              // the coach's own photographers and media crews
   tally:[],
   breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
   tallySel:null, tallyDraft:null, tallyStep:"record", tallyMode:"record", tallyEdit:null, tallyPlace:"", tallyLast:"", tallyRead:"", tallyValue:"us",
@@ -3632,7 +3637,7 @@ const COPY_VERSION = 1;
 
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
+const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes","mediaContacts",
                   "arrivalSightings","arrivalShots","voiceEvents","playerChecks","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds","myTeam","scheduleDivision","fmtDone"];
 
@@ -4861,6 +4866,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  s.mediaView = {query:"", kind:"", draft:null};
   _pointClearUndo = null;
   s.statMatch = ""; s.statDay = ""; s.statView = "map"; s.statFilters = false;
   s.cupView = null; s.fmtGlance = false;
@@ -6250,7 +6256,7 @@ window.renamePlay = (k, v) => {
  * a merge from an assistant's phone that still holds a play, a field or a
  * calendar entry he took off used to put it straight back. A copy merged in
  * leaves these out and says so; Replace is the copy's season and clears it. */
-const GONE_KINDS = {plays: "play", fields: "field", calEvents: "calendar event", calKinds: "calendar kind"};
+const GONE_KINDS = {plays: "play", fields: "field", calEvents: "calendar event", calKinds: "calendar kind", mediaContacts:"media contact"};
 function markGone(kind, id){
   if(!id) return;
   const g = {...(S.goneIds || {})}; g[kind] = [...new Set([...(g[kind] || []), id])].slice(-500); S.goneIds = g;
@@ -6976,7 +6982,7 @@ function sheetPayload(id){
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 // The lists copySummary() names, so a merge can count what it added.
-const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents","playerChecks","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
+const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","mediaContacts","arrivalSightings","arrivalShots","voiceEvents","playerChecks","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
 function copySummary(d){
   const n = (k, f) => {
     // A walk is notes kept per field, and members sit inside their groups.
@@ -6989,7 +6995,7 @@ function copySummary(d){
                 [n("scout"), "team scouted"], [n("calls"), "call logged"], [n("tally"), "out"], [n("breakouts"), "breakout"],
                 [n("pens"), "penalty"], [n("timeouts"), "timeout"], [n("games"), "game added"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"], [n("playerChecks"), "player check"],
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("mediaContacts"), "media contact"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"], [n("playerChecks"), "player check"],
                 [n("groups"), "group"], [n("members"), "group member"], [n("codes"), "code word"], [n("walk"), "walk note"],
                 [n("blasts"), "blast"], [n("fmts"), "saved format"], [n("fields"), "field of yours"],
                 [n("calEvents"), "calendar event"], [n("calKinds"), "calendar kind"], [n("words"), "word or setting"]];
@@ -7024,6 +7030,7 @@ const SAME = {
   blastTo:     id => id,
   codes:       c => (c.word || "").toLowerCase(),
   messages:    m => String(m),
+  mediaContacts: c => c.id,
   // Every list a merge can meet needs a key here, or the merge takes the
   // incoming list whole and his own is gone: a squad copy merged in from an
   // assistant's phone replaced his plays with theirs, and a full copy
@@ -7252,6 +7259,8 @@ function copyDataError(data){
     classes:list(v => row(v) && str(v.code) && token(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
+    mediaContacts:v => Array.isArray(v) && v.every(c => !mediaContactError(c))
+      && new Set(v.map(c => c.id)).size === v.length,
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
     matchId:str, matchState:str, teamCode:str, division:str, myTeam:v=>str(v)&&v.length<=60, scheduleDivision:v=>str(v)&&v.length<=180, fmtDone:v=>typeof v==="boolean",
     // The format he answered, and the ones he saved under a name.
@@ -9027,6 +9036,43 @@ function sampleStroke(pts, from, to){
 // ---- the walk: what you noticed standing on the field, against a bunker ----
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
+// Drill areas belong to the displayed field, never to a team's changing ends.
+const WALK_ZONES = [
+  {id:"q1", name:"Q1 · Left dorito", x:0, y:0},
+  {id:"q2", name:"Q2 · Right dorito", x:150, y:0},
+  {id:"q3", name:"Q3 · Left snake", x:0, y:120},
+  {id:"q4", name:"Q4 · Right snake", x:150, y:120}
+];
+let _walkDrill = null; // View only: never exported, synced or counted as a point.
+function walkDrillZone(){ return _walkDrill && _walkDrill.layout === S.layoutKey ? _walkDrill.zone : "off"; }
+window.setWalkDrillZone = zone => {
+  const area = WALK_ZONES.find(z => z.id === zone);
+  if(!area && zone !== "off" && zone !== "all") return;
+  _walkDrill = {layout:S.layoutKey, zone};
+  if(area){ S.walkPick = area.name; S.walkShut = null; }
+  walkRender(false);
+};
+function walkDrillControls(){
+  const zone = walkDrillZone(), on = zone !== "off";
+  return `<button class="btn btn--quiet" aria-expanded="${on}" aria-controls="walk-drill-controls" onclick="setWalkDrillZone('${on ? "off" : "all"}')">${on ? "Hide drill zones" : "Show drill zones"}</button>
+    <div id="walk-drill-controls"${on ? "" : " hidden"}>
+      <p class="note">Four zones split at the fifty and between snake and dorito. Left and right follow this field view. Choose a zone, then add your drill in Note below.</p>
+      <div class="fld"><label for="walk-drill-area">Drill area</label><select id="walk-drill-area" onchange="setWalkDrillZone(this.value)">
+        <option value="all"${zone === "all" ? " selected" : ""}>All four zones</option>
+        ${WALK_ZONES.map(z => `<option value="${z.id}"${zone === z.id ? " selected" : ""}>${z.name}</option>`).join("")}
+      </select></div>
+    </div>`;
+}
+function walkDrillOverlay(){
+  const zone = walkDrillZone(); if(zone === "off") return "";
+  const area = WALK_ZONES.find(z => z.id === zone);
+  return `<g class="walk-drill-zones" pointer-events="none" aria-hidden="true">
+    ${area ? `<rect class="walk-drill-focus" x="${area.x + 1}" y="${area.y + 1}" width="148" height="118" fill="#efedeb" fill-opacity=".04" stroke="#efedeb" stroke-width="1.5"/>` : ""}
+    <path d="M150 0V240 M0 120H300" fill="none" stroke="#0b0c0d" stroke-width="3"/>
+    <path d="M150 0V240 M0 120H300" fill="none" stroke="#efedeb" stroke-width="1" stroke-dasharray="4 4"/>
+    ${WALK_ZONES.map(z => `<text x="${z.x + 8}" y="${z.y + 19}" fill="#efedeb" stroke="#0b0c0d" stroke-width="3" paint-order="stroke" font-size="12" font-weight="700">${z.id.toUpperCase()}</text>`).join("")}
+  </g>`;
+}
 window.addWalk = () => {
   const pb = walkPickedBunker(), where = pb ? walkWhereOf(pb) : rosterVal("wkWhere");
   // Cut before the duplicate check, the way it is kept: a long note added
@@ -9094,7 +9140,7 @@ window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false);
 })();
 function walkOverlay(){
   const noted = walkNotedIds(), bl = curLayout().bunkers;
-  let out = bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
+  let out = walkDrillOverlay() + bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
   const b = walkPickedBunker();
   if(b){
     const s2 = bunkerSize(b, 2, 2);
@@ -13327,6 +13373,7 @@ function syncCanPaint(){
 }
 function seasonReceiveIdle(){
   if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
+  if(S.mediaView?.draft) return false;
   if(!syncCanPaint()) return false;
   if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
   if(S.tallyDraft || S.tallySel || S.tallyEdit || S.tallyPlace || S.tallyPickFor || S.theirPick?.length || S.theirFix || S.pad || S.building || S.fieldEdit || S.editPath || S.quick || S.quickPick || S.penOpen || S.gameNew || S.gamePaste || S.calNew || S.calCustom || S.paste || S.codePick || S.codeName || S.bcName || S.asWho || S.showTutorial || S.clockEnd || S.rep?.running || copyDraft) return false;
@@ -18848,6 +18895,11 @@ window.sendBlast = () => {
    generated: if a screen changes, this changes with it, and the suite fails
    when a screen has no entry. */
 const HELP = {
+  "more/media": {t:"Media", w:"Your photographers and media crews in one place.",
+    how:["Add a contact with their coverage type, location, event and contact details. A portfolio or social page must start with https://.",
+      "Search by name, location or event, or filter by coverage. Edit updates a contact; Remove asks first.",
+      "Contacts stay in your season and full backup. Optional League sync carries them with that season. They are not included when sharing one match or your squad."],
+    watch:"This is your saved directory, not a public listing or a booking service. Confirm availability with the crew. Opening a link needs a connection."},
   home: {t:"Home", w:"Choose what you need to do next.",
     how:["Playbook plans your break. Tally records your match. Scout records other teams. Sightlines checks lanes between bunkers.",
          "Your team's day opens Schedule, where you choose your team and see its loaded games.",
@@ -18969,6 +19021,7 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
+         "Show drill zones divides this layout into four labelled areas. Choose a zone and save your drill as a field note. It does not record a match result.",
          "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Tap a bunker and its notes pop up beside it on the field, like sticky notes; ✕ puts them away, and tapping the bunker again brings them back.",
          "Notes are kept per field, so they follow the event."]},
@@ -19080,6 +19133,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Where do I keep photographers and media crews?", "Open More → Media. Add the contacts you know, then search by name, location or event and filter Photo, Video or Media crew. Gridlock does not book coverage or verify availability. Full backups and optional League sync include these contacts; squad and match shares do not."],
   ["Can I print the schedule or reports?", "Yes. Open Schedule, Reports or the daily bunker table and tap Print / Save PDF. Schedule prints your selected team's games in the selected division, or all games in that division if no team is chosen. Reports and the daily table keep your filters. Choose an available printer or Save as PDF in your browser. A wireless printer must be available to your device; printing does not change your season."],
   ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],
   ["Why does a player have no history?", "The World Cup package has not read every player's history yet. Not retrieved means unknown, not none. What is there is published classification and scored-event rows, not a whole career, and a classification score is not a match score. Jerseys and most hometowns are not published, so they stay blank."],
@@ -20109,6 +20163,115 @@ function homeMoreCards(){
 /* rulebook-links:begin — generated by tools/rulebook-links.js */
 function rulebooksPage(){return sec("Rules","<style>.rules-books{display:grid;gap:12px}.rules-book{display:flex;flex-direction:column;gap:6px;min-height:44px;padding:16px;border:1px solid #3a3f40;border-radius:12px;background:#111314;color:#efedeb;text-decoration:none;overflow-wrap:anywhere}.rules-book span,.rules-note{color:#ff5a52}.rules-book:focus-visible{outline:3px solid #efedeb;outline-offset:2px}.rules-note{max-width:65ch;line-height:1.5;margin:12px 0}</style><p class=\"rules-note\">Open the official rulebook for your format. A connection is needed; save the PDF on your device before the event.</p><div class=\"rules-books\"><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/match-play-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Match play</b><span>3v3, 5v5, 7v7, 10v10, Classic and Pump</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/divisional-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Divisional X-Ball</b><span>Divisional X-Ball</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/pro-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Pro X-Ball</b><span>Professional division</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a></div><p class=\"rules-note\">Check the edition and event updates with the organizer. Officials make the live call.</p>");}
 /* rulebook-links:end */
+// User-added contacts only. No listings, prices or availability are invented.
+function mediaLink(value){
+  if(typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "";
+  try{ const u=new URL(value); return u.protocol==="https:" && !u.username && !u.password ? u.href : ""; }catch(e){ return ""; }
+}
+function mediaContactError(c){
+  if(!plainRecord(c) || typeof c.id!=="string" || !/^[a-zA-Z0-9_.:-]{1,80}$/.test(c.id)) return "Invalid contact.";
+  const limits={name:80,kind:20,area:100,event:120,website:1000,contact:160,note:500};
+  if(Object.keys(c).some(k=>k!=="id" && !Object.prototype.hasOwnProperty.call(limits,k)) ||
+    Object.entries(limits).some(([k,n])=>typeof c[k]!=="string" || c[k].length>n)) return "Check the contact details.";
+  if(!c.name.trim()) return "Add a photographer or crew name.";
+  if(!["Photo","Video","Photo & video","Media crew"].includes(c.kind)) return "Choose a coverage type.";
+  if(c.website && !mediaLink(c.website)) return "Use an https:// link without a username or password.";
+  return "";
+}
+function mediaEditable(){
+  return S.entered && S.tab==="more" && S.more==="media" && !gateKey()
+    && !(typeof webPassLocked==="function" && webPassLocked());
+}
+function mediaContext(){ return JSON.stringify([S.email,S.seasonId]); }
+function mediaView(){
+  if(!S.mediaView) S.mediaView={query:"",kind:"",draft:null};
+  if(S.mediaView.draft?.owner!==mediaContext()) S.mediaView.draft=null;
+  return S.mediaView;
+}
+window.editMedia = (id="") => {
+  if(!mediaEditable()) return;
+  const c=(S.mediaContacts||[]).find(c=>c.id===id);
+  if(id && !c) return flash("That contact is no longer here.");
+  const v=mediaView();
+  if(v.draft && !askFirst("Discard these unsaved contact changes?",JSON.stringify(v.draft))) return;
+  v.draft={owner:mediaContext(),before:c ? JSON.stringify(c) : "",data:c ? {...c} :
+    {id:"media:"+newSalt(),name:"",kind:"Photo",area:"",event:"",website:"",contact:"",note:""}};
+  render(); document.getElementById("media-name")?.focus();
+};
+window.mediaDraft = (key,value) => {
+  const d=mediaView().draft;
+  if(!mediaEditable() || !d || !["name","kind","area","event","website","contact","note"].includes(key)) return;
+  d.data[key]=String(value);
+};
+window.cancelMedia = () => { mediaView().draft=null; render(); };
+window.saveMedia = () => {
+  if(!mediaEditable()) return;
+  const v=mediaView(), d=v.draft; if(!d) return;
+  const c=Object.fromEntries(Object.entries(d.data).map(([k,x])=>[k,x.trim()]));
+  const error=mediaContactError(c); if(error) return flash(error);
+  const list=S.mediaContacts||[], old=list.find(x=>x.id===c.id);
+  if((old ? JSON.stringify(old) : "")!==d.before) return flash("This contact changed. Cancel and open it again before saving.");
+  if(list.some(x=>x.id!==c.id && foldName(x.name)===foldName(c.name) && x.website===c.website))
+    return flash("That contact is already saved. Edit the existing contact.");
+  v.draft=null; v.query=""; v.kind="";
+  set({mediaContacts:old ? list.map(x=>x.id===c.id ? c : x) : [...list,c]});
+  const card=[...document.querySelectorAll("[data-media-card]")].find(el=>el.dataset.mediaCard===c.id);
+  if(card){card.focus({preventScroll:true});card.scrollIntoView({block:"nearest"});}
+};
+window.removeMedia = id => {
+  if(!mediaEditable()) return;
+  const c=(S.mediaContacts||[]).find(x=>x.id===id); if(!c) return;
+  const owner=mediaContext(), before=JSON.stringify(c);
+  if(!askFirst("Remove "+c.name+" from your media contacts?",before)) return;
+  if(!mediaEditable() || owner!==mediaContext() || JSON.stringify((S.mediaContacts||[]).find(x=>x.id===id))!==before)
+    return flash("This contact changed. Open it again before removing it.");
+  if(mediaView().draft?.data.id===id) mediaView().draft=null;
+  markGone("mediaContacts",id);
+  set({mediaContacts:S.mediaContacts.filter(x=>x.id!==id)});
+};
+window.filterMedia = (key,value) => {
+  const v=mediaView();
+  if(key==="query") v.query=String(value).slice(0,100);
+  if(key==="kind") v.kind=String(value);
+  const words=foldName(v.query).split(/\s+/).filter(Boolean); let count=0;
+  document.querySelectorAll("[data-media-card]").forEach(el=>{
+    el.hidden=!!(v.kind && el.dataset.kind!==v.kind) || !words.every(w=>foldName(el.dataset.search).includes(w));
+    if(!el.hidden) count++;
+  });
+  const status=document.getElementById("media-count");
+  if(status) status.textContent=count+" of "+(S.mediaContacts||[]).length+" contacts";
+  const empty=document.getElementById("media-no-match");
+  if(empty) empty.hidden=count>0 || !(S.mediaContacts||[]).length;
+};
+function mediaPage(){
+  const v=mediaView(), d=v.draft?.data, types=["Photo","Video","Photo & video","Media crew"];
+  const input=(key,label,max,placeholder="")=>`<div class="fld"><label for="media-${key}">${label}</label><input id="media-${key}" maxlength="${max}" value="${esc(d[key])}" placeholder="${esc(placeholder)}" oninput="mediaDraft('${key}',this.value)"/></div>`;
+  const contacts=(S.mediaContacts||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  return sec("Media",`<p class="lede">Your photographers and media crews.</p>
+    <p class="note">Save contacts for event coverage. Check availability directly with each crew.</p>
+    <button class="btn" onclick="editMedia()">Add contact</button>`)
+    +(d ? sec(v.draft.before ? "Edit contact" : "New contact",`<form id="media-form" onsubmit="event.preventDefault();saveMedia()">
+      ${input("name","Photographer or crew name",80)}
+      <div class="fld"><label for="media-kind">Coverage</label><select id="media-kind" onchange="mediaDraft('kind',this.value)">${types.map(x=>`<option${d.kind===x?" selected":""}>${esc(x)}</option>`).join("")}</select></div>
+      ${input("area","Location (optional)",100,"City or area covered")}${input("event","Event (optional)",120)}
+      ${input("contact","Contact details (optional)",160,"Business email or phone")}${input("website","Portfolio or social link (optional)",1000,"https://")}
+      <div class="fld"><label for="media-note">Notes (optional)</label><textarea id="media-note" maxlength="500" oninput="mediaDraft('note',this.value)">${esc(d.note)}</textarea></div>
+      <div class="btnrow"><button type="submit" class="btn">Save contact</button><button type="button" class="btn btn--quiet" onclick="cancelMedia()">Cancel</button></div>
+      <p class="note">These details stay in your season. Saving does not publish a listing or send a message.</p></form>`) : "")
+    +sec("Your contacts",`<div class="fld"><label for="media-search">Find a photographer or crew</label><input id="media-search" type="search" maxlength="100" value="${esc(v.query)}" placeholder="Name, location or event" oninput="filterMedia('query',this.value)"/></div>
+      <div class="fld"><label for="media-filter">Coverage</label><select id="media-filter" onchange="filterMedia('kind',this.value)"><option value="">All coverage</option>${types.map(x=>`<option${v.kind===x?" selected":""}>${esc(x)}</option>`).join("")}</select></div>
+      <p class="note" id="media-count" role="status" aria-live="polite"></p>
+      ${!contacts.length ? `<div class="empty">No contacts saved yet. Add a photographer or media crew you know.</div>` : ""}
+      <p class="empty" id="media-no-match" hidden>No matching contacts. Try another search or coverage type.</p>
+      <div class="media-directory">${contacts.map(c=>`<article class="media-contact" tabindex="-1" data-media-card="${esc(c.id)}" data-kind="${esc(c.kind)}" data-search="${esc([c.name,c.area,c.event,c.contact,c.note].join(" "))}">
+        <h3>${esc(c.name)}</h3><p class="note">${esc(c.kind)}</p>
+        ${c.area ? `<p><b>Location:</b> ${esc(c.area)}</p>` : ""}${c.event ? `<p><b>Event:</b> ${esc(c.event)}</p>` : ""}
+        ${c.contact ? `<p><b>Contact:</b> ${esc(c.contact)}</p>` : ""}${c.note ? `<p>${esc(c.note)}</p>` : ""}
+        <div class="btnrow">${mediaLink(c.website) ? `<a class="btn btn--quiet" href="${esc(mediaLink(c.website))}" target="_blank" rel="noopener noreferrer" aria-label="Open portfolio or social page for ${esc(c.name)}">Open link ↗</a>` : ""}
+        <button class="btn btn--quiet" onclick="editMedia(${jsq(c.id)})" aria-label="Edit ${esc(c.name)}">Edit</button>
+        <button class="btn btn--danger" onclick="removeMedia(${jsq(c.id)})" aria-label="Remove ${esc(c.name)}">Remove</button></div></article>`).join("")}</div>
+      <p class="note">Your full backup includes these contacts. League sync includes them when you turn it on. Sharing a match or squad does not.</p>`);
+}
 const MORE_GROUPS=[
   ["Before the game",[
     ["team","Team","Roster, numbers and positions"],
@@ -20118,7 +20281,8 @@ const MORE_GROUPS=[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["worldcup","World Cup teams","2026 divisions and team entries"],
     ["walk","Walk","Notes from walking the field"],
-    ["codes","Codes","Your code words, every event"]]],
+    ["codes","Codes","Your code words, every event"],
+    ["media","Media","Your photographers and media crews"]]],
   ["During the game",[
     ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
     ["movement","Movement","Bunker to bunker after the break"]]],
@@ -20144,12 +20308,13 @@ const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map
 // The words a coach looks for need not be the name printed on a tab.
 // These are search hints only: they never change a tool's access or saved data.
 const TOOL_WORDS={
+  media:"photographer photographers photography video videographer coverage camera crew contact portfolio",
   worldcup:"world cup nxl kissimmee pbleagues divisions entry entries teams registration bracket hometown",
   playbook:"plays breakout calls break plan", tally:"score scoring points won lost chart break clock",
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
   format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
-  walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
+  walk:"field notes drill drills practice quadrant quadrants zones", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
@@ -20215,7 +20380,7 @@ function morePage(){
 }
 function moreCount(k){
   const n={classes:(S.classes||[]).length, league:S.groups.reduce((a,g)=>a+(g.members||[]).length,0),
-           messages:(S.messages||[]).length, team:(S.roster||[]).length, lineups:(S.roster||[]).length}[k];
+           messages:(S.messages||[]).length, media:(S.mediaContacts||[]).length, team:(S.roster||[]).length, lineups:(S.roster||[]).length}[k];
   return n?`<span class="list__count">${n}</span>`:"";
 }
 function moreBody(k){
@@ -20223,6 +20388,7 @@ function moreBody(k){
   const roster=S.roster||[];
   if(k==="home") return coachHome();
   if(k==="rules") return rulebooksPage();
+  if(k==="media") return mediaPage();
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
@@ -20234,6 +20400,7 @@ function moreBody(k){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
     return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
       noticed it on. Notes stay with this field.</p>
+      ${walkDrillControls()}
       <div class="field-wrap walk-map" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}${walkStickies()}</div>
       <p class="note">Tap a bunker to see its notes${notes.length?" — a dot marks one that already has a note":""}, and add one below. Or pick a wire.</p>
       ${/* Standing on a bunker, what the field already knows about it: the
@@ -20245,6 +20412,7 @@ function moreBody(k){
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
+          ${walkDrillZone() !== "off" || WALK_ZONES.some(z=>z.name===where) ? WALK_ZONES.map(z=>`<option${z.name===where?" selected":""}>${z.name}</option>`).join("") : ""}
           ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(pickName(b))}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
@@ -21491,6 +21659,7 @@ function render(){
   _where = screen;
   if(S.tab === "more" && S.more === "walk") placeWalkStickies();
   if(S.tab === "more" && !S.more) filterTools(_moreQuery);
+  if(S.tab === "more" && S.more === "media") filterMedia();
   if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
   watchTallyField();
   placeFlash();
