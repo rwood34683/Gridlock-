@@ -64,6 +64,26 @@ const adapter=fs.readFileSync(path.join(__dirname,"../native/gridlock-cloud.js")
   }
   async function check(name,fn){try{await fn();passed++;console.log("PASS "+name);}catch(e){failed++;console.error("FAIL "+name+"\n"+e.stack);throw e;}}
   try{
+    await check("media contacts travel with the opted-in season between laptop, phone and tablet",async()=>{
+      const {a,b}=await fixture();
+      await a.evaluate(()=>{set({tab:"more",more:"media"});editMedia();});
+      await a.getByLabel("Photographer or crew name",{exact:true}).fill("Sync test photo crew");
+      await a.getByRole("button",{name:"Save contact",exact:true}).click();
+      await a.evaluate(()=>syncNow());await settled(a);
+      assert.equal(row.payload.data.mediaContacts[0].name,"Sync test photo crew");
+      await receive(b);await b.evaluate(()=>set({tab:"more",more:"media"}));
+      assert.match(await b.locator(".media-contact").innerText(),/Sync test photo crew/);
+      const tablet=await device(768,1024);await signIn(tablet);
+      await tablet.getByRole("button",{name:"Use my saved season",exact:true}).click();await settled(tablet);
+      await tablet.evaluate(()=>set({tab:"more",more:"media"}));
+      assert.match(await tablet.locator(".media-contact").innerText(),/Sync test photo crew/);
+      await b.getByRole("button",{name:"Edit Sync test photo crew",exact:true}).click();
+      await b.getByLabel("Notes (optional)",{exact:true}).fill("Phone coverage note");
+      await b.getByRole("button",{name:"Save contact",exact:true}).click();
+      await b.evaluate(()=>syncNow());await settled(b);await receive(a);await receive(tablet);
+      assert.equal(await a.evaluate(()=>S.mediaContacts[0].note),"Phone coverage note");
+      assert.equal(await tablet.evaluate(()=>S.mediaContacts[0].note),"Phone coverage note");
+    });
     await check("a saved code field can receive later phone, tablet and laptop changes without leaving Codes",async()=>{
       const {a,b}=await fixture();
       await b.evaluate(()=>set({tab:"more",more:"codes"}));
