@@ -20174,8 +20174,10 @@ window.saveMedia = () => {
   if((old ? JSON.stringify(old) : "")!==d.before) return flash("This contact changed. Cancel and open it again before saving.");
   if(list.some(x=>x.id!==c.id && foldName(x.name)===foldName(c.name) && x.website===c.website))
     return flash("That contact is already saved. Edit the existing contact.");
-  v.draft=null;
+  v.draft=null; v.query=""; v.kind="";
   set({mediaContacts:old ? list.map(x=>x.id===c.id ? c : x) : [...list,c]});
+  const card=[...document.querySelectorAll("[data-media-card]")].find(el=>el.dataset.mediaCard===c.id);
+  if(card){card.focus({preventScroll:true});card.scrollIntoView({block:"nearest"});}
 };
 window.removeMedia = id => {
   if(!mediaEditable()) return;
@@ -20222,7 +20224,7 @@ function mediaPage(){
       <p class="note" id="media-count" role="status" aria-live="polite"></p>
       ${!contacts.length ? `<div class="empty">No contacts saved yet. Add a photographer or media crew you know.</div>` : ""}
       <p class="empty" id="media-no-match" hidden>No matching contacts. Try another search or coverage type.</p>
-      <div class="media-directory">${contacts.map(c=>`<article class="media-contact" data-media-card data-kind="${esc(c.kind)}" data-search="${esc([c.name,c.area,c.event,c.contact,c.note].join(" "))}">
+      <div class="media-directory">${contacts.map(c=>`<article class="media-contact" tabindex="-1" data-media-card="${esc(c.id)}" data-kind="${esc(c.kind)}" data-search="${esc([c.name,c.area,c.event,c.contact,c.note].join(" "))}">
         <h3>${esc(c.name)}</h3><p class="note">${esc(c.kind)}</p>
         ${c.area ? `<p><b>Location:</b> ${esc(c.area)}</p>` : ""}${c.event ? `<p><b>Event:</b> ${esc(c.event)}</p>` : ""}
         ${c.contact ? `<p><b>Contact:</b> ${esc(c.contact)}</p>` : ""}${c.note ? `<p>${esc(c.note)}</p>` : ""}

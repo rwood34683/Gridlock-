@@ -131,6 +131,29 @@ const base=process.env.APP_URL || "http://localhost:5173/";
       assert.equal(await p.locator("[data-media-card]").count(),0);
       assert.equal(await p.evaluate(()=>copyDataError(JSON.parse(copyPayload("all")).data)),"");
     });
+    await check("saving shows and focuses the contact even when an old search hid it",async p=>{
+      await p.getByLabel("Find a photographer or crew",{exact:true}).fill("Missing town");
+      await p.locator("#media-filter").selectOption("Video");await add(p);
+      assert.equal(await p.locator("[data-media-card]:visible").count(),1);
+      assert.equal(await p.getByLabel("Find a photographer or crew",{exact:true}).inputValue(),"");
+      assert.equal(await p.locator("#media-filter").inputValue(),"");
+      assert.equal(await p.evaluate(()=>document.activeElement.matches("[data-media-card]")),true);
+    });
+    await check("a contact changed during confirmation is not removed",async p=>{
+      await add(p);await p.evaluate(()=>{window.confirm=()=>{S.mediaContacts[0].note="Newer note";return true;};});
+      await p.getByRole("button",{name:"Remove Example photo crew",exact:true}).click();
+      assert.equal(await p.evaluate(()=>S.mediaContacts.length),1);
+      assert.equal(await p.evaluate(()=>S.mediaContacts[0].note),"Newer note");
+    });
+    await check("signed-out and expired paid builds cannot save a stale contact editor",async p=>{
+      await add(p);await p.getByRole("button",{name:"Edit Example photo crew",exact:true}).click();
+      await p.getByLabel("Notes (optional)",{exact:true}).fill("Not authorized");
+      await p.evaluate(()=>{S.entered=false;saveMedia();});
+      assert.equal(await p.evaluate(()=>S.mediaContacts[0].note),"");
+      await p.evaluate(()=>{S.entered=true;window.webPassLocked=()=>true;saveMedia();removeMedia(S.mediaContacts[0].id);});
+      assert.equal(await p.evaluate(()=>S.mediaContacts.length),1);
+      assert.equal(await p.evaluate(()=>S.mediaContacts[0].note),"");
+    });
     for(const [name,width,height] of [["phone",390,844],["tablet",768,1024],["landscape-tablet",1024,768],["laptop",1440,900]]){
       await check(name+" directory fits, has named touch controls and a usable form",async p=>{
         await add(p);await add(p,"Example video crew","Video");
@@ -139,7 +162,7 @@ const base=process.env.APP_URL || "http://localhost:5173/";
         assert.deepEqual(small,[]);
         const unnamed=await p.locator(".main button,.main input,.main select,.main a.btn").evaluateAll(es=>es.filter(e=>!e.textContent.trim() && !e.getAttribute("aria-label") && !e.labels?.length).map(e=>e.outerHTML));
         assert.deepEqual(unnamed,[]);
-        if(process.env.GRIDLOCK_TEST_SHOTS){fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"media-"+name+".png")});}
+        if(process.env.GRIDLOCK_TEST_SHOTS){fs.mkdirSync(process.env.GRIDLOCK_TEST_SHOTS,{recursive:true});await p.evaluate(()=>toMainTop());await p.screenshot({path:path.join(process.env.GRIDLOCK_TEST_SHOTS,"media-"+name+".png")});}
         await p.getByRole("button",{name:"Add contact",exact:true}).click();
         await p.getByLabel("Photographer or crew name",{exact:true}).fill("Keyboard crew");
         await p.getByLabel("Photographer or crew name",{exact:true}).press("Enter");
