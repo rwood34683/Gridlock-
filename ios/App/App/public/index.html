@@ -9070,8 +9070,8 @@ function walkViewControls(){
       <button class="btn btn--quiet" onclick="walkCamera('out')" aria-label="Zoom out">−</button><button class="btn btn--quiet" onclick="walkCamera('in')" aria-label="Zoom in">+</button>
       <button class="btn btn--quiet" onclick="walkCamera('tilt')" aria-pressed="${v.tilt}">Tilt view</button>
       <button class="btn btn--quiet" onclick="walkCamera('fit')">Whole field</button>
-      <button class="btn btn--quiet" onclick="walkCamera('focus')"${walkPickedBunker()?"":" disabled"}>Focus bunker</button>
-      <button class="btn btn--quiet" id="walk-tour" onclick="walkCamera('tour')"${walkMotion.matches?" disabled":""}>${v.tour?"Stop tour":"Start tour"}</button>
+      ${walkPickedBunker()?'<button class="btn btn--quiet" onclick="walkCamera(\'focus\')">Focus bunker</button>':""}
+      ${walkMotion.matches?"":`<button class="btn btn--quiet" id="walk-tour" onclick="walkCamera('tour')">${v.tour?"Stop tour":"Start tour"}</button>`}
     </div>
     ${v.on?`<p class="note">Drag sideways to turn; tap a bunker for its name and notes. This is the field plan: bunker heights are not shown.${walkMotion.matches?" Automatic motion is off for your device's reduced-motion setting.":""}</p><p class="note walk-camera-read" id="walk-camera-read"></p>`:""}`;
 }

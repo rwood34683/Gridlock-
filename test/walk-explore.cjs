@@ -25,6 +25,8 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.locator("#walk-scene").count(),0);assert.equal(await p.evaluate(()=>_walkFrame),0);
    const before=await data(p),geom=await p.evaluate(()=>JSON.stringify(curLayout().bunkers)),shapes=await p.locator("#walk-map .bnk").evaluateAll(bs=>bs.map(b=>b.outerHTML));await open(p);
    const local=await p.evaluate(()=>localStorage.getItem("gridlock.coach.v2"));
+   assert.equal(await p.getByRole("button",{name:"Focus bunker",exact:true}).count(),0,"focus is offered only after selecting a bunker");
+   assert.equal(await p.locator("#walk-explore-controls button:disabled").count(),0,"no inactive controls");
    for(const name of ["Right ↷","↶ Left","Zoom in","Zoom out","Tilt view","Whole field"])await action(p,name);
    assert.deepEqual(await data(p),before);assert.equal(await p.evaluate(()=>JSON.stringify(curLayout().bunkers)),geom);
    assert.equal(await p.evaluate(()=>localStorage.getItem("gridlock.coach.v2")),local,"camera never writes to local storage");
@@ -77,7 +79,8 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await open(p);await action(p,"Start tour");await p.evaluate(()=>{cancelAnimationFrame(_walkFrame);_walkView.tour.start=1;walkTourFrame(45001);});
    assert.equal(await p.evaluate(()=>_walkFrame),0);await action(p,"Start tour");await p.evaluate(()=>dispatchEvent(new Event("blur")));assert.equal(await p.evaluate(()=>_walkFrame),0);
    await action(p,"Start tour");await p.emulateMedia({reducedMotion:"reduce"});await p.waitForFunction(()=>!_walkFrame);
-   assert(await p.getByRole("button",{name:"Start tour",exact:true}).isDisabled());await action(p,"Right ↷");assert.equal(await p.evaluate(()=>_walkFrame),0);
+   assert.equal(await p.getByRole("button",{name:"Start tour",exact:true}).count(),0);assert.equal(await p.locator("#walk-explore-controls button:disabled").count(),0);
+   await p.evaluate(()=>walkCamera("tour"));assert.equal(await p.evaluate(()=>_walkFrame),0,"reduced motion also refuses direct tour activation");await action(p,"Right ↷");assert.equal(await p.evaluate(()=>_walkFrame),0);
    assert.match(await p.locator(".main").innerText(),/reduced-motion/);
   });
   await check("camera and tour reset on layout, account and replaced season",async p=>{
