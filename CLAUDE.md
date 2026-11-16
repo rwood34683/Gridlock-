@@ -1758,6 +1758,12 @@ Before the game, is the builder from Account & backups › Events on its own
 row (`fieldsPage()`): his fields first with Use this field / Edit / Keep
 building, then the same `fieldBuilder()`. Nothing moved out of Events; the
 house rules for a built field are unchanged. Free like every field screen.
+The builder has **↶ Undo** and **Clear all** (owner, 16 Nov 2026): every
+change to the bunkers keeps the list it replaced (`_fieldHist`, page memory
+only, 50 steps, dropped on Done), and Undo puts it back; an undone or cleared
+bunker's id goes in `gone`, so ids are still never reused. Clear all asks
+first and refuses on a field in use, which keeps its eight; Undo holds the
+same floor and asks when something logged names a bunker it takes off.
 `test/field-builder-tab.cjs`.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current

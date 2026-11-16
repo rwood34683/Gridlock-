@@ -46,6 +46,30 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.getByRole("button",{name:"Edit",exact:true}).click();assert.equal(await p.locator("#fieldbuild-map").count(),1);
    await p.evaluate(()=>set({more:"nexus"}));assert.match(await root(p),/Home park/,"still listed under Events");
   });
+  await check("Undo takes back the last change and Clear all empties the field, Undo bringing it back",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("Undo park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key),n=()=>p.evaluate(k=>fieldOf(k).bunkers.length,key);
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=x;pt.y=y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   const btn=name=>p.getByRole("button",{name,exact:true});
+   await btn("↶ Undo").click();assert.match(await root(p),/Nothing to undo yet/);
+   await tap(40,120);assert.equal(await n(),2);await tap(30,60);assert.equal(await n(),4);
+   const ids=await p.evaluate(k=>fieldOf(k).bunkers.map(b=>b.id),key);
+   await btn("↶ Undo").click();assert.equal(await n(),2,"undo takes off the last bunker and its twin");
+   await tap(30,60);const again=await p.evaluate(k=>fieldOf(k).bunkers.map(b=>b.id),key);
+   assert.ok(!again.slice(2).some(id=>ids.slice(2).includes(id)),"an undone bunker's id is never handed out again");
+   assert.equal(await btn("Clear all").isDisabled(),false);
+   await btn("Clear all").click();assert.equal(await n(),0,"Clear all takes every bunker off");
+   await btn("↶ Undo").click();assert.equal(await n(),4,"Undo brings them back");
+   assert.ok(!(await p.evaluate(()=>JSON.stringify(localStorage)).then(t=>t.includes("_fieldHist"))),"history is never saved");
+   await btn("Done").click();await btn("Keep building").click();await btn("↶ Undo").click();
+   assert.match(await root(p),/Nothing to undo yet/,"Done drops the history");
+  });
+  await check("Clear all refuses on a field in use, so it stays playable",async p=>{
+   const key=await p.evaluate(()=>{const key="my:ftest";S.fields=[{key,name:"Busy park",at:Date.now(),bunkers:Array.from({length:8},(_,i)=>({id:"md#"+(i+1),n:"md",t:"dorito",w:4,h:4,x:20+i*6,y:15+i*12}))}];registerFields();S.layoutKey=key;S.tab="more";S.more="fields";S.fieldEdit={key,kind:"md",sel:null};save(S);render();return key;});
+   await p.getByRole("button",{name:"Clear all",exact:true}).click();
+   assert.equal(await p.evaluate(k=>fieldOf(k).bunkers.length,key),8);assert.match(await root(p),/is in use/);
+  });
   for(const [w,h] of [[390,844],[768,1024],[1024,768]])await check(`Field builder fits with named 44px controls at ${w}x${h}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    await p.getByLabel("Name of the field").fill("Fit check");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();

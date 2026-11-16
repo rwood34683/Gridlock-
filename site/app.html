@@ -5464,7 +5464,14 @@ function bunkerUses(key, id){
   (S.plays || []).forEach(p => { const five = (p.plants || {})[key]; if(Array.isArray(five) && five.includes(id)) n++; });
   return n;
 }
+// Undo in the builder (owner, 16 Nov 2026): every change to a field's bunkers
+// keeps the list it replaced, in page memory only — never saved or copied, and
+// dropped when he leaves the builder or builds another field.
+let _fieldHist = {key: null, steps: []};
+function fieldHistFor(key){ if(_fieldHist.key !== key) _fieldHist = {key, steps: []}; return _fieldHist.steps; }
 function patchField(key, fn, said){
+  const was = fieldOf(key);
+  if(was){ const steps = fieldHistFor(key); steps.push((was.bunkers || []).map(b => ({...b}))); if(steps.length > 50) steps.shift(); }
   S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: fn((f.bunkers || []).map(b => ({...b})))} : f);
   registerFields();
   if(said) S.flash = said;
@@ -5500,7 +5507,7 @@ window.renameField = (key, value) => {
 };
 window.fieldDone = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
-  S.fieldEdit = null; registerFields();
+  S.fieldEdit = null; _fieldHist = {key: null, steps: []}; registerFields();
   if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
   else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
   save(S); render();
@@ -5600,6 +5607,39 @@ window.fieldTurn = () => {
     if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; paintFrom(f, twin); }
     return list;
   });
+};
+function fieldInUse(f){
+  return S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m));
+}
+window.fieldUndo = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const steps = fieldHistFor(f.key);
+  if(!steps.length) return flash("Nothing to undo yet — place, move, turn or take off a bunker first.");
+  const back = steps[steps.length - 1], keep = new Set(back.map(b => b.id));
+  const going = f.bunkers.filter(b => !keep.has(b.id)).map(b => b.id);
+  // The same floor Take it off holds: a field he is on or played on stays playable.
+  if(fieldReady(f) && back.length < FIELD_MIN && fieldInUse(f))
+    return flash(`Undo would leave ${f.name} under ${FIELD_MIN} bunkers, and it is in use. Place another bunker first.`);
+  const uses = going.reduce((n, id) => n + bunkerUses(f.key, id), 0);
+  if(uses && !askFirst(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${going.join(" or ")}. Undo anyway? What was logged keeps the name.`, ["field-undo", f.key, steps.length])) return;
+  steps.pop();
+  if(going.length) noteGone(f.key, going);
+  S.fields = S.fields.map(x => x.key === f.key ? {...x, bunkers: back.map(b => ({...b}))} : x);
+  S.fieldEdit = {...ed, sel: null};
+  registerFields();
+  S.flash = "Undone.";
+  save(S); render();
+};
+window.fieldClear = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  if(!f.bunkers.length) return flash(`${f.name} has no bunkers to clear.`);
+  if(fieldInUse(f))
+    return flash(`${f.name} is in use${(S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m)) ? " — a sheet was played on it" : ""}, so it keeps at least ${FIELD_MIN} bunkers. Take bunkers off one at a time instead.`);
+  const uses = f.bunkers.reduce((n, b) => n + bunkerUses(f.key, b.id), 0);
+  if(!askFirst(`Clear all ${f.bunkers.length} bunkers from ${f.name}?${uses ? ` ${uses} thing${uses === 1 ? "" : "s"} logged name${uses === 1 ? "s" : ""} them and keep${uses === 1 ? "s" : ""} the name.` : ""} Undo brings them back.`, ["field-clear", f.key, f.bunkers.length])) return;
+  S.fieldEdit = {...ed, sel: null};
+  noteGone(f.key, f.bunkers.map(b => b.id));
+  patchField(f.key, () => [], `Cleared ${f.name}. Undo brings the bunkers back.`);
 };
 window.fieldRemove = () => {
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
@@ -5807,6 +5847,8 @@ function fieldBuilder(){
       ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
         <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
+      <button class="btn btn--quiet" onclick="fieldUndo()">↶ Undo</button>
+      <button class="btn btn--quiet" onclick="fieldClear()">Clear all</button>
       <button class="btn" onclick="fieldDone()">Done</button>
       <button class="btn btn--quiet" onclick="deleteField(${jsq(f.key)})">Delete field</button>
     </div>
@@ -20120,7 +20162,7 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
     how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
-      "Tap a bunker to pick it, then Turn, move it or take it off. Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
+      "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
