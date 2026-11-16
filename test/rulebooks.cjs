@@ -25,9 +25,12 @@ const ROOT=path.resolve(__dirname,"..");
       }else{
         if(kind==="player"){await p.locator('#joinCode').fill('IMPACT-7QX2');await p.locator('#joinGo').click();}
         assert.equal(await p.locator('#rulebooksDialog').isVisible(),false,'does not open itself');
-        // Rules sits just above Nexus: in Player's More menu, in Team's tab row.
+        // Rules sits just above Nexus in Player's More menu. In Team's tab row the
+        // owner put Team admin between them (15 Nov 2026): Rules, Team admin, Nexus.
         assert.equal(await p.locator('header > .ld#rulebooksOpen').count(),0,'not a loose header button');
-        assert.equal(await p.evaluate(()=>{const r=document.getElementById('rulebooksOpen'),n=r&&r.nextElementSibling;return !!n&&(n.dataset.mm||n.dataset.m)==='nexus';}),true,'Rules sits right above Nexus');
+        const after=await p.evaluate(()=>{const out=[];let n=document.getElementById('rulebooksOpen');for(let i=0;i<2&&n;i++){n=n.nextElementSibling;out.push(n?(n.dataset.mm||n.dataset.m||''):null);}return out;});
+        if(kind==="player")assert.equal(after[0],'nexus','Rules sits right above Nexus');
+        else assert.deepEqual(after,['tadmin','nexus'],'Rules, then Team admin, then Nexus');
         if(kind==="player"){assert.equal(await p.locator('#rulebooksOpen').isVisible(),false,'inside More until More is opened');await p.locator('#moreBtn').click();}
         await p.getByRole('button',{name:'Rules',exact:true}).click();
       }
