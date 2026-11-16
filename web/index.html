@@ -1036,6 +1036,11 @@ svg.field [data-pick]{cursor:crosshair}
 .kv__v{font-size:var(--t-sm);color:var(--ink);line-height:1.5}
 .fmt-disclosure{margin-top:var(--s2);border-top:1px solid var(--line)}
 .fmt-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px;padding:var(--s2) 0;cursor:pointer;font-weight:700;color:var(--ink)}
+.set-left{display:inline-block;min-width:1.6em;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--fill);color:#fff;font-size:var(--t-sm);font-weight:700;line-height:1.6}
+.set-left--out{background:transparent;border:1px solid var(--mute);color:var(--mute)}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);margin-top:var(--s2)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px}
+.set-row input{width:72px;min-height:44px;flex:0 0 auto}
 .fmt-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s2) 0}
 .fmt-values>div{padding:var(--s2);border:1px solid var(--line);border-radius:var(--r-sm)}
 .fmt-values dt{font-size:var(--t-xs);color:var(--mute)}
@@ -4486,12 +4491,91 @@ function registerFields(){
 }
 registerFields();
 const fieldOf = key => (S.fields || []).find(f => f && f.key === key) || null;
-const fieldSnap = v => Math.round(v * 2) / 2;
+/* Snap to the grid (owner, 16 Nov 2026). The 2026 NXL rules print the standard
+ * field on a 10 x 10 ft grid; a bunker's centre sits on a line, a crossing or the
+ * middle of a cell, every 5 ft, and its footprint may cross lines freely. */
+const FIELD_STEP = 5;
+const fieldSnap = v => Math.round(v / FIELD_STEP) * FIELD_STEP;
+// The nearest grid spot that keeps a footprint inside [lo, hi].
+function snapIn(v, lo, hi){
+  let s = fieldSnap(v);
+  if(s < lo) s = Math.ceil(lo / FIELD_STEP) * FIELD_STEP;
+  if(s > hi) s = Math.floor(hi / FIELD_STEP) * FIELD_STEP;
+  return s < lo || s > hi ? Math.min(hi, Math.max(lo, v)) : s;
+}
+// Every grid spot a footprint of w x h fits on, clear of the bunkers already
+// placed (except the ones in `skip`). What the builder lights up before a tap.
+function fieldSpots(f, w, h, skip = []){
+  const out = [], others = (f.bunkers || []).filter(b => !skip.includes(b.id));
+  for(let x = 0; x <= 150; x += FIELD_STEP) for(let y = 0; y <= 120; y += FIELD_STEP){
+    if(x < w / 2 || x > 150 - w / 2 || y < h / 2 || y > 120 - h / 2) continue;
+    if(others.some(b => Math.abs(b.x - x) < (b.w + w) / 2 && Math.abs(b.y - y) < (b.h + h) / 2)) continue;
+    out.push([x, y]);
+  }
+  return out;
+}
+// Field sizes from the 2026 NXL rulebooks: the standard 150 x 120 ft field on a
+// 10 ft grid (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) and the 10v10 200 x 150 ft
+// field. Only the standard field can be built until every screen draws 10v10.
+const FIELD_SIZES = [
+  {key: "std",  name: "Standard · 150 × 120 ft", note: "X-Ball, 3v3, 5v5, 7v7, Classic, Pump", w: 150, h: 120, ready: true},
+  {key: "10v10", name: "10v10 · 200 × 150 ft", note: "10v10", w: 200, h: 150, ready: false},
+];
+window.fieldSize = key => {
+  const z = FIELD_SIZES.find(x => x.key === key);
+  if(z && !z.ready){ flash(`${z.name} fields are next: every screen has to learn the bigger field first. This field stays standard.`); return; }
+};
 // The next free number for a code on this field. Ids are never reused or
 // renumbered: a breakout keeps the id of the bunker he broke to, so moving or
 // taking one off must not hand its id to another bunker.
 // Ids are never reused: a breakout keeps the id of the bunker it broke to, so
 // one taken off is remembered on the field (`gone`) and never handed out again.
+/* The bunker set (owner, 16 Nov 2026): how many of each kind he has to set the
+ * field with, counting down as he places them. Never a guess at a league's
+ * pack: a set starts from what a measured field actually uses — the three 2026
+ * NXL maps use the same 58 — and every number is his to change to his own. */
+// A function, not a const: load() checks a saved season before this line runs.
+function fieldSetMax(){ return 99; }
+function setFromLayout(L){
+  const out = {};
+  BUNKER_KINDS.forEach(k => { out[k.key] = 0; });
+  (L && L.bunkers || []).forEach(b => { const k = BUNKER_KINDS.find(x => x.n === b.n); if(k) out[k.key]++; });
+  return out;
+}
+const SET_SOURCES = () => Object.values(LAYOUTS).filter(L => !L.mine);
+const kindPlural = name => /s$/.test(name) ? name + "es" : name + "s";
+function fieldSetLeft(f, kind){
+  if(!f || !f.set || f.set[kind.key] === undefined) return null;
+  return f.set[kind.key] - (f.bunkers || []).filter(b => b.n === kind.n).length;
+}
+// The count informs; it never stops him placing — his park may own more.
+function fieldSetWarn(f, kind, need){
+  const left = fieldSetLeft(f, kind);
+  if(left === null || left >= need) return "";
+  return `That is ${need - left} more ${need - left === 1 ? kind.name : kindPlural(kind.name)} than your set has (${f.set[kind.key]}). Raise the count under Your bunker set if you have more.`;
+}
+window.fieldSetFrom = value => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const L = value && LAYOUTS[value];
+  S.fields = S.fields.map(x => {
+    if(x.key !== f.key) return x;
+    const y = {...x};
+    if(L){ y.set = setFromLayout(L); y.setFrom = L.name; } else { delete y.set; delete y.setFrom; }
+    return y;
+  });
+  S.flash = L ? `Your set is now what ${L.name} uses — change any number to match yours.` : "No set — nothing counts down.";
+  save(S); render();
+};
+window.fieldSetCount = (kindKey, value) => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !f.set) return;
+  const kind = BUNKER_KINDS.find(k => k.key === kindKey); if(!kind) return;
+  const n = String(value).trim() === "" ? 0 : Number(value);
+  if(!Number.isInteger(n) || n < 0 || n > fieldSetMax()){ flash(`A count is a whole number from 0 to ${fieldSetMax()}.`); return; }
+  const placed = f.bunkers.filter(b => b.n === kind.n).length;
+  S.fields = S.fields.map(x => x.key === f.key ? {...x, set: {...x.set, [kindKey]: n}, setFrom: "Your own numbers"} : x);
+  if(n < placed) S.flash = `${placed} ${kindPlural(kind.name)} are already on the field — more than ${n}. Take ${placed - n} off, or the count shows below zero.`;
+  save(S); render();
+};
 function fieldNextId(list, n, more = []){
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
   const gone = String((f || {}).gone || "").split(",").filter(Boolean).map(id => ({id, n: id.split("#")[0]}));
@@ -4535,7 +4619,8 @@ window.newField = () => {
   const taken = [...Object.values(LAYOUTS).map(L => L.name), ...(S.fields || []).map(f => f.name)].find(n => foldName(n) === foldName(name));
   if(taken){ flash(`There is already a field called ${taken}.`); return; }
   const key = "my:f" + Date.now().toString(36);
-  S.fields = [...(S.fields || []), {key, name, at: Date.now(), bunkers: []}];
+  const from = LAYOUTS.lso || SET_SOURCES()[0];
+  S.fields = [...(S.fields || []), {key, name, at: Date.now(), bunkers: [], ...(from ? {set: setFromLayout(from), setFrom: from.name} : {})}];
   S.fieldEdit = {key, kind: "md", sel: null};
   save(S); render(); showFieldBuilder();
 };
@@ -4588,8 +4673,7 @@ window.fieldTap = at => {
   const onFifty = x => Math.abs(x - 75) < 1.5;
   if(ed.sel){
     const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
-    let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
-    x = Math.min(150 - sel.w / 2, Math.max(sel.w / 2, x)); y = Math.min(120 - sel.h / 2, Math.max(sel.h / 2, y));
+    let x = snapIn(at[0], sel.w / 2, 150 - sel.w / 2), y = snapIn(at[1], sel.h / 2, 120 - sel.h / 2);
     if(onFifty(x)) x = 75;
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
@@ -4598,6 +4682,8 @@ window.fieldTap = at => {
     const inUse = S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key);
     if(tw0 && fieldReady(f) && f.bunkers.length - 1 < FIELD_MIN && inUse)
       return flash(`On the fifty ${sel.id} stands alone and ${tw0} goes, which leaves ${f.name} under ${FIELD_MIN} bunkers. Place another bunker first.`);
+    const moveKind = x !== 75 && !sel.tw && BUNKER_KINDS.find(k => k.n === sel.n);
+    const moveOver = moveKind ? fieldSetWarn(f, moveKind, 1) : "";
     const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
     if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
@@ -4614,13 +4700,13 @@ window.fieldTap = at => {
       paintFrom(f, t);
       me.tw = t.id;
       return [...list, t];
-    });
+    }, moveOver);
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
-  x = Math.min(150 - kind.w / 2, Math.max(kind.w / 2, x)); y = Math.min(120 - kind.h / 2, Math.max(kind.h / 2, y));
+  let x = snapIn(at[0], kind.w / 2, 150 - kind.w / 2), y = snapIn(at[1], kind.h / 2, 120 - kind.h / 2);
   if(onFifty(x)) x = 75;
+  const over = fieldSetWarn(f, kind, x === 75 ? 1 : 2);
   patchField(f.key, list => {
     const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
     if(kind.k) b.k = kind.k;
@@ -4629,7 +4715,7 @@ window.fieldTap = at => {
     const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: 150 - x, tw: b.id});
     b.tw = t.id;
     return [...list, b, t];
-  });
+  }, over);
 };
 // Turn: a beam goes flat, angled, upright, angled the other way; a plus goes
 // on its corner and back; a dorito points the other way; anything else turns
@@ -4830,11 +4916,14 @@ function fieldBuildSVG(f){
     <rect x="-8" y="${-M}" width="${W + 16}" height="${H + M * 2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${mapOf(f) && !(S.fieldEdit && S.fieldEdit.hideMap) ? `<image class="fieldmap" href="${esc(mapOf(f))}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none" opacity=".5"/>` : ""}
-    ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
-    ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
+    ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
+    ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
     <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1"/>
     <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
     <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
+    ${(() => { const kind = BUNKER_KINDS.find(k => k.key === (S.fieldEdit && S.fieldEdit.kind)) || BUNKER_KINDS[0];
+      const spots = me ? fieldSpots(f, me.w, me.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, kind.w, kind.h);
+      return `<g class="field-spots" pointer-events="none">${spots.map(([x, y]) => `<circle cx="${x * sx}" cy="${y * sy}" r="1.3" fill="#efedeb" opacity=".45"/>`).join("")}</g>`; })()}
     ${f.bunkers.map(b => bunkerShape(b, sx, sy)).join("")}
     ${codes}${ring(me, false)}${ring(twin, true)}
     <rect data-pick="1" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
@@ -4862,6 +4951,29 @@ function fieldsPage(){
       ${FIELD_MIN} bunkers. Every field, measured and yours, is also listed under Account &amp; backups › Events.</p>`,
     mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "");
 }
+function fieldSetSec(f){
+  const total = f.set ? BUNKER_KINDS.reduce((n, k) => n + (f.set[k.key] || 0), 0) : 0;
+  const placed = f.bunkers.length, open = !!(S.fieldEdit && S.fieldEdit.setOpen);
+  const sources = SET_SOURCES();
+  return `<p class="note" style="margin:6px 0">${f.set
+      ? `<b>Your set:</b> ${total} bunkers · ${placed} on the field · <b>${total - placed} left</b>. The number on each bunker is how many of it are still to place; past your set it says how many over.`
+      : "No bunker set — nothing counts down. Pick one under Your bunker set."}</p>
+    <details class="fmt-disclosure set-fold"${open ? " open" : ""} ontoggle="S.fieldEdit&&(S.fieldEdit.setOpen=this.open)">
+      <summary onclick="S.fieldEdit&&(S.fieldEdit.setOpen=!this.parentNode.open)">Your bunker set${f.setFrom ? ` · ${esc(f.setFrom)}` : ""}</summary>
+      <p class="note">Start from the set a measured field uses, then change any number to match the bunkers you actually have. The three 2026 NXL fields use the same 58.</p>
+      <div class="fld"><label for="field-set-from">Start from</label>
+        <select id="field-set-from" onchange="fieldSetFrom(this.value)">
+          <option value="">Choose a field…</option>
+          ${sources.map(L => `<option value="${esc(L.key)}">${esc(L.name)} · ${L.bunkers.length}</option>`).join("")}
+          <option value="">No set — don't count</option>
+        </select></div>
+      ${f.set ? `<div class="set-grid">${BUNKER_KINDS.map(k => {
+        const on = f.bunkers.filter(b => b.n === k.n).length;
+        return `<label class="set-row"><span>${esc(k.name)} <span class="note">· ${on} placed</span></span>
+          <input class="rost__num" type="number" inputmode="numeric" min="0" max="${fieldSetMax()}" value="${f.set[k.key] || 0}"
+            aria-label="How many ${esc(kindPlural(k.name))} in your set" onchange="fieldSetCount(${jsq(k.key)}, this.value)"/></label>`; }).join("")}</div>` : ""}
+    </details>`;
+}
 function fieldBuilder(){
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key);
   if(!f) return `<div class="fld" style="margin-top:var(--s3)"><label>Build a field — the event or the park it is at</label>
@@ -4873,6 +4985,9 @@ function fieldBuilder(){
   return `<div id="fieldbuild" style="margin-top:var(--s4)">
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
+    <div class="fld"><label for="field-size">Field size</label>
+      <select id="field-size" onchange="fieldSize(this.value);this.value='std'">${FIELD_SIZES.map(z =>
+        `<option value="${z.key}"${z.key === "std" ? " selected" : ""}>${esc(z.name)} — ${esc(z.note)}${z.ready ? "" : " (coming next)"}</option>`).join("")}</select></div>
     <p class="note">Your end is on the left, the snake side at the bottom, the dorito side at the top — the way
       every field in the app is drawn. Place the left half off the event's map; each bunker's twin appears
       across the fifty, and one on the fifty stays single. Sizes are the measured inflatables, so a bunker is
@@ -4885,12 +5000,14 @@ function fieldBuilder(){
         <button class="btn btn--quiet" onclick="fieldMapDrop()">Take the map off</button>` : ""}
     </div>
     ${mapOf(f) ? `<p class="note" style="margin:0 0 var(--s2)">The map is a guide, stretched to the field's edges — crop it to the field before you pick it. Each bunker you place takes the red or blue the map prints under it; on anything else it stays grey.</p>` : ""}
-    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k =>
-      `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})">${esc(k.name)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k => {
+      const left = fieldSetLeft(f, k);
+      return `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})"${left === null ? "" : ` aria-label="${esc(k.name)}, ${left < 0 ? `${-left} over your set` : `${left} left`}"`}>${esc(k.name)}${left === null ? "" : ` <span class="set-left${left <= 0 ? " set-left--out" : ""}">${left < 0 ? `${-left} over` : left}</span>`}</button>`; }).join("")}</div>
+    ${fieldSetSec(f)}
     <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
     <p class="note" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
-      : `Tap empty ground to place a <b>${esc(kind.name)}</b>. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+      : `Tap a lit spot to place a <b>${esc(kind.name)}</b> — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
     <div class="btnrow">
       ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
@@ -7310,10 +7427,11 @@ function copyDataError(data){
     offPlays:list(str), gamesOff:list(str),
     // A field he built carries one list, its bunkers, each one scalars only.
     fields:list(v => record(v, {bunkers:list(b => row(b) && ["id","n","t"].every(k => str(b[k]) && b[k].length > 0)
-        && ["x","y","w","h"].every(k => num(b[k])))})
+        && ["x","y","w","h"].every(k => num(b[k]))),
+        set:map(n => Number.isInteger(n) && n >= 0 && n <= fieldSetMax())})
       && str(v.key) && v.key.slice(0,3) === "my:" && str(v.name)
       && (v.map === undefined || fieldMapOk(v.map))
-      && Object.entries(v).every(([k, x]) => k === "bunkers" || scalar(x))),
+      && Object.entries(v).every(([k, x]) => k === "bunkers" || k === "set" || scalar(x))),
     // A penalty is what the official took, recorded: which side, how many men.
     timeouts:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
       && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
@@ -19210,7 +19328,9 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
     how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
+      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field; 10v10 (200 × 150 ft) is coming next.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
+      "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",

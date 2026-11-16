@@ -1764,6 +1764,22 @@ only, 50 steps, dropped on Done), and Undo puts it back; an undone or cleared
 bunker's id goes in `gone`, so ids are still never reused. Clear all asks
 first and refuses on a field in use, which keeps its eight; Undo holds the
 same floor and asks when something logged names a bunker it takes off.
+**Your bunker set** (owner, 16 Nov 2026): each field carries `set`, how many
+of each kind the coach has, and every bunker button counts down as he places
+(a bunker and its twin take two). It starts from what a measured field uses —
+the three 2026 NXL maps use the same 58 (`setFromLayout`) — never a guessed
+league pack, and every number is his to change. Past the set it says how
+many over and never stops him placing. `fieldSetMax()` is a function because
+`load()` validates a season before a const there would exist.
+**Grid snap** (owner, 16 Nov 2026): the 2026 NXL rules print the standard
+field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
+(`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
+footprint may cross lines. Before a tap the builder lights every spot the
+picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
+**Field size** (`FIELD_SIZES`): Standard 150 × 120 ft (X-Ball, 3v3, 5v5, 7v7,
+Classic, Pump) is the one that builds; 10v10 200 × 150 ft is listed and says
+it is next, because every screen still assumes 150 × 120 (the fifty at 75,
+the halves, routes, plants). Teaching them 10v10 is its own pass.
 `test/field-builder-tab.cjs`.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
