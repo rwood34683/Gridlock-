@@ -68,6 +68,16 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Media is a coach-maintained directory of photographers and media crews.
+  Keep contacts in full seasons and opt-in sync, never squad or match shares.
+  Start empty; do not invent listings, availability, ratings or bookings.
+  Portfolio/social links must be HTTPS without credentials, escaped, and
+  opened only by a tap. No embedded media, automatic requests or messages.
+  Edits belong to the current account and season; incoming sync waits for
+  an unfinished contact even after leaving and returning to Media. Removal asks first and
+  old merged copies cannot resurrect a contact removed on this device.
+  `test/media-directory.cjs` checks storage, restore, isolation and layouts.
+
 - Keep the field visible when Tally or Scout opens, including an empty sheet.
   Coach still requires an opponent before recording. Put Scout's long team
   cards below the field; Score only and Score and outs keep a reference field

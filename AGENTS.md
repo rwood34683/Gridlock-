@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Media** keeps the coach's own photographer/crew contacts under More and Home.
+  Full season backups and opt-in sync include them; squad/match shares do not. No public directory, invented availability, bookings or automatic requests.
+
 - **Player point actions** share one duplicate-tap guard across Tally/Scout; Back a point and New match allow deliberate correction.
   Keep one No point button, regenerate from tools/teaser_coachplay.js, and run test/player-point-actions.cjs through teaser-browser.
 
