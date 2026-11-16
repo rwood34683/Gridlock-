@@ -68,6 +68,18 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Walk's Explore field is a camera over the same measured footprints, names
+  and notes as the ordinary field. It does not depict bunker heights or
+  player-eye visibility. Never infer height from footprint width/depth.
+  Keep the camera outside saved state and season copies. Opening Walk starts
+  still; Start tour runs one 45-second turn, with no full render or save per
+  frame. Stop on navigation, account/field/season changes, blur or hiding.
+  Respect reduced motion; keep manual, keyboard and 44px button controls.
+  Transform tap coordinates and sticky-note anchors with the same SVG matrix.
+  Dragging/scrolling never selects a bunker or records a player, and changing
+  the view or closing notes must preserve an unfinished note. See
+  `test/walk-explore.cjs`. Do not add external video, network requests or assets.
+
 - Media is a coach-maintained directory of photographers and media crews.
   Keep contacts in full seasons and opt-in sync, never squad or match shares.
   Start empty; do not invent listings, availability, ratings or bookings.
