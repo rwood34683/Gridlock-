@@ -205,8 +205,8 @@ button.ctx__ev b{color:var(--mute)}
 .evpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);padding:0 0 var(--s3)}
 .evpick .fld{min-width:0;margin:0}
 .evpick select{width:100%;min-width:0;min-height:44px}
-.evpick__choice{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
-.evpick__choice span{min-width:0;overflow-wrap:anywhere}
+.evpick__choice,.evpick__mine{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__choice span,.evpick__mine span{min-width:0;overflow-wrap:anywhere}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
 .evhead > div{min-width:0}
 .evhead b{display:block;color:var(--ink);font-size:var(--t-md);line-height:1.25}
@@ -2059,8 +2059,10 @@ const LAYOUTS = {
 };
 // Browsing an old season does not move the current sheet. Only Use layout does.
 let _eventChoice = null;
+// Event fields only (owner, 16 Nov 2026): a field he built is not an event
+// field, so it is chosen under More › Field builder, never in this picker.
 function layoutChoices(){
-  return Object.entries(LAYOUTS).map(([key, l]) => {
+  return Object.entries(LAYOUTS).filter(([, l]) => !l.mine).map(([key, l]) => {
     const year = String(l.season || (l.days || [])[0] || "").slice(0, 4);
     return {key, season:/^\d{4}$/.test(year) ? year : l.mine ? "Your fields" : "Season not recorded",
       event:l.event || (l.mine ? "Your fields" : l.name), name:l.layoutName || (l.mine ? l.name : "Saved field layout")};
@@ -2103,6 +2105,7 @@ function eventPicker(){
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
+    <div class="evpick__mine"><span class="note grow">Fields you built are kept apart from the event fields.</span><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Your fields ›</button></div>
   </div>`;
 }
 const BREAKS = {
@@ -4640,6 +4643,7 @@ window.renameField = (key, value) => {
 };
 window.fieldDone = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
+  if(f) _fieldChoice = f.key;
   S.fieldEdit = null; _fieldHist = {key: null, steps: []}; registerFields();
   if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
   else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
@@ -4931,24 +4935,30 @@ function fieldBuildSVG(f){
     <text x="${W / 2}" y="${H + M - 4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
   </svg>`;
 }
-// More › Field builder: the builder from Account & backups › Events, on a row of
-// its own. His fields lead, each with Use / Edit; the builder is the same code.
+// More › Field builder: the one home of the fields he builds, kept apart from
+// the event fields (owner, 16 Nov 2026). His fields lead, each with Use / Edit; the builder is the same code.
+let _fieldChoice = "";   // the built field picked in the drop-down; page memory only
+window.chooseMyField = key => { _fieldChoice = key; render(); };
 function fieldsPage(){
   const mine = (S.fields || []);
+  const pick = fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length === 1 ? mine[0].key : "";
+  const f = pick && fieldOf(pick);
   return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
       regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
-    ${mine.length ? `<div class="assigns">${mine.map(f => {
-      const ready = fieldReady(f), on = f.key === S.layoutKey;
+    ${mine.length ? `<div class="fld"><label for="my-field">Your fields</label>
+      <select id="my-field" onchange="chooseMyField(this.value)"><option value="">Choose one of your fields…</option>${mine.map(x =>
+        `<option value="${esc(x.key)}"${x.key === pick ? " selected" : ""}>${esc(x.name)}${fieldReady(x) ? "" : " (still building)"}</option>`).join("")}</select></div>
+    ${f ? (() => { const ready = fieldReady(f), on = f.key === S.layoutKey;
       return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
         <span class="assign__who">${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
         ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
         <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
-      </div>`; }).join("")}</div>` : `<p class="note">No fields of your own yet.</p>`}
+      </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
     ${fieldBuilder()}
     <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
       placed it by eye. A field you build rides in Save a copy, and the twelve calls plant on it once it has
-      ${FIELD_MIN} bunkers. Every field, measured and yours, is also listed under Account &amp; backups › Events.</p>`,
+      ${FIELD_MIN} bunkers. Your fields are kept here, apart from the event fields.</p>`,
     mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "");
 }
 function fieldSetSec(f){
@@ -19331,6 +19341,7 @@ const HELP = {
       "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field; 10v10 (200 × 150 ft) is coming next.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
+      "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list.",
       "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
@@ -19436,13 +19447,13 @@ const HELP = {
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."],
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
-  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
+  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and the event fields.",
     get how(){return ["Install on this phone, at the top, puts Gridlock on your home screen like any app. It is gone once the app is installed.",
          "Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from.",
-         "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
+         "Fields you build are kept apart from the event fields: More › Field builder, where Your fields picks one.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one.",
          ...(cloudPageLinks() ? ["Privacy and Support open the public pages in a new tab, here and on Help."] : [])];},
     get watch(){return canSync() ? "Save a copy before every event to keep a backup you control. In Nexus you can pause League sync, review or restore the server copy, or delete what you sent. Pausing does not delete the copy. Delete account removes your login and the League sync copy." :"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus.";}},
@@ -19467,7 +19478,7 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
-  ["Can I use my own field?", "Yes. More › Field builder (also under Account & backups › Events): name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Can I use my own field?", "Yes. More › Field builder: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
   ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
@@ -21278,7 +21289,7 @@ function moreBody(k){
       </div>
       ${staffed() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="askSignOut()">Sign out</button>` : ""}
       <div class="kv">
-        <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
+        <div class="kv__row"><span class="kv__k">${curLayout().mine ? "Your field" : "Event"}</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
           canSync() && S.syncOn
             ? `<b>League sync</b> is on. When a send succeeds, your full season is uploaded and one current copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it. Pause sending, review or restore the copy, or delete what you sent below. Pausing does not delete the copy. Your account password is stored as a hash.`
@@ -21332,7 +21343,7 @@ function moreBody(k){
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>
-    <div class="assigns">${Object.values(LAYOUTS).map(L=>`
+    <div class="assigns">${Object.values(LAYOUTS).filter(L => !L.mine).map(L=>`
       <div class="assign" style="flex-wrap:wrap">
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
         <span class="assign__who">${L.bunkers.length} bunkers${L.mine ? ` · built by you · ${Object.keys(BREAK_PLANTS[L.key] || {}).length} of ${Object.keys(PLANT_SHAPES).length} calls plant here${Object.keys(BREAK_PLANTS[L.key] || {}).length < Object.keys(PLANT_SHAPES).length ? " — more bunkers on the left half plant the rest" : ""}` : ""}</span></span>
@@ -21344,17 +21355,12 @@ function moreBody(k){
         <span style="flex:1 0 100%;height:0" aria-hidden="true"></span>
         <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
       </div>`).join("")}
-      ${(S.fields || []).filter(f => !fieldReady(f)).map(f => `
-      <div class="assign" style="flex-wrap:wrap">
-        <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
-        <span class="assign__who">${f.bunkers.length} of at least ${FIELD_MIN} bunkers · still building</span></span>
-        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Keep building</button>
-      </div>`).join("")}</div>
-    ${fieldBuilder()}
-    <p class="note">The measured fields come with the app and update with a new release. A field you build is
-      yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
+      </div>
+    <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields'})">Fields you built ›</button></div>
+    <p class="note">The measured fields come with the app and update with a new release. Fields you build are
+      kept apart from them, under More › Field builder.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
-    Object.keys(LAYOUTS).length+" fields")
+    Object.values(LAYOUTS).filter(L => !L.mine).length+" fields")
   + sec("Save a copy", `<p class="lede">${canSync()?"Cloud sharing holds one current copy when you turn it on. A file you save is a backup you own —":"There is no server behind this app, so there is no automatic backup. A copy is a file you own —"}
       keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>

@@ -4184,7 +4184,7 @@ const ROSTER = [
   check("a coach builds his own field: twins across the fifty, a bunker on the fifty single, turn and move carry the twin, eight bunkers and the twelve plant on it", await ev(() => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Practice Park";
     window.newField();
     const k = S.fieldEdit.key;
@@ -4216,7 +4216,7 @@ const ROSTER = [
   check("the event's map goes under a field he builds: a tall map is turned on its side, each bunker placed takes the paint the map prints under it, grey where it prints neither, and a copy carries it", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Map Park";
     window.newField();
     const k = S.fieldEdit.key;
@@ -4559,7 +4559,7 @@ const ROSTER = [
   check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Map Store Park";
     window.newField();
     const k = S.fieldEdit.key;

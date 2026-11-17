@@ -26,7 +26,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.ok(await p.evaluate(()=>!!HELP["more/fields"]),"help entry");
    assert.equal(await p.evaluate(()=>gateKey()),null,"free, like every field screen");
   });
-  await check("building from the row makes a field that plays, and Account & backups still lists it",async p=>{
+  await check("building from the row makes a field that plays, chosen from Your fields and never listed with the event fields",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    await p.getByLabel("Name of the field").fill("Home park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
    assert.equal(await p.locator("#fieldbuild-map").count(),1,"builder open on this screen");
@@ -44,7 +44,12 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    assert.match(await p.locator(".assign").filter({hasText:"Home park"}).innerText(),/ON/);
    await p.getByRole("button",{name:"Edit",exact:true}).click();assert.equal(await p.locator("#fieldbuild-map").count(),1);
-   await p.evaluate(()=>set({more:"nexus"}));assert.match(await root(p),/Home park/,"still listed under Events");
+   // Built fields are kept apart from the event fields (owner, 16 Nov 2026).
+   await p.evaluate(()=>set({more:"nexus"}));assert.deepEqual(await p.locator(".assign__job").evaluateAll(es=>es.map(e=>e.textContent).filter(t=>/Home park/.test(t))),[],"not in Account & backups › Events");
+   assert.match(await root(p),/your field\s*home park/i,"the status line calls it your field, not an event");
+   assert.ok(await p.evaluate(k=>!layoutChoices().some(r=>r.key===k),key),"not in the header's event picker");
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   assert.equal(await p.locator("#my-field").inputValue(),key,"chosen from the Your fields drop-down");
   });
   await check("Undo takes back the last change and Clear all empties the field, Undo bringing it back",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));

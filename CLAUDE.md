@@ -649,7 +649,7 @@ More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, 
     other paintball app lets a coach use the field he is on: PB Scout puts his
     players on a photo of it, Paintball Coach ships dozens of layouts, Paintball
     Stats picks a field. A coach at a regional event or his home park had
-    nothing to stand on. More › Nexus › Events › **Build a field**: name it,
+    nothing to stand on. More › Field builder (built fields are kept apart from the event fields): name it,
     pick a bunker type (`BUNKER_KINDS`, footprints from `layouts/bunkers.json`),
     tap where it sits; its twin appears across the fifty (`tw` on both), one on
     the fifty stays single. Tap a bunker to pick it, then Turn, move it or take
@@ -1754,10 +1754,16 @@ More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Field builder (owner, 16 Nov 2026): More › Field builder, after Walk under
-Before the game, is the builder from Account & backups › Events on its own
-row (`fieldsPage()`): his fields first with Use this field / Edit / Keep
-building, then the same `fieldBuilder()`. Nothing moved out of Events; the
-house rules for a built field are unchanged. Free like every field screen.
+Before the game, is the one home of the fields he builds (`fieldsPage()`).
+Built fields are not event fields and are never listed with them: the
+header's Season › Event › Layout picker (`layoutChoices`) and Account &
+backups › Events carry measured event fields only, each with a link here,
+and the builder lives here alone. **Your fields** is a drop-down of every
+field he built (`_fieldChoice`, page memory; the field in use, his only
+field or the one just finished is chosen), then Use this field / Edit /
+Keep building. Account & backups' status row says "Your field" when one is
+in use. The house rules for a built field are unchanged. Free like every
+field screen.
 The builder has **↶ Undo** and **Clear all** (owner, 16 Nov 2026): every
 change to the bunkers keeps the list it replaced (`_fieldHist`, page memory
 only, 50 steps, dropped on Done), and Undo puts it back; an undone or cleared

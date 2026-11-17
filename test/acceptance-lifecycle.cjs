@@ -33,7 +33,7 @@ function holdStorage(){const add=window.addEventListener.bind(window);window.__h
     try{
      const p=await open(c,url);await seed(p);
      const expected=await p.evaluate(async()=>{
-      document.getElementById('field-name').value='Backup fixture';newField();const key=S.fieldEdit.key;
+      set({tab:'more',more:'fields'});document.getElementById('field-name').value='Backup fixture';newField();const key=S.fieldEdit.key;
       const canvas=document.createElement('canvas');canvas.width=40;canvas.height=20;const g=canvas.getContext('2d');g.fillStyle='blue';g.fillRect(0,0,40,20);await fieldMapLoad(key,canvas.toDataURL('image/png'));
       S.roster=[{name:'Alexandria Longname Player',num:17,p:'snake',s:'centre'}];S.messages=['Backup test note'];
       const template=S.matches[0];S.matches=Array.from({length:10},(_,i)=>({...template,id:'acceptance-match-'+i,vs:'Long Opponent Team Name '+i}));S.matchId=S.matches[0].id;
