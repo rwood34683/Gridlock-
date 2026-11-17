@@ -1782,11 +1782,26 @@ field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
 (`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
 footprint may cross lines. Before a tap the builder lights every spot the
 picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
-**Field size** (`FIELD_SIZES`): Standard 150 × 120 ft (X-Ball, 3v3, 5v5, 7v7,
-Classic, Pump) is the one that builds; 10v10 200 × 150 ft is listed and says
-it is next, because every screen still assumes 150 × 120 (the fifty at 75,
-the halves, routes, plants). Teaching them 10v10 is its own pass.
-`test/field-builder-tab.cjs`.
+**Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
+(X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
+`size: "10v10"` (standard is never written, so older fields read as before;
+the schema takes only `std` or `10v10`) and `registerFields()` gives its
+layout `fw` / `fh`. The size is chosen before the first bunker: a field with
+bunkers changes size only after Clear all, because every twin stands across
+the fifty and the fifty moves with it. Every screen reads the size through
+`fieldW(L)` / `fieldH(L)` / `fiftyX(L)` (default the current layout, 150 /
+120 when unset) — never a typed 150, 120 or 75: the drawn field and its
+viewBox, `fieldFeet`'s clamp (read off the drawn svg's `data-fw` / `data-fh`,
+because the builder can draw a 10v10 field while a standard one is in use),
+the router's edges (`routeObstacles(list, pad, L)` carries them), the goal
+lines, the halves, the twins (`mirrorFt`, `mirrorBunkerId`), the arrival
+routes, the Walk camera and drill quarters (`WALK_ZONES` are halves, 0 or 1),
+the whiteboard and the builder's grid, snap, spots and map paint
+(`fieldDimsOf(f)`, a function because `registerFields` runs before the size
+table exists). The wire bands and the plant rule are written for 150 × 120
+and read a 10v10 field in proportion (`stdY`; `plantRule` gets the bunkers
+scaled onto the standard field, ids kept), so the measured fields and
+`BREAK_PLANTS` are untouched. `test/field-builder-tab.cjs`.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
 field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,

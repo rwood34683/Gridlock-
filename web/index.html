@@ -1434,8 +1434,20 @@ const BUNKER_CODE = [
 ];
 function codeCount(code){ return curLayout().bunkers.filter(b => b.n === code).length; }
 
+/* A field's size in feet (owner, 17 Nov 2026). Every measured field and the
+ * standard built field are 150 x 120; a 10v10 field he builds is 200 x 150
+ * (`fw` / `fh` on its layout). Every screen reads the size through these two
+ * doors, never a typed 150 or 120, and the fifty is half the width. The wire
+ * bands and the plant rule read a 10v10 field in proportion (`stdY`), so a
+ * bunker a third of the way up the field is on the same wire on either size. */
+function fieldW(L){ L = L === undefined && typeof curLayout === "function" ? curLayout() : L; return (L && L.fw) || 150; }
+function fieldH(L){ L = L === undefined && typeof curLayout === "function" ? curLayout() : L; return (L && L.fh) || 120; }
+function fiftyX(L){ return fieldW(L) / 2; }
+function stdY(y, L){ return y * 120 / fieldH(L); }
+
 // Which wire a bunker sits on, for the job label a coach reads off.
-function wireOf(y){
+function wireOf(y, L){
+  y = stdY(y, L);
   return y > 88 ? "snake wire" : y > 66 ? "snake side"
        : y > 44 ? "centre"     : y > 24 ? "dorito side" : "dorito wire";
 }
@@ -1446,7 +1458,7 @@ function wireOf(y){
 // routing they are merged back into a single obstacle — otherwise stepping
 // around one section just lands you in the next. Any bunkers of the same code
 // whose footprints touch are merged the same way.
-function routeObstacles(list, pad){
+function routeObstacles(list, pad, L){
   pad = pad === undefined ? 0.9 : pad;   // players run within a foot of a bunker
   let boxes = list.flatMap(b => bunkerBoxes(b).map(k => ({ids:[b.id], n:b.n,
     x0:k.x-k.w/2-pad, x1:k.x+k.w/2+pad,
@@ -1474,7 +1486,11 @@ function routeObstacles(list, pad){
   const box = o => ({ids:new Set(o.ids), n:o.n, x:(o.x0+o.x1)/2, y:(o.y0+o.y1)/2, hw:(o.x1-o.x0)/2, hh:(o.y1-o.y0)/2});
   // Each merged box keeps the bunkers it was made of: a run to one of them
   // still has to go round the others (see routeClear).
-  return boxes.map(o => ({...box(o), parts: o.parts ? o.parts.map(box) : null}));
+  const out = boxes.map(o => ({...box(o), parts: o.parts ? o.parts.map(box) : null}));
+  // The field's edges travel with its obstacles, so the router keeps a run
+  // inside a 10v10 field as it does a standard one.
+  out.fw = fieldW(L); out.fh = fieldH(L);
+  return out;
 }
 
 // Route around whatever is in the way, the way a player does: run to a corner,
@@ -1518,7 +1534,8 @@ function routeClear(from, to, targetId, obstacles){
     }
     return true;
   };
-  const inField = c => c[0] > 1 && c[0] < 149 && c[1] > 1 && c[1] < 119;
+  const FW = obstacles.fw || 150, FH = obstacles.fh || 120;
+  const inField = c => c[0] > 1 && c[0] < FW - 1 && c[1] > 1 && c[1] < FH - 1;
 
   if(clear(from, to)) return [];
 
@@ -1610,9 +1627,9 @@ function breakPaths(layoutKey, scriptKey){
   // The home back-centre bunker anchors it.
   const back = layout.bunkers
     .filter(b => b.x < 20)
-    .sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  const cy = back ? back.y : 60;
-  const obstacles = routeObstacles(layout.bunkers);
+    .sort((a, b) => Math.abs(a.y - fieldH(layout) / 2) - Math.abs(b.y - fieldH(layout) / 2))[0];
+  const cy = back ? back.y : fieldH(layout) / 2;
+  const obstacles = routeObstacles(layout.bunkers, undefined, layout);
   const order = targets.map((_, i) => i).sort((p, q) => targets[p].y - targets[q].y);
   const slot = {};
   order.forEach((idx, k) => { slot[idx] = cy - 8 + k * 4; });   // a 16 ft station
@@ -1630,7 +1647,7 @@ function breakPaths(layoutKey, scriptKey){
     for(let k = 0; k < pts.length - 1; k++)
       len += Math.hypot(pts[k+1][0] - pts[k][0], pts[k+1][1] - pts[k][1]);
     return {id: i + 1, from, to, via, len,
-            label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
+            label: `${b.n} · ${wireOf(b.y, layout)}`, bunker: b.id};
   });
   // The longest run leaves on the buzzer and waits for nobody. Everyone else
   // holds in proportion to how much less ground he has to cover, so the five
@@ -4484,14 +4501,24 @@ function registerFields(){
   Object.keys(LAYOUTS).filter(k => k.startsWith("my:")).forEach(k => { delete LAYOUTS[k]; delete BREAK_PLANTS[k]; });
   (S.fields || []).forEach(f => {
     if(!fieldReady(f) || !String(f.key || "").startsWith("my:")) return;
+    const dim = fieldDimsOf(f);
     LAYOUTS[f.key] = {name: f.name || "My field", key: f.key, mine: true, source: mapOf(f) ? FIELD_SOURCE_MAP : FIELD_SOURCE,
-                      bunkers: f.bunkers.map(b => ({...b}))};
+                      bunkers: f.bunkers.map(b => ({...b})), ...(f.size === "10v10" ? {fw: dim.w, fh: dim.h, size: "10v10"} : {})};
+    // The plant rule is written for 150 x 120 ft. A bigger field is read in
+    // proportion — its bunkers scaled onto the standard field, ids kept — so
+    // the same call plants on the same part of the field at either size.
+    const kx = 150 / dim.w, ky = 120 / dim.h;
+    const ruled = kx === 1 && ky === 1 ? f.bunkers
+      : f.bunkers.map(b => ({...b, x: b.x * kx, y: b.y * ky, w: b.w * kx, h: b.h * ky}));
     const planted = {};
-    Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(f.bunkers, shape); } catch(e){} });
+    Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(ruled, shape); } catch(e){} });
     BREAK_PLANTS[f.key] = planted;
   });
   if(typeof dropPathCache === "function") dropPathCache();
 }
+// A function, not a lookup in FIELD_SIZES: registerFields runs at launch,
+// before that table exists.
+function fieldDimsOf(f){ return f && f.size === "10v10" ? {w: 200, h: 150} : {w: 150, h: 120}; }
 registerFields();
 const fieldOf = key => (S.fields || []).find(f => f && f.key === key) || null;
 /* Snap to the grid (owner, 16 Nov 2026). The 2026 NXL rules print the standard
@@ -4509,9 +4536,9 @@ function snapIn(v, lo, hi){
 // Every grid spot a footprint of w x h fits on, clear of the bunkers already
 // placed (except the ones in `skip`). What the builder lights up before a tap.
 function fieldSpots(f, w, h, skip = []){
-  const out = [], others = (f.bunkers || []).filter(b => !skip.includes(b.id));
-  for(let x = 0; x <= 150; x += FIELD_STEP) for(let y = 0; y <= 120; y += FIELD_STEP){
-    if(x < w / 2 || x > 150 - w / 2 || y < h / 2 || y > 120 - h / 2) continue;
+  const out = [], others = (f.bunkers || []).filter(b => !skip.includes(b.id)), D = fieldDimsOf(f);
+  for(let x = 0; x <= D.w; x += FIELD_STEP) for(let y = 0; y <= D.h; y += FIELD_STEP){
+    if(x < w / 2 || x > D.w - w / 2 || y < h / 2 || y > D.h - h / 2) continue;
     if(others.some(b => Math.abs(b.x - x) < (b.w + w) / 2 && Math.abs(b.y - y) < (b.h + h) / 2)) continue;
     out.push([x, y]);
   }
@@ -4519,14 +4546,27 @@ function fieldSpots(f, w, h, skip = []){
 }
 // Field sizes from the 2026 NXL rulebooks: the standard 150 x 120 ft field on a
 // 10 ft grid (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) and the 10v10 200 x 150 ft
-// field. Only the standard field can be built until every screen draws 10v10.
+// field (owner, 17 Nov 2026). A field keeps its size in `size`; standard is
+// the default and is never written, so every older field reads as it was.
 const FIELD_SIZES = [
-  {key: "std",  name: "Standard · 150 × 120 ft", note: "X-Ball, 3v3, 5v5, 7v7, Classic, Pump", w: 150, h: 120, ready: true},
-  {key: "10v10", name: "10v10 · 200 × 150 ft", note: "10v10", w: 200, h: 150, ready: false},
+  {key: "std",  name: "Standard · 150 × 120 ft", note: "X-Ball, 3v3, 5v5, 7v7, Classic, Pump", w: 150, h: 120},
+  {key: "10v10", name: "10v10 · 200 × 150 ft", note: "10v10", w: 200, h: 150},
 ];
+// The size is chosen before the first bunker goes down. Every bunker's twin
+// stands across the fifty, which moves with the size, so a field with
+// bunkers on it changes size only after Clear all.
 window.fieldSize = key => {
-  const z = FIELD_SIZES.find(x => x.key === key);
-  if(z && !z.ready){ flash(`${z.name} fields are next: every screen has to learn the bigger field first. This field stays standard.`); return; }
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key), z = FIELD_SIZES.find(x => x.key === key);
+  if(!f || !z) return;
+  if((f.size || "std") === key) return;
+  if(f.bunkers.length){
+    flash(`${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} placed for its size. Clear all first, then choose ${z.name} — every twin stands across the fifty, and the fifty moves with the size.`);
+    render(); return;
+  }
+  S.fields = S.fields.map(x => { if(x.key !== f.key) return x; const c = {...x}; if(key === "std") delete c.size; else c.size = key; return c; });
+  // No message: the field redraws at its new size under his thumb, and a
+  // message there sat over the bunkers he was about to tap.
+  registerFields(); save(S); render();
 };
 // The next free number for a code on this field. Ids are never reused or
 // renumbered: a breakout keeps the id of the bunker he broke to, so moving or
@@ -4674,19 +4714,20 @@ window.fieldTap = at => {
     .filter(({b}) => Math.abs(b.x - at[0]) < b.w / 2 + 1.2 && Math.abs(b.y - at[1]) < b.h / 2 + 1.2)
     .sort((p, q) => p.d - q.d)[0];
   if(hit){ S.fieldEdit = {...ed, sel: hit.b.id === ed.sel ? null : hit.b.id}; save(S); render(); return; }
-  const onFifty = x => Math.abs(x - 75) < 1.5;
+  const D = fieldDimsOf(f), mid = D.w / 2;
+  const onFifty = x => Math.abs(x - mid) < 1.5;
   if(ed.sel){
     const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
-    let x = snapIn(at[0], sel.w / 2, 150 - sel.w / 2), y = snapIn(at[1], sel.h / 2, 120 - sel.h / 2);
-    if(onFifty(x)) x = 75;
+    let x = snapIn(at[0], sel.w / 2, D.w - sel.w / 2), y = snapIn(at[1], sel.h / 2, D.h - sel.h / 2);
+    if(onFifty(x)) x = mid;
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
-    const tw0 = x === 75 && sel.tw ? sel.tw : "";
+    const tw0 = x === mid && sel.tw ? sel.tw : "";
     // Its twin going is one bunker fewer: the same floor Take it off holds.
     const inUse = S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key);
     if(tw0 && fieldReady(f) && f.bunkers.length - 1 < FIELD_MIN && inUse)
       return flash(`On the fifty ${sel.id} stands alone and ${tw0} goes, which leaves ${f.name} under ${FIELD_MIN} bunkers. Place another bunker first.`);
-    const moveKind = x !== 75 && !sel.tw && BUNKER_KINDS.find(k => k.n === sel.n);
+    const moveKind = x !== mid && !sel.tw && BUNKER_KINDS.find(k => k.n === sel.n);
     const moveOver = moveKind ? fieldSetWarn(f, moveKind, 1) : "";
     const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
     if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
@@ -4697,9 +4738,9 @@ window.fieldTap = at => {
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
       me.x = x; me.y = y; paintFrom(f, me);
-      if(x === 75){ if(twin){ delete me.tw; return list.filter(b => b !== twin); } return list; }
-      if(twin){ twin.x = 150 - x; twin.y = y; paintFrom(f, twin); return list; }
-      const t = {...me, id: fieldNextId(list, me.n), x: 150 - x, tw: me.id};
+      if(x === mid){ if(twin){ delete me.tw; return list.filter(b => b !== twin); } return list; }
+      if(twin){ twin.x = D.w - x; twin.y = y; paintFrom(f, twin); return list; }
+      const t = {...me, id: fieldNextId(list, me.n), x: D.w - x, tw: me.id};
       if(t.a) t.a = -t.a;
       paintFrom(f, t);
       me.tw = t.id;
@@ -4708,15 +4749,15 @@ window.fieldTap = at => {
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  let x = snapIn(at[0], kind.w / 2, 150 - kind.w / 2), y = snapIn(at[1], kind.h / 2, 120 - kind.h / 2);
-  if(onFifty(x)) x = 75;
-  const over = fieldSetWarn(f, kind, x === 75 ? 1 : 2);
+  let x = snapIn(at[0], kind.w / 2, D.w - kind.w / 2), y = snapIn(at[1], kind.h / 2, D.h - kind.h / 2);
+  if(onFifty(x)) x = mid;
+  const over = fieldSetWarn(f, kind, x === mid ? 1 : 2);
   patchField(f.key, list => {
     const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
     if(kind.k) b.k = kind.k;
     paintFrom(f, b);
-    if(x === 75) return [...list, b];
-    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: 150 - x, tw: b.id});
+    if(x === mid) return [...list, b];
+    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id});
     b.tw = t.id;
     return [...list, b, t];
   }, over);
@@ -4822,9 +4863,9 @@ function mapPixels(f){
 // The paint under a bunker: the inner part of its footprint on the map, pixel
 // by pixel. Red or blue only when that colour is most of what is there and
 // clearly one or the other; the grass, the lines and the shadow say nothing.
-function mapPaint(pix, b){
+function mapPaint(pix, b, D = {w: 150, h: 120}){
   if(!pix || !pix.data) return null;
-  const fx = pix.w / 150, fy = pix.h / 120;
+  const fx = pix.w / D.w, fy = pix.h / D.h;
   const x0 = Math.max(0, Math.floor((b.x - b.w * 0.3) * fx)), x1 = Math.min(pix.w - 1, Math.ceil((b.x + b.w * 0.3) * fx));
   const y0 = Math.max(0, Math.floor((b.y - b.h * 0.3) * fy)), y1 = Math.min(pix.h - 1, Math.ceil((b.y + b.h * 0.3) * fy));
   const step = Math.max(1, Math.floor(Math.max(x1 - x0, y1 - y0) / 24));
@@ -4841,7 +4882,7 @@ function mapPaint(pix, b){
   return null;
 }
 function paintFrom(f, b){
-  const c = mapPaint(mapPixels(f), b);
+  const c = mapPaint(mapPixels(f), b, fieldDimsOf(f));
   if(c) b.c = c; else delete b.c;
   return b;
 }
@@ -4907,11 +4948,11 @@ window.fieldMapDrop = () => {
   save(S); render();
 };
 function fieldBuildSVG(f){
-  const W = 300, H = 240, M = 18, sx = 2, sy = 2, sel = S.fieldEdit && S.fieldEdit.sel;
+  const D = fieldDimsOf(f), W = D.w * 2, H = D.h * 2, M = 18, sx = 2, sy = 2, sel = S.fieldEdit && S.fieldEdit.sel;
   const me = sel && f.bunkers.find(b => b.id === sel), twin = me && me.tw && f.bunkers.find(b => b.id === me.tw);
   const ring = (b, dash) => b ? `<rect x="${((b.x - b.w / 2 - 1.6) * sx).toFixed(1)}" y="${((b.y - b.h / 2 - 1.6) * sy).toFixed(1)}" width="${((b.w + 3.2) * sx).toFixed(1)}" height="${((b.h + 3.2) * sy).toFixed(1)}" rx="4" fill="none" stroke="#efedeb" stroke-width="1.4"${dash ? ' stroke-dasharray="3 3" opacity=".7"' : ""}/>` : "";
   const codes = f.bunkers.map(b => `<text x="${(b.x * sx).toFixed(1)}" y="${((b.y + b.h / 2) * sy + 7).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="#8d9092">${esc(b.n)}</text>`).join("");
-  return `<svg class="field" viewBox="-8 ${-M} ${W + 16} ${H + M * 2}" role="img" aria-label="${esc(f.name)}: ${f.bunkers.length} bunkers. Tap empty ground to place, tap a bunker to pick it.">
+  return `<svg class="field" data-fw="${D.w}" data-fh="${D.h}" viewBox="-8 ${-M} ${W + 16} ${H + M * 2}" role="img" aria-label="${esc(f.name)}, ${D.w} by ${D.h} feet: ${f.bunkers.length} bunkers. Tap empty ground to place, tap a bunker to pick it.">
     <defs>
       <linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient>
       <linearGradient id="bnkRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2453d"/><stop offset="1" stop-color="#7d1512"/></linearGradient>
@@ -4920,8 +4961,8 @@ function fieldBuildSVG(f){
     <rect x="-8" y="${-M}" width="${W + 16}" height="${H + M * 2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${mapOf(f) && !(S.fieldEdit && S.fieldEdit.hideMap) ? `<image class="fieldmap" href="${esc(mapOf(f))}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none" opacity=".5"/>` : ""}
-    ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
-    ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
+    ${[...Array(D.w / 10)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
+    ${[...Array(D.h / 10)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
     <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1"/>
     <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
     <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
@@ -4951,7 +4992,7 @@ function fieldsPage(){
     ${f ? (() => { const ready = fieldReady(f), on = f.key === S.layoutKey;
       return `<div class="assign" style="flex-wrap:wrap">
         <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
-        <span class="assign__who">${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
+        <span class="assign__who">${f.size === "10v10" ? "10v10 · 200 × 150 ft" : "Standard · 150 × 120 ft"} · ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
         ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
         <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
       </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
@@ -4996,8 +5037,8 @@ function fieldBuilder(){
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
     <div class="fld"><label for="field-size">Field size</label>
-      <select id="field-size" onchange="fieldSize(this.value);this.value='std'">${FIELD_SIZES.map(z =>
-        `<option value="${z.key}"${z.key === "std" ? " selected" : ""}>${esc(z.name)} — ${esc(z.note)}${z.ready ? "" : " (coming next)"}</option>`).join("")}</select></div>
+      <select id="field-size" onchange="fieldSize(this.value)">${FIELD_SIZES.map(z =>
+        `<option value="${z.key}"${z.key === (f.size || "std") ? " selected" : ""}>${esc(z.name)} — ${esc(z.note)}</option>`).join("")}</select></div>
     <p class="note">Your end is on the left, the snake side at the bottom, the dorito side at the top — the way
       every field in the app is drawn. Place the left half off the event's map; each bunker's twin appears
       across the fifty, and one on the fifty stays single. Sizes are the measured inflatables, so a bunker is
@@ -5980,7 +6021,7 @@ window.setSwapEnds = on => {
   patchMatch({swapEnds: false, swapFrom: null, flips: flips.filter(f => f > 1).sort((a, b) => a - b)});
   save(S); render();
 };
-const mirrorFt = q => [150 - q[0], q[1]];
+const mirrorFt = q => [fieldW() - q[0], q[1]];
 function mirrorBunkerId(id){
   // Every count across points turns a row through here; within one draw the
   // field cannot change, so each twin is worked out once.
@@ -5991,7 +6032,7 @@ function mirrorBunkerId(id){
 function mirrorBunkerIdFresh(id){
   const bl = curLayout().bunkers, b = bl.find(x => x.id === id); if(!b) return id;
   let best = null, bd = Infinity;
-  for(const o of bl){ const d = Math.hypot(o.x - (150 - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
+  for(const o of bl){ const d = Math.hypot(o.x - (fieldW() - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
   return best ? best.id : id;
 }
 // Face and shot are kept in the left-end frame he set them in; drawn from the
@@ -7441,6 +7482,7 @@ function copyDataError(data){
         set:map(n => Number.isInteger(n) && n >= 0 && n <= fieldSetMax())})
       && str(v.key) && v.key.slice(0,3) === "my:" && str(v.name)
       && (v.map === undefined || fieldMapOk(v.map))
+      && (v.size === undefined || v.size === "std" || v.size === "10v10")
       && Object.entries(v).every(([k, x]) => k === "bunkers" || k === "set" || scalar(x))),
     // A penalty is what the official took, recorded: which side, how many men.
     timeouts:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
@@ -9044,7 +9086,10 @@ function fieldFeet(svg, ev){
   const pt = svg.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
   const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-  return [Math.max(1, Math.min(149, p.x / 2)), Math.max(1, Math.min(119, p.y / 2))];
+  // Scale 2 on every field; the clamp is the drawn field's own edges — the
+  // builder can be drawing a 10v10 field while a standard one is in use.
+  const fw = +svg.getAttribute("data-fw") || fieldW(), fh = +svg.getAttribute("data-fh") || fieldH();
+  return [Math.max(1, Math.min(fw - 1, p.x / 2)), Math.max(1, Math.min(fh - 1, p.y / 2))];
 }
 function setVia(id, via){
   S.pathEdits = {...(S.pathEdits || {}), [pathKey(id)]: via};
@@ -9247,10 +9292,13 @@ function walkView(){
 function walkMatrix(){
   const v=walkView(), r=v.angle*Math.PI/180, c=Math.cos(r), s=Math.sin(r), tilt=v.tilt?.64:1;
   // Fit the entire rotated drawing, including wire labels, at 1x zoom.
-  const fit=Math.min(1,328/(328*Math.abs(c)+276*Math.abs(s)),276/(tilt*(328*Math.abs(s)+276*Math.abs(c))));
+  // The drawing is the field at scale 2 plus its margins (FIELD_SIDE each
+  // end, 18 for the side labels), so a 10v10 field fits the same way.
+  const cw=fieldW()*2, ch=fieldH()*2, VW=cw+FIELD_SIDE*2, VH=ch+36;
+  const fit=Math.min(1,VW/(VW*Math.abs(c)+VH*Math.abs(s)),VH/(tilt*(VW*Math.abs(s)+VH*Math.abs(c))));
   const z=fit*v.zoom, a=z*c, b=z*s*tilt, d=z*c*tilt, e=-z*s;
-  const target=v.focus&&curLayout().bunkers.find(x=>x.id===v.focus), x=target?target.x*2:150, y=target?target.y*2:120;
-  return `matrix(${[a,b,e,d,150-a*x-e*y,120-b*x-d*y].map(n=>n.toFixed(6)).join(" ")})`;
+  const target=v.focus&&curLayout().bunkers.find(x=>x.id===v.focus), x=target?target.x*2:cw/2, y=target?target.y*2:ch/2;
+  return `matrix(${[a,b,e,d,cw/2-a*x-e*y,ch/2-b*x-d*y].map(n=>n.toFixed(6)).join(" ")})`;
 }
 function walkViewControls(){
   const v=walkView();
@@ -9346,10 +9394,12 @@ document.addEventListener("keydown",ev=>{
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
 // Drill areas belong to the displayed field, never to a team's changing ends.
 const WALK_ZONES = [
+  // x and y are halves (0 or 1), so a zone is a quarter of whichever size
+  // of field is drawn.
   {id:"q1", name:"Q1 · Left dorito", x:0, y:0},
-  {id:"q2", name:"Q2 · Right dorito", x:150, y:0},
-  {id:"q3", name:"Q3 · Left snake", x:0, y:120},
-  {id:"q4", name:"Q4 · Right snake", x:150, y:120}
+  {id:"q2", name:"Q2 · Right dorito", x:1, y:0},
+  {id:"q3", name:"Q3 · Left snake", x:0, y:1},
+  {id:"q4", name:"Q4 · Right snake", x:1, y:1}
 ];
 let _walkDrill = null; // View only: never exported, synced or counted as a point.
 function walkDrillZone(){ return _walkDrill && _walkDrill.layout === S.layoutKey ? _walkDrill.zone : "off"; }
@@ -9374,11 +9424,13 @@ function walkDrillControls(){
 function walkDrillOverlay(){
   const zone = walkDrillZone(); if(zone === "off") return "";
   const area = WALK_ZONES.find(z => z.id === zone);
+  const hw = fieldW(), hh = fieldH(), W = hw * 2, H = hh * 2;   // a quarter is half the field each way, at scale 2
+  const cross = `M${hw} 0V${H} M0 ${hh}H${W}`;
   return `<g class="walk-drill-zones" pointer-events="none" aria-hidden="true">
-    ${area ? `<rect class="walk-drill-focus" x="${area.x + 1}" y="${area.y + 1}" width="148" height="118" fill="#efedeb" fill-opacity=".04" stroke="#efedeb" stroke-width="1.5"/>` : ""}
-    <path d="M150 0V240 M0 120H300" fill="none" stroke="#0b0c0d" stroke-width="3"/>
-    <path d="M150 0V240 M0 120H300" fill="none" stroke="#efedeb" stroke-width="1" stroke-dasharray="4 4"/>
-    ${WALK_ZONES.map(z => `<text x="${z.x + 8}" y="${z.y + 19}" fill="#efedeb" stroke="#0b0c0d" stroke-width="3" paint-order="stroke" font-size="12" font-weight="700">${z.id.toUpperCase()}</text>`).join("")}
+    ${area ? `<rect class="walk-drill-focus" x="${area.x * hw + 1}" y="${area.y * hh + 1}" width="${hw - 2}" height="${hh - 2}" fill="#efedeb" fill-opacity=".04" stroke="#efedeb" stroke-width="1.5"/>` : ""}
+    <path d="${cross}" fill="none" stroke="#0b0c0d" stroke-width="3"/>
+    <path d="${cross}" fill="none" stroke="#efedeb" stroke-width="1" stroke-dasharray="4 4"/>
+    ${WALK_ZONES.map(z => `<text x="${z.x * hw + 8}" y="${z.y * hh + 19}" fill="#efedeb" stroke="#0b0c0d" stroke-width="3" paint-order="stroke" font-size="12" font-weight="700">${z.id.toUpperCase()}</text>`).join("")}
   </g>`;
 }
 window.addWalk = () => {
@@ -10364,12 +10416,12 @@ function bunkerShape(b, sx, sy){
     case "triin": {
       // A dorito printed on its side, pointing in at the 50 (the World Cup's
       // two corner doritos): w runs along the field, h across it.
-      const dir = b.x < 75 ? 1 : -1;
+      const dir = b.x < fiftyX() ? 1 : -1;
       return `<polygon points="${(x+s.h*dir).toFixed(2)},${y} ${(x-s.h*dir).toFixed(2)},${(y-s.v).toFixed(2)} ${(x-s.h*dir).toFixed(2)},${(y+s.v).toFixed(2)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
     }
     case "wing": {
       // Wings point away from the 50, toward their own end line.
-      const dir = b.x < 75 ? -1 : 1;
+      const dir = b.x < fiftyX() ? -1 : 1;
       return `<polygon points="${(x+s.h*dir).toFixed(2)},${y} ${(x-s.h*dir).toFixed(2)},${(y-s.v).toFixed(2)} ${(x-s.h*dir).toFixed(2)},${(y+s.v).toFixed(2)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
     }
     case "plus": {
@@ -10455,7 +10507,7 @@ function bunkerLabels(list, sx, sy){
       a.area += b.area; groups.splice(j, 1); joined = true; break;
     }
   }
-  const H = 120 * sy;
+  const H = fieldH() * sy;
 
   const placed = [];
   const hits = a => placed.some(b =>
@@ -10569,7 +10621,7 @@ function fieldRunners(opts={}){
 }
 function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
-  const W=300,H=240,sx=W/150,sy=H/120;
+  const W=fieldW(layout)*2,H=fieldH(layout)*2,sx=2,sy=2;
   const M=18;                                  // margin for the side labels
   // and room at either end for a bunker standing on the end line, its rings
   // and the bar that marks your end, drawn outside it rather than over it.
@@ -10938,7 +10990,7 @@ function fieldSVG(opts={}, runnersOnly){
              + `<text x="${(b.x*sx).toFixed(1)}" y="${(b.y*sy-s2.v-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#e0a33a" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${esc(sh.tag)}</text></g>`; } }
   }
 
-  return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}"${opts.walkExplore?' tabindex="0" role="group" aria-label="Explore the field. Left and right arrows turn; up and down zoom; Home fits the field."':""}>
+  return `<svg class="field" data-fw="${W/2}" data-fh="${H/2}" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}"${opts.walkExplore?' tabindex="0" role="group" aria-label="Explore the field. Left and right arrows turn; up and down zoom; Home fits the field."':""}>
     <defs>
       <!-- The official map paints every bunker red or blue; both are sampled
            from it. They sit a step darker than the wires (#e5342f / #3d8bff)
@@ -14427,7 +14479,7 @@ function nearestBunker(at){
 }
 // Which pit a man breaking to this bunker came from: yours run from the left,
 // and a bunker past the fifty is somebody else's plant. One tap says otherwise.
-const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
+const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < fiftyX() : b.x > fiftyX()) ? "us" : "them";
 /* Every answer on the breakout sheet is one tap, and a thumb between points
  * misses. Each change keeps the answer it replaced, so Undo takes back the
  * last tap and Clear starts this man over — never the whole point. Kept for
@@ -14482,10 +14534,11 @@ window.selectBunker = id => {
  */
 // The centre of a goal line, anchored on its back-centre bunker.
 function goalStart(layout, fromRight){
+  const W = fieldW(layout), mid = fieldH(layout) / 2;
   const mine = fromRight
-    ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
-  const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  return fromRight ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+    ? layout.bunkers.filter(b => b.x > W - 20) : layout.bunkers.filter(b => b.x < 20);
+  const back = mine.sort((a, b) => Math.abs(a.y - mid) - Math.abs(b.y - mid))[0];
+  return fromRight ? [W - 3, back ? back.y : mid] : [3, back ? back.y : mid];
 }
 // Which goal line a charted man left from: his side's end on that point.
 function rowFromRight(row){ return (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left"); }
@@ -14514,7 +14567,7 @@ function autoRouteFresh(row, layout, b, fromRight){
      and tightened only where wide finds nothing — the difference between a run
      that goes round and a straight line drawn through a bunker. */
   const padKey = layout.key || row.layout;
-  if(!_padCache.has(padKey)) _padCache.set(padKey, [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w)));
+  if(!_padCache.has(padKey)) _padCache.set(padKey, [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w, layout)));
   const pads = _padCache.get(padKey);
   /* Where a point actually starts: the centre of his own back line, anchored on
      the back-centre bunker the same way breakPaths does it. A flat [2,60] is a
@@ -15171,7 +15224,7 @@ function breakoutSheet(){
     ? (wm ? theirNames() : mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
     : theirNames();
   const others = bl.filter(o => o.id !== b.id);
-  const far = others.filter(o => ((side === "us") === (ourEnd(rowPt) === "left")) ? o.x > 75 : o.x < 75);
+  const far = others.filter(o => ((side === "us") === (ourEnd(rowPt) === "left")) ? o.x > fiftyX() : o.x < fiftyX());
   const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
     `<option value="${esc(o.id)}" ${val === o.id ? "selected" : ""}>${esc(callOf(o))} · ${esc(o.id)}</option>`).join("");
   const seg = items => `<div class="seg seg--wrap">${items.map(([on, label, click]) =>
@@ -17308,9 +17361,10 @@ function arrivalGeometry(key){
   const hit = _arrivalGeometryCache.get(key); if(hit && hit.layout === LAYOUTS[key]) return hit;
   const layout = LAYOUTS[key];
   if(!layout) return null;
-  const obstacles = routeObstacles(layout.bunkers, 0.9);
+  const obstacles = routeObstacles(layout.bunkers, 0.9, layout);
+  const FW = fieldW(layout), FH = fieldH(layout);
   const inside = (p,o) => Math.abs(p[0]-o.x) <= o.hw && Math.abs(p[1]-o.y) <= o.hh;
-  const free = p => p.every(Number.isFinite) && p[0] > 1 && p[0] < 149 && p[1] > 1 && p[1] < 119
+  const free = p => p.every(Number.isFinite) && p[0] > 1 && p[0] < FW - 1 && p[1] > 1 && p[1] < FH - 1
     && !obstacles.some(o => inside(p,o));
   const clear = (a,b) => !obstacles.some(o => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh));
   // A bunker coordinate is its centre, not a place a player can stand. Put
@@ -17328,9 +17382,9 @@ function arrivalGeometry(key){
     })[0] || null;
   };
   const station = end => {
-    const x = end === "right" ? 147 : 3;
-    const candidates = [[x,60]];
-    for(let gap=2; gap<=24; gap+=2) candidates.push([x,60-gap],[x,60+gap]);
+    const x = end === "right" ? FW - 3 : 3, cy = FH / 2;
+    const candidates = [[x,cy]];
+    for(let gap=2; gap<=24; gap+=2) candidates.push([x,cy-gap],[x,cy+gap]);
     return candidates.find(free) || null;
   };
   const leg = (a,b) => {
@@ -17341,7 +17395,7 @@ function arrivalGeometry(key){
     if(points.some((p,i) => i && !clear(points[i-1],p))) return null;
     return {points, length:points.reduce((n,p,i) => n + (i ? Math.hypot(p[0]-points[i-1][0],p[1]-points[i-1][1]) : 0),0)};
   };
-  const result = {layout,obstacles,free,clear,stand,station,leg};
+  const result = {layout,obstacles,free,clear,stand,station,leg,FW,FH};
   _arrivalGeometryCache.set(key,result);
   return result;
 }
@@ -17393,8 +17447,8 @@ function arrivalRoutes(layoutKey, options = {}){
   const longest = legs.reduce((best,p,i) => p.length > (legs[best] || {length:-1}).length ? i : best,0);
   if(legs.length && legs[longest].length > 10){
     const base = legs[longest], a = base.points[0], b = base.points[base.points.length-1];
-    [["dorito","Dorito-side alternative",3],["snake","Snake-side alternative",117]].forEach(([id,label,y]) => {
-      const mid = Math.max(6,Math.min(144,(a[0]+b[0])/2));
+    [["dorito","Dorito-side alternative",3],["snake","Snake-side alternative",g.FH - 3]].forEach(([id,label,y]) => {
+      const mid = Math.max(6,Math.min(g.FW - 6,(a[0]+b[0])/2));
       const via = [mid,mid-8,mid+8].map(x=>[x,y]).find(g.free);
       if(!via) return;
       const first = g.leg(a,via), second = g.leg(via,b);
@@ -19338,7 +19392,7 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
     how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
-      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field; 10v10 (200 × 150 ft) is coming next.",
+      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list.",
@@ -19478,7 +19532,7 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
-  ["Can I use my own field?", "Yes. More › Field builder: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Can I use my own field?", "Yes. More › Field builder: name it, choose its size — the standard 150 × 120 ft or 10v10's 200 × 150 ft — pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
   ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
@@ -21649,19 +21703,19 @@ function wbInk(marks){
   }).join("");
   // The capture surface is the top layer, per the field rule: marks draw below
   // it so a finger always lands on something it can draw on.
-  return body + `<rect data-wb x="0" y="0" width="300" height="240" fill="transparent"/>`;
+  return body + `<rect data-wb x="0" y="0" width="${fieldW() * 2}" height="${fieldH() * 2}" fill="transparent"/>`;
 }
 function whiteboardPage(){
   const wb = wbState();
   const bg = wb.field
     ? fieldSVG({static:true, noPaths:true})
-    : `<svg class="field wb-blank" viewBox="0 0 300 240"><rect width="300" height="240" fill="#0b0c0d"/></svg>`;
+    : `<svg class="field wb-blank" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"><rect width="${fieldW() * 2}" height="${fieldH() * 2}" fill="#0b0c0d"/></svg>`;
   const pens = [["#e5342f","Red"],["#3d8bff","Blue"],["#efedeb","White"]];
   return sec("Whiteboard",
    `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
     <div class="wb-wrap">
       <div class="wb-bg">${bg}</div>
-      <svg class="wb-ink" id="wb-map" viewBox="0 0 300 240" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
+      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
     </div>
     <div class="wb-tools">
       ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"

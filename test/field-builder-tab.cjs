@@ -103,7 +103,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.locator("#field-set-from").selectOption({label:"No set — don't count"});
    assert.equal(await p.evaluate(k=>fieldOf(k).set,key),undefined);assert.equal(await left(),null,"no set, no countdown");
   });
-  await check("bunkers snap to the grid every 5 ft, the free spots light up, and 10v10 says it is next",async p=>{
+  await check("bunkers snap to the grid every 5 ft, the free spots light up, and 10v10 is chosen before the first bunker",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    await p.getByLabel("Name of the field").fill("Grid park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
    const key=await p.evaluate(()=>S.fieldEdit.key);
@@ -119,7 +119,56 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    const free=await p.evaluate(k=>fieldSpots(fieldOf(k),6.69,6.11).some(([x,y])=>x===40&&y===60),key);assert.equal(free,false);
    const coords=await p.evaluate(k=>fieldSpots(fieldOf(k),6.69,6.11).every(([x,y])=>x%5===0&&y%5===0),key);assert.ok(coords,"every spot is on the 5-ft grid");
    await p.locator("#field-size").selectOption("10v10");
-   assert.match(await root(p),/10v10 · 200 × 150 ft fields are next/);assert.equal(await p.locator("#field-size").inputValue(),"std");
+   assert.match(await root(p),/Clear all first/,"a field with bunkers on it keeps its size");
+   assert.equal(await p.locator("#field-size").inputValue(),"std");assert.equal(await p.evaluate(k=>fieldOf(k).size,key),undefined);
+   await p.getByRole("button",{name:"Clear all",exact:true}).click();
+   await p.locator("#field-size").selectOption("10v10");
+   assert.equal(await p.evaluate(k=>fieldOf(k).size,key),"10v10","an empty field takes the new size");
+   assert.equal(await p.locator("#field-size").inputValue(),"10v10");
+   assert.equal(await p.locator("#fieldbuild-map svg").getAttribute("viewBox"),"-8 -18 416 336","drawn 200 x 150 ft");
+   assert.equal(await p.locator("#fieldbuild-map svg line").count(),20+15+1,"a line every 10 ft both ways, and the fifty");
+  });
+  await check("a 10v10 field is 200 x 150 ft on every screen: twins, the fifty, plants, routes, ends and Walk",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("Big park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key);
+   await p.locator("#field-size").selectOption("10v10");
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=2*x;pt.y=2*y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   // A real tap past where the standard field ends is still on this field.
+   await tap(170,140);assert.deepEqual(await p.evaluate(k=>fieldOf(k).bunkers.map(b=>[b.x,b.y]),key),[[170,140],[30,140]],"placed past 150 x 120, its twin across the fifty at 100");
+   await p.getByRole("button",{name:"Giant brick",exact:false}).first().click();
+   await tap(100.6,75);assert.deepEqual(await p.evaluate(k=>fieldOf(k).bunkers.slice(-1).map(b=>[b.x,b.y,!!b.tw]),key),[[100,75,false]],"one on the fifty at 100 stays single");
+   const kinds=["md","t","c","br","sd","ck","sb","mt","tr","gw"];
+   await p.evaluate(([k,kinds])=>{kinds.forEach((kind,i)=>{S.fieldEdit={...S.fieldEdit,kind,sel:null};fieldTap([15+i*8,10+i*13]);});},[key,kinds]);
+   const L=await p.evaluate(k=>{const L=LAYOUTS[k];return {fw:L.fw,fh:L.fh,n:L.bunkers.length,plants:Object.keys(BREAK_PLANTS[k]).length,
+     left:Object.values(BREAK_PLANTS[k]).every(ids=>ids.every(id=>L.bunkers.find(b=>b.id===id).x<=100))};},key);
+   assert.deepEqual(L,{fw:200,fh:150,n:23,plants:12,left:true},"registered at its size, and the twelve plant on his half");
+   assert.equal(await p.evaluate(()=>LAYOUTS.lso.fw),undefined,"a measured field stays 150 x 120");
+   await p.getByRole("button",{name:"Done",exact:true}).click();await p.getByRole("button",{name:"Use this field",exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.layoutKey),key);
+   assert.match(await p.locator(".assign").filter({hasText:"Big park"}).innerText(),/10v10 · 200 × 150 ft/);
+   const geo=await p.evaluate(()=>{const L=curLayout(),b=L.bunkers.find(x=>x.x<100&&x.tw);
+     const paths=breakPaths(S.layoutKey,"base");
+     return {fifty:fiftyX(),twin:mirrorBunkerId(b.id)===b.tw,goal:goalStart(L,true)[0],side:sideOfBunker(L.bunkers.find(x=>x.x>100),1),
+       inside:paths.length===5&&paths.every(r=>[r.from,...r.via,r.to].every(q=>q[0]>=0&&q[0]<=200&&q[1]>=0&&q[1]<=150)),
+       wire:wireOf(140),centre:wireOf(75)};});
+   assert.deepEqual(geo,{fifty:100,twin:true,goal:197,side:"them",inside:true,wire:"snake wire",centre:"centre"});
+   for(const [tab,more,scoutTab] of [["playbook"],["tally"],["scout",null,"matchup"],["scout",null,"breakouts"],["scout",null,"layers"],["sightlines"],["more","walk"],["more","wb"],["more","stats"],["more","team"],["more","codes"]]){
+    await p.evaluate(([tab,more,scoutTab])=>set({tab,...(more?{more}:{}),...(scoutTab?{scoutTab}:{})}),[tab,more,scoutTab]);
+    const vb=await p.locator("#root svg.field").first().getAttribute("viewBox");
+    assert.match(vb||"",/^-?\d+ -18 (428|416|400) (336|300)$/,`${tab}/${more||scoutTab||""} draws the 10v10 field: ${vb}`);
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${tab}/${more||""} no sideways scroll`);
+   }
+   await p.evaluate(()=>{set({tab:"more",more:"walk"});setWalkDrillZone("q4");});
+   assert.match(await p.locator(".walk-drill-zones path").first().getAttribute("d"),/^M200 0V300 M0 150H400$/,"drill quarters split this field");
+   assert.equal(await p.locator(".walk-drill-focus").getAttribute("x"),"201");
+   assert.ok(await p.evaluate(()=>/^matrix\((-?[\d.]+ ){5}-?[\d.]+\)$/.test(walkMatrix())),"the camera fits the bigger drawing");
+   await p.evaluate(()=>set({tab:"more",more:"wb"}));assert.equal(await p.locator("#wb-map").getAttribute("viewBox"),"0 0 400 300");
+   const feet=await p.evaluate(()=>{const svg=document.querySelector("#root svg.field");const r=svg.getBoundingClientRect();return fieldFeet(svg,{clientX:r.right-1,clientY:r.bottom-1});});
+   assert.ok(feet[0]>150&&feet[0]<=199&&feet[1]>120&&feet[1]<=149,"a tap reads feet up to this field's edges: "+feet);
+   assert.equal(await p.evaluate(()=>copyDataError(JSON.parse(copyPayload("all")).data)),"","the size travels in a copy");
+   assert.equal(await p.evaluate(()=>copyDataError({...JSON.parse(copyPayload("all")).data,fields:[{...S.fields[0],size:"huge"}]})),"fields","an unknown size is refused");
+   await p.reload();assert.equal(await p.evaluate(k=>LAYOUTS[k]&&LAYOUTS[k].fw,key),200,"a relaunch keeps it 10v10");
   });
   for(const [w,h] of [[390,844],[768,1024],[1024,768]])await check(`Field builder fits with named 44px controls at ${w}x${h}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
