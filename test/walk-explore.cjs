@@ -90,7 +90,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await open(p);await action(p,"Start tour");assert.equal(await p.evaluate(()=>loadCopy("replace",copyPayload("all"))),true);assert.equal(await p.evaluate(()=>_walkFrame),0);
   });
   await check("custom fields and drill zones use unchanged footprints in Explore",async p=>{
-   await p.evaluate(()=>set({tab:"more",more:"nexus"}));await p.locator("#field-name").fill("Walk test field");await action(p,"+ Build a field");
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));await p.locator("#field-name").fill("Walk test field");await action(p,"+ Build a field");
    const key=await p.evaluate(()=>{const key=S.fieldEdit.key;for(const at of [[20,20],[40,40],[60,60],[25,90]])fieldTap(at);fieldDone();set({tab:"more",more:"walk",layoutKey:key});return key;});
    const geometry=await p.evaluate(()=>JSON.stringify(curLayout().bunkers));await open(p);await action(p,"Show drill zones");await p.locator("#walk-drill-area").selectOption("q2");await action(p,"Tilt view");
    assert.equal(await p.locator("#walk-scene .bnk").count(),8);assert.equal(await p.locator("#walk-scene .walk-drill-zones text").count(),4);

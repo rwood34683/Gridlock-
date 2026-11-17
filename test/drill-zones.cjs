@@ -63,7 +63,7 @@ const {createServer}=require("../scripts/serve"),SEED=require("../scripts/seed")
    assert.equal(await p.locator(".assign__job b").count(),0,"note text is not HTML");
   });
   await check("custom fields use the same zones; switching layouts starts without the overlay",async p=>{
-   await p.evaluate(()=>set({tab:"more",more:"nexus"}));await p.locator("#field-name").fill("Drill test field");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));await p.locator("#field-name").fill("Drill test field");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
    const key=await p.evaluate(()=>{const key=S.fieldEdit.key;for(const at of [[20,20],[40,40],[60,60],[25,90]])fieldTap(at);fieldDone();return key;});
    await p.evaluate(key=>set({tab:"more",more:"walk",layoutKey:key}),key);assert.equal(await p.locator(".walk-drill-zones").count(),0);await show(p);
    assert.equal(await p.locator(".walk-drill-zones text").count(),4);assert.equal(await p.locator("#walk-map .bnk").count(),8);

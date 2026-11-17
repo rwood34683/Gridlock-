@@ -191,7 +191,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
+More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
@@ -649,7 +649,7 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     other paintball app lets a coach use the field he is on: PB Scout puts his
     players on a photo of it, Paintball Coach ships dozens of layouts, Paintball
     Stats picks a field. A coach at a regional event or his home park had
-    nothing to stand on. More › Nexus › Events › **Build a field**: name it,
+    nothing to stand on. More › Field builder (built fields are kept apart from the event fields): name it,
     pick a bunker type (`BUNKER_KINDS`, footprints from `layouts/bunkers.json`),
     tap where it sits; its twin appears across the fifty (`tw` on both), one on
     the fifty stays single. Tap a bunker to pick it, then Turn, move it or take
@@ -1752,6 +1752,63 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     the real control on every Scout view and preserve score/end assertions.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Field builder (owner, 16 Nov 2026): More › Field builder, after Walk under
+Before the game, is the one home of the fields he builds (`fieldsPage()`).
+Built fields are not event fields and are never listed with them: the
+header's Season › Event › Layout picker (`layoutChoices`) and Account &
+backups › Events carry measured event fields only, each with a link here,
+and the builder lives here alone. **Your fields** is a drop-down of every
+field he built (`_fieldChoice`, page memory; the field in use, his only
+field or the one just finished is chosen), then Use this field / Edit /
+Keep building. Account & backups' status row says "Your field" when one is
+in use. The house rules for a built field are unchanged. Free like every
+field screen.
+The builder has **↶ Undo** and **Clear all** (owner, 16 Nov 2026): every
+change to the bunkers keeps the list it replaced (`_fieldHist`, page memory
+only, 50 steps, dropped on Done), and Undo puts it back; an undone or cleared
+bunker's id goes in `gone`, so ids are still never reused. Clear all asks
+first and refuses on a field in use, which keeps its eight; Undo holds the
+same floor and asks when something logged names a bunker it takes off.
+**Your bunker set** (owner, 16 Nov 2026): each field carries `set`, how many
+of each kind the coach has, and every bunker button counts down as he places
+(a bunker and its twin take two). It starts from what a measured field uses —
+the three 2026 NXL maps use the same 58 (`setFromLayout`) — never a guessed
+league pack, and every number is his to change. Past the set it says how
+many over and never stops him placing. `fieldSetMax()` is a function because
+`load()` validates a season before a const there would exist.
+**Grid snap** (owner, 16 Nov 2026): the 2026 NXL rules print the standard
+field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
+(`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
+footprint may cross lines. Before a tap the builder lights every spot the
+picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
+**Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
+(X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
+`size: "10v10"` (standard is never written, so older fields read as before;
+the schema takes only `std` or `10v10`) and `registerFields()` gives its
+layout `fw` / `fh`. The size is chosen before the first bunker: a field with
+bunkers changes size only after Clear all, because every twin stands across
+the fifty and the fifty moves with it. Every screen reads the size through
+`fieldW(L)` / `fieldH(L)` / `fiftyX(L)` (default the current layout, 150 /
+120 when unset) — never a typed 150, 120 or 75: the drawn field and its
+viewBox, `fieldFeet`'s clamp (read off the drawn svg's `data-fw` / `data-fh`,
+because the builder can draw a 10v10 field while a standard one is in use),
+the router's edges (`routeObstacles(list, pad, L)` carries them), the goal
+lines, the halves, the twins (`mirrorFt`, `mirrorBunkerId`), the arrival
+routes, the Walk camera and drill quarters (`WALK_ZONES` are halves, 0 or 1),
+the whiteboard and the builder's grid, snap, spots and map paint
+(`fieldDimsOf(f)`, a function because `registerFields` runs before the size
+table exists). The wire bands and the plant rule are written for 150 × 120
+and read a 10v10 field in proportion (`stdY`; `plantRule` gets the bunkers
+scaled onto the standard field, ids kept), so the measured fields and
+`BREAK_PLANTS` are untouched. Back-line bunker bands scale with the field;
+the goal itself stays three feet inside its end. Stat badges follow the
+field's right edge, and the whiteboard fits its own aspect on tablets.
+Loading or turning a guide map must retain the field size while sampling
+paint. A shared 10v10 PNG keeps a 4:3 frame, including its caption, and fits
+the entire drawing without stretching it. `test/field-builder-tab.cjs` and
+`test/field-10v10.cjs` cover real taps on both ends, all twenty device sizes,
+and the unchanged SVG of every measured layout and a standard built field.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
 field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,
