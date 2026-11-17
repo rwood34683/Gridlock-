@@ -521,7 +521,7 @@ svg.field [data-leg]{cursor:copy}
 button:disabled{opacity:.45;cursor:default}
 @media(max-width:360px){.arrival-grid{grid-template-columns:minmax(0,1fr)}}
 svg.field{width:100%;height:auto;display:block}
-/* A phone turned sideways is short, and the field is 150 by 120 — at full width
+/* A phone turned sideways is short, and either field size at full width
    it comes out taller than the screen, so you see less of it than in portrait,
    which is the wrong way round. Fit it to the height instead and centre it. */
 @media (orientation:landscape) and (max-height:520px){
@@ -729,9 +729,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   /* The whiteboard is a picture with an ink layer the exact size of the
      picture. Capping the picture alone letterboxed it inside a full-width
      box — 525 px of field in an 858 px wrap on an iPad on its side — so the
-     wrap itself is sized from the same cap (the board is 300 by 240) and the
+     wrap itself is sized from the same cap and this field's aspect, and the
      picture fills it. */
-  .wb-wrap{width:min(100%, calc(max(340px, 100vh - 400px) * 1.25));margin:0 auto}
+  .wb-wrap{width:min(100%, calc(max(340px, 100vh - 400px) * var(--field-aspect)));margin:0 auto}
   .wb-bg svg.field{max-height:none}
 }
 /* A tablet on its side is wide and not tall: the call card beside the field,
@@ -1534,7 +1534,7 @@ function routeClear(from, to, targetId, obstacles){
     }
     return true;
   };
-  const FW = obstacles.fw || 150, FH = obstacles.fh || 120;
+  const FW = obstacles.fw || fieldW(null), FH = obstacles.fh || fieldH(null);
   const inField = c => c[0] > 1 && c[0] < FW - 1 && c[1] > 1 && c[1] < FH - 1;
 
   if(clear(from, to)) return [];
@@ -1626,7 +1626,7 @@ function breakPaths(layoutKey, scriptKey){
   // that is where an Xball point starts, not spread across the whole width.
   // The home back-centre bunker anchors it.
   const back = layout.bunkers
-    .filter(b => b.x < 20)
+    .filter(b => b.x < fieldW(layout) * 20 / fieldW(null))
     .sort((a, b) => Math.abs(a.y - fieldH(layout) / 2) - Math.abs(b.y - fieldH(layout) / 2))[0];
   const cy = back ? back.y : fieldH(layout) / 2;
   const obstacles = routeObstacles(layout.bunkers, undefined, layout);
@@ -4863,7 +4863,7 @@ function mapPixels(f){
 // The paint under a bunker: the inner part of its footprint on the map, pixel
 // by pixel. Red or blue only when that colour is most of what is there and
 // clearly one or the other; the grass, the lines and the shadow say nothing.
-function mapPaint(pix, b, D = {w: 150, h: 120}){
+function mapPaint(pix, b, D = fieldDimsOf()){
   if(!pix || !pix.data) return null;
   const fx = pix.w / D.w, fy = pix.h / D.h;
   const x0 = Math.max(0, Math.floor((b.x - b.w * 0.3) * fx)), x1 = Math.min(pix.w - 1, Math.ceil((b.x + b.w * 0.3) * fx));
@@ -4906,7 +4906,7 @@ function storeMap(key, c, said){
   if(!fieldMapOk(src)){ flash("That picture is too big to keep — crop it to the field and try again."); return false; }
   MAP_PIX = {src, w: c.width, h: c.height, data: c.getContext("2d").getImageData(0, 0, c.width, c.height).data};
   FIELD_MAPS[key] = src; keepMaps();
-  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: (f.bunkers || []).map(b => paintFrom({map: src}, {...b}))} : f);
+  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: (f.bunkers || []).map(b => paintFrom({...f, map: src}, {...b}))} : f);
   registerFields();
   S.flash = said;
   save(S); render();
@@ -10163,7 +10163,7 @@ function statsOverlay(t, metric = "visits"){
     const s2 = bunkerSize(b, sx, sy);
     let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
     if(v && v[metric]){
-      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v[metric];
+      const x = Math.min(b.x*sx + s2.h + 3, fieldW()*sx - 3), y = Math.max(b.y*sy - s2.v - 3, 6), n = v[metric];
       o += `<g class="stat-n${statThin(v) ? " stat-n--thin" : ""}"${statThin(v) ? ` opacity=".5"` : ""}><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
          + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
     }
@@ -14534,9 +14534,9 @@ window.selectBunker = id => {
  */
 // The centre of a goal line, anchored on its back-centre bunker.
 function goalStart(layout, fromRight){
-  const W = fieldW(layout), mid = fieldH(layout) / 2;
+  const W = fieldW(layout), mid = fieldH(layout) / 2, backBand = W * 20 / fieldW(null);
   const mine = fromRight
-    ? layout.bunkers.filter(b => b.x > W - 20) : layout.bunkers.filter(b => b.x < 20);
+    ? layout.bunkers.filter(b => b.x > W - backBand) : layout.bunkers.filter(b => b.x < backBand);
   const back = mine.sort((a, b) => Math.abs(a.y - mid) - Math.abs(b.y - mid))[0];
   return fromRight ? [W - 3, back ? back.y : mid] : [3, back ? back.y : mid];
 }
@@ -17855,16 +17855,16 @@ function pit(side,T,label){
     </div>
     <div class="fld"><label>Threat${T.threat ? "" : ` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--dim)">· not scored — tap a star</span>`}</label><div class="stars">${stars(T.threat,side)}</div></div>
     <div class="fld"><label>Notes</label>
-      <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
+      <textarea aria-label="Notes about ${esc(T.name)}" onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
 
     ${side === "right" && T.named ? `<button class="btn btn--block" onclick="openPrep(${jsq(T.name)})">Before you play ${esc(T.name)} ›</button>` : ""}
     <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
         men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
-          <input class="rost__num" value="${esc(m.num)}" placeholder="#" inputmode="numeric"
+          <input class="rost__num" aria-label="Player ${i+1} jersey number" value="${esc(m.num)}" placeholder="#" inputmode="numeric"
             onchange="editScoutPlayer('${side}',${i},'num',this.value)"/>
-          <input value="${esc(m.name)}" placeholder="name, if you know it"
+          <input aria-label="Player ${i+1} name" value="${esc(m.name)}" placeholder="name, if you know it"
             onchange="editScoutPlayer('${side}',${i},'name',this.value)"/>
           <button class="btn btn--danger" onclick="delScoutPlayer('${side}',${i})">Remove</button>
           <div class="rost__ps rost__ps--pit">
@@ -17885,7 +17885,7 @@ function pit(side,T,label){
             <button class="btn btn--quiet" style="grid-column:1/-1" onclick="openArrival('${side}',${i})">How did they get there?</button>
           </div>
           ${m.suggested ? `<details class="film-suggestion"><summary>Suggested film note${m.confidence ? " · " + esc(m.confidence) : ""}</summary><p class="note">${esc(m.note)}</p></details>` : ""}
-          <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
+          <input style="grid-column:1/-1" aria-label="Player ${i+1} notes" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
         </div>`).join("")}</div>`
         :`<div class="empty">No one logged on ${esc(T.name)} yet. A jersey number is enough to start — the name can come later.</div>`}
@@ -17899,8 +17899,8 @@ function pit(side,T,label){
         : ""}
       ${evdPitSec(side, T)}
       <div class="rost__add">
-        <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
-        <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
+        <input id="sp-num-${side}" class="rost__num" aria-label="New player jersey number" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
+        <input id="sp-name-${side}" aria-label="New player name (optional)" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <div class="rost__ps">
           <label><span class="note">Wire</span>
             <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option${w === "Flex" ? " selected" : ""}>${w}</option>`).join("")}</select></label>
@@ -18737,7 +18737,7 @@ function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
   const standing=S.sightStand==="standing";
-  const res=sightLines(from,300/150,240/120,standing);
+  const res=sightLines(from,2,2,standing);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
   const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim, standing) : null;
   const over=standing ? [...new Set(curLayout().bunkers.filter(underEyes).map(b=>b.n))] : [];
@@ -19181,7 +19181,11 @@ async function fieldPicture(svg, caption){
   // The page's stylesheet does not travel with a picture: each shape takes
   // the colours it is drawn in now, as its own.
   from.forEach((el, i) => { const cs = getComputedStyle(el); to[i].setAttribute("style", FIELD_PIC_PROPS.map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
-  const vb = svg.viewBox.baseVal, W = 1200, H = Math.round(W * (vb && vb.width ? vb.height / vb.width : 0.8)), foot = 64;
+  const vb = svg.viewBox.baseVal, W = 1200, foot = 64, aspect = fieldW() / fieldH();
+  // Keep a 10v10 handout at the field's 4:3 shape, caption included. The SVG
+  // fits its whole viewBox inside it, so wire labels stay and nothing stretches.
+  const H = curLayout().size === "10v10" ? Math.round(W / aspect) - foot
+    : Math.round(W * (vb && vb.width ? vb.height / vb.width : 1 / aspect));
   copy.setAttribute("xmlns", "http://www.w3.org/2000/svg"); copy.setAttribute("width", W); copy.setAttribute("height", H);
   const img = new Image();
   await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error("The picture could not be drawn.")); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copy)); });
@@ -19395,7 +19399,7 @@ const HELP = {
       "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
-      "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list.",
+      "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
       "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
@@ -19532,7 +19536,7 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
-  ["Can I use my own field?", "Yes. More › Field builder: name it, choose its size — the standard 150 × 120 ft or 10v10's 200 × 150 ft — pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Can I use my own field?", "Yes. More › Field builder: name it, choose its size — the standard 150 × 120 ft or 10v10's 200 × 150 ft — pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
   ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
@@ -21711,11 +21715,18 @@ function whiteboardPage(){
     ? fieldSVG({static:true, noPaths:true})
     : `<svg class="field wb-blank" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"><rect width="${fieldW() * 2}" height="${fieldH() * 2}" fill="#0b0c0d"/></svg>`;
   const pens = [["#e5342f","Red"],["#3d8bff","Blue"],["#efedeb","White"]];
+  // On the larger field the ink must include the same wire margins as the
+  // picture underneath; otherwise a mark beside an edge drifts off its bunker.
+  const inkBox = wb.field && curLayout().size === "10v10" ? bg.match(/viewBox="([^"]+)"/)[1]
+    : `0 0 ${fieldW() * 2} ${fieldH() * 2}`;
+  const inkDims = inkBox.split(" ").map(Number);
+  const inkFit = wb.field && curLayout().size === "10v10"
+    ? ` style="left:${-inkDims[0]/inkDims[2]*100}%;top:${-inkDims[1]/inkDims[3]*100}%;width:${fieldW()*2/inkDims[2]*100}%;height:${fieldH()*2/inkDims[3]*100}%"` : "";
   return sec("Whiteboard",
    `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
-    <div class="wb-wrap">
+    <div class="wb-wrap" style="--field-aspect:${inkDims[2] / inkDims[3]}">
       <div class="wb-bg">${bg}</div>
-      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
+      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"${inkFit} aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
     </div>
     <div class="wb-tools">
       ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"

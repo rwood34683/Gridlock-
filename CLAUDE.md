@@ -1801,7 +1801,14 @@ the whiteboard and the builder's grid, snap, spots and map paint
 table exists). The wire bands and the plant rule are written for 150 × 120
 and read a 10v10 field in proportion (`stdY`; `plantRule` gets the bunkers
 scaled onto the standard field, ids kept), so the measured fields and
-`BREAK_PLANTS` are untouched. `test/field-builder-tab.cjs`.
+`BREAK_PLANTS` are untouched. Back-line bunker bands scale with the field;
+the goal itself stays three feet inside its end. Stat badges follow the
+field's right edge, and the whiteboard fits its own aspect on tablets.
+Loading or turning a guide map must retain the field size while sampling
+paint. A shared 10v10 PNG keeps a 4:3 frame, including its caption, and fits
+the entire drawing without stretching it. `test/field-builder-tab.cjs` and
+`test/field-10v10.cjs` cover real taps on both ends, all twenty device sizes,
+and the unchanged SVG of every measured layout and a standard built field.
 
 Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
 field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,
