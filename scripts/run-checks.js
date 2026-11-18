@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const SUITES = {
   "field-10v10": "test/field-10v10.cjs",
   "walk-explore": "test/walk-explore.cjs",
-  "field-builder-tab": "test/field-builder-tab.cjs",
+  "field-builder-tab": "test/field-builder-tab.cjs", "nav-path": "test/nav-path.cjs",
   "media-directory": "test/media-directory.cjs",
   "drill-zones": "test/drill-zones.cjs",
   "coach-print": "test/coach-print.cjs",

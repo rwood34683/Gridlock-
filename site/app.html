@@ -95,7 +95,18 @@ h1,h2,h3,p{margin:0}
 .home-match{border-left:4px solid var(--red)}
 .home-match--watch{border-left-color:var(--blue)}
 .home-match .btnrow{margin-top:var(--s3)}
-.ctx__home{flex:none;min-width:44px;min-height:44px;margin:-12px 4px -12px 0;color:var(--ink);font:inherit;letter-spacing:0;text-transform:none;text-align:center}
+/* The path: Home › Scout › Breakouts, like a file explorer's address bar. */
+.crumbs{display:flex;align-items:center;flex:1 1 100%;min-width:0;gap:2px}
+.crumbs ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none;gap:2px}
+.crumbs li{display:flex;align-items:center;min-width:0;flex:0 1 auto;gap:2px}
+.crumbs li:first-child{flex:none}
+.crumbs__go,.crumbs__back{min-height:44px;min-width:44px;padding:0 6px;border:0;background:none;color:var(--mute);
+  font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs__back{flex:none;color:var(--ink);font-size:16px;letter-spacing:0}
+.crumbs__here{min-width:0;padding:0 6px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs__sep{flex:none;color:var(--dim)}
+.crumbs__go.crumbs__here{min-width:44px;cursor:pointer}
+.ctx__home{text-transform:none;letter-spacing:0}
 .ctx__home[aria-current]{border-bottom:2px solid var(--accent-lit)}
 @container main (max-width:340px){.home-tool{padding:var(--s3)}.home-tool b{font-size:var(--t-md)}}
 .beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
@@ -165,12 +176,12 @@ h1,h2,h3,p{margin:0}
 
 /* live context: what field and what call, always on screen */
 .ctx{
-  display:flex;align-items:center;gap:var(--s2);width:100%;min-height:44px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:0 var(--s2);width:100%;min-height:44px;
   padding:var(--s2) 0 var(--s3);margin-top:var(--s2);
   color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
 }
 .ctx__line{
-  min-width:0;flex:1;display:flex;align-items:baseline;gap:.35em;white-space:nowrap;
+  min-width:0;flex:1 1 100%;display:flex;align-items:center;gap:.35em;white-space:nowrap;min-height:44px;
 }
 /* The event gives way first, down to a stub ("NXL…"), the call after it, the
    section never. One span for event and call ellipsized at its end, which is
@@ -194,7 +205,7 @@ h1,h2,h3,p{margin:0}
    list of the fields; the call opens Change the call. The event reads quieter
    than the call: it changes twice a season, the call every point. */
 button.ctx__ev,button.ctx__call{
-  display:inline-flex;align-items:center;gap:.3em;min-height:44px;margin:-12px 0;
+  display:inline-flex;align-items:center;gap:.3em;min-height:44px;margin:0;
   padding:0;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;
   text-transform:inherit;cursor:pointer;text-align:left;
 }
@@ -230,31 +241,34 @@ button.ctx__ev b{color:var(--mute)}
 .tabs button.on{color:var(--ink)}
 .tabs button.on i{background:var(--accent-lit)}
 
-/* Tablet. A row of five destinations along the bottom of a 1024 px screen is a
-   phone habit: the thumb is nowhere near it and the labels swim in a metre of
-   black. On a wide screen the same five stand in a rail down the left, the
-   header sits beside them, and the field gets the room. Below 900 the bottom
-   bar is right and stays. */
-/* The rail. "Tablet" means every iPad in either orientation — the smallest
-   is 744 px wide in portrait — and never a phone on its side, which is wider
-   than that and 390 px tall. So: wide enough, and tall enough. */
+/* Tablet and computer (owner, 18 Nov 2026): no left pane. The five main
+   screens run across the top under the logo row, and the path (Home › Scout ›
+   Breakouts) sits under them beside the event and the call. The header lays
+   its rows out in the app's column so the tab row stands between them; the
+   same nav is the bottom bar on a phone, where the thumb is. "Tablet" means
+   every iPad in either orientation — the smallest is 744 px wide in portrait —
+   and never a phone on its side, which is wider than that and 390 px tall. */
 @media (min-width:740px) and (min-height:600px){
-  .app{display:grid;grid-template-columns:216px minmax(0,1fr);
-       grid-template-rows:auto minmax(0,1fr);grid-template-areas:"rail hdr" "rail main"}
-  .hdr{grid-area:hdr}
-  .main{grid-area:main}
+  .hdr{display:contents}
+  .hdr__top{order:0;background:#000;
+    padding:calc(var(--s3) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s2) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
   .tabs{
-    grid-area:rail;flex-direction:column;justify-content:flex-start;gap:2px;
-    border-top:0;border-right:1px solid var(--line);
-    padding:var(--s4) var(--s2) calc(var(--s4) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s2) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
+    order:1;flex-direction:row;justify-content:flex-start;gap:var(--s1);
+    border-top:0;border-bottom:1px solid var(--line);
+    padding:0 calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) 0 calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
   }
   .tabs button{
-    flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:var(--s3);
-    min-height:52px;padding:0 var(--s3);border-radius:var(--r-md);
-    font-size:var(--t-sm);letter-spacing:.08em;
+    flex:0 0 auto;flex-direction:row;position:relative;
+    min-height:48px;padding:0 var(--s4);font-size:var(--t-sm);letter-spacing:.08em;
   }
-  .tabs button i{width:3px;height:20px;border-radius:2px}
-  .tabs button.on{background:var(--panel)}
+  .tabs button i{position:absolute;left:var(--s3);right:var(--s3);bottom:0;width:auto;height:3px;border-radius:2px}
+  .ctx{order:2;margin-top:0;background:#000;border-bottom:1px solid var(--line);
+    padding:var(--s1) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s1) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
+  .crumbs{flex:0 1 auto;max-width:60%}
+  .ctx__line{flex:1 1 200px;justify-content:flex-end}
+  .evpick{order:3;background:#000;
+    padding:var(--s2) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s3) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
+  .main{order:4}
 }
 
 /* ============================================================
@@ -16747,7 +16761,9 @@ function fitTallyField(svg, bar, main){
 // on the bunkers the coach was tapping (screenshotted 7 Nov 2026). There it
 // stands under the header instead, over the score line, which he has read.
 function placeFlash(){
-  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .hdr");
+  // The path line is the foot of the header on every screen size; on a tablet
+  // the header element itself lays its rows out in the app and has no box.
+  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .ctx") || document.querySelector("#root .hdr");
   if(!el || !hdr) return;
   el.style.top = Math.round(hdr.getBoundingClientRect().bottom + 8) + "px"; el.style.bottom = "auto";
 }
@@ -20531,7 +20547,7 @@ const HELP_Q = [
   ["I changed the event and the sheet locked.", "A sheet belongs to the field it was started on, so when the event on screen is not that field, nothing logs to it — an out tapped on Tampa would land under a Lone Star point. The notice at the top of Tally offers Back to that field, which puts you straight back on the sheet, or New match here, which starts a sheet on the field you are looking at. Opening a sheet from More › Matches brings its field with it."],
   ["How do I scout a game I'm not in?", "More › Schedule › Watch this game puts the home team in the left pit and the away team in the right and opens a sheet that counts against them and never against you. On Scout › Breakouts a switch says whose five you are charting, the break toggle names the two teams, and the score buttons name them too. Your own screens — Lineups, Movement, Assess, Log it — stand down on it, because none of your five is on that field."],
   ["A player opened the class link on his own phone.", "The link opens the sign-in sheet and nothing else — no account is needed to sign a clinic sheet, and nothing past it. The session itself lives on the phone that created it, so his own phone says there is no open session with that code: hand him yours, or have him sign in on the one you pass around."],
-  ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
+  ["Does it work on an iPad?", "Yes, either way up. The five tabs run across the top with the path under them (Home › Scout › Breakouts — tap any step to go back to it), the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
   ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
 ];
 
@@ -22479,7 +22495,18 @@ function shell(){
   // ate it on a phone: "… · SNAKE …" said nothing about where he was standing.
   // The section is its own span that never shrinks; the event and the call
   // are what give way.
-  const crumb = S.tab==="more" && S.more ? `<span class="ctx__sec"><span class="ctx__sep">·</span> <b>${esc(MORE_TITLES[S.more]||"")}</b></span>` : "";
+  /* Where you are, the way a file explorer says it (owner, 18 Nov 2026):
+     Home › Scout › Breakouts. Every step before the last is a button that
+     goes back to it, and ← goes up one. The last step is where he stands. */
+  const trail = crumbTrail(), up = trail.length > 1 ? trail[trail.length - 2] : null;
+  const crumbs = `<nav class="crumbs" aria-label="Where you are">${up
+      ? `<button class="crumbs__back" onclick="${up.go}" aria-label="Back to ${esc(up.label)}">←</button>` : ""}<ol>${
+      // Home stays a button even when it is where he stands, as it always was.
+      trail.map((c, i) => `<li>${i ? `<span class="crumbs__sep" aria-hidden="true">›</span>` : ""}${i === trail.length - 1 && c.home
+        ? `<button class="crumbs__go crumbs__here ctx__home" onclick="openCoachHome()" aria-current="page">${esc(c.label)}</button>`
+        : i === trail.length - 1
+        ? `<span class="crumbs__here${c.home ? " ctx__home" : ""}${c.sec ? " ctx__sec" : ""}" aria-current="page">${esc(c.label)}</span>`
+        : `<button class="crumbs__go${c.home ? " ctx__home" : ""}" onclick="${c.go}">${esc(c.label)}</button>`}</li>`).join("")}</ol></nav>`;
   /* The score rides in the header once a point has been won, so it is never a
    * tab away from wherever the coach is standing. It sits in the top row beside
    * the Staff chip and not on the context line underneath: that line carries the
@@ -22513,11 +22540,11 @@ function shell(){
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
-        <button class="ctx__home" onclick="openCoachHome()"${S.tab==="home" ? ' aria-current="page"' : ""}>Home</button><span class="ctx__line">${Object.keys(LAYOUTS).length>1
+        ${crumbs}<span class="ctx__line">${Object.keys(LAYOUTS).length>1
           ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="${curLayout().mine ? "Your field" : "Event"}: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${curLayout().mine ? "Your field · " : ""}${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`
-          : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
+          : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}</span>
       </div>`}
       ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
     </header>
@@ -22528,6 +22555,22 @@ function shell(){
     ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
+}
+// The path in the header, Home first. Each step carries the handler that
+// goes back to it; the last is where he stands and has none.
+function crumbTrail(){
+  const out = [{label: "Home", go: "openCoachHome()", home: true}];
+  if(S.tab === "home") return out;
+  const back = "more:null,evPick:false";
+  if(S.tab === "scout"){
+    out.push({label: "Scout", go: `set({tab:'scout',scoutTab:'matchup',${back}})`});
+    out.push({label: (SCOUT_TABS.find(([k]) => k === (S.scoutTab || "matchup")) || [, "Matchup"])[1]});
+  } else if(S.tab === "more"){
+    out.push({label: "More", go: `set({tab:'more',${back}})`});
+    if(S.more) out.push({label: MORE_TITLES[S.more] || "", sec: true});
+  } else out.push({label: ({playbook: "Playbook", tally: "Tally", sightlines: "Sightlines"})[S.tab] || ""});
+  if(out[out.length - 1].go) delete out[out.length - 1].go;
+  return out;
 }
 /* Landscape quick-log — the point loop with nothing else on screen, laid out
    wide so a coach can call a break and score it one-handed with the phone

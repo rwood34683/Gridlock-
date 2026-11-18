@@ -186,10 +186,20 @@ Guest · Staff/Coach · League Admin · Participant (form only)
 ## Tabs
 
 Phone: Playbook, Tally, Scout, Sightlines, More — a bar along the bottom.
-Tablet — any screen at least 740 px wide **and** 600 px tall, which is every iPad
-in either orientation and never a phone on its side: the same five in a rail
-down the left. On the same screens the field is fitted to the height there is
-and the Tally sheet stands beside it.
+Tablet and computer — any screen at least 740 px wide **and** 600 px tall, which
+is every iPad in either orientation and never a phone on its side: the same five
+in a row across the top, under the logo row, and no left pane (owner, 18 Nov
+2026). The header lays its rows out in the app column (`.hdr{display:contents}`
+on those screens) so one `nav.tabs` serves as both the bottom bar and the top
+row. On the same screens the field is fitted to the height there is and the
+Tally sheet stands beside it.
+Every screen size carries the path in the header (`crumbTrail()`, `nav.crumbs`,
+"Where you are"), like a file explorer's address bar: Home › Scout › Breakouts,
+Home › More › Field builder. Every step before the last is a 44 px button back
+to it (Scout goes to Matchup, More to the menu), ← goes up one, and the last
+step is where he stands (`aria-current`); Home stays a button even there. The
+event ▾ and call ▾ sit beside the path on a wide screen and under it on a
+phone. `test/nav-path.cjs`; the devices suite expects the top row.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 

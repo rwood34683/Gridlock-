@@ -5244,12 +5244,13 @@ const ROSTER = [
     window.set({ right: { name: "Dynasty" } });
     return folded && opened && rightOpen && matchupFull;
   }));
-  check("on a More section the header line keeps the section on screen; the event and call give way", await ev(() => {
+  check("on a More section the path names the section on screen; the event and call stay on their line", await ev(() => {
     window.set({ tab: "more", more: "lineups" });
-    const line = document.querySelector(".ctx__line"), sec = line.querySelector(".ctx__sec"), ev = line.querySelector(".ctx__ev");
-    const lr = line.getBoundingClientRect(), sr = sec.getBoundingClientRect();
-    const onScreen = sr.right <= lr.right + 1 && sr.width > 20;
-    const all = /Lineups/.test(sec.textContent) && ev.textContent.includes(curLayout().name) && line.querySelector(".ctx__call").textContent.includes(breakName());
+    // The section is the last step of the path (owner, 18 Nov 2026): Home › More › Lineups.
+    const line = document.querySelector(".ctx__line"), sec = document.querySelector(".crumbs .ctx__sec"), ev = line.querySelector(".ctx__ev");
+    const hr = document.querySelector(".ctx").getBoundingClientRect(), sr = sec.getBoundingClientRect();
+    const onScreen = sr.right <= hr.right + 1 && sr.width > 20;
+    const all = /Lineups/.test(sec.textContent) && /Home\s*›\s*More/i.test(document.querySelector(".crumbs").textContent) && ev.textContent.includes(curLayout().name) && line.querySelector(".ctx__call").textContent.includes(breakName());
     window.set({ tab: "playbook", more: null });
     return onScreen && all && !document.querySelector(".ctx__sec");
   }));
