@@ -135,6 +135,11 @@ function build({ url, anonKey, redirectTo, outDir, beta, associations = true } =
     fs.mkdirSync(path.join(outDir, ".well-known"), { recursive: true });
     for (const name of ["apple-app-site-association", "assetlinks.json"])
       if (fs.existsSync(path.join(known, name))) fs.copyFileSync(path.join(known, name), path.join(outDir, ".well-known", name));
+    // The Apple association has no .json suffix, so extension-based hosting
+    // otherwise labels it application/octet-stream. This is deployment
+    // metadata for static hosts, not a change to any association or account.
+    if (fs.existsSync(path.join(outDir, ".well-known", "apple-app-site-association")))
+      fs.writeFileSync(path.join(outDir, "_headers"), "/.well-known/apple-app-site-association\n  Content-Type: application/json\n");
   }
 
   // Wire them in, config first, before the app boots.
