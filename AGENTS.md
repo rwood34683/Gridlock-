@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Playbook jumps** are chosen per player and call under Direct the five; the route and shared card name them.
+  Ordinary routes stay unchanged; full-season copies carry jumps, and Reset path restores obstacle avoidance. See `test/playbook-jumps.cjs`.
+
 - **Storage repair** keeps every recovery copy and removes only JSON formatting from closed tabs after ownership checks.
   Nexus exports all recovery files; navigation-only save failures do not claim the season was lost. See `test/storage-room.cjs`.
 

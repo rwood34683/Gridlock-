@@ -2618,6 +2618,45 @@ function breakPaths(layoutKey, scriptKey){
 function pathKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
 function pathEdit(id){ return (S.pathEdits || {})[pathKey(id)] || null; }
 
+// Jumps are a coach's instruction, never inferred from a bunker's footprint.
+// Keep the chosen order with the player's other directions; compute the route
+// only when it changes, not on every animation frame.
+function jumpsOf(id){ const j = directOf(id).jumps; return Array.isArray(j) ? j : []; }
+function jumpName(id){ const b = curLayout().bunkers.find(b => b.id === shownBunker(id)); return b ? pickName(b) : "Bunker no longer on this field"; }
+function jumpRoute(p, ids, L = curLayout()){
+  if(!ids.length) return p;
+  const obstacles = routeObstacles(L.bunkers, undefined, L);
+  const parts = obstacles.flatMap(o => o.parts || [o]);
+  const inside = (q, o) => Math.abs(q[0]-o.x) <= o.hw && Math.abs(q[1]-o.y) <= o.hh;
+  const hits = (a,b,o) => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh);
+  const inField = q => q[0] > 1 && q[0] < fieldW(L)-1 && q[1] > 1 && q[1] < fieldH(L)-1;
+  const legs = [p.from], jumps = [];
+  // routeClear's walled-in fallback is deliberately straight. Do not accept
+  // that fallback as a new jump over a bunker the coach did not choose.
+  const walkTo = (to, target) => {
+    const from = legs[legs.length-1], via = routeClear(from,to,target,obstacles), qs = [from,...via,to];
+    const live = parts.filter(o => !inside(from,o) && !(o.ids.has(target) && inside(to,o)));
+    if(qs.slice(1).some((q,i) => live.some(o => hits(qs[i],q,o)))) return false;
+    legs.push(...via,to); return true;
+  };
+  for(const id of ids){
+    const b = L.bunkers.find(b => b.id === id), from = legs[legs.length-1];
+    if(!b || id === p.bunker || jumps.some(j => j.bunker === id)) return null;
+    const boxes = bunkerBoxes(b), dx = b.x-from[0], dy = b.y-from[1], len = Math.hypot(dx,dy);
+    if(!len || boxes.some(o => Math.abs(from[0]-o.x) <= o.w/2 && Math.abs(from[1]-o.y) <= o.h/2)) return null;
+    const ux = dx/len, uy = dy/len;
+    const hw = Math.max(...boxes.map(o => Math.abs(o.x-b.x)+o.w/2))+2.4;
+    const hh = Math.max(...boxes.map(o => Math.abs(o.y-b.y)+o.h/2))+2.4;
+    const reach = Math.min(ux ? hw/Math.abs(ux) : Infinity, uy ? hh/Math.abs(uy) : Infinity);
+    const takeoff = [b.x-ux*reach,b.y-uy*reach], landing = [b.x+ux*reach,b.y+uy*reach];
+    if(!inField(takeoff) || !inField(landing) || parts.some(o => !o.ids.has(id) && hits(takeoff,landing,o)) || !walkTo(takeoff,"")) return null;
+    legs.push(landing); jumps.push({bunker:id,from:takeoff,to:landing});
+  }
+  if(!walkTo(p.to,p.bunker)) return null;
+  const len = legs.slice(1).reduce((n,q,i) => n+Math.hypot(q[0]-legs[i][0],q[1]-legs[i][1]),0);
+  return {...p,via:legs.slice(1,-1),len,jumps,edited:true};
+}
+
 // Routing is expensive and the drawn curve is expensive; neither changes while
 // a break plays. Only the marker moves. So both are cached against the field,
 // the call and a counter bumped by any edit, and the animation loop does no
@@ -2635,6 +2674,7 @@ function editFingerprint(){
   const all = S.pathEdits || {};
   let out = "";
   for(const k in all) if(k.startsWith(pre)) out += k + JSON.stringify(all[k]);
+  for(let id=1;id<=5;id++) if(jumpsOf(id).length) out += "jump" + id + JSON.stringify(jumpsOf(id));
   return out;
 }
 // The routed paths for a call on this field, unedited. Cached by call, the
@@ -2656,9 +2696,20 @@ function currentPaths(){
   if(hit) return hit;
   const rk = S.layoutKey + "|" + S.script;
   const routed = _routeCache[rk] || (_routeCache[rk] = breakPaths(S.layoutKey, S.script));
-  return (_drawCache[k] = routed.map(p => {
-    const e = pathEdit(p.id), go = goOf(p.id);
-    const q = e ? {...p, via:e, edited:true} : p;
+  const runs = routed.map(p => {
+    const e = pathEdit(p.id), jumps = jumpsOf(p.id);
+    // A merged copy can carry both phones' choices. Keep the drawn path and
+    // flag the unapplied jump, rather than silently claiming both are drawn.
+    return e ? {...p,via:e,edited:true,...(jumps.length?{jumpIssue:true}:{})}
+      : jumpRoute(p,jumps) || {...p,jumpIssue:true};
+  });
+  // A longer jump route must not keep the timing of the old, shorter run.
+  if(runs.some(p => p.jumps?.length)){
+    const far = Math.max(...runs.map(p => p.len));
+    runs.forEach((p,i) => { runs[i] = {...p,lag:Number(Math.min(0.28,0.55*(1-p.len/far)).toFixed(3))}; });
+  }
+  return (_drawCache[k] = runs.map(q => {
+    const go = goOf(q.id);
     // When he leaves is the coach's word when he has said it: on the buzzer
     // waits for nobody, a delay goes after the slowest the app would ever hold.
     return go === "buzzer" ? {...q, lag: 0, go} : go === "delay" ? {...q, lag: GO_DELAY, go} : q;
@@ -2676,7 +2727,7 @@ const goWord = p => p.go === "delay" ? "delays" : (p.lag || 0) === 0 ? "goes on 
 // The same five curves are rebuilt sixty times a second otherwise.
 let _runCache = {};
 function drawnRun(p, legs, sx, sy){
-  const sm = S.smoothOn === false ? 0 : 1;
+  const sm = S.smoothOn === false || p.jumps?.length ? 0 : 1;
   // Keyed on the legs themselves. It was keyed on the path number and the
   // current call, and their break drawn on Scout carries the same numbers under
   // the same call, mirrored — so the mirrored curve was handed back for your
@@ -2685,7 +2736,8 @@ function drawnRun(p, legs, sx, sy){
   const k = `${sx}|${sy}|${sm}|${JSON.stringify(legs)}`;
   // A drag adds a curve a pointer move; start over well before that matters.
   if(!_runCache[k] && Object.keys(_runCache).length > 400) _runCache = {};
-  return _runCache[k] || (_runCache[k] = smoothD(legs, sx, sy));
+  return _runCache[k] || (_runCache[k] = p.jumps?.length
+    ? `M${legs.map(q => (q[0]*sx).toFixed(1)+" "+(q[1]*sy).toFixed(1)).join("L")}` : smoothD(legs, sx, sy));
 }
 /* Rounded corners, or the line as it is routed.
  *
@@ -7065,7 +7117,8 @@ function mirrorDirect(d){
 function displayPaths(){
   const ps = currentPaths();
   if(ourEnd() !== "right") return ps;
-  return ps.map(p => ({...p, from: mirrorFt(p.from), to: mirrorFt(p.to), via: (p.via || []).map(mirrorFt), mirrored: true}));
+  return ps.map(p => ({...p, from: mirrorFt(p.from), to: mirrorFt(p.to), via: (p.via || []).map(mirrorFt),
+    ...(p.jumps ? {jumps:p.jumps.map(j => ({...j,from:mirrorFt(j.from),to:mirrorFt(j.to)}))} : {}), mirrored: true}));
 }
 const ownFeet = q => ourEnd() === "right" ? mirrorFt(q) : q;
 function endsChip(both = false){
@@ -7388,7 +7441,9 @@ window.savePlay = () => {
   const before = (was.plants || {})[S.layoutKey];
   if(Array.isArray(before)){
     const pe = {...(S.pathEdits || {})};
-    b.plants.forEach((id, i) => { if(before[i] !== id) delete pe[`${S.layoutKey}|${k}|${i + 1}`]; });
+    b.plants.forEach((id, i) => { if(before[i] !== id){
+      const key = `${S.layoutKey}|${k}|${i + 1}`; delete pe[key]; clearPlayJumps(i+1,key);
+    } });
     S.pathEdits = pe; pathsChanged();
   }
   S.plays = [...rest, {k, name, read: (b.read || "").trim().slice(0, 140),
@@ -7406,7 +7461,11 @@ window.savePlay = () => {
       Object.keys(store || {}).forEach(key => { const bits = key.split("|"); if(bits.length !== 3 || bits[1] !== from) return;
         const [l, , id] = bits, i = (+id) - 1;
         if(onlySame && !(orig[l] && every[l] && orig[l][i] === every[l][i])) return;
-        out[`${l}|${k}|${id}`] = store[key]; });
+        const value = store[key];
+        out[`${l}|${k}|${id}`] = value;
+        if(!onlySame && value.jumps && !(orig[l] && every[l] && orig[l][i] === every[l][i])){
+          out[`${l}|${k}|${id}`] = {...value}; delete out[`${l}|${k}|${id}`].jumps;
+        } });
       return out; };
     S.direct = carry(S.direct, false); S.pathEdits = carry(S.pathEdits, true);
     if((S.jobCalls || {})[from]) S.jobCalls = {...S.jobCalls, [k]: {...S.jobCalls[from], ...((S.jobCalls || {})[k] || {})}};
@@ -8508,7 +8567,9 @@ function copyDataError(data){
     // A game is five scalars and nothing else: day, clock, two teams, bracket.
     games:list(v => row(v) && ["id","d","t","h","a"].every(k => str(v[k]) && v[k].length > 0)
       && Object.values(v).every(scalar)),
-    direct:map(row), pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
+    direct:map(v => record(v) && Object.entries(v).every(([k,x]) => k === "jumps"
+      ? Array.isArray(x) && x.length <= 200 && x.every(id=>str(id)&&id.length>0) && new Set(x).size === x.length : scalar(x))),
+    pathEdits:map(list(v => Array.isArray(v) && v.length === 2 && v.every(num))),
     classes:list(v => row(v) && str(v.code) && token(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
@@ -10106,19 +10167,21 @@ function fieldFeet(svg, ev){
   return [Math.max(1, Math.min(fw - 1, p.x / 2)), Math.max(1, Math.min(fh - 1, p.y / 2))];
 }
 function setVia(id, via){
+  clearPlayJumps(id);
   S.pathEdits = {...(S.pathEdits || {}), [pathKey(id)]: via};
   pathsChanged(); save(S);
 }
 window.resetPath = id => {
+  clearPlayJumps(id);
   const all = {...(S.pathEdits || {})};
   delete all[pathKey(id)];
   S.pathEdits = all; pathsChanged(); save(S); render();
 };
 window.resetAllPaths = () => {
   const all = {...(S.pathEdits || {})};
-  const edited = currentPaths().filter(p => all[pathKey(p.id)]).length;
+  const edited = currentPaths().filter(p => all[pathKey(p.id)] || jumpsOf(p.id).length).length;
   if(edited && !askFirst(`Put ${edited === 1 ? "the one path you drew" : `all ${edited} paths you drew`} back on the routed line?`)) return;
-  currentPaths().forEach(p => delete all[pathKey(p.id)]);
+  currentPaths().forEach(p => { delete all[pathKey(p.id)]; clearPlayJumps(p.id); });
   S.pathEdits = all; pathsChanged(); save(S); render();
 };
 
@@ -10899,6 +10962,25 @@ window.rollSquadCode = () => {
 // differently on Snake Stack than on Hold & Read, and on a different field.
 function directKey(id){ return `${S.layoutKey}|${S.script}|${id}`; }
 function directOf(id){ return (S.direct || {})[directKey(id)] || {}; }
+function clearPlayJumps(id, key = directKey(id)){
+  if(!S.direct?.[key]?.jumps) return;
+  const d = {...S.direct[key]}; delete d.jumps;
+  S.direct = {...S.direct,[key]:d};
+}
+window.addPlayJump = (id, bunker) => {
+  if(!bunker) return;
+  const p = routedFor(S.script).find(p => p.id === +id), ids = [...jumpsOf(id),ownShot(bunker)];
+  if(!p || !jumpRoute(p,ids)) return flash("That jump has no clear approach and landing. Choose another bunker or draw the path with Edit path.");
+  if(pathEdit(id) && !askFirst("Replace this player's drawn path with the jump route?")) return render();
+  const all = {...(S.pathEdits || {})}; delete all[pathKey(id)]; S.pathEdits = all;
+  S.direct = {...(S.direct || {}),[directKey(id)]:{...directOf(id),jumps:ids}};
+  stopPlaying(); S.t = 1; pathsChanged(); save(S); render();
+};
+window.removePlayJump = (id, at) => {
+  const ids = jumpsOf(id).filter((_,i) => i !== at);
+  S.direct = {...(S.direct || {}),[directKey(id)]:{...directOf(id),jumps:ids}};
+  stopPlaying(); pathsChanged(); save(S); render();
+};
 // A shot picked off the turned field, back in the frame shots are kept in. A
 // lane ("@90") and "no target" pass through.
 window.ownShot = v => v && v[0] !== "@" ? shownBunker(v) : v;
@@ -11651,6 +11733,12 @@ function fieldSVG(opts={}, runnersOnly){
     const xy=posAt(p,t), cx=xy[0]*sx, cy=xy[1]*sy;
     let out = `<path fill="none" d="${run}" stroke="#000000" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>`
             + `<path fill="none" d="${run}" stroke="${colour}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"${offset===0&&opts.edit?` data-leg="${p.id}"`:""}/>`;
+    if(p.jumps) out += p.jumps.map(j => {
+      const x=(j.from[0]+j.to[0])*sx/2, y=(j.from[1]+j.to[1])*sy/2;
+      return `<g class="play-jump" pointer-events="none"><title>Player ${p.id}: jump ${esc(jumpName(j.bunker))}</title>`
+        + `<path d="M${j.from[0]*sx},${j.from[1]*sy} L${j.to[0]*sx},${j.to[1]*sy}" fill="none" stroke="#fff" stroke-width="2.6" stroke-dasharray="3 2"/>`
+        + `<text x="${x}" y="${Math.max(9,y-7)}" text-anchor="middle" font-size="7" font-weight="800" fill="#fff" stroke="#0b0c0d" stroke-width="3" paint-order="stroke">${p.id} Jump</text></g>`;
+    }).join("");
     // In edit mode every corner is a handle: drag it, or tap it to take it out.
     if(offset===0 && opts.edit) out += (p.via||[]).map((v,vi)=>
       `<circle class="hnd" data-h="${p.id}" data-i="${vi}" cx="${(v[0]*sx).toFixed(1)}" cy="${(v[1]*sy).toFixed(1)}" r="5"/>`).join("");
@@ -15074,7 +15162,7 @@ function playbook(){
     <button class="btn btn--quiet" onclick="set({t:0,playing:false})">Rewind</button>
   </div>` : ""}
   ${picked && S.editPath?`<p class="note"><b>Drag along a run to draw it in.</b> Drag a corner to move it, tap one to
-    take it out, tap the line to add one. Drag a player to point him. <button class="btn btn--danger"
+    take it out, tap the line to add one. Drawing a path replaces that player's jumps. Drag a player to point him. <button class="btn btn--danger"
     onclick="resetAllPaths()">Reset every path</button></p>`:""}
 
   <div class="toggles">
@@ -15086,7 +15174,7 @@ function playbook(){
   ${nextCard}${!picked ? "" : sec("Direct the five", `${roster.length?"":`<div class="empty" style="margin-bottom:var(--s4)">
       These are the five jobs this break creates. Put names on them — <button class="btn"
       style="margin-top:10px" onclick="set({tab:'more',more:'team'})">Add your squad</button></div>`}
-    <p class="note" style="margin-top:0"><b>P</b> primary · <b>S</b> secondary — his role on this break. Face is where he looks, Shot and Lane 2 his lanes.</p>
+    <p class="note" style="margin-top:0"><b>P</b> primary · <b>S</b> secondary — his role on this break. Face is where he looks, Shot and Lane 2 his lanes. Jump picks a bunker to go over.</p>
     <div class="assigns">
       ${currentPaths().map((pth,i)=>{
         const who=fiveFor(S.point||1)[i], d=directOf(pth.id);
@@ -15118,8 +15206,20 @@ function playbook(){
             <button class="tgl ${d.shot2?"on":""}" onclick="openPad('shot2','${pth.id}')" aria-label="Lane 2 — secondary lane${shotLane(d.shot2)!==null?": "+seenSay(shotLane(d.shot2)):shot2B?": "+esc(callOf(shot2B)):""}"><i></i>${shotLane(d.shot2)!==null?"2 "+seenGlyph(shotLane(d.shot2)):shot2B?"2 · "+esc(callOf(shot2B)):"Lane 2"}</button>
             <button class="tgl ${myJob?"on":""}" onclick="openPad('job','${pth.id}')"><i></i>Job</button>
             <button class="tgl ${go?"on":""}" onclick="openPad('go','${pth.id}')" aria-label="When he goes: ${go==="buzzer"?"on the buzzer":go==="delay"?"delay":"the app times it"}"><i></i>${go==="buzzer"?"Buzzer":go==="delay"?"Delay":"Go"}</button>
-            ${pth.edited?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
+            <button class="tgl ${jumpsOf(pth.id).length?"on":""}" onclick="openPad('jump','${pth.id}')" aria-label="Jumps for player ${pth.id}" aria-expanded="${S.pad==='jump:'+pth.id}"><i></i>Jump${jumpsOf(pth.id).length?` · ${jumpsOf(pth.id).length}`:""}</button>
+            ${pth.edited||pth.jumpIssue?`<button class="btn btn--danger" onclick="resetPath('${pth.id}')">Reset path</button>`:""}
           </span>
+          ${pth.jumpIssue?`<p class="note" role="status">Jump route needs checking. Choose the jumps again or Reset path.</p>`:""}
+          ${S.pad==='jump:'+pth.id?`<div class="play-jump-pad" style="flex-basis:100%">
+            <p class="note">Pick the bunkers he jumps, in order. Other bunkers stay in his way. Check the height and landing on the field.</p>
+            <label class="note" for="jump-${pth.id}">Bunker to jump · player ${pth.id}</label>
+            <select id="jump-${pth.id}" onchange="addPlayJump('${pth.id}',this.value)">
+              <option value="">Choose a bunker…</option>
+              ${bl.filter(b=>b.id!==shownBunker(pth.bunker)&&!jumpsOf(pth.id).some(id=>shownBunker(id)===b.id)).map(b=>`<option value="${esc(b.id)}">${esc(pickName(b))}</option>`).join("")}
+            </select>
+            ${jumpsOf(pth.id).map((id,i)=>`<div class="btnrow"><span class="note grow">${i+1}. Jump ${esc(jumpName(id))}</span><button class="btn btn--quiet" onclick="removePlayJump('${pth.id}',${i})" aria-label="Remove jump ${i+1} for player ${pth.id}">Remove</button></div>`).join("")}
+            <button class="btn btn--quiet" onclick="set({pad:null});toMainTop()">Done with jumps</button>
+          </div>`:""}
           ${open?`<div class="pad">
             ${FACE_PAD.map(([g,deg,say])=>`<button class="${deg===null?(d.face==null?"on":""):(d.face===deg?"on":"")}" aria-label="Face ${deg===null?say:seenSay(deg)}"
               onclick="setDirect('${pth.id}','face',${deg===null?"null":deg})">${deg===null?g:seenGlyph(deg)}</button>`).join("")}
@@ -15225,6 +15325,7 @@ function cardLines(){
             clear, onHim, theirBasis: t5 ? t5.basis : "",
             bunker: cardName(plantB, mine),
             role: d.role === "S" ? "Secondary" : "Primary", go: goWord(p),
+            jump: p.jumpIssue ? "Jump route needs checking" : p.jumps?.length ? "Jump " + p.jumps.map(j=>jumpName(j.bunker)).join(" → ") : "",
             face: d.face != null ? LANE_NAME[d.face] : "with the run",
             shot: lane !== null ? LANE_NAME[lane] : shotB ? cardName(shotB, mine) : "the lane he is running",
             shot2: lane2 !== null ? LANE_NAME[lane2] : shot2B ? cardName(shot2B, mine) : ""};
@@ -15235,6 +15336,7 @@ window.shareCards = () => {
   const t = `Gridlock · ${breakName()} · ${curLayout().name}\n\n`
     + cardLines().map(c => `${c.n}. ${c.who ? manTag(c.who) : "(no name)"}\n`
         + `   ${c.bunker}${c.ownJob ? " · " + c.ownJob : ""} · ${c.wire}\n   ${c.role} · ${c.go} · faces ${c.face} · lanes ${c.shot}${c.shot2 ? `, then ${c.shot2}` : ""}`
+        + (c.jump ? `\n   ${c.jump}` : "")
         + (c.clear ? `\n   ${c.clear.length ? "clear on " + c.clear.join(", ") : "no clear lane on their five"}${c.onHim ? " · lane on " + c.onHim : ""}` : "")).join("\n\n");
   handOff("Gridlock cards", t);
 };
@@ -15367,6 +15469,7 @@ function cardsView(){
         <span class="assign__ctl" style="flex-basis:100%">
           <span class="tag">${esc(c.role)}</span>
           <span class="tag">${esc(c.go)}</span>
+          ${c.jump ? `<span class="tag">${esc(c.jump)}</span>` : ""}
           <span class="tag">faces ${esc(c.face)}</span>
           <span class="tag">lanes ${esc(c.shot)}</span>
           ${c.shot2 ? `<span class="tag">then ${esc(c.shot2)}</span>` : ""}
@@ -20300,6 +20403,7 @@ const HELP = {
   playbook: {t:"Playbook", w:"The call, drawn on the real field.",
     how:["Tap a break to pick it. The five paths redraw on the event layout.",
          "Play the break runs it, so you can watch who leaves first.",
+         "Jump on a player's row chooses the bunkers he goes over, in order. Other bunkers stay in his way. Check the height and landing on the field. Reset path puts him back on the normal route. Drawing a path replaces that player's jumps.",
          "Face and Shot set where each man looks and what he lanes. Lane 2 adds a secondary lane, drawn dashed beside the first.",
          "Names writes the bunker codes on the field. Off by default, because on a phone forty-five of them cover the break.",
          "The twelve are named your way, and + Yours under the field writes a play of your own. Team lists them all; name them once and every screen uses your word.",
@@ -20532,6 +20636,7 @@ const HELP = {
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Can a player jump a bunker in a play?", "Yes. In Playbook, open Jump on his row under Direct the five. Choose the bunkers in order. The route and his card show the jumps; other bunkers stay in his way. Check the height and landing on the field. Remove takes out one jump. Reset path returns to the normal route. Edit path lets you draw his route yourself and replaces his jumps."],
   ["Where do I keep photographers and media crews?", "Open More → Media. Add the contacts you know, then search by name, location or event and filter Photo, Video or Media crew. Gridlock does not book coverage or verify availability. Full backups and optional League sync include these contacts; squad and match shares do not."],
   ["Can I print the schedule or reports?", "Yes. Open Schedule, Reports or the daily bunker table and tap Print / Save PDF. Schedule prints your selected team's games in the selected division, or all games in that division if no team is chosen. Reports and the daily table keep your filters. Choose an available printer or Save as PDF in your browser. A wireless printer must be available to your device; printing does not change your season."],
   ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],

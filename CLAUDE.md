@@ -1751,6 +1751,22 @@ More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, 
     undo/correction, new matches and reloads. Coach's No point checks exercise
     the real control on every Scout view and preserve score/end assertions.
 
+96. **Deliberate Playbook jumps.** A coach can choose bunkers to jump, in order,
+    on each player's row under Direct the five. Keep the IDs in that player's
+    `direct.jumps`, scoped to layout and call. Full-season backups and optional
+    account sync carry them; existing squad-copy scope stays unchanged. Field
+    marks and the player's displayed/shared card name the jumps. Footprints do
+    not establish height or ability: never suggest a bunker is safe to jump.
+    Approach and landing must stay inside the field and avoid other bunkers;
+    ordinary routes and measured geometry stay byte-identical. Mirror the whole
+    jump when switching ends. Cache its geometry; never re-route per frame.
+    Reset path clears jumps and drawn edits. Drawing a new path replaces only
+    that player's jumps; replacing a drawn path with jumps asks first. Changing
+    his destination drops the old jump instruction. A missing bunker or blocked
+    route stays flagged until corrected, never silently crossing other bunkers.
+    `test/playbook-jumps.cjs` checks saves, copies, cards, ends, 10v10 geometry,
+    animation caching and phone/tablet layouts. No Tally observations are added.
+
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
 
 Field builder (owner, 16 Nov 2026): More › Field builder, after Walk under
