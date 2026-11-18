@@ -197,9 +197,19 @@ Every screen size carries the path in the header (`crumbTrail()`, `nav.crumbs`,
 "Where you are"), like a file explorer's address bar: Home › Scout › Breakouts,
 Home › More › Field builder. Every step before the last is a 44 px button back
 to it (Scout goes to Matchup, More to the menu), ← goes up one, and the last
-step is where he stands (`aria-current`); Home stays a button even there. The
-event ▾ and call ▾ sit beside the path on a wide screen and under it on a
-phone. `test/nav-path.cjs`; the devices suite expects the top row.
+step is where he stands (`aria-current`); Home stays a button even there.
+The header names no play (owner, 18 Nov 2026): the path and the field being
+looked at share one line on every screen — the path keeps its words and the
+event shortens to a stub — and the call is read and changed on Playbook and
+the point sheet (`openCallPick()` still opens it). The field's ▾ opens
+Season › Event › Layout for the event layouts and, below it as a group of its
+own, **Your fields** (`evpickMine()`, `#event-myfield`, `_evMine` page memory):
+choosing one moves nothing until Use this field, a field still building says
+how many bunkers it needs, and Field builder › is beside it. Built fields are
+never mixed into the event lists. The path's buttons reach into the line's
+padding (`margin:-12px 0`) so the header is no taller than before, or Tally
+and Scout's field fit loses its 170 px floor on a 375 × 667 phone.
+`test/nav-path.cjs`; the devices suite expects the top row.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
@@ -1771,7 +1781,8 @@ backups › Events carry measured event fields only, each with a link here,
 and the builder lives here alone. Codes' field picker lists event fields
 only, with the built field in use apart under Your field, and the header
 names a built field "Your field · <name>", never as an event (owner,
-18 Nov 2026). **Your fields** is a drop-down of every
+18 Nov 2026); its ▾ lists his fields as their own Your fields group under
+the event lists. **Your fields** is a drop-down of every
 field he built (`_fieldChoice`, page memory; the field in use, his only
 field or the one just finished is chosen), then Use this field / Edit /
 Keep building. Account & backups' status row says "Your field" when one is

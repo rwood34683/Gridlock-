@@ -96,11 +96,16 @@ h1,h2,h3,p{margin:0}
 .home-match--watch{border-left-color:var(--blue)}
 .home-match .btnrow{margin-top:var(--s3)}
 /* The path: Home › Scout › Breakouts, like a file explorer's address bar. */
-.crumbs{display:flex;align-items:center;flex:1 1 100%;min-width:0;gap:2px}
-.crumbs ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none;gap:2px}
+/* One line on every screen: the path keeps its words, and the event beside it
+   gives way to a stub with an ellipsis, so a phone's header is no taller. */
+.crumbs{display:flex;align-items:center;flex:0 1 auto;min-width:0;gap:2px}
+.crumbs ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none;gap:2px;overflow:hidden}
+.crumbs{overflow:hidden}
 .crumbs li{display:flex;align-items:center;min-width:0;flex:0 1 auto;gap:2px}
 .crumbs li:first-child{flex:none}
-.crumbs__go,.crumbs__back{min-height:44px;min-width:44px;padding:0 6px;border:0;background:none;color:var(--mute);
+/* 44 px targets on a short line: they reach into the line's padding, as the
+   event button always has, so the header is no taller than before. */
+.crumbs__go,.crumbs__back{min-height:44px;min-width:44px;margin:-12px 0;padding:0 6px;border:0;background:none;color:var(--mute);
   font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crumbs__back{flex:none;color:var(--ink);font-size:16px;letter-spacing:0}
 .crumbs__here{min-width:0;padding:0 6px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -176,12 +181,12 @@ h1,h2,h3,p{margin:0}
 
 /* live context: what field and what call, always on screen */
 .ctx{
-  display:flex;flex-wrap:wrap;align-items:center;gap:0 var(--s2);width:100%;min-height:44px;
+  display:flex;flex-wrap:nowrap;align-items:center;gap:0 var(--s2);width:100%;min-height:44px;
   padding:var(--s2) 0 var(--s3);margin-top:var(--s2);
   color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
 }
 .ctx__line{
-  min-width:0;flex:1 1 100%;display:flex;align-items:center;gap:.35em;white-space:nowrap;min-height:44px;
+  min-width:56px;flex:1 1 0;display:flex;align-items:center;justify-content:flex-end;gap:.35em;white-space:nowrap;
 }
 /* The event gives way first, down to a stub ("NXL…"), the call after it, the
    section never. One span for event and call ellipsized at its end, which is
@@ -205,7 +210,7 @@ h1,h2,h3,p{margin:0}
    list of the fields; the call opens Change the call. The event reads quieter
    than the call: it changes twice a season, the call every point. */
 button.ctx__ev,button.ctx__call{
-  display:inline-flex;align-items:center;gap:.3em;min-height:44px;margin:0;
+  display:inline-flex;align-items:center;gap:.3em;min-height:44px;margin:-12px 0;
   padding:0;border:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;
   text-transform:inherit;cursor:pointer;text-align:left;
 }
@@ -216,7 +221,8 @@ button.ctx__ev b{color:var(--mute)}
 .evpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);padding:0 0 var(--s3)}
 .evpick .fld{min-width:0;margin:0}
 .evpick select{width:100%;min-width:0;min-height:44px}
-.evpick__choice,.evpick__mine{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__choice,.evpick__mine,.evpick__minefld{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__minefld{flex-direction:column;align-items:stretch;border-top:1px solid var(--line);padding-top:var(--s3)}
 .evpick__choice span,.evpick__mine span{min-width:0;overflow-wrap:anywhere}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
 .evhead > div{min-width:0}
@@ -264,8 +270,6 @@ button.ctx__ev b{color:var(--mute)}
   .tabs button i{position:absolute;left:var(--s3);right:var(--s3);bottom:0;width:auto;height:3px;border-radius:2px}
   .ctx{order:2;margin-top:0;background:#000;border-bottom:1px solid var(--line);
     padding:var(--s1) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s1) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
-  .crumbs{flex:0 1 auto;max-width:60%}
-  .ctx__line{flex:1 1 200px;justify-content:flex-end}
   .evpick{order:3;background:#000;
     padding:var(--s2) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s3) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
   .main{order:4}
@@ -3077,6 +3081,26 @@ window.useEventLayout = () => {
   if(chosen && chosen.key) return window.pickEvent(chosen.key);
   flash(chosen && chosen.event ? "Choose a layout first." : "Choose an event, then its layout.");
 };
+// The fields he built, in the same drop-down as the event layouts but as a
+// group of their own (owner, 18 Nov 2026): never mixed into Season › Event ›
+// Layout. Choosing one moves nothing until Use this field, like Use layout.
+let _evMine = "";
+window.pickEvMine = key => { _evMine = fieldOf(key) ? key : ""; render(); };
+window.useEvMine = () => {
+  const f = _evMine && fieldOf(_evMine);
+  if(!f) return flash("Choose one of your fields first.");
+  if(!fieldReady(f)) return flash(`${f.name} needs ${FIELD_MIN - f.bunkers.length} more bunker${FIELD_MIN - f.bunkers.length === 1 ? "" : "s"} before it can be played on. Finish it in Field builder.`);
+  _evMine = ""; set({evPick:false}); pickEvent(f.key);
+};
+function evpickMine(){
+  const mine = S.fields || [];
+  const builder = `<button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Field builder ›</button>`;
+  if(!mine.length) return `<div class="evpick__mine"><span class="note grow">Fields you build in More › Field builder are listed here, apart from the event fields.</span>${builder}</div>`;
+  const pick = fieldOf(_evMine) ? _evMine : "";
+  return `<div class="fld evpick__minefld"><label for="event-myfield">Your fields</label><select id="event-myfield" onchange="pickEvMine(this.value)"><option value="">Choose one of your fields…</option>${
+      mine.map(f => `<option value="${esc(f.key)}"${f.key === pick ? " selected" : ""}>${esc(f.name)}${f.key === S.layoutKey ? " · in use" : ""}${fieldReady(f) ? "" : " (still building)"}</option>`).join("")}</select></div>
+    <div class="evpick__mine"><button onclick="useEvMine()">Use this field</button>${builder}</div>`;
+}
 function eventPicker(){
   const rows = layoutChoices(), chosen = eventChoice();
   if(!chosen) return "";
@@ -3088,7 +3112,7 @@ function eventPicker(){
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
-    <div class="evpick__mine"><span class="note grow">Fields you built are kept apart from the event fields.</span><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Your fields ›</button></div>
+    ${evpickMine()}
   </div>`;
 }
 const BREAKS = {
@@ -22540,13 +22564,14 @@ function shell(){
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
-        ${crumbs}<span class="ctx__line">${Object.keys(LAYOUTS).length>1
+        ${crumbs}<span class="ctx__line">${Object.keys(LAYOUTS).length>1 || (S.fields || []).length
           ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="${curLayout().mine ? "Your field" : "Event"}: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${curLayout().mine ? "Your field · " : ""}${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
-          : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
-          ? `<span class="ctx__call">NAME THE CALL</span>`
-          : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}</span>
+          : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}${/* The play is not in the header
+          (owner, 18 Nov 2026): the call is read and changed on Playbook and the
+          point sheet. The header names the field you are looking at, and its
+          ▾ lists the event layouts and, apart, the fields you built. */""}</span>
       </div>`}
-      ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
+      ${!asking && S.evPick && (Object.keys(LAYOUTS).length>1 || (S.fields || []).length) ? eventPicker() : ""}
     </header>
     <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${fieldPicBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>

@@ -59,6 +59,16 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.locator("button.ctx__ev").click();
    assert.equal(await p.locator("#event-name option",{hasText:"Home park"}).count(),0,"not an event in the header's picker");
    assert.equal(await p.locator("#event-layout option",{hasText:"Home park"}).count(),0);
+   // The header's ▾ lists the fields he built as their own group (owner,
+   // 18 Nov 2026): Use this field moves to it, and the header names no play.
+   assert.equal(await p.locator(".ctx__call").count(),0,"the header names the field, not the play");
+   assert.match(await p.locator("#event-myfield option",{hasText:"Home park"}).innerText(),/Home park · in use/);
+   await p.evaluate(()=>pickEvent("lso"));await p.locator("button.ctx__ev").click();
+   await p.locator("#event-myfield").selectOption(key);
+   assert.equal(await p.evaluate(()=>S.layoutKey),"lso","choosing moves nothing until Use");
+   await p.getByRole("button",{name:"Use this field",exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.layoutKey),key,"Use this field puts it on every tab");
+   assert.match(await p.locator(".ctx__ev").innerText(),/Your field · Home park/i);
   });
   await check("Undo takes back the last change and Clear all empties the field, Undo bringing it back",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));

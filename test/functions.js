@@ -2110,11 +2110,12 @@ const ROSTER = [
     const f = document.querySelector(".field-wrap").getBoundingClientRect();
     return Math.min(f.bottom, window.innerHeight) - f.top > f.height * 0.95;
   }));
-  check("first run asks for the call rather than calling one: the header and the card say Pick the call, and the field draws no five", await ev(() =>
-    !S.callPicked && /PICK THE CALL/i.test(document.querySelector("#root .ctx__call").textContent)
+  // The header carries the field only, never the play (owner, 18 Nov 2026).
+  check("first run asks for the call rather than calling one: the card says Pick the call, the header names no play, and the field draws no five", await ev(() =>
+    !S.callPicked && !document.querySelector("#root .ctx__call")
     && document.querySelector("#root .call__name").textContent === "Pick the call"
     && document.querySelectorAll("#root .field-wrap polyline").length === 0
-    && document.querySelector("#root .ctx__call").getBoundingClientRect().bottom < window.innerHeight));
+    && document.querySelector("#root .call__name").getBoundingClientRect().bottom < window.innerHeight));
   await ev(() => [...document.querySelectorAll("#root [data-callpick] + .seg button")][0].click());
   await page.waitForTimeout(120);
   check("playing the break is reachable without scrolling", await ev(() => {
@@ -5250,42 +5251,31 @@ const ROSTER = [
     const line = document.querySelector(".ctx__line"), sec = document.querySelector(".crumbs .ctx__sec"), ev = line.querySelector(".ctx__ev");
     const hr = document.querySelector(".ctx").getBoundingClientRect(), sr = sec.getBoundingClientRect();
     const onScreen = sr.right <= hr.right + 1 && sr.width > 20;
-    const all = /Lineups/.test(sec.textContent) && /Home\s*›\s*More/i.test(document.querySelector(".crumbs").textContent) && ev.textContent.includes(curLayout().name) && line.querySelector(".ctx__call").textContent.includes(breakName());
+    const all = /Lineups/.test(sec.textContent) && /Home\s*›\s*More/i.test(document.querySelector(".crumbs").textContent) && ev.textContent.includes(curLayout().name) && !line.querySelector(".ctx__call");
     window.set({ tab: "playbook", more: null });
     return onScreen && all && !document.querySelector(".ctx__sec");
   }));
-  check("the header line keeps the call on screen before the event: a 28-letter play reads, the event becomes a stub", await ev(() => {
-    // One span for event and call, ellipsized at its end, lost the whole call
-    // to a long play name on a phone — and the call is what is read between points.
+  check("a 28-letter play never reaches the header: the header names the field alone, whole on a wide line", await ev(() => {
+    // The header carries the event or field you are looking at and no play
+    // (owner, 18 Nov 2026); the call is read on Playbook and the point sheet.
     window.confirm = () => true;
     const was = S.script, had = customPlays().map(p => p.k);
     window.newPlay(); window.setPlayField("name", "Rocket Ship Double Stack Lft");
     curLayout().bunkers.slice(0, 5).forEach(b => window.playPick(b.id)); window.savePlay();
     const k = S.script;
-    // Squeeze the header to a 320 px phone's line whatever this window is.
-    const ctx = document.querySelector(".ctx"); ctx.style.width = "288px";
-    const call = document.querySelector(".ctx__call"), ev = document.querySelector(".ctx__ev");
-    const callW = call.getBoundingClientRect().width, evW = ev.getBoundingClientRect().width;
-    const evT = ev.querySelector(".ctx__t") || ev, cut = evT.scrollWidth > evT.clientWidth + 1;
+    const line = document.querySelector(".ctx__line"), ev = document.querySelector(".ctx__ev");
+    const noPlay = !/ROCKET/i.test(line.textContent) && !document.querySelector(".ctx__call");
+    const ctx = document.querySelector(".ctx"); ctx.style.width = "900px";
+    const evT = ev.querySelector(".ctx__t") || ev, whole = evT.scrollWidth <= evT.clientWidth + 1 && ev.textContent.includes(curLayout().name);
     ctx.style.width = "";
-    // The call takes more of the line than the event does, and the event never
-    // vanishes: a stub with an ellipsis still says what the button changes.
-    const leads = cut && callW > evW * 2 && evW >= 20 && /ROCKET/i.test(call.textContent) && callW >= 140;
-    // And on a wide screen the event never grows: the call sits right after it,
-    // not pushed to the far edge beside CHANGE.
-    ctx.style.width = "900px";
-    const gap = call.getBoundingClientRect().left - ev.getBoundingClientRect().right;
-    ctx.style.width = "";
-    // The dot between them is its own span now, outside both buttons.
-    const tight = gap >= 0 && gap < 24;
     S.plays = customPlays().filter(p => had.includes(p.k)); window.set({ script: was });
-    return leads && tight && S.script === was && !customPlay(k);
+    return noPlay && whole && S.script === was && !customPlay(k);
   }));
   check("a new phone has no call: the header asks for one, the field draws no five, Log it refuses and a charted row carries no call", await ev(() => {
     // It opened on Snake Stack, printed in white as if he had called it.
     const keep = {script: S.script, picked: S.callPicked, tally: S.tally, calls: S.calls};
     window.set({ tab: "playbook", pbView: null, pbPick: false, callPicked: false });
-    const hdr = /PICK THE CALL/i.test(document.querySelector("#root .ctx__call").textContent);
+    const hdr = !document.querySelector("#root .ctx__call");   // the header names no play
     const card = document.querySelector("#root .call__name").textContent === "Pick the call";
     const noFive = document.querySelectorAll("#root .field-wrap polyline").length === 0;
     const listOpen = !!document.querySelector("#root [data-callpick] + .seg button") && !document.querySelector("#root [data-callpick] + .seg button.on");
@@ -5297,7 +5287,7 @@ const ROSTER = [
     window.set({ tab: "playbook" });
     [...document.querySelectorAll("#root [data-callpick] + .seg button")].find(b => /Blitz/.test(b.textContent)).click();
     const picked = S.callPicked && S.script === "blitz" && document.querySelectorAll("#root .field-wrap polyline").length > 0
-      && /BLITZ/i.test(document.querySelector("#root .ctx__call").textContent);
+      && /Blitz/i.test(document.querySelector("#root .call__name").textContent);
     S.callPicked = keep.picked; S.calls = keep.calls; S.tally = keep.tally; window.set({ script: keep.script, callPicked: keep.picked, flash: "" });
     return hdr && card && noFive && listOpen && noPlay && refused && sheet && picked;
   }));
@@ -5387,9 +5377,9 @@ const ROSTER = [
     const moved = S.layoutKey === other && !S.evPick && !document.querySelector("#root .evpick");
     window.pickEvent(was);
     window.set({ tab: "scout" });
-    document.querySelector("#root button.ctx__call").click();
+    window.openCallPick();
     const callOpen = S.tab === "playbook" && S.pbPick && !!document.querySelector("#root [data-callpick] + .seg button.on");
-    const tall = document.querySelector("#root button.ctx__call").getBoundingClientRect().height >= 44;
+    const tall = !document.querySelector("#root .ctx__call");   // the call is changed on Playbook, not in the header
     window.set({ pbPick: false });
     return noCaret && stayed && listed && previewOnly && moved && callOpen && tall && S.layoutKey === was;
   }));
@@ -7614,7 +7604,7 @@ const ROSTER = [
     window.set({ tab: "playbook", script: "my:none" });
     const fixed = allPlays()[S.script] && S.script !== "my:none";
     const header = document.querySelector("#root .ctx__line") || document.querySelector("#root .ctx");
-    return !!fixed && header && !/my:none/.test(header.textContent) && new RegExp(breakName()).test(header.textContent);
+    return !!fixed && header && !/my:none/.test(header.textContent) && new RegExp(breakName()).test(document.querySelector("#root .call__name").textContent);
   }));
   check("the read line never offers to call a play he has turned off", await ev(() => {
     window.confirm = () => true;
@@ -9407,9 +9397,9 @@ const ROSTER = [
     return starred;
   }));
   check("and the app lands on it", await ev(() => callName(S.script) === "Rocket"));
-  check("the header and the card carry it", await ev(() => {
+  check("the card carries it", await ev(() => {
     const t = document.getElementById("root").innerText;
-    return /ROCKET/i.test(document.querySelector(".ctx__line").innerText)
+    return /Rocket/i.test(document.querySelector("#root .call__name").innerText)
       && /Overload the snake/.test(t);
   }));
   check("the router draws five real runs off his five bunkers", await ev(() =>
@@ -9943,8 +9933,8 @@ const ROSTER = [
                              ["Cards", { tab: "playbook", pbView: "cards" }],
                              ["Matches", { tab: "more", more: "matches", pbView: null }]])
     check(`${label} says the coach's word and not the app's`, await saysRocket(st));
-  check("and so does the line in the header", await ev(() =>
-    /ROCKET/i.test(document.querySelector(".ctx__line").innerText)));
+  check("and the header names the field, not the call", await ev(() =>
+    !/ROCKET/i.test(document.querySelector(".ctx__line").innerText) && !document.querySelector("#root .ctx__call")));
   // The record is the break, never the label, or a rename would rewrite history.
   check("a logged call keeps the break, not the word",
     await ev(() => (S.calls || [])[0].script === "snake"));
