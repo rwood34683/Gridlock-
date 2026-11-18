@@ -1758,7 +1758,10 @@ Before the game, is the one home of the fields he builds (`fieldsPage()`).
 Built fields are not event fields and are never listed with them: the
 header's Season › Event › Layout picker (`layoutChoices`) and Account &
 backups › Events carry measured event fields only, each with a link here,
-and the builder lives here alone. **Your fields** is a drop-down of every
+and the builder lives here alone. Codes' field picker lists event fields
+only, with the built field in use apart under Your field, and the header
+names a built field "Your field · <name>", never as an event (owner,
+18 Nov 2026). **Your fields** is a drop-down of every
 field he built (`_fieldChoice`, page memory; the field in use, his only
 field or the one just finished is chosen), then Use this field / Edit /
 Keep building. Account & backups' status row says "Your field" when one is

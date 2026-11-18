@@ -36,7 +36,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.mouse.click(at.x,at.y);
    assert.equal(await p.evaluate(k=>fieldOf(k).bunkers.length,key),2,"a real tap places a bunker and its twin across the fifty");
    // The other seven by data, so the test reads the row's own Use / Edit, not tap geometry.
-   await p.evaluate(k=>{S.fields=S.fields.map(f=>f.key===k?{...f,bunkers:[...f.bunkers,...Array.from({length:6},(_,i)=>({id:"t"+i,k:"md",x:30+i*6,y:12+i*14}))]}:f);registerFields();render();},key);
+   await p.evaluate(k=>{S.fields=S.fields.map(f=>f.key===k?{...f,bunkers:[...f.bunkers,...Array.from({length:6},(_,i)=>({id:"MD#t"+i,n:"MD",t:"dorito",w:6.69,h:6.11,x:30+i*6,y:12+i*14}))]}:f);registerFields();render();},key);
    await p.getByRole("button",{name:"Done",exact:true}).click();
    assert.equal(await p.evaluate(()=>S.more),"fields","Done stays on Field builder");
    await p.getByRole("button",{name:"Use this field",exact:true}).click();
@@ -50,6 +50,15 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.ok(await p.evaluate(k=>!layoutChoices().some(r=>r.key===k),key),"not in the header's event picker");
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    assert.equal(await p.locator("#my-field").inputValue(),key,"chosen from the Your fields drop-down");
+   // Never listed with the event layouts (owner, 18 Nov 2026): not in Codes'
+   // event fields, and the header calls it your field, not an event.
+   await p.evaluate(()=>set({tab:"more",more:"codes"}));
+   assert.deepEqual(await p.getByRole("group",{name:"Event field to read"}).locator("button").evaluateAll(bs=>bs.map(b=>b.textContent).filter(t=>/Home park/.test(t))),[],"Codes lists event fields only");
+   assert.match(await p.getByRole("group",{name:"Your field to read"}).innerText(),/Home park · here/,"the field in use sits apart under Your field");
+   assert.match(await p.locator(".ctx__ev").innerText(),/Your field · Home park/i);
+   await p.locator("button.ctx__ev").click();
+   assert.equal(await p.locator("#event-name option",{hasText:"Home park"}).count(),0,"not an event in the header's picker");
+   assert.equal(await p.locator("#event-layout option",{hasText:"Home park"}).count(),0);
   });
   await check("Undo takes back the last change and Clear all empties the field, Undo bringing it back",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));

@@ -21268,8 +21268,14 @@ function moreBody(k){
     // moving the app off the event he is at: the section is drawn with that
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
-    const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${esc(l.name)}${k === keep ? " · here" : ""}</button>`).join("")}</div></div>` : "";
+    // Event fields only (owner, 18 Nov 2026): a field he built is never listed
+    // with them. The one he is using sits apart, under Your field, so its key
+    // can still be read here.
+    const evs = Object.entries(LAYOUTS).filter(([, l]) => !l.mine), own = LAYOUTS[keep] && LAYOUTS[keep].mine ? LAYOUTS[keep] : null;
+    const codeBtn = (k, label) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${label}</button>`;
+    const pick = evs.length + (own ? 1 : 0) > 1 ? `<div class="fld"><label>Event field</label><div class="seg seg--wrap" role="group" aria-label="Event field to read">${
+      evs.map(([k, l]) => codeBtn(k, esc(l.name) + (k === keep ? " · here" : ""))).join("")}</div></div>${own ? `<div class="fld"><label>Your field</label><div class="seg seg--wrap" role="group" aria-label="Your field to read">${
+      codeBtn(keep, esc(own.name) + " · here")}</div></div>` : ""}` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -21556,7 +21562,7 @@ function shell(){
       </div>
       ${asking ? "" : `<div class="ctx">
         <button class="ctx__home" onclick="openCoachHome()"${S.tab==="home" ? ' aria-current="page"' : ""}>Home</button><span class="ctx__line">${Object.keys(LAYOUTS).length>1
-          ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
+          ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="${curLayout().mine ? "Your field" : "Event"}: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${curLayout().mine ? "Your field · " : ""}${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
           : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
           ? `<span class="ctx__call">NAME THE CALL</span>`
           : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
