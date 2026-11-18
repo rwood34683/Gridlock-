@@ -40,6 +40,9 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Storage repair** keeps every recovery copy and removes only JSON formatting from closed tabs after ownership checks.
+  Nexus exports all recovery files; navigation-only save failures do not claim the season was lost. See `test/storage-room.cjs`.
+
 - **Walk → Explore field** turns, tilts and zooms the current measured plan, with an optional one-turn tour and existing bunker notes.
   Camera state is temporary; no guessed heights, season writes or automatic motion on opening. See `test/walk-explore.cjs`.
 

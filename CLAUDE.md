@@ -3500,6 +3500,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and refuses if the ownership check fails or the copy changes while waiting.
   The browser releases the claim when the document closes. Keep the heartbeat
   guard for older builds and browsers without Web Locks; saves stay synchronous.
+  Storage repair never deletes a recovery copy to make a write fit. Nexus can
+  export this season and all raw recovery files together. Make room only
+  removes JSON formatting outside strings, keeping number tokens, unknown
+  fields and every copy's key. It claims each closed tab's Web Lock, checks
+  heartbeat/age and re-reads before replacing atomically; unavailable locks,
+  changed copies and unreadable/newer formats stay untouched. A navigation
+  save failure is separate from a season or map failure. Never tell a coach
+  to clear browsing data to fix a storage warning. `test/storage-room.cjs`
+  fills the real browser quota and verifies these guarantees after relaunch.
   `test/storage-safety.js` holds all of it with two real tabs, and plays the
   races in a fixed order by holding storage events and delaying heartbeat reads.
 - Read an email's capitals as a different account. Offline sign-in compares
