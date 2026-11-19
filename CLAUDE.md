@@ -1816,6 +1816,16 @@ holds it; every tap places that way until he turns again, and picking another
 kind starts it at its usual way. The twin of an angled beam leans the other
 way. Snapping and the lit spots read the box an angled beam really covers
 (`footExt`), for placing and for moving.
+**Turn after placing, saved as you go** (owner, 19 Nov 2026): Turn before
+placing stays on screen the whole time the builder is open, with or without a
+bunker picked. Above it, **↻ Turn the one just placed** (`S.fieldEdit.last`)
+turns the last bunker placed or moved where it stands, and with a bunker
+picked it reads **↻ Turn this bunker**; both go through `fieldTurn(id)`, twin
+mirrored, and Undo takes a turn back. Every change already saves on the tap,
+and the builder says so ("Saved as you go"); there is no Save button. Done puts
+it away and the field's card always shows **Edit** (EDITING while it is open);
+Your fields chooses the field open, chosen, in use or newest, so Edit is
+always one tap away.
 **Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
 (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
 `size: "10v10"` (standard is never written, so older fields read as before;

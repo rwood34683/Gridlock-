@@ -5677,7 +5677,7 @@ window.fieldDone = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
   if(f) _fieldChoice = f.key;
   S.fieldEdit = null; _fieldHist = {key: null, steps: []}; registerFields();
-  if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
+  if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Tap Edit to keep building any time.`;
   else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
   save(S); render();
 };
@@ -5726,7 +5726,7 @@ window.fieldTap = at => {
     if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
     // cleared after it left the bunker ringed with Turn and Take it off live.
-    S.fieldEdit = {...ed, sel: null};
+    S.fieldEdit = {...ed, sel: null, last: sel.id};
     if(tw0) noteGone(f.key, [tw0]);
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
@@ -5751,6 +5751,8 @@ window.fieldTap = at => {
     if(shape.a) b.a = shape.a;
     if(kind.k) b.k = kind.k;
     paintFrom(f, b);
+    // The one just placed can be turned without picking it first.
+    S.fieldEdit = {...S.fieldEdit, last: b.id};
     if(x === mid) return [...list, b];
     // The twin is its mirror: an angled beam leans the other way.
     const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id, ...(b.a ? {a: -b.a} : {})});
@@ -5805,13 +5807,20 @@ window.fieldTurnNext = () => {
   save(S); render();
 };
 function turnPreview(kind, n){
-  const b = {...placeShape(kind, n), x: 0, y: 0, n: kind.n}, e = footExt(b), r = Math.max(e.w, e.h) / 2 + 1.2;
+  return shapePreview({...placeShape(kind, n), n: kind.n});
+}
+function shapePreview(src){
+  const b = {t: src.t, w: src.w, h: src.h, n: src.n, ...(src.a ? {a: src.a} : {}), x: 0, y: 0}, e = footExt(b), r = Math.max(e.w, e.h) / 2 + 1.2;
   return `<svg class="turn-preview" viewBox="${-r} ${-r} ${r * 2} ${r * 2}" width="44" height="44" aria-hidden="true"><defs><linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient></defs>${bunkerShape(b, 1, 1)}</svg>`;
 }
-window.fieldTurn = () => {
-  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
+// Turn a bunker already on the field: the one picked, else the one just
+// placed (owner, 19 Nov 2026 — turn before and after it is in place).
+window.fieldTurn = id => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const want = typeof id === "string" && id ? id : ed.sel || ed.last;
+  if(!want || !f.bunkers.some(b => b.id === want)) return flash("Tap a bunker on the field to pick it, then turn it.");
   patchField(f.key, list => {
-    const me = list.find(b => b.id === ed.sel); if(!me) return list;
+    const me = list.find(b => b.id === want); if(!me) return list;
     turnBunker(me); paintFrom(f, me);
     const twin = me.tw ? list.find(b => b.id === me.tw) : null;
     if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; paintFrom(f, twin); }
@@ -6014,7 +6023,9 @@ let _fieldChoice = "";   // the built field picked in the drop-down; page memory
 window.chooseMyField = key => { _fieldChoice = key; render(); };
 function fieldsPage(){
   const mine = (S.fields || []);
-  const pick = fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length === 1 ? mine[0].key : "";
+  // The field open in the builder, else the one chosen, in use or newest, so
+  // Edit is always one tap away (owner, 19 Nov 2026).
+  const pick = S.fieldEdit && fieldOf(S.fieldEdit.key) ? S.fieldEdit.key : fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length ? mine[mine.length - 1].key : "";
   const f = pick && fieldOf(pick);
   return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
       regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
@@ -6026,7 +6037,7 @@ function fieldsPage(){
         <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
         <span class="assign__who">${f.size === "10v10" ? "10v10 · 200 × 150 ft" : "Standard · 150 × 120 ft"} · ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
         ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
-        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
+        ${S.fieldEdit && S.fieldEdit.key === f.key ? `<span class="tag">EDITING</span>` : `<button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Edit</button>`}
       </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
     ${fieldBuilder()}
     <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
@@ -6066,6 +6077,7 @@ function fieldBuilder(){
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
   mapPixels(f);
   return `<div id="fieldbuild" style="margin-top:var(--s4)">
+    <p class="note field-saved" role="status">✓ Saved as you go — every bunker you place, move or turn is kept on this phone. Done puts the builder away; Edit opens it again.</p>
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
     <div class="fld"><label for="field-size">Field size</label>
@@ -6091,9 +6103,11 @@ function fieldBuilder(){
     <p class="note" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
       : `Tap a lit spot to place a <b>${esc(kind.name)}</b>${turnSteps(kind) > 1 ? ` (${esc(turnWord(kind, ed.turn))})` : ""} — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
-    ${!me && turnSteps(kind) > 1 ? `<div class="btnrow turn-next">${turnPreview(kind, ed.turn)}<button class="btn btn--quiet" onclick="fieldTurnNext()" aria-label="Turn the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}">↻ Turn before placing</button></div>` : ""}
+    ${(() => { const it = me || (ed.last && f.bunkers.find(b => b.id === ed.last)), k2 = it && BUNKER_KINDS.find(k => k.n === it.n);
+      return it && (!k2 || turnSteps(k2) > 1) ? `<div class="btnrow turn-placed">${shapePreview(it)}<button class="btn btn--quiet" onclick="fieldTurn(${jsq(it.id)})" aria-label="Turn ${esc(it.id)}, ${me ? "the bunker picked" : "the one just placed"}, where it stands">↻ Turn ${me ? "this bunker" : "the one just placed"} · ${esc(it.id)}</button></div>` : ""; })()}
+    ${turnSteps(kind) > 1 ? `<div class="btnrow turn-next">${turnPreview(kind, ed.turn)}<button class="btn btn--quiet" onclick="fieldTurnNext()" aria-label="Turn the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}">↻ Turn before placing</button></div>` : ""}
     <div class="btnrow">
-      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
+      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">↻ Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
         <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
       <button class="btn btn--quiet" onclick="fieldUndo()">↶ Undo</button>
@@ -20435,7 +20449,7 @@ const HELP = {
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
-      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. Turn before placing sets the way the next bunker goes down; ↻ Turn the one just placed, or tap a bunker and ↻ Turn this bunker, turns one already on the field."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",

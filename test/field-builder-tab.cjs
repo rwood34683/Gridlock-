@@ -86,7 +86,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await btn("Clear all").click();assert.equal(await n(),0,"Clear all takes every bunker off");
    await btn("↶ Undo").click();assert.equal(await n(),4,"Undo brings them back");
    assert.ok(!(await p.evaluate(()=>JSON.stringify(localStorage)).then(t=>t.includes("_fieldHist"))),"history is never saved");
-   await btn("Done").click();await btn("Keep building").click();await btn("↶ Undo").click();
+   await btn("Done").click();await btn("Edit").click();await btn("↶ Undo").click();
    assert.match(await root(p),/Nothing to undo yet/,"Done drops the history");
   });
   await check("Clear all refuses on a field in use, so it stays playable",async p=>{
@@ -209,6 +209,32 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.locator(".turn-next").count(),0,"a round bunker has nothing to turn");
    const edge=await p.evaluate(()=>{const k=BUNKER_KINDS.find(x=>x.key==="sb"),s=placeShape(k,1),e=footExt(s);return e.w>k.h&&e.h>k.h;});
    assert.ok(edge,"an angled beam lights spots by the box it really covers");
+  });
+  await check("a bunker turns after it is placed too — the one just placed or one picked — and the field saves as it goes, Edit opening it again",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("After park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key);
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=2*x;pt.y=2*y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   assert.match(await root(p),/Saved as you go/,"the builder says it saves itself");
+   await p.getByRole("button",{name:/^Snake beam/}).click();
+   assert.equal(await p.locator(".turn-placed").count(),0,"nothing placed, nothing to turn after");
+   await tap(30,50);
+   const bs=()=>p.evaluate(k=>fieldOf(k).bunkers.map(b=>({id:b.id,a:b.a||0,w:b.w,h:b.h})),key);
+   const first=(await bs())[0];
+   await p.getByRole("button",{name:/the one just placed, where it stands/}).click();
+   let now=await bs();assert.deepEqual([now[0].a,now[1].a],[45,-45],"the one just placed turns in place, its twin mirrored");
+   assert.equal(await p.locator(".turn-next").count(),1,"Turn before placing stays on screen");
+   await tap(30,50);assert.equal(await p.evaluate(()=>S.fieldEdit.sel),first.id,"tapping it picks it");
+   assert.equal(await p.locator(".turn-next").count(),1,"and Turn before placing is still there with a bunker picked");
+   await p.getByRole("button",{name:/the bunker picked, where it stands/}).click();
+   now=await bs();assert.ok(now[0].h>now[0].w&&!now[0].a,"picked and turned again it stands upright");
+   await p.reload();
+   assert.equal(await p.evaluate(k=>fieldOf(k).bunkers.length,key),2,"no Save button needed: it survives a relaunch");
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   assert.equal(await p.locator("#fieldbuild-map").count(),0);
+   await p.getByRole("button",{name:"Edit",exact:true}).click();
+   assert.equal(await p.locator("#fieldbuild-map").count(),1,"Edit opens it again");assert.equal(await p.evaluate(()=>S.fieldEdit.key),key);
+   assert.match(await p.locator(".assign").filter({hasText:"After park"}).innerText(),/EDITING/);
   });
   for(const [w,h] of [[390,844],[768,1024],[1024,768]])await check(`Field builder fits with named 44px controls at ${w}x${h}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
