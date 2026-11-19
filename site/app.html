@@ -1056,6 +1056,8 @@ svg.field [data-pick]{cursor:crosshair}
 .fmt-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px;padding:var(--s2) 0;cursor:pointer;font-weight:700;color:var(--ink)}
 .set-left{display:inline-block;min-width:1.6em;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--fill);color:#fff;font-size:var(--t-sm);font-weight:700;line-height:1.6}
 .set-left--out{background:transparent;border:1px solid var(--mute);color:var(--mute)}
+.turn-next{align-items:center}
+.turn-preview{flex:none;border:1px solid var(--line);border-radius:var(--r-sm);background:#101111}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);margin-top:var(--s2)}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px}
 .set-row input{width:72px;min-height:44px;flex:0 0 auto}
@@ -5658,7 +5660,7 @@ window.newField = () => {
   save(S); render(); showFieldBuilder();
 };
 window.editField = key => { if(!fieldOf(key)) return; S.fieldEdit = {key, kind: "md", sel: null}; save(S); render(); showFieldBuilder(); };
-window.fieldKind = k => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, kind: k, sel: null}; save(S); render(); };
+window.fieldKind = k => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, kind: k, sel: null, turn: 0}; save(S); render(); };
 window.fieldDeselect = () => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, sel: null}; save(S); render(); };
 // The name box sits beside Done: it commits without a redraw, or the redraw
 // rebuilds Done under the thumb that is landing on it.
@@ -5708,7 +5710,8 @@ window.fieldTap = at => {
   const onFifty = x => Math.abs(x - mid) < 1.5;
   if(ed.sel){
     const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
-    let x = snapIn(at[0], sel.w / 2, D.w - sel.w / 2), y = snapIn(at[1], sel.h / 2, D.h - sel.h / 2);
+    const se = footExt(sel);
+    let x = snapIn(at[0], se.w / 2, D.w - se.w / 2), y = snapIn(at[1], se.h / 2, D.h - se.h / 2);
     if(onFifty(x)) x = mid;
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
@@ -5739,15 +5742,18 @@ window.fieldTap = at => {
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  let x = snapIn(at[0], kind.w / 2, D.w - kind.w / 2), y = snapIn(at[1], kind.h / 2, D.h - kind.h / 2);
+  const shape = placeShape(kind, ed.turn), ext = footExt(shape);
+  let x = snapIn(at[0], ext.w / 2, D.w - ext.w / 2), y = snapIn(at[1], ext.h / 2, D.h - ext.h / 2);
   if(onFifty(x)) x = mid;
   const over = fieldSetWarn(f, kind, x === mid ? 1 : 2);
   patchField(f.key, list => {
-    const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
+    const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: shape.t, w: shape.w, h: shape.h};
+    if(shape.a) b.a = shape.a;
     if(kind.k) b.k = kind.k;
     paintFrom(f, b);
     if(x === mid) return [...list, b];
-    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id});
+    // The twin is its mirror: an angled beam leans the other way.
+    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id, ...(b.a ? {a: -b.a} : {})});
     b.tw = t.id;
     return [...list, b, t];
   }, over);
@@ -5755,23 +5761,58 @@ window.fieldTap = at => {
 // Turn: a beam goes flat, angled, upright, angled the other way; a plus goes
 // on its corner and back; a dorito points the other way; anything else turns
 // a quarter. The twin turns as its mirror does.
+function turnBunker(b){
+  if(b.t === "beam"){
+    const flat = b.w >= b.h;
+    if(!b.a && flat) b.a = 45;
+    else if(b.a === 45){ delete b.a; [b.w, b.h] = [b.h, b.w]; }
+    else if(!b.a && !flat){ [b.w, b.h] = [b.h, b.w]; b.a = -45; }
+    else delete b.a;
+  } else if(b.t === "plus"){ if(b.a) delete b.a; else b.a = 45; }
+  else if(b.t === "dorito") b.t = "tridown";
+  else if(b.t === "tridown") b.t = "dorito";
+  else [b.w, b.h] = [b.h, b.w];
+  return b;
+}
+/* Turn before placing (owner, 19 Nov 2026): the bunker about to go down can be
+ * turned first, through the same positions Turn takes a placed one, and every
+ * tap after places it facing that way. `S.fieldEdit.turn` counts the turns;
+ * picking another kind starts it facing its usual way again. A round bunker
+ * looks the same every way, so it has no turn. */
+const turnSteps = kind => kind.t === "ball" ? 1 : kind.t === "beam" ? 4 : 2;
+function placeShape(kind, n){
+  const b = {t: kind.t, w: kind.w, h: kind.h};
+  for(let i = 0; i < (n || 0) % turnSteps(kind); i++) turnBunker(b);
+  return b;
+}
+// The box an angled beam covers, so it snaps and lights spots by its real reach.
+function footExt(b){
+  if(!b.a) return {w: b.w, h: b.h};
+  const r = b.a * Math.PI / 180, c = Math.abs(Math.cos(r)), s2 = Math.abs(Math.sin(r));
+  return {w: b.w * c + b.h * s2, h: b.w * s2 + b.h * c};
+}
+function turnWord(kind, n){
+  const i = (n || 0) % turnSteps(kind);
+  if(kind.t === "beam") return ["flat", "angled", "upright", "angled the other way"][i];
+  if(kind.t === "plus") return ["square", "on its corner"][i];
+  if(kind.t === "dorito") return ["point to the dorito side", "point to the snake side"][i];
+  return ["as drawn", "turned a quarter"][i];
+}
+window.fieldTurnNext = () => {
+  const ed = S.fieldEdit; if(!ed) return;
+  const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
+  S.fieldEdit = {...ed, sel: null, turn: ((ed.turn || 0) + 1) % turnSteps(kind)};
+  save(S); render();
+};
+function turnPreview(kind, n){
+  const b = {...placeShape(kind, n), x: 0, y: 0, n: kind.n}, e = footExt(b), r = Math.max(e.w, e.h) / 2 + 1.2;
+  return `<svg class="turn-preview" viewBox="${-r} ${-r} ${r * 2} ${r * 2}" width="44" height="44" aria-hidden="true"><defs><linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient></defs>${bunkerShape(b, 1, 1)}</svg>`;
+}
 window.fieldTurn = () => {
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
   patchField(f.key, list => {
     const me = list.find(b => b.id === ed.sel); if(!me) return list;
-    const turn = b => {
-      if(b.t === "beam"){
-        const flat = b.w >= b.h;
-        if(!b.a && flat) b.a = 45;
-        else if(b.a === 45){ delete b.a; [b.w, b.h] = [b.h, b.w]; }
-        else if(!b.a && !flat){ [b.w, b.h] = [b.h, b.w]; b.a = -45; }
-        else delete b.a;
-      } else if(b.t === "plus"){ if(b.a) delete b.a; else b.a = 45; }
-      else if(b.t === "dorito") b.t = "tridown";
-      else if(b.t === "tridown") b.t = "dorito";
-      else [b.w, b.h] = [b.h, b.w];
-    };
-    turn(me); paintFrom(f, me);
+    turnBunker(me); paintFrom(f, me);
     const twin = me.tw ? list.find(b => b.id === me.tw) : null;
     if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; paintFrom(f, twin); }
     return list;
@@ -5957,7 +5998,8 @@ function fieldBuildSVG(f){
     <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
     <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
     ${(() => { const kind = BUNKER_KINDS.find(k => k.key === (S.fieldEdit && S.fieldEdit.kind)) || BUNKER_KINDS[0];
-      const spots = me ? fieldSpots(f, me.w, me.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, kind.w, kind.h);
+      const fx = footExt(me || placeShape(kind, S.fieldEdit && S.fieldEdit.turn));
+      const spots = me ? fieldSpots(f, fx.w, fx.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, fx.w, fx.h);
       return `<g class="field-spots" pointer-events="none">${spots.map(([x, y]) => `<circle cx="${x * sx}" cy="${y * sy}" r="1.3" fill="#efedeb" opacity=".45"/>`).join("")}</g>`; })()}
     ${f.bunkers.map(b => bunkerShape(b, sx, sy)).join("")}
     ${codes}${ring(me, false)}${ring(twin, true)}
@@ -6048,7 +6090,8 @@ function fieldBuilder(){
     <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
     <p class="note" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
-      : `Tap a lit spot to place a <b>${esc(kind.name)}</b> — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+      : `Tap a lit spot to place a <b>${esc(kind.name)}</b>${turnSteps(kind) > 1 ? ` (${esc(turnWord(kind, ed.turn))})` : ""} — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+    ${!me && turnSteps(kind) > 1 ? `<div class="btnrow turn-next">${turnPreview(kind, ed.turn)}<button class="btn btn--quiet" onclick="fieldTurnNext()" aria-label="Turn the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}">↻ Turn before placing</button></div>` : ""}
     <div class="btnrow">
       ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
@@ -20388,7 +20431,7 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
     how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
-      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
+      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. To turn a bunker before it goes down, tap Turn before placing under the field — the small picture shows which way it will face, and every tap after places it that way, its twin mirrored. Tap a placed bunker and Turn to turn it after. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",

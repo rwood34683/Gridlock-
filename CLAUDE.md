@@ -1806,6 +1806,16 @@ field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
 (`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
 footprint may cross lines. Before a tap the builder lights every spot the
 picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
+**Turn before placing** (owner, 19 Nov 2026): under the field, ↻ Turn before
+placing steps the bunker about to go down through the same positions Turn
+takes a placed one (`turnBunker`, `turnSteps`: a beam four — flat, angled,
+upright, angled the other way — a plus and a dorito two, a round bunker none,
+so no button), with a small picture of the way it will face
+(`turnPreview`) and the word in the note (`turnWord`). `S.fieldEdit.turn`
+holds it; every tap places that way until he turns again, and picking another
+kind starts it at its usual way. The twin of an angled beam leans the other
+way. Snapping and the lit spots read the box an angled beam really covers
+(`footExt`), for placing and for moving.
 **Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
 (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
 `size: "10v10"` (standard is never written, so older fields read as before;

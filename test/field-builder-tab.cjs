@@ -189,6 +189,27 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.evaluate(()=>copyDataError({...JSON.parse(copyPayload("all")).data,fields:[{...S.fields[0],size:"huge"}]})),"fields","an unknown size is refused");
    await p.reload();assert.equal(await p.evaluate(k=>LAYOUTS[k]&&LAYOUTS[k].fw,key),200,"a relaunch keeps it 10v10");
   });
+  await check("a bunker is turned before it is placed: every tap after places it that way, its twin mirrored",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("Turn park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key);
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=2*x;pt.y=2*y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   await p.getByRole("button",{name:/^Snake beam/}).click();
+   const turn=()=>p.getByRole("button",{name:/Turn the Snake beam before you place it/});
+   assert.match(await turn().getAttribute("aria-label"),/go down flat/);
+   await turn().click();assert.match(await turn().getAttribute("aria-label"),/go down angled$/);
+   await tap(30,50);await tap(30,80);
+   await turn().click();await tap(40,20);
+   const b=await p.evaluate(k=>fieldOf(k).bunkers.map(b=>({x:b.x,y:b.y,w:b.w,h:b.h,a:b.a||0})),key);
+   assert.deepEqual(b.slice(0,4).map(x=>x.a),[45,-45,45,-45],"the turn holds for every tap, and each twin leans the other way");
+   assert.deepEqual([b[4].w,b[4].h,b[4].a],[1.49,9.68,0],"turned again it goes down upright");
+   await p.getByRole("button",{name:/^Dorito/}).click();
+   assert.match(await p.getByRole("button",{name:/Turn the Dorito/}).getAttribute("aria-label"),/point to the dorito side/,"a new kind starts facing its usual way");
+   await p.getByRole("button",{name:/^Cylinder/}).click();
+   assert.equal(await p.locator(".turn-next").count(),0,"a round bunker has nothing to turn");
+   const edge=await p.evaluate(()=>{const k=BUNKER_KINDS.find(x=>x.key==="sb"),s=placeShape(k,1),e=footExt(s);return e.w>k.h&&e.h>k.h;});
+   assert.ok(edge,"an angled beam lights spots by the box it really covers");
+  });
   for(const [w,h] of [[390,844],[768,1024],[1024,768]])await check(`Field builder fits with named 44px controls at ${w}x${h}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    await p.getByLabel("Name of the field").fill("Fit check");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
