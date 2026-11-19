@@ -127,6 +127,8 @@ async function makeField(p){
    await check(label+" Whiteboard aligns ink with the field and reaches the bottom-right corner",async()=>{
     await go(p,"more","wb");const a=await point(p,"#wb-map",185,135),b=await point(p,"#wb-map",199,149);
     await p.mouse.move(a.x,a.y);await p.mouse.down();await p.mouse.move(b.x,b.y,{steps:4});await p.mouse.up();
+    // The stroke is kept on the lift; under a loaded runner that can land a frame later.
+    await p.waitForFunction(()=>wbMarks().length>0,null,{timeout:3000}).catch(()=>{});
     const ink=await p.evaluate(()=>wbMarks().at(-1));assert(ink);assert(ink.pts.at(-1)[0]>198&&ink.pts.at(-1)[1]>148);
     const aligned=await p.evaluate(()=>{const a=document.querySelector(".wb-bg svg").getScreenCTM(),b=document.querySelector("#wb-map").getScreenCTM();return ["a","b","c","d","e","f"].every(k=>Math.abs(a[k]-b[k])<.01);});assert(aligned,"ink and field share the same screen transform");
     const box=await p.locator(".wb-wrap").boundingBox();assert(Math.abs((box.width-2)/(box.height-2)-428/336)<.02,"field plus wire margins");
