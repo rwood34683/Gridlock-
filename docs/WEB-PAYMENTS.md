@@ -6,6 +6,16 @@ external evidence below is complete.**
 
 ## Offer and website copy
 
+Owner clarification, 19 November 2026: paid access covers the **full Coach
+edition**, not a smaller edition or a free sideline tier. All current and
+future Coach screens use the same access gate, including new More tools and
+the games. Account recovery, payment, saved-data export and existing approved
+beta/admin exceptions remain available. Open overlays and tours close when
+access expires; saved seasons and codes are never deleted. The owner has
+questioned the price but has not supplied a replacement amount or duration.
+The earlier $19.97 day-pass price below remains a draft, not a newly approved
+launch price. Confirm the launch price and duration before publishing sales.
+
 - **$19.97 USD per account**, all Coach tools until the next midnight in
   **America/New_York** on the payment date. A purchase at 11:55 PM has five
   minutes left. This is not a 24-hour pass.

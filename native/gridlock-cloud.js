@@ -236,6 +236,18 @@
     return pending;
   }
   var api = {
+    // A tap starts this request; no contest lookup runs at sign-in or during play.
+    async huntRequest(input) {
+      readSession();
+      var g=generation, t=await token(), s=readSession();
+      if(g!==generation) return said("Your sign-in changed. Open the hunt again.");
+      if(!t || !s?.user?.id) return said("Sign in online to check the prize round.");
+      var r=await call("/functions/v1/gridlock-hunt",{method:"POST",body:JSON.stringify(input)},t);
+      var current=readSession();
+      if(g!==generation || !current || current.user.id!==s.user.id) return said("Your sign-in changed. Open the hunt again.");
+      if(!r.net || !r.ok || !r.body || typeof r.body!=="object") return said("No claim confirmed. The prize round is unavailable. Try again later.");
+      return r.body;
+    },
     async signUp(email, pass) {
       var g = beginAuth();
       var r = await call(authPath("/auth/v1/signup"), { method: "POST", body: JSON.stringify({ email: email, password: pass }) });

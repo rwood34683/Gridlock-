@@ -68,8 +68,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
-- Web day passes follow `docs/WEB-PAYMENTS.md`: $19.97 per account until
-  midnight America/New_York, no renewal. Only a verified server payment grants
+- The web payment draft follows `docs/WEB-PAYMENTS.md`: its earlier $19.97
+  day pass ends at midnight America/New_York, with no renewal. The owner must
+  reconfirm price and duration before launch. Only a verified server payment grants
   access; a return URL, imported copy or local billing value never does.
   Preserve existing beta/admin access and backup/export after expiration.
   Keep checkout disabled until the sandbox flow and live configuration checks
@@ -78,6 +79,42 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   Free Player accounts and team roles never grant Coach access. Expiration
   closes player-detail editing as well as the main tools. Background checks
   with unchanged access must not redraw an unfinished form.
+  The full Coach edition is paid: new More screens must inherit the same
+  gate. Expiration also closes the hunt and arcade and stops the Walk tour;
+  stale handlers cannot reopen them. Never delete seasons or codes to lock
+  access. Reconfirm launch pricing before publishing sales (owner, 19 Nov).
+
+- Pod hunt is an optional Home clue, separate from Pod Wars and coaching data.
+  Practice has no prize; the owner has not chosen one. Never grant account
+  access, alter seasons/codes, or declare a global winner from local progress,
+  a URL, or a code alone. The prepared prize round checks verified accounts,
+  ordered answers, rate limits and the first claim in one server transaction.
+  Keep its answer keys server-side, and the campaign closed until prize, rules
+  and separate launch testing are complete. No automatic requests on opening
+  Home or practice. Close on navigation/account changes and reject late replies.
+  `test/pod-hunt.cjs` and `test/pod-hunt-server.mjs` cover these boundaries.
+
+- Walk's Explore field is a camera over the same measured footprints, names
+  and notes as the ordinary field. It does not depict bunker heights or
+  player-eye visibility. Never infer height from footprint width/depth.
+  Keep the camera outside saved state and season copies. Opening Walk starts
+  still; Start tour runs one 45-second turn, with no full render or save per
+  frame. Stop on navigation, account/field/season changes, blur or hiding.
+  Respect reduced motion; keep manual, keyboard and 44px button controls.
+  Transform tap coordinates and sticky-note anchors with the same SVG matrix.
+  Dragging/scrolling never selects a bunker or records a player, and changing
+  the view or closing notes must preserve an unfinished note. See
+  `test/walk-explore.cjs`. Do not add external video, network requests or assets.
+
+- Media is a coach-maintained directory of photographers and media crews.
+  Keep contacts in full seasons and opt-in sync, never squad or match shares.
+  Start empty; do not invent listings, availability, ratings or bookings.
+  Portfolio/social links must be HTTPS without credentials, escaped, and
+  opened only by a tap. No embedded media, automatic requests or messages.
+  Edits belong to the current account and season; incoming sync waits for
+  an unfinished contact even after leaving and returning to Media. Removal asks first and
+  old merged copies cannot resurrect a contact removed on this device.
+  `test/media-directory.cjs` checks storage, restore, isolation and layouts.
 
 - Keep the field visible when Tally or Scout opens, including an empty sheet.
   Coach still requires an opponent before recording. Put Scout's long team
@@ -104,8 +141,9 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
   request. The Rules screen says a connection is needed and to save the PDF before
   the event. Never hand-edit the generated rulebook-links blocks.
   In the Player preview, Rules is in the More menu just above Nexus; in the
-  Team preview, which has no More menu, it is the tab just before Nexus
-  (owner, 12 Nov 2026). Never a loose header button.
+  Team preview, which has no More menu, it is the tab just before Team
+  admin, which is just before Nexus (owner, 12 and 15 Nov 2026). Never a
+  loose header button.
 
 - Do not display or bundle league logos or event badges, including NXL,
   MLPB, USXBL and WCPPL. Keep factual event names,
@@ -179,7 +217,7 @@ in either orientation and never a phone on its side: the same five in a rail
 down the left. On the same screens the field is fitted to the height there is
 and the Tally sheet stands beside it.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
-More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
+More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
 ## What is already coded here
 
@@ -637,7 +675,7 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     other paintball app lets a coach use the field he is on: PB Scout puts his
     players on a photo of it, Paintball Coach ships dozens of layouts, Paintball
     Stats picks a field. A coach at a regional event or his home park had
-    nothing to stand on. More › Nexus › Events › **Build a field**: name it,
+    nothing to stand on. More › Field builder (built fields are kept apart from the event fields): name it,
     pick a bunker type (`BUNKER_KINDS`, footprints from `layouts/bunkers.json`),
     tap where it sits; its twin appears across the fifty (`tw` on both), one on
     the fifty stays single. Tap a bunker to pick it, then Turn, move it or take
@@ -1500,6 +1538,27 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     coach app and the Player preview: `tapNext()` / `cpNext()`, the point moves
     on, no result is written, the score and the ends stay. On a phone's column
     it takes its own row under the two results.
+    **Team admin** (owner, 15 Nov 2026), Team preview only, the tab after
+    Rules and before Nexus (`tools/teaser_teamadmin.js`, between the
+    `teamadmin` markers). Eight roles, one a person: Owner, Site admin, Head
+    coach, Assistant coach / Scout, Treasurer, Logistics, Captain, Player (the
+    owner chose no Parent). `TA_CAN` is the one table of who can do what; the
+    on-screen table reads it. Nobody changes their own role; only the Owner or
+    a Site admin gives roles, and a Site admin never makes or touches a Site
+    admin or the Owner; exactly one Owner, who can hand it on. Money is a
+    record only (nothing charged or sent) and always takes two people: the
+    recorder can never approve it, only the Treasurer or the Owner can. The
+    Site admin has no money. The activity log has no edit or delete. **View
+    as** (page memory only) shows the tabs a role uses (`TA_TABS`) and the
+    Team admin buttons it can press; buttons inside the other tabs are not
+    locked yet, and the screen says roles live on this phone only. Backups
+    merge it by id (`taMerge`).
+    **Team dev build** (owner, 15 Nov 2026): `node tools/teaser_artifact.js
+    team-dev` writes `dist/teaser-artifact/gridlock-team-dev.html` from the
+    Team preview with every tab shown, every licensed feature open (`LICF`)
+    and a DEV BUILD ribbon, for working on the Team app with full admin. Each
+    change must find its text or the build stops. It is never the preview
+    players see; `teasers/team/index.html` keeps its tabs and locks.
     `test/teaser-browser.cjs` exercises both previews and compares every
     measured bunker and break plant with the coach source.
 
@@ -1719,6 +1778,74 @@ More: Whiteboard, Walk, Movement, Bunker stats · Lineups, Team, Assess, Codes, 
     the real control on every Scout view and preserve score/end assertions.
 
 ## Data (localStorage is the working store; `@capacitor/preferences` mirrors it)
+
+Field builder (owner, 16 Nov 2026): More › Field builder, after Walk under
+Before the game, is the one home of the fields he builds (`fieldsPage()`).
+Built fields are not event fields and are never listed with them: the
+header's Season › Event › Layout picker (`layoutChoices`) and Account &
+backups › Events carry measured event fields only, each with a link here,
+and the builder lives here alone. **Your fields** is a drop-down of every
+field he built (`_fieldChoice`, page memory; the field in use, his only
+field or the one just finished is chosen), then Use this field / Edit /
+Keep building. Account & backups' status row says "Your field" when one is
+in use. The house rules for a built field are unchanged. Free like every
+field screen.
+The builder has **↶ Undo** and **Clear all** (owner, 16 Nov 2026): every
+change to the bunkers keeps the list it replaced (`_fieldHist`, page memory
+only, 50 steps, dropped on Done), and Undo puts it back; an undone or cleared
+bunker's id goes in `gone`, so ids are still never reused. Clear all asks
+first and refuses on a field in use, which keeps its eight; Undo holds the
+same floor and asks when something logged names a bunker it takes off.
+**Your bunker set** (owner, 16 Nov 2026): each field carries `set`, how many
+of each kind the coach has, and every bunker button counts down as he places
+(a bunker and its twin take two). It starts from what a measured field uses —
+the three 2026 NXL maps use the same 58 (`setFromLayout`) — never a guessed
+league pack, and every number is his to change. Past the set it says how
+many over and never stops him placing. `fieldSetMax()` is a function because
+`load()` validates a season before a const there would exist.
+**Grid snap** (owner, 16 Nov 2026): the 2026 NXL rules print the standard
+field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
+(`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
+footprint may cross lines. Before a tap the builder lights every spot the
+picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
+**Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
+(X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
+`size: "10v10"` (standard is never written, so older fields read as before;
+the schema takes only `std` or `10v10`) and `registerFields()` gives its
+layout `fw` / `fh`. The size is chosen before the first bunker: a field with
+bunkers changes size only after Clear all, because every twin stands across
+the fifty and the fifty moves with it. Every screen reads the size through
+`fieldW(L)` / `fieldH(L)` / `fiftyX(L)` (default the current layout, 150 /
+120 when unset) — never a typed 150, 120 or 75: the drawn field and its
+viewBox, `fieldFeet`'s clamp (read off the drawn svg's `data-fw` / `data-fh`,
+because the builder can draw a 10v10 field while a standard one is in use),
+the router's edges (`routeObstacles(list, pad, L)` carries them), the goal
+lines, the halves, the twins (`mirrorFt`, `mirrorBunkerId`), the arrival
+routes, the Walk camera and drill quarters (`WALK_ZONES` are halves, 0 or 1),
+the whiteboard and the builder's grid, snap, spots and map paint
+(`fieldDimsOf(f)`, a function because `registerFields` runs before the size
+table exists). The wire bands and the plant rule are written for 150 × 120
+and read a 10v10 field in proportion (`stdY`; `plantRule` gets the bunkers
+scaled onto the standard field, ids kept), so the measured fields and
+`BREAK_PLANTS` are untouched. Back-line bunker bands scale with the field;
+the goal itself stays three feet inside its end. Stat badges follow the
+field's right edge, and the whiteboard fits its own aspect on tablets.
+Loading or turning a guide map must retain the field size while sampling
+paint. A shared 10v10 PNG keeps a 4:3 frame, including its caption, and fits
+the entire drawing without stretching it. `test/field-builder-tab.cjs` and
+`test/field-10v10.cjs` cover real taps on both ends, all twenty device sizes,
+and the unchanged SVG of every measured layout and a standard built field.
+
+Walk drill zones (owner, 15 Nov 2026): Show drill zones splits the current
+field at the fifty and between snake/dorito. Q1/Q2 are left/right dorito,
+Q3/Q4 left/right snake, anchored to the drawing rather than changing team
+ends. It is off initially and on a different layout, works on custom fields,
+and never moves or resizes a bunker. Showing or focusing a zone preserves
+unfinished notes and writes no match result or season data. Explicit Add note
+uses the existing layout-scoped Walk notes, so drill instructions travel in
+season copies and opted-in sync. No new practice score or duplicate tool.
+Keep the overlay out of Tally, Scout and other field views; its labels must
+not intercept bunker taps. `test/drill-zones.cjs` covers these boundaries.
 
 Saved codes (owner, 12 Nov 2026): Tally and every Scout view read `S.codes`
 directly in the folded Team codes reference. Saved whole-team bunker names
@@ -3399,6 +3526,15 @@ the count of them. Point numbers are per match and start at one. Lineups are key
   and refuses if the ownership check fails or the copy changes while waiting.
   The browser releases the claim when the document closes. Keep the heartbeat
   guard for older builds and browsers without Web Locks; saves stay synchronous.
+  Storage repair never deletes a recovery copy to make a write fit. Nexus can
+  export this season and all raw recovery files together. Make room only
+  removes JSON formatting outside strings, keeping number tokens, unknown
+  fields and every copy's key. It claims each closed tab's Web Lock, checks
+  heartbeat/age and re-reads before replacing atomically; unavailable locks,
+  changed copies and unreadable/newer formats stay untouched. A navigation
+  save failure is separate from a season or map failure. Never tell a coach
+  to clear browsing data to fix a storage warning. `test/storage-room.cjs`
+  fills the real browser quota and verifies these guarantees after relaunch.
   `test/storage-safety.js` holds all of it with two real tabs, and plays the
   races in a fixed order by holding storage events and delaying heartbeat reads.
 - Read an email's capitals as a different account. Offline sign-in compares

@@ -13,6 +13,7 @@ var HOME_SAYS={tally:'Chart the break: where each man went, then what happened, 
   walk:'Notes on each bunker, stuck to the field.',
   practice:'Your drills and practice results.',
   rules:'The three official 2026 rulebooks. Needs a connection.',
+  tadmin:'Who does what: roles, money with two-person approval, and the activity log.',
   nexus:'Backups and what is kept on this phone.',
   team:'Your team and its code.',myline:'Your line and your spot in it.',msg:'Team messages, kept on this phone.',
   lineup:'Who is on each point.',tsched:'Your games and when you play.',tprep:'Get the team ready for the next event.'};

@@ -163,13 +163,55 @@ try{
    s.user.user_metadata={role:'player',plan:'program'};
    localStorage.setItem('grindx.cloud.session',JSON.stringify(s));render();
   });
-  for(const [tab,more] of [['home',''],['playbook',''],['tally',''],['scout',''],['sightlines',''],
-    ['more','schedule'],['more','reports'],['more','codes'],['more','whiteboard'],['more','team']]){
+  const routes=[['home',''],['playbook',''],['tally',''],['scout',''],['sightlines',''],
+    ...await page.evaluate(()=>Object.keys(MORE_TITLES).filter(k=>k!=='nexus').map(k=>['more',k]))];
+  for(const [tab,more] of routes){
    await page.evaluate(([tab,more])=>set({tab,more,fmtAsk:false,syncAsk:false}),[tab,more]);
    assert.equal(await page.evaluate(()=>planOf()),'free',tab+'/'+more);
    assert.ok(await page.locator('[data-pass-locked]').isVisible(),tab+'/'+more);
    assert.equal(await page.locator('#root svg.field, #root .resultbar').count(),0);
   }
+  assert.deepEqual(errors,[]);
+ });
+ await check('expired access closes the Home hunt and refuses reopening without changing the season',async()=>{
+  response=await receipt();await fresh();await page.waitForFunction(()=>planOf()==='program');
+  await page.evaluate(()=>set({tab:'more',more:'home',fmtAsk:false,syncAsk:false}));
+  const before=await page.evaluate(()=>copyPayload('all'));
+  await page.getByRole('button',{name:'Someone left a pod behind…',exact:true}).click();
+  assert.ok(await page.locator('#pod-hunt').isVisible());
+  response=await receipt({plan:'free',source:'none',expires:null});
+  await page.evaluate(()=>window.refreshAccountAccess());
+  assert.equal(await page.locator('#pod-hunt').count(),0);
+  await page.evaluate(()=>openHunt());
+  assert.equal(await page.locator('#pod-hunt').count(),0);
+  assert.ok(await page.locator('[data-pass-locked]').isVisible());
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(copyPayload('all')).data),JSON.parse(before).data);
+  assert.deepEqual(errors,[]);
+ });
+ await check('expired access stops the Walk tour and refuses stale explorer actions',async()=>{
+  response=await receipt();await fresh({width:1024,height:768});await page.waitForFunction(()=>planOf()==='program');
+  await page.evaluate(()=>set({tab:'more',more:'walk',fmtAsk:false,syncAsk:false}));
+  await page.getByRole('button',{name:'Explore field',exact:true}).click();
+  await page.getByRole('button',{name:'Start tour',exact:true}).click();
+  assert.ok(await page.evaluate(()=>!!_walkView?.tour));
+  response=await receipt({plan:'free',source:'none',expires:null});
+  await page.evaluate(()=>window.refreshAccountAccess());
+  assert.equal(await page.evaluate(()=>!!_walkView?.tour),false);
+  await page.evaluate(()=>{walkCamera('toggle');walkCamera('tour');});
+  assert.equal(await page.evaluate(()=>_walkView),null);
+  assert.ok(await page.locator('[data-pass-locked]').isVisible());
+  assert.deepEqual(errors,[]);
+ });
+ await check('the Coach arcade closes on expiration and cannot open from a stale handler',async()=>{
+  response=await receipt();await fresh();await page.waitForFunction(()=>planOf()==='program');
+  await page.evaluate(()=>podWars.open());
+  assert.ok(await page.locator('#podwars').isVisible());
+  response=await receipt({plan:'free',source:'none',expires:null});
+  await page.evaluate(()=>window.refreshAccountAccess());
+  assert.equal(await page.locator('#podwars').count(),0);
+  await page.evaluate(()=>podWars.open());
+  assert.equal(await page.locator('#podwars').count(),0);
+  assert.ok(await page.locator('[data-pass-locked]').isVisible());
   assert.deepEqual(errors,[]);
  });
  await check('expiration closes an open player popup before another observation can be logged',async()=>{

@@ -23,6 +23,9 @@ const OUT = path.resolve(__dirname, "..", "dist", "cloud-test");
   check("the build refuses with no config", (() => { try { build({}); return false; } catch (e) { return /anon|Supabase/i.test(e.message); } })());
   check("the build refuses a service key", (() => { try { build({ url: CFG.url, anonKey: "service_role-abc", outDir: OUT + "-x" }); return false; } catch (e) { return /service key/i.test(e.message); } })());
   check("it emits the adapter and a config next to the app", fs.existsSync(path.join(OUT, "gridlock-cloud.js")) && fs.existsSync(path.join(OUT, "gridlock-config.js")) && fs.existsSync(path.join(OUT, "index.html")));
+  check("the extensionless Apple association is served as JSON without changing its bytes",
+    fs.readFileSync(path.join(OUT, "_headers"), "utf8") === "/.well-known/apple-app-site-association\n  Content-Type: application/json\n" &&
+    fs.readFileSync(path.join(OUT, ".well-known/apple-app-site-association")).equals(fs.readFileSync(path.resolve(__dirname, "../site/.well-known/apple-app-site-association"))));
 
   const builtSw = fs.readFileSync(path.join(OUT, "sw.js"), "utf8");
   check("the service worker keeps the adapter and its config for offline, under its own cache version",

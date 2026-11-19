@@ -205,8 +205,8 @@ button.ctx__ev b{color:var(--mute)}
 .evpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);padding:0 0 var(--s3)}
 .evpick .fld{min-width:0;margin:0}
 .evpick select{width:100%;min-width:0;min-height:44px}
-.evpick__choice{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
-.evpick__choice span{min-width:0;overflow-wrap:anywhere}
+.evpick__choice,.evpick__mine{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__choice span,.evpick__mine span{min-width:0;overflow-wrap:anywhere}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
 .evhead > div{min-width:0}
 .evhead b{display:block;color:var(--ink);font-size:var(--t-md);line-height:1.25}
@@ -441,6 +441,13 @@ svg.field [data-leg]{cursor:copy}
 .field-wrap{background:#0b0c0d;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
 /* Walk's sticky notes: paper on the field, beside the bunker they are about. */
 .walk-map{position:relative}
+.walk-explore-controls{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.walk-explore-controls[hidden]{display:none}
+.walk-explore-controls .btn{min-height:44px;min-width:44px}
+.walk-map--explore svg.field{height:auto;min-height:240px;max-height:520px;width:100%;touch-action:pan-y pinch-zoom;cursor:grab}
+.walk-map--explore svg.field:active{cursor:grabbing}
+.walk-map--explore svg.field:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.walk-camera-read{font-variant-numeric:tabular-nums;min-height:1.5em}
 /* The calendar on Schedule: a phone's calendar in the stadium colours. */
 .cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
 .cal-bar__l,.cal-bar__r{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -514,7 +521,7 @@ svg.field [data-leg]{cursor:copy}
 button:disabled{opacity:.45;cursor:default}
 @media(max-width:360px){.arrival-grid{grid-template-columns:minmax(0,1fr)}}
 svg.field{width:100%;height:auto;display:block}
-/* A phone turned sideways is short, and the field is 150 by 120 — at full width
+/* A phone turned sideways is short, and either field size at full width
    it comes out taller than the screen, so you see less of it than in portrait,
    which is the wrong way round. Fit it to the height instead and centre it. */
 @media (orientation:landscape) and (max-height:520px){
@@ -722,9 +729,9 @@ svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
   /* The whiteboard is a picture with an ink layer the exact size of the
      picture. Capping the picture alone letterboxed it inside a full-width
      box — 525 px of field in an 858 px wrap on an iPad on its side — so the
-     wrap itself is sized from the same cap (the board is 300 by 240) and the
+     wrap itself is sized from the same cap and this field's aspect, and the
      picture fills it. */
-  .wb-wrap{width:min(100%, calc(max(340px, 100vh - 400px) * 1.25));margin:0 auto}
+  .wb-wrap{width:min(100%, calc(max(340px, 100vh - 400px) * var(--field-aspect)));margin:0 auto}
   .wb-bg svg.field{max-height:none}
 }
 /* A tablet on its side is wide and not tall: the call card beside the field,
@@ -1029,6 +1036,11 @@ svg.field [data-pick]{cursor:crosshair}
 .kv__v{font-size:var(--t-sm);color:var(--ink);line-height:1.5}
 .fmt-disclosure{margin-top:var(--s2);border-top:1px solid var(--line)}
 .fmt-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px;padding:var(--s2) 0;cursor:pointer;font-weight:700;color:var(--ink)}
+.set-left{display:inline-block;min-width:1.6em;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--fill);color:#fff;font-size:var(--t-sm);font-weight:700;line-height:1.6}
+.set-left--out{background:transparent;border:1px solid var(--mute);color:var(--mute)}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);margin-top:var(--s2)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px}
+.set-row input{width:72px;min-height:44px;flex:0 0 auto}
 .fmt-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2);margin:var(--s2) 0}
 .fmt-values>div{padding:var(--s2);border:1px solid var(--line);border-radius:var(--r-sm)}
 .fmt-values dt{font-size:var(--t-xs);color:var(--mute)}
@@ -1223,6 +1235,10 @@ svg.field [data-pick]{cursor:crosshair}
 </style>
 <style>
 #coach-print{display:none}
+.media-directory{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--s3)}
+.media-contact{min-width:0;border:1px solid var(--line);border-radius:12px;padding:var(--s3);overflow-wrap:anywhere}
+.media-contact[hidden]{display:none}.media-contact h3{font-size:18px}.media-contact p{margin:var(--s2) 0;white-space:pre-wrap}
+#media-form{max-width:680px}#media-form .btnrow{margin-bottom:var(--s3)}
 @media print{
   body.coach-printing{display:block!important;height:auto!important;overflow:visible!important;background:white!important}
   body.coach-printing> :not(#coach-print){display:none!important}
@@ -2370,8 +2386,20 @@ const BUNKER_CODE = [
 ];
 function codeCount(code){ return curLayout().bunkers.filter(b => b.n === code).length; }
 
+/* A field's size in feet (owner, 17 Nov 2026). Every measured field and the
+ * standard built field are 150 x 120; a 10v10 field he builds is 200 x 150
+ * (`fw` / `fh` on its layout). Every screen reads the size through these two
+ * doors, never a typed 150 or 120, and the fifty is half the width. The wire
+ * bands and the plant rule read a 10v10 field in proportion (`stdY`), so a
+ * bunker a third of the way up the field is on the same wire on either size. */
+function fieldW(L){ L = L === undefined && typeof curLayout === "function" ? curLayout() : L; return (L && L.fw) || 150; }
+function fieldH(L){ L = L === undefined && typeof curLayout === "function" ? curLayout() : L; return (L && L.fh) || 120; }
+function fiftyX(L){ return fieldW(L) / 2; }
+function stdY(y, L){ return y * 120 / fieldH(L); }
+
 // Which wire a bunker sits on, for the job label a coach reads off.
-function wireOf(y){
+function wireOf(y, L){
+  y = stdY(y, L);
   return y > 88 ? "snake wire" : y > 66 ? "snake side"
        : y > 44 ? "centre"     : y > 24 ? "dorito side" : "dorito wire";
 }
@@ -2382,7 +2410,7 @@ function wireOf(y){
 // routing they are merged back into a single obstacle — otherwise stepping
 // around one section just lands you in the next. Any bunkers of the same code
 // whose footprints touch are merged the same way.
-function routeObstacles(list, pad){
+function routeObstacles(list, pad, L){
   pad = pad === undefined ? 0.9 : pad;   // players run within a foot of a bunker
   let boxes = list.flatMap(b => bunkerBoxes(b).map(k => ({ids:[b.id], n:b.n,
     x0:k.x-k.w/2-pad, x1:k.x+k.w/2+pad,
@@ -2410,7 +2438,11 @@ function routeObstacles(list, pad){
   const box = o => ({ids:new Set(o.ids), n:o.n, x:(o.x0+o.x1)/2, y:(o.y0+o.y1)/2, hw:(o.x1-o.x0)/2, hh:(o.y1-o.y0)/2});
   // Each merged box keeps the bunkers it was made of: a run to one of them
   // still has to go round the others (see routeClear).
-  return boxes.map(o => ({...box(o), parts: o.parts ? o.parts.map(box) : null}));
+  const out = boxes.map(o => ({...box(o), parts: o.parts ? o.parts.map(box) : null}));
+  // The field's edges travel with its obstacles, so the router keeps a run
+  // inside a 10v10 field as it does a standard one.
+  out.fw = fieldW(L); out.fh = fieldH(L);
+  return out;
 }
 
 // Route around whatever is in the way, the way a player does: run to a corner,
@@ -2454,7 +2486,8 @@ function routeClear(from, to, targetId, obstacles){
     }
     return true;
   };
-  const inField = c => c[0] > 1 && c[0] < 149 && c[1] > 1 && c[1] < 119;
+  const FW = obstacles.fw || fieldW(null), FH = obstacles.fh || fieldH(null);
+  const inField = c => c[0] > 1 && c[0] < FW - 1 && c[1] > 1 && c[1] < FH - 1;
 
   if(clear(from, to)) return [];
 
@@ -2545,10 +2578,10 @@ function breakPaths(layoutKey, scriptKey){
   // that is where an Xball point starts, not spread across the whole width.
   // The home back-centre bunker anchors it.
   const back = layout.bunkers
-    .filter(b => b.x < 20)
-    .sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  const cy = back ? back.y : 60;
-  const obstacles = routeObstacles(layout.bunkers);
+    .filter(b => b.x < fieldW(layout) * 20 / fieldW(null))
+    .sort((a, b) => Math.abs(a.y - fieldH(layout) / 2) - Math.abs(b.y - fieldH(layout) / 2))[0];
+  const cy = back ? back.y : fieldH(layout) / 2;
+  const obstacles = routeObstacles(layout.bunkers, undefined, layout);
   const order = targets.map((_, i) => i).sort((p, q) => targets[p].y - targets[q].y);
   const slot = {};
   order.forEach((idx, k) => { slot[idx] = cy - 8 + k * 4; });   // a 16 ft station
@@ -2566,7 +2599,7 @@ function breakPaths(layoutKey, scriptKey){
     for(let k = 0; k < pts.length - 1; k++)
       len += Math.hypot(pts[k+1][0] - pts[k][0], pts[k+1][1] - pts[k][1]);
     return {id: i + 1, from, to, via, len,
-            label: `${b.n} · ${wireOf(b.y)}`, bunker: b.id};
+            label: `${b.n} · ${wireOf(b.y, layout)}`, bunker: b.id};
   });
   // The longest run leaves on the buzzer and waits for nobody. Everyone else
   // holds in proportion to how much less ground he has to cover, so the five
@@ -2995,8 +3028,10 @@ const LAYOUTS = {
 };
 // Browsing an old season does not move the current sheet. Only Use layout does.
 let _eventChoice = null;
+// Event fields only (owner, 16 Nov 2026): a field he built is not an event
+// field, so it is chosen under More › Field builder, never in this picker.
 function layoutChoices(){
-  return Object.entries(LAYOUTS).map(([key, l]) => {
+  return Object.entries(LAYOUTS).filter(([, l]) => !l.mine).map(([key, l]) => {
     const year = String(l.season || (l.days || [])[0] || "").slice(0, 4);
     return {key, season:/^\d{4}$/.test(year) ? year : l.mine ? "Your fields" : "Season not recorded",
       event:l.event || (l.mine ? "Your fields" : l.name), name:l.layoutName || (l.mine ? l.name : "Saved field layout")};
@@ -3039,6 +3074,7 @@ function eventPicker(){
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
+    <div class="evpick__mine"><span class="note grow">Fields you built are kept apart from the event fields.</span><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Your fields ›</button></div>
   </div>`;
 }
 const BREAKS = {
@@ -4508,6 +4544,7 @@ const defaultState = () => ({
   blasts:[],
   roster:[],                      // yours, from Team — not two invented players
   messages:[],
+  mediaContacts:[],              // the coach's own photographers and media crews
   tally:[],
   breakouts:[],                   // one row a man a point: the bunker he broke to, and what you saw
   tallySel:null, tallyDraft:null, tallyStep:"record", tallyMode:"record", tallyEdit:null, tallyPlace:"", tallyLast:"", tallyRead:"", tallyValue:"us",
@@ -4584,7 +4621,7 @@ const COPY_VERSION = 1;
 
 // What is worth keeping. Everything else — which tab you were on, whether a
 // path is mid-animation, a half-typed join code — is this session's business.
-const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes",
+const KEEP_ALL = ["roster","scout","teams","division","left","right","tally","breakouts","calls","moves","assessments","walk","codes","mediaContacts",
                   "arrivalSightings","arrivalShots","voiceEvents","playerChecks","lineups","matches","matchId","results","pens","timeouts","bunkerCalls","playerCalls","breakCalls","jobCalls","plays","offPlays","games","gamesOff","teamCode","direct","pathEdits","classes","responses","groups",
                   "blasts","blastTo","messages","point","layoutKey","script","callPicked","matchState","playGone","fields","renamedMen","renamedTeams","fmt","fmts","calEvents","calKinds","myTeam","scheduleDivision","fmtDone"];
 
@@ -4731,7 +4768,7 @@ function markStale(){
 // This tab's own copy, with this tab's maps. Said safe only once read back.
 function keepTabCopy(){
   let text = "";
-  try{ text = copyPayload("all"); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
+  try{ text = copyPayload("all", 0); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
   const key = TAB_COPY + TAB_ID;
   try{
     localStorage.setItem(key, text);
@@ -4795,7 +4832,7 @@ function keepSnapshot(text, own = false, from = null, season = null, parts = nul
         const value = k !== "fields" && parts.has(k) ? parts.get(k) : JSON.stringify(data[k]);
         return value === undefined ? null : JSON.stringify(k) + ":" + value;
       }).filter(v => v !== null).join(",") + "}}"
-    : own ? JSON.stringify(copy) : JSON.stringify(copy, null, 1),
+    : JSON.stringify(copy),
         key = own ? TAB_COPY + TAB_ID : TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
@@ -4911,6 +4948,66 @@ window.showRecoveryCopy = key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
   if(c) set({copyText: c.text, copyStatus: "A recovery copy from another tab. Copy the text to keep it, or merge it in."});
 };
+// Reclaim formatting space only: never drop a record, key, number token or
+// whitespace inside a coach's words. Older builds can still read these copies.
+function compactCopyText(text){
+  const copy = JSON.parse(text);
+  if(!plainRecord(copy) || copy.format !== COPY_FORMAT || copy.v !== COPY_VERSION) return text;
+  return text.replace(/"(?:\\[\s\S]|[^"\\])*"|[ \t\r\n]+/g, token => token[0] === '"' ? token : "");
+}
+let _storageRepairStatus = "", _storageRepairBusy = false;
+window.makeStorageRoom = async () => {
+  if(_storageRepairBusy) return;
+  _storageRepairBusy = true;
+  let saved = 0;
+  try{
+    // A missing heartbeat is not proof a suspended tab has closed. Without
+    // browser ownership locks, leave its exact copy alone.
+    if(navigator.locks && typeof navigator.locks.request === "function"){
+      const keys = Object.keys(localStorage).filter(k => k.startsWith(TAB_COPY) && k !== TAB_COPY + TAB_ID);
+      for(const key of keys){
+        const owner = TAB_LIVE + key.slice(TAB_COPY.length);
+        const before = localStorage.getItem(key);
+        if(!before) continue;
+        try{
+          await navigator.locks.request(owner, {ifAvailable:true}, lock => {
+            if(!lock || localStorage.getItem(key) !== before) return;
+            const live = +localStorage.getItem(owner) || 0;
+            if(live && Date.now() - live < 30000) return;
+            const at = Date.parse(JSON.parse(before).at) || 0;
+            if(at && Date.now() - at < 30000) return;
+            const after = compactCopyText(before);
+            if(after.length >= before.length || localStorage.getItem(key) !== before) return;
+            // setItem replaces atomically; never remove first to make it fit.
+            localStorage.setItem(key, after);
+            if(localStorage.getItem(key) === after) saved += before.length - after.length;
+          });
+        }catch(e){ /* An unreadable or unavailable copy stays untouched. */ }
+      }
+    }
+    save(S);
+    if(_storeFails.maps) keepMaps();
+    _storageRepairStatus = (saved ? "Recovery copies now use less space. Nothing was deleted. " : "No recovery copies could be made smaller. Nothing was deleted. ")
+      + (_storeFail || tabUnsaved() ? "Some changes are still not saved. Save everything and the recovery files before closing." : "Your changes are saved on this device.");
+  }catch(e){ _storageRepairStatus = "Storage could not be checked. Save everything and the recovery files before closing."; }
+  finally{ _storageRepairBusy = false; render(); }
+};
+window.saveRecoveryFiles = () => {
+  try{
+    const files = {"current-season.json": fflate.strToU8(copyPayload("all"))};
+    let n = 0;
+    for(const key of Object.keys(localStorage).filter(k => k.startsWith(TAB_COPY)).sort()){
+      const text = localStorage.getItem(key);
+      if(text !== null) files["recovery-" + (++n) + ".json"] = fflate.strToU8(text);
+    }
+    if(_recoveryText) files["unreadable-save.txt"] = fflate.strToU8(_recoveryText);
+    const url = URL.createObjectURL(new Blob([fflate.zipSync(files)], {type:"application/zip"}));
+    const a = document.createElement("a"); a.href = url; a.download = "gridlock-recovery-" + new Date().toISOString().slice(0,10) + ".zip";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+    _storageRepairStatus = "Look for the recovery ZIP in Downloads. It holds this season and each recovery copy separately. Unzip it to load a copy. Nothing was deleted.";
+  }catch(e){ _storageRepairStatus = "The recovery files could not be downloaded. Use Show this copy to keep each one as text."; }
+  render();
+};
 const NAV_KEYS = ["tab", "more", "scoutTab"];
 var _scratchKeys = null, _lastSeason = null;
 function scratchKeys(){
@@ -4932,7 +5029,8 @@ var _lastLen = 0;
 function saveHere(s){
   const here = {base: _baseId || "", len: _lastLen};
   NAV_KEYS.forEach(k => { here[k] = s[k] === undefined ? null : s[k]; });
-  try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); }catch(e){ storeRefused(e); }
+  try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); storeKept("navigation"); }
+  catch(e){ storeFailed("navigation", e); }
 }
 function storeRefused(e){
   _lastSeason = null;
@@ -5146,8 +5244,9 @@ function storeWarning(){
   const stale = staleWarning();
   if(stale) return stale;
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
-    <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
-    Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
+    <span><b>${esc(_storeFail)}</b> ${_storeFails.season || _storeFails.maps
+      ? "Some changes are not saved. Keep this tab open. Use Account &amp; backups to Save everything and make room without deleting data. Do not clear browsing data."
+      : "Your season is saved, but the app could not remember which screen you opened. Use Account &amp; backups to make room without deleting data."}</span></div>`;
   if(window.gridlockDurableError) return `<div class="tip" style="border-color:var(--red)">
     <span>${esc(window.gridlockDurableError)}</span></div>`;
   if(S.restored) return `<div class="tip">
@@ -5416,22 +5515,124 @@ function registerFields(){
   Object.keys(LAYOUTS).filter(k => k.startsWith("my:")).forEach(k => { delete LAYOUTS[k]; delete BREAK_PLANTS[k]; });
   (S.fields || []).forEach(f => {
     if(!fieldReady(f) || !String(f.key || "").startsWith("my:")) return;
+    const dim = fieldDimsOf(f);
     LAYOUTS[f.key] = {name: f.name || "My field", key: f.key, mine: true, source: mapOf(f) ? FIELD_SOURCE_MAP : FIELD_SOURCE,
-                      bunkers: f.bunkers.map(b => ({...b}))};
+                      bunkers: f.bunkers.map(b => ({...b})), ...(f.size === "10v10" ? {fw: dim.w, fh: dim.h, size: "10v10"} : {})};
+    // The plant rule is written for 150 x 120 ft. A bigger field is read in
+    // proportion — its bunkers scaled onto the standard field, ids kept — so
+    // the same call plants on the same part of the field at either size.
+    const kx = 150 / dim.w, ky = 120 / dim.h;
+    const ruled = kx === 1 && ky === 1 ? f.bunkers
+      : f.bunkers.map(b => ({...b, x: b.x * kx, y: b.y * ky, w: b.w * kx, h: b.h * ky}));
     const planted = {};
-    Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(f.bunkers, shape); } catch(e){} });
+    Object.entries(PLANT_SHAPES).forEach(([k, shape]) => { try { planted[k] = plantRule(ruled, shape); } catch(e){} });
     BREAK_PLANTS[f.key] = planted;
   });
   if(typeof dropPathCache === "function") dropPathCache();
 }
+// A function, not a lookup in FIELD_SIZES: registerFields runs at launch,
+// before that table exists.
+function fieldDimsOf(f){ return f && f.size === "10v10" ? {w: 200, h: 150} : {w: 150, h: 120}; }
 registerFields();
 const fieldOf = key => (S.fields || []).find(f => f && f.key === key) || null;
-const fieldSnap = v => Math.round(v * 2) / 2;
+/* Snap to the grid (owner, 16 Nov 2026). The 2026 NXL rules print the standard
+ * field on a 10 x 10 ft grid; a bunker's centre sits on a line, a crossing or the
+ * middle of a cell, every 5 ft, and its footprint may cross lines freely. */
+const FIELD_STEP = 5;
+const fieldSnap = v => Math.round(v / FIELD_STEP) * FIELD_STEP;
+// The nearest grid spot that keeps a footprint inside [lo, hi].
+function snapIn(v, lo, hi){
+  let s = fieldSnap(v);
+  if(s < lo) s = Math.ceil(lo / FIELD_STEP) * FIELD_STEP;
+  if(s > hi) s = Math.floor(hi / FIELD_STEP) * FIELD_STEP;
+  return s < lo || s > hi ? Math.min(hi, Math.max(lo, v)) : s;
+}
+// Every grid spot a footprint of w x h fits on, clear of the bunkers already
+// placed (except the ones in `skip`). What the builder lights up before a tap.
+function fieldSpots(f, w, h, skip = []){
+  const out = [], others = (f.bunkers || []).filter(b => !skip.includes(b.id)), D = fieldDimsOf(f);
+  for(let x = 0; x <= D.w; x += FIELD_STEP) for(let y = 0; y <= D.h; y += FIELD_STEP){
+    if(x < w / 2 || x > D.w - w / 2 || y < h / 2 || y > D.h - h / 2) continue;
+    if(others.some(b => Math.abs(b.x - x) < (b.w + w) / 2 && Math.abs(b.y - y) < (b.h + h) / 2)) continue;
+    out.push([x, y]);
+  }
+  return out;
+}
+// Field sizes from the 2026 NXL rulebooks: the standard 150 x 120 ft field on a
+// 10 ft grid (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) and the 10v10 200 x 150 ft
+// field (owner, 17 Nov 2026). A field keeps its size in `size`; standard is
+// the default and is never written, so every older field reads as it was.
+const FIELD_SIZES = [
+  {key: "std",  name: "Standard · 150 × 120 ft", note: "X-Ball, 3v3, 5v5, 7v7, Classic, Pump", w: 150, h: 120},
+  {key: "10v10", name: "10v10 · 200 × 150 ft", note: "10v10", w: 200, h: 150},
+];
+// The size is chosen before the first bunker goes down. Every bunker's twin
+// stands across the fifty, which moves with the size, so a field with
+// bunkers on it changes size only after Clear all.
+window.fieldSize = key => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key), z = FIELD_SIZES.find(x => x.key === key);
+  if(!f || !z) return;
+  if((f.size || "std") === key) return;
+  if(f.bunkers.length){
+    flash(`${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} placed for its size. Clear all first, then choose ${z.name} — every twin stands across the fifty, and the fifty moves with the size.`);
+    render(); return;
+  }
+  S.fields = S.fields.map(x => { if(x.key !== f.key) return x; const c = {...x}; if(key === "std") delete c.size; else c.size = key; return c; });
+  // No message: the field redraws at its new size under his thumb, and a
+  // message there sat over the bunkers he was about to tap.
+  registerFields(); save(S); render();
+};
 // The next free number for a code on this field. Ids are never reused or
 // renumbered: a breakout keeps the id of the bunker he broke to, so moving or
 // taking one off must not hand its id to another bunker.
 // Ids are never reused: a breakout keeps the id of the bunker it broke to, so
 // one taken off is remembered on the field (`gone`) and never handed out again.
+/* The bunker set (owner, 16 Nov 2026): how many of each kind he has to set the
+ * field with, counting down as he places them. Never a guess at a league's
+ * pack: a set starts from what a measured field actually uses — the three 2026
+ * NXL maps use the same 58 — and every number is his to change to his own. */
+// A function, not a const: load() checks a saved season before this line runs.
+function fieldSetMax(){ return 99; }
+function setFromLayout(L){
+  const out = {};
+  BUNKER_KINDS.forEach(k => { out[k.key] = 0; });
+  (L && L.bunkers || []).forEach(b => { const k = BUNKER_KINDS.find(x => x.n === b.n); if(k) out[k.key]++; });
+  return out;
+}
+const SET_SOURCES = () => Object.values(LAYOUTS).filter(L => !L.mine);
+const kindPlural = name => /s$/.test(name) ? name + "es" : name + "s";
+function fieldSetLeft(f, kind){
+  if(!f || !f.set || f.set[kind.key] === undefined) return null;
+  return f.set[kind.key] - (f.bunkers || []).filter(b => b.n === kind.n).length;
+}
+// The count informs; it never stops him placing — his park may own more.
+function fieldSetWarn(f, kind, need){
+  const left = fieldSetLeft(f, kind);
+  if(left === null || left >= need) return "";
+  return `That is ${need - left} more ${need - left === 1 ? kind.name : kindPlural(kind.name)} than your set has (${f.set[kind.key]}). Raise the count under Your bunker set if you have more.`;
+}
+window.fieldSetFrom = value => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const L = value && LAYOUTS[value];
+  S.fields = S.fields.map(x => {
+    if(x.key !== f.key) return x;
+    const y = {...x};
+    if(L){ y.set = setFromLayout(L); y.setFrom = L.name; } else { delete y.set; delete y.setFrom; }
+    return y;
+  });
+  S.flash = L ? `Your set is now what ${L.name} uses — change any number to match yours.` : "No set — nothing counts down.";
+  save(S); render();
+};
+window.fieldSetCount = (kindKey, value) => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !f.set) return;
+  const kind = BUNKER_KINDS.find(k => k.key === kindKey); if(!kind) return;
+  const n = String(value).trim() === "" ? 0 : Number(value);
+  if(!Number.isInteger(n) || n < 0 || n > fieldSetMax()){ flash(`A count is a whole number from 0 to ${fieldSetMax()}.`); return; }
+  const placed = f.bunkers.filter(b => b.n === kind.n).length;
+  S.fields = S.fields.map(x => x.key === f.key ? {...x, set: {...x.set, [kindKey]: n}, setFrom: "Your own numbers"} : x);
+  if(n < placed) S.flash = `${placed} ${kindPlural(kind.name)} are already on the field — more than ${n}. Take ${placed - n} off, or the count shows below zero.`;
+  save(S); render();
+};
 function fieldNextId(list, n, more = []){
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
   const gone = String((f || {}).gone || "").split(",").filter(Boolean).map(id => ({id, n: id.split("#")[0]}));
@@ -5452,7 +5653,14 @@ function bunkerUses(key, id){
   (S.plays || []).forEach(p => { const five = (p.plants || {})[key]; if(Array.isArray(five) && five.includes(id)) n++; });
   return n;
 }
+// Undo in the builder (owner, 16 Nov 2026): every change to a field's bunkers
+// keeps the list it replaced, in page memory only — never saved or copied, and
+// dropped when he leaves the builder or builds another field.
+let _fieldHist = {key: null, steps: []};
+function fieldHistFor(key){ if(_fieldHist.key !== key) _fieldHist = {key, steps: []}; return _fieldHist.steps; }
 function patchField(key, fn, said){
+  const was = fieldOf(key);
+  if(was){ const steps = fieldHistFor(key); steps.push((was.bunkers || []).map(b => ({...b}))); if(steps.length > 50) steps.shift(); }
   S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: fn((f.bunkers || []).map(b => ({...b})))} : f);
   registerFields();
   if(said) S.flash = said;
@@ -5468,7 +5676,8 @@ window.newField = () => {
   const taken = [...Object.values(LAYOUTS).map(L => L.name), ...(S.fields || []).map(f => f.name)].find(n => foldName(n) === foldName(name));
   if(taken){ flash(`There is already a field called ${taken}.`); return; }
   const key = "my:f" + Date.now().toString(36);
-  S.fields = [...(S.fields || []), {key, name, at: Date.now(), bunkers: []}];
+  const from = LAYOUTS.lso || SET_SOURCES()[0];
+  S.fields = [...(S.fields || []), {key, name, at: Date.now(), bunkers: [], ...(from ? {set: setFromLayout(from), setFrom: from.name} : {})}];
   S.fieldEdit = {key, kind: "md", sel: null};
   save(S); render(); showFieldBuilder();
 };
@@ -5488,7 +5697,8 @@ window.renameField = (key, value) => {
 };
 window.fieldDone = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
-  S.fieldEdit = null; registerFields();
+  if(f) _fieldChoice = f.key;
+  S.fieldEdit = null; _fieldHist = {key: null, steps: []}; registerFields();
   if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
   else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
   save(S); render();
@@ -5518,19 +5728,21 @@ window.fieldTap = at => {
     .filter(({b}) => Math.abs(b.x - at[0]) < b.w / 2 + 1.2 && Math.abs(b.y - at[1]) < b.h / 2 + 1.2)
     .sort((p, q) => p.d - q.d)[0];
   if(hit){ S.fieldEdit = {...ed, sel: hit.b.id === ed.sel ? null : hit.b.id}; save(S); render(); return; }
-  const onFifty = x => Math.abs(x - 75) < 1.5;
+  const D = fieldDimsOf(f), mid = D.w / 2;
+  const onFifty = x => Math.abs(x - mid) < 1.5;
   if(ed.sel){
     const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
-    let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
-    x = Math.min(150 - sel.w / 2, Math.max(sel.w / 2, x)); y = Math.min(120 - sel.h / 2, Math.max(sel.h / 2, y));
-    if(onFifty(x)) x = 75;
+    let x = snapIn(at[0], sel.w / 2, D.w - sel.w / 2), y = snapIn(at[1], sel.h / 2, D.h - sel.h / 2);
+    if(onFifty(x)) x = mid;
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
-    const tw0 = x === 75 && sel.tw ? sel.tw : "";
+    const tw0 = x === mid && sel.tw ? sel.tw : "";
     // Its twin going is one bunker fewer: the same floor Take it off holds.
     const inUse = S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key);
     if(tw0 && fieldReady(f) && f.bunkers.length - 1 < FIELD_MIN && inUse)
       return flash(`On the fifty ${sel.id} stands alone and ${tw0} goes, which leaves ${f.name} under ${FIELD_MIN} bunkers. Place another bunker first.`);
+    const moveKind = x !== mid && !sel.tw && BUNKER_KINDS.find(k => k.n === sel.n);
+    const moveOver = moveKind ? fieldSetWarn(f, moveKind, 1) : "";
     const twUses = tw0 ? bunkerUses(f.key, tw0) : 0;
     if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
@@ -5540,29 +5752,29 @@ window.fieldTap = at => {
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
       me.x = x; me.y = y; paintFrom(f, me);
-      if(x === 75){ if(twin){ delete me.tw; return list.filter(b => b !== twin); } return list; }
-      if(twin){ twin.x = 150 - x; twin.y = y; paintFrom(f, twin); return list; }
-      const t = {...me, id: fieldNextId(list, me.n), x: 150 - x, tw: me.id};
+      if(x === mid){ if(twin){ delete me.tw; return list.filter(b => b !== twin); } return list; }
+      if(twin){ twin.x = D.w - x; twin.y = y; paintFrom(f, twin); return list; }
+      const t = {...me, id: fieldNextId(list, me.n), x: D.w - x, tw: me.id};
       if(t.a) t.a = -t.a;
       paintFrom(f, t);
       me.tw = t.id;
       return [...list, t];
-    });
+    }, moveOver);
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  let x = fieldSnap(at[0]), y = fieldSnap(at[1]);
-  x = Math.min(150 - kind.w / 2, Math.max(kind.w / 2, x)); y = Math.min(120 - kind.h / 2, Math.max(kind.h / 2, y));
-  if(onFifty(x)) x = 75;
+  let x = snapIn(at[0], kind.w / 2, D.w - kind.w / 2), y = snapIn(at[1], kind.h / 2, D.h - kind.h / 2);
+  if(onFifty(x)) x = mid;
+  const over = fieldSetWarn(f, kind, x === mid ? 1 : 2);
   patchField(f.key, list => {
     const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
     if(kind.k) b.k = kind.k;
     paintFrom(f, b);
-    if(x === 75) return [...list, b];
-    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: 150 - x, tw: b.id});
+    if(x === mid) return [...list, b];
+    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id});
     b.tw = t.id;
     return [...list, b, t];
-  });
+  }, over);
 };
 // Turn: a beam goes flat, angled, upright, angled the other way; a plus goes
 // on its corner and back; a dorito points the other way; anything else turns
@@ -5588,6 +5800,39 @@ window.fieldTurn = () => {
     if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; paintFrom(f, twin); }
     return list;
   });
+};
+function fieldInUse(f){
+  return S.layoutKey === f.key || (S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m));
+}
+window.fieldUndo = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const steps = fieldHistFor(f.key);
+  if(!steps.length) return flash("Nothing to undo yet — place, move, turn or take off a bunker first.");
+  const back = steps[steps.length - 1], keep = new Set(back.map(b => b.id));
+  const going = f.bunkers.filter(b => !keep.has(b.id)).map(b => b.id);
+  // The same floor Take it off holds: a field he is on or played on stays playable.
+  if(fieldReady(f) && back.length < FIELD_MIN && fieldInUse(f))
+    return flash(`Undo would leave ${f.name} under ${FIELD_MIN} bunkers, and it is in use. Place another bunker first.`);
+  const uses = going.reduce((n, id) => n + bunkerUses(f.key, id), 0);
+  if(uses && !askFirst(`${uses} thing${uses === 1 ? "" : "s"} logged on this field name${uses === 1 ? "s" : ""} ${going.join(" or ")}. Undo anyway? What was logged keeps the name.`, ["field-undo", f.key, steps.length])) return;
+  steps.pop();
+  if(going.length) noteGone(f.key, going);
+  S.fields = S.fields.map(x => x.key === f.key ? {...x, bunkers: back.map(b => ({...b}))} : x);
+  S.fieldEdit = {...ed, sel: null};
+  registerFields();
+  S.flash = "Undone.";
+  save(S); render();
+};
+window.fieldClear = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  if(!f.bunkers.length) return flash(`${f.name} has no bunkers to clear.`);
+  if(fieldInUse(f))
+    return flash(`${f.name} is in use${(S.matches || []).some(m => m && m.layout === f.key && !sheetEmpty(m)) ? " — a sheet was played on it" : ""}, so it keeps at least ${FIELD_MIN} bunkers. Take bunkers off one at a time instead.`);
+  const uses = f.bunkers.reduce((n, b) => n + bunkerUses(f.key, b.id), 0);
+  if(!askFirst(`Clear all ${f.bunkers.length} bunkers from ${f.name}?${uses ? ` ${uses} thing${uses === 1 ? "" : "s"} logged name${uses === 1 ? "s" : ""} them and keep${uses === 1 ? "s" : ""} the name.` : ""} Undo brings them back.`, ["field-clear", f.key, f.bunkers.length])) return;
+  S.fieldEdit = {...ed, sel: null};
+  noteGone(f.key, f.bunkers.map(b => b.id));
+  patchField(f.key, () => [], `Cleared ${f.name}. Undo brings the bunkers back.`);
 };
 window.fieldRemove = () => {
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
@@ -5632,9 +5877,9 @@ function mapPixels(f){
 // The paint under a bunker: the inner part of its footprint on the map, pixel
 // by pixel. Red or blue only when that colour is most of what is there and
 // clearly one or the other; the grass, the lines and the shadow say nothing.
-function mapPaint(pix, b){
+function mapPaint(pix, b, D = fieldDimsOf()){
   if(!pix || !pix.data) return null;
-  const fx = pix.w / 150, fy = pix.h / 120;
+  const fx = pix.w / D.w, fy = pix.h / D.h;
   const x0 = Math.max(0, Math.floor((b.x - b.w * 0.3) * fx)), x1 = Math.min(pix.w - 1, Math.ceil((b.x + b.w * 0.3) * fx));
   const y0 = Math.max(0, Math.floor((b.y - b.h * 0.3) * fy)), y1 = Math.min(pix.h - 1, Math.ceil((b.y + b.h * 0.3) * fy));
   const step = Math.max(1, Math.floor(Math.max(x1 - x0, y1 - y0) / 24));
@@ -5651,7 +5896,7 @@ function mapPaint(pix, b){
   return null;
 }
 function paintFrom(f, b){
-  const c = mapPaint(mapPixels(f), b);
+  const c = mapPaint(mapPixels(f), b, fieldDimsOf(f));
   if(c) b.c = c; else delete b.c;
   return b;
 }
@@ -5675,7 +5920,7 @@ function storeMap(key, c, said){
   if(!fieldMapOk(src)){ flash("That picture is too big to keep — crop it to the field and try again."); return false; }
   MAP_PIX = {src, w: c.width, h: c.height, data: c.getContext("2d").getImageData(0, 0, c.width, c.height).data};
   FIELD_MAPS[key] = src; keepMaps();
-  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: (f.bunkers || []).map(b => paintFrom({map: src}, {...b}))} : f);
+  S.fields = (S.fields || []).map(f => f.key === key ? {...f, bunkers: (f.bunkers || []).map(b => paintFrom({...f, map: src}, {...b}))} : f);
   registerFields();
   S.flash = said;
   save(S); render();
@@ -5717,11 +5962,11 @@ window.fieldMapDrop = () => {
   save(S); render();
 };
 function fieldBuildSVG(f){
-  const W = 300, H = 240, M = 18, sx = 2, sy = 2, sel = S.fieldEdit && S.fieldEdit.sel;
+  const D = fieldDimsOf(f), W = D.w * 2, H = D.h * 2, M = 18, sx = 2, sy = 2, sel = S.fieldEdit && S.fieldEdit.sel;
   const me = sel && f.bunkers.find(b => b.id === sel), twin = me && me.tw && f.bunkers.find(b => b.id === me.tw);
   const ring = (b, dash) => b ? `<rect x="${((b.x - b.w / 2 - 1.6) * sx).toFixed(1)}" y="${((b.y - b.h / 2 - 1.6) * sy).toFixed(1)}" width="${((b.w + 3.2) * sx).toFixed(1)}" height="${((b.h + 3.2) * sy).toFixed(1)}" rx="4" fill="none" stroke="#efedeb" stroke-width="1.4"${dash ? ' stroke-dasharray="3 3" opacity=".7"' : ""}/>` : "";
   const codes = f.bunkers.map(b => `<text x="${(b.x * sx).toFixed(1)}" y="${((b.y + b.h / 2) * sy + 7).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="#8d9092">${esc(b.n)}</text>`).join("");
-  return `<svg class="field" viewBox="-8 ${-M} ${W + 16} ${H + M * 2}" role="img" aria-label="${esc(f.name)}: ${f.bunkers.length} bunkers. Tap empty ground to place, tap a bunker to pick it.">
+  return `<svg class="field" data-fw="${D.w}" data-fh="${D.h}" viewBox="-8 ${-M} ${W + 16} ${H + M * 2}" role="img" aria-label="${esc(f.name)}, ${D.w} by ${D.h} feet: ${f.bunkers.length} bunkers. Tap empty ground to place, tap a bunker to pick it.">
     <defs>
       <linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient>
       <linearGradient id="bnkRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2453d"/><stop offset="1" stop-color="#7d1512"/></linearGradient>
@@ -5730,17 +5975,69 @@ function fieldBuildSVG(f){
     <rect x="-8" y="${-M}" width="${W + 16}" height="${H + M * 2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${mapOf(f) && !(S.fieldEdit && S.fieldEdit.hideMap) ? `<image class="fieldmap" href="${esc(mapOf(f))}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none" opacity=".5"/>` : ""}
-    ${[...Array(15)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
-    ${[...Array(12)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#1d2022" stroke-width=".6"/>`).join("")}
+    ${[...Array(D.w / 10)].map((_, i) => `<line x1="${i * 20}" y1="0" x2="${i * 20}" y2="${H}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
+    ${[...Array(D.h / 10)].map((_, i) => `<line x1="0" y1="${i * 20}" x2="${W}" y2="${i * 20}" stroke="#2a2f31" stroke-width=".7"/>`).join("")}
     <rect width="${W}" height="${H}" fill="none" stroke="#33383a" stroke-width="1"/>
     <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
     <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
+    ${(() => { const kind = BUNKER_KINDS.find(k => k.key === (S.fieldEdit && S.fieldEdit.kind)) || BUNKER_KINDS[0];
+      const spots = me ? fieldSpots(f, me.w, me.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, kind.w, kind.h);
+      return `<g class="field-spots" pointer-events="none">${spots.map(([x, y]) => `<circle cx="${x * sx}" cy="${y * sy}" r="1.3" fill="#efedeb" opacity=".45"/>`).join("")}</g>`; })()}
     ${f.bunkers.map(b => bunkerShape(b, sx, sy)).join("")}
     ${codes}${ring(me, false)}${ring(twin, true)}
     <rect data-pick="1" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
     <text x="${W / 2}" y="${-M + 8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W / 2}" y="${H + M - 4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
   </svg>`;
+}
+// More › Field builder: the one home of the fields he builds, kept apart from
+// the event fields (owner, 16 Nov 2026). His fields lead, each with Use / Edit; the builder is the same code.
+let _fieldChoice = "";   // the built field picked in the drop-down; page memory only
+window.chooseMyField = key => { _fieldChoice = key; render(); };
+function fieldsPage(){
+  const mine = (S.fields || []);
+  const pick = fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length === 1 ? mine[0].key : "";
+  const f = pick && fieldOf(pick);
+  return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
+      regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
+    ${mine.length ? `<div class="fld"><label for="my-field">Your fields</label>
+      <select id="my-field" onchange="chooseMyField(this.value)"><option value="">Choose one of your fields…</option>${mine.map(x =>
+        `<option value="${esc(x.key)}"${x.key === pick ? " selected" : ""}>${esc(x.name)}${fieldReady(x) ? "" : " (still building)"}</option>`).join("")}</select></div>
+    ${f ? (() => { const ready = fieldReady(f), on = f.key === S.layoutKey;
+      return `<div class="assign" style="flex-wrap:wrap">
+        <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
+        <span class="assign__who">${f.size === "10v10" ? "10v10 · 200 × 150 ft" : "Standard · 150 × 120 ft"} · ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
+        ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
+        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
+      </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
+    ${fieldBuilder()}
+    <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
+      placed it by eye. A field you build rides in Save a copy, and the twelve calls plant on it once it has
+      ${FIELD_MIN} bunkers. Your fields are kept here, apart from the event fields.</p>`,
+    mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "");
+}
+function fieldSetSec(f){
+  const total = f.set ? BUNKER_KINDS.reduce((n, k) => n + (f.set[k.key] || 0), 0) : 0;
+  const placed = f.bunkers.length, open = !!(S.fieldEdit && S.fieldEdit.setOpen);
+  const sources = SET_SOURCES();
+  return `<p class="note" style="margin:6px 0">${f.set
+      ? `<b>Your set:</b> ${total} bunkers · ${placed} on the field · <b>${total - placed} left</b>. The number on each bunker is how many of it are still to place; past your set it says how many over.`
+      : "No bunker set — nothing counts down. Pick one under Your bunker set."}</p>
+    <details class="fmt-disclosure set-fold"${open ? " open" : ""} ontoggle="S.fieldEdit&&(S.fieldEdit.setOpen=this.open)">
+      <summary onclick="S.fieldEdit&&(S.fieldEdit.setOpen=!this.parentNode.open)">Your bunker set${f.setFrom ? ` · ${esc(f.setFrom)}` : ""}</summary>
+      <p class="note">Start from the set a measured field uses, then change any number to match the bunkers you actually have. The three 2026 NXL fields use the same 58.</p>
+      <div class="fld"><label for="field-set-from">Start from</label>
+        <select id="field-set-from" onchange="fieldSetFrom(this.value)">
+          <option value="">Choose a field…</option>
+          ${sources.map(L => `<option value="${esc(L.key)}">${esc(L.name)} · ${L.bunkers.length}</option>`).join("")}
+          <option value="">No set — don't count</option>
+        </select></div>
+      ${f.set ? `<div class="set-grid">${BUNKER_KINDS.map(k => {
+        const on = f.bunkers.filter(b => b.n === k.n).length;
+        return `<label class="set-row"><span>${esc(k.name)} <span class="note">· ${on} placed</span></span>
+          <input class="rost__num" type="number" inputmode="numeric" min="0" max="${fieldSetMax()}" value="${f.set[k.key] || 0}"
+            aria-label="How many ${esc(kindPlural(k.name))} in your set" onchange="fieldSetCount(${jsq(k.key)}, this.value)"/></label>`; }).join("")}</div>` : ""}
+    </details>`;
 }
 function fieldBuilder(){
   const ed = S.fieldEdit, f = ed && fieldOf(ed.key);
@@ -5753,6 +6050,9 @@ function fieldBuilder(){
   return `<div id="fieldbuild" style="margin-top:var(--s4)">
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
+    <div class="fld"><label for="field-size">Field size</label>
+      <select id="field-size" onchange="fieldSize(this.value)">${FIELD_SIZES.map(z =>
+        `<option value="${z.key}"${z.key === (f.size || "std") ? " selected" : ""}>${esc(z.name)} — ${esc(z.note)}</option>`).join("")}</select></div>
     <p class="note">Your end is on the left, the snake side at the bottom, the dorito side at the top — the way
       every field in the app is drawn. Place the left half off the event's map; each bunker's twin appears
       across the fifty, and one on the fifty stays single. Sizes are the measured inflatables, so a bunker is
@@ -5765,16 +6065,20 @@ function fieldBuilder(){
         <button class="btn btn--quiet" onclick="fieldMapDrop()">Take the map off</button>` : ""}
     </div>
     ${mapOf(f) ? `<p class="note" style="margin:0 0 var(--s2)">The map is a guide, stretched to the field's edges — crop it to the field before you pick it. Each bunker you place takes the red or blue the map prints under it; on anything else it stays grey.</p>` : ""}
-    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k =>
-      `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})">${esc(k.name)}</button>`).join("")}</div>
+    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k => {
+      const left = fieldSetLeft(f, k);
+      return `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})"${left === null ? "" : ` aria-label="${esc(k.name)}, ${left < 0 ? `${-left} over your set` : `${left} left`}"`}>${esc(k.name)}${left === null ? "" : ` <span class="set-left${left <= 0 ? " set-left--out" : ""}">${left < 0 ? `${-left} over` : left}</span>`}</button>`; }).join("")}</div>
+    ${fieldSetSec(f)}
     <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
     <p class="note" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
-      : `Tap empty ground to place a <b>${esc(kind.name)}</b>. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+      : `Tap a lit spot to place a <b>${esc(kind.name)}</b> — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
     <div class="btnrow">
       ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
         <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
+      <button class="btn btn--quiet" onclick="fieldUndo()">↶ Undo</button>
+      <button class="btn btn--quiet" onclick="fieldClear()">Clear all</button>
       <button class="btn" onclick="fieldDone()">Done</button>
       <button class="btn btn--quiet" onclick="deleteField(${jsq(f.key)})">Delete field</button>
     </div>
@@ -5813,6 +6117,7 @@ S.paste = null; S.pasteSide = ""; S.pasteNote = ""; S.pasteNoteSide = ""; S.past
 // phone that lost its storage: that copy carries whatever was half-done when
 // it was written, and a restore used to bring it all back.
 function clearScratch(s = S){
+  s.mediaView = {query:"", kind:"", draft:null};
   _pointClearUndo = null;
   s.statMatch = ""; s.statDay = ""; s.statView = "map"; s.statFilters = false;
   s.cupView = null; s.fmtGlance = false;
@@ -6730,7 +7035,7 @@ window.setSwapEnds = on => {
   patchMatch({swapEnds: false, swapFrom: null, flips: flips.filter(f => f > 1).sort((a, b) => a - b)});
   save(S); render();
 };
-const mirrorFt = q => [150 - q[0], q[1]];
+const mirrorFt = q => [fieldW() - q[0], q[1]];
 function mirrorBunkerId(id){
   // Every count across points turns a row through here; within one draw the
   // field cannot change, so each twin is worked out once.
@@ -6741,7 +7046,7 @@ function mirrorBunkerId(id){
 function mirrorBunkerIdFresh(id){
   const bl = curLayout().bunkers, b = bl.find(x => x.id === id); if(!b) return id;
   let best = null, bd = Infinity;
-  for(const o of bl){ const d = Math.hypot(o.x - (150 - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
+  for(const o of bl){ const d = Math.hypot(o.x - (fieldW() - b.x), o.y - b.y); if(d < bd){ bd = d; best = o; } }
   return best ? best.id : id;
 }
 // Face and shot are kept in the left-end frame he set them in; drawn from the
@@ -7202,7 +7507,7 @@ window.renamePlay = (k, v) => {
  * a merge from an assistant's phone that still holds a play, a field or a
  * calendar entry he took off used to put it straight back. A copy merged in
  * leaves these out and says so; Replace is the copy's season and clears it. */
-const GONE_KINDS = {plays: "play", fields: "field", calEvents: "calendar event", calKinds: "calendar kind"};
+const GONE_KINDS = {plays: "play", fields: "field", calEvents: "calendar event", calKinds: "calendar kind", mediaContacts:"media contact"};
 function markGone(kind, id){
   if(!id) return;
   const g = {...(S.goneIds || {})}; g[kind] = [...new Set([...(g[kind] || []), id])].slice(-500); S.goneIds = g;
@@ -7877,14 +8182,14 @@ const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakC
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
 
-function copyPayload(scope){
+function copyPayload(scope, space=1){
   const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   if(data.fields) data.fields = fieldsOut(data.fields);
   if(!S.seasonId) S.seasonId=newSalt();
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, seasonId:S.seasonId, scope: scope || "all",
-                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
+                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, space);
 }
 /* One sheet, to hand to the coach beside you. Two phones on one match — one
  * on the tally, one charting their five off the fence — had no way to put
@@ -7928,7 +8233,7 @@ function sheetPayload(id){
                          at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
 }
 // The lists copySummary() names, so a merge can count what it added.
-const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","arrivalSightings","arrivalShots","voiceEvents","playerChecks","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
+const COPY_COUNTED = ["matches","results","roster","plays","scout","calls","tally","breakouts","pens","timeouts","games","classes","responses","moves","assessments","messages","mediaContacts","arrivalSightings","arrivalShots","voiceEvents","playerChecks","groups","codes","blasts","fmts","fields","calEvents","calKinds"];
 function copySummary(d){
   const n = (k, f) => {
     // A walk is notes kept per field, and members sit inside their groups.
@@ -7941,7 +8246,7 @@ function copySummary(d){
                 [n("scout"), "team scouted"], [n("calls"), "call logged"], [n("tally"), "out"], [n("breakouts"), "breakout"],
                 [n("pens"), "penalty"], [n("timeouts"), "timeout"], [n("games"), "game added"],
                 [n("classes"), "session"], [n("responses"), "sign-in"], [n("moves"), "rotation"],
-                [n("assessments"), "grade"], [n("messages"), "message"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"], [n("playerChecks"), "player check"],
+                [n("assessments"), "grade"], [n("messages"), "message"], [n("mediaContacts"), "media contact"], [n("arrivalSightings"), "sighting"], [n("arrivalShots"), "shot"], [n("voiceEvents"), "voice event"], [n("playerChecks"), "player check"],
                 [n("groups"), "group"], [n("members"), "group member"], [n("codes"), "code word"], [n("walk"), "walk note"],
                 [n("blasts"), "blast"], [n("fmts"), "saved format"], [n("fields"), "field of yours"],
                 [n("calEvents"), "calendar event"], [n("calKinds"), "calendar kind"], [n("words"), "word or setting"]];
@@ -7976,6 +8281,7 @@ const SAME = {
   blastTo:     id => id,
   codes:       c => (c.word || "").toLowerCase(),
   messages:    m => String(m),
+  mediaContacts: c => c.id,
   // Every list a merge can meet needs a key here, or the merge takes the
   // incoming list whole and his own is gone: a squad copy merged in from an
   // assistant's phone replaced his plays with theirs, and a full copy
@@ -8186,10 +8492,12 @@ function copyDataError(data){
     offPlays:list(str), gamesOff:list(str),
     // A field he built carries one list, its bunkers, each one scalars only.
     fields:list(v => record(v, {bunkers:list(b => row(b) && ["id","n","t"].every(k => str(b[k]) && b[k].length > 0)
-        && ["x","y","w","h"].every(k => num(b[k])))})
+        && ["x","y","w","h"].every(k => num(b[k]))),
+        set:map(n => Number.isInteger(n) && n >= 0 && n <= fieldSetMax())})
       && str(v.key) && v.key.slice(0,3) === "my:" && str(v.name)
       && (v.map === undefined || fieldMapOk(v.map))
-      && Object.entries(v).every(([k, x]) => k === "bunkers" || scalar(x))),
+      && (v.size === undefined || v.size === "std" || v.size === "10v10")
+      && Object.entries(v).every(([k, x]) => k === "bunkers" || k === "set" || scalar(x))),
     // A penalty is what the official took, recorded: which side, how many men.
     timeouts:list(v => row(v) && str(v.id) && v.id.length > 0 && str(v.m) && v.m.length > 0
       && ["us","them"].includes(v.side) && Number.isInteger(v.pt) && v.pt > 0 && num(v.at)),
@@ -8204,6 +8512,8 @@ function copyDataError(data){
     classes:list(v => row(v) && str(v.code) && token(v.code)), responses:list(v => row(v) && str(v.code) && str(v.name)),
     groups:list(v => record(v, {members:list(row)}) && str(v.id) && token(v.id) && str(v.name)),
     blasts:list(row), blastTo:list(str), messages:list(str),
+    mediaContacts:v => Array.isArray(v) && v.every(c => !mediaContactError(c))
+      && new Set(v.map(c => c.id)).size === v.length,
     point:v => Number.isInteger(v) && v > 0, layoutKey:str, script:str,
     matchId:str, matchState:str, teamCode:str, division:str, myTeam:v=>str(v)&&v.length<=60, scheduleDivision:v=>str(v)&&v.length<=180, fmtDone:v=>typeof v==="boolean",
     // The format he answered, and the ones he saved under a name.
@@ -9578,7 +9888,7 @@ function podFit(){
 }
 window.podWars = {
   open(){
-    if(pod) return;
+    if(pod || webPassLocked()) return;
     const el = document.createElement("div");
     el.id = "podwars"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Pod Wars");
     el.innerHTML = `<style>
@@ -9790,7 +10100,10 @@ function fieldFeet(svg, ev){
   const pt = svg.createSVGPoint();
   pt.x = ev.clientX; pt.y = ev.clientY;
   const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-  return [Math.max(1, Math.min(149, p.x / 2)), Math.max(1, Math.min(119, p.y / 2))];
+  // Scale 2 on every field; the clamp is the drawn field's own edges — the
+  // builder can be drawing a 10v10 field while a standard one is in use.
+  const fw = +svg.getAttribute("data-fw") || fieldW(), fh = +svg.getAttribute("data-fh") || fieldH();
+  return [Math.max(1, Math.min(fw - 1, p.x / 2)), Math.max(1, Math.min(fh - 1, p.y / 2))];
 }
 function setVia(id, via){
   S.pathEdits = {...(S.pathEdits || {}), [pathKey(id)]: via};
@@ -9978,7 +10291,162 @@ function sampleStroke(pts, from, to){
 
 // ---- the walk: what you noticed standing on the field, against a bunker ----
 function walkNotes(){ return (S.walk || {})[S.layoutKey] || []; }
+// A camera over the existing measured plan, never invented bunker heights.
+// Kept outside S: moving the view must not write a season or trigger sync.
+let _walkView = null, _walkFrame = 0, _walkGesture = null;
+const walkMotion = matchMedia("(prefers-reduced-motion: reduce)");
+function walkView(){
+  if(!_walkView || _walkView.state !== S || _walkView.email !== S.email || _walkView.layout !== S.layoutKey || _walkView.fields !== S.fields){
+    stopWalkTour();
+    _walkView = {state:S, email:S.email, layout:S.layoutKey, fields:S.fields, on:false, angle:0, zoom:1, tilt:false, focus:null, tour:null};
+    _walkGesture = null;
+  }
+  return _walkView;
+}
+function walkMatrix(){
+  const v=walkView(), r=v.angle*Math.PI/180, c=Math.cos(r), s=Math.sin(r), tilt=v.tilt?.64:1;
+  // Fit the entire rotated drawing, including wire labels, at 1x zoom.
+  // The drawing is the field at scale 2 plus its margins (FIELD_SIDE each
+  // end, 18 for the side labels), so a 10v10 field fits the same way.
+  const cw=fieldW()*2, ch=fieldH()*2, VW=cw+FIELD_SIDE*2, VH=ch+36;
+  const fit=Math.min(1,VW/(VW*Math.abs(c)+VH*Math.abs(s)),VH/(tilt*(VW*Math.abs(s)+VH*Math.abs(c))));
+  const z=fit*v.zoom, a=z*c, b=z*s*tilt, d=z*c*tilt, e=-z*s;
+  const target=v.focus&&curLayout().bunkers.find(x=>x.id===v.focus), x=target?target.x*2:cw/2, y=target?target.y*2:ch/2;
+  return `matrix(${[a,b,e,d,cw/2-a*x-e*y,ch/2-b*x-d*y].map(n=>n.toFixed(6)).join(" ")})`;
+}
+function walkViewControls(){
+  const v=walkView();
+  return `<button class="btn btn--quiet" aria-expanded="${v.on}" aria-controls="walk-explore-controls" onclick="walkCamera('toggle')">${v.on?"Close explore":"Explore field"}</button>
+    <div id="walk-explore-controls" class="walk-explore-controls"${v.on?"":" hidden"} role="group" aria-label="Field view controls">
+      <button class="btn btn--quiet" onclick="walkCamera('left')">↶ Left</button><button class="btn btn--quiet" onclick="walkCamera('right')">Right ↷</button>
+      <button class="btn btn--quiet" onclick="walkCamera('out')" aria-label="Zoom out">−</button><button class="btn btn--quiet" onclick="walkCamera('in')" aria-label="Zoom in">+</button>
+      <button class="btn btn--quiet" onclick="walkCamera('tilt')" aria-pressed="${v.tilt}">Tilt view</button>
+      <button class="btn btn--quiet" onclick="walkCamera('fit')">Whole field</button>
+      ${walkPickedBunker()?'<button class="btn btn--quiet" onclick="walkCamera(\'focus\')">Focus bunker</button>':""}
+      ${walkMotion.matches?"":`<button class="btn btn--quiet" id="walk-tour" onclick="walkCamera('tour')">${v.tour?"Stop tour":"Start tour"}</button>`}
+    </div>
+    ${v.on?`<p class="note">Drag sideways to turn; tap a bunker for its name and notes. This is the field plan: bunker heights are not shown.${walkMotion.matches?" Automatic motion is off for your device's reduced-motion setting.":""}</p><p class="note walk-camera-read" id="walk-camera-read"></p>`:""}`;
+}
+function paintWalkView(){
+  const v=_walkView, scene=document.getElementById("walk-scene");
+  if(!v?.on || !scene) return;
+  scene.setAttribute("transform",walkMatrix());
+  const read=document.getElementById("walk-camera-read");
+  if(read) read.textContent=`${Math.round(((v.angle%360)+360)%360)}° · ${v.zoom.toFixed(1)}× · ${v.tilt?"Tilted":"Top view"}`;
+  const tour=document.getElementById("walk-tour");
+  if(tour) tour.textContent=v.tour?"Stop tour":"Start tour";
+  placeWalkStickies();
+}
+function stopWalkTour(){
+  if(_walkFrame) cancelAnimationFrame(_walkFrame);
+  _walkFrame=0;
+  if(_walkView) _walkView.tour=null;
+  const tour=document.getElementById("walk-tour"); if(tour) tour.textContent="Start tour";
+}
+function walkTourFrame(now){
+  _walkFrame=0;
+  const v=_walkView, tour=v?.tour;
+  if(!tour || !S.entered || webPassLocked() || S.tab!=="more" || S.more!=="walk" || document.hidden || walkMotion.matches || walkView()!==v || !document.getElementById("walk-scene")){stopWalkTour();return;}
+  if(tour.start===null) tour.start=now;
+  const elapsed=now-tour.start;
+  // One slow turn, then stop. No perpetual render loop or state writes.
+  if(now-tour.painted>=32 || elapsed>=45000){
+    tour.painted=now; v.angle=(tour.angle+360*Math.min(1,elapsed/45000))%360; paintWalkView();
+  }
+  if(elapsed>=45000) stopWalkTour();
+  else _walkFrame=requestAnimationFrame(walkTourFrame);
+}
+window.walkCamera = action => {
+  if(!S.entered || webPassLocked() || S.tab!=="more" || S.more!=="walk") return;
+  const v=walkView(), touring=!!v.tour;
+  stopWalkTour();
+  if(action==="toggle"){v.on=!v.on;_walkGesture=null;walkRender(false);return;}
+  if(!v.on) return;
+  if(action==="left" || action==="right") v.angle=(v.angle+(action==="left"?-15:15)+360)%360;
+  if(action==="in" || action==="out") v.zoom=Math.max(1,Math.min(3,v.zoom+(action==="in"?.25:-.25)));
+  if(action==="tilt") v.tilt=!v.tilt;
+  if(action==="fit"){v.angle=0;v.zoom=1;v.tilt=false;v.focus=null;}
+  if(action==="focus"){const b=walkPickedBunker();if(b){v.focus=b.id;v.zoom=2;}}
+  if(action==="tour" && !touring && !walkMotion.matches && !document.hidden){
+    v.focus=null;v.zoom=1;v.tilt=true;v.tour={start:null,painted:-Infinity,angle:v.angle};
+    _walkFrame=requestAnimationFrame(walkTourFrame);
+  }
+  // Buttons change too (tilt, selection, reduced motion); motion frames don't render.
+  walkRender(false);
+};
+function guardWalkView(){
+  if(!S.entered || webPassLocked() || S.tab!=="more" || S.more!=="walk"){
+    stopWalkTour(); _walkView=null; _walkGesture=null; return;
+  }
+  walkView();
+}
+function pauseWalkView(){stopWalkTour();_walkGesture=null;}
+addEventListener("blur",pauseWalkView);
+addEventListener("pagehide",pauseWalkView);
+document.addEventListener("visibilitychange",()=>{if(document.hidden) pauseWalkView();});
+walkMotion.addEventListener("change",()=>{pauseWalkView();if(S.tab==="more"&&S.more==="walk")walkRender(false);});
+document.addEventListener("pointerdown",ev=>{
+  if(!_walkView?.on || S.tab!=="more" || S.more!=="walk" || !ev.target.closest?.("#walk-map svg.field") || ev.button>0) return;
+  stopWalkTour();
+  if(_walkGesture){_walkGesture.moved=true;_walkGesture.multi=true;return;}
+  _walkGesture={id:ev.pointerId,x:ev.clientX,y:ev.clientY,angle:_walkView.angle,moved:false,multi:!ev.isPrimary};
+});
+document.addEventListener("pointermove",ev=>{
+  const g=_walkGesture; if(!g || g.id!==ev.pointerId || g.multi || !_walkView?.on) return;
+  if(Math.hypot(ev.clientX-g.x,ev.clientY-g.y)>FIELD_TAP_SLOP) g.moved=true;
+  if(g.moved && Math.abs(ev.clientX-g.x)>Math.abs(ev.clientY-g.y)){_walkView.angle=(g.angle+(ev.clientX-g.x)*.5+360)%360;paintWalkView();}
+});
+document.addEventListener("pointerup",ev=>{if(_walkGesture?.id===ev.pointerId)_walkGesture=null;});
+document.addEventListener("pointercancel",()=>{_walkGesture=null;});
+document.addEventListener("keydown",ev=>{
+  if(!_walkView?.on || S.tab!=="more" || S.more!=="walk") return;
+  if(ev.key==="Escape"){stopWalkTour();return;}
+  if(!ev.target.matches?.("#walk-map svg.field")) return;
+  const action={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"in",ArrowDown:"out",Home:"fit"}[ev.key];
+  if(action){ev.preventDefault();walkCamera(action);}
+});
 const WIRES = ["The field", "Snake wire", "Snake side", "Centre", "Dorito side", "Dorito wire"];
+// Drill areas belong to the displayed field, never to a team's changing ends.
+const WALK_ZONES = [
+  // x and y are halves (0 or 1), so a zone is a quarter of whichever size
+  // of field is drawn.
+  {id:"q1", name:"Q1 · Left dorito", x:0, y:0},
+  {id:"q2", name:"Q2 · Right dorito", x:1, y:0},
+  {id:"q3", name:"Q3 · Left snake", x:0, y:1},
+  {id:"q4", name:"Q4 · Right snake", x:1, y:1}
+];
+let _walkDrill = null; // View only: never exported, synced or counted as a point.
+function walkDrillZone(){ return _walkDrill && _walkDrill.layout === S.layoutKey ? _walkDrill.zone : "off"; }
+window.setWalkDrillZone = zone => {
+  const area = WALK_ZONES.find(z => z.id === zone);
+  if(!area && zone !== "off" && zone !== "all") return;
+  _walkDrill = {layout:S.layoutKey, zone};
+  if(area){ S.walkPick = area.name; S.walkShut = null; }
+  walkRender(false);
+};
+function walkDrillControls(){
+  const zone = walkDrillZone(), on = zone !== "off";
+  return `<button class="btn btn--quiet" aria-expanded="${on}" aria-controls="walk-drill-controls" onclick="setWalkDrillZone('${on ? "off" : "all"}')">${on ? "Hide drill zones" : "Show drill zones"}</button>
+    <div id="walk-drill-controls"${on ? "" : " hidden"}>
+      <p class="note">Four zones split at the fifty and between snake and dorito. Left and right follow this field view. Choose a zone, then add your drill in Note below.</p>
+      <div class="fld"><label for="walk-drill-area">Drill area</label><select id="walk-drill-area" onchange="setWalkDrillZone(this.value)">
+        <option value="all"${zone === "all" ? " selected" : ""}>All four zones</option>
+        ${WALK_ZONES.map(z => `<option value="${z.id}"${zone === z.id ? " selected" : ""}>${z.name}</option>`).join("")}
+      </select></div>
+    </div>`;
+}
+function walkDrillOverlay(){
+  const zone = walkDrillZone(); if(zone === "off") return "";
+  const area = WALK_ZONES.find(z => z.id === zone);
+  const hw = fieldW(), hh = fieldH(), W = hw * 2, H = hh * 2;   // a quarter is half the field each way, at scale 2
+  const cross = `M${hw} 0V${H} M0 ${hh}H${W}`;
+  return `<g class="walk-drill-zones" pointer-events="none" aria-hidden="true">
+    ${area ? `<rect class="walk-drill-focus" x="${area.x * hw + 1}" y="${area.y * hh + 1}" width="${hw - 2}" height="${hh - 2}" fill="#efedeb" fill-opacity=".04" stroke="#efedeb" stroke-width="1.5"/>` : ""}
+    <path d="${cross}" fill="none" stroke="#0b0c0d" stroke-width="3"/>
+    <path d="${cross}" fill="none" stroke="#efedeb" stroke-width="1" stroke-dasharray="4 4"/>
+    ${WALK_ZONES.map(z => `<text x="${z.x * hw + 8}" y="${z.y * hh + 19}" fill="#efedeb" stroke="#0b0c0d" stroke-width="3" paint-order="stroke" font-size="12" font-weight="700">${z.id.toUpperCase()}</text>`).join("")}
+  </g>`;
+}
 window.addWalk = () => {
   const pb = walkPickedBunker(), where = pb ? walkWhereOf(pb) : rosterVal("wkWhere");
   // Cut before the duplicate check, the way it is kept: a long note added
@@ -10032,8 +10500,9 @@ function walkRender(focus){
   // it carried the bunker and its sticky notes off the top of the screen.
   if(el){ el.value = typed; if(focus) el.focus({preventScroll: true}); }
 }
-window.walkTap = at => { const b = nearestBunker(at); if(b){ S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(true); } };
-window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false); };
+window.walkTap = at => { const b = nearestBunker(at); if(b){ stopWalkTour(); S.walkPick = walkWhereOf(b); S.walkShut = null; walkRender(!_walkView?.on); } };
+window.walkSelect = v => { stopWalkTour(); S.walkPick = v; S.walkShut = null; walkRender(false); };
+window.walkCloseNotes = id => { S.walkShut=id; walkRender(false); };
 (function walkTapping(){
   document.addEventListener("fieldtap", ev => {
     if(S.tab !== "more" || S.more !== "walk") return;
@@ -10041,12 +10510,18 @@ window.walkSelect = v => { S.walkPick = v; S.walkShut = null; walkRender(false);
     if(!surface) return;
     const svg = surface.closest("svg.field"); if(!svg) return;
     ev.preventDefault();
-    walkTap(fieldFeet(svg, ev));
+    if(_walkGesture?.moved || _walkGesture?.multi) return;
+    const scene=svg.querySelector("#walk-scene");
+    if(scene){
+      const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+      const p=pt.matrixTransform(scene.getScreenCTM().inverse());
+      walkTap([p.x/2,p.y/2]);
+    } else walkTap(fieldFeet(svg, ev));
   });
 })();
 function walkOverlay(){
   const noted = walkNotedIds(), bl = curLayout().bunkers;
-  let out = bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
+  let out = walkDrillOverlay() + bl.filter(b => noted.has(b.id)).map(b => `<circle cx="${(b.x*2).toFixed(1)}" cy="${(b.y*2).toFixed(1)}" r="3.2" fill="#efedeb" stroke="#0b0c0d" stroke-width="1.2"/>`).join("");
   const b = walkPickedBunker();
   if(b){
     const s2 = bunkerSize(b, 2, 2);
@@ -10071,7 +10546,7 @@ function walkStickies(){
     : `<div class="wnote wnote--empty" style="--tilt:-1deg"><p class="wnote__text">No notes on ${esc(callOf(b))} yet. Type one below and tap Add note.</p></div>`;
   return `<div class="wstick" id="walk-stickies" data-b="${esc(b.id)}" role="group" aria-label="${esc(`Notes on ${callOf(b)}`)}">
     <div class="wstick__head"><b>${esc(callOf(b))}</b><span>${mine.length ? mine.length + (mine.length === 1 ? " note" : " notes") : "no notes"}</span>
-      <button type="button" class="wstick__x" aria-label="Close the notes" onclick="set({walkShut:${jsq(b.id)}})">✕</button></div>
+      <button type="button" class="wstick__x" aria-label="Close the notes" onclick="walkCloseNotes(${jsq(b.id)})">✕</button></div>
     <div class="wstick__pad">${notes}</div></div>`;
 }
 // Beside the bunker, on the side with room, held inside the field.
@@ -10079,7 +10554,7 @@ function placeWalkStickies(){
   const el = document.getElementById("walk-stickies"), wrap = document.getElementById("walk-map");
   const svg = wrap && wrap.querySelector("svg.field"), b = el && curLayout().bunkers.find(x => x.id === el.dataset.b);
   if(!el || !svg || !b || !svg.getScreenCTM) return;
-  const ctm = svg.getScreenCTM(); if(!ctm) return;
+  const ctm = (svg.querySelector("#walk-scene") || svg).getScreenCTM(); if(!ctm) return;
   const pt = svg.createSVGPoint(); pt.x = b.x * 2; pt.y = b.y * 2;
   const at = pt.matrixTransform(ctm), box = wrap.getBoundingClientRect();
   const x = at.x - box.left, y = at.y - box.top, gap = 16, pad = 6;
@@ -10702,7 +11177,7 @@ function statsOverlay(t, metric = "visits"){
     const s2 = bunkerSize(b, sx, sy);
     let o = picked ? `<rect x="${(b.x*sx-s2.h-5).toFixed(1)}" y="${(b.y*sy-s2.v-5).toFixed(1)}" width="${(s2.h*2+10).toFixed(1)}" height="${(s2.v*2+10).toFixed(1)}" rx="5" fill="none" stroke="#fff" stroke-width="2.2"/>` : "";
     if(v && v[metric]){
-      const x = Math.min(b.x*sx + s2.h + 3, 297), y = Math.max(b.y*sy - s2.v - 3, 6), n = v[metric];
+      const x = Math.min(b.x*sx + s2.h + 3, fieldW()*sx - 3), y = Math.max(b.y*sy - s2.v - 3, 6), n = v[metric];
       o += `<g class="stat-n${statThin(v) ? " stat-n--thin" : ""}"${statThin(v) ? ` opacity=".5"` : ""}><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n > 9 ? 7 : 5.8}" fill="#0b0c0d" stroke="${v.outs ? "#e5252a" : "#ffb020"}" stroke-width="1.3"/>`
          + `<text x="${x.toFixed(1)}" y="${(y+2.3).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="800" fill="#fff">${n}</text></g>`;
     }
@@ -10955,12 +11430,12 @@ function bunkerShape(b, sx, sy){
     case "triin": {
       // A dorito printed on its side, pointing in at the 50 (the World Cup's
       // two corner doritos): w runs along the field, h across it.
-      const dir = b.x < 75 ? 1 : -1;
+      const dir = b.x < fiftyX() ? 1 : -1;
       return `<polygon points="${(x+s.h*dir).toFixed(2)},${y} ${(x-s.h*dir).toFixed(2)},${(y-s.v).toFixed(2)} ${(x-s.h*dir).toFixed(2)},${(y+s.v).toFixed(2)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
     }
     case "wing": {
       // Wings point away from the 50, toward their own end line.
-      const dir = b.x < 75 ? -1 : 1;
+      const dir = b.x < fiftyX() ? -1 : 1;
       return `<polygon points="${(x+s.h*dir).toFixed(2)},${y} ${(x-s.h*dir).toFixed(2)},${(y-s.v).toFixed(2)} ${(x-s.h*dir).toFixed(2)},${(y+s.v).toFixed(2)}" fill="${fill}" stroke="${edge}" ${sw} stroke-linejoin="round"/>`;
     }
     case "plus": {
@@ -11046,7 +11521,7 @@ function bunkerLabels(list, sx, sy){
       a.area += b.area; groups.splice(j, 1); joined = true; break;
     }
   }
-  const H = 120 * sy;
+  const H = fieldH() * sy;
 
   const placed = [];
   const hits = a => placed.some(b =>
@@ -11160,7 +11635,7 @@ function fieldRunners(opts={}){
 }
 function fieldSVG(opts={}, runnersOnly){
   const layout = curLayout();
-  const W=300,H=240,sx=W/150,sy=H/120;
+  const W=fieldW(layout)*2,H=fieldH(layout)*2,sx=2,sy=2;
   const M=18;                                  // margin for the side labels
   // and room at either end for a bunker standing on the end line, its rings
   // and the bar that marks your end, drawn outside it rather than over it.
@@ -11529,7 +12004,7 @@ function fieldSVG(opts={}, runnersOnly){
              + `<text x="${(b.x*sx).toFixed(1)}" y="${(b.y*sy-s2.v-6).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#e0a33a" font-weight="800" stroke="#000" stroke-width="2" paint-order="stroke">${esc(sh.tag)}</text></g>`; } }
   }
 
-  return `<svg class="field" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}">
+  return `<svg class="field" data-fw="${W/2}" data-fh="${H/2}" viewBox="${-FIELD_SIDE} ${-M} ${W+FIELD_SIDE*2} ${H+M*2}"${opts.walkExplore?' tabindex="0" role="group" aria-label="Explore the field. Left and right arrows turn; up and down zoom; Home fits the field."':""}>
     <defs>
       <!-- The official map paints every bunker red or blue; both are sampled
            from it. They sit a step darker than the wires (#e5342f / #3d8bff)
@@ -11553,6 +12028,7 @@ function fieldSVG(opts={}, runnersOnly){
       </filter>
     </defs>
 
+    ${opts.walkExplore?'<g id="walk-scene">':""}
     <rect x="${-FIELD_SIDE}" y="${-M}" width="${W+FIELD_SIDE*2}" height="${H+M*2}" fill="#0b0c0d"/>
     <rect width="${W}" height="${H}" fill="#101111"/>
     ${[...Array(10)].map((_,i)=>i%2?`<rect x="${i*(W/10)}" y="0" width="${W/10}" height="${H}" fill="#0c0d0e"/>`:"").join("")}
@@ -11589,6 +12065,7 @@ function fieldSVG(opts={}, runnersOnly){
 
     <text x="${W/2}" y="${-M+8}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">DORITO SIDE</text>
     <text x="${W/2}" y="${H+M-4}" text-anchor="middle" fill="#8d9092" font-size="8" font-weight="700" letter-spacing="1.6">SNAKE SIDE</text>
+    ${opts.walkExplore?"</g>":""}
   </svg>`;
 }
 
@@ -14284,6 +14761,7 @@ function syncCanPaint(){
 }
 function seasonReceiveIdle(){
   if(typeof document === "undefined" || document.visibilityState === "hidden" || Date.now()-_seasonInputAt < 4000) return false;
+  if(S.mediaView?.draft) return false;
   if(!syncCanPaint()) return false;
   if([...document.querySelectorAll('dialog[open],[role="dialog"],.voice-live[data-listening="true"]')].some(el=>el.getClientRects().length)) return false;
   if(S.tallyDraft || S.tallySel || S.tallyEdit || S.tallyPlace || S.tallyPickFor || S.theirPick?.length || S.theirFix || S.pad || S.building || S.fieldEdit || S.editPath || S.quick || S.quickPick || S.penOpen || S.gameNew || S.gamePaste || S.calNew || S.calCustom || S.paste || S.codePick || S.codeName || S.bcName || S.asWho || S.showTutorial || S.clockEnd || S.rep?.running || copyDraft) return false;
@@ -15020,7 +15498,7 @@ function nearestBunker(at){
 }
 // Which pit a man breaking to this bunker came from: yours run from the left,
 // and a bunker past the fifty is somebody else's plant. One tap says otherwise.
-const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < 75 : b.x > 75) ? "us" : "them";
+const sideOfBunker = (b, pt) => ((ourEnd(pt) === "left") ? b.x < fiftyX() : b.x > fiftyX()) ? "us" : "them";
 /* Every answer on the breakout sheet is one tap, and a thumb between points
  * misses. Each change keeps the answer it replaced, so Undo takes back the
  * last tap and Clear starts this man over — never the whole point. Kept for
@@ -15075,10 +15553,11 @@ window.selectBunker = id => {
  */
 // The centre of a goal line, anchored on its back-centre bunker.
 function goalStart(layout, fromRight){
+  const W = fieldW(layout), mid = fieldH(layout) / 2, backBand = W * 20 / fieldW(null);
   const mine = fromRight
-    ? layout.bunkers.filter(b => b.x > 130) : layout.bunkers.filter(b => b.x < 20);
-  const back = mine.sort((a, b) => Math.abs(a.y - 60) - Math.abs(b.y - 60))[0];
-  return fromRight ? [147, back ? back.y : 60] : [3, back ? back.y : 60];
+    ? layout.bunkers.filter(b => b.x > W - backBand) : layout.bunkers.filter(b => b.x < backBand);
+  const back = mine.sort((a, b) => Math.abs(a.y - mid) - Math.abs(b.y - mid))[0];
+  return fromRight ? [W - 3, back ? back.y : mid] : [3, back ? back.y : mid];
 }
 // Which goal line a charted man left from: his side's end on that point.
 function rowFromRight(row){ return (row.side === "them") === (ourEnd(row.pt, matchById(row.m)) === "left"); }
@@ -15107,7 +15586,7 @@ function autoRouteFresh(row, layout, b, fromRight){
      and tightened only where wide finds nothing — the difference between a run
      that goes round and a straight line drawn through a bunker. */
   const padKey = layout.key || row.layout;
-  if(!_padCache.has(padKey)) _padCache.set(padKey, [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w)));
+  if(!_padCache.has(padKey)) _padCache.set(padKey, [0.9, 0.5, 0.2].map(w => routeObstacles(layout.bunkers, w, layout)));
   const pads = _padCache.get(padKey);
   /* Where a point actually starts: the centre of his own back line, anchored on
      the back-centre bunker the same way breakPaths does it. A flat [2,60] is a
@@ -15764,7 +16243,7 @@ function breakoutSheet(){
     ? (wm ? theirNames() : mine.length ? mine : (S.roster || []).length ? S.roster.map(r => r.name) : ["1","2","3","4","5"])
     : theirNames();
   const others = bl.filter(o => o.id !== b.id);
-  const far = others.filter(o => ((side === "us") === (ourEnd(rowPt) === "left")) ? o.x > 75 : o.x < 75);
+  const far = others.filter(o => ((side === "us") === (ourEnd(rowPt) === "left")) ? o.x > fiftyX() : o.x < fiftyX());
   const opts = (list, val) => `<option value="">—</option>` + list.map(o =>
     `<option value="${esc(o.id)}" ${val === o.id ? "selected" : ""}>${esc(callOf(o))} · ${esc(o.id)}</option>`).join("");
   const seg = items => `<div class="seg seg--wrap">${items.map(([on, label, click]) =>
@@ -17901,9 +18380,10 @@ function arrivalGeometry(key){
   const hit = _arrivalGeometryCache.get(key); if(hit && hit.layout === LAYOUTS[key]) return hit;
   const layout = LAYOUTS[key];
   if(!layout) return null;
-  const obstacles = routeObstacles(layout.bunkers, 0.9);
+  const obstacles = routeObstacles(layout.bunkers, 0.9, layout);
+  const FW = fieldW(layout), FH = fieldH(layout);
   const inside = (p,o) => Math.abs(p[0]-o.x) <= o.hw && Math.abs(p[1]-o.y) <= o.hh;
-  const free = p => p.every(Number.isFinite) && p[0] > 1 && p[0] < 149 && p[1] > 1 && p[1] < 119
+  const free = p => p.every(Number.isFinite) && p[0] > 1 && p[0] < FW - 1 && p[1] > 1 && p[1] < FH - 1
     && !obstacles.some(o => inside(p,o));
   const clear = (a,b) => !obstacles.some(o => segHitsBox(a[0],a[1],b[0],b[1],o.x,o.y,o.hw,o.hh));
   // A bunker coordinate is its centre, not a place a player can stand. Put
@@ -17921,9 +18401,9 @@ function arrivalGeometry(key){
     })[0] || null;
   };
   const station = end => {
-    const x = end === "right" ? 147 : 3;
-    const candidates = [[x,60]];
-    for(let gap=2; gap<=24; gap+=2) candidates.push([x,60-gap],[x,60+gap]);
+    const x = end === "right" ? FW - 3 : 3, cy = FH / 2;
+    const candidates = [[x,cy]];
+    for(let gap=2; gap<=24; gap+=2) candidates.push([x,cy-gap],[x,cy+gap]);
     return candidates.find(free) || null;
   };
   const leg = (a,b) => {
@@ -17934,7 +18414,7 @@ function arrivalGeometry(key){
     if(points.some((p,i) => i && !clear(points[i-1],p))) return null;
     return {points, length:points.reduce((n,p,i) => n + (i ? Math.hypot(p[0]-points[i-1][0],p[1]-points[i-1][1]) : 0),0)};
   };
-  const result = {layout,obstacles,free,clear,stand,station,leg};
+  const result = {layout,obstacles,free,clear,stand,station,leg,FW,FH};
   _arrivalGeometryCache.set(key,result);
   return result;
 }
@@ -17986,8 +18466,8 @@ function arrivalRoutes(layoutKey, options = {}){
   const longest = legs.reduce((best,p,i) => p.length > (legs[best] || {length:-1}).length ? i : best,0);
   if(legs.length && legs[longest].length > 10){
     const base = legs[longest], a = base.points[0], b = base.points[base.points.length-1];
-    [["dorito","Dorito-side alternative",3],["snake","Snake-side alternative",117]].forEach(([id,label,y]) => {
-      const mid = Math.max(6,Math.min(144,(a[0]+b[0])/2));
+    [["dorito","Dorito-side alternative",3],["snake","Snake-side alternative",g.FH - 3]].forEach(([id,label,y]) => {
+      const mid = Math.max(6,Math.min(g.FW - 6,(a[0]+b[0])/2));
       const via = [mid,mid-8,mid+8].map(x=>[x,y]).find(g.free);
       if(!via) return;
       const first = g.leg(a,via), second = g.leg(via,b);
@@ -18394,16 +18874,16 @@ function pit(side,T,label){
     </div>
     <div class="fld"><label>Threat${T.threat ? "" : ` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--dim)">· not scored — tap a star</span>`}</label><div class="stars">${stars(T.threat,side)}</div></div>
     <div class="fld"><label>Notes</label>
-      <textarea onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
+      <textarea aria-label="Notes about ${esc(T.name)}" onchange="setPitNotes('${side}',this.value)" placeholder="Break tendencies, weaknesses, how they trade…">${esc(T.notes)}</textarea>
     </div>
 
     ${side === "right" && T.named ? `<button class="btn btn--block" onclick="openPrep(${jsq(T.name)})">Before you play ${esc(T.name)} ›</button>` : ""}
     <div class="fld"><label>Their five${men.length?" · "+men.length+" logged":""}${
         men.filter(m=>m.from==="published").length?" · "+men.filter(m=>m.from==="published").length+" off a published roster":""}</label>
       ${men.length?`<div class="rost">${men.map((m,i)=>`<div class="rost__p">
-          <input class="rost__num" value="${esc(m.num)}" placeholder="#" inputmode="numeric"
+          <input class="rost__num" aria-label="Player ${i+1} jersey number" value="${esc(m.num)}" placeholder="#" inputmode="numeric"
             onchange="editScoutPlayer('${side}',${i},'num',this.value)"/>
-          <input value="${esc(m.name)}" placeholder="name, if you know it"
+          <input aria-label="Player ${i+1} name" value="${esc(m.name)}" placeholder="name, if you know it"
             onchange="editScoutPlayer('${side}',${i},'name',this.value)"/>
           <button class="btn btn--danger" onclick="delScoutPlayer('${side}',${i})">Remove</button>
           <div class="rost__ps rost__ps--pit">
@@ -18424,7 +18904,7 @@ function pit(side,T,label){
             <button class="btn btn--quiet" style="grid-column:1/-1" onclick="openArrival('${side}',${i})">How did they get there?</button>
           </div>
           ${m.suggested ? `<details class="film-suggestion"><summary>Suggested film note${m.confidence ? " · " + esc(m.confidence) : ""}</summary><p class="note">${esc(m.note)}</p></details>` : ""}
-          <input style="grid-column:1/-1" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
+          <input style="grid-column:1/-1" aria-label="Player ${i+1} notes" value="${esc(m.note)}" placeholder="goes on the buzzer, quiet gun off the break…"
             onchange="editScoutPlayer('${side}',${i},'note',this.value)"/>
         </div>`).join("")}</div>`
         :`<div class="empty">No one logged on ${esc(T.name)} yet. A jersey number is enough to start — the name can come later.</div>`}
@@ -18438,8 +18918,8 @@ function pit(side,T,label){
         : ""}
       ${evdPitSec(side, T)}
       <div class="rost__add">
-        <input id="sp-num-${side}" class="rost__num" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
-        <input id="sp-name-${side}" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
+        <input id="sp-num-${side}" class="rost__num" aria-label="New player jersey number" placeholder="#" inputmode="numeric" ${onEnter(`addScoutPlayer('${side}')`)}/>
+        <input id="sp-name-${side}" aria-label="New player name (optional)" placeholder="Name (optional)" ${onEnter(`addScoutPlayer('${side}')`)}/>
         <div class="rost__ps">
           <label><span class="note">Wire</span>
             <select id="sp-wire-${side}">${SCOUT_WIRES.map(w=>`<option${w === "Flex" ? " selected" : ""}>${w}</option>`).join("")}</select></label>
@@ -19276,7 +19756,7 @@ function sightlines(){
   const list=curLayout().bunkers;
   const from=S.sightFrom && list.some(b=>b.id===S.sightFrom) ? S.sightFrom : sightDefault();
   const standing=S.sightStand==="standing";
-  const res=sightLines(from,300/150,240/120,standing);
+  const res=sightLines(from,2,2,standing);
   const lane=S.sightTo ? res.lines.find(l=>l.to.id===S.sightTo) : null;
   const aimed=S.sightTo && S.sightAim ? aimLane(from, S.sightAim, standing) : null;
   const over=standing ? [...new Set(curLayout().bunkers.filter(underEyes).map(b=>b.n))] : [];
@@ -19720,7 +20200,11 @@ async function fieldPicture(svg, caption){
   // The page's stylesheet does not travel with a picture: each shape takes
   // the colours it is drawn in now, as its own.
   from.forEach((el, i) => { const cs = getComputedStyle(el); to[i].setAttribute("style", FIELD_PIC_PROPS.map(k => `${k}:${cs.getPropertyValue(k)}`).join(";")); });
-  const vb = svg.viewBox.baseVal, W = 1200, H = Math.round(W * (vb && vb.width ? vb.height / vb.width : 0.8)), foot = 64;
+  const vb = svg.viewBox.baseVal, W = 1200, foot = 64, aspect = fieldW() / fieldH();
+  // Keep a 10v10 handout at the field's 4:3 shape, caption included. The SVG
+  // fits its whole viewBox inside it, so wire labels stay and nothing stretches.
+  const H = curLayout().size === "10v10" ? Math.round(W / aspect) - foot
+    : Math.round(W * (vb && vb.width ? vb.height / vb.width : 1 / aspect));
   copy.setAttribute("xmlns", "http://www.w3.org/2000/svg"); copy.setAttribute("width", W); copy.setAttribute("height", H);
   const img = new Image();
   await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error("The picture could not be drawn.")); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(copy)); });
@@ -19805,6 +20289,11 @@ window.sendBlast = () => {
    generated: if a screen changes, this changes with it, and the suite fails
    when a screen has no entry. */
 const HELP = {
+  "more/media": {t:"Media", w:"Your photographers and media crews in one place.",
+    how:["Add a contact with their coverage type, location, event and contact details. A portfolio or social page must start with https://.",
+      "Search by name, location or event, or filter by coverage. Edit updates a contact; Remove asks first.",
+      "Contacts stay in your season and full backup. Optional League sync carries them with that season. They are not included when sharing one match or your squad."],
+    watch:"This is your saved directory, not a public listing or a booking service. Confirm availability with the crew. Opening a link needs a connection."},
   home: {t:"Home", w:"Choose what you need to do next.",
     how:["Playbook plans your break. Tally records your match. Scout records other teams. Sightlines checks lanes between bunkers.",
          "Your team's day opens Schedule, where you choose your team and see its loaded games.",
@@ -19924,8 +20413,19 @@ const HELP = {
          "Erase rubs out a stroke you drag over; Undo takes back the last mark; Wipe clears the board.",
          "Blank swaps the field for a dark board when you want to draw from scratch."],
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
+  "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
+    how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
+      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
+      "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
+      "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
+      "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
+    watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
+         "Explore field turns and zooms the measured field plan. Drag sideways, use the buttons, or focus the field and use arrow keys. Whole field resets the view. Bunker heights are not shown.",
+         "Start tour makes one slow turn. Stop tour or Escape stops it; leaving Walk stops it too. Reduced-motion settings keep the view manual. Pick a bunker, then Focus bunker for a closer look. Your saved team names and notes stay with that bunker.",
+         "Show drill zones divides this layout into four labelled areas. Choose a zone and save your drill as a field note. It does not record a match result.",
          "Tap the bunker on the field, or pick a wire, and write what you noticed standing there.",
          "Tap a bunker and its notes pop up beside it on the field, like sticky notes; ✕ puts them away, and tapping the bunker again brings them back.",
          "Notes are kept per field, so they follow the event."]},
@@ -20026,19 +20526,20 @@ const HELP = {
          "Team is the between-events half: Scout, Cards, Rep, Assess and every sheet you have kept.",
          "Restore purchases asks the store, through the Apple ID or Google account the phone already has — there is no separate sign-up for the plan."];},
     watch:"Save a copy is free on every plan. Your backup is never behind a wall."},
-  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and fields.",
+  "more/nexus": {t:"Account & backups", w:"Nexus: your sign-in, saved season and the event fields.",
     get how(){return ["Install on this phone, at the top, puts Gridlock on your home screen like any app. It is gone once the app is installed.",
          "Save a copy is your backup and how you move to another phone.",
          "Keep the screen awake is on by default and costs nothing in a pocket.",
          canSync() ? "League sync uploads your full season and keeps one current copy with your account on our account server. Gridlock PB LLC's administrators can review it. It is off until you turn it on." : "League sync, where your league offers it, sends your season to their admin — off until you turn it on.",
          "Every field the app carries is listed with where its map came from.",
-         "Build a field for an event or a park the app does not carry: name it, pick a bunker, tap where it sits on the left half — its twin appears across the fifty. Tap a bunker to pick it, then Turn, move it or take it off. Eight bunkers and it can be played on, and the twelve calls plant on it by themselves.",
+         "Fields you build are kept apart from the event fields: More › Field builder, where Your fields picks one.",
          "Load a copy: Merge adds what the copy has; Replace throws this phone's season away, and asks first when there is one.",
          ...(cloudPageLinks() ? ["Privacy and Support open the public pages in a new tab, here and on Help."] : [])];},
     get watch(){return canSync() ? "Save a copy before every event to keep a backup you control. In Nexus you can pause League sync, review or restore the server copy, or delete what you sent. Pausing does not delete the copy. Delete account removes your login and the League sync copy." :"Save a copy before every event to keep a backup you control. League sync shares one current season copy when you turn it on. You can review or restore that copy, pause sharing or remove the upload from Nexus.";}},
 };
 /* The questions a coach actually asks, in the words he asks them. */
 const HELP_Q = [
+  ["Where do I keep photographers and media crews?", "Open More → Media. Add the contacts you know, then search by name, location or event and filter Photo, Video or Media crew. Gridlock does not book coverage or verify availability. Full backups and optional League sync include these contacts; squad and match shares do not."],
   ["Can I print the schedule or reports?", "Yes. Open Schedule, Reports or the daily bunker table and tap Print / Save PDF. Schedule prints your selected team's games in the selected division, or all games in that division if no team is chosen. Reports and the daily table keep your filters. Choose an available printer or Save as PDF in your browser. A wireless printer must be available to your device; printing does not change your season."],
   ["Who is playing at the World Cup?", "Scout › Division › NXL World Cup 2026, then pick the division from the list under it. Every team entered is there with its registration, read off PBLeagues on 8 Nov 2026. Tap a team to put it in the right pit. Their rosters come from the event data file: load it under More › Account & backups › Event data, and each entry's roster and its people's published history show on the pit card. Without it, paste their roster from a screenshot on the pit card."],
   ["Why does a player have no history?", "The World Cup package has not read every player's history yet. Not retrieved means unknown, not none. What is there is published classification and scored-event rows, not a whole career, and a classification score is not a match score. Jerseys and most hometowns are not published, so they stay blank."],
@@ -20056,7 +20557,7 @@ const HELP_Q = [
   ["We run a play the app doesn't have.", "Write it. On Playbook, tap + Yours under the field: name it, then tap the bunker each of your five plants on, in order. The app draws the runs, works out who leaves on the buzzer, and from then on it is one of your calls — Face, Shot, Go, Job, logging, self-scout, Cards and the Rep drill all work on it exactly like the built-in twelve. A play is the five bunkers, so it asks you to build it again at the next event, on that field."],
   ["Can my assistant coach log too?", "Yes, on his own phone. Matches, then This match: Send this sheet to another coach hands him that one match, and he sends his back the same way. Each loads it under Nexus, Load a copy, Merge, and a point both of you logged is kept once. Save a copy hands over the whole season instead."],
   ["Can I put the event's map under my field?", "Yes. In Build a field, Put the event's map under it takes a screenshot or a photo of the map. Crop it to the field's edges first — it is stretched to fill the field — and Turn the map until the ends are left and right. Place each bunker over the one the map prints: it takes the red or blue the map shows under it, and stays grey on anything else. The map is only a guide to tap over; the sizes are still the measured inflatables, and it travels with the field in Save a copy."],
-  ["Can I use my own field?", "Yes. More › Nexus › Events, Build a field: name it, pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy."],
+  ["Can I use my own field?", "Yes. More › Field builder: name it, choose its size — the standard 150 × 120 ft or 10v10's 200 × 150 ft — pick a bunker type and tap where it sits on the left half — the twin appears across the fifty. Sizes are the measured inflatables, so you only ever choose where a bunker goes. Eight bunkers and Use this field puts it on every tab; the twelve calls plant on it by themselves, and it travels in Save a copy. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture."],
   ["How do I get rid of a sheet I started by mistake?", "More › Matches. Delete this sheet takes the one you are on; Delete on a row in the kept list takes that one. Everything logged on it goes with it — the score, the outs, the chart, the calls — so it asks first, and it cannot be undone. Save a copy first if any of it matters. A copy of your season merged in later will not bring it back; a sheet sent on its own and merged on purpose will."],
   ["Two of us are charting one match. How do we put it together?", "More › Matches › This match, Send this sheet to another coach. It sends that one match only — the score, the outs, the break chart, the calls and their five on it — never the rest of your season. On his phone: Nexus › Load a copy, pick the file, Merge it in, then Open under the message. He charts his half and sends it back the same way; rows already there are skipped, so nothing is counted twice — and if you both logged the same call, the same out or the same man on a point, it is kept once. If your two phones scored a point differently, yours is kept and the message names the point so you can fix it. Replace refuses a sheet, because one match is not a season. Send the file however you normally share files: AirDrop, a message or mail."],
   ["Where did my season go?", () => canSync() ? "Check More › Matches for an old sheet. On another device, sign in with the same email and choose Use my saved season the first time. With sync on, saved codes, bunker names and season details arrive when you return or while the app is visible and idle. Updates wait while you type or record; changes on both devices need your choice. Sync now before switching devices. More › Account & backups › Get saved season checks now. League sync must have saved the season first. That full-season copy is kept with your account on our account server, where Gridlock PB LLC's administrators can review it. Keep a file before every event for older versions." : "Nothing is deleted by the app. Check More, then Matches: an old sheet is still there, and opening one puts you back on its last point. If the phone was wiped, load a file you previously saved from Nexus. If you had League sync on, sign in and review the cloud copy in Nexus before restoring it. Keep a file before every event so you also have older versions."],
@@ -20067,7 +20568,7 @@ const HELP_Q = [
   ["I rotate players between points.", "Tap Who's on above your five on the point sheet — it is there whenever your roster has more than five. Tap a man to take him off, tap another to put him on. That five stands on every point after it until you change it, and Playbook and the cards name them. More › Lineups sets the slot order."],
   ["When did I last back up?", () => canSync() ? "More › Matches says when you last saved a file. Nexus › Save a copy keeps a backup you control. League sync keeps one current full-season copy with your account on our account server; Gridlock PB LLC's administrators can review it. It is not a history of backups. Pause, review/restore or delete it in Nexus." : "The sheet says so when a match is over, and More › Matches says so under the record: how many days since the last copy, or that none has been made. It only speaks up when there is something logged and the copy is a week old or missing. Nexus › Save a copy keeps a backup you control. League sync holds one current shared copy when you turn it on; it is not a history of backups."],
   ["What's my record today?", "More › Matches, at the top: won, lost and open sheets at this event. A sheet counts once it is over — the race reached or Time's up — so set Race to under More › Format and it counts itself. A game you watched is not in it."],
-  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — tap Build a field there: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
+  ["My event's field isn't in the app.", "The fields in this build are measured off each event's own map — the NXL's official maps, the USXBL JT Championship's off the map its coach sent, the USXBL GP Championships' at Paintball Fit off the 3D render its coach sent, and the WCPPL Championship's at SC Village off the map its coach sent; they are listed under More › Nexus › Events. For any other field — a regional, your home park — open More › Field builder: name it, pick each bunker type and tap where it sits, with the event's map under it if you have one. It says on the list that you placed it by eye, and the twelve calls plant on it by themselves."],
   ["How long between points?", "Set Clock between points under More › Format. In Standard mode it starts when you score a point, shows in the header on every tab, and a tap stops it. For split deck, choose Split deck on Format and use its controls on Tally. The game clock always belongs to the official."],
   ["We play split deck. How do I track it?", "More › Format › Split deck. On Tally, score our point as usual, then the card says Other match playing. When their point ends, tap Other point ended. The preparation timer keeps our minimum break as well as the changeover. Tap Our point is starting on the official's signal. Their point never changes our score. If their whole match ends, open Has the other match ended? and tap Other match is over. After a reload, check which match is on before continuing."],
   ["I tapped the wrong thing on a breakout.", "On the open sheet, ↶ Undo takes back your last tap and Clear all starts that man over — nothing else on the point moves. ✕ beside Shooting at, Moved to or Shot from clears just that answer. Done closes the sheet without logging him. Already logged? Fix it under the field, or Fix in Breakouts, opens him with his answers; Undo takes him off."],
@@ -21028,6 +21529,115 @@ window.resumeCoachSheet = () => {
   if(sheetField()) openMatchNow(m.id);
   set({tab:m.watch ? "scout" : "tally", scoutTab:"matchup", more:null}); toMainTop();
 };
+
+// The hunt is separate from coaching data. Practice is never a prize claim.
+const HUNT_PRACTICE = [
+  {title:"The missing pod",clue:"Nobody admits dropping it. Everybody wants it back. What carries your spare paint?",options:["A pod","The score sheet","A very tired referee"],answer:0,piece:"Gridlock".replace(/[^a-z0-9]/gi,"").toUpperCase()},
+  {title:"Talk in code",clue:"Your team calls a bunker 'Pizza'. Where do you keep that word so everybody means the same thing?",options:["Schedule","Codes","The concession stand"],answer:1,piece:"RUNS"},
+  {title:"Eyes on them",clue:"Your next opponent is playing. Which tool keeps what you see?",options:["Tally","Playbook","Scout"],answer:2,piece:"ON"},
+  {title:"The pit mystery",clue:"You brought six. You came home with two. Nobody borrowed any. What vanished?",options:["Your ability to count","Pods","The entire field"],answer:1,piece:"PODS"}
+];
+let _hunt=null, _huntReturn=null, _huntHidden=null;
+function huntOwner(){ return JSON.stringify([S.entered,S.email,syncAskId(),_authAttempt]); }
+function guardHunt(){ if(_hunt && (!S.entered || webPassLocked() || _hunt.owner!==huntOwner() || S.tab!=="more" || S.more!=="home")) closeHunt(); }
+window.openHunt=()=>{
+  if(!S.entered || webPassLocked() || S.tab!=="more" || S.more!=="home") return;
+  if(_hunt) return;
+  _hunt={owner:huntOwner(),step:0,pieces:[],mode:"practice",busy:false,said:"",done:false};
+  _huntReturn=document.activeElement;
+  const el=document.createElement("div");el.id="pod-hunt";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-labelledby","hunt-title");
+  el.addEventListener("keydown",ev=>{
+    if(ev.key==="Escape"){ev.preventDefault();closeHunt();return;}
+    if(ev.key!=="Tab")return;
+    const a=[...el.querySelectorAll("button,input,[tabindex]")].filter(x=>!x.disabled&&x.tabIndex>=0&&x.getClientRects().length),first=a[0],last=a[a.length-1];
+    if(ev.shiftKey&&document.activeElement===first){ev.preventDefault();last?.focus();}
+    else if(!ev.shiftKey&&document.activeElement===last){ev.preventDefault();first?.focus();}
+  });
+  document.body.append(el);drawHunt();
+  const root=document.getElementById("root");_huntHidden=root.getAttribute("aria-hidden");root.setAttribute("aria-hidden","true");
+};
+window.closeHunt=()=>{
+  if(!_hunt)return;
+  _hunt=null;document.getElementById("pod-hunt")?.remove();
+  const root=document.getElementById("root");if(_huntHidden===null)root.removeAttribute("aria-hidden");else root.setAttribute("aria-hidden",_huntHidden);
+  _huntHidden=null;const back=_huntReturn;_huntReturn=null;if(back?.isConnected)back.focus({preventScroll:true});
+};
+function drawHunt(){
+  const h=_hunt,el=document.getElementById("pod-hunt");if(!h||!el)return;
+  const live=h.mode==="live",stage=live?h.stage:HUNT_PRACTICE[h.step],pieces=h.pieces||[];
+  el.innerHTML=`<style>
+    #pod-hunt{position:fixed;inset:0;z-index:9999;overflow:auto;overscroll-behavior:contain;background:#0b0c0d;color:#efedeb;padding:16px;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+    #pod-hunt .hunt-body{max-width:640px;margin:0 auto;padding-bottom:20px;overflow-wrap:anywhere}
+    #pod-hunt .hunt-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    #pod-hunt h2{font-size:clamp(24px,6vw,38px);line-height:1.12;margin:12px 0}
+    #pod-hunt .hunt-note{color:#ff5a52;line-height:1.5;max-width:58ch}
+    #pod-hunt .hunt-choices{display:grid;gap:10px;margin:20px 0}
+    #pod-hunt button,#pod-hunt input{min-height:48px;min-width:44px;max-width:100%;font:inherit}
+    #pod-hunt input{display:block;box-sizing:border-box;width:100%;margin:8px 0 16px;padding:10px;background:#111314;color:#efedeb;border:1px solid #ff5a52;border-radius:8px}
+    #pod-hunt .hunt-locks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0}
+    @media(max-width:480px){#pod-hunt .hunt-locks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    #pod-hunt .hunt-locks span{border:1px solid #ff5a52;border-radius:8px;padding:8px;flex:1;text-align:center;font-weight:800}
+    #pod-hunt .hunt-locks .found{background:#ad1515;color:#fff}
+    #pod-hunt .hunt-pod{display:block;width:92px;height:104px;margin:20px auto}
+    #pod-hunt button:focus-visible,#pod-hunt input:focus-visible{outline:3px solid #efedeb;outline-offset:3px}
+    #pod-hunt .hunt-status{min-height:24px;color:#ff5a52}
+  </style><div class="hunt-body">
+    <div class="hunt-top"><b>${live?"Prize hunt":"Practice hunt"}</b><button class="btn btn--quiet" onclick="closeHunt()">Close</button></div>
+    <svg class="hunt-pod" viewBox="0 0 92 104" aria-hidden="true"><path d="M24 20h44v67q0 11-22 11T24 87Z" fill="#ad1515" stroke="#efedeb" stroke-width="2"/><path d="M22 10h48v12H22Z" fill="#efedeb"/><path d="M31 34v44" stroke="#ff5a52" stroke-width="4"/><text x="46" y="68" text-anchor="middle" fill="#efedeb" font-size="34" font-weight="900">?</text></svg>
+    <h2 id="hunt-title" tabindex="-1">${h.done?(live?"Claim confirmed":"You cracked it"):esc(stage?.title||"Put the code together")}</h2>
+    <p class="hunt-note">${live?esc(h.prize||""):"Four clues. One missing pod. The prize round has not started. Prize to be announced."}</p>
+    ${live?`<details><summary style="min-height:44px;display:flex;align-items:center">Round rules</summary><p style="white-space:pre-wrap">${esc(h.rules)}</p></details>`:""}
+    <div class="hunt-locks" aria-label="Code pieces">${[0,1,2,3].map(i=>`<span class="${pieces[i]?"found":""}">${pieces[i]?esc(pieces[i]):i+1}</span>`).join("")}</div>
+    ${h.done?`<p>${live?"The server recorded your team's claim. Keep this reference: <b>"+esc(h.receipt)+"</b>.":"Practice complete. No prize claimed and no account access changed. Keep the code between you and the pit crew."}</p>`:stage?`<p>${esc(stage.clue)}</p><div class="hunt-choices">${stage.options.map((v,i)=>`<button class="btn btn--quiet" ${h.busy?"disabled":""} onclick="huntAnswer(${i})">${esc(v)}</button>`).join("")}</div>`:`<form onsubmit="event.preventDefault();huntFinish()"><label for="hunt-code">Secret code · join the four pieces</label><input id="hunt-code" maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false" required value="${esc(h.code||"")}" oninput="_hunt.code=this.value" ${h.busy?"disabled":""}/>${live?`<label for="hunt-team">Team name for your entry</label><input id="hunt-team" maxlength="80" autocomplete="off" required value="${esc(h.team||"")}" oninput="_hunt.team=this.value"/><p class="hunt-note">This entry uses your signed-in account. A team name does not verify team membership.</p>`:""}<button class="btn" ${h.busy?"disabled":""}>${live?"Submit team claim":"Try the code"}</button></form>`}
+    <p id="hunt-status" class="hunt-status" role="status" aria-live="polite">${esc(h.said)}</p>
+    ${!live?`<button class="btn btn--quiet" ${h.busy?"disabled":""} onclick="huntCheck()">Check prize round</button>`:""}
+    ${h.done&&!live?'<button class="btn btn--quiet" onclick="closeHunt();openHunt()">Play again</button>':""}
+  </div>`;
+  el.querySelector("#hunt-title")?.focus({preventScroll:true});el.scrollTop=0;
+}
+function huntSaid(text){const el=document.getElementById("hunt-status");if(_hunt)_hunt.said=text;if(el)el.textContent=text;}
+window.huntAnswer=async choice=>{
+  guardHunt();const h=_hunt;if(!h||h.busy||h.done)return;
+  if(!Number.isInteger(choice)||choice<0||choice>2)return;
+  if(h.mode==="live")return huntSend({action:"answer",round:h.round,stage:h.step,choice});
+  const stage=HUNT_PRACTICE[h.step];if(!stage)return;
+  if(choice!==stage.answer)return huntSaid("Not that one. Check the clue and try again.");
+  h.pieces.push(stage.piece);h.step++;h.said="Code piece found.";drawHunt();
+};
+window.huntFinish=async()=>{
+  guardHunt();const h=_hunt;if(!h||h.busy||h.done||h.step!==4)return;
+  const code=document.getElementById("hunt-code")?.value||"";
+  if(h.mode==="live")return huntSend({action:"claim",round:h.round,code,team:document.getElementById("hunt-team")?.value||""});
+  if(code.replace(/[^a-z0-9]/gi,"").toUpperCase()!==h.pieces.join(""))return huntSaid("Join the four pieces in order. Try again.");
+  h.done=true;h.said="The missing pods remain suspiciously missing.";drawHunt();
+};
+window.huntCheck=()=>huntSend({action:"status"});
+async function huntSend(data){
+  guardHunt();const h=_hunt;if(!h||h.busy)return;
+  const cloud=window.gridlockCloud;
+  if(typeof cloud?.huntRequest!=="function")return huntSaid("The prize round is not open here. You can play the practice hunt.");
+  h.busy=true;huntSaid("Checking the prize round…");
+  document.querySelectorAll("#pod-hunt button:not(.hunt-top button)").forEach(b=>b.disabled=true);
+  // Disabling the tapped button can send focus to the page behind the dialog.
+  // Keep Escape and the focus trap usable while the server is answering.
+  document.getElementById("hunt-title")?.focus({preventScroll:true});
+  try{
+    const r=await cloud.huntRequest(data);
+    guardHunt();if(_hunt!==h||cloud!==window.gridlockCloud)return;
+    if(!r?.ok){huntSaid(r?.said||"No claim confirmed. Check your connection and try again.");return;}
+    if(r.state==="inactive"){huntSaid("The prize round is not open. No claim confirmed.");return;}
+    if(r.state==="claimed"){
+      Object.assign(h,{mode:"practice",step:0,pieces:[],done:false,busy:false,code:"",team:"",said:"Another team has already claimed this round. Practice is still open."});drawHunt();return;
+    }
+    if(!["open","winner"].includes(r.state)||typeof r.round!=="string"||!r.round||r.round.length>80||!Number.isInteger(r.step)||r.step<0||r.step>4||!Array.isArray(r.pieces)||r.pieces.length!==r.step||r.pieces.some(x=>typeof x!=="string"||x.length>20)||typeof r.prize!=="string"||r.prize.length>500||typeof r.rules!=="string"||!r.rules||r.rules.length>4000)throw Error("Invalid round");
+    if(r.state==="open"&&r.step<4&&(!r.stage||typeof r.stage.title!=="string"||typeof r.stage.clue!=="string"||!Array.isArray(r.stage.options)||r.stage.options.length!==3||r.stage.options.some(x=>typeof x!=="string")))throw Error("Invalid clue");
+    if(r.state==="winner"&&(typeof r.receipt!=="string"||!r.receipt||r.step!==4))throw Error("Unconfirmed claim");
+    Object.assign(h,{mode:"live",round:r.round,step:r.step,pieces:r.pieces,stage:r.stage,prize:r.prize,rules:r.rules,done:r.state==="winner",receipt:r.receipt,said:r.said||""});
+    h.busy=false;drawHunt();
+  }catch(e){if(_hunt===h)huntSaid("No claim confirmed. Check your connection and try again.");}
+  finally{if(_hunt===h){h.busy=false;document.querySelectorAll("#pod-hunt button").forEach(b=>b.disabled=false);}}
+}
+
 // Orientation only: these cards use the same guarded screens as the main tabs.
 // Rendering Home never starts a match or changes a team, point or saved record.
 function coachHome(){
@@ -21055,7 +21665,7 @@ function coachHome(){
       <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'schedule'})">${team ? "Open schedule" : "Choose your team"}</button>
       <button class="btn btn--quiet" onclick="set({tab:'more',more:'lineups'})">Set your lineup</button></div>
     </section>
-    ${homeMoreCards()}`;
+    ${homeMoreCards()}<button class="btn btn--quiet" style="margin-top:20px;min-height:44px" onclick="openHunt()">Someone left a pod behind…</button>`;
 }
 // The rest of the dashboard: one card a tool on the More menu, in its groups,
 // opened through the same screen key the menu row uses (owner, 12 Nov 2026).
@@ -21072,6 +21682,115 @@ function homeMoreCards(){
 /* rulebook-links:begin — generated by tools/rulebook-links.js */
 function rulebooksPage(){return sec("Rules","<style>.rules-books{display:grid;gap:12px}.rules-book{display:flex;flex-direction:column;gap:6px;min-height:44px;padding:16px;border:1px solid #3a3f40;border-radius:12px;background:#111314;color:#efedeb;text-decoration:none;overflow-wrap:anywhere}.rules-book span,.rules-note{color:#ff5a52}.rules-book:focus-visible{outline:3px solid #efedeb;outline-offset:2px}.rules-note{max-width:65ch;line-height:1.5;margin:12px 0}</style><p class=\"rules-note\">Open the official rulebook for your format. A connection is needed; save the PDF on your device before the event.</p><div class=\"rules-books\"><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/match-play-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Match play</b><span>3v3, 5v5, 7v7, 10v10, Classic and Pump</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/divisional-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Divisional X-Ball</b><span>Divisional X-Ball</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a><a class=\"rules-book\" href=\"https://www.nxlpaintball.com/pro-x-ball-rulebook\" target=\"_blank\" rel=\"noopener noreferrer\"><b>Pro X-Ball</b><span>Professional division</span><span>2026 · Official NXL rulebook · Opens a new tab</span></a></div><p class=\"rules-note\">Check the edition and event updates with the organizer. Officials make the live call.</p>");}
 /* rulebook-links:end */
+// User-added contacts only. No listings, prices or availability are invented.
+function mediaLink(value){
+  if(typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "";
+  try{ const u=new URL(value); return u.protocol==="https:" && !u.username && !u.password ? u.href : ""; }catch(e){ return ""; }
+}
+function mediaContactError(c){
+  if(!plainRecord(c) || typeof c.id!=="string" || !/^[a-zA-Z0-9_.:-]{1,80}$/.test(c.id)) return "Invalid contact.";
+  const limits={name:80,kind:20,area:100,event:120,website:1000,contact:160,note:500};
+  if(Object.keys(c).some(k=>k!=="id" && !Object.prototype.hasOwnProperty.call(limits,k)) ||
+    Object.entries(limits).some(([k,n])=>typeof c[k]!=="string" || c[k].length>n)) return "Check the contact details.";
+  if(!c.name.trim()) return "Add a photographer or crew name.";
+  if(!["Photo","Video","Photo & video","Media crew"].includes(c.kind)) return "Choose a coverage type.";
+  if(c.website && !mediaLink(c.website)) return "Use an https:// link without a username or password.";
+  return "";
+}
+function mediaEditable(){
+  return S.entered && S.tab==="more" && S.more==="media" && !gateKey()
+    && !(typeof webPassLocked==="function" && webPassLocked());
+}
+function mediaContext(){ return JSON.stringify([S.email,S.seasonId]); }
+function mediaView(){
+  if(!S.mediaView) S.mediaView={query:"",kind:"",draft:null};
+  if(S.mediaView.draft?.owner!==mediaContext()) S.mediaView.draft=null;
+  return S.mediaView;
+}
+window.editMedia = (id="") => {
+  if(!mediaEditable()) return;
+  const c=(S.mediaContacts||[]).find(c=>c.id===id);
+  if(id && !c) return flash("That contact is no longer here.");
+  const v=mediaView();
+  if(v.draft && !askFirst("Discard these unsaved contact changes?",JSON.stringify(v.draft))) return;
+  v.draft={owner:mediaContext(),before:c ? JSON.stringify(c) : "",data:c ? {...c} :
+    {id:"media:"+newSalt(),name:"",kind:"Photo",area:"",event:"",website:"",contact:"",note:""}};
+  render(); document.getElementById("media-name")?.focus();
+};
+window.mediaDraft = (key,value) => {
+  const d=mediaView().draft;
+  if(!mediaEditable() || !d || !["name","kind","area","event","website","contact","note"].includes(key)) return;
+  d.data[key]=String(value);
+};
+window.cancelMedia = () => { mediaView().draft=null; render(); };
+window.saveMedia = () => {
+  if(!mediaEditable()) return;
+  const v=mediaView(), d=v.draft; if(!d) return;
+  const c=Object.fromEntries(Object.entries(d.data).map(([k,x])=>[k,x.trim()]));
+  const error=mediaContactError(c); if(error) return flash(error);
+  const list=S.mediaContacts||[], old=list.find(x=>x.id===c.id);
+  if((old ? JSON.stringify(old) : "")!==d.before) return flash("This contact changed. Cancel and open it again before saving.");
+  if(list.some(x=>x.id!==c.id && foldName(x.name)===foldName(c.name) && x.website===c.website))
+    return flash("That contact is already saved. Edit the existing contact.");
+  v.draft=null; v.query=""; v.kind="";
+  set({mediaContacts:old ? list.map(x=>x.id===c.id ? c : x) : [...list,c]});
+  const card=[...document.querySelectorAll("[data-media-card]")].find(el=>el.dataset.mediaCard===c.id);
+  if(card){card.focus({preventScroll:true});card.scrollIntoView({block:"nearest"});}
+};
+window.removeMedia = id => {
+  if(!mediaEditable()) return;
+  const c=(S.mediaContacts||[]).find(x=>x.id===id); if(!c) return;
+  const owner=mediaContext(), before=JSON.stringify(c);
+  if(!askFirst("Remove "+c.name+" from your media contacts?",before)) return;
+  if(!mediaEditable() || owner!==mediaContext() || JSON.stringify((S.mediaContacts||[]).find(x=>x.id===id))!==before)
+    return flash("This contact changed. Open it again before removing it.");
+  if(mediaView().draft?.data.id===id) mediaView().draft=null;
+  markGone("mediaContacts",id);
+  set({mediaContacts:S.mediaContacts.filter(x=>x.id!==id)});
+};
+window.filterMedia = (key,value) => {
+  const v=mediaView();
+  if(key==="query") v.query=String(value).slice(0,100);
+  if(key==="kind") v.kind=String(value);
+  const words=foldName(v.query).split(/\s+/).filter(Boolean); let count=0;
+  document.querySelectorAll("[data-media-card]").forEach(el=>{
+    el.hidden=!!(v.kind && el.dataset.kind!==v.kind) || !words.every(w=>foldName(el.dataset.search).includes(w));
+    if(!el.hidden) count++;
+  });
+  const status=document.getElementById("media-count");
+  if(status) status.textContent=count+" of "+(S.mediaContacts||[]).length+" contacts";
+  const empty=document.getElementById("media-no-match");
+  if(empty) empty.hidden=count>0 || !(S.mediaContacts||[]).length;
+};
+function mediaPage(){
+  const v=mediaView(), d=v.draft?.data, types=["Photo","Video","Photo & video","Media crew"];
+  const input=(key,label,max,placeholder="")=>`<div class="fld"><label for="media-${key}">${label}</label><input id="media-${key}" maxlength="${max}" value="${esc(d[key])}" placeholder="${esc(placeholder)}" oninput="mediaDraft('${key}',this.value)"/></div>`;
+  const contacts=(S.mediaContacts||[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  return sec("Media",`<p class="lede">Your photographers and media crews.</p>
+    <p class="note">Save contacts for event coverage. Check availability directly with each crew.</p>
+    <button class="btn" onclick="editMedia()">Add contact</button>`)
+    +(d ? sec(v.draft.before ? "Edit contact" : "New contact",`<form id="media-form" onsubmit="event.preventDefault();saveMedia()">
+      ${input("name","Photographer or crew name",80)}
+      <div class="fld"><label for="media-kind">Coverage</label><select id="media-kind" onchange="mediaDraft('kind',this.value)">${types.map(x=>`<option${d.kind===x?" selected":""}>${esc(x)}</option>`).join("")}</select></div>
+      ${input("area","Location (optional)",100,"City or area covered")}${input("event","Event (optional)",120)}
+      ${input("contact","Contact details (optional)",160,"Business email or phone")}${input("website","Portfolio or social link (optional)",1000,"https://")}
+      <div class="fld"><label for="media-note">Notes (optional)</label><textarea id="media-note" maxlength="500" oninput="mediaDraft('note',this.value)">${esc(d.note)}</textarea></div>
+      <div class="btnrow"><button type="submit" class="btn">Save contact</button><button type="button" class="btn btn--quiet" onclick="cancelMedia()">Cancel</button></div>
+      <p class="note">These details stay in your season. Saving does not publish a listing or send a message.</p></form>`) : "")
+    +sec("Your contacts",`<div class="fld"><label for="media-search">Find a photographer or crew</label><input id="media-search" type="search" maxlength="100" value="${esc(v.query)}" placeholder="Name, location or event" oninput="filterMedia('query',this.value)"/></div>
+      <div class="fld"><label for="media-filter">Coverage</label><select id="media-filter" onchange="filterMedia('kind',this.value)"><option value="">All coverage</option>${types.map(x=>`<option${v.kind===x?" selected":""}>${esc(x)}</option>`).join("")}</select></div>
+      <p class="note" id="media-count" role="status" aria-live="polite"></p>
+      ${!contacts.length ? `<div class="empty">No contacts saved yet. Add a photographer or media crew you know.</div>` : ""}
+      <p class="empty" id="media-no-match" hidden>No matching contacts. Try another search or coverage type.</p>
+      <div class="media-directory">${contacts.map(c=>`<article class="media-contact" tabindex="-1" data-media-card="${esc(c.id)}" data-kind="${esc(c.kind)}" data-search="${esc([c.name,c.area,c.event,c.contact,c.note].join(" "))}">
+        <h3>${esc(c.name)}</h3><p class="note">${esc(c.kind)}</p>
+        ${c.area ? `<p><b>Location:</b> ${esc(c.area)}</p>` : ""}${c.event ? `<p><b>Event:</b> ${esc(c.event)}</p>` : ""}
+        ${c.contact ? `<p><b>Contact:</b> ${esc(c.contact)}</p>` : ""}${c.note ? `<p>${esc(c.note)}</p>` : ""}
+        <div class="btnrow">${mediaLink(c.website) ? `<a class="btn btn--quiet" href="${esc(mediaLink(c.website))}" target="_blank" rel="noopener noreferrer" aria-label="Open portfolio or social page for ${esc(c.name)}">Open link ↗</a>` : ""}
+        <button class="btn btn--quiet" onclick="editMedia(${jsq(c.id)})" aria-label="Edit ${esc(c.name)}">Edit</button>
+        <button class="btn btn--danger" onclick="removeMedia(${jsq(c.id)})" aria-label="Remove ${esc(c.name)}">Remove</button></div></article>`).join("")}</div>
+      <p class="note">Your full backup includes these contacts. League sync includes them when you turn it on. Sharing a match or squad does not.</p>`);
+}
 const MORE_GROUPS=[
   ["Before the game",[
     ["team","Team","Roster, numbers and positions"],
@@ -21081,7 +21800,9 @@ const MORE_GROUPS=[
     ["schedule","Schedule","The event's games — yours, and the ones worth watching"],
     ["worldcup","World Cup teams","2026 divisions and team entries"],
     ["walk","Walk","Notes from walking the field"],
-    ["codes","Codes","Your code words, every event"]]],
+    ["fields","Field builder","Build a field the app does not carry"],
+    ["codes","Codes","Your code words, every event"],
+    ["media","Media","Your photographers and media crews"]]],
   ["During the game",[
     ["wb","Whiteboard","Draw the adjustment on the field, then wipe it"],
     ["movement","Movement","Bunker to bunker after the break"]]],
@@ -21107,12 +21828,14 @@ const MORE_TITLES={...Object.fromEntries(MORE_GROUPS.flatMap(([,rows])=>rows.map
 // The words a coach looks for need not be the name printed on a tab.
 // These are search hints only: they never change a tool's access or saved data.
 const TOOL_WORDS={
+  media:"photographer photographers photography video videographer coverage camera crew contact portfolio",
   worldcup:"world cup nxl kissimmee pbleagues divisions entry entries teams registration bracket hometown",
   playbook:"plays breakout calls break plan", tally:"score scoring points won lost chart break clock",
   scout:"opponent opponents other teams scouting", sightlines:"lanes shooting line of sight angles",
   team:"players squad jerseys names add player roster", lineups:"starting five who plays",
   format:"rules division game length", rules:"rulebooks match play divisional pro x-ball official pdf", schedule:"calendar games fixtures times",
-  walk:"field notes", codes:"signals code words", wb:"draw drawing white board",
+  fields:"build field custom layout park regional bunkers map own field builder make field",
+  walk:"field notes drill drills practice quadrant quadrants zones explore tour rotate zoom", codes:"signals code words", wb:"draw drawing white board",
   movement:"rotations moves", matches:"history results review", reports:"export csv spreadsheet statistics player report",
   stats:"bunker statistics outs survival heat map match activity daily day percentage share", assess:"grades grading players", messages:"team notes",
   plan:"subscription price pricing purchase", help:"instructions tutorial getting started",
@@ -21178,7 +21901,7 @@ function morePage(){
 }
 function moreCount(k){
   const n={classes:(S.classes||[]).length, league:S.groups.reduce((a,g)=>a+(g.members||[]).length,0),
-           messages:(S.messages||[]).length, team:(S.roster||[]).length, lineups:(S.roster||[]).length}[k];
+           messages:(S.messages||[]).length, media:(S.mediaContacts||[]).length, team:(S.roster||[]).length, lineups:(S.roster||[]).length}[k];
   return n?`<span class="list__count">${n}</span>`:"";
 }
 function moreBody(k){
@@ -21186,6 +21909,8 @@ function moreBody(k){
   const roster=S.roster||[];
   if(k==="home") return coachHome();
   if(k==="rules") return rulebooksPage();
+  if(k==="media") return mediaPage();
+  if(k==="fields") return fieldsPage();
 
   if(k==="wb") return whiteboardPage();
   if(k==="format") return fmtPage(false);
@@ -21195,9 +21920,9 @@ function moreBody(k){
     change:(patch,paint=true)=>{ S.cupView={...(S.cupView||{}),...patch}; if(paint) render(); },top:toMainTop});
   if(k==="walk"){
     const notes=walkNotes(), bl=curLayout().bunkers, where=S.walkPick || WIRES[0];
-    return sec("Walk", `<p class="lede">What you noticed standing on it, against the bunker or the wire you
-      noticed it on. Notes stay with this field.</p>
-      <div class="field-wrap walk-map" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,overlay:walkOverlay()})}${walkStickies()}</div>
+    return sec("Walk", `<p class="lede">Explore the field. Tap a bunker for its name and notes, or add what you saw on the walk.</p>
+      <div class="btnrow">${walkDrillControls()}${walkViewControls()}</div>
+      <div class="field-wrap walk-map${walkView().on?" walk-map--explore":""}" id="walk-map">${fieldSVG({static:true,noPaths:true,names:true,pick:true,walkExplore:walkView().on,overlay:walkOverlay()})}${walkStickies()}</div>
       <p class="note">Tap a bunker to see its notes${notes.length?" — a dot marks one that already has a note":""}, and add one below. Or pick a wire.</p>
       ${/* Standing on a bunker, what the field already knows about it: the
             lanes from here off the measured layout, where their five have
@@ -21208,6 +21933,7 @@ function moreBody(k){
       <div class="fld"><label>Where</label>
         <select id="wkWhere" onchange="walkSelect(this.value)">
           ${WIRES.map(w=>`<option${w===where?" selected":""}>${esc(w)}</option>`).join("")}
+          ${walkDrillZone() !== "off" || WALK_ZONES.some(z=>z.name===where) ? WALK_ZONES.map(z=>`<option${z.name===where?" selected":""}>${z.name}</option>`).join("") : ""}
           ${bl.map(b=>`<option value="${esc(walkWhereOf(b))}"${walkWhereOf(b)===where?" selected":""}>${esc(pickName(b))}</option>`).join("")}
         </select></div>
       <div class="fld"><label>Note</label>
@@ -21755,7 +22481,7 @@ function moreBody(k){
       </div>
       ${staffed() ? `<button class="btn btn--quiet btn--block" style="margin-top:var(--s2)" onclick="askSignOut()">Sign out</button>` : ""}
       <div class="kv">
-        <div class="kv__row"><span class="kv__k">Event</span><span class="kv__v">${esc(layoutName)}</span></div>
+        <div class="kv__row"><span class="kv__k">${curLayout().mine ? "Your field" : "Event"}</span><span class="kv__v">${esc(layoutName)}</span></div>
         <div class="kv__row"><span class="kv__k">Where your data lives</span><span class="kv__v">${
           canSync() && S.syncOn
             ? `<b>League sync</b> is on. When a send succeeds, your full season is uploaded and one current copy is kept with your account on our account server. Gridlock PB LLC's administrators can review it. Pause sending, review or restore the copy, or delete what you sent below. Pausing does not delete the copy. Your account password is stored as a hash.`
@@ -21809,7 +22535,7 @@ function moreBody(k){
   + sec("Events", `<p class="lede">Every field this app carries, and where its map came from. Changing the
       event changes the layout on every tab — the break, the tally, the sightlines and the bunker stats
       all follow it.</p>
-    <div class="assigns">${Object.values(LAYOUTS).map(L=>`
+    <div class="assigns">${Object.values(LAYOUTS).filter(L => !L.mine).map(L=>`
       <div class="assign" style="flex-wrap:wrap">
         <span class="assign__body"><span class="assign__job">${esc(L.name)}</span>
         <span class="assign__who">${L.bunkers.length} bunkers${L.mine ? ` · built by you · ${Object.keys(BREAK_PLANTS[L.key] || {}).length} of ${Object.keys(PLANT_SHAPES).length} calls plant here${Object.keys(BREAK_PLANTS[L.key] || {}).length < Object.keys(PLANT_SHAPES).length ? " — more bunkers on the left half plant the rest" : ""}` : ""}</span></span>
@@ -21821,17 +22547,12 @@ function moreBody(k){
         <span style="flex:1 0 100%;height:0" aria-hidden="true"></span>
         <p class="note" style="flex:1 0 100%;margin-top:6px">${esc(L.source||"")}</p>
       </div>`).join("")}
-      ${(S.fields || []).filter(f => !fieldReady(f)).map(f => `
-      <div class="assign" style="flex-wrap:wrap">
-        <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
-        <span class="assign__who">${f.bunkers.length} of at least ${FIELD_MIN} bunkers · still building</span></span>
-        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Keep building</button>
-      </div>`).join("")}</div>
-    ${fieldBuilder()}
-    <p class="note">The measured fields come with the app and update with a new release. A field you build is
-      yours: it rides in Save a copy, and the twelve calls plant on it the moment it has enough bunkers.
+      </div>
+    <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields'})">Fields you built ›</button></div>
+    <p class="note">The measured fields come with the app and update with a new release. Fields you build are
+      kept apart from them, under More › Field builder.
       There is no live event feed. Offline installation caches the app's public files; your season stays on this device.</p>`,
-    Object.keys(LAYOUTS).length+" fields")
+    Object.values(LAYOUTS).filter(L => !L.mine).length+" fields")
   + sec("Save a copy", `<p class="lede">${canSync()?"Cloud sharing holds one current copy when you turn it on. A file you save is a backup you own —":"There is no server behind this app, so there is no automatic backup. A copy is a file you own —"}
       keep one before a tournament, move to a new phone, or hand the squad to an
       assistant coach.</p>
@@ -21879,7 +22600,7 @@ function moreBody(k){
  * in. Never pruned by the app: it may be the only record of those taps. */
 function recoveryCopiesSec(){
   const list = window.gridlockRecoveryCopies();
-  if(!list.length) return "";
+  if(!list.length && !_storeFail) return "";
   const rows = list.map(c => {
     let what = "";
     try{ what = copySummary(JSON.parse(c.text).data || {}); }catch(e){ what = "unreadable"; }
@@ -21894,7 +22615,11 @@ function recoveryCopiesSec(){
       </div></div>`;
   }).join("");
   return sec("Recovery copies", `<p class="lede">A tab that found another tab had saved newer work kept
-    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>${rows}`);
+    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>
+    <div class="toggles"><button class="btn" onclick="saveRecoveryFiles()">Save recovery files</button>
+      <button class="btn btn--quiet" onclick="makeStorageRoom()">Make room without deleting data</button></div>
+    <p class="note">This only removes extra formatting from closed tabs' copies. Every season, code word and recovery copy stays.</p>
+    ${_storageRepairStatus ? `<p class="note" role="status">${esc(_storageRepairStatus)}</p>` : ""}${rows}`);
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];
@@ -22184,19 +22909,26 @@ function wbInk(marks){
   }).join("");
   // The capture surface is the top layer, per the field rule: marks draw below
   // it so a finger always lands on something it can draw on.
-  return body + `<rect data-wb x="0" y="0" width="300" height="240" fill="transparent"/>`;
+  return body + `<rect data-wb x="0" y="0" width="${fieldW() * 2}" height="${fieldH() * 2}" fill="transparent"/>`;
 }
 function whiteboardPage(){
   const wb = wbState();
   const bg = wb.field
     ? fieldSVG({static:true, noPaths:true})
-    : `<svg class="field wb-blank" viewBox="0 0 300 240"><rect width="300" height="240" fill="#0b0c0d"/></svg>`;
+    : `<svg class="field wb-blank" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"><rect width="${fieldW() * 2}" height="${fieldH() * 2}" fill="#0b0c0d"/></svg>`;
   const pens = [["#e5342f","Red"],["#3d8bff","Blue"],["#efedeb","White"]];
+  // On the larger field the ink must include the same wire margins as the
+  // picture underneath; otherwise a mark beside an edge drifts off its bunker.
+  const inkBox = wb.field && curLayout().size === "10v10" ? bg.match(/viewBox="([^"]+)"/)[1]
+    : `0 0 ${fieldW() * 2} ${fieldH() * 2}`;
+  const inkDims = inkBox.split(" ").map(Number);
+  const inkFit = wb.field && curLayout().size === "10v10"
+    ? ` style="left:${-inkDims[0]/inkDims[2]*100}%;top:${-inkDims[1]/inkDims[3]*100}%;width:${fieldW()*2/inkDims[2]*100}%;height:${fieldH()*2/inkDims[3]*100}%"` : "";
   return sec("Whiteboard",
    `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
-    <div class="wb-wrap">
+    <div class="wb-wrap" style="--field-aspect:${inkDims[2] / inkDims[3]}">
       <div class="wb-bg">${bg}</div>
-      <svg class="wb-ink" id="wb-map" viewBox="0 0 300 240" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
+      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"${inkFit} aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
     </div>
     <div class="wb-tools">
       ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"
@@ -22474,6 +23206,8 @@ function controlValues(root){
   return Array.from(root.querySelectorAll("input,textarea,select"), c => ({value:c.value, checked:c.checked, selectedIndex:c.selectedIndex}));
 }
 function render(){
+  guardHunt();
+  if(webPassLocked() && pod) window.podWars.close();
   fixScreen();
   if(!S.entered || S.tab !== "more") _moreQuery = "";
   if(!S.entered){ clearCoachPrint(); _foldNames.clear(); _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
@@ -22484,6 +23218,7 @@ function render(){
   fixBreak();
   guardVoiceSession();
   if(webPassLocked() && _voiceUI.session) stopVoiceSession("Your pass ended. Your notes are saved.");
+  guardWalkView();
   if(_arrivalPlayback.running && (S.tab !== "scout" || S.scoutTab !== "arrival")) stopArrivalPlayback(true);
   const screen = [S.entered, !!S.fmtAsk, !!S.syncAsk, deviceSeasonShown(), S.tab, S.more, S.scoutTab].join("|");
   const root = document.getElementById("root");
@@ -22517,8 +23252,9 @@ function render(){
   });
   _screenMarkup = html;
   _where = screen;
-  if(S.tab === "more" && S.more === "walk") placeWalkStickies();
+  if(S.tab === "more" && S.more === "walk"){paintWalkView();placeWalkStickies();}
   if(S.tab === "more" && !S.more) filterTools(_moreQuery);
+  if(S.tab === "more" && S.more === "media") filterMedia();
   if(moveFocus) root.querySelector(".main")?.focus({preventScroll:true});
   watchTallyField();
   placeFlash();

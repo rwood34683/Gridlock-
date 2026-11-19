@@ -4184,13 +4184,13 @@ const ROSTER = [
   check("a coach builds his own field: twins across the fifty, a bunker on the fifty single, turn and move carry the twin, eight bunkers and the twelve plant on it", await ev(() => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Practice Park";
     window.newField();
     const k = S.fieldEdit.key;
     const put = (kind, x, y) => { window.fieldKind(kind); window.fieldTap([x, y]); };
-    put("md", 25, 14); const f1 = fieldOf(k).bunkers;
-    const twinned = f1.length === 2 && f1[0].tw === f1[1].id && f1[1].x === 125 && f1[1].y === 14;
+    put("md", 25, 15); const f1 = fieldOf(k).bunkers;
+    const twinned = f1.length === 2 && f1[0].tw === f1[1].id && f1[1].x === 125 && f1[1].y === 15;
     put("gp", 75.8, 60); const plus = fieldOf(k).bunkers.filter(b => b.n === "GP");
     const single = plus.length === 1 && plus[0].x === 75 && !plus[0].tw;
     window.fieldDone(); const notYet = !LAYOUTS[k] && /needs at least 8/.test(S.flash || "");
@@ -4216,7 +4216,7 @@ const ROSTER = [
   check("the event's map goes under a field he builds: a tall map is turned on its side, each bunker placed takes the paint the map prints under it, grey where it prints neither, and a copy carries it", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Map Park";
     window.newField();
     const k = S.fieldEdit.key;
@@ -4231,13 +4231,13 @@ const ROSTER = [
     const loaded = await window.fieldMapLoad(k, c.toDataURL("image/png"));
     const f = fieldOf(k), turned = !!MAP_PIX && MAP_PIX.w > MAP_PIX.h && /turned on its side/.test(S.flash || "");
     const put = (kind, x, y) => { window.fieldKind(kind); window.fieldTap([x, y]); };
-    put("md", 30, 16); put("md", 30, 104); put("t", 30, 60);
+    put("md", 30, 15); put("md", 30, 105); put("t", 30, 60);
     const at = (x, y) => fieldOf(k).bunkers.find(b => b.x === x && b.y === y);
-    const which = [at(30, 16), at(30, 104), at(30, 60), at(120, 16)].map(b => b && (b.c || "grey")).join(",");
+    const which = [at(30, 15), at(30, 105), at(30, 60), at(120, 15)].map(b => b && (b.c || "grey")).join(",");
     const painted = which === "b,r,grey,b";
     // Turn the map a half and the paint swaps sides under the bunkers already placed.
     await window.fieldMapTurn(); await window.fieldMapTurn();
-    const swapped = at(30, 16).c === "r" && at(30, 104).c === "b";
+    const swapped = at(30, 15).c === "r" && at(30, 105).c === "b";
     const shown = !!document.querySelector("#fieldbuild-map image.fieldmap");
     window.fieldMapShow(); const hidden = !document.querySelector("#fieldbuild-map image.fieldmap"); window.fieldMapShow();
     put("sb", 45, 104); put("br", 55, 50); window.fieldDone();
@@ -4559,7 +4559,7 @@ const ROSTER = [
   check("a field's map is kept beside the season, not in it: the save stays small, a copy still carries the map, and an older save with a map on its field is lifted out", await ev(async () => {
     window.confirm = () => true;
     const was = { fields: S.fields, layoutKey: S.layoutKey };
-    window.set({ tab: "more", more: "nexus", fields: [] });
+    window.set({ tab: "more", more: "fields", fields: [] });
     document.getElementById("field-name").value = "Map Store Park";
     window.newField();
     const k = S.fieldEdit.key;

@@ -45,6 +45,21 @@ the same page:
   free Player accounts grant none. Preserve beta/admin grants and expired
   season backup/export. Hosted sandbox evidence remains a launch gate.
 
+- **Pod hunt** starts only from the small Home clue. Practice never awards a prize or changes account access or seasons.
+  The prepared prize service has one atomic winner per round and is inactive until separately configured; see `docs/POD-HUNT.md`.
+
+- **Storage repair** keeps every recovery copy and removes only JSON formatting from closed tabs after ownership checks.
+  Nexus exports all recovery files; navigation-only save failures do not claim the season was lost. See `test/storage-room.cjs`.
+
+- **Walk → Explore field** turns, tilts and zooms the current measured plan, with an optional one-turn tour and existing bunker notes.
+  Camera state is temporary; no guessed heights, season writes or automatic motion on opening. See `test/walk-explore.cjs`.
+
+- **Media** keeps the coach's own photographer/crew contacts under More and Home.
+  Full season backups and opt-in sync include them; squad/match shares do not. No public directory, invented availability, bookings or automatic requests.
+
+- **Walk drill zones** divide the current field into four labelled areas, with optional focus and existing field notes for instructions.
+  The overlay is view-only; keep bunker geometry, match records and saved seasons unchanged when showing/hiding it. See `test/drill-zones.cjs`.
+
 - **Player point actions** share one duplicate-tap guard across Tally/Scout; Back a point and New match allow deliberate correction.
   Keep one No point button, regenerate from tools/teaser_coachplay.js, and run test/player-point-actions.cjs through teaser-browser.
 
@@ -76,7 +91,7 @@ the same page:
   a guarded Undo clear. Reset match keeps the old sheet under Matches. Changing
   points closes earlier-point list views; recorded history is never a filter.
 
-- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab before Nexus.
+- **Rules** is in Coach's More dashboard, Player's More menu above Nexus, and Team's tab row as Rules, Team admin, Nexus.
   `docs/RULEBOOKS.md` is the source handoff; regenerate official links with `node tools/rulebook-links.js`.
 
 - **Coach Home** opens after backup/format on an empty sheet; an active match resumes. Home explains the four tools, links to Schedule, Reports and backups, and reads only recorded match context. The five main tabs remain direct; Home is beside the event name.
