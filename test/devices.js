@@ -85,7 +85,9 @@ const measure = () => {
   // stretch to fill a metre of black is not a rail; the geometry above says
   // nothing about that, so measure the buttons too.
   const btns = [...document.querySelectorAll(".tabs button")].map(b => b.getBoundingClientRect());
-  out.rail = !!r && r.width < 320 && r.height > window.innerHeight * 0.5;
+  // Tablets and computers (owner, 18 Nov 2026): no left pane. The five run
+  // across the top, above the page, the whole width of the screen.
+  out.rail = !!r && !!main && r.width > window.innerWidth * 0.8 && r.bottom <= main.getBoundingClientRect().top + 1 && r.top < 200;
   out.btnTall = btns.length ? Math.ceil(Math.max(...btns.map(b => b.height))) : 0;
   out.btnRow = btns.length > 0 && btns.every(b => b.width > b.height);
   out.clash = !!(r && main && r.right > main.left + 1 && r.left < main.right - 1
@@ -304,12 +306,12 @@ const measure = () => {
     // The five destinations. Wide enough and they stand in a rail down the
     // left, each one a row you can read; narrow and the bottom bar is right.
     if (w >= RAIL && h >= RAIL_TALL) {
-      check(g, `${name} — five in a rail down the left`, worst.rail && !worst.clash,
-            worst.rail ? (worst.clash ? "rail sits over the page" : "") : "still the bottom bar");
-      check(g, `${name} — rail rows read as rows`, worst.btnRow && worst.btnTall <= RAIL_ROW,
+      check(g, `${name} — five across the top, no left pane`, worst.rail && !worst.clash,
+            worst.rail ? (worst.clash ? "tab row sits over the page" : "") : "not a top row");
+      check(g, `${name} — top tabs read as one row`, worst.btnRow && worst.btnTall <= RAIL_ROW,
             worst.btnRow ? (worst.btnTall > RAIL_ROW ? `${worst.btnTall}px tall` : "") : "label under the marker");
     } else {
-      check(g, `${name} — the bottom bar stays`, !worst.rail, worst.rail ? "went to a rail" : "");
+      check(g, `${name} — the bottom bar stays`, !worst.rail, worst.rail ? "went to the top" : "");
     }
   }
   await browser.close();

@@ -136,11 +136,11 @@ const ADAPTER=fs.readFileSync(path.resolve(__dirname,"../native/gridlock-cloud.j
     return {shown:shown.length,first:shown[0]&&shown[0].innerText};});
    assert.ok(r.shown>=2,"questions showing above the bar: "+JSON.stringify(r));
   });
-  await check("at 375 px the header keeps the call whole and gives way on the event",async({phone})=>{
-   const p=await phone();await p.setViewportSize({width:375,height:667});await p.evaluate(()=>set({tab:"home"}));
-   const r=await p.evaluate(()=>{const t=document.querySelector(".ctx__call .ctx__t"),sec=document.querySelector(".ctx__sec"),hdr=document.querySelector(".ctx");
-    return {cut:t.scrollWidth-t.clientWidth,sec:sec?sec.getBoundingClientRect().right<=hdr.getBoundingClientRect().right+1:true};});
-   assert.equal(r.cut,0,"the call is not cut");assert.equal(r.sec,true,"the section stays on the line");
+  await check("at 375 px the header names the field, no play, and keeps the path on the line",async({phone})=>{
+   const p=await phone();await p.setViewportSize({width:375,height:667});await p.evaluate(()=>set({tab:"more",more:"lineups"}));
+   const r=await p.evaluate(()=>{const ev=document.querySelector(".ctx__ev"),sec=document.querySelector(".ctx__sec"),hdr=document.querySelector(".ctx");
+    return {call:!!document.querySelector(".ctx__call"),ev:!!ev&&ev.getBoundingClientRect().right<=hdr.getBoundingClientRect().right+1,sec:sec?sec.getBoundingClientRect().right<=hdr.getBoundingClientRect().right+1:false};});
+   assert.equal(r.call,false,"no play in the header");assert.equal(r.ev,true,"the field is on the line");assert.equal(r.sec,true,"the section stays on the line");
   });
   await check("Bunker stats offers Date not recorded only when something is",async({phone})=>{
    const p=await seeded(phone);

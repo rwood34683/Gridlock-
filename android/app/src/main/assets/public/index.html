@@ -95,7 +95,23 @@ h1,h2,h3,p{margin:0}
 .home-match{border-left:4px solid var(--red)}
 .home-match--watch{border-left-color:var(--blue)}
 .home-match .btnrow{margin-top:var(--s3)}
-.ctx__home{flex:none;min-width:44px;min-height:44px;margin:-12px 4px -12px 0;color:var(--ink);font:inherit;letter-spacing:0;text-transform:none;text-align:center}
+/* The path: Home › Scout › Breakouts, like a file explorer's address bar. */
+/* One line on every screen: the path keeps its words, and the event beside it
+   gives way to a stub with an ellipsis, so a phone's header is no taller. */
+.crumbs{display:flex;align-items:center;flex:0 1 auto;min-width:0;gap:2px}
+.crumbs ol{display:flex;align-items:center;min-width:0;margin:0;padding:0;list-style:none;gap:2px;overflow:hidden}
+.crumbs{overflow:hidden}
+.crumbs li{display:flex;align-items:center;min-width:0;flex:0 1 auto;gap:2px}
+.crumbs li:first-child{flex:none}
+/* 44 px targets on a short line: they reach into the line's padding, as the
+   event button always has, so the header is no taller than before. */
+.crumbs__go,.crumbs__back{min-height:44px;min-width:44px;margin:-12px 0;padding:0 6px;border:0;background:none;color:var(--mute);
+  font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs__back{flex:none;color:var(--ink);font-size:16px;letter-spacing:0}
+.crumbs__here{min-width:0;padding:0 6px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs__sep{flex:none;color:var(--dim)}
+.crumbs__go.crumbs__here{min-width:44px;cursor:pointer}
+.ctx__home{text-transform:none;letter-spacing:0}
 .ctx__home[aria-current]{border-bottom:2px solid var(--accent-lit)}
 @container main (max-width:340px){.home-tool{padding:var(--s3)}.home-tool b{font-size:var(--t-md)}}
 .beta-mark{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:48px 24px;transform:rotate(-24deg) scale(1.4);opacity:.07;color:var(--ink);font:700 15px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
@@ -165,12 +181,12 @@ h1,h2,h3,p{margin:0}
 
 /* live context: what field and what call, always on screen */
 .ctx{
-  display:flex;align-items:center;gap:var(--s2);width:100%;min-height:44px;
+  display:flex;flex-wrap:nowrap;align-items:center;gap:0 var(--s2);width:100%;min-height:44px;
   padding:var(--s2) 0 var(--s3);margin-top:var(--s2);
   color:var(--mute);font-size:var(--t-xs);letter-spacing:.1em;text-transform:uppercase;font-weight:700;
 }
 .ctx__line{
-  min-width:0;flex:1;display:flex;align-items:baseline;gap:.35em;white-space:nowrap;
+  min-width:56px;flex:1 1 0;display:flex;align-items:center;justify-content:flex-end;gap:.35em;white-space:nowrap;
 }
 /* The event gives way first, down to a stub ("NXL…"), the call after it, the
    section never. One span for event and call ellipsized at its end, which is
@@ -205,7 +221,8 @@ button.ctx__ev b{color:var(--mute)}
 .evpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s2);padding:0 0 var(--s3)}
 .evpick .fld{min-width:0;margin:0}
 .evpick select{width:100%;min-width:0;min-height:44px}
-.evpick__choice,.evpick__mine{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__choice,.evpick__mine,.evpick__minefld{grid-column:1/-1;display:flex;align-items:center;gap:var(--s2);min-width:0}
+.evpick__minefld{flex-direction:column;align-items:stretch;border-top:1px solid var(--line);padding-top:var(--s3)}
 .evpick__choice span,.evpick__mine span{min-width:0;overflow-wrap:anywhere}
 .evhead{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s3);min-width:0}
 .evhead > div{min-width:0}
@@ -230,31 +247,32 @@ button.ctx__ev b{color:var(--mute)}
 .tabs button.on{color:var(--ink)}
 .tabs button.on i{background:var(--accent-lit)}
 
-/* Tablet. A row of five destinations along the bottom of a 1024 px screen is a
-   phone habit: the thumb is nowhere near it and the labels swim in a metre of
-   black. On a wide screen the same five stand in a rail down the left, the
-   header sits beside them, and the field gets the room. Below 900 the bottom
-   bar is right and stays. */
-/* The rail. "Tablet" means every iPad in either orientation — the smallest
-   is 744 px wide in portrait — and never a phone on its side, which is wider
-   than that and 390 px tall. So: wide enough, and tall enough. */
+/* Tablet and computer (owner, 18 Nov 2026): no left pane. The five main
+   screens run across the top under the logo row, and the path (Home › Scout ›
+   Breakouts) sits under them beside the event and the call. The header lays
+   its rows out in the app's column so the tab row stands between them; the
+   same nav is the bottom bar on a phone, where the thumb is. "Tablet" means
+   every iPad in either orientation — the smallest is 744 px wide in portrait —
+   and never a phone on its side, which is wider than that and 390 px tall. */
 @media (min-width:740px) and (min-height:600px){
-  .app{display:grid;grid-template-columns:216px minmax(0,1fr);
-       grid-template-rows:auto minmax(0,1fr);grid-template-areas:"rail hdr" "rail main"}
-  .hdr{grid-area:hdr}
-  .main{grid-area:main}
+  .hdr{display:contents}
+  .hdr__top{order:0;background:#000;
+    padding:calc(var(--s3) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s2) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
   .tabs{
-    grid-area:rail;flex-direction:column;justify-content:flex-start;gap:2px;
-    border-top:0;border-right:1px solid var(--line);
-    padding:var(--s4) var(--s2) calc(var(--s4) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) calc(var(--s2) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
+    order:1;flex-direction:row;justify-content:flex-start;gap:var(--s1);
+    border-top:0;border-bottom:1px solid var(--line);
+    padding:0 calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) 0 calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));
   }
   .tabs button{
-    flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:var(--s3);
-    min-height:52px;padding:0 var(--s3);border-radius:var(--r-md);
-    font-size:var(--t-sm);letter-spacing:.08em;
+    flex:0 0 auto;flex-direction:row;position:relative;
+    min-height:48px;padding:0 var(--s4);font-size:var(--t-sm);letter-spacing:.08em;
   }
-  .tabs button i{width:3px;height:20px;border-radius:2px}
-  .tabs button.on{background:var(--panel)}
+  .tabs button i{position:absolute;left:var(--s3);right:var(--s3);bottom:0;width:auto;height:3px;border-radius:2px}
+  .ctx{order:2;margin-top:0;background:#000;border-bottom:1px solid var(--line);
+    padding:var(--s1) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s1) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
+  .evpick{order:3;background:#000;
+    padding:var(--s2) calc(var(--s4) + var(--safe-area-inset-right, env(safe-area-inset-right, 0px))) var(--s3) calc(var(--s4) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))}
+  .main{order:4}
 }
 
 /* ============================================================
@@ -1038,6 +1056,8 @@ svg.field [data-pick]{cursor:crosshair}
 .fmt-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px;padding:var(--s2) 0;cursor:pointer;font-weight:700;color:var(--ink)}
 .set-left{display:inline-block;min-width:1.6em;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--fill);color:#fff;font-size:var(--t-sm);font-weight:700;line-height:1.6}
 .set-left--out{background:transparent;border:1px solid var(--mute);color:var(--mute)}
+.turn-next{align-items:center}
+.turn-preview{flex:none;border:1px solid var(--line);border-radius:var(--r-sm);background:#101111}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);margin-top:var(--s2)}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px}
 .set-row input{width:72px;min-height:44px;flex:0 0 auto}
@@ -2111,6 +2131,26 @@ window.useEventLayout = () => {
   if(chosen && chosen.key) return window.pickEvent(chosen.key);
   flash(chosen && chosen.event ? "Choose a layout first." : "Choose an event, then its layout.");
 };
+// The fields he built, in the same drop-down as the event layouts but as a
+// group of their own (owner, 18 Nov 2026): never mixed into Season › Event ›
+// Layout. Choosing one moves nothing until Use this field, like Use layout.
+let _evMine = "";
+window.pickEvMine = key => { _evMine = fieldOf(key) ? key : ""; render(); };
+window.useEvMine = () => {
+  const f = _evMine && fieldOf(_evMine);
+  if(!f) return flash("Choose one of your fields first.");
+  if(!fieldReady(f)) return flash(`${f.name} needs ${FIELD_MIN - f.bunkers.length} more bunker${FIELD_MIN - f.bunkers.length === 1 ? "" : "s"} before it can be played on. Finish it in Field builder.`);
+  _evMine = ""; set({evPick:false}); pickEvent(f.key);
+};
+function evpickMine(){
+  const mine = S.fields || [];
+  const builder = `<button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Field builder ›</button>`;
+  if(!mine.length) return `<div class="evpick__mine"><span class="note grow">Fields you build in More › Field builder are listed here, apart from the event fields.</span>${builder}</div>`;
+  const pick = fieldOf(_evMine) ? _evMine : "";
+  return `<div class="fld evpick__minefld"><label for="event-myfield">Your fields</label><select id="event-myfield" onchange="pickEvMine(this.value)"><option value="">Choose one of your fields…</option>${
+      mine.map(f => `<option value="${esc(f.key)}"${f.key === pick ? " selected" : ""}>${esc(f.name)}${f.key === S.layoutKey ? " · in use" : ""}${fieldReady(f) ? "" : " (still building)"}</option>`).join("")}</select></div>
+    <div class="evpick__mine"><button onclick="useEvMine()">Use this field</button>${builder}</div>`;
+}
 function eventPicker(){
   const rows = layoutChoices(), chosen = eventChoice();
   if(!chosen) return "";
@@ -2122,7 +2162,7 @@ function eventPicker(){
     <div class="fld"><label for="event-name">Event</label><select id="event-name" onchange="pickEventGroup(this.value)"><option value="">Pick your event…</option>${events.map(v => `<option value="${esc(v)}"${v === chosen.event ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
     <div class="fld"><label for="event-layout">Layout</label><select id="event-layout" onchange="pickEventLayout(this.value)"><option value="">Choose layout</option>${layouts.map(r => `<option value="${esc(r.key)}"${r.key === chosen.key ? " selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
     <div class="evpick__choice"><span class="note grow">${chosen.key && LAYOUTS[chosen.key] ? esc(LAYOUTS[chosen.key].name) : "Choose an event to see its saved layouts."}</span><button onclick="useEventLayout()">Use layout</button></div>
-    <div class="evpick__mine"><span class="note grow">Fields you built are kept apart from the event fields.</span><button class="btn btn--quiet" onclick="set({tab:'more',more:'fields',evPick:false})">Your fields ›</button></div>
+    ${evpickMine()}
   </div>`;
 }
 const BREAKS = {
@@ -4730,7 +4770,7 @@ window.newField = () => {
   save(S); render(); showFieldBuilder();
 };
 window.editField = key => { if(!fieldOf(key)) return; S.fieldEdit = {key, kind: "md", sel: null}; save(S); render(); showFieldBuilder(); };
-window.fieldKind = k => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, kind: k, sel: null}; save(S); render(); };
+window.fieldKind = k => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, kind: k, sel: null, turn: 0}; save(S); render(); };
 window.fieldDeselect = () => { if(!S.fieldEdit) return; S.fieldEdit = {...S.fieldEdit, sel: null}; save(S); render(); };
 // The name box sits beside Done: it commits without a redraw, or the redraw
 // rebuilds Done under the thumb that is landing on it.
@@ -4747,7 +4787,7 @@ window.fieldDone = () => {
   const f = S.fieldEdit && fieldOf(S.fieldEdit.key);
   if(f) _fieldChoice = f.key;
   S.fieldEdit = null; _fieldHist = {key: null, steps: []}; registerFields();
-  if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Keep building any time.`;
+  if(f && !fieldReady(f)) S.flash = `${f.name} has ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"} — a field needs at least ${FIELD_MIN} before it can be played on. Tap Edit to keep building any time.`;
   else if(f) S.flash = `${f.name} is ready — Use this field puts it on every tab.`;
   save(S); render();
 };
@@ -4780,7 +4820,8 @@ window.fieldTap = at => {
   const onFifty = x => Math.abs(x - mid) < 1.5;
   if(ed.sel){
     const sel = f.bunkers.find(b => b.id === ed.sel); if(!sel){ fieldDeselect(); return; }
-    let x = snapIn(at[0], sel.w / 2, D.w - sel.w / 2), y = snapIn(at[1], sel.h / 2, D.h - sel.h / 2);
+    const se = footExt(sel);
+    let x = snapIn(at[0], se.w / 2, D.w - se.w / 2), y = snapIn(at[1], se.h / 2, D.h - se.h / 2);
     if(onFifty(x)) x = mid;
     // On the fifty a bunker is single and its twin goes — ask first when
     // anything logged names the twin, the way Take it off does.
@@ -4795,7 +4836,7 @@ window.fieldTap = at => {
     if(twUses && !askFirst(`${twUses} thing${twUses === 1 ? "" : "s"} logged on this field name${twUses === 1 ? "s" : ""} ${tw0}, its twin. On the fifty it stands alone, so ${tw0} goes. Move it anyway? What was logged keeps the name.`)) return;
     // Picked no longer once it has moved: patchField redraws, and a selection
     // cleared after it left the bunker ringed with Turn and Take it off live.
-    S.fieldEdit = {...ed, sel: null};
+    S.fieldEdit = {...ed, sel: null, last: sel.id};
     if(tw0) noteGone(f.key, [tw0]);
     patchField(f.key, list => {
       const me = list.find(b => b.id === sel.id), twin = me.tw ? list.find(b => b.id === me.tw) : null;
@@ -4811,15 +4852,20 @@ window.fieldTap = at => {
     return;
   }
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  let x = snapIn(at[0], kind.w / 2, D.w - kind.w / 2), y = snapIn(at[1], kind.h / 2, D.h - kind.h / 2);
+  const shape = placeShape(kind, ed.turn), ext = footExt(shape);
+  let x = snapIn(at[0], ext.w / 2, D.w - ext.w / 2), y = snapIn(at[1], ext.h / 2, D.h - ext.h / 2);
   if(onFifty(x)) x = mid;
   const over = fieldSetWarn(f, kind, x === mid ? 1 : 2);
   patchField(f.key, list => {
-    const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: kind.t, w: kind.w, h: kind.h};
+    const b = {id: fieldNextId(list, kind.n), n: kind.n, x, y, t: shape.t, w: shape.w, h: shape.h};
+    if(shape.a) b.a = shape.a;
     if(kind.k) b.k = kind.k;
     paintFrom(f, b);
+    // The one just placed can be turned without picking it first.
+    S.fieldEdit = {...S.fieldEdit, last: b.id};
     if(x === mid) return [...list, b];
-    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id});
+    // The twin is its mirror: an angled beam leans the other way.
+    const t = paintFrom(f, {...b, id: fieldNextId(list, kind.n, [b]), x: D.w - x, tw: b.id, ...(b.a ? {a: -b.a} : {})});
     b.tw = t.id;
     return [...list, b, t];
   }, over);
@@ -4827,23 +4873,65 @@ window.fieldTap = at => {
 // Turn: a beam goes flat, angled, upright, angled the other way; a plus goes
 // on its corner and back; a dorito points the other way; anything else turns
 // a quarter. The twin turns as its mirror does.
-window.fieldTurn = () => {
-  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f || !ed.sel) return;
+function turnBunker(b){
+  if(b.t === "beam"){
+    const flat = b.w >= b.h;
+    if(!b.a && flat) b.a = 45;
+    else if(b.a === 45){ delete b.a; [b.w, b.h] = [b.h, b.w]; }
+    else if(!b.a && !flat){ [b.w, b.h] = [b.h, b.w]; b.a = -45; }
+    else delete b.a;
+  } else if(b.t === "plus"){ if(b.a) delete b.a; else b.a = 45; }
+  else if(b.t === "dorito") b.t = "tridown";
+  else if(b.t === "tridown") b.t = "dorito";
+  else [b.w, b.h] = [b.h, b.w];
+  return b;
+}
+/* Turn before placing (owner, 19 Nov 2026): the bunker about to go down can be
+ * turned first, through the same positions Turn takes a placed one, and every
+ * tap after places it facing that way. `S.fieldEdit.turn` counts the turns;
+ * picking another kind starts it facing its usual way again. A round bunker
+ * looks the same every way, so it has no turn. */
+const turnSteps = kind => kind.t === "ball" ? 1 : kind.t === "beam" ? 4 : 2;
+function placeShape(kind, n){
+  const b = {t: kind.t, w: kind.w, h: kind.h};
+  for(let i = 0; i < (n || 0) % turnSteps(kind); i++) turnBunker(b);
+  return b;
+}
+// The box an angled beam covers, so it snaps and lights spots by its real reach.
+function footExt(b){
+  if(!b.a) return {w: b.w, h: b.h};
+  const r = b.a * Math.PI / 180, c = Math.abs(Math.cos(r)), s2 = Math.abs(Math.sin(r));
+  return {w: b.w * c + b.h * s2, h: b.w * s2 + b.h * c};
+}
+function turnWord(kind, n){
+  const i = (n || 0) % turnSteps(kind);
+  if(kind.t === "beam") return ["flat", "angled", "upright", "angled the other way"][i];
+  if(kind.t === "plus") return ["square", "on its corner"][i];
+  if(kind.t === "dorito") return ["point to the dorito side", "point to the snake side"][i];
+  return ["as drawn", "turned a quarter"][i];
+}
+window.fieldTurnNext = () => {
+  const ed = S.fieldEdit; if(!ed) return;
+  const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
+  S.fieldEdit = {...ed, sel: null, turn: ((ed.turn || 0) + 1) % turnSteps(kind)};
+  save(S); render();
+};
+function turnPreview(kind, n){
+  return shapePreview({...placeShape(kind, n), n: kind.n});
+}
+function shapePreview(src){
+  const b = {t: src.t, w: src.w, h: src.h, n: src.n, ...(src.a ? {a: src.a} : {}), x: 0, y: 0}, e = footExt(b), r = Math.max(e.w, e.h) / 2 + 1.2;
+  return `<svg class="turn-preview" viewBox="${-r} ${-r} ${r * 2} ${r * 2}" width="44" height="44" aria-hidden="true"><defs><linearGradient id="bnkFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d6d7"/><stop offset="1" stop-color="#8d9092"/></linearGradient></defs>${bunkerShape(b, 1, 1)}</svg>`;
+}
+// Turn a bunker already on the field: the one picked, else the one just
+// placed (owner, 19 Nov 2026 — turn before and after it is in place).
+window.fieldTurn = id => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const want = typeof id === "string" && id ? id : ed.sel || ed.last;
+  if(!want || !f.bunkers.some(b => b.id === want)) return flash("Tap a bunker on the field to pick it, then turn it.");
   patchField(f.key, list => {
-    const me = list.find(b => b.id === ed.sel); if(!me) return list;
-    const turn = b => {
-      if(b.t === "beam"){
-        const flat = b.w >= b.h;
-        if(!b.a && flat) b.a = 45;
-        else if(b.a === 45){ delete b.a; [b.w, b.h] = [b.h, b.w]; }
-        else if(!b.a && !flat){ [b.w, b.h] = [b.h, b.w]; b.a = -45; }
-        else delete b.a;
-      } else if(b.t === "plus"){ if(b.a) delete b.a; else b.a = 45; }
-      else if(b.t === "dorito") b.t = "tridown";
-      else if(b.t === "tridown") b.t = "dorito";
-      else [b.w, b.h] = [b.h, b.w];
-    };
-    turn(me); paintFrom(f, me);
+    const me = list.find(b => b.id === want); if(!me) return list;
+    turnBunker(me); paintFrom(f, me);
     const twin = me.tw ? list.find(b => b.id === me.tw) : null;
     if(twin){ Object.assign(twin, {t: me.t, w: me.w, h: me.h}); if(me.a) twin.a = -me.a; else delete twin.a; paintFrom(f, twin); }
     return list;
@@ -5029,7 +5117,8 @@ function fieldBuildSVG(f){
     <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e8e8e8" stroke-width=".8" stroke-dasharray="5 7" opacity=".35"/>
     <rect x="0" y="0" width="2.5" height="${H}" fill="#e5342f" opacity=".8"/>
     ${(() => { const kind = BUNKER_KINDS.find(k => k.key === (S.fieldEdit && S.fieldEdit.kind)) || BUNKER_KINDS[0];
-      const spots = me ? fieldSpots(f, me.w, me.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, kind.w, kind.h);
+      const fx = footExt(me || placeShape(kind, S.fieldEdit && S.fieldEdit.turn));
+      const spots = me ? fieldSpots(f, fx.w, fx.h, [me.id, me.tw].filter(Boolean)) : fieldSpots(f, fx.w, fx.h);
       return `<g class="field-spots" pointer-events="none">${spots.map(([x, y]) => `<circle cx="${x * sx}" cy="${y * sy}" r="1.3" fill="#efedeb" opacity=".45"/>`).join("")}</g>`; })()}
     ${f.bunkers.map(b => bunkerShape(b, sx, sy)).join("")}
     ${codes}${ring(me, false)}${ring(twin, true)}
@@ -5044,7 +5133,9 @@ let _fieldChoice = "";   // the built field picked in the drop-down; page memory
 window.chooseMyField = key => { _fieldChoice = key; render(); };
 function fieldsPage(){
   const mine = (S.fields || []);
-  const pick = fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length === 1 ? mine[0].key : "";
+  // The field open in the builder, else the one chosen, in use or newest, so
+  // Edit is always one tap away (owner, 19 Nov 2026).
+  const pick = S.fieldEdit && fieldOf(S.fieldEdit.key) ? S.fieldEdit.key : fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length ? mine[mine.length - 1].key : "";
   const f = pick && fieldOf(pick);
   return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
       regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
@@ -5056,7 +5147,7 @@ function fieldsPage(){
         <span class="assign__body"><span class="assign__job">${esc(f.name)}</span>
         <span class="assign__who">${f.size === "10v10" ? "10v10 · 200 × 150 ft" : "Standard · 150 × 120 ft"} · ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${ready ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}</span></span>
         ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
-        <button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">${ready ? "Edit" : "Keep building"}</button>
+        ${S.fieldEdit && S.fieldEdit.key === f.key ? `<span class="tag">EDITING</span>` : `<button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Edit</button>`}
       </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
     ${fieldBuilder()}
     <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
@@ -5096,6 +5187,7 @@ function fieldBuilder(){
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
   mapPixels(f);
   return `<div id="fieldbuild" style="margin-top:var(--s4)">
+    <p class="note field-saved" role="status">✓ Saved as you go — every bunker you place, move or turn is kept on this phone. Done puts the builder away; Edit opens it again.</p>
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
     <div class="fld"><label for="field-size">Field size</label>
@@ -5120,9 +5212,12 @@ function fieldBuilder(){
     <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
     <p class="note" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
-      : `Tap a lit spot to place a <b>${esc(kind.name)}</b> — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+      : `Tap a lit spot to place a <b>${esc(kind.name)}</b>${turnSteps(kind) > 1 ? ` (${esc(turnWord(kind, ed.turn))})` : ""} — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
+    ${(() => { const it = me || (ed.last && f.bunkers.find(b => b.id === ed.last)), k2 = it && BUNKER_KINDS.find(k => k.n === it.n);
+      return it && (!k2 || turnSteps(k2) > 1) ? `<div class="btnrow turn-placed">${shapePreview(it)}<button class="btn btn--quiet" onclick="fieldTurn(${jsq(it.id)})" aria-label="Turn ${esc(it.id)}, ${me ? "the bunker picked" : "the one just placed"}, where it stands">↻ Turn ${me ? "this bunker" : "the one just placed"} · ${esc(it.id)}</button></div>` : ""; })()}
+    ${turnSteps(kind) > 1 ? `<div class="btnrow turn-next">${turnPreview(kind, ed.turn)}<button class="btn btn--quiet" onclick="fieldTurnNext()" aria-label="Turn the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}">↻ Turn before placing</button></div>` : ""}
     <div class="btnrow">
-      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">Turn</button>
+      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">↻ Turn</button>
         <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
         <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
       <button class="btn btn--quiet" onclick="fieldUndo()">↶ Undo</button>
@@ -15857,7 +15952,9 @@ function fitTallyField(svg, bar, main){
 // on the bunkers the coach was tapping (screenshotted 7 Nov 2026). There it
 // stands under the header instead, over the score line, which he has read.
 function placeFlash(){
-  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .hdr");
+  // The path line is the foot of the header on every screen size; on a tablet
+  // the header element itself lays its rows out in the app and has no box.
+  const el = document.querySelector("#root .flash.flash--high"), hdr = document.querySelector("#root .ctx") || document.querySelector("#root .hdr");
   if(!el || !hdr) return;
   el.style.top = Math.round(hdr.getBoundingClientRect().bottom + 8) + "px"; el.style.bottom = "auto";
 }
@@ -19458,11 +19555,11 @@ const HELP = {
     watch:"Each event keeps its own board, so changing the field brings up that field's drawing. A board stays until you wipe it — an adjustment you draw between points is still there next time. It is a teaching surface, not a record: nothing on it is saved to a sheet or carried in a copy of your season."},
   "more/fields": {t:"Field builder", w:"A field of your own, for an event or a park the app does not carry.",
     how:["Name the field and tap + Build a field. Pick a bunker type, then tap where it sits on the left half — its twin appears across the fifty, and one on the fifty stays single.",
-      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
+      "Bunkers snap to the 10-ft grid every 5 ft — on a line, a crossing or the middle of a cell — and may cross the lines. The lit dots are every spot the bunker you picked fits. To turn a bunker before it goes down, tap Turn before placing under the field — the small picture shows which way it will face, and every tap after places it that way, its twin mirrored. Tap a placed bunker and Turn to turn it after. Field size: the standard 150 × 120 ft field, or 10v10 (200 × 150 ft). Choose it before the first bunker goes down — a field with bunkers on it changes size only after Clear all, because every twin stands across the fifty and the fifty moves with the size. Every screen draws a 10v10 field at its own size.",
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
-      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. Done puts the builder away; Edit or Keep building opens it again."],
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. Turn before placing sets the way the next bunker goes down; ↻ Turn the one just placed, or tap a bunker and ↻ Turn this bunker, turns one already on the field."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
@@ -19641,7 +19738,7 @@ const HELP_Q = [
   ["I changed the event and the sheet locked.", "A sheet belongs to the field it was started on, so when the event on screen is not that field, nothing logs to it — an out tapped on Tampa would land under a Lone Star point. The notice at the top of Tally offers Back to that field, which puts you straight back on the sheet, or New match here, which starts a sheet on the field you are looking at. Opening a sheet from More › Matches brings its field with it."],
   ["How do I scout a game I'm not in?", "More › Schedule › Watch this game puts the home team in the left pit and the away team in the right and opens a sheet that counts against them and never against you. On Scout › Breakouts a switch says whose five you are charting, the break toggle names the two teams, and the score buttons name them too. Your own screens — Lineups, Movement, Assess, Log it — stand down on it, because none of your five is on that field."],
   ["A player opened the class link on his own phone.", "The link opens the sign-in sheet and nothing else — no account is needed to sign a clinic sheet, and nothing past it. The session itself lives on the phone that created it, so his own phone says there is no open session with that code: hand him yours, or have him sign in on the one you pass around."],
-  ["Does it work on an iPad?", "Yes, either way up. The five tabs stand in a rail down the left, the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
+  ["Does it work on an iPad?", "Yes, either way up. The five tabs run across the top with the path under them (Home › Scout › Breakouts — tap any step to go back to it), the field fits the screen, and on a wide enough screen the breakout sheet stands beside the field rather than under it. On its side, the call card sits beside the field on Playbook. Everything else is the same app."],
   ["It says another tab saved newer work.", "The app was open in two tabs and the other one saved after this one last read the season. This tab does not write over it: what you change here goes to a recovery copy of its own, kept with its field maps, and cloud sharing pauses in this tab. When the message says it is safe to close, the copy has been checked. Open the newer season, then More › Nexus › Recovery copies: Merge this copy in adds what that tab had, Show this copy keeps it as text, and Delete this copy takes it off once it is in."],
 ];
 
@@ -21439,8 +21536,14 @@ function moreBody(k){
     // moving the app off the event he is at: the section is drawn with that
     // field as the layout, and the event is put straight back.
     const ck = LAYOUTS[S.codesField] ? S.codesField : S.layoutKey, keep = S.layoutKey;
-    const pick = Object.keys(LAYOUTS).length > 1 ? `<div class="fld"><label>Field</label><div class="seg seg--wrap" role="group" aria-label="Field to read">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${esc(l.name)}${k === keep ? " · here" : ""}</button>`).join("")}</div></div>` : "";
+    // Event fields only (owner, 18 Nov 2026): a field he built is never listed
+    // with them. The one he is using sits apart, under Your field, so its key
+    // can still be read here.
+    const evs = Object.entries(LAYOUTS).filter(([, l]) => !l.mine), own = LAYOUTS[keep] && LAYOUTS[keep].mine ? LAYOUTS[keep] : null;
+    const codeBtn = (k, label) => `<button class="${ck === k ? "on" : ""}" aria-pressed="${ck === k}" onclick="set({codesField:${jsq(k)}, codePick:null, codeName:''})">${label}</button>`;
+    const pick = evs.length + (own ? 1 : 0) > 1 ? `<div class="fld"><label>Event field</label><div class="seg seg--wrap" role="group" aria-label="Event field to read">${
+      evs.map(([k, l]) => codeBtn(k, esc(l.name) + (k === keep ? " · here" : ""))).join("")}</div></div>${own ? `<div class="fld"><label>Your field</label><div class="seg seg--wrap" role="group" aria-label="Your field to read">${
+      codeBtn(keep, esc(own.name) + " · here")}</div></div>` : ""}` : "";
     S.layoutKey = ck;
     try {
     return sec("Bunker codes", `${pick}<p class="lede">What the letters on the field mean. ${/names no bunkers/i.test(curLayout().source || "")
@@ -21696,7 +21799,18 @@ function shell(){
   // ate it on a phone: "… · SNAKE …" said nothing about where he was standing.
   // The section is its own span that never shrinks; the event and the call
   // are what give way.
-  const crumb = S.tab==="more" && S.more ? `<span class="ctx__sec"><span class="ctx__sep">·</span> <b>${esc(MORE_TITLES[S.more]||"")}</b></span>` : "";
+  /* Where you are, the way a file explorer says it (owner, 18 Nov 2026):
+     Home › Scout › Breakouts. Every step before the last is a button that
+     goes back to it, and ← goes up one. The last step is where he stands. */
+  const trail = crumbTrail(), up = trail.length > 1 ? trail[trail.length - 2] : null;
+  const crumbs = `<nav class="crumbs" aria-label="Where you are">${up
+      ? `<button class="crumbs__back" onclick="${up.go}" aria-label="Back to ${esc(up.label)}">←</button>` : ""}<ol>${
+      // Home stays a button even when it is where he stands, as it always was.
+      trail.map((c, i) => `<li>${i ? `<span class="crumbs__sep" aria-hidden="true">›</span>` : ""}${i === trail.length - 1 && c.home
+        ? `<button class="crumbs__go crumbs__here ctx__home" onclick="openCoachHome()" aria-current="page">${esc(c.label)}</button>`
+        : i === trail.length - 1
+        ? `<span class="crumbs__here${c.home ? " ctx__home" : ""}${c.sec ? " ctx__sec" : ""}" aria-current="page">${esc(c.label)}</span>`
+        : `<button class="crumbs__go${c.home ? " ctx__home" : ""}" onclick="${c.go}">${esc(c.label)}</button>`}</li>`).join("")}</ol></nav>`;
   /* The score rides in the header once a point has been won, so it is never a
    * tab away from wherever the coach is standing. It sits in the top row beside
    * the Staff chip and not on the context line underneath: that line carries the
@@ -21730,13 +21844,14 @@ function shell(){
           : `<span class="who-chip">Guest</span>`}
       </div>
       ${asking ? "" : `<div class="ctx">
-        <button class="ctx__home" onclick="openCoachHome()"${S.tab==="home" ? ' aria-current="page"' : ""}>Home</button><span class="ctx__line">${Object.keys(LAYOUTS).length>1
-          ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="Event: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
-          : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}<span class="ctx__sep">·</span>${drilling
-          ? `<span class="ctx__call">NAME THE CALL</span>`
-          : `<button class="ctx__call" onclick="openCallPick()" aria-label="${callSet() ? `Call: ${esc(breakName())}. Change the call` : PICK_CALL}"><b class="ctx__t">${callSet() ? esc(breakName()) : PICK_CALL.toUpperCase()}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`}${crumb}</span>
+        ${crumbs}<span class="ctx__line">${Object.keys(LAYOUTS).length>1 || (S.fields || []).length
+          ? `<button class="ctx__ev" onclick="openEventPicker()" aria-expanded="${!!S.evPick}" aria-label="${curLayout().mine ? "Your field" : "Event"}: ${esc(curLayout().name)}. Change the event"><b class="ctx__t">${curLayout().mine ? "Your field · " : ""}${esc(curLayout().name)}</b><i class="ctx__car" aria-hidden="true">▾</i></button>`
+          : `<span class="ctx__ev"><b>${esc(curLayout().name)}</b></span>`}${/* The play is not in the header
+          (owner, 18 Nov 2026): the call is read and changed on Playbook and the
+          point sheet. The header names the field you are looking at, and its
+          ▾ lists the event layouts and, apart, the fields you built. */""}</span>
       </div>`}
-      ${!asking && S.evPick && Object.keys(LAYOUTS).length>1 ? eventPicker() : ""}
+      ${!asking && S.evPick && (Object.keys(LAYOUTS).length>1 || (S.fields || []).length) ? eventPicker() : ""}
     </header>
     <main class="main" tabindex="-1" aria-label="${esc(screenLabel)}">${contextWarning()}${storeWarning()}${handOffBox()}${fieldPicBox()}${tut}${page}
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
@@ -21745,6 +21860,22 @@ function shell(){
     ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
+}
+// The path in the header, Home first. Each step carries the handler that
+// goes back to it; the last is where he stands and has none.
+function crumbTrail(){
+  const out = [{label: "Home", go: "openCoachHome()", home: true}];
+  if(S.tab === "home") return out;
+  const back = "more:null,evPick:false";
+  if(S.tab === "scout"){
+    out.push({label: "Scout", go: `set({tab:'scout',scoutTab:'matchup',${back}})`});
+    out.push({label: (SCOUT_TABS.find(([k]) => k === (S.scoutTab || "matchup")) || [, "Matchup"])[1]});
+  } else if(S.tab === "more"){
+    out.push({label: "More", go: `set({tab:'more',${back}})`});
+    if(S.more) out.push({label: MORE_TITLES[S.more] || "", sec: true});
+  } else out.push({label: ({playbook: "Playbook", tally: "Tally", sightlines: "Sightlines"})[S.tab] || ""});
+  if(out[out.length - 1].go) delete out[out.length - 1].go;
+  return out;
 }
 /* Landscape quick-log — the point loop with nothing else on screen, laid out
    wide so a coach can call a break and score it one-handed with the phone

@@ -1,10 +1,10 @@
 {
   "format": "gridlock-preview-manifest",
   "v": 1,
-  "sourceCommit": "5fb768bccc1cfb8a2ad311415ef2be89e6bb14de",
+  "sourceCommit": "1744a2a1e8f1d45b57fb1da8849033c68508e618",
   "sourceTrees": {
-    "web": "a25b45a92b9069f86e080b6b44115524724f6123",
-    "site": "810d6847b1e7353d5e20604436db4cb998e3aff8"
+    "web": "5c6dd1442e1eee734394e18777f7605f55a41eb5",
+    "site": "7ccaf5d975f91cdf7531a37a8dcae315460a44fa"
   },
   "dirtyTracked": false,
   "edits": [
@@ -26,23 +26,23 @@
     "site/index.html": "1bc04d1004711b8c730b58d79a23f807cf0243ff2515bb870859da8c0b3d4198",
     "site/support.html": "31e73ad1034f23a5c9410e1ffe8857ff8da00c98f5f3092b2fb1bce47a51ea49",
     "site/privacy.html": "92612984b08359e979661c00bc4a0e5044662e21bc51bccf11ccc4a6eb62ce9b",
-    "web/index.html": "8d9a0ea4102417c780846003e6c559810c8b132ee9655c5e04ca662a8ab92f0f"
+    "web/index.html": "c2c3b62f9de782e3d51585c09894b3ff893d467f618c7716709212f42a4fe2c3"
   },
   "outputs": {
     "site/index.html": "32327f4d42318876be572a12f41cde22649155aeabb537fd634cd627318896a2",
     "site/support.html": "ae9234814f3a85b164c94c18462e783f34c52b3fb7cd9b54df20ad83e0eb5b8c",
     "site/privacy.html": "580c7d3f29d757fe1c90ee14a073fd2fd6405c547a6bc28035ab6a051251f79a",
-    "site/app.html": "c38f37f4381e231f303b8f8a2f8d742f4bdcc596118cbcf92b285f3343c9954f",
-    "artifact.html": "0fd1a612144f088a27ce314819e620043bcb1031beec448f175acc280fc85516",
-    "bytes": 3186694
+    "site/app.html": "f9075c96ba93be908e609ea9ba4dcac4a4fe64d436ce8508adba63321eeec92e",
+    "artifact.html": "a69015d1bc4060ca4331f558673cfa66e3843d6bbcbdaed5039193ddf3a8fd7a",
+    "bytes": 3215548
   },
-  "buildLog": "dist/preview/artifact.html: 3.04 MB; four embedded pages (Gridlock Coach)",
+  "buildLog": "dist/preview/artifact.html: 3.07 MB; four embedded pages (Gridlock Coach)",
   "script": "f3076e15b8d65be6e3d7b78e20e45d7b0a20187caca4c53d89b15360101aa2ab",
   "packager": "scripts/package-preview.js",
-  "builtAt": "2026-11-17T13:02:47.192Z",
+  "builtAt": "2026-11-19T04:44:33.332Z",
   "published": {
     "url": "https://claude.ai/artifact/JoZQM9DA52jnHbKQJTu4UP",
-    "version": 200,
-    "versionId": "1794920562-7417"
+    "version": 203,
+    "versionId": "1795063466-a232"
   }
 }

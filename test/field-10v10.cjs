@@ -27,7 +27,9 @@ async function point(p,selector,x,y){
 }
 async function tap(p,selector,x,y){const q=await point(p,selector,x,y);await p.mouse.click(q.x,q.y);}
 async function drag(p,handle,svg,x,y){
- await handle.scrollIntoViewIfNeeded();const r=await handle.boundingBox(),q=await point(p,svg,x,y);
+ // point() scrolls the field to the middle of the screen, so the handle is
+ // measured after it: measured first, a phone's scroll left it elsewhere.
+ const q=await point(p,svg,x,y),r=await handle.boundingBox();
  await p.mouse.move(r.x+r.width/2,r.y+r.height/2);await p.mouse.down();await p.mouse.move(q.x,q.y,{steps:8});await p.mouse.up();
 }
 async function makeField(p){
@@ -111,7 +113,9 @@ async function makeField(p){
     let handle=p.locator("[data-h]").first();
     if(!await handle.count()){const leg=p.locator("[data-leg]").first();await leg.click({position:{x:4,y:4},force:true});handle=p.locator("[data-h]").first();}
     const id=await handle.getAttribute("data-h"),i=await handle.getAttribute("data-i");
-    await drag(p,handle,".field-wrap[data-live] svg",220,170);
+    // Past the far corner but still on screen: at 390 px wide, 220 x 170 ft
+    // lies beyond the window's edge, where no pointer event is delivered.
+    await drag(p,handle,".field-wrap[data-live] svg",205,153);
     assert.deepEqual(await p.evaluate(([id,i])=>pathEdit(+id)[+i],[id,i]),[199,149]);await saveShot("playbook");
    },p,errors);
    await check(label+" Bunker stats stays by the right and bottom bunkers",async()=>{
@@ -123,6 +127,8 @@ async function makeField(p){
    await check(label+" Whiteboard aligns ink with the field and reaches the bottom-right corner",async()=>{
     await go(p,"more","wb");const a=await point(p,"#wb-map",185,135),b=await point(p,"#wb-map",199,149);
     await p.mouse.move(a.x,a.y);await p.mouse.down();await p.mouse.move(b.x,b.y,{steps:4});await p.mouse.up();
+    // The stroke is kept on the lift; under a loaded runner that can land a frame later.
+    await p.waitForFunction(()=>wbMarks().length>0,null,{timeout:3000}).catch(()=>{});
     const ink=await p.evaluate(()=>wbMarks().at(-1));assert(ink);assert(ink.pts.at(-1)[0]>198&&ink.pts.at(-1)[1]>148);
     const aligned=await p.evaluate(()=>{const a=document.querySelector(".wb-bg svg").getScreenCTM(),b=document.querySelector("#wb-map").getScreenCTM();return ["a","b","c","d","e","f"].every(k=>Math.abs(a[k]-b[k])<.01);});assert(aligned,"ink and field share the same screen transform");
     const box=await p.locator(".wb-wrap").boundingBox();assert(Math.abs((box.width-2)/(box.height-2)-428/336)<.02,"field plus wire margins");

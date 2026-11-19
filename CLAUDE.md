@@ -196,10 +196,30 @@ Guest · Staff/Coach · League Admin · Participant (form only)
 ## Tabs
 
 Phone: Playbook, Tally, Scout, Sightlines, More — a bar along the bottom.
-Tablet — any screen at least 740 px wide **and** 600 px tall, which is every iPad
-in either orientation and never a phone on its side: the same five in a rail
-down the left. On the same screens the field is fitted to the height there is
-and the Tally sheet stands beside it.
+Tablet and computer — any screen at least 740 px wide **and** 600 px tall, which
+is every iPad in either orientation and never a phone on its side: the same five
+in a row across the top, under the logo row, and no left pane (owner, 18 Nov
+2026). The header lays its rows out in the app column (`.hdr{display:contents}`
+on those screens) so one `nav.tabs` serves as both the bottom bar and the top
+row. On the same screens the field is fitted to the height there is and the
+Tally sheet stands beside it.
+Every screen size carries the path in the header (`crumbTrail()`, `nav.crumbs`,
+"Where you are"), like a file explorer's address bar: Home › Scout › Breakouts,
+Home › More › Field builder. Every step before the last is a 44 px button back
+to it (Scout goes to Matchup, More to the menu), ← goes up one, and the last
+step is where he stands (`aria-current`); Home stays a button even there.
+The header names no play (owner, 18 Nov 2026): the path and the field being
+looked at share one line on every screen — the path keeps its words and the
+event shortens to a stub — and the call is read and changed on Playbook and
+the point sheet (`openCallPick()` still opens it). The field's ▾ opens
+Season › Event › Layout for the event layouts and, below it as a group of its
+own, **Your fields** (`evpickMine()`, `#event-myfield`, `_evMine` page memory):
+choosing one moves nothing until Use this field, a field still building says
+how many bunkers it needs, and Field builder › is beside it. Built fields are
+never mixed into the event lists. The path's buttons reach into the line's
+padding (`margin:-12px 0`) so the header is no taller than before, or Tally
+and Scout's field fit loses its 170 px floor on a 375 × 667 phone.
+`test/nav-path.cjs`; the devices suite expects the top row.
 Scout: Matchup, Breakouts, Anticipate, Counter, Layers, Games, Division.
 More: Whiteboard, Walk, Field builder, Movement, Bunker stats · Lineups, Team, Assess, Codes, Messages · Schedule, Format, Matches · Reports · Plan, Help · and under **Your account**, Account & backups (Nexus) — where coaches sign out, back up and read the privacy notice. Classes and League are off the menu at the owner's call (`MORE_HIDDEN`): the screens stay, because a class deep link still opens Classes on a signed-in phone, and `fixScreen()` lets them stand.
 
@@ -1768,7 +1788,11 @@ Before the game, is the one home of the fields he builds (`fieldsPage()`).
 Built fields are not event fields and are never listed with them: the
 header's Season › Event › Layout picker (`layoutChoices`) and Account &
 backups › Events carry measured event fields only, each with a link here,
-and the builder lives here alone. **Your fields** is a drop-down of every
+and the builder lives here alone. Codes' field picker lists event fields
+only, with the built field in use apart under Your field, and the header
+names a built field "Your field · <name>", never as an event (owner,
+18 Nov 2026); its ▾ lists his fields as their own Your fields group under
+the event lists. **Your fields** is a drop-down of every
 field he built (`_fieldChoice`, page memory; the field in use, his only
 field or the one just finished is chosen), then Use this field / Edit /
 Keep building. Account & backups' status row says "Your field" when one is
@@ -1792,6 +1816,26 @@ field 150 × 120 ft on a 10-ft grid; a bunker's centre snaps every 5 ft
 (`FIELD_STEP`, `snapIn`) — a line, a crossing or a cell's middle — and its
 footprint may cross lines. Before a tap the builder lights every spot the
 picked bunker fits, clear of the others (`fieldSpots`, `pointer-events:none`).
+**Turn before placing** (owner, 19 Nov 2026): under the field, ↻ Turn before
+placing steps the bunker about to go down through the same positions Turn
+takes a placed one (`turnBunker`, `turnSteps`: a beam four — flat, angled,
+upright, angled the other way — a plus and a dorito two, a round bunker none,
+so no button), with a small picture of the way it will face
+(`turnPreview`) and the word in the note (`turnWord`). `S.fieldEdit.turn`
+holds it; every tap places that way until he turns again, and picking another
+kind starts it at its usual way. The twin of an angled beam leans the other
+way. Snapping and the lit spots read the box an angled beam really covers
+(`footExt`), for placing and for moving.
+**Turn after placing, saved as you go** (owner, 19 Nov 2026): Turn before
+placing stays on screen the whole time the builder is open, with or without a
+bunker picked. Above it, **↻ Turn the one just placed** (`S.fieldEdit.last`)
+turns the last bunker placed or moved where it stands, and with a bunker
+picked it reads **↻ Turn this bunker**; both go through `fieldTurn(id)`, twin
+mirrored, and Undo takes a turn back. Every change already saves on the tap,
+and the builder says so ("Saved as you go"); there is no Save button. Done puts
+it away and the field's card always shows **Edit** (EDITING while it is open);
+Your fields chooses the field open, chosen, in use or newest, so Edit is
+always one tap away.
 **Field size** (`FIELD_SIZES`, owner 17 Nov 2026): Standard 150 × 120 ft
 (X-Ball, 3v3, 5v5, 7v7, Classic, Pump) or 10v10 200 × 150 ft. A field keeps
 `size: "10v10"` (standard is never written, so older fields read as before;

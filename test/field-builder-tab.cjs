@@ -36,7 +36,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await p.mouse.click(at.x,at.y);
    assert.equal(await p.evaluate(k=>fieldOf(k).bunkers.length,key),2,"a real tap places a bunker and its twin across the fifty");
    // The other seven by data, so the test reads the row's own Use / Edit, not tap geometry.
-   await p.evaluate(k=>{S.fields=S.fields.map(f=>f.key===k?{...f,bunkers:[...f.bunkers,...Array.from({length:6},(_,i)=>({id:"t"+i,k:"md",x:30+i*6,y:12+i*14}))]}:f);registerFields();render();},key);
+   await p.evaluate(k=>{S.fields=S.fields.map(f=>f.key===k?{...f,bunkers:[...f.bunkers,...Array.from({length:6},(_,i)=>({id:"MD#t"+i,n:"MD",t:"dorito",w:6.69,h:6.11,x:30+i*6,y:12+i*14}))]}:f);registerFields();render();},key);
    await p.getByRole("button",{name:"Done",exact:true}).click();
    assert.equal(await p.evaluate(()=>S.more),"fields","Done stays on Field builder");
    await p.getByRole("button",{name:"Use this field",exact:true}).click();
@@ -50,6 +50,25 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.ok(await p.evaluate(k=>!layoutChoices().some(r=>r.key===k),key),"not in the header's event picker");
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
    assert.equal(await p.locator("#my-field").inputValue(),key,"chosen from the Your fields drop-down");
+   // Never listed with the event layouts (owner, 18 Nov 2026): not in Codes'
+   // event fields, and the header calls it your field, not an event.
+   await p.evaluate(()=>set({tab:"more",more:"codes"}));
+   assert.deepEqual(await p.getByRole("group",{name:"Event field to read"}).locator("button").evaluateAll(bs=>bs.map(b=>b.textContent).filter(t=>/Home park/.test(t))),[],"Codes lists event fields only");
+   assert.match(await p.getByRole("group",{name:"Your field to read"}).innerText(),/Home park · here/,"the field in use sits apart under Your field");
+   assert.match(await p.locator(".ctx__ev").innerText(),/Your field · Home park/i);
+   await p.locator("button.ctx__ev").click();
+   assert.equal(await p.locator("#event-name option",{hasText:"Home park"}).count(),0,"not an event in the header's picker");
+   assert.equal(await p.locator("#event-layout option",{hasText:"Home park"}).count(),0);
+   // The header's ▾ lists the fields he built as their own group (owner,
+   // 18 Nov 2026): Use this field moves to it, and the header names no play.
+   assert.equal(await p.locator(".ctx__call").count(),0,"the header names the field, not the play");
+   assert.match(await p.locator("#event-myfield option",{hasText:"Home park"}).innerText(),/Home park · in use/);
+   await p.evaluate(()=>pickEvent("lso"));await p.locator("button.ctx__ev").click();
+   await p.locator("#event-myfield").selectOption(key);
+   assert.equal(await p.evaluate(()=>S.layoutKey),"lso","choosing moves nothing until Use");
+   await p.getByRole("button",{name:"Use this field",exact:true}).click();
+   assert.equal(await p.evaluate(()=>S.layoutKey),key,"Use this field puts it on every tab");
+   assert.match(await p.locator(".ctx__ev").innerText(),/Your field · Home park/i);
   });
   await check("Undo takes back the last change and Clear all empties the field, Undo bringing it back",async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
@@ -67,7 +86,7 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    await btn("Clear all").click();assert.equal(await n(),0,"Clear all takes every bunker off");
    await btn("↶ Undo").click();assert.equal(await n(),4,"Undo brings them back");
    assert.ok(!(await p.evaluate(()=>JSON.stringify(localStorage)).then(t=>t.includes("_fieldHist"))),"history is never saved");
-   await btn("Done").click();await btn("Keep building").click();await btn("↶ Undo").click();
+   await btn("Done").click();await btn("Edit").click();await btn("↶ Undo").click();
    assert.match(await root(p),/Nothing to undo yet/,"Done drops the history");
   });
   await check("Clear all refuses on a field in use, so it stays playable",async p=>{
@@ -169,6 +188,53 @@ const {chromium}=require("playwright-core"),{launchOptions}=require("../scripts/
    assert.equal(await p.evaluate(()=>copyDataError(JSON.parse(copyPayload("all")).data)),"","the size travels in a copy");
    assert.equal(await p.evaluate(()=>copyDataError({...JSON.parse(copyPayload("all")).data,fields:[{...S.fields[0],size:"huge"}]})),"fields","an unknown size is refused");
    await p.reload();assert.equal(await p.evaluate(k=>LAYOUTS[k]&&LAYOUTS[k].fw,key),200,"a relaunch keeps it 10v10");
+  });
+  await check("a bunker is turned before it is placed: every tap after places it that way, its twin mirrored",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("Turn park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key);
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=2*x;pt.y=2*y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   await p.getByRole("button",{name:/^Snake beam/}).click();
+   const turn=()=>p.getByRole("button",{name:/Turn the Snake beam before you place it/});
+   assert.match(await turn().getAttribute("aria-label"),/go down flat/);
+   await turn().click();assert.match(await turn().getAttribute("aria-label"),/go down angled$/);
+   await tap(30,50);await tap(30,80);
+   await turn().click();await tap(40,20);
+   const b=await p.evaluate(k=>fieldOf(k).bunkers.map(b=>({x:b.x,y:b.y,w:b.w,h:b.h,a:b.a||0})),key);
+   assert.deepEqual(b.slice(0,4).map(x=>x.a),[45,-45,45,-45],"the turn holds for every tap, and each twin leans the other way");
+   assert.deepEqual([b[4].w,b[4].h,b[4].a],[1.49,9.68,0],"turned again it goes down upright");
+   await p.getByRole("button",{name:/^Dorito/}).click();
+   assert.match(await p.getByRole("button",{name:/Turn the Dorito/}).getAttribute("aria-label"),/point to the dorito side/,"a new kind starts facing its usual way");
+   await p.getByRole("button",{name:/^Cylinder/}).click();
+   assert.equal(await p.locator(".turn-next").count(),0,"a round bunker has nothing to turn");
+   const edge=await p.evaluate(()=>{const k=BUNKER_KINDS.find(x=>x.key==="sb"),s=placeShape(k,1),e=footExt(s);return e.w>k.h&&e.h>k.h;});
+   assert.ok(edge,"an angled beam lights spots by the box it really covers");
+  });
+  await check("a bunker turns after it is placed too — the one just placed or one picked — and the field saves as it goes, Edit opening it again",async p=>{
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   await p.getByLabel("Name of the field").fill("After park");await p.getByRole("button",{name:"+ Build a field",exact:true}).click();
+   const key=await p.evaluate(()=>S.fieldEdit.key);
+   const tap=async(x,y)=>{await p.locator("#fieldbuild-map").scrollIntoViewIfNeeded();const at=await p.locator("#fieldbuild-map svg").evaluate((svg,[x,y])=>{const pt=svg.createSVGPoint();pt.x=2*x;pt.y=2*y;const q=pt.matrixTransform(svg.getScreenCTM());return {x:q.x,y:q.y};},[x,y]);await p.mouse.click(at.x,at.y);};
+   assert.match(await root(p),/Saved as you go/,"the builder says it saves itself");
+   await p.getByRole("button",{name:/^Snake beam/}).click();
+   assert.equal(await p.locator(".turn-placed").count(),0,"nothing placed, nothing to turn after");
+   await tap(30,50);
+   const bs=()=>p.evaluate(k=>fieldOf(k).bunkers.map(b=>({id:b.id,a:b.a||0,w:b.w,h:b.h})),key);
+   const first=(await bs())[0];
+   await p.getByRole("button",{name:/the one just placed, where it stands/}).click();
+   let now=await bs();assert.deepEqual([now[0].a,now[1].a],[45,-45],"the one just placed turns in place, its twin mirrored");
+   assert.equal(await p.locator(".turn-next").count(),1,"Turn before placing stays on screen");
+   await tap(30,50);assert.equal(await p.evaluate(()=>S.fieldEdit.sel),first.id,"tapping it picks it");
+   assert.equal(await p.locator(".turn-next").count(),1,"and Turn before placing is still there with a bunker picked");
+   await p.getByRole("button",{name:/the bunker picked, where it stands/}).click();
+   now=await bs();assert.ok(now[0].h>now[0].w&&!now[0].a,"picked and turned again it stands upright");
+   await p.reload();
+   assert.equal(await p.evaluate(k=>fieldOf(k).bunkers.length,key),2,"no Save button needed: it survives a relaunch");
+   await p.evaluate(()=>set({tab:"more",more:"fields"}));
+   assert.equal(await p.locator("#fieldbuild-map").count(),0);
+   await p.getByRole("button",{name:"Edit",exact:true}).click();
+   assert.equal(await p.locator("#fieldbuild-map").count(),1,"Edit opens it again");assert.equal(await p.evaluate(()=>S.fieldEdit.key),key);
+   assert.match(await p.locator(".assign").filter({hasText:"After park"}).innerText(),/EDITING/);
   });
   for(const [w,h] of [[390,844],[768,1024],[1024,768]])await check(`Field builder fits with named 44px controls at ${w}x${h}`,async p=>{
    await p.evaluate(()=>set({tab:"more",more:"fields"}));
