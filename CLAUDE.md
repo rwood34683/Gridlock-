@@ -68,6 +68,16 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- Pod hunt is an optional Home clue, separate from Pod Wars and coaching data.
+  Practice has no prize; the owner has not chosen one. Never grant account
+  access, alter seasons/codes, or declare a global winner from local progress,
+  a URL, or a code alone. The prepared prize round checks verified accounts,
+  ordered answers, rate limits and the first claim in one server transaction.
+  Keep its answer keys server-side, and the campaign closed until prize, rules
+  and separate launch testing are complete. No automatic requests on opening
+  Home or practice. Close on navigation/account changes and reject late replies.
+  `test/pod-hunt.cjs` and `test/pod-hunt-server.mjs` cover these boundaries.
+
 - Walk's Explore field is a camera over the same measured footprints, names
   and notes as the ordinary field. It does not depict bunker heights or
   player-eye visibility. Never infer height from footprint width/depth.
