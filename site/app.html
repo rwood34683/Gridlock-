@@ -4808,7 +4808,7 @@ function markStale(){
 // This tab's own copy, with this tab's maps. Said safe only once read back.
 function keepTabCopy(){
   let text = "";
-  try{ text = copyPayload("all"); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
+  try{ text = copyPayload("all", 0); }catch(e){ _tabCopyFail = "This tab's changes could not be packed into a copy."; return false; }
   const key = TAB_COPY + TAB_ID;
   try{
     localStorage.setItem(key, text);
@@ -4872,7 +4872,7 @@ function keepSnapshot(text, own = false, from = null, season = null, parts = nul
         const value = k !== "fields" && parts.has(k) ? parts.get(k) : JSON.stringify(data[k]);
         return value === undefined ? null : JSON.stringify(k) + ":" + value;
       }).filter(v => v !== null).join(",") + "}}"
-    : own ? JSON.stringify(copy) : JSON.stringify(copy, null, 1),
+    : JSON.stringify(copy),
         key = own ? TAB_COPY + TAB_ID : TAB_COPY + "s" + (saveIdOf(text) || stamp.toString(36)).replace(/[^a-z0-9.:]/gi, "");
   try{
     localStorage.setItem(key, out);
@@ -4988,6 +4988,66 @@ window.showRecoveryCopy = key => {
   const c = window.gridlockRecoveryCopies().find(x => x.key === key);
   if(c) set({copyText: c.text, copyStatus: "A recovery copy from another tab. Copy the text to keep it, or merge it in."});
 };
+// Reclaim formatting space only: never drop a record, key, number token or
+// whitespace inside a coach's words. Older builds can still read these copies.
+function compactCopyText(text){
+  const copy = JSON.parse(text);
+  if(!plainRecord(copy) || copy.format !== COPY_FORMAT || copy.v !== COPY_VERSION) return text;
+  return text.replace(/"(?:\\[\s\S]|[^"\\])*"|[ \t\r\n]+/g, token => token[0] === '"' ? token : "");
+}
+let _storageRepairStatus = "", _storageRepairBusy = false;
+window.makeStorageRoom = async () => {
+  if(_storageRepairBusy) return;
+  _storageRepairBusy = true;
+  let saved = 0;
+  try{
+    // A missing heartbeat is not proof a suspended tab has closed. Without
+    // browser ownership locks, leave its exact copy alone.
+    if(navigator.locks && typeof navigator.locks.request === "function"){
+      const keys = Object.keys(localStorage).filter(k => k.startsWith(TAB_COPY) && k !== TAB_COPY + TAB_ID);
+      for(const key of keys){
+        const owner = TAB_LIVE + key.slice(TAB_COPY.length);
+        const before = localStorage.getItem(key);
+        if(!before) continue;
+        try{
+          await navigator.locks.request(owner, {ifAvailable:true}, lock => {
+            if(!lock || localStorage.getItem(key) !== before) return;
+            const live = +localStorage.getItem(owner) || 0;
+            if(live && Date.now() - live < 30000) return;
+            const at = Date.parse(JSON.parse(before).at) || 0;
+            if(at && Date.now() - at < 30000) return;
+            const after = compactCopyText(before);
+            if(after.length >= before.length || localStorage.getItem(key) !== before) return;
+            // setItem replaces atomically; never remove first to make it fit.
+            localStorage.setItem(key, after);
+            if(localStorage.getItem(key) === after) saved += before.length - after.length;
+          });
+        }catch(e){ /* An unreadable or unavailable copy stays untouched. */ }
+      }
+    }
+    save(S);
+    if(_storeFails.maps) keepMaps();
+    _storageRepairStatus = (saved ? "Recovery copies now use less space. Nothing was deleted. " : "No recovery copies could be made smaller. Nothing was deleted. ")
+      + (_storeFail || tabUnsaved() ? "Some changes are still not saved. Save everything and the recovery files before closing." : "Your changes are saved on this device.");
+  }catch(e){ _storageRepairStatus = "Storage could not be checked. Save everything and the recovery files before closing."; }
+  finally{ _storageRepairBusy = false; render(); }
+};
+window.saveRecoveryFiles = () => {
+  try{
+    const files = {"current-season.json": fflate.strToU8(copyPayload("all"))};
+    let n = 0;
+    for(const key of Object.keys(localStorage).filter(k => k.startsWith(TAB_COPY)).sort()){
+      const text = localStorage.getItem(key);
+      if(text !== null) files["recovery-" + (++n) + ".json"] = fflate.strToU8(text);
+    }
+    if(_recoveryText) files["unreadable-save.txt"] = fflate.strToU8(_recoveryText);
+    const url = URL.createObjectURL(new Blob([fflate.zipSync(files)], {type:"application/zip"}));
+    const a = document.createElement("a"); a.href = url; a.download = "gridlock-recovery-" + new Date().toISOString().slice(0,10) + ".zip";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+    _storageRepairStatus = "Look for the recovery ZIP in Downloads. It holds this season and each recovery copy separately. Unzip it to load a copy. Nothing was deleted.";
+  }catch(e){ _storageRepairStatus = "The recovery files could not be downloaded. Use Show this copy to keep each one as text."; }
+  render();
+};
 const NAV_KEYS = ["tab", "more", "scoutTab"];
 var _scratchKeys = null, _lastSeason = null;
 function scratchKeys(){
@@ -5009,7 +5069,8 @@ var _lastLen = 0;
 function saveHere(s){
   const here = {base: _baseId || "", len: _lastLen};
   NAV_KEYS.forEach(k => { here[k] = s[k] === undefined ? null : s[k]; });
-  try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); }catch(e){ storeRefused(e); }
+  try{ localStorage.setItem(HERE_KEY, JSON.stringify(here)); storeKept("navigation"); }
+  catch(e){ storeFailed("navigation", e); }
 }
 function storeRefused(e){
   _lastSeason = null;
@@ -5223,8 +5284,9 @@ function storeWarning(){
   const stale = staleWarning();
   if(stale) return stale;
   if(_storeFail) return `<div class="tip" style="border-color:var(--red);background:rgba(229,37,42,.14)">
-    <span><b>${esc(_storeFail)}</b> Nothing you tap is being saved. Free some space, then use
-    Nexus &rsaquo; Save a copy before you close the app.</span></div>`;
+    <span><b>${esc(_storeFail)}</b> ${_storeFails.season || _storeFails.maps
+      ? "Some changes are not saved. Keep this tab open. Use Account &amp; backups to Save everything and make room without deleting data. Do not clear browsing data."
+      : "Your season is saved, but the app could not remember which screen you opened. Use Account &amp; backups to make room without deleting data."}</span></div>`;
   if(window.gridlockDurableError) return `<div class="tip" style="border-color:var(--red)">
     <span>${esc(window.gridlockDurableError)}</span></div>`;
   if(S.restored) return `<div class="tip">
@@ -8215,14 +8277,14 @@ const KEEP_SQUAD = ["roster","scout","teams","bunkerCalls","playerCalls","breakC
 // the status message must not erase the file the coach just chose.
 let copyDraft = "";
 
-function copyPayload(scope){
+function copyPayload(scope, space=1){
   const keys = scope === "squad" ? KEEP_SQUAD : KEEP_ALL;
   const data = {};
   keys.forEach(k => { if(S[k] !== undefined) data[k] = S[k]; });
   if(data.fields) data.fields = fieldsOut(data.fields);
   if(!S.seasonId) S.seasonId=newSalt();
   return JSON.stringify({format: COPY_FORMAT, v: COPY_VERSION, seasonId:S.seasonId, scope: scope || "all",
-                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, 1);
+                         at: new Date().toISOString(), app: "Gridlock Coach", data}, null, space);
 }
 /* One sheet, to hand to the coach beside you. Two phones on one match — one
  * on the tally, one charting their five off the fence — had no way to put
@@ -21553,6 +21615,115 @@ window.resumeCoachSheet = () => {
   if(sheetField()) openMatchNow(m.id);
   set({tab:m.watch ? "scout" : "tally", scoutTab:"matchup", more:null}); toMainTop();
 };
+
+// The hunt is separate from coaching data. Practice is never a prize claim.
+const HUNT_PRACTICE = [
+  {title:"The missing pod",clue:"Nobody admits dropping it. Everybody wants it back. What carries your spare paint?",options:["A pod","The score sheet","A very tired referee"],answer:0,piece:"Gridlock".replace(/[^a-z0-9]/gi,"").toUpperCase()},
+  {title:"Talk in code",clue:"Your team calls a bunker 'Pizza'. Where do you keep that word so everybody means the same thing?",options:["Schedule","Codes","The concession stand"],answer:1,piece:"RUNS"},
+  {title:"Eyes on them",clue:"Your next opponent is playing. Which tool keeps what you see?",options:["Tally","Playbook","Scout"],answer:2,piece:"ON"},
+  {title:"The pit mystery",clue:"You brought six. You came home with two. Nobody borrowed any. What vanished?",options:["Your ability to count","Pods","The entire field"],answer:1,piece:"PODS"}
+];
+let _hunt=null, _huntReturn=null, _huntHidden=null;
+function huntOwner(){ return JSON.stringify([S.entered,S.email,syncAskId(),_authAttempt]); }
+function guardHunt(){ if(_hunt && (!S.entered || _hunt.owner!==huntOwner() || S.tab!=="more" || S.more!=="home")) closeHunt(); }
+window.openHunt=()=>{
+  if(!S.entered || S.tab!=="more" || S.more!=="home") return;
+  if(_hunt) return;
+  _hunt={owner:huntOwner(),step:0,pieces:[],mode:"practice",busy:false,said:"",done:false};
+  _huntReturn=document.activeElement;
+  const el=document.createElement("div");el.id="pod-hunt";el.setAttribute("role","dialog");el.setAttribute("aria-modal","true");el.setAttribute("aria-labelledby","hunt-title");
+  el.addEventListener("keydown",ev=>{
+    if(ev.key==="Escape"){ev.preventDefault();closeHunt();return;}
+    if(ev.key!=="Tab")return;
+    const a=[...el.querySelectorAll("button,input,[tabindex]")].filter(x=>!x.disabled&&x.tabIndex>=0&&x.getClientRects().length),first=a[0],last=a[a.length-1];
+    if(ev.shiftKey&&document.activeElement===first){ev.preventDefault();last?.focus();}
+    else if(!ev.shiftKey&&document.activeElement===last){ev.preventDefault();first?.focus();}
+  });
+  document.body.append(el);drawHunt();
+  const root=document.getElementById("root");_huntHidden=root.getAttribute("aria-hidden");root.setAttribute("aria-hidden","true");
+};
+window.closeHunt=()=>{
+  if(!_hunt)return;
+  _hunt=null;document.getElementById("pod-hunt")?.remove();
+  const root=document.getElementById("root");if(_huntHidden===null)root.removeAttribute("aria-hidden");else root.setAttribute("aria-hidden",_huntHidden);
+  _huntHidden=null;const back=_huntReturn;_huntReturn=null;if(back?.isConnected)back.focus({preventScroll:true});
+};
+function drawHunt(){
+  const h=_hunt,el=document.getElementById("pod-hunt");if(!h||!el)return;
+  const live=h.mode==="live",stage=live?h.stage:HUNT_PRACTICE[h.step],pieces=h.pieces||[];
+  el.innerHTML=`<style>
+    #pod-hunt{position:fixed;inset:0;z-index:9999;overflow:auto;overscroll-behavior:contain;background:#0b0c0d;color:#efedeb;padding:16px;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+    #pod-hunt .hunt-body{max-width:640px;margin:0 auto;padding-bottom:20px;overflow-wrap:anywhere}
+    #pod-hunt .hunt-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    #pod-hunt h2{font-size:clamp(24px,6vw,38px);line-height:1.12;margin:12px 0}
+    #pod-hunt .hunt-note{color:#ff5a52;line-height:1.5;max-width:58ch}
+    #pod-hunt .hunt-choices{display:grid;gap:10px;margin:20px 0}
+    #pod-hunt button,#pod-hunt input{min-height:48px;min-width:44px;max-width:100%;font:inherit}
+    #pod-hunt input{display:block;box-sizing:border-box;width:100%;margin:8px 0 16px;padding:10px;background:#111314;color:#efedeb;border:1px solid #ff5a52;border-radius:8px}
+    #pod-hunt .hunt-locks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0}
+    @media(max-width:480px){#pod-hunt .hunt-locks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    #pod-hunt .hunt-locks span{border:1px solid #ff5a52;border-radius:8px;padding:8px;flex:1;text-align:center;font-weight:800}
+    #pod-hunt .hunt-locks .found{background:#ad1515;color:#fff}
+    #pod-hunt .hunt-pod{display:block;width:92px;height:104px;margin:20px auto}
+    #pod-hunt button:focus-visible,#pod-hunt input:focus-visible{outline:3px solid #efedeb;outline-offset:3px}
+    #pod-hunt .hunt-status{min-height:24px;color:#ff5a52}
+  </style><div class="hunt-body">
+    <div class="hunt-top"><b>${live?"Prize hunt":"Practice hunt"}</b><button class="btn btn--quiet" onclick="closeHunt()">Close</button></div>
+    <svg class="hunt-pod" viewBox="0 0 92 104" aria-hidden="true"><path d="M24 20h44v67q0 11-22 11T24 87Z" fill="#ad1515" stroke="#efedeb" stroke-width="2"/><path d="M22 10h48v12H22Z" fill="#efedeb"/><path d="M31 34v44" stroke="#ff5a52" stroke-width="4"/><text x="46" y="68" text-anchor="middle" fill="#efedeb" font-size="34" font-weight="900">?</text></svg>
+    <h2 id="hunt-title" tabindex="-1">${h.done?(live?"Claim confirmed":"You cracked it"):esc(stage?.title||"Put the code together")}</h2>
+    <p class="hunt-note">${live?esc(h.prize||""):"Four clues. One missing pod. The prize round has not started. Prize to be announced."}</p>
+    ${live?`<details><summary style="min-height:44px;display:flex;align-items:center">Round rules</summary><p style="white-space:pre-wrap">${esc(h.rules)}</p></details>`:""}
+    <div class="hunt-locks" aria-label="Code pieces">${[0,1,2,3].map(i=>`<span class="${pieces[i]?"found":""}">${pieces[i]?esc(pieces[i]):i+1}</span>`).join("")}</div>
+    ${h.done?`<p>${live?"The server recorded your team's claim. Keep this reference: <b>"+esc(h.receipt)+"</b>.":"Practice complete. No prize claimed and no account access changed. Keep the code between you and the pit crew."}</p>`:stage?`<p>${esc(stage.clue)}</p><div class="hunt-choices">${stage.options.map((v,i)=>`<button class="btn btn--quiet" ${h.busy?"disabled":""} onclick="huntAnswer(${i})">${esc(v)}</button>`).join("")}</div>`:`<form onsubmit="event.preventDefault();huntFinish()"><label for="hunt-code">Secret code · join the four pieces</label><input id="hunt-code" maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false" required value="${esc(h.code||"")}" oninput="_hunt.code=this.value" ${h.busy?"disabled":""}/>${live?`<label for="hunt-team">Team name for your entry</label><input id="hunt-team" maxlength="80" autocomplete="off" required value="${esc(h.team||"")}" oninput="_hunt.team=this.value"/><p class="hunt-note">This entry uses your signed-in account. A team name does not verify team membership.</p>`:""}<button class="btn" ${h.busy?"disabled":""}>${live?"Submit team claim":"Try the code"}</button></form>`}
+    <p id="hunt-status" class="hunt-status" role="status" aria-live="polite">${esc(h.said)}</p>
+    ${!live?`<button class="btn btn--quiet" ${h.busy?"disabled":""} onclick="huntCheck()">Check prize round</button>`:""}
+    ${h.done&&!live?'<button class="btn btn--quiet" onclick="closeHunt();openHunt()">Play again</button>':""}
+  </div>`;
+  el.querySelector("#hunt-title")?.focus({preventScroll:true});el.scrollTop=0;
+}
+function huntSaid(text){const el=document.getElementById("hunt-status");if(_hunt)_hunt.said=text;if(el)el.textContent=text;}
+window.huntAnswer=async choice=>{
+  guardHunt();const h=_hunt;if(!h||h.busy||h.done)return;
+  if(!Number.isInteger(choice)||choice<0||choice>2)return;
+  if(h.mode==="live")return huntSend({action:"answer",round:h.round,stage:h.step,choice});
+  const stage=HUNT_PRACTICE[h.step];if(!stage)return;
+  if(choice!==stage.answer)return huntSaid("Not that one. Check the clue and try again.");
+  h.pieces.push(stage.piece);h.step++;h.said="Code piece found.";drawHunt();
+};
+window.huntFinish=async()=>{
+  guardHunt();const h=_hunt;if(!h||h.busy||h.done||h.step!==4)return;
+  const code=document.getElementById("hunt-code")?.value||"";
+  if(h.mode==="live")return huntSend({action:"claim",round:h.round,code,team:document.getElementById("hunt-team")?.value||""});
+  if(code.replace(/[^a-z0-9]/gi,"").toUpperCase()!==h.pieces.join(""))return huntSaid("Join the four pieces in order. Try again.");
+  h.done=true;h.said="The missing pods remain suspiciously missing.";drawHunt();
+};
+window.huntCheck=()=>huntSend({action:"status"});
+async function huntSend(data){
+  guardHunt();const h=_hunt;if(!h||h.busy)return;
+  const cloud=window.gridlockCloud;
+  if(typeof cloud?.huntRequest!=="function")return huntSaid("The prize round is not open here. You can play the practice hunt.");
+  h.busy=true;huntSaid("Checking the prize round…");
+  document.querySelectorAll("#pod-hunt button:not(.hunt-top button)").forEach(b=>b.disabled=true);
+  // Disabling the tapped button can send focus to the page behind the dialog.
+  // Keep Escape and the focus trap usable while the server is answering.
+  document.getElementById("hunt-title")?.focus({preventScroll:true});
+  try{
+    const r=await cloud.huntRequest(data);
+    guardHunt();if(_hunt!==h||cloud!==window.gridlockCloud)return;
+    if(!r?.ok){huntSaid(r?.said||"No claim confirmed. Check your connection and try again.");return;}
+    if(r.state==="inactive"){huntSaid("The prize round is not open. No claim confirmed.");return;}
+    if(r.state==="claimed"){
+      Object.assign(h,{mode:"practice",step:0,pieces:[],done:false,busy:false,code:"",team:"",said:"Another team has already claimed this round. Practice is still open."});drawHunt();return;
+    }
+    if(!["open","winner"].includes(r.state)||typeof r.round!=="string"||!r.round||r.round.length>80||!Number.isInteger(r.step)||r.step<0||r.step>4||!Array.isArray(r.pieces)||r.pieces.length!==r.step||r.pieces.some(x=>typeof x!=="string"||x.length>20)||typeof r.prize!=="string"||r.prize.length>500||typeof r.rules!=="string"||!r.rules||r.rules.length>4000)throw Error("Invalid round");
+    if(r.state==="open"&&r.step<4&&(!r.stage||typeof r.stage.title!=="string"||typeof r.stage.clue!=="string"||!Array.isArray(r.stage.options)||r.stage.options.length!==3||r.stage.options.some(x=>typeof x!=="string")))throw Error("Invalid clue");
+    if(r.state==="winner"&&(typeof r.receipt!=="string"||!r.receipt||r.step!==4))throw Error("Unconfirmed claim");
+    Object.assign(h,{mode:"live",round:r.round,step:r.step,pieces:r.pieces,stage:r.stage,prize:r.prize,rules:r.rules,done:r.state==="winner",receipt:r.receipt,said:r.said||""});
+    h.busy=false;drawHunt();
+  }catch(e){if(_hunt===h)huntSaid("No claim confirmed. Check your connection and try again.");}
+  finally{if(_hunt===h){h.busy=false;document.querySelectorAll("#pod-hunt button").forEach(b=>b.disabled=false);}}
+}
+
 // Orientation only: these cards use the same guarded screens as the main tabs.
 // Rendering Home never starts a match or changes a team, point or saved record.
 function coachHome(){
@@ -21580,7 +21751,7 @@ function coachHome(){
       <div class="btnrow"><button class="btn btn--quiet" onclick="set({tab:'more',more:'schedule'})">${team ? "Open schedule" : "Choose your team"}</button>
       <button class="btn btn--quiet" onclick="set({tab:'more',more:'lineups'})">Set your lineup</button></div>
     </section>
-    ${homeMoreCards()}`;
+    ${homeMoreCards()}<button class="btn btn--quiet" style="margin-top:20px;min-height:44px" onclick="openHunt()">Someone left a pod behind…</button>`;
 }
 // The rest of the dashboard: one card a tool on the More menu, in its groups,
 // opened through the same screen key the menu row uses (owner, 12 Nov 2026).
@@ -22521,7 +22692,7 @@ function moreBody(k){
  * in. Never pruned by the app: it may be the only record of those taps. */
 function recoveryCopiesSec(){
   const list = window.gridlockRecoveryCopies();
-  if(!list.length) return "";
+  if(!list.length && !_storeFail) return "";
   const rows = list.map(c => {
     let what = "";
     try{ what = copySummary(JSON.parse(c.text).data || {}); }catch(e){ what = "unreadable"; }
@@ -22536,7 +22707,11 @@ function recoveryCopiesSec(){
       </div></div>`;
   }).join("");
   return sec("Recovery copies", `<p class="lede">A tab that found another tab had saved newer work kept
-    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>${rows}`);
+    its own changes here instead of writing over it. Merge one in to add what it has to this season.</p>
+    <div class="toggles"><button class="btn" onclick="saveRecoveryFiles()">Save recovery files</button>
+      <button class="btn btn--quiet" onclick="makeStorageRoom()">Make room without deleting data</button></div>
+    <p class="note">This only removes extra formatting from closed tabs' copies. Every season, code word and recovery copy stays.</p>
+    ${_storageRepairStatus ? `<p class="note" role="status">${esc(_storageRepairStatus)}</p>` : ""}${rows}`);
 }
 window.delMsg = i => {
   const was = (S.messages || [])[i];
@@ -23087,6 +23262,7 @@ function controlValues(root){
   return Array.from(root.querySelectorAll("input,textarea,select"), c => ({value:c.value, checked:c.checked, selectedIndex:c.selectedIndex}));
 }
 function render(){
+  guardHunt();
   fixScreen();
   if(!S.entered || S.tab !== "more") _moreQuery = "";
   if(!S.entered){ clearCoachPrint(); _foldNames.clear(); _fieldNodes.clear(); _fieldNodeChars = 0; _screenPages.clear(); _screenPageChars = 0; }
