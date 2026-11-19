@@ -21607,6 +21607,9 @@ async function huntSend(data){
   if(typeof cloud?.huntRequest!=="function")return huntSaid("The prize round is not open here. You can play the practice hunt.");
   h.busy=true;huntSaid("Checking the prize round…");
   document.querySelectorAll("#pod-hunt button:not(.hunt-top button)").forEach(b=>b.disabled=true);
+  // Disabling the tapped button can send focus to the page behind the dialog.
+  // Keep Escape and the focus trap usable while the server is answering.
+  document.getElementById("hunt-title")?.focus({preventScroll:true});
   try{
     const r=await cloud.huntRequest(data);
     guardHunt();if(_hunt!==h||cloud!==window.gridlockCloud)return;

@@ -35,7 +35,8 @@ const {chromium}=require('playwright-core'),{launchOptions}=require('../scripts/
     });
     await check('closing or changing account invalidates a delayed reply; navigation closes the hunt',async p=>{
       await open(p);await p.evaluate(()=>{window.gridlockCloud={huntRequest:()=>new Promise(r=>window.__huntResolve=r)};});
-      await p.getByRole('button',{name:'Check prize round',exact:true}).click();await p.keyboard.press('Escape');
+      await p.getByRole('button',{name:'Check prize round',exact:true}).click();
+      assert(await p.evaluate(()=>document.getElementById('pod-hunt').contains(document.activeElement)));await p.keyboard.press('Escape');
       await p.evaluate(()=>__huntResolve({ok:true,state:'winner'}));assert.equal(await p.locator('#pod-hunt').count(),0);
       await open(p);await p.getByRole('button',{name:'Check prize round',exact:true}).click();
       await p.evaluate(()=>{S.email='another@example.test';render();__huntResolve({ok:true,state:'winner'});});assert.equal(await p.locator('#pod-hunt').count(),0);
