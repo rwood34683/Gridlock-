@@ -1,5 +1,11 @@
 # The paywall
 
+**Coach web launch:** [WEB-PAYMENTS.md](WEB-PAYMENTS.md) is the current launch
+contract. All Coach tools require a verified $19.97 day pass or an existing
+approved beta/admin grant. Player accounts are free and grant no Coach access.
+The freemium prices and native-store reference below are historical implementation
+notes, not the web offer. Checkout is not live until the launch checks pass.
+
 What is built, what is not, and the exact steps to switch it on.
 
 ## Where it stands

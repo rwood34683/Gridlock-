@@ -40,6 +40,11 @@ the same page:
 
 ### Where things stand (keep this current when you change one)
 
+- **Coach web paywall is prepared, not live.** Continue draft PR #325 and
+  `docs/WEB-PAYMENTS.md`: all Coach tools require verified account access;
+  free Player accounts grant none. Preserve beta/admin grants and expired
+  season backup/export. Hosted sandbox evidence remains a launch gate.
+
 - **Pod hunt** starts only from the small Home clue. Practice never awards a prize or changes account access or seasons.
   The prepared prize service has one atomic winner per round and is inactive until separately configured; see `docs/POD-HUNT.md`.
 

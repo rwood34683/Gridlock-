@@ -68,6 +68,22 @@ exist. "Powered by UPRA" is the product mark and stays as it is.
 
 ## Hard rules
 
+- The web payment draft follows `docs/WEB-PAYMENTS.md`: its earlier $19.97
+  day pass ends at midnight America/New_York, with no renewal. The owner must
+  reconfirm price and duration before launch. Only a verified server payment grants
+  access; a return URL, imported copy or local billing value never does.
+  Preserve existing beta/admin access and backup/export after expiration.
+  Keep checkout disabled until the sandbox flow and live configuration checks
+  pass and the owner approves launch. Public verification keys may ship;
+  private/payment keys may not. Simulate payments only in Stripe's sandbox.
+  Free Player accounts and team roles never grant Coach access. Expiration
+  closes player-detail editing as well as the main tools. Background checks
+  with unchanged access must not redraw an unfinished form.
+  The full Coach edition is paid: new More screens must inherit the same
+  gate. Expiration also closes the hunt and arcade and stops the Walk tour;
+  stale handlers cannot reopen them. Never delete seasons or codes to lock
+  access. Reconfirm launch pricing before publishing sales (owner, 19 Nov).
+
 - Pod hunt is an optional Home clue, separate from Pod Wars and coaching data.
   Practice has no prize; the owner has not chosen one. Never grant account
   access, alter seasons/codes, or declare a global winner from local progress,
