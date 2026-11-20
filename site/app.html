@@ -721,6 +721,9 @@ svg.field [data-pick]{-webkit-touch-callout:none;-webkit-user-select:none;user-s
    narrowest column, where the bar already sits under the sheet, gives it a row. */
 @container main (max-width:460px){.resultbar .resultbar__none{width:60px;padding:4px 6px;text-align:center}}
 @container main (max-width:330px){.resultbar{flex-wrap:wrap}.resultbar .resultbar__none{order:3;flex:1 1 100%;width:auto;max-width:none;min-height:44px}}
+/* A studio page's field fills the screen right of its pane, so a message
+   stands over the pane, never on the ground being tapped. */
+@media (min-width:732px){.flash.flash--pane{left:calc(16px + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)));right:auto;transform:none;animation:none;width:auto;max-width:clamp(208px, calc(30vw - 42px), 320px)}}
 .flash.flash--high{bottom:calc(158px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))}
 svg.field .tally-sel{animation:tsel 1.2s ease-in-out infinite alternate}
 .tally-chart{display:flex;flex-direction:column;gap:var(--s3)}
@@ -1057,6 +1060,25 @@ svg.field [data-pick]{cursor:crosshair}
 .set-left{display:inline-block;min-width:1.6em;margin-left:6px;padding:0 6px;border-radius:999px;background:var(--fill);color:#fff;font-size:var(--t-sm);font-weight:700;line-height:1.6}
 .set-left--out{background:transparent;border:1px solid var(--mute);color:var(--mute)}
 .turn-next{align-items:center}
+.turn-what{margin:0}
+.studio__stack{display:flex;flex-direction:column;gap:var(--s3);min-width:0}
+.studio__field{min-width:0}
+@container main (min-width:700px){
+  /* Every control is a row of the left column, so the ones used on every tap
+     — what is picked, Rotate, the bunkers, Done — lead the pane whatever
+     block they sit in on a phone. */
+  .main > .studio{max-width:none}
+  .studio{display:grid;grid-template-columns:clamp(240px,30%,320px) minmax(0,1fr);column-gap:var(--s4);row-gap:0;align-items:start}
+  .studio > .sec__head{grid-column:1 / -1;grid-row:1;margin-bottom:var(--s3)}
+  .studio .studio__stack{display:contents}
+  .studio .studio__stack > *{grid-column:1;order:5;margin:0 0 var(--s3)}
+  .studio .studio__stack > .pane-1{order:1} .studio .studio__stack > .pane-2{order:2} .studio .studio__stack > .pane-3{order:3} .studio .studio__stack > .pane-4{order:4}
+  .studio__field{grid-column:2;grid-row:2 / span 40;position:sticky;top:0}
+  .studio__field svg.field{width:100%;height:auto;max-width:100%;max-height:max(240px, calc(100vh - 310px))}
+  .studio__field .wb-wrap{width:min(100%, calc(max(240px, 100vh - 310px) * var(--field-aspect)));margin:0 auto}
+  .studio__field .wb-bg svg.field{max-height:none}
+}
+}
 .turn-preview{flex:none;border:1px solid var(--line);border-radius:var(--r-sm);background:#101111}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);margin-top:var(--s2)}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);min-height:48px}
@@ -5862,10 +5884,20 @@ function turnWord(kind, n){
   if(kind.t === "dorito") return ["point to the dorito side", "point to the snake side"][i];
   return ["as drawn", "turned a quarter"][i];
 }
+// The one Rotate button: the bunker picked on the field turns where it
+// stands, else the kind about to be placed turns for every tap after.
+window.fieldRotate = () => {
+  const ed = S.fieldEdit, f = ed && fieldOf(ed.key); if(!f) return;
+  const me = ed.sel && f.bunkers.find(b => b.id === ed.sel);
+  const kind = me ? BUNKER_KINDS.find(k => k.n === me.n) : BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
+  if(kind && turnSteps(kind) < 2) return flash(`A ${kind.name} is round — it looks the same every way.`);
+  if(me) return fieldTurn(me.id);
+  fieldTurnNext();
+};
 window.fieldTurnNext = () => {
   const ed = S.fieldEdit; if(!ed) return;
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
-  S.fieldEdit = {...ed, sel: null, turn: ((ed.turn || 0) + 1) % turnSteps(kind)};
+  S.fieldEdit = {...ed, turn: ((ed.turn || 0) + 1) % turnSteps(kind)};
   save(S); render();
 };
 function turnPreview(kind, n){
@@ -6089,7 +6121,11 @@ function fieldsPage(){
   // Edit is always one tap away (owner, 19 Nov 2026).
   const pick = S.fieldEdit && fieldOf(S.fieldEdit.key) ? S.fieldEdit.key : fieldOf(_fieldChoice) ? _fieldChoice : fieldOf(S.layoutKey) ? S.layoutKey : mine.length ? mine[mine.length - 1].key : "";
   const f = pick && fieldOf(pick);
-  return sec("Field builder", `<p class="lede">Build the field you are on when the app does not carry it — a
+  const fb = fieldBuilder(), open = typeof fb !== "string";
+  const tail = `<p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
+      placed it by eye. A field you build rides in Save a copy, and the twelve calls plant on it once it has
+      ${FIELD_MIN} bunkers. Your fields are kept here, apart from the event fields.</p>`;
+  const top = `<p class="lede">Build the field you are on when the app does not carry it — a
       regional, a league event or your home park. Name it, pick each bunker type and tap where it sits.</p>
     ${mine.length ? `<div class="fld"><label for="my-field">Your fields</label>
       <select id="my-field" onchange="chooseMyField(this.value)"><option value="">Choose one of your fields…</option>${mine.map(x =>
@@ -6101,11 +6137,13 @@ function fieldsPage(){
         ${on ? `<span class="tag tag--paid">ON</span>` : ready ? `<button class="btn btn--quiet" onclick="pickEvent(${jsq(f.key)})">Use this field</button>` : ""}
         ${S.fieldEdit && S.fieldEdit.key === f.key ? `<span class="tag">EDITING</span>` : `<button class="btn btn--quiet" onclick="editField(${jsq(f.key)})">Edit</button>`}
       </div>`; })() : ""}` : `<p class="note">No fields of your own yet.</p>`}
-    ${fieldBuilder()}
-    <p class="note">Sizes are the measured inflatables, so you only choose where a bunker goes; the field says you
-      placed it by eye. A field you build rides in Save a copy, and the twelve calls plant on it once it has
-      ${FIELD_MIN} bunkers. Your fields are kept here, apart from the event fields.</p>`,
-    mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "");
+`;
+  const count = mine.length ? mine.length + (mine.length === 1 ? " field" : " fields") : "";
+  // Builder open: the field fills the page and every control stands in a
+  // pane on its left (owner, 20 Nov 2026); on a phone the same three blocks
+  // stack as before — controls, field, then Rotate and the buttons.
+  if(open) return studio("Field builder", top + fb.a, fb.field, fb.b + tail, count);
+  return sec("Field builder", top + fb + tail, count);
 }
 function fieldSetSec(f){
   const total = f.set ? BUNKER_KINDS.reduce((n, k) => n + (f.set[k.key] || 0), 0) : 0;
@@ -6138,7 +6176,7 @@ function fieldBuilder(){
   const me = ed.sel && f.bunkers.find(b => b.id === ed.sel);
   const kind = BUNKER_KINDS.find(k => k.key === ed.kind) || BUNKER_KINDS[0];
   mapPixels(f);
-  return `<div id="fieldbuild" style="margin-top:var(--s4)">
+  const a = `<div id="fieldbuild" class="studio__stack">
     <p class="note field-saved" role="status">✓ Saved as you go — every bunker you place, move or turn is kept on this phone. Done puts the builder away; Edit opens it again.</p>
     <div class="fld"><label>Field name</label>
       <input value="${esc(f.name)}" maxlength="40" aria-label="Field name" onchange="renameField(${jsq(f.key)}, this.value)"/></div>
@@ -6157,27 +6195,29 @@ function fieldBuilder(){
         <button class="btn btn--quiet" onclick="fieldMapDrop()">Take the map off</button>` : ""}
     </div>
     ${mapOf(f) ? `<p class="note" style="margin:0 0 var(--s2)">The map is a guide, stretched to the field's edges — crop it to the field before you pick it. Each bunker you place takes the red or blue the map prints under it; on anything else it stays grey.</p>` : ""}
-    <div class="seg seg--wrap" aria-label="Bunker to place">${BUNKER_KINDS.map(k => {
+    <div class="seg seg--wrap pane-3" aria-label="Bunker to place">${BUNKER_KINDS.map(k => {
       const left = fieldSetLeft(f, k);
       return `<button class="${k.key === ed.kind && !me ? "on" : ""}" onclick="fieldKind(${jsq(k.key)})"${left === null ? "" : ` aria-label="${esc(k.name)}, ${left < 0 ? `${-left} over your set` : `${left} left`}"`}>${esc(k.name)}${left === null ? "" : ` <span class="set-left${left <= 0 ? " set-left--out" : ""}">${left < 0 ? `${-left} over` : left}</span>`}</button>`; }).join("")}</div>
     ${fieldSetSec(f)}
-    <div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>
-    <p class="note" style="margin:6px 0">${me
+  </div>`;
+  const field = `<div class="field-wrap" id="fieldbuild-map">${fieldBuildSVG(f)}</div>`;
+  // One Rotate for every bunker (owner, 20 Nov 2026): the picture is the bunker
+  // chosen — the one picked on the field, else the kind about to go down.
+  const b = `<p class="note pane-1" style="margin:6px 0">${me
       ? `<b>${esc(me.id)}</b> picked${me.tw ? ` (twin ${esc(me.tw)})` : " · on the fifty"} — tap ground to move it there.`
       : `Tap a lit spot to place a <b>${esc(kind.name)}</b>${turnSteps(kind) > 1 ? ` (${esc(turnWord(kind, ed.turn))})` : ""} — it snaps to the 10-ft grid every 5 ft. Tap a bunker to pick it.`} ${f.bunkers.length} bunker${f.bunkers.length === 1 ? "" : "s"}${fieldReady(f) ? "" : ` · ${FIELD_MIN - f.bunkers.length} more before it can be played on`}.</p>
-    ${(() => { const it = me || (ed.last && f.bunkers.find(b => b.id === ed.last)), k2 = it && BUNKER_KINDS.find(k => k.n === it.n);
-      return it && (!k2 || turnSteps(k2) > 1) ? `<div class="btnrow turn-placed">${shapePreview(it)}<button class="btn btn--quiet" onclick="fieldTurn(${jsq(it.id)})" aria-label="Turn ${esc(it.id)}, ${me ? "the bunker picked" : "the one just placed"}, where it stands">↻ Turn ${me ? "this bunker" : "the one just placed"} · ${esc(it.id)}</button></div>` : ""; })()}
-    ${turnSteps(kind) > 1 ? `<div class="btnrow turn-next">${turnPreview(kind, ed.turn)}<button class="btn btn--quiet" onclick="fieldTurnNext()" aria-label="Turn the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}">↻ Turn before placing</button></div>` : ""}
-    <div class="btnrow">
-      ${me ? `<button class="btn btn--quiet" onclick="fieldTurn()">↻ Turn</button>
-        <button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
+    <div class="btnrow turn-next pane-2">${me ? shapePreview(me) : turnPreview(kind, ed.turn)}
+      <button class="btn" onclick="fieldRotate()" aria-label="${me ? `Rotate ${esc(me.id)}, the bunker picked on the field` : `Rotate the ${esc(kind.name)} before you place it. It will go down ${esc(turnWord(kind, ed.turn))}`}">↻ Rotate</button>
+      <span class="note turn-what">${me ? `${esc(me.id)} · on the field` : `${esc(kind.name)} · next to place`}</span></div>
+    <div class="btnrow pane-4">
+      ${me ? `<button class="btn btn--quiet" onclick="fieldRemove()">Take it off</button>
         <button class="btn btn--quiet" onclick="fieldDeselect()">Put it down</button>` : ""}
       <button class="btn btn--quiet" onclick="fieldUndo()">↶ Undo</button>
       <button class="btn btn--quiet" onclick="fieldClear()">Clear all</button>
       <button class="btn" onclick="fieldDone()">Done</button>
       <button class="btn btn--quiet" onclick="deleteField(${jsq(f.key)})">Delete field</button>
-    </div>
-  </div>`;
+    </div>`;
+  return {a, field, b};
 }
 (function fieldBuilding(){
   document.addEventListener("fieldtap", ev => {
@@ -13848,6 +13888,17 @@ function sec(eyebrow, body, note){
     <div class="sec__body">${body}</div>
   </section>`;
 }
+/* A studio page (owner, 20 Nov 2026): Field builder and Whiteboard. On a wide
+ * column the field fills the page and everything that runs it stands in a
+ * pane on the left; on a phone the three blocks stack in reading order. */
+function studio(eyebrow, before, field, after, note){
+  return `<section class="sec studio">
+    <div class="sec__head"><h2 class="sec__eyebrow">${eyebrow}</h2>${note?`<span class="sec__note">${esc(note)}</span>`:""}</div>
+    <div class="studio__a studio__stack">${before}</div>
+    <div class="studio__field">${field}</div>
+    <div class="studio__b studio__stack">${after}</div>
+  </section>`;
+}
 function pips(n, label){
   return `<div class="aggr"><div class="aggr__pips">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>
     <span class="aggr__label">${label}</span></div>`;
@@ -20511,7 +20562,7 @@ const HELP = {
       "Tap a bunker to pick it, then Turn, move it or take it off. ↶ Undo takes back the last change; Clear all takes every bunker off (Undo brings them back). Put the event's map under it to tap over, and each bunker takes the red or blue the map prints under it.",
       "Your bunker set is how many of each kind you have. It starts from the 58 the 2026 NXL fields use; change any number to match yours. The number on each bunker button counts down as you place them, and past your set it says how many over — it never stops you placing.",
       "Your fields is the drop-down of every field you built. Pick one, then Use this field or Edit. They are kept here, never in the event list. Scout's Share this field as a picture keeps a 10v10 field in a 4:3 picture, with its name below.",
-      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. Turn before placing sets the way the next bunker goes down; ↻ Turn the one just placed, or tap a bunker and ↻ Turn this bunker, turns one already on the field."],
+      "At eight bunkers Use this field puts it on every tab and the twelve calls plant on it by themselves. It saves as you go, so there is no Save button: Done puts the builder away and Edit opens it again. One ↻ Rotate button turns whatever its picture shows: the bunker you are about to place, or — tap one on the field to pick it — that bunker where it stands. On a tablet or computer the field fills the page and the controls stand in a pane on its left."],
     watch:"You place every bunker by eye, and the field says so. Sizes are the measured inflatables — never stretched. A field a sheet was played on cannot be deleted."},
   "more/walk": {t:"Walk", w:"What you learned walking the field.",
     how:["Pick a bunker and it says what the book knows about it: lanes clear from there, how often their five have planted on it, men lost at it — and one tap opens Sightlines standing in it.",
@@ -22809,7 +22860,7 @@ function shell(){
       <p class="note">Gridlock System · powered by UPRA · officials govern the live call</p>
     </main>
     ${asking ? "" : `<nav class="tabs" aria-label="Main screens">${tabs.map(([k,n])=>`<button class="${S.tab===k?"on":""}"${S.tab===k ? ' aria-current="page"' : ""} onclick="set({tab:'${k}',more:null,evPick:false})"><i></i>${n}</button>`).join("")}</nav>`}
-    ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
+    ${S.flash ? `<div class="flash${resultBarShown() || (S.tab === "tally" && selBunker()) ? " flash--high" : ""}${S.tab === "more" && (S.more === "wb" || (S.more === "fields" && S.fieldEdit)) ? " flash--pane" : ""}" role="status" onclick="set({flash:''})">${esc(S.flash)}</div>` : ""}
     ${S.quick ? quickLog() : ""}
   </div>`;
 }
@@ -22978,15 +23029,16 @@ function whiteboardPage(){
   const inkBox = wb.field && curLayout().size === "10v10" ? bg.match(/viewBox="([^"]+)"/)[1]
     : `0 0 ${fieldW() * 2} ${fieldH() * 2}`;
   const inkDims = inkBox.split(" ").map(Number);
-  const inkFit = wb.field && curLayout().size === "10v10"
-    ? ` style="left:${-inkDims[0]/inkDims[2]*100}%;top:${-inkDims[1]/inkDims[3]*100}%;width:${fieldW()*2/inkDims[2]*100}%;height:${fieldH()*2/inkDims[3]*100}%"` : "";
-  return sec("Whiteboard",
-   `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>
-    <div class="wb-wrap" style="--field-aspect:${inkDims[2] / inkDims[3]}">
+  // The ink layer is the picture's own box and viewBox, so the two share one
+  // transform exactly; a box cut out by percentages was snapped by the
+  // browser a sixty-fourth of a pixel off the picture under it.
+  return studio("Whiteboard",
+   `<p class="lede">Draw the adjustment with your finger, then wipe it. Nothing here is saved to a sheet.</p>`,
+   `<div class="wb-wrap" style="--field-aspect:${inkDims[2] / inkDims[3]}">
       <div class="wb-bg">${bg}</div>
-      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="0 0 ${fieldW() * 2} ${fieldH() * 2}"${inkFit} aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
-    </div>
-    <div class="wb-tools">
+      <svg class="wb-ink" id="wb-map" data-fw="${fieldW()}" data-fh="${fieldH()}" viewBox="${inkBox}" aria-label="Whiteboard">${wbInk(wbMarks())}</svg>
+    </div>`,
+   `<div class="wb-tools">
       ${pens.map(([c,n]) => `<button class="wb-pen ${wb.tool==="pen"&&wb.color===c?"on":""}" style="--pen:${c}"
         onclick="wbColor('${c}')" aria-label="${n} pen"><i></i></button>`).join("")}
       <button class="wb-tool ${wb.tool==="x"?"on":""}" onclick="wbTool('x')" aria-label="X mark">✕</button>
